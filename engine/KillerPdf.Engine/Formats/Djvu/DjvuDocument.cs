@@ -207,7 +207,11 @@ public sealed partial class DjvuDocument
 }
 
 /// <summary>A stable feature code and a bounded explanation.</summary>
-public sealed record DjvuDiagnostic(string Code, string Message);
+public sealed record DjvuDiagnostic(string Code, string Message)
+{
+    /// <summary>The zero-based page a page notice is about, or null for a notice about the whole document.</summary>
+    public int? PageIndex { get; init; }
+}
 
 /// <summary>Stored page information from an INFO chunk.</summary>
 public sealed record DjvuPageInfo(int Width, int Height, int Dpi, byte MinorVersion, byte MajorVersion, DjvuOrientation Orientation)

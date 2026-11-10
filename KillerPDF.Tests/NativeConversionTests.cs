@@ -108,6 +108,88 @@ public sealed class NativeConversionTests
         finally { Directory.Delete(directory, recursive: true); }
     }
 
+    // A page whose text holds a byte that is not UTF-8 (0xB8, a 1999 single-byte copyright sign in the djvu2spec
+    // reference edition) converts with a replacement character, and Convert to PDF hands that page's notice back.
+    [Fact]
+    public void DjvuConversionReturnsTheNoticeNamingAPageWhoseTextWasReplaced()
+    {
+        string directory = TempDirectory();
+        try
+        {
+            string source = Path.Combine(directory, "book.djvu"), destination = Path.Combine(directory, "book.pdf");
+            File.WriteAllBytes(source, NativeWorkingDocumentTests.DjvuPageWithText([0x41, 0xb8], zoned: true));
+            using var owner = NativeWorkingDocument.OpenDjvu(File.ReadAllBytes(source));
+
+            var notices = NativePdfConversion.WriteNewDjvu(owner, source, destination);
+
+            var notice = Assert.Single(notices);
+            Assert.Equal("TextEncodingInvalid", notice.Code);
+            Assert.Equal(0, notice.PageIndex);
+            Assert.Equal("%PDF-"u8.ToArray(), File.ReadAllBytes(destination)[..5]);
+        }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
+
+    // Text without located zones cannot be placed over the page, so the page converts without it.
+    [Fact]
+    public void DjvuConversionReturnsTheNoticeNamingAPageWhoseTextWasLeftOut()
+    {
+        string directory = TempDirectory();
+        try
+        {
+            string source = Path.Combine(directory, "book.djvu"), destination = Path.Combine(directory, "book.pdf");
+            File.WriteAllBytes(source, NativeWorkingDocumentTests.DjvuPageWithText("AB"u8.ToArray(), zoned: false));
+            using var owner = NativeWorkingDocument.OpenDjvu(File.ReadAllBytes(source));
+
+            var notices = NativePdfConversion.WriteNewDjvu(owner, source, destination);
+
+            var notice = Assert.Single(notices);
+            Assert.Equal("TextNotConverted", notice.Code);
+            Assert.Equal(0, notice.PageIndex);
+        }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
+
+    // The note after conversion names the pages in two groups with consecutive pages joined: text left out (pages 3
+    // and 5) and text with replaced characters (pages 1, 2 and 7). Page 3 also had replaced characters, but its text
+    // was left out, so it is named once. A notice about the whole document names no page and adds nothing.
+    [Fact]
+    public void TheDjvuConversionNoteNamesThePagesThatLostTextAndThoseWithReplacedCharacters()
+    {
+        KillerPdf.Engine.Formats.Djvu.DjvuDiagnostic Notice(string code, int? page) => new(code, "") { PageIndex = page };
+        var notices = new[]
+        {
+            Notice("TextEncodingInvalid", 0), Notice("TextEncodingInvalid", 1), Notice("TextEncodingInvalid", 2),
+            Notice("TextCharactersReplaced", 6), Notice("TextCharactersReplaced", 2), Notice("TextNotConverted", 4),
+            Notice("TextNotConverted", 2), Notice("Iw44RenderingLimited", null)
+        };
+
+        string? note = NativePdfConversion.DjvuConversionNote(notices, key => key + ": {0}");
+
+        Assert.Equal("Str_NativePdf_TextLeftOut: 3, 5\nStr_NativePdf_TextReplaced: 1-2, 7", note);
+        Assert.Null(NativePdfConversion.DjvuConversionNote([Notice("Iw44RenderingLimited", null)], key => key));
+        Assert.Null(NativePdfConversion.DjvuConversionNote([], key => key));
+    }
+
+    // Convert to PDF shows the note once the converted PDF is open in its tab.
+    [Fact]
+    public void ConvertToPdfShowsTheDjvuNoteAfterOpeningTheConvertedPdf()
+    {
+        string shell = File.ReadAllText(Path.Combine(RepositoryRoot(), "Shell", "NativeConversion.cs"));
+        int open = shell.IndexOf("viewer.OpenInNewTabExt(destination);", StringComparison.Ordinal);
+        int note = shell.IndexOf("ShowDjvuConversionNote(notices);", StringComparison.Ordinal);
+        Assert.True(open >= 0 && note > open, "the note follows opening the converted PDF");
+        Assert.Contains("notices = NativePdfConversion.WriteNewDjvu(", shell);
+    }
+
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "KillerPDF.csproj")))
+            directory = directory.Parent;
+        return directory?.FullName ?? throw new DirectoryNotFoundException("KillerPDF.csproj was not found.");
+    }
+
     private static string TempDirectory() =>
         Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "kpb3-" + Guid.NewGuid().ToString("N"))).FullName;
 }

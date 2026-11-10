@@ -2089,6 +2089,8 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF yeni bir sekmede açılır. Özgün dosyanız değişmeden kalır.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Geçerli bir kağıt boyutu ve içeriğe yer bırakan kenar boşlukları girin.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Bu PDF bir sekmede açık. Önce onu kapatın veya başka bir ad seçin.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">{0} sayfalarının metni korunamadı, bu nedenle bu sayfalar yalnızca görüntü olarak dönüştürüldü.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">{0} sayfalarının metnindeki bazı karakterler okunamadı ve yer tutucu bir karakterle değiştirildi.</sys:String>
     <sys:String x:Key="Str_CM_Title">Renk Yönetimi</sys:String>
     <sys:String x:Key="Str_CM_Hint">Prova ayarları bu belgeye uygulanır. Görüntüleme dosyayı değiştirmez.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Yazıcı provasını etkinleştir</sys:String>

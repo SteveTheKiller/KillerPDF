@@ -62,6 +62,7 @@ public sealed partial class DjvuDocument
         [
             new("TextEncodingInvalid", $"Page {pageIndex + 1} text is not valid UTF-8. {replaced} unreadable byte " +
                 "sequences read as replacement characters; the rest of the page's text is unchanged.")
+            { PageIndex = pageIndex }
         ];
         return new DjvuTextPage(builder.ToString(), zones, diagnostics);
     }

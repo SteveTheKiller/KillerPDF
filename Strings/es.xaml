@@ -2089,6 +2089,8 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_NativePdf_KeepOriginal">El PDF se abre en una pestaña nueva. El archivo original no se modifica.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Introduce un tamaño de papel válido y unos márgenes que dejen espacio para el contenido.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Ese PDF está abierto en una pestaña. Ciérralo primero o elige otro nombre.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">No se pudo conservar el texto de las páginas {0}, así que esas páginas se convirtieron solo como imágenes.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">Algunos caracteres del texto de las páginas {0} no se pudieron leer y se sustituyeron por un marcador.</sys:String>
     <sys:String x:Key="Str_CM_Title">Gestión del color</sys:String>
     <sys:String x:Key="Str_CM_Hint">Los ajustes de prueba se aplican a este documento. La visualización no modifica el archivo.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Activar prueba de impresora</sys:String>

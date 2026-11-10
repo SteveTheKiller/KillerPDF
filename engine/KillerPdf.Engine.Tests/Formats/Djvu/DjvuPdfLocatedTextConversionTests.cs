@@ -115,6 +115,7 @@ public sealed class DjvuPdfLocatedTextConversionTests
         var notice = Assert.Single(notices);
         Assert.Equal("TextNotConverted", notice.Code);
         Assert.StartsWith("Page 1 text was left out", notice.Message, StringComparison.Ordinal);
+        Assert.Equal(0, notice.PageIndex);
         Assert.Equal(text, native.ReadText(0));
         Assert.Equal(original, source);
         Assert.Equal(originalPixels, native.RenderPage(0).Pixels.ToArray());
@@ -136,6 +137,7 @@ public sealed class DjvuPdfLocatedTextConversionTests
         var notice = Assert.Single(notices);
         Assert.Equal("TextCharactersReplaced", notice.Code);
         Assert.StartsWith("Page 1 text", notice.Message, StringComparison.Ordinal);
+        Assert.Equal(0, notice.PageIndex);
         Assert.Equal(text, native.ReadText(0));
     }
 
@@ -152,7 +154,9 @@ public sealed class DjvuPdfLocatedTextConversionTests
 
         Assert.Single(PdfPageInformation.Read(pdf));
         Assert.Empty(new PdfPageContentReader(pdf).Read(0).Letters);
-        Assert.Equal("TextNotConverted", Assert.Single(notices).Code);
+        var notice = Assert.Single(notices);
+        Assert.Equal("TextNotConverted", notice.Code);
+        Assert.Equal(0, notice.PageIndex);
     }
 
     [Fact]

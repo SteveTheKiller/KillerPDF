@@ -1,4 +1,5 @@
 using System.IO;
+using KillerPdf.Engine.Formats.Djvu;
 using KillerPdf.Engine.Formats.Epub;
 
 namespace KillerPDF.Services;
@@ -39,14 +40,43 @@ internal static class NativePdfConversion
         UnavailableChapterLabel = unavailableChapterLabel
     };
 
-    /// <summary>Converts a DjVu document. An existing destination is replaced only when the user confirmed it.</summary>
-    internal static void WriteNewDjvu(NativeWorkingDocument source, string sourcePath, string destination,
-        CancellationToken cancellationToken = default, bool replaceExisting = false)
+    /// <summary>
+    /// Converts a DjVu document. An existing destination is replaced only when the user confirmed it. Returns the
+    /// notices for pages whose text the PDF kept only in part, for <see cref="DjvuConversionNote"/>.
+    /// </summary>
+    internal static IReadOnlyList<DjvuDiagnostic> WriteNewDjvu(NativeWorkingDocument source,
+        string sourcePath, string destination, CancellationToken cancellationToken = default, bool replaceExisting = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(source);
         CheckDestination(sourcePath, destination, replaceExisting);
-        Publish(destination, source.ConvertDjvuToPdf(cancellationToken), replaceExisting, cancellationToken);
+        var notices = new List<DjvuDiagnostic>();
+        Publish(destination, source.ConvertDjvuToPdf(notices, cancellationToken), replaceExisting, cancellationToken);
+        return notices;
+    }
+
+    /// <summary>
+    /// The note shown after a DjVu conversion: the pages whose text was left out, then the pages whose text kept
+    /// replacement characters, each as one-based numbers with consecutive pages joined. A page left out is named only
+    /// there. Null when no page lost text.
+    /// </summary>
+    internal static string? DjvuConversionNote(IReadOnlyList<DjvuDiagnostic> notices, Func<string, string> loc)
+    {
+        ArgumentNullException.ThrowIfNull(notices);
+        ArgumentNullException.ThrowIfNull(loc);
+        var leftOut = new SortedSet<int>();
+        var replaced = new SortedSet<int>();
+        foreach (var notice in notices)
+        {
+            if (notice.PageIndex is not int page) continue;
+            if (notice.Code == "TextNotConverted") leftOut.Add(page);
+            else if (notice.Code is "TextEncodingInvalid" or "TextCharactersReplaced") replaced.Add(page);
+        }
+        replaced.ExceptWith(leftOut);
+        var lines = new List<string>(2);
+        if (leftOut.Count > 0) lines.Add(string.Format(loc("Str_NativePdf_TextLeftOut"), IncompletePageLog.Describe([.. leftOut])));
+        if (replaced.Count > 0) lines.Add(string.Format(loc("Str_NativePdf_TextReplaced"), IncompletePageLog.Describe([.. replaced])));
+        return lines.Count == 0 ? null : string.Join("\n", lines);
     }
 
     /// <summary>Converts an EPUB document. An existing destination is replaced only when the user confirmed it.</summary>

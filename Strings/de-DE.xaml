@@ -2098,6 +2098,8 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_NativePdf_KeepOriginal">Die PDF wird in einem neuen Tab geöffnet. Ihre Originaldatei bleibt unverändert.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Geben Sie ein gültiges Papierformat und Ränder ein, die Platz für den Inhalt lassen.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Diese PDF-Datei ist in einem Tab geöffnet. Schließen Sie sie zuerst, oder wählen Sie einen anderen Namen.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">Der Text der Seiten {0} konnte nicht übernommen werden. Diese Seiten wurden daher nur als Bilder konvertiert.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">Einige Zeichen im Text der Seiten {0} waren nicht lesbar und wurden durch einen Platzhalter ersetzt.</sys:String>
     <sys:String x:Key="Str_CM_Title">Farbmanagement</sys:String>
     <sys:String x:Key="Str_CM_Hint">Die Proof-Einstellungen gelten für dieses Dokument. Die Anzeige verändert die Datei nicht.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Drucker-Proof aktivieren</sys:String>

@@ -106,7 +106,12 @@ internal sealed class NativeWorkingDocument : IDisposable
     internal bool HasOmissions => ChapterDiagnostics.Count > 0 || ContentDiagnostics.Count > 0;
 
     internal byte[] ConvertDjvuToPdf(CancellationToken cancellationToken = default)
+        => ConvertDjvuToPdf(new List<DjvuDiagnostic>(), cancellationToken);
+
+    /// <summary>Converts the DjVu document and adds a notice for each page whose text the PDF kept only in part.</summary>
+    internal byte[] ConvertDjvuToPdf(ICollection<DjvuDiagnostic> notices, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(notices);
         cancellationToken.ThrowIfCancellationRequested();
         byte[] source;
         lock (_sync)
@@ -116,7 +121,7 @@ internal sealed class NativeWorkingDocument : IDisposable
                 throw new NotSupportedException("DjVu conversion requires a DjVu document.");
             source = _source;
         }
-        return DjvuDocument.Open(source, cancellationToken).ConvertToPdf(cancellationToken);
+        return DjvuDocument.Open(source, cancellationToken).ConvertToPdf(notices, cancellationToken);
     }
 
     internal byte[] ConvertEpubToPdf(EpubPdfConversionOptions options,

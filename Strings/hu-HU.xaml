@@ -2096,6 +2096,8 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_NativePdf_KeepOriginal">A PDF új lapon nyílik meg. Az eredeti fájl változatlan marad.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Adjon meg érvényes papírméretet és olyan margókat, amelyek mellett marad hely a tartalomnak.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Ez a PDF meg van nyitva egy lapon. Először zárja be, vagy válasszon másik nevet.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">A következő oldalak szövegét nem sikerült megőrizni, ezért ezek az oldalak csak képként lettek átalakítva: {0}.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">A következő oldalak szövegében néhány karakter olvashatatlan volt, ezért helyettesítő jelre lett cserélve: {0}.</sys:String>
     <sys:String x:Key="Str_CM_Title">Színkezelés</sys:String>
     <sys:String x:Key="Str_CM_Hint">A próbanyomat beállításai erre a dokumentumra érvényesek. A megjelenítés nem módosítja a fájlt.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Nyomtatási próbanyomat engedélyezése</sys:String>

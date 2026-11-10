@@ -803,6 +803,23 @@ public sealed class NativeWorkingDocumentTests
             .. Chunk("INFO", [0, 3, 0, 2, 26, 0, 0x2c, 1, 22, 5]),
             .. Chunk("Smmr", [.. "MMR"u8, 0, 0, 3, 0, 2, 0x23, 0xe1, 0x80, 0x08, 0, 0x80])])];
 
+    // DjvuPage with a TXTa text layer of raw bytes: with one word zone over the whole text when zoned, or none.
+    internal static byte[] DjvuPageWithText(byte[] text, bool zoned)
+    {
+        byte[] zone = new byte[17];
+        zone[0] = 6;
+        // Left, bottom, width and height of the 3 x 2 page, and the text start, stored with the 0x8000 offset.
+        int[] values = [0, 0, 3, 2, 0];
+        for (int index = 0; index < values.Length; index++)
+            BinaryPrimitives.WriteUInt16BigEndian(zone.AsSpan(1 + index * 2), (ushort)(values[index] + 0x8000));
+        zone[13] = (byte)text.Length;
+        return [.. "AT&T"u8,
+            .. Chunk("FORM", [.. "DJVU"u8,
+                .. Chunk("INFO", [0, 3, 0, 2, 26, 0, 0x2c, 1, 22, 5]),
+                .. Chunk("Smmr", [.. "MMR"u8, 0, 0, 3, 0, 2, 0x23, 0xe1, 0x80, 0x08, 0, 0x80]),
+                .. Chunk("TXTa", [0, 0, (byte)text.Length, .. text, .. (zoned ? (byte[])[1, .. zone] : [])])])];
+    }
+
     private static byte[] Chunk(string id, byte[] payload)
     {
         byte[] length = new byte[4];

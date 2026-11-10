@@ -125,7 +125,7 @@ public sealed partial class DjvuDocument
 
     private static DjvuDiagnostic TextLeftOut(int pageIndex, string reason)
         => new("TextNotConverted", $"Page {pageIndex + 1} text was left out of the PDF: {reason.TrimEnd('.')}. " +
-            "The page image converted.");
+            "The page image converted.") { PageIndex = pageIndex };
 
     // Writes the page's located text as an invisible layer, or, when the text cannot be placed faithfully, leaves it
     // out with a notice naming the page; text never stops the conversion. Every check runs before anything is written.
@@ -160,7 +160,8 @@ public sealed partial class DjvuDocument
         }
         if (replaced > 0)
             diagnostics.Add(new("TextCharactersReplaced", $"Page {pageIndex + 1} text has {replaced} characters the " +
-                "PDF text layer cannot represent, such as control characters. They are written as replacement characters."));
+                "PDF text layer cannot represent, such as control characters. They are written as replacement characters.")
+                { PageIndex = pageIndex });
         var bounds = new TrueTypeOutlineReader(font).Bounds(font.GetGlyphId('A'))!.Value;
         double scale = 72d / page.Dpi;
         content.SaveState();

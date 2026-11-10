@@ -2109,6 +2109,8 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF は新しいタブで開きます。元のファイルは変更されません。</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">有効な用紙サイズと、コンテンツを配置するスペースを確保できる余白を入力してください。</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">その PDF はタブで開かれています。先に閉じるか、別の名前を選択してください。</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">{0} ページのテキストは保持できなかったため、これらのページは画像としてのみ変換されました。</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">{0} ページのテキストに読み取れない文字があったため、代替文字に置き換えました。</sys:String>
     <sys:String x:Key="Str_CM_Title">カラーマネジメント</sys:String>
     <sys:String x:Key="Str_CM_Hint">校正設定はこの文書に適用されます。表示してもファイルは変更されません。</sys:String>
     <sys:String x:Key="Str_CM_Enable">プリンターの色校正を有効にする</sys:String>

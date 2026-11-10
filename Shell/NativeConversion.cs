@@ -69,6 +69,7 @@ public partial class MainWindow
                 };
                 panel.Children.Add(cancel);
             }
+            IReadOnlyList<KillerPdf.Engine.Formats.Djvu.DjvuDiagnostic> notices = [];
             try
             {
                 await Task.Run(() =>
@@ -76,7 +77,7 @@ public partial class MainWindow
                     if (source.Format == PdfDocumentFormat.Epub)
                         NativePdfConversion.WriteNewEpub(source, sourcePath, destination, epubOptions!, token, replaceExisting);
                     else
-                        NativePdfConversion.WriteNewDjvu(source, sourcePath, destination, token, replaceExisting);
+                        notices = NativePdfConversion.WriteNewDjvu(source, sourcePath, destination, token, replaceExisting);
                 });
             }
             catch (OperationCanceledException)
@@ -92,12 +93,21 @@ public partial class MainWindow
             if (!IsLoaded || Dispatcher.HasShutdownStarted) return;
             viewer.OpenInNewTabExt(destination);
             SetStatus(string.Format(Loc("Str_St_Saved"), Path.GetFileName(destination)));
+            ShowDjvuConversionNote(notices);
         }
         catch (Exception error)
         {
             KillerDialog.Show(this, Loc("Str_Convert_Failed") + "\n" + error.Message, "KillerPDF",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    // Pages whose text the converted PDF kept only in part are named once the PDF is open, as an image export names
+    // the pages it saved as shown.
+    internal void ShowDjvuConversionNote(IReadOnlyList<KillerPdf.Engine.Formats.Djvu.DjvuDiagnostic> notices)
+    {
+        if (NativePdfConversion.DjvuConversionNote(notices, Loc) is { } note)
+            KillerDialog.Show(this, note, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     private bool IsPathOpenInAnyTab(string path)

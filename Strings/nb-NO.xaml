@@ -2109,6 +2109,8 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF-en åpnes i en ny fane. Originalfilen din forblir uendret.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Angi en gyldig papirstørrelse og marger som gir plass til innholdet.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Denne PDF-en er åpen i en fane. Lukk den først, eller velg et annet navn.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">Teksten på sidene {0} kunne ikke beholdes, så disse sidene ble bare konvertert som bilder.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">Noen tegn i teksten på sidene {0} kunne ikke leses og ble erstattet med et plassholdertegn.</sys:String>
     <sys:String x:Key="Str_CM_Title">Fargestyring</sys:String>
     <sys:String x:Key="Str_CM_Hint">Innstillingene for prøvetrykk gjelder dette dokumentet. Visningen endrer ikke filen.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Aktiver prøvetrykk for skriver</sys:String>

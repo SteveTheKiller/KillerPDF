@@ -2097,6 +2097,8 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF otworzy się w nowej karcie. Oryginalny plik pozostanie bez zmian.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Podaj prawidłowy rozmiar papieru i marginesy, które pozostawią miejsce na treść.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Ten plik PDF jest otwarty na karcie. Najpierw go zamknij lub wybierz inną nazwę.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">Nie udało się zachować tekstu stron {0}, więc te strony przekonwertowano tylko jako obrazy.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">Niektórych znaków w tekście stron {0} nie udało się odczytać, więc zastąpiono je znakiem zastępczym.</sys:String>
     <sys:String x:Key="Str_CM_Title">Zarządzanie kolorami</sys:String>
     <sys:String x:Key="Str_CM_Hint">Ustawienia próby dotyczą tego dokumentu. Wyświetlanie nie zmienia pliku.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Włącz próbę drukarki</sys:String>

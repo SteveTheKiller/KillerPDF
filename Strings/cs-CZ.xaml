@@ -2094,6 +2094,8 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF se otevře na nové kartě. Původní soubor zůstane beze změny.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Zadejte platný formát papíru a okraje, které ponechají místo pro obsah.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Tento soubor PDF je otevřený na kartě. Nejprve ji zavřete, nebo zvolte jiný název.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">Text stránek {0} nebylo možné zachovat, proto byly tyto stránky převedeny pouze jako obrázky.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">Některé znaky v textu stránek {0} nebylo možné přečíst, a proto byly nahrazeny zástupným znakem.</sys:String>
     <sys:String x:Key="Str_CM_Title">Správa barev</sys:String>
     <sys:String x:Key="Str_CM_Hint">Nastavení nátisku platí pro tento dokument. Zobrazení soubor nemění.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Zapnout nátisk tiskárny</sys:String>

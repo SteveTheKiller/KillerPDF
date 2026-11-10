@@ -2091,6 +2091,8 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF 會在新分頁中開啟。原始檔案保持不變。</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">請輸入有效的紙張大小和邊界，確保有足夠的空間容納內容。</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">該 PDF 已在分頁中開啟。請先將其關閉，或選擇其他名稱。</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">第 {0} 頁的文字無法保留，因此這些頁面僅以影像形式轉換。</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">第 {0} 頁的文字中有部分字元無法讀取，已替換為預留位置字元。</sys:String>
     <sys:String x:Key="Str_CM_Title">色彩管理</sys:String>
     <sys:String x:Key="Str_CM_Hint">校樣設定適用於此文件。檢視不會變更檔案。</sys:String>
     <sys:String x:Key="Str_CM_Enable">啟用印表機校樣</sys:String>

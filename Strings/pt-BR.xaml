@@ -2109,6 +2109,8 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_NativePdf_KeepOriginal">O PDF abre em uma nova guia. Seu arquivo original permanece inalterado.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Informe um tamanho de papel válido e margens que deixem espaço para o conteúdo.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Esse PDF está aberto em uma guia. Feche-o primeiro ou escolha outro nome.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">Não foi possível manter o texto das páginas {0}, então essas páginas foram convertidas apenas como imagens.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">Alguns caracteres no texto das páginas {0} não puderam ser lidos e foram substituídos por um marcador.</sys:String>
     <sys:String x:Key="Str_CM_Title">Gerenciamento de cores</sys:String>
     <sys:String x:Key="Str_CM_Hint">As configurações de prova se aplicam a este documento. A visualização não altera o arquivo.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Ativar prova de impressora</sys:String>

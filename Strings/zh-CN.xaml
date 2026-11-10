@@ -2093,6 +2093,8 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF 会在新标签页中打开。原始文件保持不变。</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">请输入有效的纸张大小和页边距，确保有足够的空间容纳内容。</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">该 PDF 已在标签页中打开。请先将其关闭，或选择其他名称。</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">第 {0} 页的文字无法保留，因此这些页面仅以图像形式转换。</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">第 {0} 页的文字中有部分字符无法读取，已替换为占位符。</sys:String>
     <sys:String x:Key="Str_CM_Title">色彩管理</sys:String>
     <sys:String x:Key="Str_CM_Hint">校样设置适用于此文档。查看不会更改文件。</sys:String>
     <sys:String x:Key="Str_CM_Enable">启用打印机校样</sys:String>

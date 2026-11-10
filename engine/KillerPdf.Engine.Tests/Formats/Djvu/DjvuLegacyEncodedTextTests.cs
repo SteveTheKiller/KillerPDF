@@ -34,6 +34,7 @@ public sealed class DjvuLegacyEncodedTextTests
         var notice = Assert.Single(page.Diagnostics);
         Assert.Equal("TextEncodingInvalid", notice.Code);
         Assert.Contains("Page 1", notice.Message, StringComparison.Ordinal);
+        Assert.Equal(0, notice.PageIndex);
         Assert.Equal(Expected, document.ReadText(0));
     }
 
@@ -61,6 +62,7 @@ public sealed class DjvuLegacyEncodedTextTests
         var notice = Assert.Single(notices);
         Assert.Equal("TextEncodingInvalid", notice.Code);
         Assert.Contains("Page 1", notice.Message, StringComparison.Ordinal);
+        Assert.Equal(0, notice.PageIndex);
     }
 
     [Fact]

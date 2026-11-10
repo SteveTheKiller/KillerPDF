@@ -2112,6 +2112,8 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF откроется в новой вкладке. Исходный файл останется без изменений.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Укажите допустимый размер бумаги и поля, оставляющие место для содержимого.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Этот PDF открыт во вкладке. Сначала закройте его или выберите другое имя.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">Текст страниц {0} не удалось сохранить, поэтому эти страницы преобразованы только как изображения.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">Некоторые символы в тексте страниц {0} не удалось прочитать, поэтому они заменены символом-заполнителем.</sys:String>
     <sys:String x:Key="Str_CM_Title">Управление цветом</sys:String>
     <sys:String x:Key="Str_CM_Hint">Настройки цветопробы применяются к этому документу. Просмотр не изменяет файл.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Включить цветопробу принтера</sys:String>

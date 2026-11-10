@@ -2109,6 +2109,8 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_NativePdf_KeepOriginal">Le PDF s’ouvre dans un nouvel onglet. Votre fichier d’origine reste inchangé.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Saisissez un format de papier valide et des marges qui laissent de la place au contenu.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Ce PDF est ouvert dans un onglet. Fermez-le d'abord, ou choisissez un autre nom.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">Le texte des pages {0} n'a pas pu être conservé : ces pages ont donc été converties en images uniquement.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">Certains caractères du texte des pages {0} étaient illisibles et ont été remplacés par un caractère de substitution.</sys:String>
     <sys:String x:Key="Str_CM_Title">Gestion des couleurs</sys:String>
     <sys:String x:Key="Str_CM_Hint">Les paramètres d’épreuvage s’appliquent à ce document. L’affichage ne modifie pas le fichier.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Activer l’épreuvage de l’imprimante</sys:String>

@@ -2112,6 +2112,8 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF жаңа қойындыда ашылады. Бастапқы файлыңыз өзгеріссіз қалады.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Жарамды қағаз өлшемін және мазмұнға орын қалдыратын жиектерді енгізіңіз.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Бұл PDF қойындыда ашық тұр. Алдымен оны жабыңыз немесе басқа атау таңдаңыз.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextLeftOut">{0} беттердің мәтінін сақтау мүмкін болмады, сондықтан бұл беттер тек сурет ретінде түрлендірілді.</sys:String>
+    <sys:String x:Key="Str_NativePdf_TextReplaced">{0} беттердің мәтініндегі кейбір таңбалар оқылмады, сондықтан олар орынбасар таңбамен ауыстырылды.</sys:String>
     <sys:String x:Key="Str_CM_Title">Түстерді басқару</sys:String>
     <sys:String x:Key="Str_CM_Hint">Түсті сынау параметрлері осы құжатқа қолданылады. Қарау файлды өзгертпейді.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Принтердің түсті сынауын қосу</sys:String>
