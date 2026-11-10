@@ -37,6 +37,9 @@ internal static class PdfNativeFrameProof
         byte[]? classifications = proof.GamutWarnings ? new byte[pixels.Length / 4] : null;
         Span<double> xyz = stackalloc double[3];
         Span<double> device = stackalloc double[printer.ComponentCount];
+        // Neighboring pixels of one fill share a color, so the last classification is reused for them.
+        double lastX = double.NaN, lastY = double.NaN, lastZ = double.NaN;
+        byte lastClassification = 0;
         for (int offset = 0; offset < pixels.Length; offset += 4)
         {
             if ((offset & 4095) == 0) token.ThrowIfCancellationRequested();
@@ -49,7 +52,15 @@ internal static class PdfNativeFrameProof
             xyz[0] = .4360747 * r + .3850649 * g + .1430804 * b;
             xyz[1] = .2225045 * r + .7168786 * g + .0606169 * b;
             xyz[2] = .0139322 * r + .0971045 * g + .7141733 * b;
-            if (gamut is not null) classifications![offset / 4] = (byte)gamut.EvaluateXyz(xyz).Classification;
+            if (gamut is not null)
+            {
+                if (xyz[0] != lastX || xyz[1] != lastY || xyz[2] != lastZ)
+                {
+                    (lastX, lastY, lastZ) = (xyz[0], xyz[1], xyz[2]);
+                    lastClassification = (byte)gamut.EvaluateXyz(xyz).Classification;
+                }
+                classifications![offset / 4] = lastClassification;
+            }
             sourceCompensation.Apply(xyz);
             printer.FromXyz(xyz, device, options.RenderingIntent);
             printer.ToXyz(device, xyz, options.SimulatePaper

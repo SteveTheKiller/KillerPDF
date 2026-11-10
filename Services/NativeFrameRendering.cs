@@ -16,7 +16,9 @@ internal static class NativeFrameRendering
         int pixelsWide = Math.Clamp((int)Math.Round(width * scale), 1, maximumWidth);
         int pixelsHigh = Math.Clamp((int)Math.Round(height * scale), 1, maximumHeight);
         using var lease = revision.Rent(cancellationToken);
+        // These frames are for viewing only, so they carry any requested gamut warning marks.
         return lease.RenderFrame(page, new KillerPdf.Engine.Rendering.PdfRenderOptions(
-            pixelsWide, pixelsHigh, maximumPixelBytes: (proof?.Enabled == true ? 256L : 128L) << 20) { Proof = proof });
+            pixelsWide, pixelsHigh, maximumPixelBytes: (proof?.Enabled == true ? 256L : 128L) << 20) { Proof = proof })
+            .WithGamutWarningsMarked(cancellationToken);
     }
 }

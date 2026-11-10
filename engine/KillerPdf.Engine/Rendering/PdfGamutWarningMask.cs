@@ -43,6 +43,8 @@ public sealed class PdfGamutWarningMask
     /// <summary>Gets the number of pixels within the numerical boundary band.</summary>
     public int BoundaryPixelCount { get; }
 
+    internal ReadOnlySpan<byte> Classifications => _classifications;
+
     /// <summary>Gets the classification at a frame-local pixel.</summary>
     public PdfGamutClassification GetClassification(int x, int y)
     {

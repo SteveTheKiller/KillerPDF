@@ -155,6 +155,9 @@ public sealed partial class PdfPageRenderer
         Span<double> device = stackalloc double[printer.ComponentCount];
         var gamutCheck = gamutWarnings ? new PdfPrinterGamutCheck(printer) : null;
         byte[]? classifications = gamutWarnings ? new byte[pixels.Length / 4] : null;
+        // Neighboring pixels of one fill share a color, so the last classification is reused for them.
+        double lastX = double.NaN, lastY = double.NaN, lastZ = double.NaN;
+        byte lastClassification = 0;
         for (int offset = 0; offset < pixels.Length; offset += 4)
         {
             if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -169,7 +172,14 @@ public sealed partial class PdfPageRenderer
             xyz[1] = .2225045 * r + .7168786 * g + .0606169 * b;
             xyz[2] = .0139322 * r + .0971045 * g + .7141733 * b;
             if (gamutCheck is not null)
-                classifications![offset / 4] = (byte)gamutCheck.EvaluateXyz(xyz).Classification;
+            {
+                if (xyz[0] != lastX || xyz[1] != lastY || xyz[2] != lastZ)
+                {
+                    (lastX, lastY, lastZ) = (xyz[0], xyz[1], xyz[2]);
+                    lastClassification = (byte)gamutCheck.EvaluateXyz(xyz).Classification;
+                }
+                classifications![offset / 4] = lastClassification;
+            }
             sourceCompensation.Apply(xyz);
             printer.FromXyz(xyz, device, options.RenderingIntent);
             printer.ToXyz(device, xyz, options.SimulatePaper

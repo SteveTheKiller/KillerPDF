@@ -81,6 +81,48 @@ public sealed class PdfRenderedFrame
         init => _diagnostics = Array.AsReadOnly((value ?? throw new ArgumentNullException(nameof(value))).ToArray());
     }
 
+    /// <summary>Gets the flat neutral gray that marks out-of-gamut pixels, as sRGB-encoded relative RGB.</summary>
+    /// <remarks>sRGB 128/255, the mid gray other soft-proofing tools paint over colors a printer cannot reproduce.</remarks>
+    public const float GamutWarningGray = 128f / 255f;
+
+    /// <summary>Returns a viewing copy with out-of-gamut pixels painted flat neutral gray.</summary>
+    /// <remarks>
+    /// Only pixels the printer gamut mask classifies as outside are painted; alpha and every other
+    /// pixel keep their proofed values, and the mask is retained. A frame without a mask, or with no
+    /// pixel outside, is returned as is without copying. The mark is for viewing only, never for output.
+    /// </remarks>
+    public PdfRenderedFrame WithGamutWarningsMarked(CancellationToken cancellationToken = default)
+    {
+        if (PrinterGamutWarnings is not { WarningPixelCount: > 0 } mask) return this;
+        cancellationToken.ThrowIfCancellationRequested();
+        float gray = ColorEncoding == PdfFrameColorEncoding.LinearSrgbD65
+            ? (float)Math.Pow((GamutWarningGray + .055) / 1.055, 2.4) : GamutWarningGray;
+        float[] pixels = (float[])_pixels.Clone();
+        ReadOnlySpan<byte> classifications = mask.Classifications;
+        for (int index = 0; index < classifications.Length; index++)
+        {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (classifications[index] != (byte)KillerPdf.Engine.ColorManagement.PdfGamutClassification.Outside) continue;
+            int offset = index * 4;
+            pixels[offset] = gray;
+            pixels[offset + 1] = gray;
+            pixels[offset + 2] = gray;
+        }
+        return new PdfRenderedFrame(this, pixels);
+    }
+
+    // Wraps already validated pixels of the same size, keeping the source frame's metadata.
+    private PdfRenderedFrame(PdfRenderedFrame source, float[] pixels)
+    {
+        _pixels = pixels;
+        Width = source.Width;
+        Height = source.Height;
+        ColorEncoding = source.ColorEncoding;
+        PrinterGamutWarnings = source.PrinterGamutWarnings;
+        AssumedCmykProfileSha256 = source.AssumedCmykProfileSha256;
+        _diagnostics = source._diagnostics;
+    }
+
     /// <summary>Gets the pixel width.</summary>
     public int Width { get; }
     /// <summary>Gets the pixel height.</summary>

@@ -282,7 +282,8 @@ internal sealed class PdfPageRenderSession : IDisposable
         {
             var options = CreateRenderOptions(pageIndex, transparentBackground: false,
                 includeAnnotations: true, includeFormFields: true) with { Proof = proof };
-            var frame = Renderer.RenderFrame(pageIndex, options, cancellationToken);
+            var frame = Renderer.RenderFrame(pageIndex, options, cancellationToken)
+                .WithGamutWarningsMarked(cancellationToken);
             return new PdfRenderedPage(frame.Width, frame.Height, frame.ToSrgbBgra32(cancellationToken),
                 PdfRenderBackend.Engine, null);
         }
@@ -356,8 +357,10 @@ internal sealed class PdfPageRenderSession : IDisposable
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumWidth);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumHeight);
+        // Fitted frames are for viewing only, so they carry any requested gamut warning marks.
         return Renderer.RenderFrame(pageIndex, WithWorkingCmyk(
-            CreateRenderOptions(pageIndex, false, true, false, maximumWidth, maximumHeight) with { Proof = proof }), cancellationToken);
+            CreateRenderOptions(pageIndex, false, true, false, maximumWidth, maximumHeight) with { Proof = proof }), cancellationToken)
+            .WithGamutWarningsMarked(cancellationToken);
     }
 
     /// <summary>Gets or sets where renders read the chosen working CMYK profile; null means built in.</summary>
@@ -386,7 +389,8 @@ internal sealed class PdfPageRenderSession : IDisposable
         KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
         => Renderer.RenderFrameRegion(pageIndex, WithWorkingCmyk(
             CreateRenderOptions(pageIndex, false, true, false, maximumWidth, maximumHeight) with { Proof = proof }),
-            region.Left, region.Top, region.Width, region.Height, cancellationToken);
+            region.Left, region.Top, region.Width, region.Height, cancellationToken)
+            .WithGamutWarningsMarked(cancellationToken);
 
     internal PdfRenderedPage RenderFittedRegion(int pageIndex, int maximumWidth, int maximumHeight,
         int left, int top, int width, int height, CancellationToken cancellationToken = default)
