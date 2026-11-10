@@ -16,9 +16,12 @@ public sealed partial class DjvuDocument
         for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++)
         {
             var text = ReadTextPage(pageIndex, cancellationToken);
-            var (page, chunks) = ReadSupportedPage(pageIndex, cancellationToken);
+            var (page, chunks) = ReadPageChunks(pageIndex, cancellationToken);
+            if (Classify(page, chunks) == PageLayers.Compound)
+                throw new NotSupportedException("DjVu PDF conversion does not yet support compound pages with foreground colors or a reduced background.");
             if (chunks.Any(chunk => chunk.Id == 0x42473434))
             {
+                (page, chunks) = ReadSupportedPage(pageIndex, cancellationToken);
                 var (gray, gamma) = DecodeIw44Page(page, chunks, cancellationToken);
                 bool quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
                 int pixelWidth = quarterTurn ? page.Height : page.Width;
@@ -48,22 +51,23 @@ public sealed partial class DjvuDocument
                 builder.AddPage(grayWidth, grayHeight, grayContent);
                 continue;
             }
-            var frame = RenderSupportedPage(page, chunks, cancellationToken);
-            if (!chunks.Any(chunk => chunk.Id == 0x536d6d72))
-                throw new NotSupportedException("DjVu PDF conversion currently supports only bitonal Smmr pages.");
-            var samples = new byte[frame.Width * frame.Height];
-            for (int y = 0; y < frame.Height; y++)
+            // A bitonal page (Smmr, or a JB2 mask alone) is read from its kept bits, one byte per pixel, turned.
+            var raster = DecodeSupportedPage(page, chunks, cancellationToken, callerBytesPerPixel: 0);
+            if (!chunks.Any(chunk => chunk.Id is 0x536d6d72 or 0x536a627a))
+                throw new NotSupportedException("DjVu PDF conversion currently supports only bitonal Smmr and JB2 pages.");
+            int frameWidth = raster.Width, frameHeight = raster.Height;
+            var (columnOffsets, rowOffsets) = raster.Offsets(Enumerable.Range(0, frameWidth).ToArray(),
+                Enumerable.Range(0, frameHeight).ToArray());
+            var samples = new byte[(long)frameWidth * frameHeight];
+            for (int y = 0; y < frameHeight; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                for (int x = 0; x < frame.Width; x++)
-                {
-                    int index = y * frame.Width + x;
-                    samples[index] = frame.Pixels[index * 4] == 0 ? (byte)0 : (byte)255;
-                }
+                for (int x = 0; x < frameWidth; x++)
+                    samples[(long)y * frameWidth + x] = raster.Channel(rowOffsets[y] + columnOffsets[x]) == 0 ? (byte)0 : (byte)255;
             }
-            double width = frame.Width * 72d / Pages[pageIndex].Dpi;
-            double height = frame.Height * 72d / Pages[pageIndex].Dpi;
-            var image = PdfImage.FromBitonal(frame.Width, frame.Height, samples);
+            double width = frameWidth * 72d / Pages[pageIndex].Dpi;
+            double height = frameHeight * 72d / Pages[pageIndex].Dpi;
+            var image = PdfImage.FromBitonal(frameWidth, frameHeight, samples);
             var content = new PdfContentStreamBuilder().DrawImage(image, 0, 0, width, height);
             AddLocatedPdfText(content, text, Pages[pageIndex], cancellationToken);
             builder.AddPage(width, height, content);

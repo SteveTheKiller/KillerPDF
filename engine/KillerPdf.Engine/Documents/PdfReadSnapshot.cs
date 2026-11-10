@@ -240,21 +240,35 @@ public sealed partial class PdfReadSnapshot
         if (geometry.IntrinsicRotation is 90 or 270)
             (width, height) = (height, width);
         bool resized = options.Width != width || options.Height != height;
-        // The page stays decoded as its own bits or bytes; only the requested frame is float, built and then copied.
-        // The decoder's own buffers are gone by then, so the larger of the two peaks is what the render holds.
         var (decoded, decoding) = _djvu!.DecodedPageBytes(pageIndex, cancellationToken);
-        if (Math.Max(decoding, checked(decoded + (long)options.Width * options.Height * 2 * 4 * sizeof(float)))
-            > options.PixelByteLimit)
+        if (NativePeakBytes(decoded, decoding, (long)options.Width * options.Height) > options.PixelByteLimit)
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
         if (resized)
             PdfNativeFrameResampler.CheckWork(width, height, options.Width, options.Height);
         PdfNativeFrameProof.Preflight(options, decoded);
-        var raster = _djvu.DecodePage(pageIndex, cancellationToken);
-        var output = resized
-            ? PdfNativeFrameResampler.Resize(raster, options.Width, options.Height, 0, 0, options.Width, options.Height,
-                cancellationToken)
-            : raster.ToFrame(cancellationToken);
+        var pixels = DecodedPixels(pageIndex, resized, options, 0, 0, options.Width, options.Height, cancellationToken);
+        var output = new PdfRenderedFrame(options.Width, options.Height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
         return PdfNativeFrameProof.Apply(output, options, cancellationToken);
+    }
+
+    // The page stays decoded as its own bits or bytes while only the requested pixels are built as floats; the decode
+    // is released before those pixels are copied into the returned frame. So a render holds at most the decoder's own
+    // buffers, then the decode beside the float pixels, then the float pixels beside their owned copy.
+    private static long NativePeakBytes(long decoded, long decoding, long pixels)
+    {
+        long floats = checked(pixels * 4 * sizeof(float));
+        return Math.Max(decoding, Math.Max(checked(decoded + floats), checked(2 * floats)));
+    }
+
+    // Decodes the page and resamples it, returning only the float pixels, so nothing here outlives the call.
+    private float[] DecodedPixels(int pageIndex, bool resized, PdfRenderOptions options, int left, int top, int width,
+        int height, CancellationToken cancellationToken)
+    {
+        var raster = _djvu!.DecodePage(pageIndex, cancellationToken);
+        return resized
+            ? PdfNativeFrameResampler.ResizePixels(raster, options.Width, options.Height, left, top, width, height,
+                cancellationToken)
+            : raster.ToPixels(cancellationToken);
     }
 
     /// <summary>
@@ -284,14 +298,13 @@ public sealed partial class PdfReadSnapshot
         if (geometry.IntrinsicRotation is 90 or 270)
             (naturalWidth, naturalHeight) = (naturalHeight, naturalWidth);
         var (decoded, decoding) = _djvu!.DecodedPageBytes(pageIndex, cancellationToken);
-        if (Math.Max(decoding, checked(decoded + (long)width * height * 2 * 4 * sizeof(float))) > options.PixelByteLimit)
+        if (NativePeakBytes(decoded, decoding, (long)width * height) > options.PixelByteLimit)
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
         PdfNativeFrameResampler.CheckWork(naturalWidth, naturalHeight, options.Width, options.Height, width, height,
             left, top);
         PdfNativeFrameProof.Preflight(options, decoded, (long)width * height);
-        var raster = _djvu.DecodePage(pageIndex, cancellationToken);
-        var output = PdfNativeFrameResampler.Resize(raster, options.Width, options.Height,
-            left, top, width, height, cancellationToken);
+        var pixels = DecodedPixels(pageIndex, true, options, left, top, width, height, cancellationToken);
+        var output = new PdfRenderedFrame(width, height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
         return PdfNativeFrameProof.Apply(output, options, cancellationToken);
     }
 }

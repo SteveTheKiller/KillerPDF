@@ -98,7 +98,6 @@ public sealed class DjvuPdfConversionTests(ITestOutputHelper output)
     [Theory]
     [InlineData("Sjbz")]
     [InlineData("ANTa")]
-    [InlineData("BG44")]
     public void ConversionPropagatesTheNativeUnsupportedLayerDiagnosis(string layer)
     {
         var native = DjvuDocument.Open(Page(1, Chunk(layer, [0])));

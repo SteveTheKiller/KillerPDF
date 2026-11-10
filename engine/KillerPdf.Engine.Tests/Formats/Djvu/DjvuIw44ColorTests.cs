@@ -60,7 +60,6 @@ public sealed class DjvuIw44ColorTests
     [Theory]
     [InlineData(44, 2)]
     [InlineData(45, 3)]
-    [InlineData(33, 2)]
     [InlineData(47, 64)]
     public void UnqualifiedHeadersRemainRefused(int offset, byte value)
     {

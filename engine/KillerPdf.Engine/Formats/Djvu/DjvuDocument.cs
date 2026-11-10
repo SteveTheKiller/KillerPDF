@@ -13,13 +13,17 @@ public sealed partial class DjvuDocument
 
     private readonly byte[] _data;
     private readonly Chunk[] _pageForms;
+    // Bundled FORM:DJVI components by directory ID, which INCL chunks name. Nothing outside the bundle is resolved.
+    private readonly Dictionary<string, Chunk> _includes;
 
-    private DjvuDocument(List<DjvuPageInfo> pages, List<DjvuDiagnostic> diagnostics, byte[] data, List<Chunk> pageForms)
+    private DjvuDocument(List<DjvuPageInfo> pages, List<DjvuDiagnostic> diagnostics, byte[] data, List<Chunk> pageForms,
+        Dictionary<string, Chunk>? includes = null)
     {
         Pages = Array.AsReadOnly(pages.ToArray());
         Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         _data = data;
         _pageForms = pageForms.ToArray();
+        _includes = includes ?? new(StringComparer.Ordinal);
     }
 
     /// <summary>Opens metadata with limits of 64 MiB, 65536 chunks, 4096 pages and 100 million pixels per page. Resolutions outside 25 to 6000 DPI read as 300.</summary>
@@ -40,11 +44,16 @@ public sealed partial class DjvuDocument
         List<DjvuPageInfo> pages = [];
         List<Chunk> pageForms = [];
         List<DjvuDiagnostic> diagnostics = [];
+        Dictionary<string, Chunk> includes = new(StringComparer.Ordinal);
         var chunkBudget = 65_535;
         var chunks = ReadChunks(span, 16, rootEnd, cancellationToken, ref chunkBudget);
         DiagnoseFeatures(chunks, diagnostics);
+        // INCL chunks name components a bundle carries; a single page or an unknown name has nothing to resolve.
+        List<string> included = [];
+        const string unresolved = "Included components are resolved only inside a bundled document. External files and URLs are never fetched.";
         if (span[12..16].SequenceEqual("DJVU"u8))
         {
+            if (chunks.Any(c => c.Id == 0x494e434c)) diagnostics.Add(new("IncludedComponentUnsupported", unresolved));
             pages.Add(ReadPage(span, chunks));
             pageForms.Add(new(0x464f524d, 12, (int)rootLength));
         }
@@ -103,6 +112,10 @@ public sealed partial class DjvuDocument
                 if (componentType != 0x444a5655 && children.Any(c => c.Id == 0x494e464f))
                     throw new InvalidDataException("INFO is only allowed inside a page.");
                 DiagnoseFeatures(children, diagnostics);
+                foreach (var include in children.Where(c => c.Id == 0x494e434c))
+                    included.Add(System.Text.Encoding.UTF8.GetString(span.Slice(include.Offset, include.Length)).TrimEnd('\0', ' ', '\n', '\r', '\t'));
+                if (componentType == 0x444a5649 && metadata is not null)
+                    includes.TryAdd(metadata[componentIndex].Id, chunk);
                 if (span.Slice(chunk.Offset, 4).SequenceEqual("DJVU"u8))
                 {
                     if (pages.Count == 4096) throw new InvalidDataException("DjVu page count exceeds the 4096 page limit.");
@@ -115,11 +128,13 @@ public sealed partial class DjvuDocument
                     pageForms.Add(chunk);
                 }
             }
+            if (included.Any(id => !includes.ContainsKey(id)))
+                diagnostics.Add(new("IncludedComponentUnsupported", unresolved));
         }
         else throw new InvalidDataException("Unsupported DjVu FORM type.");
         if (pages.Any(p => p.MajorVersion != 0 || p.MinorVersion > 26))
             diagnostics.Add(new("PageVersionUnsupported", "Page metadata uses a version newer than the November 2005 format reference. Full compatibility is not established."));
-        return new DjvuDocument(pages, diagnostics, ownedData, pageForms);
+        return new DjvuDocument(pages, diagnostics, ownedData, pageForms, includes);
     }
 
     private static void DiagnoseFeatures(List<Chunk> chunks, List<DjvuDiagnostic> diagnostics)
@@ -128,11 +143,11 @@ public sealed partial class DjvuDocument
         {
             DjvuDiagnostic? diagnostic = chunk.Id switch
             {
-                0x494e434c => new("IncludedComponentUnsupported", "Included components are not resolved. External files and URLs are never fetched."),
-                0x536d6d72 => new("SmmrRenderingLimited", "Only nonstriped bitonal MMR rendering is supported. Other variants and layers require additional decoding."),
+                0x536d6d72 => new("SmmrRenderingLimited", "Nonstriped MMR masks are rendered, alone or over a background. Striped and other MMR variants require additional decoding."),
                 0x42473434 => new("Iw44RenderingLimited", "Full-resolution grayscale IW44 backgrounds, including progressive chunks, and initial upright block-aligned single-chunk color backgrounds are rendered without other visual layers. Color support requires version 1.2, full chroma and zero delay. Other variants and layers require additional decoding."),
-                0x46473434 or 0x536a627a or 0x4667627a or 0x42476a70 or 0x46476a70 or 0x54483434
-                    => new("ImageDecodingUnsupported", "Page image codecs are not decoded by the container reader."),
+                // JB2 masks (Sjbz, Djbz), FGbz colors and FG44 foregrounds are decoded; JPEG layers and thumbnails are not.
+                0x42476a70 or 0x46476a70 or 0x54483434
+                    => new("ImageDecodingUnsupported", "JPEG page layers and embedded thumbnails are not decoded."),
                 _ => null
             };
             if (diagnostic is not null && diagnostics.All(d => d.Code != diagnostic.Code)) diagnostics.Add(diagnostic);

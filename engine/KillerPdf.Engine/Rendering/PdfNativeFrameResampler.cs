@@ -8,7 +8,119 @@ internal enum PdfNativeSampleLayout
     /// <summary>One byte per pixel.</summary>
     Gray,
     /// <summary>Three bytes per pixel, red, green and blue.</summary>
-    Rgb
+    Rgb,
+    /// <summary>A one-bit mask over foreground and background layers, each pixel's color worked out when it is read.</summary>
+    Compound
+}
+
+/// <summary>
+/// A gray or RGB image stored at the page size divided by a whole reduction factor, rounded up, and read at page
+/// resolution by linear interpolation between the nearest stored samples, centers aligned.
+/// </summary>
+internal sealed class PdfNativeImageLayer
+{
+    private readonly byte[] _samples;
+    private readonly int _channels, _stride;
+    private readonly int[] _column0, _column1, _row0, _row1;
+    private readonly float[] _columnWeight, _rowWeight;
+
+    internal PdfNativeImageLayer(byte[] samples, int width, int height, int channels, int reduction,
+        int pageWidth, int pageHeight)
+    {
+        if (channels is not (1 or 3)) throw new ArgumentOutOfRangeException(nameof(channels));
+        if (samples.Length < (long)width * height * channels) throw new ArgumentException("The samples do not cover the layer.", nameof(samples));
+        _samples = samples;
+        _channels = channels;
+        _stride = width * channels;
+        (_column0, _column1, _columnWeight) = Axis(pageWidth, width, reduction);
+        (_row0, _row1, _rowWeight) = Axis(pageHeight, height, reduction);
+    }
+
+    /// <summary>The bytes a layer of this size holds, with its interpolation tables.</summary>
+    internal static long StorageBytes(int width, int height, int channels, int pageWidth, int pageHeight)
+        => (long)width * height * channels + 12L * (pageWidth + pageHeight);
+
+    private static (int[], int[], float[]) Axis(int page, int stored, int reduction)
+    {
+        int[] first = new int[page], second = new int[page];
+        float[] weight = new float[page];
+        for (int i = 0; i < page; i++)
+        {
+            double position = (i + .5) / reduction - .5;
+            int left = (int)Math.Floor(position);
+            weight[i] = (float)(position - left);
+            first[i] = Math.Clamp(left, 0, stored - 1);
+            second[i] = Math.Clamp(left + 1, 0, stored - 1);
+        }
+        return (first, second, weight);
+    }
+
+    internal void Read(int x, int y, float[] linear, out double r, out double g, out double b)
+    {
+        float wx = _columnWeight[x], wy = _rowWeight[y];
+        int top = _row0[y] * _stride, bottom = _row1[y] * _stride;
+        int left = _column0[x] * _channels, right = _column1[x] * _channels;
+        double Mix(int channel) =>
+            (1 - wy) * ((1 - wx) * linear[_samples[top + left + channel]] + wx * linear[_samples[top + right + channel]])
+            + wy * ((1 - wx) * linear[_samples[bottom + left + channel]] + wx * linear[_samples[bottom + right + channel]]);
+        r = Mix(0);
+        if (_channels == 1) { g = b = r; return; }
+        g = Mix(1);
+        b = Mix(2);
+    }
+}
+
+/// <summary>
+/// What a compound page's mask selects between: a background image (white when absent) and either a foreground image
+/// or solid foreground colors, one color for the whole mask or one per pixel through a packed palette index plane.
+/// </summary>
+internal sealed class PdfNativeCompoundLayers
+{
+    internal PdfNativeCompoundLayers(PdfNativeImageLayer? background, PdfNativeImageLayer? foreground, byte[] palette,
+        byte[]? indexes, int indexBits, int pageWidth)
+    {
+        if (palette.Length < 3 || palette.Length % 3 != 0) throw new ArgumentException("The palette needs whole RGB colors.", nameof(palette));
+        if (indexes is not null && indexBits is not (1 or 2 or 4 or 8 or 16)) throw new ArgumentOutOfRangeException(nameof(indexBits));
+        Background = background;
+        Foreground = foreground;
+        Palette = palette;
+        Indexes = indexes;
+        IndexBits = indexBits;
+        IndexStride = (int)(((long)pageWidth * indexBits + 7) / 8);
+    }
+
+    internal PdfNativeImageLayer? Background { get; }
+    internal PdfNativeImageLayer? Foreground { get; }
+    /// <summary>RGB colors; the first is the foreground color when there is no index plane.</summary>
+    internal byte[] Palette { get; }
+    internal byte[]? Indexes { get; }
+    internal int IndexBits { get; }
+    internal int IndexStride { get; }
+
+    /// <summary>The bytes an index plane of this many bits per pixel holds for a page.</summary>
+    internal static long IndexBytes(int pageWidth, int pageHeight, int indexBits)
+        => indexBits == 0 ? 0 : ((long)pageWidth * indexBits + 7) / 8 * pageHeight;
+
+    internal int Index(int x, int y)
+    {
+        if (Indexes is null) return 0;
+        long bit = (long)y * IndexStride * 8 + (long)x * IndexBits;
+        if (IndexBits == 16) return (Indexes[bit >> 3] << 8) | Indexes[(bit >> 3) + 1];
+        return (Indexes[bit >> 3] >> (8 - IndexBits - (int)(bit & 7))) & ((1 << IndexBits) - 1);
+    }
+
+    internal void SetIndex(int x, int y, int value)
+    {
+        long bit = (long)y * IndexStride * 8 + (long)x * IndexBits;
+        if (IndexBits == 16)
+        {
+            Indexes![bit >> 3] = (byte)(value >> 8);
+            Indexes[(bit >> 3) + 1] = (byte)value;
+            return;
+        }
+        int shift = 8 - IndexBits - (int)(bit & 7), mask = ((1 << IndexBits) - 1) << shift;
+        Indexes![bit >> 3] = (byte)((Indexes[bit >> 3] & ~mask) | (value << shift));
+    }
 }
 
 /// <summary>
@@ -37,6 +149,49 @@ internal sealed class PdfNativeCompactRaster
         Samples = samples;
         Linear = linear;
         Rotation = rotation;
+    }
+
+    /// <summary>A compound page: <paramref name="mask"/> holds one bit per pixel, rows padded to whole bytes.</summary>
+    internal PdfNativeCompactRaster(int storedWidth, int storedHeight, byte[] mask, float[] linear, int rotation,
+        PdfNativeCompoundLayers layers)
+    {
+        if (rotation is not (0 or 90 or 180 or 270)) throw new ArgumentOutOfRangeException(nameof(rotation));
+        if (mask.Length < (long)(storedWidth + 7) / 8 * storedHeight)
+            throw new ArgumentException("The mask does not cover the raster.", nameof(mask));
+        if (linear.Length != 256) throw new ArgumentException("The linear table does not match the sample layout.", nameof(linear));
+        Layout = PdfNativeSampleLayout.Compound;
+        StoredWidth = storedWidth;
+        StoredHeight = storedHeight;
+        // A power of two, so a position splits back into its column and row with a mask and a shift.
+        _rowShift = 0;
+        while (1 << _rowShift < storedWidth) _rowShift++;
+        RowUnits = 1 << _rowShift;
+        Samples = mask;
+        Linear = linear;
+        Rotation = rotation;
+        Layers = layers;
+    }
+
+    private readonly int _rowShift;
+    internal PdfNativeCompoundLayers? Layers { get; }
+
+    /// <summary>A compound pixel's linear color: the foreground where the mask is black, the background elsewhere.</summary>
+    internal void Color(int position, out double r, out double g, out double b)
+    {
+        int x = position & (RowUnits - 1), y = position >> _rowShift;
+        var layers = Layers!;
+        int maskBit = y * ((StoredWidth + 7) / 8) * 8 + x;
+        if ((Samples[maskBit >> 3] & (0x80 >> (maskBit & 7))) != 0)
+        {
+            if (layers.Foreground is { } foreground) { foreground.Read(x, y, Linear, out r, out g, out b); return; }
+            int color = layers.Index(x, y) * 3;
+            r = Linear[layers.Palette[color]];
+            g = Linear[layers.Palette[color + 1]];
+            b = Linear[layers.Palette[color + 2]];
+            return;
+        }
+        if (layers.Background is { } background) { background.Read(x, y, Linear, out r, out g, out b); return; }
+        r = g = b = 1;
     }
 
     internal PdfNativeSampleLayout Layout { get; }
@@ -98,6 +253,10 @@ internal sealed class PdfNativeCompactRaster
 
     /// <summary>Expands the raster to an opaque linear RGBA float frame at natural size.</summary>
     internal PdfRenderedFrame ToFrame(CancellationToken token)
+        => new(Width, Height, ToPixels(token), PdfFrameColorEncoding.LinearSrgbD65);
+
+    /// <summary>The natural-size linear RGBA channels, so a caller can let the raster go before copying them.</summary>
+    internal float[] ToPixels(CancellationToken token)
     {
         int width = Width, height = Height;
         int[] columns = new int[width], rows = new int[height];
@@ -111,7 +270,14 @@ internal sealed class PdfNativeCompactRaster
             for (int x = 0; x < width; x++)
             {
                 int position = row[y] + column[x], o = (y * width + x) * 4;
-                if (Layout == PdfNativeSampleLayout.Rgb)
+                if (Layout == PdfNativeSampleLayout.Compound)
+                {
+                    Color(position, out double r, out double g, out double b);
+                    pixels[o] = (float)r;
+                    pixels[o + 1] = (float)g;
+                    pixels[o + 2] = (float)b;
+                }
+                else if (Layout == PdfNativeSampleLayout.Rgb)
                 {
                     pixels[o] = Linear[Samples[position]];
                     pixels[o + 1] = Linear[Samples[position + 1]];
@@ -121,7 +287,7 @@ internal sealed class PdfNativeCompactRaster
                 pixels[o + 3] = 1;
             }
         }
-        return new PdfRenderedFrame(width, height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
+        return pixels;
     }
 }
 
@@ -196,12 +362,19 @@ internal static class PdfNativeFrameResampler
     /// </summary>
     internal static PdfRenderedFrame Resize(PdfNativeCompactRaster source, int width, int height,
         int left, int top, int regionWidth, int regionHeight, CancellationToken token)
+        => new(regionWidth, regionHeight, ResizePixels(source, width, height, left, top, regionWidth, regionHeight, token),
+            PdfFrameColorEncoding.LinearSrgbD65);
+
+    /// <summary>The region's linear RGBA channels from <see cref="Resize(PdfNativeCompactRaster, int, int, int, int, int, int, CancellationToken)"/>, before they are copied into a frame.</summary>
+    internal static float[] ResizePixels(PdfNativeCompactRaster source, int width, int height,
+        int left, int top, int regionWidth, int regionHeight, CancellationToken token)
     {
         var xs = MakeTaps(source.Width, width, left, regionWidth, token);
         var ys = MakeTaps(source.Height, height, top, regionHeight, token);
         var (columnOffsets, rowOffsets) = source.Offsets(Indexes(xs), Indexes(ys));
         int[][] columns = Positions(xs, columnOffsets), rows = Positions(ys, rowOffsets);
         bool rgb = source.Layout == PdfNativeSampleLayout.Rgb;
+        bool compound = source.Layout == PdfNativeSampleLayout.Compound;
         var linear = source.Linear;
         var samples = source.Samples;
         var output = new float[checked(regionWidth * regionHeight * 4)];
@@ -220,7 +393,14 @@ internal static class PdfNativeFrameResampler
                 {
                     int position = yPositions[j] + xPositions[k];
                     double weight = yTaps[j].Weight * xTaps[k].Weight;
-                    if (rgb)
+                    if (compound)
+                    {
+                        source.Color(position, out double cr, out double cg, out double cb);
+                        r += cr * weight;
+                        g += cg * weight;
+                        b += cb * weight;
+                    }
+                    else if (rgb)
                     {
                         r += linear[samples[position]] * weight;
                         g += linear[samples[position + 1]] * weight;
@@ -230,12 +410,12 @@ internal static class PdfNativeFrameResampler
                 }
                 int o = (y * regionWidth + x) * 4;
                 output[o] = (float)r;
-                output[o + 1] = rgb ? (float)g : (float)r;
-                output[o + 2] = rgb ? (float)b : (float)r;
+                output[o + 1] = rgb || compound ? (float)g : (float)r;
+                output[o + 2] = rgb || compound ? (float)b : (float)r;
                 output[o + 3] = 1;
             }
         }
-        return new PdfRenderedFrame(regionWidth, regionHeight, output, PdfFrameColorEncoding.LinearSrgbD65);
+        return output;
     }
 
     // The distinct source rows or columns the taps read, so their stored positions are computed once each.

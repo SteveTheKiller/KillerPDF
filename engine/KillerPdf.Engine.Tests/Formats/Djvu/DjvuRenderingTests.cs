@@ -130,8 +130,36 @@ public sealed class DjvuRenderingTests
         Assert.Contains("frame", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void AnSmmrMaskWithABackgroundThatIsNotIw44IsInvalid()
+    {
+        // 7.1.3.3 lets Smmr stand in for Sjbz on a compound page, so a one-byte BG44 is a malformed background.
+        var document = DjvuDocument.Open(Page(3, 1, 1, Chunk("Smmr", [.. "MMR"u8, 0, 0, 3, 0, 1, 0x23, 0xe0, 0x02, 0, 0x20]), Chunk("BG44", [0])));
+        Assert.Throws<InvalidDataException>(() => document.RenderPage(0));
+    }
+
     [Theory]
-    [InlineData("BG44")]
+    [InlineData((byte)0)]
+    [InlineData((byte)1)]
+    public void AnSmmrMaskSelectsBlackOverASubsampledBackground(byte invert)
+    {
+        // The 3x2 mask of PreservesTopToBottomG4RowsUnderAllOrientations (white, black, black / white, white, white)
+        // over a 1x1 grayscale BG44 with no coded slices (gray 127, subsample 3). The invert flag swaps the mask.
+        var document = DjvuDocument.Open(Page(3, 2, 1,
+            Chunk("Smmr", [.. "MMR"u8, invert, 0, 3, 0, 2, 0x23, 0xe1, 0x80, 0x08, 0, 0x80]),
+            Chunk("BG44", [0, 0, 0x81, 2, 0, 1, 0, 1, 0xff])));
+        float gray = (float)Math.Pow(127 / 255d, 2.2);
+        float[] expected = invert == 0 ? [gray, 0, 0, gray, gray, gray] : [0, gray, gray, 0, 0, 0];
+        var pixels = document.RenderPage(0).Pixels.ToArray();
+        for (int i = 0; i < 6; i++)
+        {
+            Assert.Equal(expected[i], pixels[i * 4], 5);
+            Assert.Equal(expected[i], pixels[i * 4 + 1], 5);
+            Assert.Equal(expected[i], pixels[i * 4 + 2], 5);
+        }
+    }
+
+    [Theory]
     [InlineData("Sjbz")]
     [InlineData("INCL")]
     [InlineData("XXXX")]
