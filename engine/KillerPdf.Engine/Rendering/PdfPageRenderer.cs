@@ -370,6 +370,17 @@ public sealed partial class PdfPageRenderer
         var diagnostics = DocumentRecoveryDiagnostics(pageIndex);
         var activeForms = new HashSet<PdfStream>();
         long preciseGroupStorage = 0;
+        // Float renders count group pixel arrays and graphics-state soft-mask storage beside the
+        // frame's own 36 bytes a pixel against the frame budget.
+        long preciseRootStorage = checked((long)rasterWidth * rasterHeight * 36);
+        long preciseMaskStorage = 0;
+        Action<long>? chargePreciseMask = preciseRgb is null ? null : bytes =>
+        {
+            if (bytes > 0 && checked(preciseRootStorage + preciseGroupStorage
+                + Interlocked.Read(ref preciseMaskStorage) + bytes) > options.PixelByteLimit)
+                throw new ArgumentException("The high-precision soft masks exceed the combined pixel storage limit.", nameof(options));
+            Interlocked.Add(ref preciseMaskStorage, bytes);
+        };
         int recoveredFormExpansions = 0;
         int deepFormExpansions = 0;
         IReadOnlySet<int> hiddenOptionalContentGroups = options.ForPrinting
@@ -470,6 +481,7 @@ public sealed partial class PdfPageRenderer
         {
             using var clipScratch = new ClipScratchScope();
             using var opaqueFills = new OpaqueFillSequence(pixels, frame, cancellationToken);
+            using var preciseMasks = new PreciseMaskScope();
             clipScratch.PendingFills = opaqueFills;
             GraphicsState state = RebindNamedColors(initial, pixels);
             ImageColorSpace? deviceGray = null, deviceRgb = null, deviceCmyk = null;
@@ -551,6 +563,7 @@ public sealed partial class PdfPageRenderer
                             wordSpacing, horizontalScale, textLeading, textRise,
                             textRenderingMode, clipMark) = stack.Pop();
                         clipScratch.Restore(clipMark);
+                        preciseMasks.Restore(stack.Count);
                     }
                     // The current path is not part of the graphics state, so a restore leaves it alone.
                     break;
@@ -859,6 +872,8 @@ public sealed partial class PdfPageRenderer
                                 : ReadGraphicsSoftMask(softMaskValue, resources, state, depth),
                             Transfer = ReadTransfer(strokeSettings, state.Transfer, pixels, diagnostics)
                         };
+                        if (softMaskValue is not null && chargePreciseMask is not null)
+                            preciseMasks.Replace(state.GraphicsSoftMask, stack.Count);
                         if (graphicsFontValue is not null)
                         {
                             PdfArray font = ResolveArray(graphicsFontValue, 2, "A graphics-state font");
@@ -1828,7 +1843,8 @@ public sealed partial class PdfPageRenderer
                 // consults it (see GraphicsSoftMask). Pixels the region excludes are ones the
                 // paint never reads, and the region clip bounds every inner paint to the
                 // surface, so the pixels inside it match a full-bounds render exactly.
-                return new GraphicsSoftMask(fullLeft, fullTop, fullRight, fullBottom, outside, RenderRegion);
+                return new GraphicsSoftMask(fullLeft, fullTop, fullRight, fullBottom, outside, RenderRegion,
+                    chargePreciseMask);
 
                 (byte[]? Samples, byte Constant) RenderRegion(
                     int maskLeft, int maskTop, int maskRight, int maskBottom)
@@ -2075,7 +2091,7 @@ public sealed partial class PdfPageRenderer
                     if (!transparencyGroup || knockout || !IsName(group!, "CS", "DeviceRGB")
                         || ReadColorSpace(Name("DeviceRGB"), formResources, 0, diagnostics: diagnostics).IsDefault
                         || parentState.BlendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible or RendererBlendMode.Multiply or RendererBlendMode.Screen)
-                        || parentState.GraphicsSoftMask is not null || parentState.Knockout is not null
+                        || parentState.Knockout is not null
                         || pixels.HasProfile || pixels.GroupAlpha is not null || pixels.GroupShape is not null
                         || formState.Clips.Any(clip => clip.Mask.Coverage is not null))
                         throw new NotSupportedException("This high-precision form group is not implemented.");
@@ -2087,8 +2103,8 @@ public sealed partial class PdfPageRenderer
                     bool trackAlpha = !isolated && (parentState.BlendMode is RendererBlendMode.Multiply or RendererBlendMode.Screen
                         || parentPixels.PreciseGroupAlpha is not null);
                     long storage = checked((long)groupWidth * groupHeight * (trackAlpha ? 24 : 20));
-                    long rootStorage = checked((long)rasterWidth * rasterHeight * 36);
-                    if (checked(rootStorage + preciseGroupStorage + storage) > options.PixelByteLimit)
+                    if (checked(preciseRootStorage + preciseGroupStorage + Interlocked.Read(ref preciseMaskStorage)
+                        + storage) > options.PixelByteLimit)
                         throw new ArgumentException("The high-precision groups exceed the combined pixel storage limit.", nameof(options));
                     preciseGroupStorage += storage;
                     RasterSurface? groupPixels = null;
@@ -2120,6 +2136,10 @@ public sealed partial class PdfPageRenderer
                         }, depth + 1);
                         pixels = parentPixels;
                         float[] completed = groupPixels.PreciseRgb;
+                        // The group composites as one object whose constant alpha is scaled by any
+                        // graphics-state soft mask (11.4.8), as the byte path does per pixel.
+                        GraphicsSoftMask? groupMask = parentState.GraphicsSoftMask?.ForBounds(
+                            bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
                         for (int y = bounds.Top; y < bounds.Bottom; y++)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -2127,24 +2147,26 @@ public sealed partial class PdfPageRenderer
                             {
                                 int offset = groupPixels.Offset(x, y);
                                 int parentOffset = parentPixels.Offset(x, y);
+                                double outerAlpha = groupMask is null ? parentState.FillAlpha
+                                    : Math.Clamp(parentState.FillAlpha, 0, 1) * groupMask.At(x, y) / 255d;
                                 double objectAlpha = isolated ? completed[offset + 3]
                                     : groupPixels.PreciseGroupAlpha?[offset / 4] ?? 0;
                                 AccumulatePreciseGroupAlpha(parentPixels, parentOffset,
-                                    objectAlpha * parentState.FillAlpha);
+                                    objectAlpha * outerAlpha);
                                 if (!isolated)
                                 {
                                     if (parentState.BlendMode == RendererBlendMode.Multiply)
                                         FloatRgbCompositor.MultiplyBackdrop(parentPixels.PreciseRgb!, parentOffset,
-                                            completed, offset, objectAlpha, parentState.FillAlpha);
+                                            completed, offset, objectAlpha, outerAlpha);
                                     else if (parentState.BlendMode == RendererBlendMode.Screen)
                                         FloatRgbCompositor.ScreenBackdrop(parentPixels.PreciseRgb!, parentOffset,
-                                            completed, offset, objectAlpha, parentState.FillAlpha);
+                                            completed, offset, objectAlpha, outerAlpha);
                                     else
                                         FloatRgbCompositor.InterpolateBackdrop(parentPixels.PreciseRgb!, parentOffset,
-                                            completed, offset, parentState.FillAlpha);
+                                            completed, offset, outerAlpha);
                                     continue;
                                 }
-                                double alpha = completed[offset + 3] * parentState.FillAlpha;
+                                double alpha = completed[offset + 3] * outerAlpha;
                                 if (alpha == 0) continue;
                                 if (parentState.BlendMode == RendererBlendMode.Multiply)
                                     FloatRgbCompositor.Multiply(parentPixels.PreciseRgb!, parentPixels.Offset(x, y),
@@ -5853,7 +5875,7 @@ public sealed partial class PdfPageRenderer
                 || softMask is not null && (smoothImage || areaSamples || softMask.Bits is not (8 or 16)
                     || softMask.Width != sourceWidth || softMask.Height != sourceHeight)
                 || colorKeyMask is not null && (smoothImage || areaSamples)
-                || graphicsSoftMask is not null || knockout is not null || overprint || jpeg2000
+                || knockout is not null || overprint || jpeg2000
                 || colorSpace.Profile is not null && !preciseIcc && !preciseCalGray
                 || colorSpace.Converter is not null && !assumedCmyk && !preciseCalGray
                 || colorSpace.MultiConverter is not null || colorSpace.Palette is not null
@@ -5881,7 +5903,7 @@ public sealed partial class PdfPageRenderer
                 samples, rowBytes, sourceWidth, sourceHeight, components, bits, decode, colorSpace,
                 stencilAlpha, blendMode, clips, paintLeft, paintTop, paintRight, paintBottom,
                 smoothImage, areaSamples ? (int)Math.Round(sampleStepX) : 1,
-                areaSamples ? (int)Math.Round(sampleStepY) : 1, colorKeyMask, softMask, preblendMatte,
+                areaSamples ? (int)Math.Round(sampleStepY) : 1, colorKeyMask, softMask, graphicsSoftMask, preblendMatte,
                 fractionalImageEdges, corners.Min(point => point.X) * scaleX,
                 corners.Max(point => point.X) * scaleX,
                 targetHeight - corners.Max(point => point.Y) * scaleY,
@@ -8289,7 +8311,9 @@ public sealed partial class PdfPageRenderer
         int offset = pixels.Offset(x, y);
         if (pixels.PreciseRgb is not null)
         {
-            PaintPrecisePixel(pixels, offset, color, opacity, blendMode, graphicsSoftMask, knockout);
+            // As below: the clamped opacity times the mask value, so group alpha accumulates it too.
+            PaintPrecisePixel(pixels, offset, color, graphicsSoftMask is null ? opacity
+                : Math.Clamp(opacity, 0, 1) * graphicsSoftMask.At(x, y) / 255d, blendMode, knockout);
             return;
         }
         if ((knockout is not null || pixels.GroupShape is not null) && alphaIsShape)
@@ -8949,15 +8973,46 @@ public sealed partial class PdfPageRenderer
                 left >= Left && top >= Top && right <= Left + Width && bottom <= Top + Height;
         }
 
+        // Float renders charge mask storage against their frame budget: the kept samples (one
+        // byte a pixel) until Release, and each tile's surface and samples (five bytes a pixel)
+        // while it renders. Byte renders pass no charge.
+        private readonly Action<long>? _charge;
+        private long _kept;
+        private bool _released;
+
         internal GraphicsSoftMask(int fullLeft, int fullTop, int fullRight, int fullBottom,
-            byte outside, Func<int, int, int, int, (byte[]? Samples, byte Constant)> render)
+            byte outside, Func<int, int, int, int, (byte[]? Samples, byte Constant)> render,
+            Action<long>? charge = null)
         {
             FullLeft = fullLeft;
             FullTop = fullTop;
             FullRight = fullRight;
             FullBottom = fullBottom;
             Outside = outside;
-            _render = render;
+            _charge = charge;
+            _render = charge is null ? render : (left, top, right, bottom) =>
+            {
+                long transient = 5L * (right - left) * (bottom - top);
+                Charge(transient);
+                try { return render(left, top, right, bottom); }
+                finally { Charge(-transient); }
+            };
+        }
+
+        private void Charge(long bytes)
+        {
+            if (!_released) _charge?.Invoke(bytes);
+        }
+
+        /// <summary>Returns the kept samples' charge once no graphics state can reach this mask.</summary>
+        internal void Release()
+        {
+            lock (_sync)
+            {
+                Charge(-_kept);
+                _kept = 0;
+                _released = true;
+            }
         }
 
         internal int FullLeft { get; }
@@ -9045,6 +9100,12 @@ public sealed partial class PdfPageRenderer
                 {
                     if (existing.Covers(left, top, right, bottom)) return existing;
                     (left, top, right, bottom) = (FullLeft, FullTop, FullRight, FullBottom);
+                }
+                if (_charge is not null)
+                {
+                    long kept = (long)(right - left) * (bottom - top);
+                    Charge(kept - _kept);
+                    _kept = kept;
                 }
                 (byte[]? samples, byte constant) = RenderBounded(left, top, right, bottom);
                 var region = new Region(samples, left, top, right - left, bottom - top, constant);

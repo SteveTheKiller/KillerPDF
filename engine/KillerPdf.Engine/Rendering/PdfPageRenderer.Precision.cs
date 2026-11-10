@@ -53,6 +53,10 @@ public sealed partial class PdfPageRenderer
     /// including region rendering, visibility filtering and printer proof conversion.
     /// Requested form-field regeneration remains unsupported.
     /// Explicit neutral graphics-state defaults, including a None soft-mask reset, retain precision.
+    /// Graphics-state alpha and luminosity soft masks, with backdrop and transfer function, take
+    /// eight-bit mask values from the same mask group render as byte rendering; the masked paint,
+    /// image or transparency group keeps its float color and composites in float. Mask samples and
+    /// render tiles count against the frame storage budget while a graphics state can reach them.
     /// Rendering-intent operators update graphics state while each paint retains its profile intent limits.
     /// Eligible isolated and non-isolated non-knockout DeviceRGB Form groups support outer Normal
     /// or Multiply or Screen compositing, with independent source alpha when needed. Internal Normal, Multiply or Screen paints
@@ -260,19 +264,49 @@ public sealed partial class PdfPageRenderer
         foreach (var entry in settings)
         {
             string name = entry.Key.ValueAsLatin1();
-            if (name is "Type" or "ca" or "CA" or "BM") continue;
+            // Soft masks render through the byte mask path; a mask it cannot read is diagnosed there.
+            if (name is "Type" or "ca" or "CA" or "BM" or "SMask") continue;
             PdfObject value = Resolve(entry.Value);
             bool neutral = name switch
             {
                 "op" or "OP" or "AIS" => value is PdfBoolean { Value: false },
                 "TK" => value is PdfBoolean { Value: true },
                 "OPM" => value is PdfInteger { Value: 0 },
-                "SMask" => value is PdfName mask && mask.ValueAsLatin1() == "None",
                 _ => false
             };
             if (!neutral) return false;
         }
         return true;
+    }
+
+    // The graphics-state soft masks one content stream set in a float render, with the save level
+    // each was set at. A mask set at level n is reachable only from the current state and states
+    // saved after it, so restoring below n, setting another mask at n or ending the stream makes it
+    // unreachable and returns its storage to the frame budget.
+    private sealed class PreciseMaskScope : IDisposable
+    {
+        private List<(GraphicsSoftMask Mask, int Level)>? _masks;
+
+        internal void Replace(GraphicsSoftMask? mask, int level)
+        {
+            ReleaseFrom(level);
+            if (mask is not null) (_masks ??= []).Add((mask, level));
+        }
+
+        internal void Restore(int level) => ReleaseFrom(level + 1);
+
+        public void Dispose() => ReleaseFrom(0);
+
+        private void ReleaseFrom(int level)
+        {
+            if (_masks is null) return;
+            for (int index = _masks.Count - 1; index >= 0; index--)
+            {
+                if (_masks[index].Level < level) continue;
+                _masks[index].Mask.Release();
+                _masks.RemoveAt(index);
+            }
+        }
     }
 
     // The working CMYK profile one float render assumes for untagged DeviceCMYK. Surfaces of the
@@ -305,12 +339,12 @@ public sealed partial class PdfPageRenderer
         }
     }
 
+    // The caller has already multiplied opacity by any graphics-state soft mask value.
     private static void PaintPrecisePixel(RasterSurface surface, int offset, in Color color,
-        double opacity, RendererBlendMode blendMode, GraphicsSoftMask? softMask,
-        KnockoutState? knockout)
+        double opacity, RendererBlendMode blendMode, KnockoutState? knockout)
     {
         if (blendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible or RendererBlendMode.Multiply or RendererBlendMode.Screen)
-            || softMask is not null || knockout is not null || surface.HasProfile
+            || knockout is not null || surface.HasProfile
             || surface.GroupAlpha is not null || surface.GroupShape is not null
             || color.SpotName is not null || color.AdditionalSpot is not null)
             throw new NotSupportedException("This high-precision compositing operation is not implemented.");
@@ -393,7 +427,7 @@ public sealed partial class PdfPageRenderer
         ImageColorSpace colorSpace, double opacity, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips, int left, int top, int right, int bottom,
         bool smooth, int reductionColumns, int reductionRows, int[]? colorKeyMask, SoftMask? softMask,
-        double[]? matte, bool fractionalImageEdges, double imageLeft, double imageRight,
+        GraphicsSoftMask? graphicsSoftMask, double[]? matte, bool fractionalImageEdges, double imageLeft, double imageRight,
         double imageTop, double imageBottom, CancellationToken cancellationToken)
     {
         var converter = new ImageSampleConverter(samples, rowBytes, components, bits, decode,
@@ -428,7 +462,8 @@ public sealed partial class PdfPageRenderer
                     ? converter.ConvertPreciseBilinear(unit.X * sourceWidth - 0.5,
                         (1 - unit.Y) * sourceHeight - 0.5, sourceWidth, sourceHeight)
                     : converter.ConvertPrecise(sampleX, sampleY);
-                SetPixel(target, targetWidth, x, y, color, opacity * maskAlpha * coverage * ClipAlpha(clips, x, y), blendMode);
+                SetPixel(target, targetWidth, x, y, color, opacity * maskAlpha * coverage * ClipAlpha(clips, x, y), blendMode,
+                    graphicsSoftMask);
             }
         }
     }
