@@ -244,6 +244,16 @@ public sealed class DjvuCompoundTests
     }
 
     [Fact]
+    public void TheIw44NoticeClaimsNoLimitThatRealPagesNoLongerHave()
+    {
+        // The palette page has a three-chunk background under a mask: the notice must not say otherwise.
+        var notice = Assert.Single(DjvuDocument.Open(Convert.FromHexString(PaletteOverGray)).Diagnostics,
+            d => d.Code == "Iw44RenderingLimited");
+        foreach (var stale in new[] { "single-chunk", "upright", "zero delay", "without other visual layers", "block-aligned" })
+            Assert.DoesNotContain(stale, notice.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ACompoundPageIsNotConvertedToPdfYet()
     {
         var error = Assert.Throws<NotSupportedException>(() => DjvuDocument.Open(Convert.FromHexString(PaletteOverGray)).ConvertToPdf());

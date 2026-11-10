@@ -144,7 +144,7 @@ public sealed partial class DjvuDocument
             DjvuDiagnostic? diagnostic = chunk.Id switch
             {
                 0x536d6d72 => new("SmmrRenderingLimited", "Nonstriped MMR masks are rendered, alone or over a background. Striped and other MMR variants require additional decoding."),
-                0x42473434 => new("Iw44RenderingLimited", "Full-resolution grayscale IW44 backgrounds, including progressive chunks, and initial upright block-aligned single-chunk color backgrounds are rendered without other visual layers. Color support requires version 1.2, full chroma and zero delay. Other variants and layers require additional decoding."),
+                0x42473434 => new("Iw44RenderingLimited", "Version 1.2 grayscale and color IW44 images in any number of chunks are rendered at page size or a subsample of 1 to 12, alone or under a mask. Images too large or too costly to decode are refused, and other versions require additional decoding."),
                 // JB2 masks (Sjbz, Djbz), FGbz colors and FG44 foregrounds are decoded; JPEG layers and thumbnails are not.
                 0x42476a70 or 0x46476a70 or 0x54483434
                     => new("ImageDecodingUnsupported", "JPEG page layers and embedded thumbnails are not decoded."),
