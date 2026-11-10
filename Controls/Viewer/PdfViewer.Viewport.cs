@@ -1714,39 +1714,36 @@ namespace KillerPDF.Controls
         {
             int pageDipW = (int)Math.Round(primaryDipW);
             if (pageDipW <= 0) return;
-            for (int pi = first; pi < end; pi++)
+            // An empty slot is a sized white Border with no content, as in Continuous. Thousands of full slots (an
+            // image, an overlay and their grid each) made every later frame of a long document slower, and a jump
+            // far ahead built them all at once. AddSecondaryTile fills a slot in place when its bitmap arrives.
+            for (int pi = Math.Max(first, _pageContentPanel.Children.Count); pi < end; pi++)
             {
-                if (_continuousCanvases.ContainsKey(pi)) continue;
                 var (width, height) = ReadVisualPageSize(pi);
                 int pageDipH = Math.Max(1, (int)Math.Round(primaryDipW * height / Math.Max(1e-6, width)));
-                var img = new Image { Stretch = Stretch.None, Width = pageDipW, Height = pageDipH };
-                RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
-                var overlay = BuildPageOverlay(pi, pageDipW, pageDipH, null);
-                overlay.Cursor = CursorForTool(_currentTool);
-                var pageGrid = new Grid();
-                pageGrid.Children.Add(img);
-                pageGrid.Children.Add(overlay);
                 _pageContentPanel.Children.Add(new Border
                 {
                     Background = Brushes.White,
                     VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(0, 0, GridGapPx / Math.Max(0.01, _zoomLevel), GridGapPx / Math.Max(0.01, _zoomLevel)),
-                    Child = pageGrid
+                    Width = pageDipW,
+                    Height = pageDipH,
+                    Margin = new Thickness(0, 0, GridGapPx / Math.Max(0.01, _zoomLevel), GridGapPx / Math.Max(0.01, _zoomLevel))
                 });
             }
         }
 
         // Grid slots are always a prefix of the pages (child i is page i), so the next one to lay out is the child count.
-        private const int GridSlotBatch = 400;
+        private const int GridSlotBatch = 100;
         private bool _gridSlotsQueued;
 
-        /// <summary>Lays out the Grid slots not laid out yet in batches at background priority, so entering Grid on a
-        /// long document does not hold the window for one long frame.</summary>
+        /// <summary>Lays out the Grid slots not laid out yet in small batches when the window is idle, so entering Grid
+        /// on a long document does not hold the window, and the Grid's own fit and first pages are never kept waiting
+        /// behind the batches (at background priority they held the fit back by about three seconds).</summary>
         private void QueueGridPlaceholders()
         {
             if (_gridSlotsQueued || _viewMode != ViewMode.Grid || _pageContentPanel.Children.Count >= ReadPageCount) return;
             _gridSlotsQueued = true;
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, (Action)(() =>
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, (Action)(() =>
             {
                 _gridSlotsQueued = false;
                 // Grid left, the document closed, or the panel holds no primary page yet: nothing to extend.
@@ -1766,8 +1763,9 @@ namespace KillerPDF.Controls
 
         /// <summary>True when the page has a Grid slot whose bitmap has not arrived yet.</summary>
         private bool GridTileIsBlank(int page) =>
-            _viewMode == ViewMode.Grid && _continuousCanvases.TryGetValue(page, out var overlay)
-            && overlay.Parent is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Image { Source: null };
+            _viewMode == ViewMode.Grid && (_continuousCanvases.TryGetValue(page, out var overlay)
+                ? overlay.Parent is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Image { Source: null }
+                : page > 0 && page < _pageContentPanel.Children.Count && _pageContentPanel.Children[page] is Border { Child: null });
 
         private void AddSecondaryTile(int pi, System.Windows.Media.Imaging.BitmapSource bitmap, double primaryDipW)
         {
@@ -1822,18 +1820,30 @@ namespace KillerPDF.Controls
             pageGrid.Children.Add(overlay);
             AddSecondaryPageLinks(pi, pageDipW, pageDipH);
 
+            // Grid: constant GridGapPx on-screen gap between tiles (the document pane
+            // background shows through). Two-Page: no margin on the right page - the spread
+            // gap is the primary's right margin, and a bottom/trailing margin would make the
+            // fit-page margins uneven.
+            var margin = _viewMode == ViewMode.Grid
+                ? new Thickness(0, 0, GridGapPx / Math.Max(0.01, _zoomLevel), GridGapPx / Math.Max(0.01, _zoomLevel))
+                : new Thickness(0);
+            // A Grid page laid out ahead of its bitmap has an empty slot at its index: fill that slot in place.
+            if (_viewMode == ViewMode.Grid && pi < _pageContentPanel.Children.Count
+                && _pageContentPanel.Children[pi] is Border { Child: null } slot)
+            {
+                slot.Width = double.NaN;
+                slot.Height = double.NaN;
+                slot.Margin = margin;
+                slot.Child = pageGrid;
+                RenderAllAnnotations(pi);
+                if (pi == _gridScrollToPage) ScrollToGridTile(slot);
+                return;
+            }
             var tile = new Border
             {
                 Background = Brushes.White,
                 VerticalAlignment = VerticalAlignment.Top,
-                // Grid: constant GridGapPx on-screen gap between tiles (the document pane
-                // background shows through). Two-Page: no margin on the right page - the spread
-                // gap is the primary's right margin, and a bottom/trailing margin would make the
-                // fit-page margins uneven.
-                Margin = _viewMode == ViewMode.Grid
-                    ? new Thickness(0, 0, GridGapPx / Math.Max(0.01, _zoomLevel),
-                                          GridGapPx / Math.Max(0.01, _zoomLevel))
-                    : new Thickness(0),
+                Margin = margin,
                 Child = pageGrid
             };
             _pageContentPanel.Children.Add(tile);
@@ -1863,24 +1873,27 @@ namespace KillerPDF.Controls
             // Grid tiles render asynchronously, so a "scroll to page N" requested when entering grid
             // can't run until page N's tile exists. Do it the moment that tile streams in.
             if (pi == _gridScrollToPage)
-            {
-                _gridScrollToPage = -1;
-                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
-                    (Action)(() =>
+                ScrollToGridTile(tile);
+        }
+
+        private void ScrollToGridTile(Border tile)
+        {
+            _gridScrollToPage = -1;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                (Action)(() =>
+                {
+                    if (_viewMode != ViewMode.Grid) return;
+                    try
                     {
-                        if (_viewMode != ViewMode.Grid) return;
-                        try
-                        {
-                            // Top-align the page's row in the viewport (accounts for the zoom transform).
-                            if (PagePreviewPanel.Content is FrameworkElement content)
-                                PagePreviewPanel.ScrollToVerticalOffset(
-                                    tile.TransformToVisual(content).Transform(new Point(0, 0)).Y);
-                            else
-                                tile.BringIntoView();
-                        }
-                        catch { tile.BringIntoView(); }
-                    }));
-            }
+                        // Top-align the page's row in the viewport (accounts for the zoom transform).
+                        if (PagePreviewPanel.Content is FrameworkElement content)
+                            PagePreviewPanel.ScrollToVerticalOffset(
+                                tile.TransformToVisual(content).Transform(new Point(0, 0)).Y);
+                        else
+                            tile.BringIntoView();
+                    }
+                    catch { tile.BringIntoView(); }
+                }));
         }
 
         internal void BootstrapDocumentView(int initialPage, bool autoFit, bool restoreFitMode = false,
@@ -2912,12 +2925,37 @@ namespace KillerPDF.Controls
             PagePreviewPanel.BeginAnimation(UIElement.OpacityProperty, fadeOut);
         }
 
+        // Removing every Continuous slot of a long document in one go held the window for about 200 ms on the way
+        // into another mode. The collapsed panel drops its slots' bitmaps at once and lets the slots themselves go a
+        // step at a time once the new mode has settled. Setting Continuous up again clears whatever is left.
+        private const int ContinuousSlotReleaseStep = 100;
+
+        private void ReleaseContinuousSlotsInSteps()
+        {
+            foreach (var child in _continuousPanel.Children)
+                if (child is Border { Child: Grid g } && g.Children.Count > 0 && g.Children[0] is Image image) image.Source = null;
+            if (_continuousPanel.Children.Count <= ContinuousSlotReleaseStep) { _continuousPanel.Children.Clear(); return; }
+            var panel = _continuousPanel;
+            void Step()
+            {
+                if (!ReferenceEquals(panel, _continuousPanel) || _viewMode.IsContinuous() || panel.Children.Count == 0) return;
+                int keep = Math.Max(0, panel.Children.Count - ContinuousSlotReleaseStep);
+                panel.Children.RemoveRange(keep, panel.Children.Count - keep);
+                if (keep > 0) Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.SystemIdle, (Action)Step);
+            }
+            var start = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.SystemIdle, Dispatcher)
+                { Interval = TimeSpan.FromSeconds(1) };
+            start.Tick += (_, _) => { start.Stop(); Step(); };
+            start.Start();
+        }
+
         internal void ApplyViewMode(ViewMode mode, bool force = false)
         {
             if (_viewMode == mode && !force) return;
             CancelRenderWork();
             _primaryRenderSession.Clear();
-            _backgroundRenderCache.Clear();
+            // The background render cache stays: a view mode does not change the document, and opening a long
+            // document's page tree again took about 225 ms before the new mode's first page could draw.
             _viewMode = mode;
             Host?.ViewerNavigationChanged(this);
             _renderedPrimaryPage = -1;   // spread/layout changes with the mode; force the next render
@@ -2932,7 +2970,7 @@ namespace KillerPDF.Controls
             {
                 CancelAndRelease(_continuousRenderCts);
                 _continuousRenderCts = null;
-                _continuousPanel.Children.Clear();
+                ReleaseContinuousSlotsInSteps();
                 _continuousTops.Clear();
                 _continuousCanvases.Clear();
                 _pages.Clear();
