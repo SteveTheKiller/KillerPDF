@@ -170,6 +170,10 @@ internal sealed class TableExportDialog : Window
         frame.InvalidateMeasure();
         if (wanted <= ActualHeight + 0.5) return;
         Height = wanted;
+        // It grows downward from where it opened, so move it back up onto its monitor's work area if it now runs past
+        // the bottom, which would hide Export and Cancel.
+        UpdateLayout();
+        KillerFamily.Windowing.WorkAreaFit.Fit(this, keepMargin: false);
         _ownSize = new Size(ActualWidth, wanted);
     }
 
