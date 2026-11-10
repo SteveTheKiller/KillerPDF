@@ -66,7 +66,7 @@ public sealed partial class PdfPageRenderer
     /// on white for opaque output; transparent output preserves their alpha.
     /// Initial printer proof rendering accepts pages without explicit groups and unprofiled DeviceRGB page groups with direct
     /// DeviceRGB/Gray paths, ordinary Form XObjects containing supported paints,
-    /// supported direct and ICC RGB/Gray images and embedded TrueType text,
+    /// supported direct, calibrated gray and ICC RGB/Gray images, marked content and embedded TrueType text,
     /// including supported DefaultGray calibration,
     /// all four intents with an actual selected inverse,
     /// optional source BPC and independent paper/black simulation,
@@ -227,6 +227,10 @@ public sealed partial class PdfPageRenderer
         if (IsName(image.Dictionary, "ColorSpace", "DeviceRGB")
             || IsName(image.Dictionary, "ColorSpace", "DeviceGray")) return true;
         if (!image.Dictionary.TryGetValue(Name("ColorSpace"), out PdfObject? value)) return false;
+        // Calibrated gray converts through its own whitepoint and gamma; the precise image path
+        // accepts only the forms it reproduces exactly and refuses the rest.
+        if (Resolve(value) is PdfArray { Count: 2 } calibrated && Resolve(calibrated[0]) is PdfName calGray
+            && calGray.ValueAsLatin1() == "CalGray") return true;
         bool defaultCmyk = Resolve(value) is PdfName device && device.ValueAsLatin1() == "DeviceCMYK";
         if (defaultCmyk
             && (!resources.TryGetValue(Name("ColorSpace"), out PdfObject? defaultsValue)
@@ -243,6 +247,8 @@ public sealed partial class PdfPageRenderer
 
     private static bool PreciseProofOperationSupported(string operation) => operation is
         "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "gs" or "w" or "d"
+        // Marked content only decides visibility, which the float path honors before proofing.
+        or "BMC" or "BDC" or "EMC"
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"
         or "n" or "W" or "W*"
