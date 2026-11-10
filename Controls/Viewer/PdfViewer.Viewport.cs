@@ -1446,13 +1446,16 @@ namespace KillerPDF.Controls
             int renderFirst = primaryPageIdx + 1, renderLast = limit - 1;
             if (_viewMode == ViewMode.Grid)
             {
-                AddGridPlaceholders(primaryPageIdx + 1, limit, primaryDipW);
                 renderCenter = Math.Clamp(State.CurrentPage, primaryPageIdx + 1, limit - 1);
                 // Grid draws the pages within two screens of the page being looked at and lets go of the bitmaps of
                 // pages further off, so its memory and its drawing follow the viewport, not the length of the document.
                 int reach = GridPagesPerScreen() * 2;
                 renderFirst = Math.Max(primaryPageIdx + 1, renderCenter - reach);
                 renderLast = Math.Min(limit - 1, renderCenter + reach);
+                // The slots through the pages drawn now are laid out at once; the rest follow in batches, since all
+                // 5,000 slots of a long PDF took about half a second in one frame. A jump past them lays them out first.
+                AddGridPlaceholders(primaryPageIdx + 1, renderLast + 1, primaryDipW);
+                QueueGridPlaceholders();
                 ReleaseGridTilesOutside(renderCenter - reach * 2, renderCenter + reach * 2);
                 // A zoom or monitor change makes the tiles' size on screen differ from the one they were drawn at. The
                 // tiles on show stretch until the change settles, then the scroll-settle timer draws them again once.
@@ -1731,6 +1734,34 @@ namespace KillerPDF.Controls
                     Child = pageGrid
                 });
             }
+        }
+
+        // Grid slots are always a prefix of the pages (child i is page i), so the next one to lay out is the child count.
+        private const int GridSlotBatch = 400;
+        private bool _gridSlotsQueued;
+
+        /// <summary>Lays out the Grid slots not laid out yet in batches at background priority, so entering Grid on a
+        /// long document does not hold the window for one long frame.</summary>
+        private void QueueGridPlaceholders()
+        {
+            if (_gridSlotsQueued || _viewMode != ViewMode.Grid || _pageContentPanel.Children.Count >= ReadPageCount) return;
+            _gridSlotsQueued = true;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, (Action)(() =>
+            {
+                _gridSlotsQueued = false;
+                // Grid left, the document closed, or the panel holds no primary page yet: nothing to extend.
+                if (_viewMode != ViewMode.Grid || !HasReadDocument || _pageContentPanel.Children.Count == 0) return;
+                int next = _pageContentPanel.Children.Count;
+                AddGridPlaceholders(next, Math.Min(ReadPageCount, next + GridSlotBatch), _annotationCanvas.Width);
+                QueueGridPlaceholders();
+            }));
+        }
+
+        /// <summary>Lays out the Grid slots through the page now, for a jump to a page whose slot is still queued.</summary>
+        private void EnsureGridSlotsThrough(int page)
+        {
+            if (_viewMode != ViewMode.Grid || _pageContentPanel.Children.Count == 0 || page < _pageContentPanel.Children.Count) return;
+            AddGridPlaceholders(_pageContentPanel.Children.Count, Math.Min(ReadPageCount, page + 1), _annotationCanvas.Width);
         }
 
         /// <summary>True when the page has a Grid slot whose bitmap has not arrived yet.</summary>

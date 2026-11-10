@@ -108,6 +108,8 @@ namespace KillerPDF.Controls
                     // Keep the statusbar counter honest even when the clicked tile is already in
                     // view (BringIntoView then scrolls nothing, so the scroll-sync never fires).
                     SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, ReadPageTotal) + $" - {DisplayZoomPct():F0}%");
+                    // Slots past the first screens are laid out in batches; a jump past them lays them out now.
+                    if (_pageContentPanel.Children.Count > 1) EnsureGridSlotsThrough(_currentPage);
                     if (_pageContentPanel.Children.Count <= 1)
                     {
                         PagePreviewPanel.ScrollToTop();
