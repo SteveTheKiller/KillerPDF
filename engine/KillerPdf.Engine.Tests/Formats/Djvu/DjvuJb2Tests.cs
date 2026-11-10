@@ -36,7 +36,7 @@ public sealed class DjvuJb2Tests
     // only its black box enters the library), G2 refined from it and G3, with a comment; the page requires the three
     // shapes and uses a comment, two copies, a new image-only X, an image-only refinement of G3, a context reset,
     // non-symbol data (the bar), a new T added to the library and copied, and G1C refined from G1 and copied.
-    private const string DictionaryBundle =
+    internal const string DictionaryBundle =
         "41542654464F524D000000D2444A564D4449524D000000288100020000004000000074FFFFE2BF8A1FE9A21937B167E2A403B19F7DBEA8FB6AF7C9" +
         "8AD3AF6ABF464F524D0000002C444A5649446A627A00000020E70D26C19A11FECC4BD37A4C122ED3FD142BFABF907143E9114965AE29659B4A464F" +
         "524D00000062444A5655494E464F0000000A0040002818002C011601494E434C000000086D6F72652E696666536A627A0000003414E012482EA3B6" +
@@ -45,7 +45,7 @@ public sealed class DjvuJb2Tests
     // A bundle whose page requires two shapes from more.iff, a dictionary that itself requires base.iff's one shape (G1)
     // and adds G3. The page copies G1 to (2, 3) and G3 to (12, 3). The spec allows a dictionary to include another;
     // DjVuLibre ddjvu does not resolve that, so this expectation rests on the spec alone.
-    private const string NestedDictionaryBundle =
+    internal const string NestedDictionaryBundle =
         "41542654464F524D000000CE444A564D4449524D000000348100030000004C0000006C0000009AFFFFD5BF8A21687BC6D3F5A2C12D6011DCA18FDC" +
         "338C4D967688E590DE04BD95507D94A8F1464F524D00000018444A5649446A627A0000000CE70F7E06579BE4CEA7EBA17F464F524D00000026444A" +
         "5649494E434C00000008626173652E696666446A627A0000000A1590C03380AA2EC3BBDF464F524D00000038444A5655494E464F0000000A004000" +

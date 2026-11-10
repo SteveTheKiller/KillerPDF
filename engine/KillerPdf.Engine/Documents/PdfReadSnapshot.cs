@@ -85,6 +85,9 @@ public sealed partial class PdfReadSnapshot
     private readonly EpubLayoutDocument? _layout;
     private readonly DjvuDocument? _djvu;
 
+    /// <summary>The DjVu document's shared-dictionary decodes and cached bytes; zero for other formats.</summary>
+    internal (int Decodes, long Bytes) DjvuDictionaryCacheState => _djvu?.DictionaryCacheState ?? default;
+
     /// <summary>Gets EPUB chapters replaced by diagnosis pages during isolated layout; empty for other formats.</summary>
     public IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics => _layout?.ChapterDiagnostics ?? [];
 

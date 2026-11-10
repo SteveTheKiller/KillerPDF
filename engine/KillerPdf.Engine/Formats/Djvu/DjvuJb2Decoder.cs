@@ -63,6 +63,21 @@ internal sealed class DjvuJb2Budget
     {
         if (--_records < 0) throw new InvalidDataException("JB2 data exceeds the record limit.");
     }
+
+    /// <summary>The work, storage and records still available.</summary>
+    internal (long Work, long Storage, long Records) Remaining => (_work, _storage, _records);
+
+    /// <summary>
+    /// Charges what an earlier decode of a shared dictionary cost, so a page that reuses that decode is held to the
+    /// same limits as one that decodes the dictionary itself.
+    /// </summary>
+    internal void Charge(long work, long storage, long records)
+    {
+        Work(work);
+        Store(storage);
+        _records -= records;
+        if (_records < 0) throw new InvalidDataException("JB2 data exceeds the record limit.");
+    }
 }
 
 /// <summary>

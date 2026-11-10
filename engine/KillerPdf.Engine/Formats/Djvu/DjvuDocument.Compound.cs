@@ -250,10 +250,72 @@ public sealed partial class DjvuDocument
         token.ThrowIfCancellationRequested();
         var own = chunks.Where(c => c.Id == DjbzId).ToList();
         if (own.Count > 1) throw new InvalidDataException("A component contains duplicate Djbz dictionaries.");
-        if (own.Count == 1)
-            return DjvuJb2Decoder.DecodeDictionary(_data.AsSpan(own[0].Offset, own[0].Length).ToArray(),
-                () => Included(chunks, budget, visiting, token), budget, token);
+        if (own.Count == 1) return CachedDictionary(own[0], chunks, budget, visiting, token);
         return Included(chunks, budget, visiting, token);
+    }
+
+    // A decoded Djbz dictionary with what decoding it cost, so a page that reuses it is charged the same work,
+    // symbol storage and records as a page that decodes it, and is refused exactly when that page would be.
+    private sealed record DecodedDictionary(DjvuJb2Dictionary Dictionary, long Bytes, long Work, long Storage, long Records);
+
+    // Decoded dictionaries by their Djbz chunk offset, least recently used first. Every page of a book that shares
+    // a dictionary used to decode it again for each thumbnail, Grid cell and zoom; the open document (one per read
+    // snapshot) now keeps it, up to DictionaryCacheLimit bytes.
+    private readonly object _dictionaryLock = new();
+    private readonly Dictionary<int, LinkedListNode<(int Offset, DecodedDictionary Entry)>> _dictionaries = [];
+    private readonly LinkedList<(int Offset, DecodedDictionary Entry)> _dictionaryOrder = new();
+    private long _dictionaryBytes;
+    private int _dictionaryDecodes;
+
+    /// <summary>How many shared dictionaries this document has decoded, and the bytes its dictionary cache holds.</summary>
+    internal (int Decodes, long Bytes) DictionaryCacheState
+    {
+        get { lock (_dictionaryLock) return (_dictionaryDecodes, _dictionaryBytes); }
+    }
+
+    /// <summary>The most bytes of decoded dictionaries this document keeps: the JB2 symbol storage limit.</summary>
+    internal long DictionaryCacheLimit { get; set; } = DjvuJb2Budget.StorageLimit;
+
+    // What a kept dictionary holds: each shape's bits, plus 64 bytes for its object (16 header, 24 fields) and its
+    // bit array header (24).
+    private static long DictionaryBytes(DjvuJb2Dictionary dictionary)
+        => dictionary.Symbols.Sum(symbol => (long)symbol.Bits.Length + 64);
+
+    private DjvuJb2Dictionary CachedDictionary(Chunk djbz, List<Chunk> chunks, DjvuJb2Budget budget,
+        HashSet<string> visiting, CancellationToken token)
+    {
+        lock (_dictionaryLock)
+        {
+            if (_dictionaries.TryGetValue(djbz.Offset, out var node))
+            {
+                _dictionaryOrder.Remove(node);
+                _dictionaryOrder.AddLast(node);
+                var kept = node.Value.Entry;
+                budget.Charge(kept.Work, kept.Storage, kept.Records);
+                return kept.Dictionary;
+            }
+            _dictionaryDecodes++;
+        }
+        var before = budget.Remaining;
+        var dictionary = DjvuJb2Decoder.DecodeDictionary(_data.AsSpan(djbz.Offset, djbz.Length).ToArray(),
+            () => Included(chunks, budget, visiting, token), budget, token);
+        var after = budget.Remaining;
+        var entry = new DecodedDictionary(dictionary, DictionaryBytes(dictionary), before.Work - after.Work,
+            before.Storage - after.Storage, before.Records - after.Records);
+        lock (_dictionaryLock)
+        {
+            if (entry.Bytes > DictionaryCacheLimit || _dictionaries.ContainsKey(djbz.Offset)) return dictionary;
+            while (_dictionaryBytes + entry.Bytes > DictionaryCacheLimit)
+            {
+                var oldest = _dictionaryOrder.First!;
+                _dictionaryOrder.RemoveFirst();
+                _dictionaries.Remove(oldest.Value.Offset);
+                _dictionaryBytes -= oldest.Value.Entry.Bytes;
+            }
+            _dictionaries.Add(djbz.Offset, _dictionaryOrder.AddLast((djbz.Offset, entry)));
+            _dictionaryBytes += entry.Bytes;
+        }
+        return dictionary;
     }
 
     private DjvuJb2Dictionary? Included(List<Chunk> chunks, DjvuJb2Budget budget, HashSet<string> visiting,
