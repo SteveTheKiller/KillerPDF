@@ -995,6 +995,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">{0} ページを変換しました</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">ページをレンダリングできませんでした - しばらくしてから再試行してください。</sys:String>
     <sys:String x:Key="Str_Tf_Failed">変換に失敗しました: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">スタンプに失敗しました: {0}</sys:String>
 
     <!-- トリミングバー -->
     <sys:String x:Key="Str_Crop_Position">位置</sys:String>

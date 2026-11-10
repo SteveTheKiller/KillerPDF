@@ -912,6 +912,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Tf_DoneBatch">{0}টি পৃষ্ঠা রূপান্তর করা হয়েছে</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">পৃষ্ঠাটি রেন্ডার করা যায়নি - কিছুক্ষণ পরে আবার চেষ্টা করুন।</sys:String>
     <sys:String x:Key="Str_Tf_Failed">রূপান্তর ব্যর্থ হয়েছে: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">স্ট্যাম্প ব্যর্থ হয়েছে: {0}</sys:String>
     <sys:String x:Key="Str_Crop_Position">অবস্থান</sys:String>
     <sys:String x:Key="Str_Crop_Size">আকার</sys:String>
     <sys:String x:Key="Str_Crop_Pages">পৃষ্ঠা</sys:String>

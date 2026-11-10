@@ -912,6 +912,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">{0} páginas transformadas</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">No se pudo renderizar la página - inténtalo de nuevo en un momento.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Error al transformar: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Error al sellar: {0}</sys:String>
     <sys:String x:Key="Str_Crop_Position">Posición</sys:String>
     <sys:String x:Key="Str_Crop_Size">Tamaño</sys:String>
     <sys:String x:Key="Str_Crop_Pages">Páginas</sys:String>

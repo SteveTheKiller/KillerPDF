@@ -891,6 +891,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Tf_Done">{0} бет түрлендірілді</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Бетті көрсету мүмкін болмады - сәлден кейін қайталап көріңіз.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Түрлендіру сәтсіз: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Мөр қою сәтсіз: {0}</sys:String>
 
     <!-- Crop bar -->
     <sys:String x:Key="Str_Crop_Position">Орын</sys:String>

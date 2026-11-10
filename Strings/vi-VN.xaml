@@ -995,6 +995,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Tf_DoneBatch">Đã chuyển đổi {0} trang</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Không thể kết xuất trang - vui lòng thử lại sau giây lát.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Chuyển đổi thất bại: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Đóng dấu thất bại: {0}</sys:String>
 
     <!-- Thanh cắt -->
     <sys:String x:Key="Str_Crop_Position">Vị trí</sys:String>

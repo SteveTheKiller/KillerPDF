@@ -996,6 +996,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Tf_DoneBatch">Transformed {0} pages</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Could not render the page. Try again in a moment.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Transform failed: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Stamp failed: {0}</sys:String>
 
     <!-- Crop bar -->
     <sys:String x:Key="Str_Crop_Position">Position</sys:String>

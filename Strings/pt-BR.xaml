@@ -995,6 +995,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Tf_DoneBatch">{0} páginas transformadas</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Não foi possível renderizar a página - tente novamente em instantes.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Falha na transformação: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Falha ao carimbar: {0}</sys:String>
 
     <!-- Crop bar -->
     <sys:String x:Key="Str_Crop_Position">Posição</sys:String>

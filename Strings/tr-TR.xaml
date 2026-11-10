@@ -912,6 +912,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Tf_DoneBatch">{0} sayfa dönüştürüldü</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Sayfa görüntülenemedi - birazdan tekrar deneyin.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Dönüştürme başarısız: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Damgalama başarısız: {0}</sys:String>
     <sys:String x:Key="Str_Crop_Position">Konum</sys:String>
     <sys:String x:Key="Str_Crop_Size">Boyut</sys:String>
     <sys:String x:Key="Str_Crop_Pages">Sayfalar</sys:String>

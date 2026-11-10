@@ -914,6 +914,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">已變形 {0} 頁</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">無法呈現頁面 - 請稍後再試。</sys:String>
     <sys:String x:Key="Str_Tf_Failed">變形失敗：{0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">蓋章失敗：{0}</sys:String>
     <sys:String x:Key="Str_Crop_Position">位置</sys:String>
     <sys:String x:Key="Str_Crop_Size">大小</sys:String>
     <sys:String x:Key="Str_Crop_Pages">頁面</sys:String>

@@ -995,6 +995,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Tf_DoneBatch">Перетворено сторінок: {0}</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Не вдалося відобразити сторінку - спробуйте ще раз за мить.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Не вдалося перетворити: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Не вдалося поставити штамп: {0}</sys:String>
 
     <!-- Crop bar -->
     <sys:String x:Key="Str_Crop_Position">Розташування</sys:String>

@@ -995,6 +995,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Tf_DoneBatch">{0} oldal átalakítva</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Az oldal nem jeleníthető meg - próbálja újra egy pillanat múlva.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Az átalakítás sikertelen: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">A bélyegzés sikertelen: {0}</sys:String>
 
     <!-- Crop bar -->
     <sys:String x:Key="Str_Crop_Position">Pozíció</sys:String>

@@ -966,6 +966,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Tf_DoneBatch">Przekształcono {0} stron</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Nie można wyrenderować strony - spróbuj ponownie za chwilę</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Przekształcenie nie powiodło się: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Stemplowanie nie powiodło się: {0}</sys:String>
 
     <!-- Crop bar -->
     <sys:String x:Key="Str_Crop_Position">Pozycja</sys:String>

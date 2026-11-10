@@ -926,6 +926,7 @@
     <sys:String x:Key="Str_Tf_DoneBatch">Preoblikovane strani: {0}</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Strani ni bilo mogoče izrisati. Poskusite znova čez trenutek.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Preoblikovanje ni uspelo: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Žigosanje ni uspelo: {0}</sys:String>
     <sys:String x:Key="Str_Crop_Position">Položaj</sys:String>
     <sys:String x:Key="Str_Crop_Size">Velikost</sys:String>
     <sys:String x:Key="Str_Crop_Pages">Strani</sys:String>

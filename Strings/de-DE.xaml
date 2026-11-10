@@ -914,6 +914,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Tf_DoneBatch">{0} Seiten transformiert</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Die Seite konnte nicht dargestellt werden - versuchen Sie es gleich erneut.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Transformieren fehlgeschlagen: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Stempeln fehlgeschlagen: {0}</sys:String>
 
     <!-- ── Crop bar ────────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Crop_Position">Position</sys:String>

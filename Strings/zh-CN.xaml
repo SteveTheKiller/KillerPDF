@@ -914,6 +914,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">已变换 {0} 页</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">无法呈现页面 - 请稍后再试。</sys:String>
     <sys:String x:Key="Str_Tf_Failed">变换失败：{0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">盖章失败：{0}</sys:String>
 
     <!-- ── Crop（裁切栏） ─────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Crop_Position">位置</sys:String>

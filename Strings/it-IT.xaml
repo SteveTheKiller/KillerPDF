@@ -995,6 +995,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Tf_DoneBatch">Trasformate {0} pagine</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Impossibile renderizzare la pagina: riprova tra qualche istante.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Trasformazione non riuscita: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Timbratura non riuscita: {0}</sys:String>
 
     <!-- Crop bar -->
     <sys:String x:Key="Str_Crop_Position">Posizione</sys:String>

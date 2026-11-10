@@ -995,6 +995,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Tf_DoneBatch">Transformerte {0} sider</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Kunne ikke gjengi siden. Prøv igjen om et øyeblikk.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Transformeringen mislyktes: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Stemplingen mislyktes: {0}</sys:String>
 
     <!-- Crop bar -->
     <sys:String x:Key="Str_Crop_Position">Plassering</sys:String>

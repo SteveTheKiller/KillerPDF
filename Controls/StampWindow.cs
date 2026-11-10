@@ -27,6 +27,8 @@ namespace KillerPDF
         private double _pageWpt, _pageHpt;
         private readonly int _pageCount;
         private int _pageIndex;
+        // The page the preview bitmap shows; the stepper returns to it when a page cannot be drawn.
+        private int _shownPageIndex;
         private readonly StampSpec _spec;
         private readonly bool _hadExisting;   // dialog opened on a doc that already has stamps (#145)
         // Renders an arbitrary page for the preview stepper: returns that page's bitmap + size in points.
@@ -94,6 +96,7 @@ namespace KillerPDF
             _pageHpt = pageHpt;
             _pageCount = pageCount;
             _pageIndex = pageIndex;
+            _shownPageIndex = pageIndex;
             _pageProvider = pageProvider;
             _hadExisting = existing is not null;   // #145: clearing existing stamps must stay applyable
             _spec = existing?.Clone() ?? new StampSpec { NumbersEnabled = true };
@@ -597,7 +600,14 @@ namespace KillerPDF
         {
             if (_pageProvider == null) return;
             var (src, wpt, hpt) = _pageProvider(_pageIndex);
-            if (src == null) return;
+            if (src == null)
+            {
+                // The page number and arrows go back to the page still shown, so the preview's stamps match it.
+                _pageIndex = _shownPageIndex;
+                UpdatePageNav();
+                return;
+            }
+            _shownPageIndex = _pageIndex;
             _pageSrc = src; _pageWpt = wpt; _pageHpt = hpt;
             _preview.Source = src;
             RenderPreview();

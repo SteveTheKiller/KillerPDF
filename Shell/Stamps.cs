@@ -30,20 +30,41 @@ namespace KillerPDF.Shell
         {
             if (_doc is null) return;
             int pageIdx = PageList.SelectedIndex < 0 ? 0 : PageList.SelectedIndex;
-            var src = RenderPageBitmap(pageIdx, 1100, BurnPageAnnotationsToTemp(pageIdx));
+            if (!TryBurnStampPreview(pageIdx, this, out string? burned)) return;
+            var src = RenderPageBitmap(pageIdx, 1100, burned);
             if (src is null) { SetStatus(Loc("Str_Tf_NoRender")); return; }
 
             PdfEngineDocumentSession session = EnsureEngineDocumentSession();
             var (pwpt, phpt) = session.VisualPageSize(pageIdx, _pageRotations);
-            var win = new StampWindow(this, src, pwpt, phpt, session.PageCount, pageIdx, _docStampSpec,
+            StampWindow? win = null;
+            win = new StampWindow(this, src, pwpt, phpt, session.PageCount, pageIdx, _docStampSpec,
                 idx =>   // page-render callback for the preview stepper
                 {
-                    var s = RenderPageBitmap(idx, 1100, BurnPageAnnotationsToTemp(idx));
                     var (w, h) = EnsureEngineDocumentSession().VisualPageSize(idx, _pageRotations);
-                    return (s, w, h);
+                    // A refused burn has been reported; no bitmap keeps the preview on the page it shows.
+                    if (!TryBurnStampPreview(idx, win ?? (Window)this, out string? stepBurned)) return (null, w, h);
+                    return (RenderPageBitmap(idx, 1100, stepBurned), w, h);
                 });
             win.ShowDialog();
             if (win.Applied) ApplyStampSpec(win.Result);
+        }
+
+        // The preview burns the page's annotations into a temporary copy. A temp folder that refuses the copy
+        // is reported over the window that asked, instead of escaping the toolbar click or the stepper.
+        private bool TryBurnStampPreview(int pageIdx, Window owner, out string? burned)
+        {
+            try
+            {
+                burned = BurnPageAnnotationsToTemp(pageIdx);
+                return true;
+            }
+            catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+            {
+                burned = null;
+                KillerDialog.Show(owner, string.Format(Loc("Str_Stamp_Failed"), ex.Message), "KillerPDF",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
         }
 
         private void ApplyStampSpec(StampSpec spec)

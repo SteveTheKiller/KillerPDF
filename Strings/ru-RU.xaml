@@ -995,6 +995,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Tf_DoneBatch">Трансформировано {0} страниц</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Не удалось отобразить страницу - повторите попытку через мгновение.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Не удалось трансформировать: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Не удалось поставить штамп: {0}</sys:String>
 
     <!-- Crop bar -->
     <sys:String x:Key="Str_Crop_Position">Позиция</sys:String>

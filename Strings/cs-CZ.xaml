@@ -974,6 +974,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Tf_DoneBatch">Transformováno {0} stránek</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Stránku se nepodařilo vykreslit - zkuste to za okamžik znovu.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Transformace selhala: {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Razítkování selhalo: {0}</sys:String>
 
     <!-- Crop bar -->
     <sys:String x:Key="Str_Crop_Position">Pozice</sys:String>

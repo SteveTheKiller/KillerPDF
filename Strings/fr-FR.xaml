@@ -995,6 +995,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Tf_DoneBatch">{0} pages transformées</sys:String>
     <sys:String x:Key="Str_Tf_NoRender">Impossible d'afficher la page - réessayez dans un instant.</sys:String>
     <sys:String x:Key="Str_Tf_Failed">Échec de la transformation : {0}</sys:String>
+    <sys:String x:Key="Str_Stamp_Failed">Échec du tamponnage : {0}</sys:String>
 
     <!-- Crop bar -->
     <sys:String x:Key="Str_Crop_Position">Position</sys:String>
