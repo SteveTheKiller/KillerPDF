@@ -51,12 +51,12 @@ public partial class PdfViewer
                 if (_presentationDisplayObserver is not { } observer) return;
                 var observed = DisplayCapture is { } capture ? capture(window) : observer.Capture();
                 if (ReferenceEquals(observed, _presentationDisplay)) return;
-                // Windows broadcasts settings changes for many reasons besides color. Pages that would look the same on
-                // the new observation stay as they are instead of going blank and drawing again.
-                bool alike = _presentationDisplay is { } shown && _sdrDisplayConverter is { } converter
-                    && converter.PresentsAlike(shown, observed);
+                // Windows broadcasts settings changes for many reasons besides color. When pages would look the same on
+                // the new observation, the one they were drawn for stays current: they do not go blank and draw again,
+                // and renders still in progress for it keep going.
+                if (_presentationDisplay is { } shown && _sdrDisplayConverter is { } converter
+                    && converter.PresentsAlike(shown, observed)) return;
                 ObservePresentationDisplay(observed);
-                if (alike) return;
                 if (!IsLoaded || !IsVisible || !HasReadDocument)
                 {
                     // Pages converted for the old display are redrawn when the viewer is shown again.
@@ -78,12 +78,13 @@ public partial class PdfViewer
             }
         }
         if (DisplayCapture is { } captureDisplay) return ObservePresentationDisplay(captureDisplay(window));
-        // A full capture queries the display configuration and the monitor profile, about 12 ms at the median and 50 ms
-        // or more at the 95th percentile on a two-monitor desktop, on the UI thread for every render pass. The observer
-        // captures again on activation, movement, showing and settings messages and raises Changed for a new
-        // observation, so a render takes its latest one.
-        return ObservePresentationDisplay(_presentationDisplayObserving
-            ? _presentationDisplayObserver.Status : _presentationDisplayObserver.Capture());
+        // A full capture queries the display configuration and the monitor profile, about 11 ms at the median on a
+        // two-monitor desktop, on the UI thread for every render pass. The observer captures again on activation,
+        // movement, showing and settings messages, and its Changed handler above takes in an observation that changes
+        // how pages look, so a render uses the observation taken in.
+        if (!_presentationDisplayObserving) return ObservePresentationDisplay(_presentationDisplayObserver.Capture());
+        return _presentationDisplay is { } current && !ReferenceEquals(current, NotAttachedDisplay)
+            ? current : ObservePresentationDisplay(_presentationDisplayObserver.Status);
     }
 
     private bool _presentationDisplayObserving;

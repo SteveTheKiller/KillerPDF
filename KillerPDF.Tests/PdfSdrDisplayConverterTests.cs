@@ -100,13 +100,33 @@ public sealed class PdfSdrDisplayConverterTests
         Assert.Equal(PdfSdrConversionOutcome.Converted, converter.Convert(frame).Outcome);
 
         bool unchanged = converter.PresentsAlike(Display(40), Display(41));
-        // The profile file was replaced under the same name: a different red primary.
+        // The profile file was replaced under the same name: a different red primary. Generation 40 is still the one
+        // the pages were drawn for, since 41 presented alike.
         content = MonitorBytes();
         BinaryPrimitives.WriteInt32BigEndian(content.AsSpan(216 + 8), 32768);
-        bool replaced = converter.PresentsAlike(Display(41), Display(42));
+        bool replaced = converter.PresentsAlike(Display(40), Display(42));
 
         Assert.True(unchanged, "The same monitor profile was taken for a change.");
         Assert.False(replaced, "A replaced monitor profile was taken for no change.");
+    }
+
+    [Fact]
+    public void AnObservationThatPresentsAlikeLeavesTheShownOnesProfileInUse()
+    {
+        // The viewer keeps the shown observation current when a new one presents alike, so renders still converting for
+        // it must not read the monitor profile again.
+        int reads = 0;
+        var converter = new PdfSdrDisplayConverter((name, token) => { reads++; return PdfColorProfile.Load(MonitorBytes()); });
+        var frame = new PdfRenderedFrame(1, 1, [1f, 0f, 0f, 1f], PdfFrameColorEncoding.LinearSrgbD65);
+        var shown = Display(60);
+        converter.UpdateDisplay(shown);
+        converter.Convert(frame);
+
+        Assert.True(converter.PresentsAlike(shown, Display(61)));
+        int before = reads;
+        Assert.Equal(PdfSdrConversionOutcome.Converted, converter.Convert(frame).Outcome);
+
+        Assert.Equal(before, reads);
     }
 
     [Fact]

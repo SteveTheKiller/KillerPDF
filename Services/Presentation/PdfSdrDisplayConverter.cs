@@ -40,7 +40,8 @@ public sealed class PdfSdrDisplayConverter(Func<string, CancellationToken, PdfCo
         // Without application conversion the page bytes do not depend on the monitor's profile.
         if (policy.TransformOwner != PdfMonitorTransformOwner.Application) return true;
         // The pages were converted with the profile read for the previous observation; a profile of the same name can
-        // have been replaced since, so the next observation's profile is read (and kept for its conversions) and compared.
+        // have been replaced since, so the next observation's profile is read and compared. The previous observation
+        // stays current when they match, so its profile stays the one kept for conversions.
         var cached = Volatile.Read(ref _profile);
         var before = previous.TargetAssociation!.Targets[0].StandardProfile;
         var after = next.TargetAssociation!.Targets[0].StandardProfile;
@@ -50,9 +51,7 @@ public sealed class PdfSdrDisplayConverter(Func<string, CancellationToken, PdfCo
             return false;
         try
         {
-            var profile = profileReader(after.Name, cancellationToken);
-            Volatile.Write(ref _profile, new(next.Generation, next.MonitorIdentity, after.Name, profile));
-            return profile.ContentSha256 == cached.Profile.ContentSha256;
+            return profileReader(after.Name, cancellationToken).ContentSha256 == cached.Profile.ContentSha256;
         }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException
             or FormatException or NotSupportedException or System.ComponentModel.Win32Exception or ArgumentException)
