@@ -23,7 +23,7 @@ public sealed class ThumbnailSessionOwnerTests
         Assert.True(drawing.Wait(TimeSpan.FromSeconds(5)));
 
         var release = Task.Run(owner.Release);
-        bool returned = release.Wait(TimeSpan.FromMilliseconds(500));
+        bool returned = await Task.WhenAny(release, Task.Delay(TimeSpan.FromMilliseconds(500))) == release;
         bool closedEarly = renderer.Closed;
         finish.Set();
         Assert.Equal("thumbnail", await draw.WaitAsync(TimeSpan.FromSeconds(5)));
