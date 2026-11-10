@@ -3242,53 +3242,14 @@ public sealed class PdfIncrementalAnnotationEditor
         PdfIncrementalUpdateBuilder update, IEnumerable<PdfFormXObject> appearances)
     {
         var imported = new Dictionary<PdfFormXObject, PdfStream>(ReferenceEqualityComparer.Instance);
-        // The authoring pipeline owns resource serialization and font subsetting. Appearances that only draw text
-        // are authored into one document, a page each, so those in one font share one subset, and that document's
-        // graph is imported once. Authoring, reading and importing a document per appearance embedded a copy of the
-        // font in every one. A shared subset joins only appearances whose glyphs in each font stay within a budget:
-        // a reader checks every annotation's whole appearance graph, the shared font included, against fixed
-        // limits. An appearance with images or nested forms is still authored on its own, so one save never holds
-        // every image at once.
-        var group = new List<PdfFormXObject>();
-        var glyphs = new Dictionary<TrueTypeFont, HashSet<ushort>>();
-        foreach (PdfFormXObject appearance in appearances.Distinct(ReferenceEqualityComparer.Instance).Cast<PdfFormXObject>())
-        {
-            var own = new Dictionary<TrueTypeFont, HashSet<ushort>>();
-            if (!TextOnly(appearance, own, 0) || own.Count == 0)
-            {
-                Import([appearance]);
-                continue;
-            }
-            bool fits = own.All(font => (glyphs.TryGetValue(font.Key, out HashSet<ushort>? used) ? used : [])
-                .Union(font.Value).Count() <= SharedAppearanceGlyphs);
-            if (!fits && group.Count > 0)
-            {
-                Import(group);
-                group = [];
-                glyphs.Clear();
-            }
-            group.Add(appearance);
-            foreach (var font in own)
-            {
-                if (!glyphs.TryGetValue(font.Key, out HashSet<ushort>? used)) glyphs[font.Key] = used = [];
-                used.UnionWith(font.Value);
-            }
-        }
-        if (group.Count > 0) Import(group);
+        // The authoring pipeline owns resource serialization and font subsetting. Each group of text-only
+        // appearances is authored into one document, a page each, so they share one subset of each font, and that
+        // document's graph is imported once.
+        foreach (List<PdfFormXObject> group in SharedFontSubsets.Group(
+                     appearances.Distinct(ReferenceEqualityComparer.Instance).Cast<PdfFormXObject>(),
+                     SharedFontSubsets.TextGlyphs))
+            Import(group);
         return imported;
-
-        // Collects the glyphs each embedded font draws in a form and its nested forms; false when any of them
-        // carries an image or pattern.
-        static bool TextOnly(PdfFormXObject form, Dictionary<TrueTypeFont, HashSet<ushort>> fonts, int depth)
-        {
-            if (depth > 16 || form.Images.Count > 0 || form.Assets.Count > 0 || form.Patterns.Count > 0) return false;
-            foreach (EmbeddedFontUsage usage in form.EmbeddedFonts)
-            {
-                if (!fonts.TryGetValue(usage.Font, out HashSet<ushort>? used)) fonts[usage.Font] = used = [];
-                used.UnionWith(usage.Mappings.Values.Select(mapping => mapping.Glyph));
-            }
-            return form.Forms.Keys.All(nested => TextOnly(nested, fonts, depth + 1));
-        }
 
         void Import(IReadOnlyList<PdfFormXObject> members)
         {
@@ -3310,10 +3271,6 @@ public sealed class PdfIncrementalAnnotationEditor
             }
         }
     }
-
-    // Glyphs one font may hold across the appearances that share its subset. The reader's appearance check walks
-    // the font's width and character-map entries for every annotation that uses it.
-    private const int SharedAppearanceGlyphs = 256;
 
     private static PdfDictionary FreeTextDictionary(
         PendingFreeText value, PdfIndirectReference page, PdfIndirectReference annotation,

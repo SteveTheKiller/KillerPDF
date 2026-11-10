@@ -1814,7 +1814,12 @@ public sealed class PdfIncrementalPageEditor
         InsertPage(_pages.Count, width, height, content);
 
     private PdfDocument BuildTypedPage(
-        double width, double height, PdfContentStreamBuilder content)
+        double width, double height, PdfContentStreamBuilder content) =>
+        BuildTypedPages([(width, height, content)]);
+
+    // Authors pages into one document, so the fonts they share are subset once.
+    private PdfDocument BuildTypedPages(
+        IReadOnlyList<(double Width, double Height, PdfContentStreamBuilder Content)> pages)
     {
         PdfVersion effective = EffectiveVersion(_document, _tree.Catalog);
         PdfVersion[] versions =
@@ -1830,9 +1835,9 @@ public sealed class PdfIncrementalPageEditor
         {
             try
             {
-                return PdfDocument.Open(new PdfDocumentBuilder(version)
-                    .AddPage(width, height, content)
-                    .Build());
+                var builder = new PdfDocumentBuilder(version);
+                foreach (var page in pages) builder.AddPage(page.Width, page.Height, page.Content);
+                return PdfDocument.Open(builder.Build());
             }
             catch (InvalidOperationException error) when (
                 version.CompareTo(PdfVersion.Pdf20) < 0
@@ -2064,6 +2069,45 @@ public sealed class PdfIncrementalPageEditor
         page.TypedOverlays.Add(new TypedOverlay(
             BuildTypedPage(width, height, content), 0, artifact, marker, PdfPageBox.Crop, null,
             1, 0, 0, 1, x, y));
+        _pagePresentationChanged = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Appends typed content to several pages, each as <see cref="AppendPageDescribedContent"/> does when it has a
+    /// description and as <see cref="AppendPageArtifact(int, double, double, PdfContentStreamBuilder)"/> does when
+    /// it has none. Text-only content is authored in groups of pages that share one subset of each font; authored a
+    /// page at a time, every page carried its own copy of the font.
+    /// </summary>
+    internal PdfIncrementalPageEditor AppendTypedPages(
+        IReadOnlyList<(int PageIndex, double Width, double Height, PdfContentStreamBuilder Content, string? Description)> overlays)
+    {
+        ArgumentNullException.ThrowIfNull(overlays);
+        foreach (var overlay in overlays)
+        {
+            ValidateIndex(overlay.PageIndex, nameof(overlays));
+            ValidatePositiveFinite(overlay.Width, nameof(overlays));
+            ValidatePositiveFinite(overlay.Height, nameof(overlays));
+            ArgumentNullException.ThrowIfNull(overlay.Content, nameof(overlays));
+            if (overlay.Description is not null) ArgumentException.ThrowIfNullOrWhiteSpace(overlay.Description, nameof(overlays));
+            if (overlay.Content.MarkedContentIds.Count > 0)
+                throw new ArgumentException(
+                    "A typed page overlay cannot contain existing marked-content identifiers.", nameof(overlays));
+            if (_pages[overlay.PageIndex].Entry is null)
+                throw new InvalidOperationException(
+                    "Typed content can only be appended to an existing destination page.");
+        }
+        foreach (var group in SharedFontSubsets.Group(overlays, overlay => SharedFontSubsets.TextGlyphs(overlay.Content)))
+        {
+            PdfDocument authored = BuildTypedPages([.. group.Select(overlay => (overlay.Width, overlay.Height, overlay.Content))]);
+            for (int index = 0; index < group.Count; index++)
+            {
+                var overlay = group[index];
+                _pages[overlay.PageIndex].TypedOverlays.Add(new TypedOverlay(
+                    authored, index, overlay.Description is null, null, PdfPageBox.Crop, null,
+                    1, 0, 0, 1, 0, 0, overlay.Description));
+            }
+        }
         _pagePresentationChanged = true;
         return this;
     }
@@ -4975,6 +5019,8 @@ public sealed class PdfIncrementalPageEditor
     private PdfIncrementalUpdateBuilder? _overlayImportUpdate;
     private readonly Dictionary<PdfDocument, PdfObjectGraphImporter> _overlayImporters =
         new(ReferenceEqualityComparer.Instance);
+    // An authored document can hold the overlays of many pages; its page tree is read once.
+    private readonly Dictionary<PdfDocument, PdfPageTree> _overlayTrees = new(ReferenceEqualityComparer.Instance);
 
     private void ApplyTypedOverlays(
         PdfIncrementalUpdateBuilder update, PageState state, PdfDictionary page,
@@ -5002,7 +5048,8 @@ public sealed class PdfIncrementalPageEditor
         foreach (TypedOverlay pendingOverlay in state.TypedOverlays)
         {
             PdfDocument overlay = pendingOverlay.Document;
-            PdfPageTree overlayTree = PdfPageTree.Read(overlay);
+            if (!_overlayTrees.TryGetValue(overlay, out PdfPageTree? overlayTree))
+                _overlayTrees.Add(overlay, overlayTree = PdfPageTree.Read(overlay));
             PdfPageTreeEntry overlayPage = overlayTree.Pages[pendingOverlay.PageIndex];
             PdfObject overlayResources = overlayPage.InheritedValues.TryGetValue(
                     Name("Resources"), out PdfObject? inheritedResources)

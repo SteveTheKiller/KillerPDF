@@ -151,18 +151,83 @@ public sealed class PdfEngineBurnScaleTests
 
             var saved = KillerPdf.Engine.Documents.PdfDocument.Open(File.ReadAllBytes(path));
             Assert.Equal(pages * 2, PdfOverlayAnnotations.Read(saved).Count);
-            int fontPrograms = 0;
-            foreach (var entry in saved.CrossReferences)
-            {
-                if (entry.Value.Type is not (KillerPdf.Engine.CrossReference.PdfCrossReferenceEntryType.InUse
-                    or KillerPdf.Engine.CrossReference.PdfCrossReferenceEntryType.Compressed)) continue;
-                if (saved.Resolve(entry.Key) is KillerPdf.Engine.Objects.PdfDictionary descriptor
-                    && descriptor.Any(item => item.Key.ValueAsLatin1() is "FontFile" or "FontFile2" or "FontFile3"))
-                    fontPrograms++;
-            }
-            Assert.Equal(1, fontPrograms);
+            Assert.Equal(1, FontPrograms(saved));
         }
         finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    // Edited page text saves as a page-content editing layer, and each edited page's layer was authored as a
+    // one-page PDF of its own with its own copy of the font, as 1.9.2 burned each page's text. With the editing
+    // data on top, saving text edited on 3,000 pages took about 14 s and 1.2 GiB more memory where 1.9.2 took
+    // about 11 s and 580 MiB. Pages edited in one font now share one embedded font program, and the same save takes
+    // about 5 to 6 s, 160 MiB and a 15 MB file instead of 88 MB.
+    [Fact]
+    public void TextEditedOnManyPagesInOneFontSharesOneEmbeddedFont()
+    {
+        const int pages = 12;
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-burn-edit-fonts-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, BlankPdf(pages));
+            var annotations = new Dictionary<int, List<PageAnnotation>>();
+            var dimensions = new Dictionary<int, (int w, int h)>();
+            for (int page = 0; page < pages; page++)
+            {
+                annotations[page] = [new TextAnnotation { PageIndex = page, PairId = $"edit-{page}", FontName = "Arial",
+                    Content = $"Edited line {page + 1}", Position = new Point(60, 400), Width = 220, Height = 30 }];
+                dimensions[page] = (816, 1056);
+            }
+
+            PdfEngineBurn.Burn(path, annotations, dimensions, measurementsAsAnnotations: true);
+
+            byte[] saved = File.ReadAllBytes(path);
+            Assert.Equal(pages, PdfOverlayAnnotations.TakeEditableTail(saved).Records.Count);
+            Assert.Equal(1, FontPrograms(KillerPdf.Engine.Documents.PdfDocument.Open(saved)));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    // A page's editing layer checks its own drawing, font included, against fixed limits. Pages edited in a Chinese
+    // or Japanese font each add a dozen new characters, so one font shared by hundreds of them must not outgrow it.
+    [Fact]
+    public void TextEditedOnManyPagesInOneCjkFontReopensEditable()
+    {
+        const int pages = 300;
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-burn-edit-cjk-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, BlankPdf(pages));
+            var annotations = new Dictionary<int, List<PageAnnotation>>();
+            var dimensions = new Dictionary<int, (int w, int h)>();
+            int code = 0x4E00;
+            for (int page = 0; page < pages; page++)
+            {
+                var text = new System.Text.StringBuilder();
+                for (int character = 0; character < 12; character++) text.Append((char)code++);
+                annotations[page] = [new TextAnnotation { PageIndex = page, PairId = $"edit-{page}", FontName = "Microsoft YaHei",
+                    Content = text.ToString(), Position = new Point(60, 400), Width = 400, Height = 40 }];
+                dimensions[page] = (816, 1056);
+            }
+
+            PdfEngineBurn.Burn(path, annotations, dimensions, measurementsAsAnnotations: true);
+
+            Assert.Equal(pages, PdfOverlayAnnotations.TakeEditableTail(File.ReadAllBytes(path)).Records.Count);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    private static int FontPrograms(KillerPdf.Engine.Documents.PdfDocument document)
+    {
+        int fontPrograms = 0;
+        foreach (var entry in document.CrossReferences)
+        {
+            if (entry.Value.Type is not (KillerPdf.Engine.CrossReference.PdfCrossReferenceEntryType.InUse
+                or KillerPdf.Engine.CrossReference.PdfCrossReferenceEntryType.Compressed)) continue;
+            if (document.Resolve(entry.Key) is KillerPdf.Engine.Objects.PdfDictionary descriptor
+                && descriptor.Any(item => item.Key.ValueAsLatin1() is "FontFile" or "FontFile2" or "FontFile3"))
+                fontPrograms++;
+        }
+        return fontPrograms;
     }
 
     // Every box's editing data checks its own look, font included, and that check refuses a very large font. Boxes

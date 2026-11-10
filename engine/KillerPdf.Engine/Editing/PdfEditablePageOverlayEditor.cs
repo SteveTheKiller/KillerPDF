@@ -86,9 +86,7 @@ public static class PdfEditablePageOverlayEditor
         }
         if (normalize is not null) document = Reopen(document, normalize.Build());
         var editor = new PdfIncrementalPageEditor(document);
-        foreach (PdfEditablePageOverlayUnit unit in units)
-            if (unit.Description is null) editor.AppendPageArtifact(unit.PageIndex, unit.Width, unit.Height, unit.Content);
-            else editor.AppendPageDescribedContent(unit.PageIndex, unit.Width, unit.Height, unit.Content, unit.Description);
+        editor.AppendTypedPages([.. units.Select(unit => (unit.PageIndex, unit.Width, unit.Height, unit.Content, unit.Description))]);
         PdfDocument appended = Reopen(document, editor.Build());
         var lookup = new DocumentLookup(appended);
         IReadOnlyList<PdfPageTreeEntry> appendedPages = lookup.Tree.Pages;
