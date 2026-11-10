@@ -273,6 +273,9 @@ public static class PdfOverlayAnnotations
             // so a page with no such comment has none. Every page's count comes from one page-tree read: counted
             // a page at a time, a long PDF read the whole tree once for every page at open.
             IReadOnlyList<int>? counts = null;
+            // Save writes pending redaction marks after the tail, and every save rewrites them all, so a mark above
+            // the tail does not end it.
+            HashSet<(int Page, int Index)>? redactionMarks = null;
             foreach (var pageComments in comments.Where(group => group.Any(comment => CarriesOverlayMetadata(document, comment)))
                 .OrderBy(group => group.Key))
             {
@@ -280,11 +283,13 @@ public static class PdfOverlayAnnotations
                 var stack = pageComments.ToDictionary(c => c.AnnotationIndex);
                 pages ??= PdfPageInformation.Read(document);
                 counts ??= PdfCommentReader.ReadPageAnnotationCounts(document);
+                redactionMarks ??= [.. PdfRedactionMarkReader.Read(document).Select(mark => (mark.PageIndex, mark.AnnotationIndex))];
                 int count = counts[page];
                 var tail = new List<OverlayRecord>();
                 bool invalid = false;
                 for (int index = count - 1; index >= 0; index--)
                 {
+                    if (redactionMarks.Contains((page, index))) continue;
                     if (!stack.TryGetValue(index, out PdfCommentInfo? comment)) break;
                     if (comment.ObjectNumber is not int number || document.Resolve(number) is not PdfDictionary annotation
                         || !annotation.ContainsKey(MetadataName)) break;
@@ -298,10 +303,14 @@ public static class PdfOverlayAnnotations
             byte[] bytes = extracted.Count == 0 ? sourceBytes : editor.Build();
             // Nothing taken leaves the bytes as they were, so their parse is the one already read.
             PdfDocument remaining = extracted.Count == 0 ? document : PdfDocument.Open(bytes);
-            // A page-content layer cannot be promoted above a remaining native annotation.
+            // A page-content layer cannot be promoted above a remaining native annotation. Pending redaction marks
+            // are rewritten above it on every save, so they do not count.
             var batchCandidates = ReadPageBatches(remaining);
             IReadOnlyList<int> remainingCounts = batchCandidates.Count == 0 ? [] : PdfCommentReader.ReadPageAnnotationCounts(remaining);
-            var batches = batchCandidates.Where(batch => remainingCounts[batch.Overlay.PageIndex] == 0).ToArray();
+            ILookup<int, PdfRedactionMarkInfo>? remainingMarks = batchCandidates.Count == 0 ? null
+                : PdfRedactionMarkReader.Read(remaining).ToLookup(mark => mark.PageIndex);
+            var batches = batchCandidates.Where(batch =>
+                remainingCounts[batch.Overlay.PageIndex] == remainingMarks![batch.Overlay.PageIndex].Count()).ToArray();
             if (batches.Length > 0)
             {
                 bytes = PdfEditablePageOverlayEditor.Remove(remaining, batches.Select(batch => batch.Overlay).ToArray());

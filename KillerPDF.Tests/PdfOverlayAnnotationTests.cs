@@ -241,6 +241,57 @@ public sealed class PdfOverlayAnnotationTests
         Assert.Equal(saved, extraction.Bytes[..saved.Length]);
     }
 
+    // Save writes pending redaction marks after the overlay tail, so they sit above it. A page
+    // with an unapplied mark must still reopen its text boxes as editable overlays.
+    [Fact]
+    public void APendingRedactionMarkAboveTheTailLeavesItsTextEditable()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-redact-tail-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(200, 100).Build());
+            var text = new TextAnnotation { Content = "Kept editable", Position = new Point(10, 10), Width = 160, Height = 25 };
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [text] },
+                new Dictionary<int, (int w, int h)> { [0] = (200, 100) });
+            PdfEngineIntegration.WriteRedactionMarks(path, [new PdfEngineIntegration.RedactionMarkData(0, 20, 50, 80, 90)]);
+            byte[] saved = File.ReadAllBytes(path);
+
+            OverlayExtraction extraction = PdfOverlayAnnotations.TakeEditableTail(saved);
+
+            Assert.Equal("Kept editable", Assert.IsType<TextAnnotation>(Assert.Single(extraction.Records).Annotation).Content);
+            PdfDocument remaining = PdfDocument.Open(extraction.Bytes);
+            Assert.Empty(PdfCommentReader.Read(remaining, true));
+            Assert.Single(PdfRedactionMarkReader.Read(remaining));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    // Edited page text saves as a page-content editing layer. A pending redaction mark on that page is an
+    // annotation too, and it must not keep the edit from reopening as editable.
+    [Fact]
+    public void APendingRedactionMarkLeavesAnEditedPagesTextEditable()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-redact-batch-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(200, 100).Build());
+            var pair = new ReplacementPair(
+                new TextAnnotation { PairId = "redact-batch", Content = "Edited line", Position = new Point(20, 20), Width = 150, Height = 30 },
+                new CoverAnnotation { PairId = "redact-batch", Bounds = new Rect(15, 15, 160, 40) });
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [pair.Cover, pair.Text] },
+                new Dictionary<int, (int w, int h)> { [0] = (200, 100) });
+            Assert.Equal(2, PdfOverlayAnnotations.TakeEditableTail(File.ReadAllBytes(path)).Records.Count);
+            PdfEngineIntegration.WriteRedactionMarks(path, [new PdfEngineIntegration.RedactionMarkData(0, 20, 50, 80, 90)]);
+
+            OverlayExtraction extraction = PdfOverlayAnnotations.TakeEditableTail(File.ReadAllBytes(path));
+
+            Assert.Equal(2, extraction.Records.Count);
+            Assert.Equal("Edited line", Assert.IsType<TextAnnotation>(extraction.Records[1].Annotation).Content);
+            Assert.Single(PdfRedactionMarkReader.Read(PdfDocument.Open(extraction.Bytes)));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
     [Fact]
     public void HiddenForeignPrefixDoesNotPreventAnIntactTailFromBeingEdited()
     {
