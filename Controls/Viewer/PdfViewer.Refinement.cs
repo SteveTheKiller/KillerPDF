@@ -37,11 +37,24 @@ public partial class PdfViewer
 
     private void RefineVisibleRegions() => VisibleRefinementTask = RefineVisibleAsync();
 
+    // Refines once the pages being drawn again have landed, while the view is still the one they were drawn for.
+    private async Task RefineAfterAsync(Task drawing)
+    {
+        var mode = _viewMode;
+        var session = _active;
+        try { await drawing; }
+        catch (OperationCanceledException) { }
+        if (_viewMode != mode || !ReferenceEquals(session, _active) || !HasReadDocument
+            || Host?.IsViewerFocused(this) == false) return;
+        RefineVisibleRegions();
+        await VisibleRefinementTask;
+    }
+
     private async Task RefineVisibleAsync()
     {
         CancelVisibleRefinement();
         LastVisibleRefinementError = string.Empty;
-        if (_currentFile is null || _doc is null) return;
+        if (_currentFile is null || !HasReadDocument) return;
         var cts = _visibleRefineCts = new CancellationTokenSource();
         var token = cts.Token;
         var session = _active;
@@ -56,8 +69,13 @@ public partial class PdfViewer
         var monitor = !invert && display is not null
             && KillerPdf.Engine.Rendering.PdfDisplayPresentationPolicy.Resolve(display).TransformOwner
                 == KillerPdf.Engine.Rendering.PdfMonitorTransformOwner.Application ? _sdrDisplayConverter : null;
-        var request = _backgroundRenderCache.Capture(file, revision, _protection);
+        // A book draws its tiles from its captured revision, a PDF from the background render cache.
+        var nativeOwner = _nativeDoc;
+        var pdfRequest = nativeOwner is null ? _backgroundRenderCache.Capture(file, revision, _protection) : null;
+        IVisibleRegionSource regionSource = (IVisibleRegionSource?)pdfRequest ?? nativeOwner!.CaptureReadRevision();
+        bool invertImages = BitmapHelpers.DocInvertImages;
         bool Current() => !token.IsCancellationRequested && ReferenceEquals(session, _active)
+            && ReferenceEquals(nativeOwner, _nativeDoc)
             && file == _currentFile && revision == (_active?.RenderRevision ?? 0) && invert == DocInvert
             && mode == _viewMode && zoom == _zoomLevel && ReferenceEquals(display, _presentationDisplay)
             && proof?.Stamp == _active?.ProofView.CaptureProof().Stamp;
@@ -85,7 +103,7 @@ public partial class PdfViewer
                 if (ReferenceEquals(image, PageImage) && _primaryPresentationState is not null
                     && !invert && (!_pageRotations.TryGetValue(page, out int nativeRotation) || nativeRotation == 0))
                 {
-                    await RefinePrimaryFrameAsync(request, page, image, source, proof?.Settings, Current, token);
+                    await RefinePrimaryFrameAsync(regionSource, page, image, source, proof?.Settings, Current, token);
                     continue;
                 }
                 // The retained native overlay and scroll viewport can have different visual roots.
@@ -102,47 +120,39 @@ public partial class PdfViewer
                 Point imageEnd = image.PointToScreen(new Point(image.ActualWidth, image.ActualHeight));
                 double deviceWidth = Math.Abs(imageEnd.X - imageStart.X);
                 double deviceHeight = Math.Abs(imageEnd.Y - imageStart.Y);
-                int maximum = Math.Clamp((int)Math.Ceiling(Math.Max(deviceWidth, deviceHeight)), 1, 6144);
-                // Same 5% hysteresis as the 1.8 re-sharpen: a base render within 5% of the drawn
-                // size shows no visible softness, and re-rendering it only delays the settled view.
-                if (maximum <= Math.Max(source.PixelWidth, source.PixelHeight) * 1.05) continue;
+                if (VisibleDetail.DetailMaximum(deviceWidth, deviceHeight, source.PixelWidth, source.PixelHeight)
+                    is not { } maximum) continue;
                 double l = visible.Left / image.ActualWidth, t = visible.Top / image.ActualHeight;
                 double r = visible.Right / image.ActualWidth, b = visible.Bottom / image.ActualHeight;
-                // Reserve at most one bounded region result; its raster is never cached as a full page.
-                var result = await _viewportRenderQueue.Enqueue((request, "visible", page), 20,
-                    Math.Min((proof?.Settings.Enabled == true ? 64L : regionMonitor is null ? 8L : 40L)
-                        * maximum * maximum, 512L << 20), workToken =>
+                // Dark mode inverts a tile as its base page: a PDF keeps its images unless images invert too, and a
+                // book page, all image to the viewer, inverts only when images do.
+                Func<(int Width, int Height), VisibleRenderRegion, BitmapHelpers.FracRect[]>? invertKeep = !invert ? null
+                    : pdfRequest is null ? invertImages ? (_, _) => [] : null
+                    : (dimensions, region) =>
                     {
-                        using var lease = request.Rent(workToken);
-                        var dimensions = lease.Dimensions(page, maximum, maximum);
-                        var region = VisibleRenderRegion.Create(dimensions.Width, dimensions.Height, rotation, l, t, r, b)
-                            ?? throw new OperationCanceledException();
-                        var viewing = KillerPDF.Presentation.PdfViewingFrameConversion.Render(
-                            requested => lease.RenderFrameRegion(page, maximum, maximum, region, workToken, requested),
-                            () => lease.RenderRegion(page, maximum, maximum,
-                                region.Left, region.Top, region.Width, region.Height, workToken),
-                            proof?.Settings, regionMonitor, workToken);
-                        byte[] pixels = viewing.Pixels;
-                        int w = region.Width, h = region.Height;
-                        if (invert)
+                        PdfContentDocument? content = null;
+                        try
                         {
-                            PdfContentDocument? content = null;
-                            try
-                            {
-                                var keep = ImageRectsFor(file, request.Protection, page, ref content).Select(box => new BitmapHelpers.FracRect(
-                                    (box.L * dimensions.Width - region.Left) / region.Width,
-                                    (box.T * dimensions.Height - region.Top) / region.Height,
-                                    (box.R * dimensions.Width - region.Left) / region.Width,
-                                    (box.B * dimensions.Height - region.Top) / region.Height)).ToArray();
-                                BitmapHelpers.InvertBgraInPlaceExcept(pixels, w, h, keep);
-                            }
-                            finally { content?.Dispose(); }
+                            return ImageRectsFor(file, pdfRequest.Protection, page, ref content).Select(box => new BitmapHelpers.FracRect(
+                                (box.L * dimensions.Width - region.Left) / region.Width,
+                                (box.T * dimensions.Height - region.Top) / region.Height,
+                                (box.R * dimensions.Width - region.Left) / region.Width,
+                                (box.B * dimensions.Height - region.Top) / region.Height)).ToArray();
                         }
-                        if (rotation != 0) (pixels, w, h) = BitmapHelpers.RotateBitmap(pixels, w, h, rotation);
-                        var bitmap = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);
+                        finally { content?.Dispose(); }
+                    };
+                // Reserve at most one bounded region result; its raster is never cached as a full page.
+                var result = await _viewportRenderQueue.Enqueue((regionSource, "visible", page), 20,
+                    regionSource.RegionReservation(page, maximum, proof?.Settings.Enabled == true, regionMonitor is not null),
+                    workToken =>
+                    {
+                        var tile = VisibleDetail.Render(regionSource, page, maximum, rotation, l, t, r, b,
+                            proof?.Settings, regionMonitor, invertKeep, workToken);
+                        var bitmap = BitmapSource.Create(tile.Width, tile.Height, 96, 96, PixelFormats.Bgra32, null,
+                            tile.Pixels, tile.Width * 4);
                         bitmap.Freeze();
-                        RememberRenderWarning(bitmap, viewing);
-                        return (bitmap, region);
+                        RememberRenderWarning(bitmap, tile.Viewing);
+                        return (bitmap, region: tile.Region);
                     }, token);
                 if (!Current() || !ReferenceEquals(image.Source, source)) return;
                 PresentRenderWarning(image, RenderWarnings.TryGetValue(result.bitmap, out _)

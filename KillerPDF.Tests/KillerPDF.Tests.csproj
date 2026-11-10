@@ -121,6 +121,7 @@
     <Compile Include="..\Services\ViewerRenderResolution.cs" Link="Services\ViewerRenderResolution.cs" />
     <Compile Include="..\Services\ViewportRenderQueue.cs" Link="Services\ViewportRenderQueue.cs" />
     <Compile Include="..\Services\VisibleRenderRegion.cs" Link="Services\VisibleRenderRegion.cs" />
+    <Compile Include="..\Services\VisibleDetail.cs" Link="Services\VisibleDetail.cs" />
     <Compile Include="..\Services\FontCoverage.cs" Link="Services\FontCoverage.cs" />
     <Compile Include="..\Services\CmapCoverage.cs" Link="Services\CmapCoverage.cs" />
     <Compile Include="..\Services\BidiLine.cs" Link="Services\BidiLine.cs" />

@@ -2170,9 +2170,11 @@ namespace KillerPDF.Controls
                         HighlightSearchResultsOnCurrentPage();
                     if (_viewMode.IsContinuous())
                     {
-                        // A settled zoom-in draws the pages near the viewport again at the width they now need.
-                        if (ContinuousNeedsSharperPages()) _ = RenderContinuousPages(Math.Max(0, _currentPage));
-                        RefineVisibleRegions();
+                        // A settled zoom-in draws the pages near the viewport again at the width they now need. The
+                        // redrawn pages replace the bitmaps a detail tile was drawn over, so the tiles wait for them.
+                        if (ContinuousNeedsSharperPages())
+                            VisibleRefinementTask = RefineAfterAsync(RenderContinuousPages(Math.Max(0, _currentPage)));
+                        else RefineVisibleRegions();
                         return;
                     }
                     // Never re-render the primary in Grid (it would shift page 0's width basis and

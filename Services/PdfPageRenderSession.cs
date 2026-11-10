@@ -605,10 +605,20 @@ internal sealed class PdfBackgroundRenderCache
     }
 
     internal sealed class Request(PdfBackgroundRenderCache owner, string path, long revision, OpenedProtection? protection)
+        : IVisibleRegionSource
     {
         internal string Path { get; } = path;
         internal long Revision { get; } = revision;
         internal OpenedProtection? Protection { get; } = protection;
+
+        IVisibleRegionLease IVisibleRegionSource.RentRegion(CancellationToken cancellationToken) => Rent(cancellationToken);
+
+        // A byte region render reserves its eight-bit and float buffers, a float one its conversion as well.
+        long IVisibleRegionSource.RegionReservation(int pageIndex, int maximum, bool proof, bool monitor)
+            => Math.Min((proof ? 64L : monitor ? 40L : 8L) * maximum * maximum, 512L << 20);
+
+        // A PDF region is drawn directly; nothing larger than the region is decoded first.
+        long IVisibleRegionSource.RegionWorkingBytes(int pageIndex) => 0;
 
         internal Lease Rent(CancellationToken cancellationToken = default)
         {
@@ -629,9 +639,21 @@ internal sealed class PdfBackgroundRenderCache
     }
 
     internal sealed class Lease(PdfBackgroundRenderCache owner, Request request,
-        PdfPageRenderSession session) : IDisposable
+        PdfPageRenderSession session) : IVisibleRegionLease
     {
         private PdfPageRenderSession? _session = session;
+
+        (int Width, int Height) IVisibleRegionLease.Dimensions(int pageIndex, int maximumWidth, int maximumHeight)
+            => Dimensions(pageIndex, maximumWidth, maximumHeight);
+
+        KillerPdf.Engine.Rendering.PdfRenderedFrame IVisibleRegionLease.RenderFrameRegion(int pageIndex, int maximumWidth,
+            int maximumHeight, VisibleRenderRegion region, CancellationToken cancellationToken,
+            KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof)
+            => RenderFrameRegion(pageIndex, maximumWidth, maximumHeight, region, cancellationToken, proof);
+
+        PdfRenderedPage IVisibleRegionLease.RenderRegion(int pageIndex, int maximumWidth, int maximumHeight,
+            int left, int top, int width, int height, CancellationToken cancellationToken)
+            => RenderRegion(pageIndex, maximumWidth, maximumHeight, left, top, width, height, cancellationToken);
 
         internal PdfRenderedPage Render(int pageIndex, int maximumWidth, int maximumHeight,
             CancellationToken cancellationToken = default) =>
@@ -678,8 +700,23 @@ internal sealed class PdfBackgroundRenderCache
 internal readonly record struct PdfPageForEncoding(
     int Width, int Height, ReadOnlyMemory<byte> Pixels, IReadOnlyList<string> Diagnostics);
 
-internal sealed class PdfCapturedReadRevision : IDisposable
+internal sealed class PdfCapturedReadRevision : IDisposable, IVisibleRegionSource
 {
+    IVisibleRegionLease IVisibleRegionSource.RentRegion(CancellationToken cancellationToken) => Rent(cancellationToken);
+
+    // A book region renders through float frames, like its base pages, and a DjVu page decodes whole first.
+    long IVisibleRegionSource.RegionReservation(int pageIndex, int maximum, bool proof, bool monitor)
+        => Math.Min((proof ? 64L : 40L) * maximum * maximum + ((IVisibleRegionSource)this).RegionWorkingBytes(pageIndex),
+            512L << 20);
+
+    long IVisibleRegionSource.RegionWorkingBytes(int pageIndex)
+    {
+        if (_nativePages is not { Format: EngineDocumentFormat.Djvu } snapshot
+            || pageIndex < 0 || pageIndex >= snapshot.PageCount) return 0;
+        var geometry = snapshot.GetPageGeometry(pageIndex);
+        return (long)Math.Ceiling(geometry.Width) * (long)Math.Ceiling(geometry.Height) * 4 * sizeof(float);
+    }
+
     private readonly Lock _sync = new();
     private readonly CancellationTokenSource _closing = new();
     private readonly IReadOnlyList<EnginePageInformation> _pages;
@@ -904,10 +941,43 @@ internal sealed class PdfCapturedReadRevision : IDisposable
     }
 
     internal sealed class Lease(PdfCapturedReadRevision owner, IRenderSession session,
-        CancellationTokenSource cancellation, EngineReadSnapshot? nativeSnapshot = null) : IDisposable
+        CancellationTokenSource cancellation, EngineReadSnapshot? nativeSnapshot = null) : IVisibleRegionLease
     {
         private IRenderSession? _session = session;
         private EngineReadSnapshot? _nativeSnapshot = nativeSnapshot;
+
+        // A book page is fitted as its base pages are, so a tile lines up with the page under it.
+        public (int Width, int Height) Dimensions(int pageIndex, int maximumWidth, int maximumHeight)
+            => NativeFrameRendering.FittedSize(owner.GetPageGeometry(pageIndex), maximumWidth, maximumHeight);
+
+        public KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrameRegion(int pageIndex, int maximumWidth,
+            int maximumHeight, VisibleRenderRegion region, CancellationToken cancellationToken,
+            KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
+        {
+            _ = _session ?? throw new ObjectDisposedException(nameof(Lease));
+            EngineReadSnapshot snapshot = _nativeSnapshot
+                ?? throw new NotSupportedException("Region renders are available only for captured native documents.");
+            cancellationToken.ThrowIfCancellationRequested();
+            cancellation.Token.ThrowIfCancellationRequested();
+            var (width, height) = Dimensions(pageIndex, maximumWidth, maximumHeight);
+            // The whole page is only the region's coordinate frame; the engine stores and limits the region alone.
+            var options = new EngineRenderOptions(width, height,
+                maximumPixelBytes: EngineRenderOptions.MaximumPixelBytes) { Proof = proof };
+            var frame = snapshot.RenderPageRegion(pageIndex, options, region.Left, region.Top, region.Width, region.Height,
+                cancellation.Token).WithGamutWarningsMarked(cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
+            return frame;
+        }
+
+        public PdfRenderedPage RenderRegion(int pageIndex, int maximumWidth, int maximumHeight,
+            int left, int top, int width, int height, CancellationToken cancellationToken = default)
+        {
+            var (fullWidth, fullHeight) = Dimensions(pageIndex, maximumWidth, maximumHeight);
+            var frame = RenderFrameRegion(pageIndex, maximumWidth, maximumHeight,
+                new VisibleRenderRegion(left, top, width, height, left, top, fullWidth, fullHeight), cancellationToken);
+            return new PdfRenderedPage(frame.Width, frame.Height, frame.ToSrgbBgra32(cancellation.Token),
+                PdfRenderBackend.Engine, null);
+        }
 
         internal KillerPdf.Engine.Documents.PdfReadTextPage ReadNativeTextPage(int pageIndex)
         {

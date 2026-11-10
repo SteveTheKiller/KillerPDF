@@ -360,8 +360,11 @@ public sealed class RenderBoundaryTests
         Assert.Contains("monitor?.Convert(frame, token)", viewing);
         Assert.Contains("frame.ToSrgbBgra32(token)", viewing);
         Assert.Contains("lease.Render(target, scaledMax, scaledMax, token)", viewer);
+        // Detail tiles for PDFs and books share VisibleDetail, which passes the queued work's token to the region render.
         string refinement = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Refinement.cs"));
-        Assert.Contains("region.Left, region.Top, region.Width, region.Height, workToken)", refinement);
+        Assert.Contains("proof?.Settings, regionMonitor, invertKeep, workToken)", refinement);
+        string detail = File.ReadAllText(Path.Combine(root, "Services", "VisibleDetail.cs"));
+        Assert.Contains("region.Left, region.Top, region.Width, region.Height, cancellationToken)", detail);
     }
 
     [Fact]

@@ -238,7 +238,7 @@ public partial class PdfViewer
         }
     }
 
-    private async Task RefinePrimaryFrameAsync(PdfBackgroundRenderCache.Request request, int page,
+    private async Task RefinePrimaryFrameAsync(IVisibleRegionSource request, int page,
         Image image, System.Windows.Media.Imaging.BitmapSource source, PdfDocumentProofSettings? proof,
         Func<bool> current, CancellationToken token)
     {
@@ -257,9 +257,9 @@ public partial class PdfViewer
         double right = (visible.Right - drawn.Left) / drawn.Width, bottom = (visible.Bottom - drawn.Top) / drawn.Height;
         var result = await _viewportRenderQueue.Enqueue((request, "visible-float", page), 20,
             Math.Min((proof?.Enabled == true ? 64L : 40L) * (long)Math.Ceiling(visible.Width + 2)
-                * (long)Math.Ceiling(visible.Height + 2), 512L << 20), workToken =>
+                * (long)Math.Ceiling(visible.Height + 2) + request.RegionWorkingBytes(page), 512L << 20), workToken =>
             {
-                using var lease = request.Rent(workToken);
+                using var lease = request.RentRegion(workToken);
                 var dimensions = lease.Dimensions(page, maximum, maximum);
                 var region = VisibleRenderRegion.Create(dimensions.Width, dimensions.Height, 0, left, top, right, bottom)
                     ?? throw new OperationCanceledException();

@@ -73,6 +73,24 @@ public sealed class PdfNativeRegionRenderTests
         Assert.Equal(30, small.Width);
     }
 
+    [Fact]
+    public void EpubRegionPaysOnlyForTheTextInsideIt()
+    {
+        // A page full of small text, magnified a hundred times; the region covers one corner of the top margin.
+        string text = string.Concat(Enumerable.Repeat("<p>AAAA AAA AA AAAA A AAA AAAA AA</p>", 40));
+        var snapshot = PdfReadSnapshot.OpenEpub(Book(text), Options() with { FontSize = 2, Margin = 4 });
+        var huge = new PdfRenderOptions(6000, 8000);
+        var corner = snapshot.RenderPageRegion(0, huge, 0, 0, 256, 256);
+        // Only the light blue page background there (its darkest channel is red at about 0.35 linear), no black text.
+        Assert.DoesNotContain(corner.Pixels.ToArray(), value => value < .3f);
+        GC.Collect();
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        snapshot.RenderPageRegion(0, huge, 0, 0, 256, 256);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        // The region's float frame is 1 MiB; the glyphs drawn elsewhere on the page must cost nothing here.
+        Assert.True(allocated < 3L << 20, $"A 256 x 256 margin region allocated {allocated} bytes.");
+    }
+
     [Theory]
     [InlineData(-1, 0, 10, 10)]
     [InlineData(0, -1, 10, 10)]
@@ -193,7 +211,9 @@ public sealed class PdfNativeRegionRenderTests
     private static EpubLayoutOptions Options() => new(60, 80,
         TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true))) { FontSize = 10, Margin = 4 };
 
-    private static byte[] Book()
+    private const string RegionBody = """<p>AA A AAA</p><p><img src="red.png" alt="" style="width:12px;height:12px"/></p><p style="color:#000000">A AA</p>""";
+
+    private static byte[] Book(string body = RegionBody)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -209,9 +229,8 @@ public sealed class PdfNativeRegionRenderTests
                   <spine><itemref idref="chapter"/></spine>
                 </package>
                 """);
-            Add("EPUB/text.xhtml", """
-                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Region</title></head><body style="background-color:#a0c0f0"><p>AA A AAA</p><p><img src="red.png" alt="" style="width:12px;height:12px"/></p><p style="color:#000000">A AA</p></body></html>
-                """);
+            Add("EPUB/text.xhtml", """<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Region</title></head><body style="background-color:#a0c0f0">"""
+                + body + "</body></html>");
             Add("EPUB/nav.xhtml", """
                 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text.xhtml">Region</a></li></ol></nav></body></html>
                 """);

@@ -55,7 +55,10 @@ public sealed class ContinuousSlotTests
 
         Assert.Contains("int renderW        = ViewerRenderResolution.ContinuousWidth(targetW, renderDpi.DpiScaleX, renderDpi.DpiScaleY, _zoomLevel);", render);
         Assert.Contains("_continuousDrawnWidths.TryGetValue(i, out int drawn) && drawn < renderW", render);
-        Assert.Contains("if (ContinuousNeedsSharperPages()) _ = RenderContinuousPages(Math.Max(0, _currentPage));", viewport);
+        // The redrawn pages replace the bitmaps a detail tile was drawn over, so the tiles wait for them.
+        Assert.Contains("VisibleRefinementTask = RefineAfterAsync(RenderContinuousPages(Math.Max(0, _currentPage)));", viewport);
+        string refinement = Source("Controls", "Viewer", "PdfViewer.Refinement.cs");
+        Assert.Contains("try { await drawing; }", refinement);
     }
 
     private static int Count(string source, string text)
