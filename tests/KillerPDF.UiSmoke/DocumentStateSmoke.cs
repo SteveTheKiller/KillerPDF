@@ -543,7 +543,7 @@ internal static class DocumentStateSmoke
             throw new InvalidOperationException("Page-edit failure control did not save the initial annotation cleanly.");
         var visible = Descendants<Border>(owner).Single(border => border.IsVisible
             && Descendants<TextBlock>(border).Any(text => text.Text == Marker)
-            && border.Parent is Canvas);
+            && IsOverlayParent(border.Parent));
         double left = Canvas.GetLeft(visible), top = Canvas.GetTop(visible);
         bool undoEnabled = ((Button)owner.FindName("UndoBtn")).IsEnabled;
         string tempRoot = Path.GetFullPath(Path.Combine(folder, "data", "Temp"));
@@ -926,6 +926,10 @@ internal static class DocumentStateSmoke
         Console.WriteLine("CONTROL native file insertion preserved source ownership and strict Save/Undo/Redo annotation content.");
     }
 
+    // An annotation's box sits on a page overlay canvas. Since cc3967e Continuous view lays its page slots
+    // out on a Canvas too, so a slot holding the box is not the box itself.
+    private static bool IsOverlayParent(DependencyObject? parent) => parent is Canvas { Name: not "ContinuousPanel" };
+
     private static void VerifyTransformFailure(Window owner, string source, byte[] original, TextBox editor, bool cancel = false, bool saveOnly = false, bool success = false, bool straighten = false, bool forms = false)
     {
         Assembly engine = Assembly.Load("KillerPdf.Engine");
@@ -935,7 +939,10 @@ internal static class DocumentStateSmoke
         try { engine.GetType("KillerPdf.Engine.Documents.PdfDocumentInformation", true)!.GetMethod("Read")!.Invoke(null, [document]); }
         catch (TargetInvocationException error) when (error.InnerException is InvalidOperationException inner
             && inner.Message.Contains("not a valid PDF date", StringComparison.Ordinal)) { refused = true; }
-        if (refused == success) throw new InvalidOperationException("The synthetic Transform metadata control did not match its expected healthy or malformed state.");
+        // Since b211387 a malformed date reads as blank and saves as it is, so it no longer fails a Transform.
+        // The late failure is a denied temporary write instead, as in the page-edit failure cases.
+        if (refused) throw new InvalidOperationException("The synthetic Transform metadata control did not match its expected healthy or malformed state.");
+        bool lateFailure = !success && !cancel && !saveOnly;
         Stroke(0x0D, 0x11);
         Wait(() => !editor.IsVisible && Dirty(owner), "pending annotation before Transform failure");
         if (forms)
@@ -948,14 +955,29 @@ internal static class DocumentStateSmoke
             Console.WriteLine("CONTROL independent pending form edit CHANGED and untouched sibling established before Transform.");
         }
         var visible = Descendants<Border>(owner).Single(border => border.IsVisible
-            && Descendants<TextBlock>(border).Any(text => text.Text == Marker) && border.Parent is Canvas);
+            && Descendants<TextBlock>(border).Any(text => text.Text == Marker) && IsOverlayParent(border.Parent));
         double left = Canvas.GetLeft(visible), top = Canvas.GetTop(visible);
         bool undoEnabled = ((Button)owner.FindName("UndoBtn")).IsEnabled;
         if (!undoEnabled) throw new InvalidOperationException("The pending annotation has no Undo control.");
-        Console.WriteLine("CONTROL rendered source and pending annotation are usable; public metadata reading independently "
-            + (success ? "accepts the healthy document." : "refuses NOT_A_DATE."));
+        Console.WriteLine("CONTROL rendered source and pending annotation are usable; public metadata reading independently accepts the document.");
         int errors = 0, transforms = 0;
         var seen = new HashSet<Window>();
+        var tempDirectory = new DirectoryInfo(Directory.GetDirectories(
+            Path.Combine(Path.GetDirectoryName(source)!, "data", "Temp"), "session-*").Single());
+        string originalSddl = tempDirectory.GetAccessControl(AccessControlSections.Access).GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+        bool writesDenied = false;
+        void DenyTemporaryWrites()
+        {
+            DirectorySecurity denied = tempDirectory.GetAccessControl(AccessControlSections.Access);
+            denied.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!,
+                FileSystemRights.CreateFiles, InheritanceFlags.None, PropagationFlags.None, AccessControlType.Deny));
+            tempDirectory.SetAccessControl(denied);
+            writesDenied = true;
+            bool blocked = false;
+            try { File.WriteAllBytes(Path.Combine(tempDirectory.FullName, "write-denial-control"), [1]); }
+            catch (UnauthorizedAccessException) { blocked = true; }
+            if (!blocked) throw new InvalidOperationException("Synthetic temporary-write denial was not effective.");
+        }
         var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(20) };
         timer.Tick += (_, _) =>
         {
@@ -965,6 +987,8 @@ internal static class DocumentStateSmoke
                 if (dialog.GetType().Name == "TransformWindow")
                 {
                     transforms++;
+                    // The window is open, so the write that fails is the late one Apply makes.
+                    if (lateFailure) DenyTemporaryWrites();
                     Button turn = Descendants<Button>(dialog).Single(button => Equals(button.Content, "90° ↻"));
                     Button apply = Descendants<Button>(dialog).Single(button => cancel ? button.IsCancel : button.IsDefault);
                     owner.Dispatcher.BeginInvoke(DispatcherPriority.Input, (Action)(() =>
@@ -978,7 +1002,8 @@ internal static class DocumentStateSmoke
                 if (ok is null) continue;
                 string message = string.Join(" ", Descendants<TextBlock>(dialog).Select(text => text.Text));
                 Console.WriteLine("CONTROL Transform notice: " + message);
-                if (message.Contains("not a valid PDF date", StringComparison.Ordinal)) errors++;
+                // The rasterize warning also has OK; only the report of the denied write counts.
+                if (lateFailure && message.Contains(tempDirectory.Name, StringComparison.OrdinalIgnoreCase)) errors++;
                 owner.Dispatcher.BeginInvoke(DispatcherPriority.Input,
                     (Action)(() => ok.RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
             }
@@ -987,15 +1012,26 @@ internal static class DocumentStateSmoke
         {
             if (!saveOnly)
             {
+                // Straighten has no window of its own; its denied write is the one it makes after analysis.
+                if (lateFailure && straighten) DenyTemporaryWrites();
                 timer.Start();
                 if (straighten) ParagraphEditSmoke.RunSearchAction(owner, "Str_Pages_Straighten", "Alt+Shift+S");
                 else Click(owner, "ToolRotateBtn");
                 if (success) Wait(() => !visible.IsVisible, "successful Transform replaces the editable annotation layer");
-                else if (!cancel) Wait(() => errors == 1, "late Transform metadata failure");
+                else if (!cancel) Wait(() => errors == 1, "late Transform failure");
                 Wait(() => !Application.Current.Windows.Cast<Window>().Any(window => window != owner && window.IsVisible), "Transform dialog dismissed");
             }
         }
-        finally { timer.Stop(); }
+        finally
+        {
+            timer.Stop();
+            if (writesDenied)
+            {
+                var restoredSecurity = new DirectorySecurity();
+                restoredSecurity.SetSecurityDescriptorSddlForm(originalSddl, AccessControlSections.Access);
+                tempDirectory.SetAccessControl(restoredSecurity);
+            }
+        }
         if (transforms != (saveOnly || straighten ? 0 : 1) || errors != (saveOnly || cancel || success ? 0 : 1) || !Dirty(owner) || !File.ReadAllBytes(source).AsSpan().SequenceEqual(original)
             || ((Button)owner.FindName("UndoBtn")).IsEnabled != undoEnabled
             || (!success && (!visible.IsVisible || Math.Abs(Canvas.GetLeft(visible) - left) > 0.01 || Math.Abs(Canvas.GetTop(visible) - top) > 0.01)))
@@ -1176,14 +1212,16 @@ internal static class DocumentStateSmoke
         png.Frames.Add(BitmapFrame.Create(capture));
         using (var output = File.Create(Path.Combine(folder, "annotation-before-nudge.png"))) png.Save(output);
         double initial = AnnotationLeft();
+        // Since 20da62c a new box is 165 points wide, which reaches this small page's right edge, so a nudge to the
+        // right is clamped there; the box has room on its left.
         var nudge = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(owner),
-            Environment.TickCount, Key.Right) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+            Environment.TickCount, Key.Left) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
         owner.RaiseEvent(nudge);
         Pump();
-        Console.WriteLine($"CONTROL Right command handled={nudge.Handled}, modifiers={Keyboard.Modifiers}, canvas before={initial}, after={AnnotationLeft()}.");
-        if (!nudge.Handled) throw new InvalidOperationException("The public Right command did not reach a handled application action.");
-        Wait(() => AnnotationLeft() > initial + 0.5, "one-unit annotation nudge in public canvas geometry");
-        Console.WriteLine("CONTROL real selection and public Right Arrow command moved the placed annotation.");
+        Console.WriteLine($"CONTROL Left command handled={nudge.Handled}, modifiers={Keyboard.Modifiers}, canvas before={initial}, after={AnnotationLeft()}.");
+        if (!nudge.Handled) throw new InvalidOperationException("The public Left command did not reach a handled application action.");
+        Wait(() => AnnotationLeft() < initial - 0.5, "one-unit annotation nudge in public canvas geometry");
+        Console.WriteLine("CONTROL real selection and public Left Arrow command moved the placed annotation.");
         Click(owner, "UndoBtn");
         if (Math.Abs(AnnotationLeft() - initial) > 0.01)
             throw new InvalidOperationException("The first Undo did not restore the annotation position.");
@@ -1197,7 +1235,7 @@ internal static class DocumentStateSmoke
         if (Math.Abs(AnnotationLeft() - initial) > 0.01)
             throw new InvalidOperationException("Redo add did not restore the original annotation position.");
         Click(owner, "RedoBtn");
-        if (Math.Abs(AnnotationLeft() - initial - 1) > 0.01 || !Dirty(owner))
+        if (Math.Abs(AnnotationLeft() - initial + 1) > 0.01 || !Dirty(owner))
             throw new InvalidOperationException("Redo move did not restore the moved annotation and unsaved state.");
         Save(owner);
         if (!ReadText(source).Contains(Marker, StringComparison.Ordinal))
