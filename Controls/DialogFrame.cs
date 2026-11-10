@@ -327,6 +327,14 @@ namespace KillerPDF
 
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window, object> Resizable = new();
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window, object> PageWindows = new();
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window, object> DeclaredMinimums = new();
+
+        /// <summary>
+        /// Keeps the MinWidth and MinHeight a resizable dialog declares instead of raising them to the size it
+        /// opens at. For a dialog that opens wider than its layout needs (one sized from the app scale, whose
+        /// content scrolls), so it can still be made smaller on a small screen.
+        /// </summary>
+        internal static void KeepDeclaredMinimum(Window win) => DeclaredMinimums.AddOrUpdate(win, new object());
 
         internal static void EnableEdgeResize(Window win)
         {
@@ -356,7 +364,7 @@ namespace KillerPDF
             // their own minimum from their options instead.
             win.Loaded += (_, _) =>
             {
-                if (PageWindows.TryGetValue(win, out _)) return;
+                if (PageWindows.TryGetValue(win, out _) || DeclaredMinimums.TryGetValue(win, out _)) return;
                 Size min = PageWindowSizing.OpeningMinimum(new Size(win.ActualWidth, win.ActualHeight),
                     new Size(win.MinWidth, win.MinHeight),
                     new Size(SystemParameters.WorkArea.Width, SystemParameters.WorkArea.Height));

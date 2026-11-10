@@ -47,6 +47,9 @@ internal sealed class TableExportDialog : Window
         SizeToContent = SizeToContent.Height;
         MinWidth = 480; MinHeight = 360; UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
+        // It opens 620 DIP times the app scale wide and its review area scrolls, so 480 x 360 stays its minimum
+        // rather than the opening size: at a large scale that would be wider than a small screen allows.
+        DialogFrame.KeepDeclaredMinimum(this);
         AutomationProperties.SetAutomationId(this, "TableExportDialog");
 
         // Part of the bottom spacing sits inside the scaled body, below the buttons. When the window is shorter than the
@@ -133,6 +136,16 @@ internal sealed class TableExportDialog : Window
         body.Children.Add(new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, CanContentScroll = false });
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
+        // The window opens as tall as its content needs, then keeps a size of its own. Left to size its height to
+        // its content, a window with edge resizing (WindowChrome) undoes a Width set after it is shown, so it could
+        // not be given a narrower size at all.
+        SourceInitialized += (_, _) =>
+        {
+            if (Content is not FrameworkElement frame) return;
+            frame.Measure(new Size(Width, double.PositiveInfinity));
+            SizeToContent = SizeToContent.Manual;
+            Height = Math.Max(MinHeight, Math.Min(MaxHeight, Math.Ceiling(frame.DesiredSize.Height)));
+        };
         Draw(new Rect(0, 0, preview.PixelWidth, preview.PixelHeight));
         Loaded += (_, _) => _detect.Focus();
         Closed += (_, _) => { _closed = true; _operation?.Cancel(); };
