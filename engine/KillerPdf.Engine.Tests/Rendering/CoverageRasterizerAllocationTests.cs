@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime;
 using KillerPdf.Engine.Rendering;
 using Xunit;
 using P = KillerPdf.Engine.Rendering.PdfPageRenderer.Point;
@@ -21,6 +22,29 @@ public sealed class CoverageRasterizerAllocationTests
         return () => { reset(); add(polygons); return sweep(false, false, null); };
     }
 
+    // The bytes this thread allocates during one call. The runtime's per-thread counter reads about 8 KB high when a
+    // large-object allocation (the mask is one) lands while a background collection is running, which other tests in
+    // the process start at any time; with no product code at all, one 3.2 MB array measured during background
+    // collections read 8200 bytes over in 25 of 200 tries, and never with concurrent collection turned off. So a full
+    // blocking collection first finishes any background one, and low-latency mode keeps a new one from starting until
+    // the call returns. Every allocation the call makes is still counted.
+    private static (T Result, long Allocated) MeasureOnThisThread<T>(Func<T> call)
+    {
+        GC.Collect();
+        GCLatencyMode previous = GCSettings.LatencyMode;
+        GCSettings.LatencyMode = GCLatencyMode.LowLatency;
+        try
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            T result = call();
+            return (result, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+        finally
+        {
+            GCSettings.LatencyMode = previous;
+        }
+    }
+
     [Fact]
     public void OwnedPageMaskWithTrimmedEdgesAllocatesOnlyTheMask()
     {
@@ -36,9 +60,7 @@ public sealed class CoverageRasterizerAllocationTests
         }
         Func<Mask> run = Sweeper([star], 2048, 2048);
         for (int i = 0; i < 3; i++) run();
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        Mask mask = run();
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        var (mask, allocated) = MeasureOnThisThread(run);
         long maskBytes = mask.Coverage!.LongLength;
         Assert.True(allocated <= maskBytes + 4096,
             $"allocated {allocated} bytes for a {maskBytes}-byte mask ({mask.Width}x{mask.Height})");
