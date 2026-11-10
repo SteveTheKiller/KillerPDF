@@ -42,8 +42,9 @@ public partial class PdfViewer
     {
         var mode = _viewMode;
         var session = _active;
+        // A failed redraw reports itself; the pages it left are still refined, and this task never faults.
         try { await drawing; }
-        catch (OperationCanceledException) { }
+        catch (Exception error) when (error is not OutOfMemoryException) { }
         if (_viewMode != mode || !ReferenceEquals(session, _active) || !HasReadDocument
             || Host?.IsViewerFocused(this) == false) return;
         RefineVisibleRegions();
