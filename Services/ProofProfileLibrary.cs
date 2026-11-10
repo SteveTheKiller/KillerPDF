@@ -55,10 +55,11 @@ public sealed class ProofProfileLibrary(string directory)
             List<ProofProfileEntry> profiles;
             bool damaged = false;
             try { profiles = ReadManifest(ManifestPath).ToList(); }
-            catch (FormatException) when (File.Exists(ManifestPath + ".bak"))
+            catch (FormatException)
             {
-                // Continue from the previous manifest; the damaged one is kept for review.
-                profiles = ReadManifest(ManifestPath + ".bak").ToList();
+                // Continue from the previous manifest, or from an empty one when there is no readable previous
+                // manifest; the damaged one is kept for review.
+                profiles = ReadPreviousManifest().ToList();
                 damaged = true;
             }
             var entry = profiles.FirstOrDefault(item => item.ContentSha256 == profile.ContentSha256)
@@ -120,14 +121,22 @@ public sealed class ProofProfileLibrary(string directory)
     }
 
     /// <summary>Lists named profile content references retained in this library.</summary>
-    /// <remarks>A damaged manifest reads as the previous manifest when one was kept.</remarks>
+    /// <remarks>A damaged manifest reads as the previous manifest when a readable one was kept, otherwise as
+    /// empty, so the library never stays locked by a damaged file.</remarks>
     public IReadOnlyList<ProofProfileEntry> GetProfiles()
     {
         try { return ReadManifest(ManifestPath); }
-        catch (FormatException) when (File.Exists(ManifestPath + ".bak"))
+        catch (FormatException)
         {
-            return ReadManifest(ManifestPath + ".bak");
+            return ReadPreviousManifest();
         }
+    }
+
+    // The manifest a damaged one replaced, or nothing when that copy is missing or damaged too.
+    private IReadOnlyList<ProofProfileEntry> ReadPreviousManifest()
+    {
+        try { return ReadManifest(ManifestPath + ".bak"); }
+        catch (FormatException) { return []; }
     }
 
     private static IReadOnlyList<ProofProfileEntry> ReadManifest(string path)

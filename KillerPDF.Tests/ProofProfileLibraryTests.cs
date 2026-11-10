@@ -287,7 +287,7 @@ public sealed class ProofProfileLibraryTests : IDisposable
     [InlineData("duplicate")]
     [InlineData("name")]
     [InlineData("reference")]
-    public void DamagedCatalogIsRejectedWithoutOverwritingTheOriginal(string kind)
+    public void DamagedCatalogReadsAsEmptyAndIsKeptForReviewWhenTheNextImportReplacesIt(string kind)
     {
         string json = kind switch
         {
@@ -306,12 +306,31 @@ public sealed class ProofProfileLibraryTests : IDisposable
         File.WriteAllText(manifest, json);
         var library = new ProofProfileLibrary(_directory);
 
-        var error = Assert.Throws<FormatException>(() => library.GetProfiles());
-        Assert.Throws<FormatException>(() => library.Import("New", GrayProfile()));
-
-        Assert.DoesNotContain("private-marker", error.ToString());
-        Assert.Null(error.InnerException);
+        Assert.Empty(library.GetProfiles());
         Assert.Equal(json, File.ReadAllText(manifest));
+        var imported = library.Import("New", GrayProfile());
+
+        Assert.Equal(imported, Assert.Single(library.GetProfiles()));
+        Assert.Equal(json, File.ReadAllText(manifest + ".recovery"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ADamagedManifestWithNoReadablePreviousCopyStillAcceptsImportsAndKeepsTheDamagedBytes(bool damagedBackup)
+    {
+        // The first manifest is written without a backup, so damage to it has no previous copy to fall back to.
+        Directory.CreateDirectory(_directory);
+        string manifest = Path.Combine(_directory, "profiles.json");
+        File.WriteAllText(manifest, "not json");
+        if (damagedBackup) File.WriteAllText(manifest + ".bak", "{");
+        var library = new ProofProfileLibrary(_directory);
+
+        Assert.Empty(library.GetProfiles());
+        var imported = library.Import("After damage", GrayProfile());
+
+        Assert.Equal(imported, Assert.Single(new ProofProfileLibrary(_directory).GetProfiles()));
+        Assert.Equal("not json", File.ReadAllText(manifest + ".recovery"));
     }
 
     [Fact]
@@ -425,7 +444,8 @@ public sealed class ProofProfileLibraryTests : IDisposable
         File.AppendAllText(path, " ");
         long before = GC.GetAllocatedBytesForCurrentThread();
 
-        Assert.Throws<FormatException>(() => library.GetProfiles());
+        // Too large to be a manifest, so it reads as damaged: empty, with no previous manifest kept.
+        Assert.Empty(library.GetProfiles());
 
         Assert.InRange(GC.GetAllocatedBytesForCurrentThread() - before, 0, 65_536);
     }
