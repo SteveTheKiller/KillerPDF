@@ -121,10 +121,10 @@ public sealed class PdfEngineBurnScaleTests
     }
 
     // Each text box's look was written as a one-page PDF of its own, read back and copied in, so every box carried
-    // its own copy of the font. Saving 3,000 notes took 16 to 18 s, about 850 MiB more memory and an 87 MB file,
-    // where 1.9.2 took 12 to 15 s and about 580 MiB. Boxes in one font now share one embedded font program, and the
-    // same save takes 6 to 10 s, about 150 to 200 MiB and a 12 MB file. Counting font programs holds on a busy
-    // machine where a time budget does not.
+    // its own copy of the font. Saving 3,000 notes took 15 to 18 s, 820 to 1,060 MiB more memory and an 87 MB file,
+    // where 1.9.2 took 11 to 15 s and about 580 MiB. Boxes in one font now share one embedded font program, and the
+    // same save takes about 5.5 s, 150 MiB and a 12 MB file. Counting font programs holds on a busy machine where a
+    // time budget does not.
     [Fact]
     public void TextBoxesInOneFontShareOneEmbeddedFont()
     {
@@ -161,6 +161,38 @@ public sealed class PdfEngineBurnScaleTests
                     fontPrograms++;
             }
             Assert.Equal(1, fontPrograms);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    // Every box's editing data checks its own look, font included, and that check refuses a very large font. Boxes
+    // in a Chinese or Japanese font use a dozen new characters each, so one font shared by hundreds of them grew
+    // past the check and every box reopened as a plain, uneditable comment.
+    [Fact]
+    public void ManyTextBoxesInOneCjkFontReopenEditable()
+    {
+        const int boxes = 300;
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-burn-cjk-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, BlankPdf(boxes / 10));
+            var annotations = new Dictionary<int, List<PageAnnotation>>();
+            var dimensions = new Dictionary<int, (int w, int h)>();
+            int code = 0x4E00;
+            for (int box = 0; box < boxes; box++)
+            {
+                int page = box / 10;
+                if (!annotations.TryGetValue(page, out List<PageAnnotation>? list)) annotations[page] = list = [];
+                var text = new System.Text.StringBuilder();
+                for (int character = 0; character < 12; character++) text.Append((char)code++);
+                list.Add(new TextAnnotation { PageIndex = page, Content = text.ToString(), FontName = "Microsoft YaHei",
+                    Position = new Point(40, 40 + (box % 10) * 90), Width = 400, Height = 40 });
+                dimensions[page] = (816, 1056);
+            }
+
+            PdfEngineBurn.Burn(path, annotations, dimensions, measurementsAsAnnotations: true);
+
+            Assert.Equal(boxes, PdfOverlayAnnotations.TakeEditableTail(File.ReadAllBytes(path)).Records.Count);
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }

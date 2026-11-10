@@ -3241,31 +3241,79 @@ public sealed class PdfIncrementalAnnotationEditor
     private static Dictionary<PdfFormXObject, PdfStream> ImportTypedAppearances(
         PdfIncrementalUpdateBuilder update, IEnumerable<PdfFormXObject> appearances)
     {
-        PdfFormXObject[] distinct = [.. appearances.Distinct(ReferenceEqualityComparer.Instance).Cast<PdfFormXObject>()];
         var imported = new Dictionary<PdfFormXObject, PdfStream>(ReferenceEqualityComparer.Instance);
-        if (distinct.Length == 0) return imported;
-        // The authoring pipeline owns resource serialization and font subsetting. Every appearance is authored
-        // into one document, a page each, so appearances in one font share one subset, and that document's
-        // complete graph, including resources of nested forms and images, is imported once. Authoring, reading
-        // and importing a document per appearance embedded a copy of the font in every one.
-        var builder = new PdfDocumentBuilder();
-        foreach (PdfFormXObject appearance in distinct)
-            builder.AddPage(appearance.Width, appearance.Height,
-                new PdfContentStreamBuilder().DrawForm(appearance, 0, 0));
-        PdfDocument source = PdfDocument.Open(builder.Build());
-        PdfObject Resolve(PdfObject value) => value is PdfIndirectReference reference
-            ? source.Resolve(reference) : value;
-        var importer = new PdfObjectGraphImporter(source, update, []);
-        IReadOnlyList<PdfPageTreeEntry> pages = PdfPageTree.Read(source).Pages;
-        for (int index = 0; index < distinct.Length; index++)
+        // The authoring pipeline owns resource serialization and font subsetting. Appearances that only draw text
+        // are authored into one document, a page each, so those in one font share one subset, and that document's
+        // graph is imported once. Authoring, reading and importing a document per appearance embedded a copy of the
+        // font in every one. A shared subset joins only appearances whose glyphs in each font stay within a budget:
+        // a reader checks every annotation's whole appearance graph, the shared font included, against fixed
+        // limits. An appearance with images or nested forms is still authored on its own, so one save never holds
+        // every image at once.
+        var group = new List<PdfFormXObject>();
+        var glyphs = new Dictionary<TrueTypeFont, HashSet<ushort>>();
+        foreach (PdfFormXObject appearance in appearances.Distinct(ReferenceEqualityComparer.Instance).Cast<PdfFormXObject>())
         {
-            var resources = (PdfDictionary)Resolve(pages[index].Dictionary[Name("Resources")]);
-            var forms = (PdfDictionary)Resolve(resources[Name("XObject")]);
-            var form = (PdfStream)Resolve(forms.Single().Value);
-            imported.Add(distinct[index], (PdfStream)importer.Import(form));
+            var own = new Dictionary<TrueTypeFont, HashSet<ushort>>();
+            if (!TextOnly(appearance, own, 0) || own.Count == 0)
+            {
+                Import([appearance]);
+                continue;
+            }
+            bool fits = own.All(font => (glyphs.TryGetValue(font.Key, out HashSet<ushort>? used) ? used : [])
+                .Union(font.Value).Count() <= SharedAppearanceGlyphs);
+            if (!fits && group.Count > 0)
+            {
+                Import(group);
+                group = [];
+                glyphs.Clear();
+            }
+            group.Add(appearance);
+            foreach (var font in own)
+            {
+                if (!glyphs.TryGetValue(font.Key, out HashSet<ushort>? used)) glyphs[font.Key] = used = [];
+                used.UnionWith(font.Value);
+            }
         }
+        if (group.Count > 0) Import(group);
         return imported;
+
+        // Collects the glyphs each embedded font draws in a form and its nested forms; false when any of them
+        // carries an image or pattern.
+        static bool TextOnly(PdfFormXObject form, Dictionary<TrueTypeFont, HashSet<ushort>> fonts, int depth)
+        {
+            if (depth > 16 || form.Images.Count > 0 || form.Assets.Count > 0 || form.Patterns.Count > 0) return false;
+            foreach (EmbeddedFontUsage usage in form.EmbeddedFonts)
+            {
+                if (!fonts.TryGetValue(usage.Font, out HashSet<ushort>? used)) fonts[usage.Font] = used = [];
+                used.UnionWith(usage.Mappings.Values.Select(mapping => mapping.Glyph));
+            }
+            return form.Forms.Keys.All(nested => TextOnly(nested, fonts, depth + 1));
+        }
+
+        void Import(IReadOnlyList<PdfFormXObject> members)
+        {
+            var builder = new PdfDocumentBuilder();
+            foreach (PdfFormXObject appearance in members)
+                builder.AddPage(appearance.Width, appearance.Height,
+                    new PdfContentStreamBuilder().DrawForm(appearance, 0, 0));
+            PdfDocument source = PdfDocument.Open(builder.Build());
+            PdfObject Resolve(PdfObject value) => value is PdfIndirectReference reference
+                ? source.Resolve(reference) : value;
+            var importer = new PdfObjectGraphImporter(source, update, []);
+            IReadOnlyList<PdfPageTreeEntry> pages = PdfPageTree.Read(source).Pages;
+            for (int index = 0; index < members.Count; index++)
+            {
+                var resources = (PdfDictionary)Resolve(pages[index].Dictionary[Name("Resources")]);
+                var forms = (PdfDictionary)Resolve(resources[Name("XObject")]);
+                var form = (PdfStream)Resolve(forms.Single().Value);
+                imported.Add(members[index], (PdfStream)importer.Import(form));
+            }
+        }
     }
+
+    // Glyphs one font may hold across the appearances that share its subset. The reader's appearance check walks
+    // the font's width and character-map entries for every annotation that uses it.
+    private const int SharedAppearanceGlyphs = 256;
 
     private static PdfDictionary FreeTextDictionary(
         PendingFreeText value, PdfIndirectReference page, PdfIndirectReference annotation,
