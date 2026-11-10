@@ -260,6 +260,7 @@
     <Compile Include="..\Models\PageThumbnailVm.cs" Link="Models\PageThumbnailVm.cs" />
     <Compile Include="..\Services\NativeFrameRendering.cs" Link="Services\NativeFrameRendering.cs" />
     <Compile Include="..\Services\ThumbnailSessionOwner.cs" Link="Services\ThumbnailSessionOwner.cs" />
+    <Compile Include="..\engine\KillerPdf.Engine.Tests\ColorManagement\SyntheticCmykPrinter.cs" Link="Fixtures\SyntheticCmykPrinter.cs" />
     <ProjectReference Include="..\engine\KillerPdf.Engine\KillerPdf.Engine.csproj" />
     <ProjectReference Include="..\third_party\NTwain\NTwain\NTwain.csproj" />
   </ItemGroup>

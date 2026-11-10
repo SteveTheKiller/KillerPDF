@@ -153,7 +153,9 @@ public sealed partial class PdfPageRenderer
             : printer.DeviceToReferenceBlackCompensation(Authoring.PdfRenderingIntent.RelativeColorimetric);
         Span<double> xyz = stackalloc double[3];
         Span<double> device = stackalloc double[printer.ComponentCount];
-        var gamutCheck = gamutWarnings ? new PdfPrinterGamutCheck(printer) : null;
+        // Warnings follow the proof's own black-point compensation.
+        var gamutCheck = gamutWarnings ? PdfPrinterGamutCheck.For(printer, options.BlackPointCompensation
+            && options.RenderingIntent != Authoring.PdfRenderingIntent.AbsoluteColorimetric) : null;
         byte[]? classifications = gamutWarnings ? new byte[pixels.Length / 4] : null;
         // Neighboring pixels of one fill share a color, so the last classification is reused for them.
         double lastX = double.NaN, lastY = double.NaN, lastZ = double.NaN;
@@ -176,7 +178,7 @@ public sealed partial class PdfPageRenderer
                 if (xyz[0] != lastX || xyz[1] != lastY || xyz[2] != lastZ)
                 {
                     (lastX, lastY, lastZ) = (xyz[0], xyz[1], xyz[2]);
-                    lastClassification = (byte)gamutCheck.EvaluateXyz(xyz).Classification;
+                    lastClassification = (byte)gamutCheck.ClassifyXyz(xyz);
                 }
                 classifications![offset / 4] = lastClassification;
             }

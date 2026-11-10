@@ -10,35 +10,11 @@ using Xunit;
 
 namespace KillerPDF.Tests;
 
-// Gamut warnings against Windows' own coated web-offset CMYK printer profile (SWOP).
+// Gamut warnings in the viewer's frames against a portable CMYK press profile with a known gamut.
 public sealed class GamutWarningDisplayTests
 {
-    private static PdfColorProfile CoatedCmyk() => PdfColorProfile.Load(File.ReadAllBytes(Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.System), "spool", "drivers", "color", "RSWOP.icm")));
-
-    [Theory]
-    [InlineData(.25, .25, .25, 0)]
-    [InlineData(.5, .25, .5, 0)]
-    [InlineData(0, .5, .5, 0)]
-    public void ColorsThePrinterItselfPrintsAreNotWarned(double c, double m, double y, double k)
-    {
-        var printer = CoatedCmyk();
-        double[] printed = new double[3];
-        printer.ToXyz([c, m, y, k], printed, PdfRenderingIntent.RelativeColorimetric);
-
-        var result = new PdfPrinterGamutCheck(printer).EvaluateXyz(printed);
-
-        Assert.Equal(PdfGamutClassification.Inside, result.Classification);
-    }
-
-    [Fact]
-    public void SaturatedRgbGreenIsWarned()
-    {
-        // sRGB 0/255/0 in D50 XYZ: the Bradford-adapted sRGB green primary.
-        var result = new PdfPrinterGamutCheck(CoatedCmyk()).EvaluateXyz([.3850649, .7168786, .0971045]);
-
-        Assert.Equal(PdfGamutClassification.Outside, result.Classification);
-    }
+    private static readonly PdfColorProfile Press = PdfColorProfile.Load(
+        KillerPdf.Engine.Tests.ColorManagement.SyntheticCmykPrinter.Create());
 
     private static readonly byte[] WarningGray = [128, 128, 128, 255];
 
@@ -61,7 +37,7 @@ public sealed class GamutWarningDisplayTests
                 var on = Render(warnings: true);
                 var off = Render(warnings: false);
 
-                // Left half saturated green, right half a warm tone the coated press prints.
+                // Left half saturated green, right half a warm tone the press prints.
                 Assert.Equal(WarningGray, on.At(1, 1));
                 Assert.NotEqual(WarningGray, off.At(1, 1));
                 Assert.Equal(off.At(6, 1), on.At(6, 1));
@@ -127,7 +103,7 @@ public sealed class GamutWarningDisplayTests
         internal byte[] At(int x, int y) => _bgra.AsSpan((y * frame.Width + x) * 4, 4).ToArray();
     }
 
-    private static PdfDocumentProofSettings Proof(bool warnings) => new(enabled: true, printerProfile: CoatedCmyk(),
+    private static PdfDocumentProofSettings Proof(bool warnings) => new(enabled: true, printerProfile: Press,
         gamutWarnings: warnings, options: new PdfProofOptions { RenderingIntent = PdfRenderingIntent.RelativeColorimetric,
             BlackPointCompensation = false, SimulatePaper = false, SimulateBlack = false });
 
@@ -136,7 +112,7 @@ public sealed class GamutWarningDisplayTests
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
         try
         {
-            // sRGB 200/150/120 on the right is a warm tone well inside the coated press gamut.
+            // sRGB 200/150/120 on the right is a warm tone well inside the press gamut.
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddPage(8, 4, System.Text.Encoding.ASCII.GetBytes(
                 "0 1 0 rg 0 0 4 4 re f .78431 .58824 .47059 rg 4 0 4 4 re f")).Build());
             test(path);

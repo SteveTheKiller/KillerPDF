@@ -32,7 +32,9 @@ internal static class PdfNativeFrameProof
             ? printer.ReferenceBlackToDeviceCompensation(options.RenderingIntent) : new(1);
         PdfBlackPointCompensation viewingCompensation = options.SimulateBlack || options.SimulatePaper ? new(1)
             : printer.DeviceToReferenceBlackCompensation(PdfRenderingIntent.RelativeColorimetric);
-        var gamut = proof.GamutWarnings ? new PdfPrinterGamutCheck(printer) : null;
+        // Warnings follow the proof's own black-point compensation.
+        var gamut = proof.GamutWarnings ? PdfPrinterGamutCheck.For(printer, options.BlackPointCompensation
+            && options.RenderingIntent != PdfRenderingIntent.AbsoluteColorimetric) : null;
         float[] pixels = source.Pixels.ToArray();
         byte[]? classifications = proof.GamutWarnings ? new byte[pixels.Length / 4] : null;
         Span<double> xyz = stackalloc double[3];
@@ -57,7 +59,7 @@ internal static class PdfNativeFrameProof
                 if (xyz[0] != lastX || xyz[1] != lastY || xyz[2] != lastZ)
                 {
                     (lastX, lastY, lastZ) = (xyz[0], xyz[1], xyz[2]);
-                    lastClassification = (byte)gamut.EvaluateXyz(xyz).Classification;
+                    lastClassification = (byte)gamut.ClassifyXyz(xyz);
                 }
                 classifications![offset / 4] = lastClassification;
             }
