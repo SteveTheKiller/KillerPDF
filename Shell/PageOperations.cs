@@ -416,29 +416,22 @@ namespace KillerPDF.Shell
                 rotSnap.TryGetValue(i, out int rot);
                 items[i] = nativeRevision is not null ? new PageThumbnailVm(i, nativeRevision, rot, thumbnailProof)
                     : new PageThumbnailVm(i, filePath, protection, rot, thumbnailProof);
-                // Seed with stale thumbnail - better than blank while reloading
-                if (nativeRevision is null && oldItems != null && i < oldItems.Length
-                    && oldItems[i].ProofStamp == thumbnailProof?.Stamp
-                    && oldItems[i].WorkingCmyk == KillerPDF.Services.WorkingCmykProfiles.Generation)
-                {
-                    var prev = oldItems[i].Thumbnail;
-                    if (prev != null) items[i].SetThumbnailDirect(prev);
-                }
             }
+            // Seed with stale thumbnail - better than blank while reloading
+            if (nativeRevision is null)
+                PageThumbnailVm.CarryPictures(oldItems, items, thumbnailProof?.Stamp, KillerPDF.Services.WorkingCmykProfiles.Generation);
             // Draw thumbnails only for the rows the list shows, newest request first, and keep a bounded number:
             // drawing and holding one for every page took about 805 MiB at 10,000 pages and 8 GiB at 100,000.
             // The rows ask through their Thumbnail binding, which the list reads only for rows it realizes.
-            PdfPageRenderSession? renderSession = null;
-            var sessionGate = new object();
+            var renderer = new ThumbnailSessionOwner<PdfPageRenderSession>();
             var window = new ThumbnailWindow<System.Windows.Media.Imaging.BitmapSource>(pageCount, (i, token) =>
             {
-                lock (sessionGate)
+                if (ct.IsCancellationRequested) return null;
+                rotSnap.TryGetValue(i, out int rot);
+                if (nativeRevision is not null)
+                    return PageThumbnailVm.BuildNativeThumb(nativeRevision, i, rot, 128, 256, ct, thumbnailProof?.Settings);
+                return renderer.Use(() => PdfPageRenderSession.OpenEngineFirst(filePath, 128, 256, protection), renderSession =>
                 {
-                    if (ct.IsCancellationRequested) return null;
-                    rotSnap.TryGetValue(i, out int rot);
-                    if (nativeRevision is not null)
-                        return PageThumbnailVm.BuildNativeThumb(nativeRevision, i, rot, 128, 256, ct, thumbnailProof?.Settings);
-                    renderSession ??= PdfPageRenderSession.OpenEngineFirst(filePath, 128, 256, protection);
                     PdfRenderedPage page = renderSession.RenderPreview(i, ct, thumbnailProof?.Settings);
                     int tw = page.Width;
                     int th = page.Height;
@@ -447,7 +440,7 @@ namespace KillerPDF.Shell
                     if (rot != 0)
                         (raw, tw, th) = BitmapHelpers.RotateBitmap(raw, tw, th, rot);
                     return PageThumbnailVm.BuildThumbFromRaw(raw, tw, th);
-                }
+                }, ct);
             }, (i, image) =>
             {
                 if (ct.IsCancellationRequested) return;
@@ -456,12 +449,12 @@ namespace KillerPDF.Shell
             }, drained: () =>
             {
                 // The renderer holds decoded page images; a scanned PDF kept them while the tab stayed open.
-                lock (sessionGate) { renderSession?.Dispose(); renderSession = null; }
+                renderer.Release();
             });
             ct.Register(() =>
             {
                 window.Dispose();
-                lock (sessionGate) { renderSession?.Dispose(); renderSession = null; }
+                renderer.Release();
             });
             foreach (var item in items) item.RequestThumbnail = window.Request;
             _sidebarPages.Show(items, provisional: nativeBook?.IsPaginating == true);

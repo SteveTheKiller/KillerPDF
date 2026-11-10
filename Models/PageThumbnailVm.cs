@@ -85,6 +85,21 @@ namespace KillerPDF
             _stale = true;   // shown until this row's own picture is drawn
         }
 
+        /// <summary>Seeds a rebuilt page list with the pictures the list it replaces already shows, so it never
+        /// flashes blank while each row draws its own. Rows drawn with another proof or working CMYK choice are skipped.</summary>
+        internal static void CarryPictures(PageThumbnailVm[]? previous, PageThumbnailVm[] rows,
+            PdfDocumentProofViewStamp? proof, long workingCmyk)
+        {
+            if (previous is null) return;
+            for (int i = 0; i < rows.Length && i < previous.Length; i++)
+            {
+                if (previous[i].ProofStamp != proof || previous[i].WorkingCmyk != workingCmyk) continue;
+                // The picture as it stands. Reading Thumbnail would ask the previous list's window to draw the row.
+                var prev = previous[i]._thumb;
+                if (prev != null) rows[i].SetThumbnailDirect(prev);
+            }
+        }
+
         /// <summary>Called by RefreshPageList's bulk background loader.</summary>
         internal void SetThumbnail(BitmapSource src)
         {
@@ -133,7 +148,7 @@ namespace KillerPDF
             int rotation, int maximumWidth, int maximumHeight, CancellationToken cancellationToken,
             PdfDocumentProofSettings? proof = null)
         {
-            var frame = Controls.PdfViewer.RenderNativeFrame(revision, pageIndex, maximumWidth, maximumHeight, cancellationToken, proof);
+            var frame = NativeFrameRendering.Render(revision, pageIndex, maximumWidth, maximumHeight, cancellationToken, proof);
             int width = frame.Width, height = frame.Height;
             byte[] pixels = frame.ToSrgbBgra32(cancellationToken);
             if (rotation != 0)
