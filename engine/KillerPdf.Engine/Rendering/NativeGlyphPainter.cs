@@ -21,15 +21,26 @@ internal static class NativeGlyphPainter
 {
     private const long MaximumWorkingPixelBytes = 128L * 1024 * 1024;
 
+    /// <summary>
+    /// Paints a width x height page, or only the given region of it. A region keeps every paint at its whole-page
+    /// position and coverage, so it is exactly that crop of the whole page, and only the region's pixels are stored.
+    /// </summary>
     internal static PdfRenderedFrame Render(int width, int height, IReadOnlyList<NativePagePaint> paints,
-        PdfRgbColor color, CancellationToken cancellationToken, double scaleX = 1, double scaleY = 1, PdfRgbColor? background = null)
+        PdfRgbColor color, CancellationToken cancellationToken, double scaleX = 1, double scaleY = 1, PdfRgbColor? background = null,
+        (int Left, int Top, int Width, int Height)? region = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
         if (!double.IsFinite(scaleX) || scaleX <= 0 || !double.IsFinite(scaleY) || scaleY <= 0)
             throw new InvalidDataException("The native page scale must be finite and positive.");
-        long pixelCount = (long)width * height;
+        var (regionLeft, regionTop, regionWidth, regionHeight) = region ?? (0, 0, width, height);
+        if (regionLeft < 0 || regionTop < 0 || regionWidth <= 0 || regionHeight <= 0
+            || (long)regionLeft + regionWidth > width || (long)regionTop + regionHeight > height)
+            throw new ArgumentOutOfRangeException(nameof(region), "The region must fit inside the page raster.");
+        int regionRight = regionLeft + regionWidth, regionBottom = regionTop + regionHeight;
+        var bounds = (regionLeft, regionTop, regionRight, regionBottom);
+        long pixelCount = (long)regionWidth * regionHeight;
         if (pixelCount > MaximumWorkingPixelBytes / (2 * 4 * sizeof(float)))
             throw new InvalidDataException("The native page exceeds its combined 128 MiB pixel storage limit.");
         if (paints.Count > 100_000)
@@ -59,10 +70,10 @@ internal static class NativeGlyphPainter
                 if (!double.IsFinite(x0) || !double.IsFinite(y0) || !double.IsFinite(x1) || !double.IsFinite(y1)
                     || rectangle.Width < 0 || rectangle.Height < 0)
                     throw new InvalidDataException("The native rectangle placement is invalid.");
-                int leftEdge = (int)Math.Clamp(Math.Floor(x0), 0, width);
-                int topEdge = (int)Math.Clamp(Math.Floor(y0), 0, height);
-                int rightEdge = (int)Math.Clamp(Math.Ceiling(x1), 0, width);
-                int bottomEdge = (int)Math.Clamp(Math.Ceiling(y1), 0, height);
+                int leftEdge = (int)Math.Clamp(Math.Floor(x0), regionLeft, regionRight);
+                int topEdge = (int)Math.Clamp(Math.Floor(y0), regionTop, regionBottom);
+                int rightEdge = (int)Math.Clamp(Math.Ceiling(x1), regionLeft, regionRight);
+                int bottomEdge = (int)Math.Clamp(Math.Ceiling(y1), regionTop, regionBottom);
                 imageWork += (long)(rightEdge - leftEdge) * (bottomEdge - topEdge);
                 if (imageWork > 16 * 1024 * 1024)
                     throw new InvalidDataException("The native page exceeds its image paint work limit.");
@@ -73,7 +84,7 @@ internal static class NativeGlyphPainter
                     for (int x = leftEdge; x < rightEdge; x++)
                     {
                         double coverage = vertical * (Math.Min(x + 1, x1) - Math.Max(x, x0));
-                        FloatRgbCompositor.SourceOver(pixels, (y * width + x) * 4,
+                        FloatRgbCompositor.SourceOver(pixels, ((y - regionTop) * regionWidth + x - regionLeft) * 4,
                             rectangle.Color.Red, rectangle.Color.Green, rectangle.Color.Blue, coverage);
                     }
                 }
@@ -87,10 +98,10 @@ internal static class NativeGlyphPainter
                     || !double.IsFinite(imageWidth) || !double.IsFinite(imageHeight) || imageWidth < 0 || imageHeight < 0)
                     throw new InvalidDataException("The native image placement is invalid.");
                 if (imageWidth == 0 || imageHeight == 0) continue;
-                int x0 = (int)Math.Clamp(Math.Ceiling(imageLeft - .5), 0, width);
-                int y0 = (int)Math.Clamp(Math.Ceiling(imageTop - .5), 0, height);
-                int x1 = (int)Math.Clamp(Math.Ceiling(imageLeft + imageWidth - .5), 0, width);
-                int y1 = (int)Math.Clamp(Math.Ceiling(imageTop + imageHeight - .5), 0, height);
+                int x0 = (int)Math.Clamp(Math.Ceiling(imageLeft - .5), regionLeft, regionRight);
+                int y0 = (int)Math.Clamp(Math.Ceiling(imageTop - .5), regionTop, regionBottom);
+                int x1 = (int)Math.Clamp(Math.Ceiling(imageLeft + imageWidth - .5), regionLeft, regionRight);
+                int y1 = (int)Math.Clamp(Math.Ceiling(imageTop + imageHeight - .5), regionTop, regionBottom);
                 imageWork += (long)Math.Max(0, x1 - x0) * Math.Max(0, y1 - y0);
                 if (imageWork > 16 * 1024 * 1024)
                     throw new InvalidDataException("The native page exceeds its image paint work limit.");
@@ -102,7 +113,7 @@ internal static class NativeGlyphPainter
                     {
                         int sx = Math.Clamp((int)((x + .5 - imageLeft) * image.Image.Width / imageWidth), 0, image.Image.Width - 1);
                         int sample = (sy * image.Image.Width + sx) * 3;
-                        FloatRgbCompositor.SourceOver(pixels, (y * width + x) * 4,
+                        FloatRgbCompositor.SourceOver(pixels, ((y - regionTop) * regionWidth + x - regionLeft) * 4,
                             image.Image.Samples[sample] / 255d, image.Image.Samples[sample + 1] / 255d,
                             image.Image.Samples[sample + 2] / 255d,
                             image.Image.Alpha is { } alpha ? alpha[sy * image.Image.Width + sx] / 255d : 1);
@@ -119,10 +130,10 @@ internal static class NativeGlyphPainter
                     || !double.IsFinite(centerX - radiusX) || !double.IsFinite(centerX + radiusX)
                     || !double.IsFinite(centerY - radiusY) || !double.IsFinite(centerY + radiusY))
                     throw new InvalidDataException("The native marker placement is invalid.");
-                int x0 = (int)Math.Clamp(Math.Floor(centerX - radiusX), 0, width);
-                int y0 = (int)Math.Clamp(Math.Floor(centerY - radiusY), 0, height);
-                int x1 = (int)Math.Clamp(Math.Ceiling(centerX + radiusX), 0, width);
-                int y1 = (int)Math.Clamp(Math.Ceiling(centerY + radiusY), 0, height);
+                int x0 = (int)Math.Clamp(Math.Floor(centerX - radiusX), regionLeft, regionRight);
+                int y0 = (int)Math.Clamp(Math.Floor(centerY - radiusY), regionTop, regionBottom);
+                int x1 = (int)Math.Clamp(Math.Ceiling(centerX + radiusX), regionLeft, regionRight);
+                int y1 = (int)Math.Clamp(Math.Ceiling(centerY + radiusY), regionTop, regionBottom);
                 markerWork += (long)(x1 - x0) * (y1 - y0) * 16;
                 if (markerWork > 16 * 1024 * 1024)
                     throw new InvalidDataException("The native page exceeds its marker paint work limit.");
@@ -140,7 +151,7 @@ internal static class NativeGlyphPainter
                                 if (dx * dx + dy * dy <= 1) coverage++;
                             }
                         if (coverage != 0)
-                            FloatRgbCompositor.SourceOver(pixels, (y * width + x) * 4,
+                            FloatRgbCompositor.SourceOver(pixels, ((y - regionTop) * regionWidth + x - regionLeft) * 4,
                                 marker.Color.Red, marker.Color.Green, marker.Color.Blue, coverage / 16d);
                     }
                 }
@@ -157,17 +168,19 @@ internal static class NativeGlyphPainter
                 || !double.IsFinite(glyphScaleY) || glyphScaleY <= 0)
                 throw new InvalidDataException("The native glyph placement is invalid.");
             var mask = PdfPageRenderer.RasterizeNativeGlyph(glyph.Outline, left,
-                baseline, glyphScaleX, glyphScaleY, width, height, cancellationToken);
+                baseline, glyphScaleX, glyphScaleY, width, height, cancellationToken, bounds);
             try
             {
-                for (int y = mask.Top; y < mask.Bottom; y++)
+                // A rectangular glyph comes back whole, so the region clips here too.
+                int maskRight = Math.Min(mask.Right, regionRight);
+                for (int y = Math.Max(mask.Top, regionTop), maskBottom = Math.Min(mask.Bottom, regionBottom); y < maskBottom; y++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    for (int x = mask.Left; x < mask.Right; x++)
+                    for (int x = Math.Max(mask.Left, regionLeft); x < maskRight; x++)
                     {
                         double coverage = mask.At(x, y) / 255d;
                         if (coverage == 0) continue;
-                        FloatRgbCompositor.SourceOver(pixels, (y * width + x) * 4,
+                        FloatRgbCompositor.SourceOver(pixels, ((y - regionTop) * regionWidth + x - regionLeft) * 4,
                             foreground.Red, foreground.Green, foreground.Blue, coverage);
                     }
                 }
@@ -175,6 +188,6 @@ internal static class NativeGlyphPainter
             finally { mask.Return(); }
         }
         FloatRgbCompositor.DecodeSrgbInPlace(pixels, cancellationToken);
-        return new(width, height, pixels, PdfFrameColorEncoding.LinearSrgbD65, MaximumWorkingPixelBytes);
+        return new(regionWidth, regionHeight, pixels, PdfFrameColorEncoding.LinearSrgbD65, MaximumWorkingPixelBytes);
     }
 }

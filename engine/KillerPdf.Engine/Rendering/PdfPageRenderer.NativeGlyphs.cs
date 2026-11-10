@@ -7,7 +7,7 @@ public sealed partial class PdfPageRenderer
     // This document-free bridge shares the established outline flattening and coverage engine.
     internal static CoverageMask RasterizeNativeGlyph(PdfGlyphOutline outline,
         double left, double baseline, double scaleX, double scaleY, int width, int height,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, (int Left, int Top, int Right, int Bottom)? bounds = null)
     {
         var source = FlattenGlyphOutlineCore(outline);
         var polygons = new List<Point[]>(source.Count);
@@ -26,6 +26,7 @@ public sealed partial class PdfPageRenderer
             }
             polygons.Add(transformed);
         }
-        return RasterizePolygons(polygons, false, width, height, rent: true);
+        // Bounds keep only the pixels inside them, each with its unbounded coverage.
+        return RasterizePolygons(polygons, false, width, height, rent: true, bounds);
     }
 }

@@ -493,6 +493,33 @@ public sealed class EpubLayoutDocument
             options.Height / _options.PageHeight, Pages[pageIndex].CanvasBackground);
         return PdfNativeFrameProof.Apply(frame, options, cancellationToken);
     }
+
+    /// <summary>
+    /// Renders the pixel rectangle at <paramref name="left"/>, <paramref name="top"/> of the page drawn at the
+    /// options' full size. The result is exactly that crop of <see cref="RenderPage(int, PdfRenderOptions, CancellationToken)"/>,
+    /// and only the region's pixels count against the storage limits, so a region of a page too large to draw whole
+    /// still renders.
+    /// </summary>
+    public PdfRenderedFrame RenderPageRegion(int pageIndex, PdfRenderOptions options,
+        int left, int top, int width, int height, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(options);
+        if (pageIndex < 0 || pageIndex >= Pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (left < 0 || top < 0 || width <= 0 || height <= 0
+            || (long)left + width > options.Width || (long)top + height > options.Height)
+            throw new ArgumentOutOfRangeException(nameof(width), "The region must fit inside the page raster.");
+        if (options.SeparationPlate is not null)
+            throw new NotSupportedException("Native EPUB rendering does not support color separations.");
+        if ((long)width * height > options.PixelByteLimit / (2 * 4 * sizeof(float)))
+            throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
+        PdfNativeFrameProof.Preflight(options, outputPixels: (long)width * height);
+        var frame = NativeGlyphPainter.Render(options.Width, options.Height, Pages[pageIndex].Glyphs,
+            _options.TextColor, cancellationToken, options.Width / _options.PageWidth,
+            options.Height / _options.PageHeight, Pages[pageIndex].CanvasBackground, (left, top, width, height));
+        return PdfNativeFrameProof.Apply(frame, options, cancellationToken);
+    }
 }
 
 /// <summary>

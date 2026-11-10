@@ -5,10 +5,11 @@ namespace KillerPdf.Engine.Rendering;
 
 internal static class PdfNativeFrameProof
 {
-    internal static void Preflight(PdfRenderOptions options, long retainedPixels = 0)
+    // A region render passes its own pixel count; the whole page is never stored.
+    internal static void Preflight(PdfRenderOptions options, long retainedPixels = 0, long? outputPixels = null)
     {
         if (options.Proof is not { Enabled: true } proof) return;
-        long count = (long)options.Width * options.Height;
+        long count = outputPixels ?? (long)options.Width * options.Height;
         // Source frame, mutable proof pixels and owned returned copy coexist.
         long bytes = checked(retainedPixels * 16 + count * (48 + (proof.GamutWarnings ? 2 : 0)));
         if (bytes > options.PixelByteLimit)

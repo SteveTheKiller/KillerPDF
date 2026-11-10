@@ -250,4 +250,41 @@ public sealed partial class PdfReadSnapshot
         var output = resized ? PdfNativeFrameResampler.Resize(frame, options.Width, options.Height, cancellationToken) : frame;
         return PdfNativeFrameProof.Apply(output, options, cancellationToken);
     }
+
+    /// <summary>
+    /// Renders the pixel rectangle at <paramref name="left"/>, <paramref name="top"/> of a native page drawn at the
+    /// options' full size: exactly that crop of <see cref="RenderPage(int, PdfRenderOptions, CancellationToken)"/>, with
+    /// storage limits applied to the region, so a viewer can draw the visible part of a page at any zoom.
+    /// </summary>
+    public PdfRenderedFrame RenderPageRegion(int pageIndex, PdfRenderOptions options,
+        int left, int top, int width, int height, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(options);
+        if (pageIndex < 0 || pageIndex >= PageCount)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (_layout is not null)
+            return _layout.RenderPageRegion(pageIndex, options, left, top, width, height, cancellationToken);
+        if (left < 0 || top < 0 || width <= 0 || height <= 0
+            || (long)left + width > options.Width || (long)top + height > options.Height)
+            throw new ArgumentOutOfRangeException(nameof(width), "The region must fit inside the page raster.");
+        if (options.SeparationPlate is not null)
+            throw new NotSupportedException("Native DjVu rendering does not support color separations.");
+        // Smmr and IW44 data decode only as a whole page, so the natural frame (at most 128 MiB) is decoded once and
+        // only the region is resampled from it; the requested page size itself is never stored.
+        var geometry = _geometries[pageIndex];
+        int naturalWidth = (int)Math.Ceiling(geometry.Width);
+        int naturalHeight = (int)Math.Ceiling(geometry.Height);
+        if (geometry.IntrinsicRotation is 90 or 270)
+            (naturalWidth, naturalHeight) = (naturalHeight, naturalWidth);
+        long pixels = checked((long)naturalWidth * naturalHeight + (long)width * height);
+        if (pixels > options.PixelByteLimit / (2 * 4 * sizeof(float)))
+            throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
+        PdfNativeFrameResampler.CheckWork(naturalWidth, naturalHeight, options.Width, options.Height, width, height);
+        PdfNativeFrameProof.Preflight(options, (long)naturalWidth * naturalHeight, (long)width * height);
+        var frame = _djvu!.RenderPage(pageIndex, cancellationToken);
+        var output = PdfNativeFrameResampler.Resize(frame, options.Width, options.Height,
+            left, top, width, height, cancellationToken);
+        return PdfNativeFrameProof.Apply(output, options, cancellationToken);
+    }
 }
