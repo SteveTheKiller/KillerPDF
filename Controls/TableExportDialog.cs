@@ -33,6 +33,7 @@ internal sealed class TableExportDialog : Window
     private Point _start;
     private bool _settingArea;
     private bool _closed;
+    private Size _ownSize;
 
     internal PdfExtractedTable? Result { get; private set; }
     internal PdfTableExportFormat Format => _format.SelectedIndex == 1 ? PdfTableExportFormat.Csv : PdfTableExportFormat.Xlsx;
@@ -148,7 +149,28 @@ internal sealed class TableExportDialog : Window
         };
         Draw(new Rect(0, 0, preview.PixelWidth, preview.PixelHeight));
         Loaded += (_, _) => _detect.Focus();
+        Loaded += (_, _) => _ownSize = new Size(ActualWidth, ActualHeight);
         Closed += (_, _) => { _closed = true; _operation?.Cancel(); };
+    }
+
+    /// <summary>
+    /// Detect has filled the review table: the window grows once to show it, up to the work area's height, while it
+    /// still has the size it gave itself. A window the user (or code) has resized keeps that size and its review scrolls.
+    /// </summary>
+    private void GrowToFit()
+    {
+        if (WindowState != WindowState.Normal || Content is not FrameworkElement frame
+            || Math.Abs(ActualWidth - _ownSize.Width) > 1 || Math.Abs(ActualHeight - _ownSize.Height) > 1) return;
+        // Lay out the new cells first. Measuring now would reuse the review panel's size from before the table, since
+        // only the cell grid itself is marked for a new measure until the next layout pass.
+        UpdateLayout();
+        frame.Measure(new Size(ActualWidth, double.PositiveInfinity));
+        double wanted = Math.Min(MaxHeight, Math.Ceiling(frame.DesiredSize.Height));
+        // That measure was only a question; lay the content out at the window's real size again.
+        frame.InvalidateMeasure();
+        if (wanted <= ActualHeight + 0.5) return;
+        Height = wanted;
+        _ownSize = new Size(ActualWidth, wanted);
     }
 
     private void InvalidateTable()
@@ -205,6 +227,7 @@ internal sealed class TableExportDialog : Window
             _table = result.Table!; ShowTable(_table);
             _status.Text = string.Format(L("Str_TableExport_Summary"), _table.RowCount, _table.ColumnCount);
             _export.IsEnabled = true;
+            GrowToFit();
             _editors.FirstOrDefault().Input?.Focus();
         }
         catch (OperationCanceledException) { }
