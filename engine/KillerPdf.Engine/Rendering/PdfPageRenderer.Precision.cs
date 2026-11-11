@@ -61,6 +61,9 @@ public sealed partial class PdfPageRenderer
     /// eight-bit mask values from the same mask group render as byte rendering; the masked paint,
     /// image or transparency group keeps its float color and composites in float. Mask samples and
     /// render tiles count against the frame storage budget while a graphics state can reach them.
+    /// A page whose soft masks or transparency groups do not fit beside the frame in
+    /// <see cref="PdfRenderOptions.PixelByteLimit"/> is refused with <see cref="NotSupportedException"/>,
+    /// as other content the float path cannot draw is.
     /// Rendering-intent operators update graphics state while each paint retains its profile intent limits.
     /// Eligible isolated and non-isolated non-knockout DeviceRGB Form groups support outer Normal
     /// or Multiply or Screen compositing, with independent source alpha when needed. Internal Normal, Multiply or Screen paints

@@ -140,7 +140,7 @@ public sealed class PdfPrecisionGroupTests
     {
         var renderer = new PdfPageRenderer(NestedMultiplyDocument());
 
-        Assert.Throws<ArgumentException>(() => renderer.RenderFrame(0,
+        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0,
             new PdfRenderOptions(1, 1, maximumPixelBytes: 103)));
         PdfRenderedFrame frame = renderer.RenderFrame(0,
             new PdfRenderOptions(1, 1, maximumPixelBytes: 104));
@@ -160,11 +160,11 @@ public sealed class PdfPrecisionGroupTests
         var renderer = new PdfPageRenderer(MemoryDocument(depth: 1, siblings: false,
             opacity: .5, outerOpacity: .5, multiply: !screen, isolated: false, translated: true, screen: screen));
 
-        Assert.Throws<ArgumentException>(() => renderer.RenderFrame(0,
+        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0,
             new PdfRenderOptions(3, 1, transparentBackground: true, maximumPixelBytes: 131)));
         PdfRenderedFrame full = renderer.RenderFrame(0,
             new PdfRenderOptions(3, 1, transparentBackground: true, maximumPixelBytes: 132));
-        Assert.Throws<ArgumentException>(() => renderer.RenderFrameRegion(0,
+        Assert.Throws<NotSupportedException>(() => renderer.RenderFrameRegion(0,
             new PdfRenderOptions(3, 1, transparentBackground: true, maximumPixelBytes: 59), 1, 0, 1, 1));
         PdfRenderedFrame region = renderer.RenderFrameRegion(0,
             new PdfRenderOptions(3, 1, transparentBackground: true, maximumPixelBytes: 60), 1, 0, 1, 1);
@@ -264,7 +264,7 @@ public sealed class PdfPrecisionGroupTests
     {
         var renderer = new PdfPageRenderer(MemoryDocument(depth: 2, siblings: false, isolated: isolated));
 
-        Assert.Throws<ArgumentException>(() => renderer.RenderFrame(0,
+        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0,
             new PdfRenderOptions(1, 1, maximumPixelBytes: 75)));
         PdfRenderedFrame frame = renderer.RenderFrame(0, new PdfRenderOptions(1, 1, maximumPixelBytes: 76));
 
@@ -277,7 +277,7 @@ public sealed class PdfPrecisionGroupTests
     {
         var renderer = new PdfPageRenderer(MemoryDocument(depth: 1, siblings: true));
 
-        Assert.Throws<ArgumentException>(() => renderer.RenderFrame(0,
+        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0,
             new PdfRenderOptions(1, 1, maximumPixelBytes: 55)));
         PdfRenderedFrame frame = renderer.RenderFrame(0, new PdfRenderOptions(1, 1, maximumPixelBytes: 56));
 
@@ -387,7 +387,7 @@ public sealed class PdfPrecisionGroupTests
     {
         var renderer = new PdfPageRenderer(NestedMultiplyDocument(screen: true));
 
-        Assert.Throws<ArgumentException>(() => renderer.RenderFrame(0,
+        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0,
             new PdfRenderOptions(1, 1, maximumPixelBytes: 103)));
         PdfRenderedFrame frame = renderer.RenderFrame(0,
             new PdfRenderOptions(1, 1, maximumPixelBytes: 104));

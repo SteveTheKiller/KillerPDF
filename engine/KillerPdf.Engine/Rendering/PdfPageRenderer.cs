@@ -371,14 +371,17 @@ public sealed partial class PdfPageRenderer
         var activeForms = new HashSet<PdfStream>();
         long preciseGroupStorage = 0;
         // Float renders count group pixel arrays and graphics-state soft-mask storage beside the
-        // frame's own 36 bytes a pixel against the frame budget.
+        // frame's own 36 bytes a pixel against the frame budget. What a page's masks and groups need
+        // depends on its content, not on the caller's request, so a page whose masks or groups do
+        // not fit is refused like any other page the float path cannot draw, and callers fall back
+        // to the byte render as they do for unsupported content.
         long preciseRootStorage = checked((long)rasterWidth * rasterHeight * 36);
         long preciseMaskStorage = 0;
         Action<long>? chargePreciseMask = preciseRgb is null ? null : bytes =>
         {
             if (bytes > 0 && checked(preciseRootStorage + preciseGroupStorage
                 + Interlocked.Read(ref preciseMaskStorage) + bytes) > options.PixelByteLimit)
-                throw new ArgumentException("The high-precision soft masks exceed the combined pixel storage limit.", nameof(options));
+                throw new NotSupportedException("The high-precision soft masks exceed the combined pixel storage limit.");
             Interlocked.Add(ref preciseMaskStorage, bytes);
         };
         int recoveredFormExpansions = 0;
@@ -2105,7 +2108,7 @@ public sealed partial class PdfPageRenderer
                     long storage = checked((long)groupWidth * groupHeight * (trackAlpha ? 24 : 20));
                     if (checked(preciseRootStorage + preciseGroupStorage + Interlocked.Read(ref preciseMaskStorage)
                         + storage) > options.PixelByteLimit)
-                        throw new ArgumentException("The high-precision groups exceed the combined pixel storage limit.", nameof(options));
+                        throw new NotSupportedException("The high-precision groups exceed the combined pixel storage limit.");
                     preciseGroupStorage += storage;
                     RasterSurface? groupPixels = null;
                     try

@@ -165,14 +165,15 @@ public sealed class PdfPrecisionSoftMaskTests
 
     // A 40 x 40 float frame reserves 36 bytes a pixel (57,600 bytes). Its full-page mask keeps one
     // byte a pixel (1,600) and renders through a four-byte tile surface plus one-byte tile samples
-    // (8,000 more while it renders), so 1,000 spare bytes cannot hold it.
+    // (8,000 more while it renders), so 1,000 spare bytes cannot hold it. The page is refused as
+    // unsupported, so viewers fall back to the byte render as they do for other refused content.
     [Fact]
     public void AMaskThatDoesNotFitBesideTheFrameIsRefusedByTheFrameBudget()
     {
         var document = PdfDocument.Open(Masked("/S /Luminosity", "/DeviceGray", "0.6 g 0 0 10 10 re f",
             ".5001 .5001 .5001 rg 0 0 10 10 re f"));
 
-        var error = Assert.Throws<ArgumentException>(() => new PdfPageRenderer(document).RenderFrame(0,
+        var error = Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0,
             new PdfRenderOptions(40, 40, maximumPixelBytes: 57_600 + 1_000)));
 
         Assert.Contains("storage limit", error.Message, StringComparison.Ordinal);
