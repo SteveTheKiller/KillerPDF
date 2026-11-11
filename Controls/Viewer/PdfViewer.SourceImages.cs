@@ -188,6 +188,11 @@ public partial class PdfViewer
     internal ImageAnnotation? SelectedSourceImageExt => _sourceImageSelection is { } selection
         && ReferenceEquals(selection.Owner, _doc) ? MaterializedSourceImage() : null;
 
+    /// <summary>True while a picture of this document is selected. Unlike <see cref="SelectedSourceImageExt"/> it
+    /// never encodes the picture, so a Delete key probe costs nothing.</summary>
+    internal bool HasSelectedSourceImageExt => _sourceImageSelection is { } selection
+        && ReferenceEquals(selection.Owner, _doc);
+
     internal bool CanDeleteSelectedSourceImageExt => _sourceImageSelection is { } selection
         && ReferenceEquals(selection.Owner, _doc) && _doc is { IsReadOnly: false }
         && selection.Occurrence.CanRemove;

@@ -36,4 +36,19 @@ public sealed class ViewerReviewFixPinTests
             "_placementCacheSource = null;", "_placementCacheOwner = null;" })
             Assert.Contains(field, release);
     }
+
+    // controls:BF-018. The Delete key only asks whether a picture is selected; SelectedSourceImageExt would
+    // base-64 encode it first.
+    [Fact]
+    public void DeleteKeyProbesSelectionWithoutEncodingThePicture()
+    {
+        string shortcuts = Source("Shell", "KeyboardShortcuts.cs");
+        string delete = Between(shortcuts, "key == Key.Delete && (_selectedAnnotation is not null", "DeleteSelected();");
+        Assert.Contains("ActiveViewer.HasSelectedSourceImageExt", delete);
+        Assert.DoesNotContain("SelectedSourceImageExt is not null", delete);
+
+        string images = Viewer("PdfViewer.SourceImages.cs");
+        string has = Between(images, "internal bool HasSelectedSourceImageExt", "internal bool CanDeleteSelectedSourceImageExt");
+        Assert.DoesNotContain("MaterializedSourceImage", has);
+    }
 }
