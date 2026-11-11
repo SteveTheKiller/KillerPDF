@@ -204,4 +204,30 @@ public sealed class ThumbnailWindowTests
 
         Assert.True(SpinWait.SpinUntil(() => failed.Contains(5), TimeSpan.FromSeconds(10)), "The failed draw was not published.");
     }
+
+    // A row that shows a carried-over picture is cleared when its own draw fails, which makes it ask for its picture
+    // again. A page that cannot be drawn is not drawn a second time because of that.
+    [Fact]
+    public void APageThatFailedToDrawIsNotDrawnAgainWhenItsRowAsksAfterTheFailure()
+    {
+        int attempts = 0, asked = 0;
+        ThumbnailWindow<string>? window = null;
+        window = new ThumbnailWindow<string>(100, (page, _) =>
+        {
+            Interlocked.Increment(ref attempts);
+            throw new InvalidOperationException("this page cannot be drawn");
+        }, (page, image) =>
+        {
+            // The row clears its picture and reads Thumbnail again, which asks for the page.
+            if (image is null && Interlocked.Increment(ref asked) == 1) window!.Request(page);
+        }, retain: 8);
+        using (window)
+        {
+            window.Request(5);
+            Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref asked) >= 1, TimeSpan.FromSeconds(10)));
+            Thread.Sleep(300);
+
+            Assert.Equal(1, Volatile.Read(ref attempts));
+        }
+    }
 }

@@ -18,6 +18,9 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
     private readonly Lock _sync = new();
     private readonly List<int> _requests = [];           // newest last
     private readonly HashSet<int> _pending = [];
+    // Pages whose draw failed in this window. A row clears its picture when its draw fails and then asks for it again;
+    // without this the page would be drawn a second time. A new list makes a new window, which tries every page again.
+    private readonly HashSet<int> _failed = [];
     private readonly LinkedList<int> _held = [];          // oldest first
     private readonly Dictionary<int, LinkedListNode<int>> _heldNodes = [];
     private bool _running;
@@ -41,7 +44,7 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
         if ((uint)page >= (uint)_pageCount || _cancel.IsCancellationRequested) return;
         lock (_sync)
         {
-            if (_heldNodes.ContainsKey(page)) return;
+            if (_heldNodes.ContainsKey(page) || _failed.Contains(page)) return;
             if (!_pending.Add(page)) _requests.Remove(page);   // asked again: move it to the front of the queue
             _requests.Add(page);
             // A fast scroll can realize far more rows than are retained, and drawing the oldest of them would only
@@ -76,14 +79,17 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
                 _requests.RemoveAt(_requests.Count - 1);
             }
             TImage? image = null;
+            bool outOfMemory = false;
             try { image = _render(page, token); }
             // An out-of-memory error counts as a failed draw like any other: the pass goes on, and the row is no
             // longer marked as waiting, so asking for it again draws it.
+            catch (OutOfMemoryException) { outOfMemory = true; }
             catch (Exception) { /* the row has no picture of its own */ }
             var released = new List<int>();
             lock (_sync)
             {
                 _pending.Remove(page);
+                if (image is null && !outOfMemory) _failed.Add(page);
                 if (token.IsCancellationRequested) { _running = false; return; }
                 // A failed draw holds nothing, but it is still published (as null) so a row showing a carried-over
                 // picture from the list it replaced drops it.
