@@ -26,16 +26,6 @@ namespace KillerPDF.Controls
         // distance. A release before that is a click: nothing moves, nothing is marked changed (DragStartGate).
         private Point? _annotDragPressScreen;
 
-        private static bool AnnotDragStillAClick(UIElement relativeTo, Point onScreenPress, Point pageNow)
-        {
-            // A canvas torn down while the press is held has no screen to measure on; treat the pointer as travelled.
-            if (PresentationSource.FromVisual(relativeTo) is null) return false;
-            DpiScale dpi = VisualTreeHelper.GetDpi(relativeTo);
-            return !DragStartGate.HasTravelled(onScreenPress, relativeTo.PointToScreen(pageNow),
-                SystemParameters.MinimumHorizontalDragDistance * dpi.DpiScaleX,
-                SystemParameters.MinimumVerticalDragDistance * dpi.DpiScaleY);
-        }
-
         private void CaptureAnnotationDragUndo(int page)
         {
             _annotationDragUndo ??= new UndoEntry(UndoKind.PageSnapshot, WasDirty: _isDirty,
@@ -1777,6 +1767,13 @@ namespace KillerPDF.Controls
             // Resolve the pointer against the surface the gesture started on, not _activeCanvas,
             // which RenderAllAnnotations (and async grid tile streaming) can re-point mid-gesture.
             var gc = _gestureCanvas ?? _activeCanvas;
+            // A gesture canvas that was torn down mid-drag has no screen to measure on, and GetPosition against it
+            // would give a position that is not on the page: end the drag instead of moving from it.
+            if (_isDraggingAnnot && DragStartGate.ShouldAbandonDrag(gc))
+            {
+                FinishStuckGesture();
+                return;
+            }
             var pos = e.GetPosition(gc);
             pos.X = Math.Max(0, Math.Min(gc.ActualWidth, pos.X));
             pos.Y = Math.Max(0, Math.Min(gc.ActualHeight, pos.Y));
@@ -1926,7 +1923,7 @@ namespace KillerPDF.Controls
                 // canvas coordinate while the pointer stands still.
                 if (_annotDragPressScreen is { } pressOnScreen)
                 {
-                    if (AnnotDragStillAClick(gc, pressOnScreen, e.GetPosition(gc))) return;
+                    if (DragStartGate.StillAClick(gc, pressOnScreen, e.GetPosition(gc))) return;
                     _annotDragPressScreen = null;
                 }
                 double dx = pos.X - _dragAnnotStart.X;

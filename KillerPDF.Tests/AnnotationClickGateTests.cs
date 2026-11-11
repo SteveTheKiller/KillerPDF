@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using KillerPDF.Controls;
 using Xunit;
 using static KillerPDF.Tests.ViewerSourcePin;
@@ -35,7 +36,7 @@ public sealed class AnnotationClickGateTests
         Assert.Contains("_annotDragPressScreen = _activeCanvas.PointToScreen(pos);", press.Replace("\r\n", "\n"));
 
         string move = Between(annotations, "if (_isDraggingAnnot && _dragAnnot is not null)", "double dx = pos.X - _dragAnnotStart.X;");
-        Assert.Contains("if (AnnotDragStillAClick(gc, pressOnScreen, e.GetPosition(gc))) return;", move);
+        Assert.Contains("if (DragStartGate.StillAClick(gc, pressOnScreen, e.GetPosition(gc))) return;", move);
 
         string release = Between(annotations, "// Finish annotation drag-to-move", "var da = _dragAnnot;");
         Assert.Contains("if (_annotDragPressScreen is not null)", release);
@@ -44,20 +45,57 @@ public sealed class AnnotationClickGateTests
         Assert.True(release.IndexOf("return;", click, StringComparison.Ordinal) > click);
     }
 
-    // SOURCE PIN. The viewer is not compiled into this project, so the helper cannot be called here with a canvas that
-    // was never shown; PointToScreen throws on a visual with no presentation source, so both callers check first.
+    // A canvas torn down while the press is held has no screen to measure on. The helper must not throw, and must
+    // not report a drag: the press is still a click, and the move handler ends the gesture instead of moving.
+    [Fact]
+    public void APressOnACanvasWithNoPresentationSourceIsStillAClick() =>
+        OnSta(() => Assert.True(DragStartGate.StillAClick(new Canvas(), new Point(540, 537), new Point(900, 900))));
+
+    [Fact]
+    public void AGestureOnACanvasWithNoPresentationSourceIsAbandoned() =>
+        OnSta(() =>
+        {
+            Assert.True(DragStartGate.ShouldAbandonDrag(new Canvas()));
+            Assert.True(DragStartGate.ShouldAbandonDrag(null));
+        });
+
+    private static void OnSta(Action body)
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try { body(); }
+            catch (Exception error) { failure = error; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (failure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+    }
+
+    // SOURCE PIN (unverified in a window: the viewer is not compiled into this project). PointToScreen and
+    // GetPosition throw on a visual with no presentation source, so the move handler ends a drag on a detached
+    // gesture canvas before its first GetPosition, and UpdateMarquee checks both canvases before any screen point.
     [Fact]
     public void ScreenPointsAreNotTakenFromACanvasThatHasNoPresentationSource()
     {
         string annotations = Viewer("PdfViewer.Annotations.cs").Replace("\r\n", "\n");
-        string gate = Between(annotations, "private static bool AnnotDragStillAClick(", "private void CaptureAnnotationDragUndo(");
-        int guard = gate.IndexOf("PresentationSource.FromVisual(relativeTo) is null", StringComparison.Ordinal);
-        Assert.True(guard >= 0, "AnnotDragStillAClick does not check for a presentation source.");
-        Assert.True(guard < gate.IndexOf("PointToScreen", StringComparison.Ordinal));
 
-        string marquee = Between(annotations, "internal void UpdateMarquee(", "PlaceMarquee(_selectRect, MarqueeLayer, a, b);");
-        int marqueeGuard = marquee.IndexOf("PresentationSource.FromVisual(gc) is null", StringComparison.Ordinal);
-        Assert.True(marqueeGuard >= 0, "UpdateMarquee does not check for a presentation source.");
-        Assert.True(marqueeGuard < marquee.IndexOf("PointToScreen", StringComparison.Ordinal));
+        string move = Between(annotations, "if (e.LeftButton != MouseButtonState.Pressed && (_isDraggingAnnot || _isResizingSig))",
+            "var pos = e.GetPosition(gc);");
+        int abandon = move.IndexOf("if (_isDraggingAnnot && DragStartGate.ShouldAbandonDrag(gc))", StringComparison.Ordinal);
+        Assert.True(abandon >= 0, "The move handler does not end a drag on a canvas with no presentation source.");
+        string abandoned = move[abandon..];
+        Assert.True(abandoned.IndexOf("FinishStuckGesture();", StringComparison.Ordinal) > 0);
+        Assert.True(abandoned.IndexOf("return;", StringComparison.Ordinal) > abandoned.IndexOf("FinishStuckGesture();", StringComparison.Ordinal));
+        Assert.DoesNotContain("e.GetPosition(", move);
+
+        Assert.DoesNotContain("AnnotDragStillAClick", annotations);
+        Assert.Contains("if (DragStartGate.StillAClick(gc, pressOnScreen, e.GetPosition(gc))) return;", annotations);
+
+        string marquee = Between(annotations, "internal void UpdateMarquee(", "foreach (var canvas in _nativeMarqueePages)");
+        int gcGuard = marquee.IndexOf("PresentationSource.FromVisual(gc) is null", StringComparison.Ordinal);
+        Assert.True(gcGuard >= 0, "UpdateMarquee does not check for a presentation source.");
+        Assert.True(gcGuard < marquee.IndexOf("PointToScreen", StringComparison.Ordinal));
     }
 }
