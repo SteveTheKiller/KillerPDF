@@ -64,6 +64,27 @@ public sealed class UpdateServiceTests
         Assert.Empty(Directory.GetFiles(run.Root, "KillerPDF-Portable.exe.new-*"));
     }
 
+    [Fact]
+    public void ChangedDownloadStillReopensTheInstalledCopy()
+    {
+        // The download fails its recheck before anything is published. The installed copy's identity
+        // must already be known, so the helper can reopen it instead of leaving the app closed.
+        using var run = new HelperRun([.. StandIn, 0], "$ops.VerifiedTargetThumb = { param($path, $signer) '" + new string('0', 40) + "' }");
+        Assert.True(run.Exit != 0, run.ToString());
+        Assert.Equal(HelperRun.Original, File.ReadAllBytes(run.Target));
+        Assert.True(run.Relaunched, run.ToString());
+        Assert.True(File.Exists(run.Download + ".recovery.txt"), run.ToString());
+    }
+
+    [Fact]
+    public void FailedIdentityCaptureIsWrittenIntoTheRecoveryReport()
+    {
+        using var run = new HelperRun([.. StandIn, 0], "$ops.VerifiedTargetThumb = { param($path, $signer) throw 'fixture identity failure' }");
+        Assert.True(run.Exit != 0, run.ToString());
+        Assert.False(run.Relaunched, run.ToString());
+        Assert.Contains("identity of the installed copy could not be captured", File.ReadAllText(run.Download + ".recovery.txt"));
+    }
+
     private sealed class HelperRun : IDisposable
     {
         internal static readonly byte[] Original = Encoding.UTF8.GetBytes("original inert launcher image");
@@ -74,14 +95,15 @@ public sealed class UpdateServiceTests
         internal int Exit { get; }
         internal bool Relaunched => File.Exists(Path.Combine(Root, "relaunched.txt"));
 
-        internal HelperRun(byte[] download)
+        internal HelperRun(byte[] download, string? extraOverrides = null)
         {
             Directory.CreateDirectory(Root);
             File.WriteAllBytes(Target, Original);
             File.WriteAllBytes(Download, download);
             UpdateImagePublication.RememberVerified(Download, Convert.ToHexString(SHA256.HashData(StandIn)), new string('0', 40));
             string overrides = "$ops.Publisher = { param($path, $plan) $true }\n" +
-                "$ops.Relaunch = { param($plan) [IO.File]::WriteAllText('" + Path.Combine(Root, "relaunched.txt") + "', 'yes') }";
+                "$ops.Relaunch = { param($plan) [IO.File]::WriteAllText('" + Path.Combine(Root, "relaunched.txt") + "', 'yes') }" +
+                (extraOverrides is null ? "" : "\n" + extraOverrides);
             string script = UpdateImagePublication.Script(Download, Target, false,
                 "https://example.invalid/releases", "KillerPDF", overrides: overrides);
             var start = new ProcessStartInfo(

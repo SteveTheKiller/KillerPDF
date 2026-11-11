@@ -136,7 +136,16 @@ function Invoke-UpdateImagePublication {
     $parents = $null
     $image = $null
     $warning = $null
+    $captureNote = ''
     try {
+        # The installed copy's identity is captured first, so whatever happens to the download
+        # (quarantined, removed, changed) the helper can still reopen the copy that is installed.
+        if ($ops.ContainsKey('CaptureOriginal')) {
+            & $ops.CaptureOriginal $plan
+            if ((& $ops.Exists $plan.Target) -and -not ($plan.OriginalHash.Length -eq 64 -and $plan.OriginalThumb.Length -eq 40)) {
+                $captureNote = 'The identity of the installed copy could not be captured, so it will not be reopened automatically.'
+            }
+        }
         # The download and the staged copy are each held open against writers, renames and
         # deletion while their hash and publisher signature are checked (Killendar's helper checks).
         $hold = & $ops.OpenImage $plan.Download
@@ -146,7 +155,6 @@ function Invoke-UpdateImagePublication {
             if (-not (& $ops.Publisher $plan.Download $plan)) { throw 'The downloaded update is not signed by the publisher.' }
         }
         finally { $hold.Dispose() }
-        if ($ops.ContainsKey('CaptureOriginal')) { & $ops.CaptureOriginal $plan }
         $parents = & $ops.PinParents $plan.Target
         & $ops.Stage $plan.Staged $bytes
         $hold = & $ops.OpenImage $plan.Staged
@@ -194,6 +202,7 @@ function Invoke-UpdateImagePublication {
             }
         }
         catch { $restoration += [Environment]::NewLine + 'Restoration failed: ' + $_.Exception.ToString() }
+        if ($captureNote.Length -gt 0) { $restoration += [Environment]::NewLine + $captureNote }
         $message = 'Update publication failed: ' + $failure + $restoration + [Environment]::NewLine +
             'Target: ' + $plan.Target + [Environment]::NewLine + 'Download: ' + $plan.Download +
             [Environment]::NewLine + 'Staging path (verified: ' + $stageVerified + '): ' + $plan.Staged +
