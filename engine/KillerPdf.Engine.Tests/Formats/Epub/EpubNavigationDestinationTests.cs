@@ -49,8 +49,11 @@ public sealed class EpubNavigationDestinationTests
         // Distinct ids: a repeated id is reported and dropped, so only distinct ones count toward the bound.
         string body = "<p>" + string.Concat(Enumerable.Range(0, 50_001).Select(index => $"<span id='a{index}'/>")) + "</p>";
         var book = EpubDocument.Open(Book(firstBody: body, spine: "<itemref idref='first'/><itemref idref='first'/>"));
-        var exception = Assert.Throws<InvalidDataException>(() => book.CreateLayout(Options()));
-        Assert.Contains("anchor", exception.Message, StringComparison.OrdinalIgnoreCase);
+        // The book keeps 100,000 destinations: the second reading of the chapter loses two and says so, nothing is refused.
+        var layout = book.CreateLayout(Options());
+        Assert.Empty(layout.ChapterDiagnostics);
+        var diagnostic = Assert.Single(layout.ContentDiagnostics);
+        Assert.Equal((1, EpubOmissionReason.LimitExceeded), (diagnostic.SpineIndex, diagnostic.Reason));
     }
 
     [Theory]

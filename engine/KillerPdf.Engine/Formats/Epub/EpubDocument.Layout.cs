@@ -516,6 +516,7 @@ public sealed partial class EpubDocument
         var anchorsByCell = new Dictionary<EpubNativeContent.Element, List<(string Id, int Offset)>>();
         var anchorIds = new HashSet<string>(StringComparer.Ordinal);
         var repeatedIds = new HashSet<string>(StringComparer.Ordinal);
+        bool reportedAnchorLimit = false;
         foreach (var anchor in content.Anchors)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -529,8 +530,18 @@ public sealed partial class EpubDocument
                     { Reason = EpubOmissionReason.InvalidContent });
                 continue;
             }
+            // Past the book's destination limit the chapter is still drawn; links to its remaining ids go to the chapter.
             if (anchors.Count >= 100_000)
-                throw new InvalidDataException("Native EPUB anchors exceed their 100,000 destination limit.");
+            {
+                if (!reportedAnchorLimit)
+                {
+                    reportedAnchorLimit = true;
+                    contentDiagnostics.Add(new(spineIndex, resource.Href,
+                        "The book has more than 100,000 link destinations, so links to some ids in this chapter go to the chapter instead.")
+                    { Reason = EpubOmissionReason.LimitExceeded });
+                }
+                continue;
+            }
             int offset = Math.Min(anchor.Offset, text.Length);
             anchors.Add((spineIndex, anchor.Id, offset));
             var cell = anchor.Owner.Name == "td" ? anchor.Owner : anchor.Owner.TableCellOwner;
