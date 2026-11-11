@@ -716,9 +716,11 @@ namespace KillerPDF.Shell
                 - inset.Left - inset.Right;
             double content = given > 0 ? Math.Min(ContentPane.ActualWidth, given) : ContentPane.ActualWidth;
             double chrome = Math.Max(0, ActualWidth - content);
-            double floor = _isSplit
-                ? chrome + SplitGutter + MinPaneWidth * 2
-                : chrome + MinPaneWidth;
+            // Screen pixels throughout: the document pane is not an app scale host (AppScale.Extras.cs),
+            // so its width and the pane minimums take no scale. One pane gets its own, larger minimum so
+            // the preview grid inside it keeps room for the find bar; split view keeps MinPaneWidth.
+            double floor = WindowFloor.Compute(chrome,
+                _isSplit ? MinPaneWidth : WindowFloor.SinglePaneMinimum, 1.0, _isSplit, SplitGutter);
             // Only when it actually moves. An unconditional assignment can resize the window, and
             // anything that re-enters this from a layout event then has a loop to run round.
             // Never above the monitor the window is on, or the floor itself pushes the window
