@@ -246,6 +246,19 @@ internal sealed class PdfNativeCompactRaster
     internal bool ColumnsReversed => Rotation is 90 or 180;
     internal bool RowsReversed => Rotation is 180 or 270;
 
+    /// <summary>
+    /// How far the displayed columns' and rows' reduced cells run past the page before its first stored pixel: IW44 decodes
+    /// anchored at the bottom left, so the partial cell is the first one down the stored rows, which are the displayed
+    /// rows for a natural or half turn and the displayed columns for a quarter turn. The stored columns have none.
+    /// </summary>
+    internal (int Columns, int Rows) CellOffsets()
+    {
+        if (Reduction == 1) return (0, 0);
+        bool quarter = Rotation is 90 or 270;
+        int rows = StoredHeight * Reduction - (quarter ? PageWidth : PageHeight);
+        return quarter ? (rows, 0) : (0, rows);
+    }
+
     /// <summary>The bytes the raster holds.</summary>
     internal static long StorageBytes(PdfNativeSampleLayout layout, int storedWidth, int storedHeight) => layout switch
     {
@@ -410,10 +423,11 @@ internal static class PdfNativeFrameResampler
     internal static float[] ResizePixels(PdfNativeCompactRaster source, int width, int height,
         int left, int top, int regionWidth, int regionHeight, CancellationToken token)
     {
+        var (offsetX, offsetY) = source.CellOffsets();
         var xs = source.Reduction == 1 ? MakeTaps(source.Width, width, left, regionWidth, token)
-            : MakeCellTaps(source.Width, source.PageWidth, source.Reduction, source.ColumnsReversed, width, left, regionWidth, token);
+            : MakeCellTaps(source.Width, source.PageWidth, source.Reduction, source.ColumnsReversed, offsetX, width, left, regionWidth, token);
         var ys = source.Reduction == 1 ? MakeTaps(source.Height, height, top, regionHeight, token)
-            : MakeCellTaps(source.Height, source.PageHeight, source.Reduction, source.RowsReversed, height, top, regionHeight, token);
+            : MakeCellTaps(source.Height, source.PageHeight, source.Reduction, source.RowsReversed, offsetY, height, top, regionHeight, token);
         var (columnOffsets, rowOffsets) = source.Offsets(Indexes(xs), Indexes(ys));
         int[][] columns = Positions(xs, columnOffsets), rows = Positions(ys, rowOffsets);
         bool rgb = source.Layout == PdfNativeSampleLayout.Rgb;
@@ -485,22 +499,23 @@ internal static class PdfNativeFrameResampler
     }
 
     // Taps over a reduced raster's samples, by the page pixels each covers: output i spans page [i P / t, (i + 1) P / t)
-    // and reads every sample cell it overlaps, weighted by the overlap. Cell k spans stored page pixels [k r,
-    // min((k + 1) r, P)), so the last cell is partial; on a reversed axis displayed cell j is stored cell n - 1 - j,
+    // and reads every sample cell it overlaps, weighted by the overlap. Cell k spans stored page pixels [k r - o,
+    // min((k + 1) r - o, P)), where o is the axis's offset (CellOffsets): the partial cell is the last one across and the
+    // first one down, because IW44 decodes anchored at the bottom left; on a reversed axis displayed cell j is stored cell n - 1 - j,
     // measured from the far edge. Only reduction is supported: the decode is chosen with at least as many samples as
     // the output.
-    private static Tap[][] MakeCellTaps(int cells, int page, int reduction, bool reversed, int target, int first,
+    private static Tap[][] MakeCellTaps(int cells, int page, int reduction, bool reversed, int offset, int target, int first,
         int count, CancellationToken token)
     {
         var result = new Tap[count][];
         for (int n = 0; n < count; n++)
         {
             token.ThrowIfCancellationRequested();
-            var (start, end, low, high) = CellSpan(cells, page, reduction, reversed, target, first + n);
+            var (start, end, low, high) = CellSpan(cells, page, reduction, reversed, offset, target, first + n);
             var taps = new Tap[high - low];
             for (int k = low; k < high; k++)
             {
-                double cellStart = (double)k * reduction, cellEnd = Math.Min((double)(k + 1) * reduction, page);
+                double cellStart = Math.Max((double)k * reduction - offset, 0), cellEnd = Math.Min((double)(k + 1) * reduction - offset, page);
                 taps[k - low] = new(reversed ? cells - 1 - k : k,
                     (Math.Min(end, cellEnd) - Math.Max(start, cellStart)) / (end - start));
             }
@@ -511,12 +526,12 @@ internal static class PdfNativeFrameResampler
 
     // Output i's span in stored page pixels and the stored cells [low, high) it overlaps.
     private static (double Start, double End, int Low, int High) CellSpan(int cells, int page, int reduction,
-        bool reversed, int target, int i)
+        bool reversed, int offset, int target, int i)
     {
         double start = (double)i * page / target, end = (double)(i + 1) * page / target;
         if (reversed) (start, end) = (page - end, page - start);
-        int low = Math.Clamp((int)Math.Floor(start / reduction), 0, cells - 1);
-        int high = Math.Clamp((int)Math.Ceiling(end / reduction), low + 1, cells);
+        int low = Math.Clamp((int)Math.Floor((start + offset) / reduction), 0, cells - 1);
+        int high = Math.Clamp((int)Math.Ceiling((end + offset) / reduction), low + 1, cells);
         return (start, end, low, high);
     }
 
@@ -529,18 +544,21 @@ internal static class PdfNativeFrameResampler
     {
         bool columnsReversed = rotation is 90 or 180, rowsReversed = rotation is 180 or 270;
         int cellsX = (width + reduction - 1) / reduction, cellsY = (height + reduction - 1) / reduction;
-        long Taps(int cells, int page, bool reversed, int target, int first, int count)
+        // The stored rows are the displayed rows for a natural or half turn, else the displayed columns.
+        bool rowsAcross = rotation is 90 or 270;
+        int offsetX = rowsAcross ? cellsX * reduction - width : 0, offsetY = rowsAcross ? 0 : cellsY * reduction - height;
+        long Taps(int cells, int page, bool reversed, int offset, int target, int first, int count)
         {
             long taps = 0;
             for (int i = first; i < first + count; i++)
             {
-                var (_, _, low, high) = CellSpan(cells, page, reduction, reversed, target, i);
+                var (_, _, low, high) = CellSpan(cells, page, reduction, reversed, offset, target, i);
                 taps += high - low;
             }
             return taps;
         }
-        if (checked(Taps(cellsX, width, columnsReversed, targetWidth, left, regionWidth)
-                * Taps(cellsY, height, rowsReversed, targetHeight, top, regionHeight)) > 64_000_000)
+        if (checked(Taps(cellsX, width, columnsReversed, offsetX, targetWidth, left, regionWidth)
+                * Taps(cellsY, height, rowsReversed, offsetY, targetHeight, top, regionHeight)) > 64_000_000)
             throw new InvalidDataException("Native resampling exceeds the weighted work limit.");
     }
 
