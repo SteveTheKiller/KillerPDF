@@ -271,6 +271,7 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_OpenedRasterRepair">Opened a rasterized repair of {0}; save to keep changes ({1} page(s))</sys:String>
     <sys:String x:Key="Str_PageOf">Page {0} of {1}</sys:String>
     <sys:String x:Key="Str_PagesOf">Pages {0}-{1} of {2}</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">Pages {0} and {1} of {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Page {0} of {1}  ({2} link(s))</sys:String>
     <sys:String x:Key="Str_PageFormFields">Page {0} of {1} contains fillable form fields</sys:String>
     <sys:String x:Key="Str_PageRenderError">Page {0} could not be rendered</sys:String>

@@ -45,6 +45,17 @@ public sealed class PageWindowLayoutTests
         Assert.Equal((700.0, 900.0), PageWindowLayout.PrintedImageBox(700, 900, 768, 1008));
     }
 
+    // ui BF-005: the two-up label reads "Pages 1-5" for pages 1 and 5, which says there are five.
+    [Theory]
+    [InlineData(3, 4, "Str_PagesOf")]
+    [InlineData(1, 5, "Str_Print_PagesAndOf")]
+    [InlineData(4, 3, "Str_Print_PagesAndOf")]
+    [InlineData(7, 7, "Str_Print_PagesAndOf")]
+    public void TheTwoPageLabelSaysARangeOnlyForPagesInARow(int first, int second, string key)
+    {
+        Assert.Equal(key, PageWindowLayout.PrintPagePairLabelKey(first, second));
+    }
+
     // Print fixed this for gradient themes; Transform and Stamp still cast every lookup.
     [Fact]
     public void AGradientThemeBrushIsUsedAsItIsInsteadOfThrowing()

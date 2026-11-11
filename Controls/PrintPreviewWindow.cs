@@ -1402,7 +1402,8 @@ namespace KillerPDF
                     : string.Format(S("Str_Print_SheetsOf"), first + 1, second + 1, sheets))
                 : (second < 0
                     ? string.Format(S("Str_PageOf"), PageOn(shown[0]), _pages.Length)
-                    : string.Format(S("Str_PagesOf"), PageOn(shown[0]), PageOn(shown[1]), _pages.Length));
+                    : string.Format(S(PageWindowLayout.PrintPagePairLabelKey(PageOn(shown[0]), PageOn(shown[1]))),
+                        PageOn(shown[0]), PageOn(shown[1]), _pages.Length));
             UpdateRenderLabel();
             _shownSheets.Clear();
 

@@ -45,6 +45,12 @@ namespace KillerPDF.Controls
             return (width, height);
         }
 
+        /// <summary>The string key for the Print window's label over two shown pages. "Pages 3-4" is
+        /// right only for two pages in a row; any other pair (a typed range, odd pages, reversed)
+        /// is named as two pages.</summary>
+        public static string PrintPagePairLabelKey(int firstPage, int secondPage)
+            => secondPage == firstPage + 1 ? "Str_PagesOf" : "Str_Print_PagesAndOf";
+
         /// <summary>The fixed width of the options content: two columns and the gap, or one column.</summary>
         public static double ContentWidth(int columns)
             => columns >= 2 ? 2 * ColumnWidth + ColumnGap : NarrowColumnWidth;
