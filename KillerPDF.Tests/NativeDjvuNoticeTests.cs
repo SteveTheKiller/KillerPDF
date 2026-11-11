@@ -96,6 +96,34 @@ public sealed class NativeDjvuNoticeTests
         Assert.Contains("unreadable characters (Page 1 text is not valid UTF-8.", report);
     }
 
+    // The engine raises one notice per unknown chunk name. The dialog's line is the same sentence for each, so the
+    // row shows it once; the copied report keeps one line per chunk with the name.
+    [Fact]
+    public void SeveralUnknownChunksShowTheirReasonOnceAndTheReportNamesEachChunk()
+    {
+        byte[] source = PageWithUnreadableText();
+        byte[] extra = [.. DjvuChunk("Zqa1", [1, 2]), .. DjvuChunk("Zqb2", [1, 2]), .. DjvuChunk("Zqc3", [1, 2])];
+        byte[] grown = [.. source, .. extra];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(grown.AsSpan(8),
+            System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(grown.AsSpan(8)) + extra.Length);
+        using var owner = NativeWorkingDocument.OpenDjvu(grown);
+        var wording = new Dictionary<string, string>(Wording) { ["Str_Djvu_Reason_UnrecognizedChunkSkipped"] = "unknown part skipped" };
+
+        var rows = NativeDocumentDiagnostics.Build(owner, key => wording[key]);
+
+        var document = Assert.Single(rows, row => row.Heading == "Whole document");
+        Assert.Equal(["unknown part skipped"], document.Lines);
+        string report = NativeDocumentDiagnostics.Report(rows);
+        foreach (string name in new[] { "Zqa1", "Zqb2", "Zqc3" }) Assert.Contains($"'{name}'", report);
+    }
+
+    private static byte[] DjvuChunk(string id, byte[] payload)
+    {
+        byte[] length = new byte[4];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(length, payload.Length);
+        return [.. System.Text.Encoding.ASCII.GetBytes(id), .. length, .. payload, .. (payload.Length % 2 == 1 ? new byte[1] : [])];
+    }
+
     [Fact]
     public void TheBarAndDialogUseDocumentWordingForDjvuAndBookWordingForEpub()
     {

@@ -43,13 +43,14 @@ internal static class NativeDocumentDiagnostics
             : new("Str_Epub_Diagnostics_Notice", "Str_Epub_Diagnostics_Title", "Str_Epub_Diagnostics_Intro",
                 "Str_Epub_Diagnostics_None");
 
-    // The whole document's row first, then one per page in page order, each line a localized reason; the copied
+    // The whole document's row first, then one per page in page order, each line a localized reason shown once however
+    // many notices share it (one per unknown chunk name); the copied
     // report adds the engine's English message.
     private static IReadOnlyList<NativeDiagnosticRow> BuildDjvu(NativeWorkingDocument document, Func<string, string> loc)
         => document.DjvuNotices.GroupBy(notice => notice.PageIndex).Select(group => new NativeDiagnosticRow(
                 group.Key is int page ? string.Format(loc("Str_Djvu_Diagnostics_Page"), page + 1)
                     : loc("Str_Djvu_Diagnostics_Document"),
-                group.Select(notice => loc(DjvuReasonKey(notice.Code))).ToArray())
+                group.Select(notice => loc(DjvuReasonKey(notice.Code))).Distinct().ToArray())
             {
                 ReportLines = group.Select(notice => loc(DjvuReasonKey(notice.Code)) + " (" + notice.Message + ")").ToArray()
             }).ToArray();
