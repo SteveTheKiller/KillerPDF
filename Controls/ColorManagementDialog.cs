@@ -136,6 +136,14 @@ internal sealed class ColorManagementDialog : Window
         var savePreset = UiKit.Make(L("Str_CM_SavePreset"), accent: false);
         AutomationProperties.SetAutomationId(loadPreset, "ProofLoadPreset");
         AutomationProperties.SetAutomationId(savePreset, "ProofSavePreset");
+        // Enter in the name box saves the preset. Left alone it would press the default Apply button,
+        // close the dialog and drop the typed name.
+        presetName.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key != System.Windows.Input.Key.Enter) return;
+            e.Handled = true;
+            if (savePreset.IsEnabled) savePreset.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        };
         var presetStatus = Label("Str_CM_PresetLibraryUnavailable", 4);
         presetStatus.Visibility = presetsReadable ? Visibility.Collapsed : Visibility.Visible;
         AutomationProperties.SetAutomationId(presetStatus, "ProofPresetStatus");

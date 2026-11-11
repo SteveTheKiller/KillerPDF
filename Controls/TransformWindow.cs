@@ -468,6 +468,9 @@ namespace KillerPDF
             _lineCanvas.MouseLeftButtonDown += LineCanvas_Down;
             _lineCanvas.MouseMove += LineCanvas_Move;
             _lineCanvas.MouseLeftButtonUp += LineCanvas_Up;
+            // A capture lost to an alt-tab or a dialog never reaches the button-up handler, which
+            // would leave the line following the pointer with no button held.
+            _lineCanvas.LostMouseCapture += (_, _) => { _drawingLine = false; _alignLine.Visibility = Visibility.Collapsed; };
             previewGrid.Children.Add(_lineCanvas);
 
             _perspectiveCanvas = new Canvas
@@ -558,7 +561,7 @@ namespace KillerPDF
                 navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 navigation.ColumnDefinitions.Add(new ColumnDefinition());
                 navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                _previousPage = NavArrow("‹");
+                _previousPage = NavArrow("‹", S("Str_Kb_PrevPage"));
                 _previousPage.ToolTip = S("Str_Kb_PrevPage");
                 _previousPage.Click += (_, _2) => ShowPreviewPage(_previewPageIndex - 1);
                 Grid.SetColumn(_previousPage, 0);
@@ -573,7 +576,7 @@ namespace KillerPDF
                 };
                 Grid.SetColumn(_pageCounter, 1);
                 navigation.Children.Add(_pageCounter);
-                _nextPage = NavArrow("›");
+                _nextPage = NavArrow("›", S("Str_Kb_NextPage"));
                 _nextPage.ToolTip = S("Str_Kb_NextPage");
                 _nextPage.Click += (_, _2) => ShowPreviewPage(_previewPageIndex + 1);
                 Grid.SetColumn(_nextPage, 2);
@@ -1040,13 +1043,15 @@ namespace KillerPDF
             return button;
         }
 
-        private static Button NavArrow(string glyph)
+        private static Button NavArrow(string glyph, string name)
         {
             var button = UiKit.Make(glyph, false);
             button.Width = 32;
             button.Height = PageWindowLayout.ControlHeight;
             button.Padding = new Thickness(0);
             button.FontSize = 16;
+            // The glyph is an angle quotation mark, so name the button for a screen reader.
+            System.Windows.Automation.AutomationProperties.SetName(button, name);
             return button;
         }
 

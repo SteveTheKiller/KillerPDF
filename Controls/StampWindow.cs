@@ -204,7 +204,7 @@ namespace KillerPDF
                     _pageHpt > 0 && _pageWpt > 0 ? new Size(_pageWpt, _pageHpt) : new Size(_pageSrc.PixelWidth, _pageSrc.PixelHeight)));
 
             // Esc-to-close is wired by DialogFrame.Frame; Enter commits.
-            KeyDown += (_, e) => { if (e.Key == Key.Enter) CommitAndClose(); };
+            KeyDown += (_, e) => { if (e.Key == Key.Enter && _applyBtn?.IsEnabled == true) { CommitAndClose(); e.Handled = true; } };
         }
 
         private static void AddGrain(Grid host, Window owner, double fallback, double cornerRadius)
@@ -238,7 +238,7 @@ namespace KillerPDF
             _numStart = MakeField(_spec.StartNumber.ToString());
             _numStart.TextChanged += (_, _2) => Schedule();
 
-            var numSize = SliderBoxRow(S("Str_Stamp_FontSize"), 6, 96, _spec.NumFontPt, out _, out _numSize);
+            var numSize = SliderBoxRow(S("Str_Stamp_FontSize"), StampInput.NumFontMin, StampInput.NumFontMax, _spec.NumFontPt, out _, out _numSize);
             var numColor = ColorRow(S("Str_Stamp_Color"), _numColor, out _numSwatch, c => { _numColor = c; Schedule(); }, "StampPageNumberColor");
 
             _numPos = MakePosCombo(_spec.NumPosH, _spec.NumPosV);
@@ -294,11 +294,13 @@ namespace KillerPDF
             if (_darkCombo != null) _wmFont.Style = _darkCombo; else { _wmFont.Background = R("BgCanvas"); _wmFont.Foreground = R("TextBrush"); }
             System.Windows.Automation.AutomationProperties.SetName(_wmFont, S("Str_Bar_Font"));
             foreach (var fn in MainWindow.SystemFontNames) _wmFont.Items.Add(fn);
+            // A saved font this computer does not have stays in the list, so Apply keeps it.
+            if (!string.IsNullOrEmpty(_spec.WmFont) && !_wmFont.Items.Contains(_spec.WmFont)) _wmFont.Items.Insert(0, _spec.WmFont);
             _wmFont.SelectedItem = _spec.WmFont;
             _wmFont.SelectionChanged += (_, _2) => Schedule();
             var textCell = Span(PageWindowLayout.Labeled(S("Str_Stamp_WmTextLabel"), _wmText));
             var fontCell = PageWindowLayout.Labeled(S("Str_Bar_Font"), _wmFont);
-            var sizeCell = SliderBoxRow(S("Str_Stamp_FontSize"), 12, 200, _spec.WmFontPt, out _, out _wmSize);
+            var sizeCell = SliderBoxRow(S("Str_Stamp_FontSize"), StampInput.WmFontMin, StampInput.WmFontMax, _spec.WmFontPt, out _, out _wmSize);
             var colorCell = ColorRow(S("Str_Stamp_Color"), _wmColor, out _wmSwatch, c => { _wmColor = c; Schedule(); }, "StampWatermarkColor");
 
             // Image mode, in the same slots: the chosen file across both columns, then its scale.
@@ -404,7 +406,7 @@ namespace KillerPDF
             System.Windows.Automation.AutomationProperties.SetName(b, label);
             bool guard = false;
             s.ValueChanged += (_, _2) => { if (guard) return; guard = true; b.Text = ((int)Math.Round(s.Value)).ToString(); guard = false; Schedule(); };
-            b.TextChanged += (_, _2) => { if (guard) return; if (double.TryParse(b.Text, out double d)) { guard = true; s.Value = Math.Max(min, Math.Min(max, d)); guard = false; Schedule(); } };
+            b.TextChanged += (_, _2) => { if (guard) return; if (StampInput.TryParseNumber(b.Text, CultureInfo.CurrentCulture, out double d)) { guard = true; s.Value = Math.Max(min, Math.Min(max, d)); guard = false; Schedule(); } };
             Grid.SetColumn(s, 0); Grid.SetColumn(b, 1);
             grid.Children.Add(s); grid.Children.Add(b);
             slider = s; box = b;
@@ -527,8 +529,8 @@ namespace KillerPDF
         // The nav row under the frame (spec 2.2): 36 high, 32 x 26 arrows at the frame's edges.
         private Grid BuildPageNav()
         {
-            _prevArrow = MakeNavArrow("", () => GoToPage(_pageIndex - 1));   // ChevronLeft
-            _nextArrow = MakeNavArrow("", () => GoToPage(_pageIndex + 1));   // ChevronRight
+            _prevArrow = MakeNavArrow("", S("Str_Kb_PrevPage"), () => GoToPage(_pageIndex - 1));   // ChevronLeft
+            _nextArrow = MakeNavArrow("", S("Str_Kb_NextPage"), () => GoToPage(_pageIndex + 1));   // ChevronRight
             _prevArrow.ToolTip = S("Str_Kb_PrevPage");
             _nextArrow.ToolTip = S("Str_Kb_NextPage");
             _pageNavLabel = new TextBlock
@@ -551,7 +553,7 @@ namespace KillerPDF
         }
 
         // Same chrome as the print preview stepper (UiKit.Make), so the two windows share one button style.
-        private static Button MakeNavArrow(string glyph, Action onClick)
+        private static Button MakeNavArrow(string glyph, string name, Action onClick)
         {
             var b = UiKit.Make(glyph, false);
             b.FontFamily = UiKit.IconFont;
@@ -559,6 +561,8 @@ namespace KillerPDF
             b.Width = 32;
             b.Height = PageWindowLayout.ControlHeight;
             b.Padding = new Thickness(0);
+            // The glyph is a private-use icon character, so name the button for a screen reader.
+            System.Windows.Automation.AutomationProperties.SetName(b, name);
             b.Click += (_, _2) => onClick();
             return b;
         }
@@ -684,7 +688,7 @@ namespace KillerPDF
                 }
                 else if (_wmImageRadio.IsChecked != true && _wmText.Text.Length > 0)
                 {
-                    double fpx = ReadDouble(_wmSize, 64) * pxPerPt;
+                    double fpx = ReadDouble(_wmSize, 64, StampInput.WmFontMin, StampInput.WmFontMax) * pxPerPt;
                     var tb = new TextBlock { Text = _wmText.Text, FontFamily = new FontFamily(_wmFont.SelectedItem as string ?? "Segoe UI"), FontWeight = FontWeights.Bold, FontSize = Math.Max(6, fpx), Foreground = new SolidColorBrush(_wmColor), Opacity = _wmOpacity.Value / 100.0 };
                     var sz = Measure(tb);
                     PlaceRotated(tb, sz.Width, sz.Height, _wmPos.SelectedIndex, pw, ph, mx, my, _wmAngle.Value);
@@ -694,7 +698,7 @@ namespace KillerPDF
             // Page number for the current page.
             if (_numEnable.IsChecked == true && ParseRange(_numRange.Text, _pageCount).Contains(_pageIndex))
             {
-                double fpx = ReadDouble(_numSize, 12) * pxPerPt;
+                double fpx = ReadDouble(_numSize, 12, StampInput.NumFontMin, StampInput.NumFontMax) * pxPerPt;
                 string text = (_numFormat.Text.Length == 0 ? "{n}" : _numFormat.Text)
                     .Replace("{n}", (ReadInt(_numStart, 1) + _pageIndex).ToString())
                     .Replace("{N}", _pageCount.ToString());
@@ -783,10 +787,19 @@ namespace KillerPDF
             return el.DesiredSize;
         }
 
-        private static double ReadDouble(TextBox tb, double fallback)
-            => double.TryParse(tb.Text?.Trim(), NumberStyles.Any, CultureInfo.CurrentCulture, out double d) && d > 0 ? d : fallback;
+        // A typed size is read in the current culture and held to the slider's range, so a
+        // typed 5000 cannot reach the spec while the slider shows its maximum.
+        private static double ReadDouble(TextBox tb, double fallback, double min, double max)
+            => StampInput.ReadSize(tb.Text, CultureInfo.CurrentCulture, fallback, min, max);
         private static int ReadInt(TextBox tb, int fallback)
             => int.TryParse(tb.Text?.Trim(), out int i) ? i : fallback;
+
+        private static int PositionIndex(int h, int v)
+        {
+            for (int i = 0; i < Positions.Length; i++)
+                if (Positions[i].h == h && Positions[i].v == v) return i;
+            return 0;
+        }
 
         private void ResetAll()
         {
@@ -804,6 +817,18 @@ namespace KillerPDF
             _wmAngle.Value = d.WmAngle;
             _wmOpacity.Value = d.WmOpacity * 100;
             _wmScale.Value = d.WmScale * 100;
+            _numPos.SelectedIndex = PositionIndex(d.NumPosH, d.NumPosV);
+            _wmPos.SelectedIndex = PositionIndex(d.WmPosH, d.WmPosV);
+            _numMirror.IsChecked = d.NumMirror;
+            UpdateMirrorEnabled();
+            _wmRange.Text = d.WmRange;
+            _wmTextRadio.IsChecked = !d.WmIsImage;
+            _wmImageRadio.IsChecked = d.WmIsImage;
+            _wmImagePath = d.WmImagePath;
+            _wmImageSrc = null;
+            _wmImageLabel.Text = System.IO.Path.GetFileName(_wmImagePath ?? "");
+            _spec.NumCustomX = d.NumCustomX; _spec.NumCustomY = d.NumCustomY;
+            _spec.WmCustomX = d.WmCustomX; _spec.WmCustomY = d.WmCustomY;
             Schedule();
         }
 
@@ -812,7 +837,7 @@ namespace KillerPDF
             _spec.NumbersEnabled = _numEnable.IsChecked == true;
             _spec.StartNumber = ReadInt(_numStart, 1);
             _spec.Format = _numFormat.Text.Length == 0 ? "{n}" : _numFormat.Text;
-            _spec.NumFontPt = ReadDouble(_numSize, 12);
+            _spec.NumFontPt = StampInput.ReadSize(_numSize.Text, CultureInfo.CurrentCulture, 12, StampInput.NumFontMin, StampInput.NumFontMax);
             _spec.NumColor = _numColor;
             _spec.NumRange = _numRange.Text.Trim();
             _spec.NumMirror = _numMirror.IsChecked == true;
@@ -821,8 +846,8 @@ namespace KillerPDF
             _spec.WmEnabled = _wmEnable.IsChecked == true;
             _spec.WmIsImage = _wmImageRadio.IsChecked == true;
             _spec.WmText = _wmText.Text;
-            _spec.WmFontPt = ReadDouble(_wmSize, 64);
-            _spec.WmFont = _wmFont.SelectedItem as string ?? "Segoe UI";
+            _spec.WmFontPt = StampInput.ReadSize(_wmSize.Text, CultureInfo.CurrentCulture, 64, StampInput.WmFontMin, StampInput.WmFontMax);
+            _spec.WmFont = StampInput.FontToKeep(_wmFont.SelectedItem as string, _spec.WmFont);
             _spec.WmColor = _wmColor;
             _spec.WmOpacity = _wmOpacity.Value / 100.0;
             _spec.WmAngle = _wmAngle.Value;
