@@ -189,6 +189,28 @@ public sealed class PageWindowLayoutTests
         });
     }
 
+    // ui BF-004: a screen reader is told when a section opens or closes, not only when it is asked.
+    [Fact]
+    public void ASectionHeaderAnnouncesEveryExpandAndCollapse()
+    {
+        RunSta(() =>
+        {
+            PageWindowLayout.Section("ROTATE", new Border(), out FrameworkElement header);
+            var button = (ToggleButton)header;
+            var changes = new List<(ExpandCollapseState Old, ExpandCollapseState New)>();
+            ((SectionHeader)button).ExpandCollapseChanged += (o, n) => changes.Add((o, n));
+
+            button.IsChecked = false;
+            button.IsChecked = true;
+
+            Assert.Equal(
+            [
+                (ExpandCollapseState.Expanded, ExpandCollapseState.Collapsed),
+                (ExpandCollapseState.Collapsed, ExpandCollapseState.Expanded),
+            ], changes);
+        });
+    }
+
     // One row (spec 2.2): Reset all on the left as a button Tab reaches, then Cancel and the
     // primary 8 apart, the primary's right edge 16 in from the 456 column (440).
     [Fact]

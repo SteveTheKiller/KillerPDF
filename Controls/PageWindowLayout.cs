@@ -334,7 +334,22 @@ namespace KillerPDF.Controls
             Unchecked += (_, _) => Sync();
         }
 
-        private void Sync() => _chevron.Text = IsChecked == true ? "▾" : "▸";
+        private ExpandCollapseState _announced = ExpandCollapseState.Collapsed;
+
+        /// <summary>Raised after the header's expanded state changed, with the old and the new state,
+        /// when UI Automation is told of the change.</summary>
+        internal event Action<ExpandCollapseState, ExpandCollapseState>? ExpandCollapseChanged;
+
+        private void Sync()
+        {
+            _chevron.Text = IsChecked == true ? "▾" : "▸";
+            var now = IsChecked == true ? ExpandCollapseState.Expanded : ExpandCollapseState.Collapsed;
+            if (now == _announced) return;
+            var before = _announced;
+            _announced = now;
+            ExpandCollapseChanged?.Invoke(before, now);
+            if (UIElementAutomationPeer.FromElement(this) is Peer peer) peer.Announce(before, now);
+        }
 
         protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this);
 
@@ -345,6 +360,9 @@ namespace KillerPDF.Controls
 
             public ExpandCollapseState ExpandCollapseState
                 => owner.IsChecked == true ? ExpandCollapseState.Expanded : ExpandCollapseState.Collapsed;
+
+            public void Announce(ExpandCollapseState before, ExpandCollapseState now)
+                => RaisePropertyChangedEvent(ExpandCollapsePatternIdentifiers.ExpandCollapseStateProperty, before, now);
 
             public void Expand() => owner.IsChecked = true;
 
