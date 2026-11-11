@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using KillerPdf.Engine.Documents;
 using KillerPDF.Services;
 using Xunit;
 
@@ -8,7 +9,7 @@ namespace KillerPDF.Tests;
 public sealed class SourceImageContentCopyTests
 {
     [Fact]
-    public void RepeatedPictureProbesReuseOneStrictParseOfTheSameContent()
+    public void RepeatedPictureProbesReuseOneStrictParseWhileItIsInUse()
     {
         string folder = Path.Combine(Path.GetTempPath(), "kp-source-copy-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
@@ -24,6 +25,108 @@ public sealed class SourceImageContentCopyTests
         finally { Directory.Delete(folder, true); }
     }
 
+    // A copy not asked for in 2 minutes is dropped (it can be a large parse), and the next click builds a new one
+    // from the same unchanged source. Time here is a manual clock; nothing sleeps.
+    [Fact]
+    public void TheStrictParseIsReusedInsideTheIdleWindowAndRebuiltAfterItIsDropped()
+    {
+        string folder = Path.Combine(Path.GetTempPath(), "kp-source-copy-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            string path = Path.Combine(folder, "picture.pdf");
+            File.WriteAllBytes(path, Pdf("q 50 0 0 50 120 120 cm /Im1 Do Q"));
+            var clock = new ManualClock();
+            using PdfWorkingDocument document = PdfWorkingDocument.Open(path, null);
+            document.ContentCopyClock = clock;
+            var first = document.OpenStrictForContentCopy();
+            Assert.NotNull(first);
+
+            // Each use restarts the 2 minutes: 119 s, a use, then 119 s more is still inside the window.
+            clock.Advance(TimeSpan.FromSeconds(119));
+            Assert.Same(first, document.OpenStrictForContentCopy());
+            clock.Advance(TimeSpan.FromSeconds(119));
+            Assert.True(document.HoldsContentCopy);
+            Assert.Same(first, document.OpenStrictForContentCopy());
+
+            // Unused for the full 2 minutes: dropped without anyone asking for it.
+            clock.Advance(PdfWorkingDocument.ContentCopyIdleLimit);
+            Assert.False(document.HoldsContentCopy);
+
+            var second = document.OpenStrictForContentCopy();
+            Assert.NotNull(second);
+            Assert.NotSame(first, second);
+            Assert.Equal(PdfPageInformation.Read(first).Count, PdfPageInformation.Read(second).Count);
+            Assert.Same(second, document.OpenStrictForContentCopy());
+        }
+        finally { Directory.Delete(folder, true); }
+    }
+
+    [Fact]
+    public void ClosingTheDocumentDropsTheStrictParse()
+    {
+        string folder = Path.Combine(Path.GetTempPath(), "kp-source-copy-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            string path = Path.Combine(folder, "picture.pdf");
+            File.WriteAllBytes(path, Pdf("q 50 0 0 50 120 120 cm /Im1 Do Q"));
+            using PdfWorkingDocument document = PdfWorkingDocument.Open(path, null);
+            Assert.NotNull(document.OpenStrictForContentCopy());
+            Assert.True(document.HoldsContentCopy);
+
+            document.Close();
+
+            Assert.False(document.HoldsContentCopy);
+            Assert.Throws<ObjectDisposedException>(() => document.OpenStrictForContentCopy());
+        }
+        finally { Directory.Delete(folder, true); }
+    }
+
+    // A clock that moves only when told to, and runs the timers that fall due as it moves.
+    private sealed class ManualClock : TimeProvider
+    {
+        private long _now;
+        private readonly List<ManualTimer> _timers = [];
+
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+        public override long GetTimestamp() => _now;
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            var timer = new ManualTimer(this, callback, state);
+            timer.Change(dueTime, period);
+            _timers.Add(timer);
+            return timer;
+        }
+
+        public void Advance(TimeSpan by)
+        {
+            _now += by.Ticks;
+            foreach (var timer in _timers.ToArray()) timer.RunIfDue(_now);
+        }
+
+        private sealed class ManualTimer(ManualClock clock, TimerCallback callback, object? state) : ITimer
+        {
+            private long? _due;
+
+            public bool Change(TimeSpan dueTime, TimeSpan period)
+            {
+                _due = dueTime == Timeout.InfiniteTimeSpan ? null : clock._now + dueTime.Ticks;
+                return true;
+            }
+
+            public void RunIfDue(long now)
+            {
+                if (_due is not { } due || due > now) return;
+                _due = null;
+                callback(state);
+            }
+
+            public void Dispose() { _due = null; clock._timers.Remove(this); }
+            public ValueTask DisposeAsync() { Dispose(); return ValueTask.CompletedTask; }
+        }
+    }
     private static byte[] Pdf(string content)
     {
         var objects = new List<byte[]>

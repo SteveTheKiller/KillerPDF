@@ -15,6 +15,17 @@ internal sealed class PdfWorkingDocument : IDisposable
     private (PdfDocument? Document, System.Runtime.ExceptionServices.ExceptionDispatchInfo? Failure)? _contentCopy;
     private bool _closed;
 
+    /// <summary>How long the strict parse for picture copies is kept once nothing has asked for it.</summary>
+    internal static readonly TimeSpan ContentCopyIdleLimit = TimeSpan.FromMinutes(2);
+
+    /// <summary>The clock and timers behind the idle drop. Tests swap it before the first strict parse.</summary>
+    internal TimeProvider ContentCopyClock { get; set; } = TimeProvider.System;
+    private long _contentCopyUsedAt;
+    private ITimer? _contentCopyTimer;
+
+    /// <summary>True while a strict parse is held for picture copies; a cached refusal holds nothing.</summary>
+    internal bool HoldsContentCopy { get { lock (_contentCopySync) return _contentCopy is { Document: not null }; } }
+
     private PdfWorkingDocument(byte[] source, bool isReadOnly, OpenedProtection? protection)
     {
         PdfDocument parsed = PdfEngineIntegration.OpenForReading(source);
@@ -47,6 +58,8 @@ internal sealed class PdfWorkingDocument : IDisposable
         lock (_contentCopySync)
         {
             ObjectDisposedException.ThrowIf(Volatile.Read(ref _closed), this);
+            // The timer normally drops an idle copy; this covers one that is overdue by the time it is asked for.
+            if (_contentCopy is { Document: not null } && IdleFor() >= ContentCopyIdleLimit) _contentCopy = null;
             if (_contentCopy is null)
             {
                 try
@@ -58,9 +71,32 @@ internal sealed class PdfWorkingDocument : IDisposable
                 {
                     _contentCopy = (null, System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error));
                 }
+                // Only a held parse is dropped when idle. A cached refusal costs nothing to keep.
+                if (_contentCopy.Value.Document is not null)
+                {
+                    if (_contentCopyTimer is null)
+                        _contentCopyTimer = ContentCopyClock.CreateTimer(_ => DropIdleContentCopy(), null,
+                            ContentCopyIdleLimit, Timeout.InfiniteTimeSpan);
+                    else _contentCopyTimer.Change(ContentCopyIdleLimit, Timeout.InfiniteTimeSpan);
+                }
             }
+            _contentCopyUsedAt = ContentCopyClock.GetTimestamp();
             _contentCopy.Value.Failure?.Throw();
             return _contentCopy.Value.Document;
+        }
+    }
+
+    private TimeSpan IdleFor() => ContentCopyClock.GetElapsedTime(_contentCopyUsedAt);
+
+    // Runs on the timer: drops the parse if it has gone unused for the whole limit, else waits out the rest of it.
+    private void DropIdleContentCopy()
+    {
+        lock (_contentCopySync)
+        {
+            if (Volatile.Read(ref _closed) || _contentCopy is not { Document: not null }) return;
+            TimeSpan idle = IdleFor();
+            if (idle >= ContentCopyIdleLimit) _contentCopy = null;
+            else _contentCopyTimer?.Change(ContentCopyIdleLimit - idle, Timeout.InfiniteTimeSpan);
         }
     }
 
@@ -177,7 +213,12 @@ internal sealed class PdfWorkingDocument : IDisposable
             _readRevision = null;
             Interlocked.Exchange(ref _parsedDocument, null);
         }
-        lock (_contentCopySync) _contentCopy = null;
+        lock (_contentCopySync)
+        {
+            _contentCopy = null;
+            _contentCopyTimer?.Dispose();
+            _contentCopyTimer = null;
+        }
         revision?.Dispose();
     }
     public void Dispose() => Close();
