@@ -49,6 +49,27 @@ public sealed class EpubLigatureTests
         Assert.Equal(new[] { 0, 1, 2 }, page.Clusters.Keys.OrderBy(key => key));
     }
 
+    // Bidi marks, the word joiner and the byte order mark are default-ignorable for shaping: unlike a zero width
+    // non-joiner they do not stop a ligature between the letters either side of them.
+    [Theory]
+    [InlineData(0x200E)]
+    [InlineData(0x200F)]
+    [InlineData(0x2060)]
+    [InlineData(0xFEFF)]
+    public void AnIgnorableMarkBetweenLettersStillAllowsTheLigature(int mark)
+    {
+        var font = TrueTypeFont.Load(Font());
+        var book = EpubDocument.Open(Book("<p>f" + (char)mark + "i</p>"));
+
+        var layout = book.CreateLayout(new EpubLayoutOptions(200, 200, font) { Margin = 8, FontSize = 20 });
+
+        Assert.Empty(layout.ChapterDiagnostics);
+        var cluster = Assert.Single(Assert.Single(layout.Pages).Clusters.Values);
+        Assert.True(cluster.Substituted);
+        Assert.Equal((0, 3), (cluster.Start, cluster.Length));
+        Assert.Single(cluster.Glyphs);
+    }
+
     [Fact]
     public void VisibilityProjectionKeepsVisibleLigatureClustersAtomic()
     {

@@ -625,14 +625,16 @@ public sealed partial class EpubDocument
             var owner = content.Characters[runStart]?.Node.Owner;
             bool smallCaps = (owner?.Style ?? content.DefaultStyle).SmallCaps;
             font = FontFor(owner?.Style ?? content.DefaultStyle, ReadScalar(runStart).Value);
-            bool latin = IsLatin(runStart);
+            // Default-ignorable marks join whichever run they sit in; the script of the run is that of its letters.
+            bool? runScript = IsTransparent(runStart) ? null : IsLatin(runStart);
             while (runEnd < text.Length && text[runEnd] != '\n'
                 && ReferenceEquals(content.Characters[runEnd]?.Node.Owner, owner)
                 && ReferenceEquals(formatting.TextSequences.GetValueOrDefault(runEnd), formatting.TextSequences.GetValueOrDefault(runStart))
-                && IsLatin(runEnd) == latin
+                && (IsTransparent(runEnd) || runScript is null || IsLatin(runEnd) == runScript)
                 && (runEnd == runStart || !inlineOffsets.Contains(runEnd)))
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (runScript is null && !IsTransparent(runEnd)) runScript = IsLatin(runEnd);
                 Rune scalar = ReadScalar(runEnd);
                 if (!ReferenceEquals(font, FontFor(owner?.Style ?? content.DefaultStyle, scalar.Value))) break;
                 ushort glyph = font.GetGlyphId(scalar.Value);
@@ -667,6 +669,7 @@ public sealed partial class EpubDocument
                     : font.GetAdvanceWidth(glyph) / (double)font.UnitsPerEm);
                 runEnd += scalar.Utf16SequenceLength;
             }
+            bool latin = runScript ?? false;
             if (!latin && smallCaps && run.Any(cluster => Rune.GetUnicodeCategory(ReadScalar(cluster.Start))
                     is UnicodeCategory.LowercaseLetter or UnicodeCategory.UppercaseLetter or UnicodeCategory.TitlecaseLetter))
                 throw new NotSupportedException("Native EPUB small capitals for this script are not implemented.");
@@ -689,10 +692,19 @@ public sealed partial class EpubDocument
                             if (rule.Components.Length > shaped.Count - at) continue;
                             bool match = true;
                             int start = shaped[at].Start, end = start + shaped[at].Length;
+                            int next = at;
                             for (int c = 0; c < rule.Components.Length; c++)
                             {
                                 ChargeShapingWork();
-                                var input = shaped[at + c];
+                                // Default-ignorable marks between components are passed over and joined into the range.
+                                while (c > 0 && next < shaped.Count && IsTransparent(shaped[next].Start))
+                                {
+                                    ChargeShapingWork();
+                                    end = Math.Max(end, shaped[next].Start + shaped[next].Length);
+                                    next++;
+                                }
+                                if (next >= shaped.Count) { match = false; break; }
+                                var input = shaped[next++];
                                 if (input.Glyph != rule.Components[c]) { match = false; break; }
                                 start = Math.Min(start, input.Start);
                                 end = Math.Max(end, input.Start + input.Length);
@@ -703,7 +715,7 @@ public sealed partial class EpubDocument
                                 ChargeShapingWork();
                                 selected.Add((start, end - start, output, true));
                             }
-                            at += rule.Components.Length - 1;
+                            at = next - 1;
                             replaced = true;
                             break;
                         }
@@ -768,6 +780,9 @@ public sealed partial class EpubDocument
             if (++shapingWork > chapterWork)
                 throw new InvalidDataException("The EPUB GSUB shaping work limit was exceeded.");
         }
+        // Bidi marks, the word joiner and the byte order mark are default-ignorable; only a zero width non-joiner
+        // (U+200C) breaks a ligature.
+        bool IsTransparent(int at) => text[at] is '\u200E' or '\u200F' or '\u2060' or '\uFEFF';
         bool IsLatin(int at) => text[at] is >= 'A' and <= 'Z' or >= 'a' and <= 'z'
             or >= '\u00C0' and <= '\u02FF' or >= '\u1E00' and <= '\u1EFF'
             or >= '\uFB00' and <= '\uFB06';
