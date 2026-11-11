@@ -231,6 +231,9 @@ internal sealed class PdfWorkingDocument : IDisposable
         }
     }
 
+    /// <summary>True once the document has been closed; a closed document can no longer raise a content copy drop.</summary>
+    internal bool IsClosed => Volatile.Read(ref _closed);
+
     internal void Close()
     {
         PdfCapturedReadRevision? revision;

@@ -148,6 +148,36 @@ public sealed class PlacementReadCacheTests
         Assert.Equal(0, cache.PagesRemembered);
     }
 
+    // The closed document's bytes are held by whoever still references the document, so the cache must not keep
+    // following it once it has closed.
+    [Fact]
+    public void ClosingTheDocumentMakesTheCacheLetGoOfIt()
+    {
+        using var scope = new Scope();
+        var cache = new PlacementReadCache();
+        Assert.NotNull(cache.PlacementsForPage(scope.Document, 0));
+        Assert.True(cache.FollowsADocument);
+
+        scope.Document.Close();
+
+        Assert.True(scope.Document.IsClosed);
+        Assert.False(cache.FollowsADocument);
+    }
+
+    // An idle drop leaves the document open and usable, so the cache keeps following it.
+    [Fact]
+    public void TheIdleDropOfAnOpenDocumentKeepsTheCacheFollowingIt()
+    {
+        using var scope = new Scope();
+        var cache = new PlacementReadCache();
+        Assert.NotNull(cache.PlacementsForPage(scope.Document, 0));
+
+        scope.Clock.Advance(PdfWorkingDocument.ContentCopyIdleLimit);
+
+        Assert.False(scope.Document.HoldsContentCopy);
+        Assert.False(scope.Document.IsClosed);
+        Assert.True(cache.FollowsADocument);
+    }
     [Fact]
     public void ClosingADocumentThatHeldNoParseRaisesNoDropEvent()
     {

@@ -26,6 +26,9 @@ internal sealed class PlacementReadCache
     /// <summary>How many pages' placement reads are remembered, for tests.</summary>
     internal int PagesRemembered { get { lock (_sync) return _pages.Count; } }
 
+    /// <summary>Whether the cache still holds a document to hear its drops from, for tests.</summary>
+    internal bool FollowsADocument { get { lock (_sync) return _subscribed is not null; } }
+
     internal IReadOnlyList<PdfImagePlacementSelection>? PlacementsForPage(PdfWorkingDocument doc, int page)
     {
         lock (_sync)
@@ -112,10 +115,20 @@ internal sealed class PlacementReadCache
         doc.ContentCopyDropped += OnContentCopyDropped;
     }
 
-    // Runs on the document's idle timer: the parse is gone, so what was read from it goes with it.
+    // Runs on the document's idle timer, or when it closes: the parse is gone, so what was read from it goes with it.
+    // A closed document can raise no more drops, so the cache stops following it and no longer holds it. The owner is
+    // weak and stays, so a later read of the same closed document does not subscribe to it again.
     private void OnContentCopyDropped()
     {
-        lock (_sync) ClearAll();
+        lock (_sync)
+        {
+            ClearAll();
+            if (_subscribed is { IsClosed: true } closed)
+            {
+                closed.ContentCopyDropped -= OnContentCopyDropped;
+                _subscribed = null;
+            }
+        }
     }
 
     private bool IsCurrentParse(PdfDocument source) =>
