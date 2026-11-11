@@ -231,6 +231,7 @@
     <Compile Include="..\Services\BookmarkTreeEdit.cs" Link="Services\BookmarkTreeEdit.cs" />
     <Compile Include="..\Services\ScanLook.cs" Link="Services\ScanLook.cs" />
     <Compile Include="..\Services\FormOcrPolicy.cs" Link="Services\FormOcrPolicy.cs" />
+    <Compile Include="..\Features\Ocr\OcrFormHints.cs" Link="Features\Ocr\OcrFormHints.cs" />
     <Compile Include="..\Services\CombFieldLayout.cs" Link="Services\CombFieldLayout.cs" />
     <Compile Include="..\Services\ContinuousRenderOrder.cs" Link="Services\ContinuousRenderOrder.cs" />
     <Compile Include="..\Services\ContinuousPageLayout.cs" Link="Services\ContinuousPageLayout.cs" />

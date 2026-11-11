@@ -59,6 +59,9 @@ namespace KillerPDF.Features
                         file, OcrRenderMax, OcrRenderMax, protection);
                     using var ocr = new OcrService(language: lang);   // engine is not thread-safe: one per operation
                     var recognized = new List<PdfOcrResult>(pages.Length);
+                    // Read once for the run, not again for every page.
+                    var hints = formAware
+                        ? new OcrFormHints(() => PdfEngineIntegration.ReadAllPageFormWidgets(file, protection)) : null;
                     for (int i = 0; i < pages.Length; i++)
                     {
                         if (ct.IsCancellationRequested) break;
@@ -81,7 +84,7 @@ namespace KillerPDF.Features
                         recognized.Add(!formAware
                             ? ocr.RecognizeBgra(bgra, w, h, cancellationToken: ct)
                             : PdfOcrFormRecognizer.Recognize(ocr.RecognizeBgra,
-                                bgra, w, h, ReadFormHints(file, pages[i], protection), rot, ct));
+                                bgra, w, h, hints!.ForPage(pages[i]), rot, ct));
                     }
                     return recognized;
                 });
@@ -717,13 +720,6 @@ namespace KillerPDF.Features
             File.WriteAllText(outPath, PdfOcrTextExporter.Format(pageTexts,
                 markdown ? PdfOcrTextFormat.Markdown : PdfOcrTextFormat.PlainText));
             return pageCount;
-        }
-
-        private static IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo> ReadFormHints(
-            string path, int pageIndex, OpenedProtection? protection)
-        {
-            try { return PdfEngineIntegration.ReadPageFormWidgets(path, pageIndex, protection); }
-            catch { return []; }
         }
 
         private static IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> ReadAllFormHints(
