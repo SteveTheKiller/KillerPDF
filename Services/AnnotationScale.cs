@@ -7,8 +7,10 @@ internal static class AnnotationScale
     internal static void Remap(PageAnnotation annotation, int sourceWidth, int sourceHeight,
         int targetWidth, int targetHeight)
     {
-        if (sourceWidth <= 0 || sourceHeight <= 0 || targetWidth <= 0 || targetHeight <= 0)
-            throw new ArgumentOutOfRangeException(nameof(sourceWidth));
+        if (sourceWidth <= 0) throw new ArgumentOutOfRangeException(nameof(sourceWidth));
+        if (sourceHeight <= 0) throw new ArgumentOutOfRangeException(nameof(sourceHeight));
+        if (targetWidth <= 0) throw new ArgumentOutOfRangeException(nameof(targetWidth));
+        if (targetHeight <= 0) throw new ArgumentOutOfRangeException(nameof(targetHeight));
         double sx = (double)targetWidth / sourceWidth, sy = (double)targetHeight / sourceHeight;
         Point Map(Point point) => new(point.X * sx, point.Y * sy);
         switch (annotation)

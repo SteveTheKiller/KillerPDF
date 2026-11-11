@@ -16,7 +16,7 @@ namespace KillerPDF.Controls
             if (listingBusy || accepting) return false;
             if (listingAvailable) return true;
             if (folderMode) return false;
-            string typed = (typedName ?? "").Trim();
+            string typed = (typedName ?? "").Trim().Trim('"');
             return typed.Length > 0 && typed.IndexOfAny(Path.GetInvalidPathChars()) < 0 && IsFullyQualified(typed);
         }
 

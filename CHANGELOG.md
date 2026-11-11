@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Quoted full paths can be opened even when the file picker's folder listing fails.
 - Color-managed viewing and proofing support more scaled scans and image masks. (#264)
 - The first text highlight on a page can be undone and redone. (#485)
 - A per-user or portable update that fails now reopens KillerPDF instead of leaving it closed, including when antivirus or a locked-down PowerShell stops the update helper from loading, and a published copy that fails its final check is swapped back for the previous version and never started.
