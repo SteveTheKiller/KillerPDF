@@ -43,5 +43,33 @@ namespace KillerPDF.Controls
             }
             return result.Count == 0 ? null : [.. result.OrderBy(x => x)];
         }
+
+        /// <summary>
+        /// Maps a rectangle drawn on the reference page's canvas to a crop box on one target page, in
+        /// absolute user-space points (x, y, width, height from the bottom-left). The mapping through the
+        /// reference page's effective box is relative to that box, so the target page's own origin
+        /// (<paramref name="pageLeft"/>, <paramref name="pageBottom"/>) is added afterwards, as the redaction
+        /// burn does, and the result is clamped to that page's box and kept at least one point across.
+        /// </summary>
+        internal static (double X, double Y, double Width, double Height) ToCropBox(
+            Rect canvasRect, double refPageWidth, double refPageHeight, double canvasWidth, double canvasHeight,
+            int rotation, double pageLeft, double pageBottom, double pageWidth, double pageHeight)
+        {
+            var (rx1, ry1, rx2, ry2) = RedactionGeometry.CanvasToPage(
+                canvasRect, refPageWidth, refPageHeight, canvasWidth, canvasHeight, rotation);
+
+            // Scale proportionally when "All Pages" spans pages of different sizes.
+            double x1 = rx1 * pageWidth / refPageWidth;
+            double y1 = ry1 * pageHeight / refPageHeight;
+            double x2 = rx2 * pageWidth / refPageWidth;
+            double y2 = ry2 * pageHeight / refPageHeight;
+
+            // Clamp to the page's box (relative), keep at least 1 pt, then move into user space.
+            x1 = Math.Max(0, x1); y1 = Math.Max(0, y1);
+            x2 = Math.Min(pageWidth, x2); y2 = Math.Min(pageHeight, y2);
+            if (x2 - x1 < 1) x2 = x1 + 1;
+            if (y2 - y1 < 1) y2 = y1 + 1;
+            return (x1 + pageLeft, y1 + pageBottom, x2 - x1, y2 - y1);
+        }
     }
 }

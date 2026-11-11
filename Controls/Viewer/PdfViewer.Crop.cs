@@ -528,31 +528,17 @@ namespace KillerPDF.Controls
                 double refPdfW = refPage.Width;
                 double refPdfH = refPage.Height;
 
-                var (rx1, ry1, rx2, ry2) = CanvasToPdfRect(
-                    _cropCanvasRect, refPdfW, refPdfH, refDims.w, refDims.h, rot);
-
                 var crops = new Dictionary<int, PdfEngineIntegration.PageRectangle?>();
                 foreach (int pi in pageIndices)
                 {
                     if (pi < 0 || pi >= engineSession.PageCount) continue;
-                    var page  = engineSession.Pages[pi];
-                    double pW = page.Width;
-                    double pH = page.Height;
+                    var page = engineSession.Pages[pi];
 
-                    // Scale proportionally when "All Pages" spans pages of different sizes
-                    double x1 = rx1 * pW / refPdfW;
-                    double y1 = ry1 * pH / refPdfH;
-                    double x2 = rx2 * pW / refPdfW;
-                    double y2 = ry2 * pH / refPdfH;
-
-                    // Clamp to media box and ensure minimum 1-pt size
-                    x1 = Math.Max(0, x1);  y1 = Math.Max(0, y1);
-                    x2 = Math.Min(pW, x2); y2 = Math.Min(pH, y2);
-                    if (x2 - x1 < 1) x2 = x1 + 1;
-                    if (y2 - y1 < 1) y2 = y1 + 1;
-
-                    crops[pi] = new PdfEngineIntegration.PageRectangle(
-                        x1, y1, x2 - x1, y2 - y1);
+                    // The box is absolute user space, so a page whose box does not start at 0,0 needs its
+                    // Left/Bottom added (CropMath.ToCropBox).
+                    var (x, y, w, h) = CropMath.ToCropBox(_cropCanvasRect, refPdfW, refPdfH, refDims.w, refDims.h,
+                        rot, page.Left, page.Bottom, page.Width, page.Height);
+                    crops[pi] = new PdfEngineIntegration.PageRectangle(x, y, w, h);
                 }
 
                 HideCropConfirmBar();
