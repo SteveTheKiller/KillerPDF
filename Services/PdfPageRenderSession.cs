@@ -35,14 +35,49 @@ internal sealed class PdfPageRenderSession : IDisposable
     private static EngineRenderer.SharedCache SharedCacheFor(EngineDocument document) =>
         _sharedRenderCaches.GetValue(document, static _ => new EngineRenderer.SharedCache());
 
+    // What reading a document's pages costs, and how many times it was paid. Read once per parsed document
+    // and shared, so a session that is let go of and opened again does not read the page tree again.
+    private sealed class PageRead
+    {
+        internal IReadOnlyList<EnginePageInformation>? Sized;
+        internal int Reads;
+    }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<EngineDocument, PageRead> _pageReads = [];
+
+    private static IReadOnlyList<EnginePageInformation> SizeAll(EngineDocument document,
+        IReadOnlyList<EnginePageInformation> pages)
+    {
+        var boxes = KillerPdf.Engine.Documents.PdfPageBoxInformation.Read(document);
+        return [.. pages.Select((page, index) => PdfLegacyPageGeometry.Size(page, boxes[index]))];
+    }
+
+    /// <summary>The document's pages with their legacy sizes, read from the page tree.</summary>
+    internal static IReadOnlyList<EnginePageInformation> SizedPages(EngineDocument document)
+    {
+        var read = _pageReads.GetValue(document, static _ => new PageRead());
+        lock (read)
+        {
+            if (read.Sized is null)
+            {
+                read.Reads++;
+                read.Sized = SizeAll(document, EnginePageInformation.Read(document));
+            }
+            return read.Sized;
+        }
+    }
+
+    /// <summary>How many times the document's page tree was read for a render session.</summary>
+    internal static int PageInformationReads(EngineDocument document) =>
+        _pageReads.TryGetValue(document, out var read) ? read.Reads : 0;
+
     private PdfPageRenderSession(EngineDocument document,
-        IReadOnlyList<EnginePageInformation> pages, int maximumWidth, int maximumHeight,
+        IReadOnlyList<EnginePageInformation> sizedPages, int maximumWidth, int maximumHeight,
         double scale, bool forPrinting = false)
     {
         _engineRenderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance,
             SharedCacheFor(document), WicJpegDecoder.Instance);
-        var boxes = KillerPdf.Engine.Documents.PdfPageBoxInformation.Read(document);
-        _enginePages = [.. pages.Select((page, index) => PdfLegacyPageGeometry.Size(page, boxes[index]))];
+        _enginePages = sizedPages;
         _maximumWidth = maximumWidth;
         _maximumHeight = maximumHeight;
         _scale = scale;
@@ -54,7 +89,7 @@ internal sealed class PdfPageRenderSession : IDisposable
     internal bool IsEncrypted { get; }
 
     internal static PdfPageRenderSession OpenCapturedDocument(EngineDocument document,
-        IReadOnlyList<EnginePageInformation> pages) => new(document, pages, 1, 1, 0);
+        IReadOnlyList<EnginePageInformation> pages) => new(document, SizeAll(document, pages), 1, 1, 0);
 
     internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex,
         EngineRenderOptions options, CancellationToken cancellationToken) =>
@@ -71,8 +106,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         EngineDocument document = OpenDocument(path, protection);
         if (!document.CanReadPageContent)
             throw new InvalidOperationException("Authenticate the document before rendering page content.");
-        IReadOnlyList<EnginePageInformation> pages = EnginePageInformation.Read(document);
-        return new PdfPageRenderSession(document, pages, maximumWidth, maximumHeight, 0, forPrinting);
+        return new PdfPageRenderSession(document, SizedPages(document), maximumWidth, maximumHeight, 0, forPrinting);
     }
 
     internal static PdfPageRenderSession OpenEngineFirstWithPassword(
@@ -84,7 +118,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         ArgumentNullException.ThrowIfNull(password);
         using FileStream source = File.OpenRead(path);
         EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(source, password);
-        return new PdfPageRenderSession(document, EnginePageInformation.Read(document),
+        return new PdfPageRenderSession(document, SizeAll(document, EnginePageInformation.Read(document)),
             maximumWidth, maximumHeight, 0);
     }
 
@@ -228,8 +262,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         if (!double.IsFinite(scale) || scale <= 0)
             throw new ArgumentOutOfRangeException(nameof(scale));
         EngineDocument document = OpenDocument(path, protection);
-        IReadOnlyList<EnginePageInformation> pages = EnginePageInformation.Read(document);
-        return new PdfPageRenderSession(document, pages, 0, 0, scale, forPrinting);
+        return new PdfPageRenderSession(document, SizedPages(document), 0, 0, scale, forPrinting);
     }
 
     internal int PageCount => _enginePages.Count;
