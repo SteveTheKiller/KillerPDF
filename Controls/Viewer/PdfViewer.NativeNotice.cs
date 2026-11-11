@@ -21,7 +21,14 @@ namespace KillerPDF.Controls
             if (_nativeNotice is null) return;
             double scale = ScaledDialogFit.OwnerScale<Window>(Window.GetWindow(this),
                 window => window is Shell.MainWindow main ? main.AppScale : null, window => window.Owner);
-            _nativeNotice.LayoutTransform = scale == 1 ? Transform.Identity : new ScaleTransform(scale, scale);
+            // The narrowest window at a large app size leaves the pane narrower than the notice at that scale; it is
+            // then drawn just small enough to fit, so its message and buttons stay whole.
+            if (_nativeNotice.Parent is FrameworkElement pane && _nativeNoticeMessage is not null)
+                scale = NoticePlacement.FitScale(scale, pane.ActualWidth,
+                    NoticePlacement.MinimumWidth(_nativeNotice, _nativeNoticeMessage));
+            double current = _nativeNotice.LayoutTransform is ScaleTransform applied ? applied.ScaleX : 1;
+            if (Math.Abs(current - scale) > 0.0005)
+                _nativeNotice.LayoutTransform = scale == 1 ? Transform.Identity : new ScaleTransform(scale, scale);
         }
 
         private void UpdateNativeNotice()
@@ -44,6 +51,9 @@ namespace KillerPDF.Controls
                 // The find bar floats over the same pane and is moved, opened and closed at will, so the notice
                 // checks its place after every layout pass; the answer only changes when the find bar or the pane does.
                 _nativeNotice.LayoutUpdated += (_, _) => PlaceNativeNotice();
+                // Refitted after the pane's layout pass, since the fit measures the notice's content.
+                previewArea.SizeChanged += (_, _) => Dispatcher.BeginInvoke(() => RescaleNativeNotice(),
+                    System.Windows.Threading.DispatcherPriority.Loaded);
             }
             RescaleNativeNotice();
             // One bar serves every tab, so it takes the wording of the active document's format each time.
