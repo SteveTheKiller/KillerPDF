@@ -32,4 +32,17 @@ public sealed class OcrSkippedPicturesTests
         Assert.Contains($"_host.Loc(\"{statusKey}\")", flow);
         Assert.Contains("skippedPictures, _host.Loc(\"Str_Save_PicturesSkipped\")", flow);
     }
+
+    // Extract All Text reads the same snapshot, so it keeps the count too, and no controller call throws it away.
+    [Fact]
+    public void ExtractAllTextCarriesTheSkippedPictureNoteAndNoCallDiscardsTheCount()
+    {
+        string controller = Source("Features", "Ocr", "OcrController.cs");
+        Assert.DoesNotContain("_ = _host.SaveDocumentTo(", controller);
+        string flow = Between(controller, "internal async void ExtractAllText()", "private static int ExtractText(");
+        Assert.Contains("skippedPictures = _host.SaveDocumentTo(src);", flow);
+        Assert.Contains("PicturesSkippedNote.Append(", flow);
+        Assert.Contains("_host.Loc(\"Str_St_TextExtracted\")", flow);
+        Assert.Contains("skippedPictures, _host.Loc(\"Str_Save_PicturesSkipped\")", flow);
+    }
 }

@@ -635,8 +635,8 @@ namespace KillerPDF.Features
             bool markdown = Path.GetExtension(outPath).Equals(".md", StringComparison.OrdinalIgnoreCase);
 
             string src = App.MakeTempFile("ocrtxt");
-            int pageCount;
-            try { _ = _host.SaveDocumentTo(src); pageCount = _host.PageCount; }
+            int pageCount, skippedPictures;
+            try { skippedPictures = _host.SaveDocumentTo(src); pageCount = _host.PageCount; }
             catch (Exception ex)
             {
                 KillerDialog.Show(_host.Window, _host.Loc("Str_Err_PrepareDoc") + "\n" + ex.Message, "KillerPDF",
@@ -656,7 +656,9 @@ namespace KillerPDF.Features
                     src, pageCount, outPath, markdown, report, lang, formAware, ct));
                 _host.HideBusy();
                 if (ct.IsCancellationRequested) { _host.SetStatus(_host.Loc("Str_St_TextExtractCanceled")); return; }
-                _host.SetStatus(string.Format(_host.Loc("Str_St_TextExtracted"), pages, Path.GetFileName(outPath)));
+                _host.SetStatus(PicturesSkippedNote.Append(
+                    string.Format(_host.Loc("Str_St_TextExtracted"), pages, Path.GetFileName(outPath)),
+                    skippedPictures, _host.Loc("Str_Save_PicturesSkipped")));
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
