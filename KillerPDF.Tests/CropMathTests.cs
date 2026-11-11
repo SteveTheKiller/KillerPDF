@@ -95,4 +95,37 @@ public sealed class CropMathTests
         Assert.Equal(1.0, h, 6);
         Assert.Equal(100.0, x, 6);
     }
+
+    [Fact]
+    public void AllChecksEveryPageEvenWithARangeTyped()
+    {
+        Assert.Equal([0, 1, 2, 3, 4], CropMath.SelectPages(true, "1-2", 5, 3)!);
+    }
+
+    [Fact]
+    public void TypedRangeBeatsTheBoxPage()
+    {
+        Assert.Equal([0, 1, 2], CropMath.SelectPages(false, "1-3", 5, 4)!);
+    }
+
+    [Fact]
+    public void BadRangeSelectsNothing()
+    {
+        Assert.Null(CropMath.SelectPages(false, "x", 5, 4));
+    }
+
+    [Fact]
+    public void NoAllAndNoRangeCropsOnlyThePageHoldingTheBox()
+    {
+        Assert.Equal([6], CropMath.SelectPages(false, "  ", 10, CropMath.BoxPage(6, 2))!);
+        Assert.Equal([2], CropMath.SelectPages(false, null, 10, CropMath.BoxPage(-1, 2))!);
+    }
+
+    [Fact]
+    public void BoxPageIsTheDrawnPageNotTheScrolledToPage()
+    {
+        Assert.Equal(6, CropMath.BoxPage(6, 2));
+        Assert.Equal(0, CropMath.BoxPage(0, 2));
+        Assert.Equal(2, CropMath.BoxPage(-1, 2));
+    }
 }

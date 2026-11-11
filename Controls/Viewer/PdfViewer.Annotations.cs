@@ -1595,6 +1595,7 @@ namespace KillerPDF.Controls
                     ClearSelection();
                     _isDrawing = true;
                     _drawStart = pos;
+                    _cropPrevPageIndex = _cropPageIndex;
                     _cropPageIndex = _activeCanvas.Tag is int cpi ? cpi : (_viewMode == ViewMode.Grid ? 0 : _currentPage);
                     // Draw the NEW box as a separate rect (above the existing one). The current box, its
                     // handles, and the bar all stay put until this draw is committed on mouse-up - so a
@@ -2459,6 +2460,7 @@ namespace KillerPDF.Controls
                         // and restore the fields to it.
                         _activeCanvas?.Children.Remove(cr);
                         _activePreview = null;
+                        _cropPageIndex = _cropPrevPageIndex;   // the box did not move, so neither does its page
                         if (_cropPreviewRect is not null)
                         {
                             _cropCanvasRect = new Rect(Canvas.GetLeft(_cropPreviewRect), Canvas.GetTop(_cropPreviewRect),

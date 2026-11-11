@@ -424,6 +424,7 @@ namespace KillerPDF.Controls
         // Begin a crop selection on the active overlay at pos (render-dim coords).
         private void StartCropDraw(Point pos)
         {
+            _cropPrevPageIndex = _cropPageIndex;
             _cropPageIndex = _activeCanvas.Tag is int cpi ? cpi : (_viewMode == ViewMode.Grid ? 0 : _currentPage);
             ClearSelection();
             _isDrawing = true;

@@ -204,7 +204,13 @@ namespace KillerPDF.Controls
         }
 
         // ── Crop ─────────────────────────────────────────────────────────────────────────────
-        internal void ApplyCropExt(int[] pageIndices) => ApplyCrop(pageIndices);
+        // The window's Enter shortcut lands here with the list's selection, which is not necessarily the page
+        // holding the box, so while the bar is up its own page selection decides.
+        internal void ApplyCropExt(int[] pageIndices)
+        {
+            if (_cropApplyFromBar is not null) ApplyCropFromBar();
+            else ApplyCrop(pageIndices);
+        }
         internal void HideCropConfirmBarExt() => HideCropConfirmBar();
         internal void ShowDefaultCropBoxExt() => ShowDefaultCropBox();
         internal void RebuildCropBarForLocaleExt() => RebuildCropBarForLocale();

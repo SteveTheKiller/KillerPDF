@@ -88,7 +88,7 @@ namespace KillerPDF.Controls
         private void SyncCropBoxInputs()
         {
             if (_cropXBox is null || _doc is null) return;
-            int pi = _currentPage;
+            int pi = CropMath.BoxPage(_cropPageIndex, _currentPage);
             if (pi < 0 || !_renderDims.TryGetValue(pi, out var dims)) return;
             var (dispW, dispH, sx, sy) = CropDisplayDims(pi, dims);
 
@@ -116,7 +116,7 @@ namespace KillerPDF.Controls
         private void CommitCropBoxInput()
         {
             if (_updatingCropInputs || _cropXBox is null || _doc is null) return;
-            int pi = _currentPage;
+            int pi = CropMath.BoxPage(_cropPageIndex, _currentPage);
             if (pi < 0 || !_renderDims.TryGetValue(pi, out var dims)) return;
             if (!double.TryParse(_cropXBox.Text,  out double x)) return;
             if (!double.TryParse(_cropYBox!.Text, out double y)) return;
@@ -195,6 +195,16 @@ namespace KillerPDF.Controls
             ShowCropConfirmBar();
         }
 
+        // Set while the Crop bar is up; applies the crop to the pages the bar's All and Pages inputs select.
+        private Action? _cropApplyFromBar;
+
+        // The page index the Crop box was on before a press started a new one, so a click without a drag
+        // on another page can put it back.
+        private int _cropPrevPageIndex = -1;
+
+        /// <summary>Applies the crop as the bar's Crop button would, or does nothing when no bar is up.</summary>
+        internal void ApplyCropFromBar() => _cropApplyFromBar?.Invoke();
+
         private void ShowCropConfirmBar()
         {
             if (_doc is null) return;
@@ -214,8 +224,6 @@ namespace KillerPDF.Controls
                 SyncCropBoxInputs();
                 return;
             }
-
-            int currentPage = _cropPageIndex >= 0 ? _cropPageIndex : _currentPage;
 
             // The Crop tool's options dock in the pane's options row like every other tool's, as
             // groups: Position, Size, the unit, the pages to crop, and the Crop button.
@@ -264,7 +272,7 @@ namespace KillerPDF.Controls
                 tb.SetResourceReference(TextBox.BorderBrushProperty, "CardBorderBrush");
                 System.Windows.Automation.AutomationProperties.SetName(tb, Loc(nameKey).Trim().TrimEnd(':') + " " + lbl);
                 System.Windows.Automation.AutomationProperties.SetAutomationId(tb, "Crop" + lbl);
-                tb.KeyDown   += (_, e) => { if (e.Key == Key.Enter) { CommitCropBoxInput(); ApplyCrop([currentPage]); e.Handled = true; } };
+                tb.KeyDown   += (_, e) => { if (e.Key == Key.Enter) { CommitCropBoxInput(); ApplyCropFromBar(); e.Handled = true; } };
                 tb.LostFocus += (_, _) => CommitCropBoxInput();
                 group.Children.Add(tb);
                 return tb;
@@ -338,19 +346,16 @@ namespace KillerPDF.Controls
             var cropBtn = CropBtn(UiKit.Make(Loc("Str_Crop_Apply"), true));
             cropBtn.SetResourceReference(ContentControl.ContentProperty, "Str_Crop_Apply");
             cropBtn.SetResourceReference(FrameworkElement.ToolTipProperty, "Str_TT_CropThisPage");
-            cropBtn.Click += (_, _) =>
+            // One page-selection path for the button and Enter in a field: All, else the typed range,
+            // else the page that holds the box, read now rather than when the bar was built.
+            _cropApplyFromBar = () =>
             {
                 int pc = _doc?.PageCount ?? 0;
-                int[]? pages;
-                if (cropAll) pages = [.. Enumerable.Range(0, pc)];
-                else if (!string.IsNullOrWhiteSpace(_cropRangeBox?.Text))
-                {
-                    pages = CropMath.ParsePageRange(_cropRangeBox!.Text, pc);
-                    if (pages is null) { SetStatus(Loc("Str_InvalidRange")); return; }
-                }
-                else pages = [currentPage];
+                int[]? pages = CropMath.SelectPages(cropAll, _cropRangeBox?.Text, pc, CropMath.BoxPage(_cropPageIndex, _currentPage));
+                if (pages is null) { SetStatus(Loc("Str_InvalidRange")); return; }
                 ApplyCrop(pages);
             };
+            cropBtn.Click += (_, _) => ApplyCropFromBar();
             System.Windows.Automation.AutomationProperties.SetAutomationId(cropBtn, "CropApply");
             bar.Add(ToolOptionGroup.Apply, cropBtn);
 
@@ -365,6 +370,7 @@ namespace KillerPDF.Controls
 
         private void HideCropConfirmBar()
         {
+            _cropApplyFromBar = null;
             if (_cropConfirmBar is not null)
             {
                 if (ReferenceEquals(ToolOptionsDock.Bar, _cropConfirmBar)) ToolOptionsDock.Bar = null;
@@ -513,7 +519,7 @@ namespace KillerPDF.Controls
         {
             if (_doc is null || _currentFile is null) { SetStatus(Loc("Str_CropNoDoc")); return; }
             PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
-            int currentPage = _cropPageIndex >= 0 ? _cropPageIndex : _currentPage;
+            int currentPage = CropMath.BoxPage(_cropPageIndex, _currentPage);
             if (currentPage < 0) { SetStatus(Loc("Str_CropNoPage")); return; }
             if (!_renderDims.TryGetValue(currentPage, out var refDims))
             { SetStatus(Loc("Str_CropNoDims")); return; }

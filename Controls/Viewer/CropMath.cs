@@ -45,6 +45,25 @@ namespace KillerPDF.Controls
         }
 
         /// <summary>
+        /// The page that holds the crop box: the page the box was drawn on, else the page in view.
+        /// Read when the crop is applied or the fields are read, never captured earlier, because a new
+        /// box can be drawn on another page after the bar is built.
+        /// </summary>
+        internal static int BoxPage(int cropPageIndex, int currentPage)
+            => cropPageIndex >= 0 ? cropPageIndex : currentPage;
+
+        /// <summary>
+        /// Chooses the pages a crop applies to: every page when All is checked, else a typed range,
+        /// else just the page holding the box. Returns <c>null</c> when the typed range is invalid.
+        /// </summary>
+        internal static int[]? SelectPages(bool all, string? range, int pageCount, int boxPage)
+        {
+            if (all) return [.. Enumerable.Range(0, pageCount)];
+            if (!string.IsNullOrWhiteSpace(range)) return ParsePageRange(range, pageCount);
+            return [boxPage];
+        }
+
+        /// <summary>
         /// Maps a rectangle drawn on the reference page's canvas to a crop box on one target page, in
         /// absolute user-space points (x, y, width, height from the bottom-left). The mapping through the
         /// reference page's effective box is relative to that box, so the target page's own origin
