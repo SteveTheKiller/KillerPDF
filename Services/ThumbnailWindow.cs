@@ -55,7 +55,9 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
         lock (_sync)
         {
             if (_heldNodes.ContainsKey(page) || _failed.Contains(page) || _threw.Contains(page)) return;
-            if (!_pending.Add(page)) _requests.Remove(page);   // asked again: move it to the front of the queue
+            // Asked again while waiting: move it to the front of the queue. A pending page that is not queued is being
+            // drawn now, and that draw publishes it, so it is left alone instead of being drawn a second time.
+            if (!_pending.Add(page) && !_requests.Remove(page)) return;
             _requests.Add(page);
             // A fast scroll can realize far more rows than are retained, and drawing the oldest of them would only
             // release them again. The oldest waiting requests are dropped, and their rows ask again when read.

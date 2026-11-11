@@ -426,11 +426,39 @@ public sealed class ThumbnailWindowTests
             TimeSpan.FromSeconds(10)), $"page 0 was not drawn again (attempts {Volatile.Read(ref attempts0)})");
     }
 
-    // A row can ask for a page again while that page's second throwing draw is still running, so the same pass draws
-    // it once more. When that draw succeeds the page is a working page: it must not stay marked as failed by throwing,
-    // or a later success would re-arm it and leave it holding a used retry.
+    // A row can ask for a page again while that page is being drawn. The draw already running will publish it, so the
+    // request is left alone: the page is drawn once and held once.
     [Fact]
-    public void APageAskedForAgainDuringItsSecondThrowAndThenDrawnKeepsItsRetry()
+    public void APageAskedForAgainWhileItIsDrawnIsDrawnOnce()
+    {
+        int attempts0 = 0;
+        using var drained = new SemaphoreSlim(0);
+        using var inDraw = new ManualResetEventSlim();
+        using var releaseDraw = new ManualResetEventSlim();
+        using var window = new ThumbnailWindow<string>(100, (page, _) =>
+        {
+            if (page == 0 && Interlocked.Increment(ref attempts0) == 1)
+            {
+                inDraw.Set();
+                releaseDraw.Wait(TimeSpan.FromSeconds(30));
+            }
+            return $"thumb {page}";
+        }, (page, image) => { }, retain: 2, drained: () => drained.Release());
+
+        window.Request(0);
+        Assert.True(inDraw.Wait(TimeSpan.FromSeconds(10)));
+        window.Request(0);                                   // a row reads its binding while the draw runs
+        releaseDraw.Set();
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Thread.Sleep(200);
+
+        Assert.Equal(1, Volatile.Read(ref attempts0));
+    }
+
+    // The same while a throwing draw runs: the request is left alone, so the throw is counted under the usual rules and
+    // the page keeps its one retry for the next success.
+    [Fact]
+    public void APageAskedForAgainWhileItsSecondThrowRunsKeepsItsRetry()
     {
         int attempts0 = 0;
         using var drained = new SemaphoreSlim(0);
@@ -458,22 +486,24 @@ public sealed class ThumbnailWindowTests
 
         window.Request(0);                                   // attempt 1 throws
         Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
-        window.Request(0);                                   // attempt 2 throws, but a row asks again while it runs
+        window.Request(0);                                   // attempt 2 throws, and a row asks again while it runs
         Assert.True(inSecondDraw.Wait(TimeSpan.FromSeconds(10)));
         window.Request(0);
         releaseSecondDraw.Set();
-        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts0) == 3 && shown.ContainsKey(0),
-            TimeSpan.FromSeconds(10)), "the re-requested page was not drawn in the same pass");
         Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Thread.Sleep(200);
+        Assert.Equal(2, Volatile.Read(ref attempts0));      // not drawn again in the same pass
 
-        Draw(1);                                             // retain 1: page 0 is let go
+        Draw(1);                                             // a success re-arms it
+        Draw(0);                                             // its one retry draws (attempt 3)
+        Draw(2);                                             // retain 1: page 0 is let go
         for (int i = 0; i < 2; i++)                          // a later brief lock settles it by throwing
         {
             window.Request(0);
             Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
         }
         Assert.Equal(5, Volatile.Read(ref attempts0));
-        Draw(2);                                             // a success re-arms it
+        Draw(1);                                             // a success re-arms it again
         window.Request(0);
         Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts0) == 6 && shown.ContainsKey(0),
             TimeSpan.FromSeconds(10)), $"page 0 was not drawn again (attempts {Volatile.Read(ref attempts0)})");
