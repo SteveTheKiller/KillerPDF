@@ -37,6 +37,15 @@ internal sealed class ExtractImageDialog : Window
     private Point _keyPointer;
     private Point? _keyAnchor;
     private bool _manualFill;
+    // The selection's box is found once per selection (selections never change after they are built),
+    // and the overlay's pixels and the swatch's brush are reused from one refresh to the next.
+    private PdfRasterSelection? _boundsOf;
+    private (int Left, int Top, int Width, int Height)? _bounds;
+    private byte[]? _overlayPixels;
+    private Color? _swatchColor;
+    // A slider drag asks for many changes a second; the work runs once the slider has been still for a moment.
+    private readonly System.Windows.Threading.DispatcherTimer _sliderPause = new() { Interval = TimeSpan.FromMilliseconds(60) };
+    private bool _pendingReseed, _pendingRefresh;
 
     internal bool Confirmed { get; private set; }
     internal PdfRasterSelection? Selection => _selection;
@@ -95,7 +104,7 @@ internal sealed class ExtractImageDialog : Window
         _tolerance = new Slider { Minimum = 0, Maximum = 100, Value = 12, SmallChange = 1, LargeChange = 5, IsSnapToTickEnabled = true, TickFrequency = 1 };
         if (darkSlider is not null) _tolerance.Style = darkSlider;
         System.Windows.Automation.AutomationProperties.SetName(_tolerance, L("Str_ExtractImage_Tolerance"));
-        _tolerance.ValueChanged += (_, _) => { _toleranceValue.Text = $"{_tolerance.Value:0}%"; Reseed(); };
+        _tolerance.ValueChanged += (_, _) => { _toleranceValue.Text = $"{_tolerance.Value:0}%"; AfterSliderPause(reseed: true); };
         _toleranceValue.Text = $"{_tolerance.Value:0}%";
         stack.Children.Add(_tolerance);
 
@@ -117,8 +126,11 @@ internal sealed class ExtractImageDialog : Window
         _featherRadius = new Slider { Minimum = 1, Maximum = 8, Value = 2, SmallChange = 1, LargeChange = 1, IsSnapToTickEnabled = true, TickFrequency = 1, IsEnabled = false };
         if (darkSlider is not null) _featherRadius.Style = darkSlider;
         System.Windows.Automation.AutomationProperties.SetName(_featherRadius, L("Str_ExtractImage_FeatherRadius"));
-        _feather.Checked += (_, _) => _featherRadius.IsEnabled = true;
-        _feather.Unchecked += (_, _) => _featherRadius.IsEnabled = false;
+        _feather.Checked += (_, _) => { _featherRadius.IsEnabled = true; Refresh(); };
+        _feather.Unchecked += (_, _) => { _featherRadius.IsEnabled = false; Refresh(); };
+        _featherRadius.ValueChanged += (_, _) => AfterSliderPause(reseed: false);
+        _sliderPause.Tick += (_, _) => FlushSliderWork();
+        Closed += (_, _) => _sliderPause.Stop();
         stack.Children.Add(_featherRadius);
 
         stack.Children.Add(UiKit.GroupLabel(L("Str_ExtractImage_Result")));
@@ -300,6 +312,24 @@ internal sealed class ExtractImageDialog : Window
         Combine(PdfRasterSelection.SelectConnected(_frame, seed.X, seed.Y, Tolerance), keepBase: true);
     }
 
+    private void AfterSliderPause(bool reseed)
+    {
+        _pendingReseed |= reseed;
+        _pendingRefresh = true;
+        _sliderPause.Stop();
+        _sliderPause.Start();
+    }
+
+    // Runs the work a slider asked for. Apply calls it first, so it never acts on a stale choice.
+    private void FlushSliderWork()
+    {
+        _sliderPause.Stop();
+        bool reseed = _pendingReseed, refresh = _pendingRefresh;
+        _pendingReseed = _pendingRefresh = false;
+        if (reseed) Reseed();
+        else if (refresh) Refresh();
+    }
+
     private float Tolerance => (float)(_tolerance.Value / 100);
 
     private void Combine(PdfRasterSelection next, bool keepBase = false)
@@ -315,7 +345,28 @@ internal sealed class ExtractImageDialog : Window
     private (int Left, int Top, int Width, int Height)? Bounds()
     {
         if (_selection is null) return null;
-        ReadOnlySpan<byte> coverage = _selection.Coverage;
+        if (!ReferenceEquals(_boundsOf, _selection))
+        {
+            _bounds = FindBounds();
+            _boundsOf = _selection;
+        }
+        return _bounds;
+    }
+
+    // The size of the image Apply makes: the selection's box grown by the feather radius on each side,
+    // kept inside the page, as the engine's extraction does.
+    private (int Left, int Top, int Width, int Height)? ExtractedBounds()
+    {
+        if (Bounds() is not { } box) return null;
+        int radius = _feather.IsChecked == true ? (int)_featherRadius.Value : 0;
+        int left = Math.Max(0, box.Left - radius), top = Math.Max(0, box.Top - radius);
+        int right = Math.Min(_width - 1, box.Left + box.Width - 1 + radius), bottom = Math.Min(_height - 1, box.Top + box.Height - 1 + radius);
+        return (left, top, right - left + 1, bottom - top + 1);
+    }
+
+    private (int Left, int Top, int Width, int Height)? FindBounds()
+    {
+        ReadOnlySpan<byte> coverage = _selection!.Coverage;
         int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
         for (int y = 0; y < _height; y++)
             for (int x = 0; x < _width; x++)
@@ -339,10 +390,15 @@ internal sealed class ExtractImageDialog : Window
             var (r, g, b) = PdfRasterExtraction.SampleFillColor(_frame, _selection);
             FillColor = Color.FromRgb(r, g, b);
         }
-        _swatch.Background = new SolidColorBrush(FillColor);
+        if (_swatchColor != FillColor)
+        {
+            _swatch.Background = new SolidColorBrush(FillColor);
+            _swatchColor = FillColor;
+        }
         // Copy tints the selection; Cut shows the page as it will look, with the fill in place.
         Color accent = KillerPDF.Controls.PageWindowLayout.ThemeColor(Application.Current?.TryFindResource("PrimaryBrush"), Color.FromRgb(0x22, 0xBB, 0x56));
-        var pixels = new byte[_width * _height * 4];
+        byte[] pixels = _overlayPixels ??= new byte[_width * _height * 4];
+        Array.Clear(pixels);
         if (_selection is not null)
         {
             ReadOnlySpan<byte> coverage = _selection.Coverage;
@@ -354,7 +410,7 @@ internal sealed class ExtractImageDialog : Window
             }
         }
         _overlayBitmap.WritePixels(new Int32Rect(0, 0, _width, _height), pixels, _width * 4, 0);
-        var bounds = Bounds();
+        var bounds = ExtractedBounds();
         bool tooLarge = bounds is { } size && (long)size.Width * size.Height > PdfRasterExtraction.MaximumPixels;
         _summary.Text = bounds is not { } shown ? L("Str_ExtractImage_None")
             : string.Format(L(tooLarge ? "Str_ExtractImage_TooLarge" : "Str_ExtractImage_Size"), shown.Width, shown.Height);
@@ -363,6 +419,7 @@ internal sealed class ExtractImageDialog : Window
 
     private void Commit()
     {
+        FlushSliderWork();
         if (!_apply.IsEnabled) return;
         Cut = _cut.IsChecked == true;
         FeatherRadius = _feather.IsChecked == true ? (int)_featherRadius.Value : 0;
