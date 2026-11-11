@@ -159,6 +159,15 @@ public sealed partial class DjvuDocument
         => new("TextNotConverted", $"Page {pageIndex + 1} text was left out of the PDF: {reason.TrimEnd('.')}. " +
             "The page image converted.") { PageIndex = pageIndex };
 
+    // One run of the page text written at a rectangle in native pixels (left, bottom, width, height). Structural runs
+    // are the separators the DjVu text model keeps between zones, which no leaf zone covers.
+    private readonly record struct LocatedSegment(double Left, double Bottom, double Width, double Height, string Text,
+        bool Structural);
+
+    // The separators DjVu text layers put between zones: U+0000 ends the page, U+001C through U+001F end the
+    // columns, regions and paragraphs. They are written as they are.
+    private static bool IsTextModelSeparator(System.Text.Rune rune) => rune.Value is 0 or >= 0x1c and <= 0x1f;
+
     // Writes the page's located text as an invisible layer, or, when the text cannot be placed faithfully, leaves it
     // out with a notice naming the page; text never stops the conversion. Every check runs before anything is written.
     private static void AddLocatedPdfText(PdfContentStreamBuilder content, DjvuTextPage text,
@@ -175,7 +184,8 @@ public sealed partial class DjvuDocument
         // A character the text font cannot represent (a control character, or one outside the font) is written as
         // U+FFFD. U+FFFD itself stands for source bytes that were not UTF-8. The invisible layer carries it through
         // the ToUnicode map only, never as a drawn glyph, so copy and search see a replacement where the source was
-        // unreadable instead of the whole page losing its text.
+        // unreadable instead of the whole page losing its text. The text model's own separators between zones are
+        // not unreadable bytes and are carried as they are.
         int replaced = 0;
         for (int index = 0; index < segments.Count; index++)
         {
@@ -184,11 +194,11 @@ public sealed partial class DjvuDocument
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 bool drawable = System.Text.Rune.IsWhiteSpace(rune) || rune == System.Text.Rune.ReplacementChar
-                    || font.GetGlyphId(rune.Value) != 0;
+                    || (segments[index].Structural && IsTextModelSeparator(rune)) || font.GetGlyphId(rune.Value) != 0;
                 if (!drawable) replaced++;
                 builder.Append(drawable ? rune.ToString() : "�");
             }
-            segments[index] = (segments[index].Zone, builder.ToString());
+            segments[index] = segments[index] with { Text = builder.ToString() };
         }
         if (replaced > 0)
             diagnostics.Add(new("TextCharactersReplaced", $"Page {pageIndex + 1} text has {replaced} characters the " +
@@ -207,74 +217,180 @@ public sealed partial class DjvuDocument
                 content.Transform(-1, 0, 0, -1, page.Width * scale, page.Height * scale); break;
         }
         content.BeginText().SetTextRenderingMode(PdfTextRenderingMode.Invisible).SetFont(font, 1);
-        foreach (var (zone, segment) in segments)
+        foreach (var segment in segments)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            double sx = zone.Width * scale * 1000 / (bounds.Right - bounds.Left);
-            double sy = zone.Height * scale * 1000 / (bounds.Top - bounds.Bottom);
+            double sx = segment.Width * scale * 1000 / (bounds.Right - bounds.Left);
+            double sy = segment.Height * scale * 1000 / (bounds.Top - bounds.Bottom);
             // One invisible glyph transports the original logical range at its actual zone bounds.
             // It does not assert source positions for individual characters inside that zone.
-            content.SetTextMatrix(sx, 0, 0, sy, zone.Left * scale - bounds.Left * sx / 1000,
-                    zone.Bottom * scale - bounds.Bottom * sy / 1000)
-                .ShowUnicodeText("A", segment);
+            content.SetTextMatrix(sx, 0, 0, sy, segment.Left * scale - bounds.Left * sx / 1000,
+                    segment.Bottom * scale - bounds.Bottom * sy / 1000)
+                .ShowUnicodeText("A", segment.Text);
         }
         content.EndText().RestoreState();
     }
 
-    // Each leaf zone with the logical text it carries (the separators before it, and after the last one), or why the
-    // text cannot be placed faithfully.
-    private static (List<(DjvuTextZone Zone, string Text)> Segments, string? Reason) PlanLocatedText(DjvuTextPage text,
+    // The page text in reading order as runs with a rectangle each, or why the text cannot be placed faithfully.
+    // Each character belongs to the deepest zone whose text range holds it. A leaf zone places its own text at its own
+    // rectangle. Characters a parent holds beyond its children (the separators between lines, paragraphs, regions
+    // and the page, or a character the OCR kept outside both neighbouring words) form a run per parent: it sits
+    // between the rectangles of the children before and after it, and when that gap is empty (the last child ends
+    // where the parent ends, or the next one starts on another line) it takes its proportional share of the parent's
+    // width by character offset. A run of whitespace alone that no leaf holds joins the run before it, or the first
+    // run when it leads the text, so line ends stay with the line they end.
+    private static (List<LocatedSegment> Segments, string? Reason) PlanLocatedText(DjvuTextPage text,
         DjvuPageInfo page, CancellationToken cancellationToken)
     {
-        List<(DjvuTextZone Zone, string Text)> segments = [];
+        List<LocatedSegment> segments = [];
         if (text.Zones.Count == 0) return (segments, "nonempty text has no located zones");
+        int length = text.Text.Length;
         var hasChildren = new bool[text.Zones.Count];
-        foreach (var zone in text.Zones)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (zone.Left < 0 || zone.Bottom < 0 || zone.Left + zone.Width > page.Width
-                || zone.Bottom + zone.Height > page.Height)
-                return (segments, "a text zone lies outside the native page");
-            if (zone.ParentIndex >= 0) hasChildren[zone.ParentIndex] = true;
-        }
-        var leaves = new List<DjvuTextZone>();
+        var depth = new int[text.Zones.Count];
         for (int index = 0; index < text.Zones.Count; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!hasChildren[index] && text.Zones[index].Length != 0) leaves.Add(text.Zones[index]);
+            var zone = text.Zones[index];
+            if (zone.Left < 0 || zone.Bottom < 0 || zone.Left + zone.Width > page.Width
+                || zone.Bottom + zone.Height > page.Height)
+                return (segments, "a text zone lies outside the native page");
+            if (zone.ParentIndex >= 0)
+            {
+                hasChildren[zone.ParentIndex] = true;
+                depth[index] = depth[zone.ParentIndex] + 1;
+            }
         }
-        // Bound the existing substitute-code allocator and each logical replacement string.
-        if (leaves.Count is < 1 or > 4096)
-            return (segments, "conversion requires between 1 and 4096 nonempty leaf zones per page");
-        leaves.Sort((first, second) => first.Start.CompareTo(second.Start));
-        int cursor = 0;
-        for (int index = 0; index < leaves.Count; index++)
+        var leaves = new List<int>();
+        for (int index = 0; index < text.Zones.Count; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var zone = leaves[index];
-            if (zone.Start < cursor) return (segments, "leaf text ranges overlap");
-            if (!Whitespace(cursor, zone.Start)) return (segments, "non-whitespace text lacks a leaf zone");
-            int end = zone.Start + zone.Length;
-            if (index == leaves.Count - 1)
-            {
-                if (!Whitespace(end, text.Text.Length)) return (segments, "non-whitespace text lacks a leaf zone");
-                end = text.Text.Length;
-            }
-            if (end - cursor > 65536)
-                return (segments, "a logical text zone exceeds the 65536 UTF16 unit conversion limit");
-            segments.Add((zone, text.Text[cursor..end]));
-            cursor = end;
+            if (!hasChildren[index] && text.Zones[index].Length != 0) leaves.Add(index);
         }
-        return (segments, null);
-
-        bool Whitespace(int start, int end)
+        // Bound the existing substitute-code allocator and each logical replacement string.
+        if (leaves.Count > 4096)
+            return (segments, "conversion requires between 1 and 4096 nonempty leaf zones per page");
+        leaves.Sort((first, second) => text.Zones[first].Start.CompareTo(text.Zones[second].Start));
+        var owner = new int[length];
+        Array.Fill(owner, -1);
+        int previousEnd = 0;
+        foreach (int leaf in leaves)
         {
-            for (int index = start; index < end; index++)
+            cancellationToken.ThrowIfCancellationRequested();
+            var zone = text.Zones[leaf];
+            if (zone.Start < previousEnd) return (segments, "leaf text ranges overlap");
+            previousEnd = zone.Start + zone.Length;
+            Array.Fill(owner, leaf, zone.Start, zone.Length);
+        }
+        // The rest goes to the deepest parent that holds it: deepest parents first, each taking what is still free.
+        // next[k] is the first free character at or after k, so every character is visited once.
+        var next = new int[length + 1];
+        for (int k = 0; k <= length; k++) next[k] = k < length && owner[k] >= 0 ? k + 1 : k;
+        int Free(int k)
+        {
+            int root = k;
+            while (next[root] != root) root = next[root];
+            while (next[k] != root)
+            {
+                int following = next[k];
+                next[k] = root;
+                k = following;
+            }
+            return root;
+        }
+        var parents = new List<int>();
+        for (int index = 0; index < text.Zones.Count; index++)
+            if (hasChildren[index] && text.Zones[index].Length != 0) parents.Add(index);
+        parents.Sort((first, second) => depth[first] != depth[second] ? depth[second].CompareTo(depth[first])
+            : first.CompareTo(second));
+        foreach (int parent in parents)
+        {
+            var zone = text.Zones[parent];
+            int end = zone.Start + zone.Length;
+            for (int k = Free(zone.Start); k < end; k = Free(k + 1))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!char.IsWhiteSpace(text.Text[index])) return false;
+                owner[k] = parent;
+                next[k] = k + 1;
             }
-            return true;
         }
+        List<int>[]? children = null;
+        string leading = string.Empty;
+        int separatorRuns = 0;
+        for (int start = 0; start < length;)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int id = owner[start], end = start + 1;
+            while (end < length && owner[end] == id) end++;
+            string run = text.Text[start..end];
+            if (id >= 0 && !hasChildren[id])
+            {
+                var zone = text.Zones[id];
+                segments.Add(new(zone.Left, zone.Bottom, zone.Width, zone.Height, leading + run, false));
+                leading = string.Empty;
+            }
+            else if (run.All(char.IsWhiteSpace))
+            {
+                if (segments.Count == 0) leading += run;
+                else segments[^1] = segments[^1] with { Text = segments[^1].Text + run };
+            }
+            else if (id < 0) return (segments, "non-whitespace text lacks a zone");
+            else
+            {
+                if (++separatorRuns > 4096)
+                    return (segments, "conversion requires between 1 and 4096 nonempty leaf zones per page");
+                children ??= BuildChildren(text, hasChildren, cancellationToken);
+                var (left, bottom, width, height) = GapRectangle(text.Zones, children, id, start, end);
+                segments.Add(new(left, bottom, width, height, leading + run, true));
+                leading = string.Empty;
+            }
+            start = end;
+        }
+        if (segments.Count == 0) return (segments, "conversion requires between 1 and 4096 nonempty leaf zones per page");
+        foreach (var segment in segments)
+            if (segment.Text.Length > 65536)
+                return (segments, "a logical text zone exceeds the 65536 UTF16 unit conversion limit");
+        return (segments, null);
+    }
+
+    private static List<int>[] BuildChildren(DjvuTextPage text, bool[] hasChildren, CancellationToken cancellationToken)
+    {
+        var children = new List<int>[text.Zones.Count];
+        for (int index = 0; index < text.Zones.Count; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (hasChildren[index]) children[index] = [];
+        }
+        for (int index = 0; index < text.Zones.Count; index++)
+            if (text.Zones[index].ParentIndex >= 0 && text.Zones[index].Length != 0)
+                children[text.Zones[index].ParentIndex].Add(index);
+        return children;
+    }
+
+    // Where characters [start, end) that parent zone `id` holds beyond its children go: across the parent's height,
+    // between the child text ends before and after them, or, when that gap is empty, their proportional share of the
+    // parent's width by character offset.
+    private static (double Left, double Bottom, double Width, double Height) GapRectangle(
+        IReadOnlyList<DjvuTextZone> zones, List<int>[] children, int id, int start, int end)
+    {
+        var parent = zones[id];
+        double left = parent.Left, right = parent.Left + parent.Width;
+        long before = -1, after = long.MaxValue;
+        foreach (int child in children[id])
+        {
+            var zone = zones[child];
+            if (zone.Start + zone.Length <= start && zone.Start + zone.Length > before)
+            {
+                before = zone.Start + zone.Length;
+                left = Math.Max(left, zone.Left + zone.Width);
+            }
+            else if (zone.Start >= end && zone.Start < after)
+            {
+                after = zone.Start;
+                right = Math.Min(right, zone.Left);
+            }
+        }
+        if (right > left) return (left, parent.Bottom, right - left, parent.Height);
+        double share = (double)parent.Width / parent.Length;
+        return (parent.Left + share * (start - parent.Start), parent.Bottom, share * (end - start), parent.Height);
     }
 }
