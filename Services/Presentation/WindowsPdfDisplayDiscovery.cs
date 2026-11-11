@@ -62,6 +62,10 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
     {
         bool invalidate = message is 0x1A or 0x7E or 0x320 or 0x2E0;
         if (!invalidate && message is not (0x47 or 0x6 or 0x18)) return 0;
+        // The settings messages, activation and showing capture at once. Window movement fires for every step of a drag
+        // or resize, so it captures when the window changed monitors or the interval has passed.
+        if (message == 0x47 && !ShouldCaptureAfterMove(_lastCapturedMonitor, MonitorFromWindow(_ownedViewport, 2),
+                _lastCaptureTick, Environment.TickCount64)) return 0;
         if (invalidate) _invalidationSerial = checked(_invalidationSerial + 1);
         if (_pendingObservation is not null || _disposed) return 0;
         _pendingObservation = _dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
@@ -75,6 +79,18 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
         });
         return 0;
     }
+
+    /// <summary>
+    /// Whether a window-moved message should schedule a capture. A drag or resize sends one per step, and a full
+    /// capture costs about 11 ms on the UI thread, so only a move onto another monitor captures at once and a move
+    /// within one monitor captures at most once per interval (to notice a changed profile association).
+    /// </summary>
+    public static bool ShouldCaptureAfterMove(nint lastMonitor, nint currentMonitor, long lastCaptureTick, long nowTick) =>
+        currentMonitor != lastMonitor || nowTick - lastCaptureTick >= MoveCaptureIntervalMilliseconds;
+
+    const long MoveCaptureIntervalMilliseconds = 250;
+    nint _lastCapturedMonitor;
+    long _lastCaptureTick;
 
     void OnObservationSourceDisposed(object? sender, EventArgs args)
     {
@@ -101,6 +117,8 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
         cancellationToken.ThrowIfCancellationRequested();
         long invalidation = _invalidationSerial;
         nint monitor = MonitorFromWindow(_ownedViewport, 2);
+        _lastCapturedMonitor = monitor;
+        _lastCaptureTick = Environment.TickCount64;
         var info = new MonitorInfo { Size = (uint)Marshal.SizeOf<MonitorInfo>(), Device = string.Empty };
         PdfDisplayDiscoverySnapshot observed;
         if (monitor == 0)

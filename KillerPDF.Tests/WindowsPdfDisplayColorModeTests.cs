@@ -27,6 +27,32 @@ public sealed class WindowsPdfDisplayColorModeTests
             Observed(4, "monitor.icc") with { MonitorIdentity = "\\\\.\\DISPLAY2" }));
     }
 
+    // VIEW-007: every step of a window drag or resize sent a window-moved message, and each one queued a full display
+    // capture on the UI thread (about 11 ms). Only a move onto another monitor captures at once; a move within one
+    // monitor captures at most once per 250 ms.
+    [Fact]
+    public void AMoveOntoAnotherMonitorCapturesAtOnce()
+    {
+        Assert.True(WindowsPdfDisplayDiscovery.ShouldCaptureAfterMove(100, 200, lastCaptureTick: 1000, nowTick: 1001));
+    }
+
+    [Theory]
+    [InlineData(1000, 1001)]
+    [InlineData(1000, 1100)]
+    [InlineData(1000, 1249)]
+    public void MovesWithinOneMonitorInsideTheIntervalDoNotCapture(long lastCapture, long now)
+    {
+        Assert.False(WindowsPdfDisplayDiscovery.ShouldCaptureAfterMove(100, 100, lastCapture, now));
+    }
+
+    [Theory]
+    [InlineData(1000, 1250)]
+    [InlineData(1000, 5000)]
+    public void AMoveWithinOneMonitorCapturesOnceTheIntervalHasPassed(long lastCapture, long now)
+    {
+        Assert.True(WindowsPdfDisplayDiscovery.ShouldCaptureAfterMove(100, 100, lastCapture, now));
+    }
+
     private static PdfDisplayDiscoverySnapshot Observed(long generation, string? profile) =>
         new(generation, PdfDisplayDiscoveryStatus.Available, "\\\\.\\DISPLAY1", new PdfDisplayBounds(0, 0, 1920, 1080), null, null)
         {

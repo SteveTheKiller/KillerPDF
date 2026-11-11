@@ -31,7 +31,7 @@ public sealed class NativeContinuousLinkTests
         string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
         string slot = Between(viewport, "private void SetContinuousSlot(", "/// <summary>True when part of the page is in the document viewport now.");
 
-        Assert.Equal(1, System.Text.RegularExpressions.Regex.Matches(slot, @"AddSecondaryPageLinks\(").Count);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(slot, @"AddSecondaryPageLinks\("));
         Assert.Matches(@"RenderAllAnnotations\(fi\);\s*if \(_nativeDoc is not null\) AddSecondaryPageLinks\(fi, rdW, rdH\);", slot);
     }
 
