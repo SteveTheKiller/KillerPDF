@@ -328,16 +328,30 @@ public sealed partial class PdfPageRenderer
         int rows = bottom - top;
         int chunks = Math.Min(parallelism * 4, rows);
         int chunkRows = (rows + chunks - 1) / chunks;
-        Parallel.For(0, chunks, new ParallelOptions
+        try
         {
-            MaxDegreeOfParallelism = parallelism,
-            CancellationToken = cancellationToken
-        }, chunk =>
+            Parallel.For(0, chunks, new ParallelOptions
+            {
+                MaxDegreeOfParallelism = parallelism,
+                CancellationToken = cancellationToken
+            }, chunk =>
+            {
+                int start = top + chunk * chunkRows;
+                int end = Math.Min(bottom, start + chunkRows);
+                if (start < end) body(start, end);
+            });
+        }
+        catch (AggregateException error)
         {
-            int start = top + chunk * chunkRows;
-            int end = Math.Min(bottom, start + chunkRows);
-            if (start < end) body(start, end);
-        });
+            // Rows fail the way the serial path does: a refused paint stays a NotSupportedException that
+            // callers fall back on, and cancellation stays cancellation, not an aggregate of row failures.
+            var inner = error.Flatten().InnerExceptions;
+            Exception first = inner[0];
+            if ((first is NotSupportedException or OperationCanceledException or InvalidDataException or ArgumentException)
+                && inner.All(other => other.GetType() == first.GetType()))
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(first).Throw();
+            throw;
+        }
     }
 
     /// <summary>Lets tests compare cached glyph fills against the direct fill path.</summary>
