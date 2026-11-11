@@ -273,7 +273,7 @@ namespace KillerPDF.Services
             {
                 var areas = new List<KillerPdf.Engine.Documents.PdfContentBounds>();
                 foreach (var (index, region) in perSpan[spanIndex++])
-                    areas.Add(overlapping[index] >= 2 ? ShareOfRegion(region, span.Start, span.Length) : region.Bounds);
+                    areas.Add(overlapping[index] >= 2 ? ShareOfRegion(region, span.Start, span.Length, page.Text) : region.Bounds);
                 bool found = areas.Count > 0;
                 double left = found ? areas.Min(area => area.Left) : 0, bottom = found ? areas.Min(area => area.Bottom) : 0;
                 double right = found ? areas.Max(area => area.Right) : 0, top = found ? areas.Max(area => area.Top) : 0;
@@ -285,10 +285,11 @@ namespace KillerPDF.Services
             return located;
         }
 
-        // The part of a region the span's characters cover, by character share along the text axis: left to right,
-        // or top to bottom when the region is clearly taller than wide (height more than twice the width).
-        private static KillerPdf.Engine.Documents.PdfContentBounds ShareOfRegion(
-            KillerPdf.Engine.Documents.PdfReadTextRegion region, int start, int length)
+        // The part of a region the span's characters cover, by character share along the text axis: left to right
+        // (right to left when the region's first letter is Hebrew, Arabic or another right-to-left letter), or top to
+        // bottom when the region is clearly taller than wide (height more than twice the width).
+        internal static KillerPdf.Engine.Documents.PdfContentBounds ShareOfRegion(
+            KillerPdf.Engine.Documents.PdfReadTextRegion region, int start, int length, string pageText)
         {
             var bounds = region.Bounds;
             if (region.Length <= 0) return bounds;
@@ -296,7 +297,22 @@ namespace KillerPDF.Services
             double to = (double)(Math.Min(start + length, region.Start + region.Length) - region.Start) / region.Length;
             if (bounds.Height > bounds.Width * 2)
                 return bounds with { Top = bounds.Top - bounds.Height * from, Bottom = bounds.Top - bounds.Height * to };
+            if (StartsRightToLeft(pageText, region))
+                return bounds with { Left = bounds.Right - bounds.Width * to, Right = bounds.Right - bounds.Width * from };
             return bounds with { Left = bounds.Left + bounds.Width * from, Right = bounds.Left + bounds.Width * to };
+        }
+
+        // The direction of a run is that of its first strong letter; digits and punctuation before it are neutral.
+        private static bool StartsRightToLeft(string pageText, KillerPdf.Engine.Documents.PdfReadTextRegion region)
+        {
+            int end = Math.Min(pageText.Length, region.Start + region.Length);
+            for (int at = Math.Max(0, region.Start); at < end; at++)
+            {
+                char c = pageText[at];
+                if (!char.IsLetter(c)) continue;
+                return c is (>= '\u0590' and <= '\u08FF') or (>= '\uFB1D' and <= '\uFDFF') or (>= '\uFE70' and <= '\uFEFF');
+            }
+            return false;
         }
         private static SearchResult SearchNative(PdfCapturedReadRevision revision, string query, bool matchCase,
             bool wholeWord, CancellationToken cancellationToken)
