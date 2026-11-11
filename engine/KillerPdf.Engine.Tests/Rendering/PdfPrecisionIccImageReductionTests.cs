@@ -94,9 +94,19 @@ public sealed class PdfPrecisionIccImageReductionTests
     [InlineData(3, 3, null)]
     [InlineData(4, 2, null)]
     [InlineData(2, 8, null)]
+    public void FractionalSingleAxisAndMixedReductionGeometryRetainsPrecision(int width, int height, string? content)
+    {
+        var renderer = Renderer(width: width, height: height, content: content);
+        var frame = renderer.RenderFrame(0, new PdfRenderOptions(width, height));
+        Assert.Empty(frame.Diagnostics);
+        Assert.Equal(width * height * 4, frame.Pixels.Length);
+        Assert.Contains(frame.Pixels.ToArray(), value => value < 0);
+    }
+
+    [Theory]
     [InlineData(1, 1, "1 0 0 1 0.5 0 cm /Image Do")]
     [InlineData(1, 1, "1 0 0.25 1 0 0 cm /Image Do")]
-    public void FractionalSingleAxisMixedAndUnalignedAreaGeometryRemainsRejected(int width, int height, string? content)
+    public void UnalignedAndShearedAreaGeometryRemainsRejected(int width, int height, string? content)
     {
         var renderer = Renderer(width: width, height: height, content: content);
 

@@ -10,6 +10,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 
 ### Fixed
 
+- Precision viewing and proofing draw more scaled scans, stencils and image masks while retaining source color and alpha. Overlapping ICC tables share one decoded-sample limit across intents. (#264)
 - Relative printer proofs keep unprinted paper white and inside the gamut warning mask without changing absolute or paper-simulation endpoints. Native proof storage refusals allow the viewer to fall back to normal rendering. (#264)
 - EPUB layout handles padded and nested tables, bounds table and navigation work, recovers optional CSS and list content, and preserves the rest of a book when a chapter, navigation or optional resource cannot be read. (#472)
 - DjVu conversion accepts full-resolution grayscale scans and keeps page positions when content cannot be converted. Reduced compound layers stay aligned with their masks, and shared annotations no longer stop page rendering. (#472)

@@ -83,11 +83,18 @@ public sealed class PdfPrecisionImageReductionTests
     [Theory]
     [InlineData(3, 3)]
     [InlineData(2, 8)]
-    public void FractionalFootprintsAndMixedScalingRemainRejected(int width, int height)
+    public void FractionalFootprintsAndMixedScalingRetainSourceMeans(int width, int height)
     {
         var renderer = Renderer(outputWidth: width, outputHeight: height);
 
-        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0, new PdfRenderOptions(width, height)));
+        var frame = renderer.RenderFrame(0, new PdfRenderOptions(width, height));
+        double first = (width == 3 ? 32768.25 : 32768.5) / 65535;
+        double last = (width == 3 ? 32770.75 : 32770.5) / 65535;
+        for (int y = 0; y < height; y++)
+        {
+            AssertGray(frame, y * width, (float)Math.Pow((first + .055) / 1.055, 2.4));
+            AssertGray(frame, y * width + width - 1, (float)Math.Pow((last + .055) / 1.055, 2.4));
+        }
     }
 
     private static PdfPageRenderer Renderer(bool checker = false, int outputWidth = 1, int outputHeight = 1,

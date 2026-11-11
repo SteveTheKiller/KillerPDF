@@ -55,11 +55,11 @@ public sealed class PdfPrecisionImageSamplingTests
     }
 
     [Fact]
-    public void ReductionThatNeedsAreaSamplingIsRejected()
+    public void SingleAxisReductionRetainsTheSixteenBitAreaMean()
     {
         var renderer = Renderer(content: "1 0 0 1 0 0 cm /Image Do", pageWidth: 1);
 
-        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0, new PdfRenderOptions(1, 1)));
+        AssertGray(renderer.RenderFrame(0, new PdfRenderOptions(1, 1)), 0, .21405526f);
     }
 
     [Theory]

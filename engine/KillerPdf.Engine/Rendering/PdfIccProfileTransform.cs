@@ -23,6 +23,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
     private readonly bool _hasPerceptualReverse;
     private readonly ReadOnlyMemory<byte> _tableData;
     private readonly Dictionary<ReadOnlyMemory<byte>, PdfIccTable>? _tables;
+    private readonly PdfIccStorageBudget _storage;
     // One gate per root profile: variants of one profile share its table cache, while unrelated
     // profiles in other documents parse their intent variants in parallel.
     private readonly Lock _intentGate = new();
@@ -97,11 +98,12 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
         : Math.Clamp(value, 0, 1);
 
     internal PdfIccProfileTransform(ReadOnlyMemory<byte> data, int intent = 1)
-        : this(data, intent, null) { }
+        : this(data, intent, null, null) { }
 
     private PdfIccProfileTransform(ReadOnlyMemory<byte> data, int intent,
-        Dictionary<ReadOnlyMemory<byte>, PdfIccTable>? tables)
+        Dictionary<ReadOnlyMemory<byte>, PdfIccTable>? tables, PdfIccStorageBudget? storage)
     {
+        _storage = storage ?? new PdfIccStorageBudget(data.Length);
         if (intent is < 0 or > 3) throw new ArgumentOutOfRangeException(nameof(intent));
         _intent = intent;
         ReadOnlySpan<byte> bytes = data.Span;
@@ -193,13 +195,13 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
             ? value : throw new FormatException($"The ICC profile is missing {name}.");
         if (Components == 1)
         {
-            _curves = [new PdfIccCurve(Required("kTRC"))];
+            _curves = [_storage.ReadCurve(Required("kTRC"))];
             _matrix = [0.9642, 1, 0.8249];
         }
         else
         {
-            _curves = [new PdfIccCurve(Required("rTRC")), new PdfIccCurve(Required("gTRC")),
-                new PdfIccCurve(Required("bTRC"))];
+            _curves = [_storage.ReadCurve(Required("rTRC")), _storage.ReadCurve(Required("gTRC")),
+                _storage.ReadCurve(Required("bTRC"))];
             _matrix = new double[9];
             string[] columns = ["rXYZ", "gXYZ", "bXYZ"];
             for (int column = 0; column < 3; column++)
@@ -229,12 +231,14 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
 
     internal static PdfIccProfileTransform ReadAvailable(ReadOnlyMemory<byte> data)
     {
-        try { return new(data); }
+        var storage = new PdfIccStorageBudget(data.Length);
+        Dictionary<ReadOnlyMemory<byte>, PdfIccTable> tables = [];
+        try { return new(data, 1, tables, storage); }
         catch (Exception exception) when (exception is FormatException or NotSupportedException)
         {
             try
             {
-                var perceptual = new PdfIccProfileTransform(data, 0)
+                var perceptual = new PdfIccProfileTransform(data, 0, tables, storage)
                 {
                     _attemptedIntents = 1 << 1
                 };
@@ -242,7 +246,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
             }
             catch (Exception alternate) when (alternate is FormatException or NotSupportedException)
             {
-                var saturation = new PdfIccProfileTransform(data, 2)
+                var saturation = new PdfIccProfileTransform(data, 2, tables, storage)
                 {
                     _attemptedIntents = (1 << 0) | (1 << 1)
                 };
@@ -271,7 +275,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
                     variant._intent = intent;
                     variant._absoluteScale = intent == 3 ? root._mediaWhiteScale : null;
                 }
-                else variant = new PdfIccProfileTransform(root._tableData, intent, root._tables);
+                else variant = new PdfIccProfileTransform(root._tableData, intent, root._tables, root._storage);
                 variant._intentRoot = root;
                 return root._intents[intent] = variant;
             }
@@ -291,7 +295,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
         // Intent tags can reference the same byte slice. Share only those immutable
         // tables within this profile; variant construction holds the root's intent gate.
         if (_tables!.TryGetValue(data, out PdfIccTable? table)) return table;
-        table = PdfIccTable.Read(data);
+        table = PdfIccTable.Read(data, _storage);
         _tables.Add(data, table);
         return table;
     }

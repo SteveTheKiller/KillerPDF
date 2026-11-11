@@ -75,14 +75,20 @@ public sealed class PdfPrecisionImageSoftMaskTests
         Assert.Equal(compatibility.Pixels.ToArray(), frame.ToSrgbBgra32());
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void OriginalMaskDimensionMismatchIsRejectedBeforeMaskSampleDecode(bool truncated)
+    [Fact]
+    public void DifferentMaskDimensionsRetainOriginalNormalizedAlphaCoordinates()
     {
-        var renderer = Renderer(maskWidth: 3, maskSamples: truncated ? [] : null);
+        var renderer = Renderer(maskWidth: 3);
+        var frame = renderer.RenderFrame(0, new PdfRenderOptions(2, 1, transparentBackground: true));
+        AssertPixel(frame, 0, .21404820f, .50000763f);
+        AssertPixel(frame, 1, .21406233f, (float)(32770d / 65535));
+    }
 
-        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0, new PdfRenderOptions(2, 1)));
+    [Fact]
+    public void TruncatedDifferentSizeMaskRemainsRejected()
+    {
+        var renderer = Renderer(maskWidth: 3, maskSamples: []);
+        Assert.Throws<FormatException>(() => renderer.RenderFrame(0, new PdfRenderOptions(2, 1)));
     }
 
     [Theory]
@@ -105,7 +111,6 @@ public sealed class PdfPrecisionImageSoftMaskTests
     }
 
     [Theory]
-    [InlineData(1)]
     [InlineData(2)]
     [InlineData(4)]
     public void UnportedPackedMaskDepthsRemainRejected(int bits)
@@ -115,11 +120,28 @@ public sealed class PdfPrecisionImageSoftMaskTests
         Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0, new PdfRenderOptions(2, 1)));
     }
 
+    [Fact]
+    public void OneBitSoftMaskRetainsItsLiteralZeroAlpha()
+    {
+        var renderer = Renderer(maskBits: 1);
+        var frame = renderer.RenderFrame(0, new PdfRenderOptions(2, 1, transparentBackground: true));
+        Assert.Equal(0f, frame.Pixels[3]);
+        Assert.Equal(0f, frame.Pixels[7]);
+    }
+
+    [Fact]
+    public void OpaqueMaskReductionRetainsTheExistingNearestSourceGrid()
+    {
+        var renderer = Renderer(width: 1, height: 1, sourceHeight: 2,
+            maskBits: 8, maskSamples: [255, 255, 255, 255]);
+        var frame = renderer.RenderFrame(0, new PdfRenderOptions(1, 1));
+        AssertPixel(frame, 0, .21404820f, 1f);
+    }
+
     [Theory]
     [InlineData(4, 1, 1, true)]
     [InlineData(4, 4, 2, false)]
-    [InlineData(1, 1, 2, false)]
-    public void OpaqueMasksDoNotBypassSmoothingAndReductionRejections(int width, int height,
+    public void OpaqueMasksDoNotBypassSmoothingRejections(int width, int height,
         int sourceHeight, bool interpolate)
     {
         var renderer = Renderer(width: width, height: height, sourceHeight: sourceHeight, interpolate: interpolate,

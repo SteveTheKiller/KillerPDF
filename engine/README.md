@@ -1011,6 +1011,14 @@ The 1.9.3 development `RenderFrame` API also retains floating-point source color
 supported path, text, gradient and image cases, including ordinary Form XObjects with
 their matrices and bounding-box clips. It rejects unsupported precision features
 with a reason instead of returning colors quantized through the BGRA32 surface.
+Axis-aligned device RGB/Gray and matrix RGB/Gray ICC image reductions average original encoded
+samples, including fractional and mixed-axis scaling at aligned image edges. One-bit images
+and stencils retain source coverage. Independent-size one-, eight- and sixteen-bit device-gray
+image masks retain fractional alpha; reduced masked images use the compatibility renderer's
+source and mask grids without its byte rounding. Shear, fractional ICC reduction edges,
+masked bilinear filtering and two- or four-bit soft masks remain diagnosed.
+ICC profiles share a decoded-sample budget across intent tables and fallback attempts.
+Exact table and tone-curve aliases reuse storage; overlapping slices cannot restart the budget.
 Text widgets excluded by render options do not disable precise page rendering.
 Annotation appearances, including saved widget appearances, use the same supported paint operations as Form
 XObjects, including their placement, clipping, region rendering and proof conversion.

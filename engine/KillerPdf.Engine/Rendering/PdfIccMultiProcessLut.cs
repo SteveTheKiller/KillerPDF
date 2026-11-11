@@ -17,7 +17,7 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
     internal override int InputChannels { get; }
     internal override int OutputChannels { get; }
 
-    internal PdfIccMultiProcessLut(ReadOnlyMemory<byte> data)
+    internal PdfIccMultiProcessLut(ReadOnlyMemory<byte> data, PdfIccStorageBudget? storage = null)
     {
         if (data.Length < 32) throw new FormatException("An ICC processing table is truncated.");
         ReadOnlySpan<byte> bytes = data.Span;
@@ -49,9 +49,9 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
             || offsets[3] == 0 && InputChannels != OutputChannels)
             throw new FormatException("An ICC processing table has an invalid element combination.");
         int matrixChannels = _reverse ? InputChannels : OutputChannels;
-        _b = ReadCurves(Section(0), matrixChannels);
-        if (offsets[4] != 0) _a = ReadCurves(Section(4), _reverse ? OutputChannels : InputChannels);
-        if (offsets[2] != 0) _m = ReadCurves(Section(2), matrixChannels);
+        _b = ReadCurves(Section(0), matrixChannels, storage);
+        if (offsets[4] != 0) _a = ReadCurves(Section(4), _reverse ? OutputChannels : InputChannels, storage);
+        if (offsets[2] != 0) _m = ReadCurves(Section(2), matrixChannels, storage);
         if (offsets[1] != 0)
         {
             ReadOnlySpan<byte> matrix = Section(1).Span;
@@ -79,6 +79,7 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
             long length = samples * sampleBytes;
             if (length > clut.Length - 20) throw new FormatException("An ICC processing CLUT is truncated.");
             ReadOnlySpan<byte> table = clut.Span.Slice(20, (int)length);
+            storage?.Reserve(samples * sizeof(double));
             _clut = new double[samples];
             if (sampleBytes == 1)
             {
@@ -101,14 +102,14 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
         }
     }
 
-    private static PdfIccCurve[] ReadCurves(ReadOnlyMemory<byte> data, int count)
+    private static PdfIccCurve[] ReadCurves(ReadOnlyMemory<byte> data, int count, PdfIccStorageBudget? storage)
     {
         var curves = new PdfIccCurve[count];
         long offset = 0;
         for (int index = 0; index < count; index++)
         {
             if (offset >= data.Length) throw new FormatException("An ICC curve sequence is truncated.");
-            curves[index] = new PdfIccCurve(data[(int)offset..]);
+            curves[index] = storage?.ReadCurve(data[(int)offset..]) ?? new PdfIccCurve(data[(int)offset..]);
             offset += ((long)curves[index].EncodedLength + 3) & ~3L;
         }
         return curves;

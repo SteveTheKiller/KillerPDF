@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Color-managed viewing and proofing support more scaled scans and image masks. (#264)
 - The first text highlight on a page can be undone and redone. (#485)
 - A per-user or portable update that fails now reopens KillerPDF instead of leaving it closed, including when antivirus or a locked-down PowerShell stops the update helper from loading, and a published copy that fails its final check is swapped back for the previous version and never started.
 - Searchable PDFs made with OCR, and other saves that add text, open in Adobe Reader again. Added fonts carry their complete encoding details, and saves keep the original file's cross-reference format.

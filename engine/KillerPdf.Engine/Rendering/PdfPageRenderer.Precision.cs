@@ -15,12 +15,18 @@ public sealed partial class PdfPageRenderer
     /// with nearest or bilinear sampling. Bilinear device samples require Decode values in [0,1].
     /// Unmasked ordinary DeviceRGB/Gray natural-size images and axis-aligned enlargements
     /// support fractional edges with pixel-area coverage, including reflected images.
-    /// Integer-factor reductions in both axes average encoded device samples with Decode in [0,1].
+    /// Axis-aligned reductions, including fractional and mixed-axis scaling, average encoded device
+    /// samples with Decode in [0,1] at aligned image edges. Packed one-bit images retain their
+    /// binary samples on enlargement and average source coverage on reduction.
+    /// Axis-aligned stencils retain precise coverage through reduction or bounded supersampling.
     /// Raw color-key masks are supported with natural-size or eligible nearest-sampled images.
     /// Matching DeviceGray 8/16-bit image soft masks retain source alpha precision on those images.
     /// Ordinary DeviceRGB/Gray natural-size or eligible nearest-enlarged soft-masked images
     /// also multiply source alpha by fractional rectangular pixel-area coverage.
     /// Their finite device-range Matte values are removed before color conversion and compositing.
+    /// Direct device images also accept independent-size one-, eight- or sixteen-bit image masks
+    /// with normalized coordinates and retained alpha precision. Reduced masked images retain the
+    /// compatibility renderer's nearest source grid and interpolated mask sampling grid.
     /// Direct zero-black 8/16-bit CalGray images retain calibration at aligned natural size or axis-aligned enlargement,
     /// including diagonal reflections and rectangular clips, with default Decode and relative intent.
     /// Unmasked CalGray natural-size images and enlargements also support fractional pixel-area coverage.
@@ -31,7 +37,8 @@ public sealed partial class PdfPageRenderer
     /// reductions, masked bilinear sampling, default substitutions, enlarged reversed Decode,
     /// and other decode or black-point requests remain unsupported.
     /// Unmasked RGB/Gray ICC matrix/TRC images support relative colorimetric PCS conversion at natural size,
-    /// aligned enlargement or integer-factor reduction in both axes, averaging encoded source samples before ICC conversion.
+    /// aligned enlargement or axis-aligned reduction with aligned edges, including fractional and mixed-axis
+    /// scaling, averaging encoded source samples before ICC conversion.
     /// Supported resource DefaultRGB and DefaultGray profiles use the same image conversion.
     /// Direct matrix RGB/Gray ICC images at aligned natural size support matching DeviceGray 8/16-bit
     /// soft masks with precise alpha, default Decode, and relative intent, without Matte.
@@ -429,6 +436,213 @@ public sealed partial class PdfPageRenderer
                     graphicsSoftMask, knockout);
             }
         }
+    }
+
+    private static bool TryPaintPreciseReducedImage(RasterSurface target, int targetWidth, int targetHeight,
+        double scaleX, double scaleY, Matrix inverse, byte[] samples, int rowBytes,
+        int sourceWidth, int sourceHeight, int components, int bits, double[] decode,
+        ImageColorSpace colorSpace, bool imageMask, Color stencilColor, bool stencilPaintsOne,
+        SoftMask? softMask, bool explicitMask, bool smooth,
+        double opacity, RendererBlendMode blendMode,
+        IReadOnlyList<ClipRegion> clips, Point[] corners, int left, int top, int right, int bottom,
+        GraphicsSoftMask? graphicsSoftMask, CancellationToken cancellationToken)
+    {
+        if (imageMask) decode = [0, 1];
+        bool device = colorSpace is { Components: 1 or 3, Profile: null, Converter: null,
+                MultiConverter: null, Palette: null, IsIccBased: false, HasIccSource: false,
+                IsDefault: false, ComponentRange: null, HasSpotColorants: false,
+                BlackPointCompensationEnabled: false };
+        bool matrixIcc = colorSpace is { IsIccBased: true, ComponentRange: null,
+            Profile: PdfIccProfileTransform { IsLutBased: false, IsLabInput: false,
+                Components: 1 or 3, RenderingIntent: 1 }, Intent: 1,
+            BlackPointCompensationEnabled: false };
+        if (softMask is not null && (!device || imageMask || smooth
+            || softMask.Bits is not (1 or 8 or 16)
+            || !double.IsFinite(softMask.DecodeStart) || !double.IsFinite(softMask.DecodeEnd)
+            || softMask.DecodeStart is < 0 or > 1 || softMask.DecodeEnd is < 0 or > 1)) return false;
+        bool binary = device && components == 1 && bits == 1;
+        if (inverse.B != 0 || inverse.C != 0 || bits is not (1 or 8 or 16) || bits == 1 && !binary
+            || !device && !matrixIcc
+            || decode.Length != 2 * components || decode.Any(value => !double.IsFinite(value) || value < 0 || value > 1)
+            || !binary && corners.Any(point => Math.Abs(point.X * scaleX - Math.Round(point.X * scaleX)) > 1e-9
+                || Math.Abs(point.Y * scaleY - Math.Round(point.Y * scaleY)) > 1e-9)) return false;
+        double footprintX = Math.Abs(inverse.A / scaleX) * sourceWidth;
+        double footprintY = Math.Abs(inverse.D / scaleY) * sourceHeight;
+        if (!double.IsFinite(footprintX) || !double.IsFinite(footprintY)
+            || !binary && softMask is null && footprintX <= 1 && footprintY <= 1) return false;
+        bool average = softMask is null && (footprintX > 1 && footprintY > 1
+            || !binary && (footprintX > 1 || footprintY > 1));
+        double imageLeft = corners.Min(point => point.X) * scaleX;
+        double imageRight = corners.Max(point => point.X) * scaleX;
+        double imageTop = targetHeight - corners.Max(point => point.Y) * scaleY;
+        double imageBottom = targetHeight - corners.Min(point => point.Y) * scaleY;
+        int factor = Math.Max(1, (int)Math.Floor(Math.Min(sourceWidth / Math.Max(1, Math.Floor(imageRight - imageLeft)),
+            sourceHeight / Math.Max(1, Math.Floor(imageBottom - imageTop)))));
+        int planeWidth = (sourceWidth + factor - 1) / factor;
+        int planeHeight = (sourceHeight + factor - 1) / factor;
+        int maskWidth = softMask is null ? 1 : explicitMask ? softMask.Width
+            : (int)Math.Clamp(Math.Ceiling((imageRight - imageLeft) * 2), 1, softMask.Width);
+        int maskHeight = softMask is null ? 1 : explicitMask ? softMask.Height
+            : (int)Math.Clamp(Math.Ceiling((imageBottom - imageTop) * 2), 1, softMask.Height);
+        while ((long)maskWidth * maskHeight > 4_000_000)
+        {
+            maskWidth = Math.Max(1, maskWidth / 2);
+            maskHeight = Math.Max(1, maskHeight / 2);
+        }
+        int stencilSamples = imageMask && !average && Math.Max(footprintX, footprintY) > 1
+            ? Math.Clamp((int)Math.Ceiling(Math.Max(footprintX, footprintY)), 4, 8) : 0;
+        long pixelWork = (long)(right - left) * (bottom - top);
+        long perPixelWork = stencilSamples == 0 ? 1 : stencilSamples * stencilSamples;
+        if (softMask is not null)
+            perPixelWork += 4L * ((softMask.Width + maskWidth - 1L) / maskWidth)
+                * ((softMask.Height + maskHeight - 1L) / maskHeight);
+        if (perPixelWork > 64_000_000 / Math.Max(1, pixelWork))
+            throw new NotSupportedException("Precise image sampling exceeds its weighted work limit.");
+        int firstColumn = (int)Math.Ceiling(imageLeft - .5 + 1e-9);
+        int lastColumn = (int)Math.Floor(imageRight - .5 - 1e-9);
+        int firstRow = (int)Math.Ceiling(imageTop - .5 + 1e-9);
+        int lastRow = (int)Math.Floor(imageBottom - .5 - 1e-9);
+        ImageSampleConverter.AreaSpan Column(int x)
+        {
+            if (!binary || !average) return ImageSampleConverter.AreaSpan.FromFootprint(
+                inverse.Apply((x + .5) / scaleX, 0).X * sourceWidth, footprintX, sourceWidth);
+            double a = inverse.Apply(x / scaleX, 0).X * sourceWidth;
+            double b = inverse.Apply((x + 1) / scaleX, 0).X * sourceWidth;
+            return ImageSampleConverter.AreaSpan.FromRange(
+                x == (inverse.A < 0 ? lastColumn : firstColumn) ? 0 : Math.Min(a, b),
+                x == (inverse.A < 0 ? firstColumn : lastColumn) ? sourceWidth : Math.Max(a, b), sourceWidth);
+        }
+        ImageSampleConverter.AreaSpan Row(int y)
+        {
+            if (!binary || !average) return ImageSampleConverter.AreaSpan.FromFootprint(
+                (1 - inverse.Apply(0, (targetHeight - y - .5) / scaleY).Y) * sourceHeight, footprintY, sourceHeight);
+            double a = (1 - inverse.Apply(0, (targetHeight - y) / scaleY).Y) * sourceHeight;
+            double b = (1 - inverse.Apply(0, (targetHeight - y - 1) / scaleY).Y) * sourceHeight;
+            return ImageSampleConverter.AreaSpan.FromRange(
+                y == (inverse.D < 0 ? lastRow : firstRow) ? 0 : Math.Min(a, b),
+                y == (inverse.D < 0 ? firstRow : lastRow) ? sourceHeight : Math.Max(a, b), sourceHeight);
+        }
+        long columns = 0, rows = 0;
+        for (int x = left; x < right; x++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var span = Column(x);
+            columns += span.End - span.First;
+        }
+        for (int y = top; y < bottom; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var span = Row(y);
+            rows += span.End - span.First;
+        }
+        if (rows != 0 && columns > 64_000_000 / rows)
+            throw new NotSupportedException("Precise image sampling exceeds its weighted work limit.");
+        var converter = new ImageSampleConverter(samples, rowBytes, components, bits, decode,
+            colorSpace, targetInk: false, targetProfile: null);
+        var values = new double[components];
+        double maximum = (1u << bits) - 1;
+        for (int y = top; y < bottom; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var row = Row(y);
+            if (row.Length <= 0) continue;
+            for (int x = left; x < right; x++)
+            {
+                Point unit = inverse.Apply((x + .5) / scaleX, (targetHeight - y - .5) / scaleY);
+                if (unit.X < 0 || unit.X >= 1 || unit.Y < 0 || unit.Y >= 1) continue;
+                var column = Column(x);
+                if (column.Length <= 0) continue;
+                if (!average)
+                {
+                    int sourceX = Math.Min((int)(unit.X * sourceWidth), sourceWidth - 1);
+                    int sourceY = Math.Min((int)((1 - unit.Y) * sourceHeight), sourceHeight - 1);
+                    if (softMask is not null)
+                    {
+                        sourceX = Math.Min((int)(unit.X * planeWidth), planeWidth - 1) * factor;
+                        sourceY = Math.Min((int)((1 - unit.Y) * planeHeight), planeHeight - 1) * factor;
+                    }
+                    double alpha = imageMask && ((converter.Raw(sourceX, sourceY, 0) != 0) != stencilPaintsOne) ? 0 : 1;
+                    if (stencilSamples != 0)
+                    {
+                        int painted = 0;
+                        for (int sy = 0; sy < stencilSamples; sy++)
+                            for (int sx = 0; sx < stencilSamples; sx++)
+                            {
+                                double u = unit.X + ((sx + .5) / stencilSamples - .5) * inverse.A / scaleX;
+                                double v = unit.Y - ((sy + .5) / stencilSamples - .5) * inverse.D / scaleY;
+                                if (u < 0 || u >= 1 || v < 0 || v >= 1) continue;
+                                bool one = converter.Raw(Math.Min((int)(u * sourceWidth), sourceWidth - 1),
+                                    Math.Min((int)((1 - v) * sourceHeight), sourceHeight - 1), 0) != 0;
+                                if (one == stencilPaintsOne) painted++;
+                            }
+                        alpha = painted / (double)(stencilSamples * stencilSamples);
+                    }
+                    if (softMask is not null)
+                        alpha *= SamplePreciseImageMask(softMask, maskWidth, maskHeight, unit.X, 1 - unit.Y,
+                            footprintX > 1 || footprintY > 1, cancellationToken);
+                    SetPixel(target, targetWidth, x, y, imageMask ? stencilColor : converter.ConvertPrecise(sourceX, sourceY),
+                        opacity * alpha * ClipAlpha(clips, x, y), blendMode, graphicsSoftMask);
+                    continue;
+                }
+                var sampleRow = row;
+                Array.Clear(values);
+                for (int sampleY = sampleRow.First; sampleY < sampleRow.End; sampleY++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    for (int sampleX = column.First; sampleX < column.End; sampleX++)
+                    {
+                        double weight = sampleRow.Weight(sampleY) * column.Weight(sampleX);
+                        for (int component = 0; component < components; component++)
+                            values[component] += weight * (decode[component * 2]
+                                + converter.Raw(sampleX, sampleY, component) / maximum
+                                    * (decode[component * 2 + 1] - decode[component * 2]));
+                    }
+                }
+                double area = column.Length * sampleRow.Length;
+                for (int component = 0; component < components; component++) values[component] /= area;
+                double stencilCoverage = imageMask ? stencilPaintsOne ? values[0] : 1 - values[0] : 1;
+                SetPixel(target, targetWidth, x, y, imageMask ? stencilColor : colorSpace.Convert(values),
+                    opacity * stencilCoverage * ClipAlpha(clips, x, y), blendMode, graphicsSoftMask);
+            }
+        }
+        return true;
+    }
+
+    private static double SamplePreciseImageMask(SoftMask mask, int width, int height,
+        double unitX, double unitY, bool smooth, CancellationToken cancellationToken)
+    {
+        double Raw(int x, int y)
+        {
+            x = Math.Clamp(x, 0, mask.Width - 1);
+            y = Math.Clamp(y, 0, mask.Height - 1);
+            int rowBytes = (mask.Width * mask.Bits + 7) / 8;
+            int offset = y * rowBytes + x * mask.Bits / 8;
+            int raw = mask.Bits == 16 ? mask.Samples[offset] * 256 + mask.Samples[offset + 1]
+                : mask.Bits == 8 ? mask.Samples[offset]
+                : (mask.Samples[offset] >> (7 - (x & 7))) & 1;
+            return Math.Clamp(mask.DecodeStart + raw / (double)((1u << mask.Bits) - 1)
+                * (mask.DecodeEnd - mask.DecodeStart), 0, 1);
+        }
+        double Sample(int x, int y)
+        {
+            x = Math.Clamp(x, 0, width - 1);
+            y = Math.Clamp(y, 0, height - 1);
+            int startX = (int)((long)x * mask.Width / width), endX = (int)((long)(x + 1) * mask.Width / width);
+            int startY = (int)((long)y * mask.Height / height), endY = (int)((long)(y + 1) * mask.Height / height);
+            double sum = 0;
+            for (int sy = startY; sy < endY; sy++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                for (int sx = startX; sx < endX; sx++) sum += Raw(sx, sy);
+            }
+            return sum / ((endX - startX) * (double)(endY - startY));
+        }
+        if (!smooth) return Sample((int)(unitX * width), (int)(unitY * height));
+        double x = unitX * width - .5, y = unitY * height - .5;
+        int x0 = (int)Math.Floor(x), y0 = (int)Math.Floor(y);
+        double wx = x - x0, wy = y - y0;
+        return (Sample(x0, y0) * (1 - wx) + Sample(x0 + 1, y0) * wx) * (1 - wy)
+            + (Sample(x0, y0 + 1) * (1 - wx) + Sample(x0 + 1, y0 + 1) * wx) * wy;
     }
 
     private static void PaintPreciseImage(RasterSurface target, int targetWidth, int targetHeight,

@@ -24,7 +24,7 @@ internal sealed class PdfIccLut : PdfIccTable
     internal override bool UsesLegacyLabEncoding => _sampleBytes == 2;
     internal override double XyzEncodingScale => _sampleBytes == 1 ? 255d / 128 : 65535d / 32768;
 
-    internal PdfIccLut(ReadOnlyMemory<byte> data)
+    internal PdfIccLut(ReadOnlyMemory<byte> data, PdfIccStorageBudget? storage = null)
     {
         ReadOnlySpan<byte> bytes = data.Span;
         if (bytes.Length < 48) throw new FormatException("An ICC lookup table is truncated.");
@@ -54,6 +54,7 @@ internal sealed class PdfIccLut : PdfIccTable
         _inputOffset = 0;
         _gridOffset = (int)inputSamples;
         _outputOffset = (int)(inputSamples + gridSamples);
+        storage?.Reserve(totalSamples * sizeof(ushort));
         _samples = new ushort[totalSamples];
         _normalized = _sampleBytes == 1 ? NormalizedSamples.EightBit : NormalizedSamples.SixteenBit;
         ReadOnlySpan<byte> table = bytes[tableStart..(int)end];

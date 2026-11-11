@@ -5553,8 +5553,7 @@ public sealed partial class PdfPageRenderer
         if (bits is not (1 or 2 or 4 or 8 or 16)) throw new NotSupportedException();
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
-        if (precise && (bits is not (8 or 16)
-            || width != PositiveInteger(dictionary, "Width") || height != PositiveInteger(dictionary, "Height")
+        if (precise && (bits is not (1 or 8 or 16)
             || stream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? stencil)
                 && Resolve(stencil) is PdfBoolean { Value: true }))
             throw new NotSupportedException("This high-precision image soft mask is not implemented.");
@@ -5843,6 +5842,13 @@ public sealed partial class PdfPageRenderer
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
         if (target.PreciseRgb is not null)
         {
+            if (colorKeyMask is null
+                && preblendMatte is null && knockout is null && !overprint && !jpeg2000 && !alphaIsShape
+                && TryPaintPreciseReducedImage(target, targetWidth, targetHeight, scaleX, scaleY,
+                    inverse, samples, rowBytes, sourceWidth, sourceHeight, components, bits, decode,
+                    colorSpace, imageMask, stencilColor, stencilPaintsOne, softMask, explicitMask, smoothImage,
+                    stencilAlpha, blendMode, clips, corners,
+                    paintLeft, paintTop, paintRight, paintBottom, graphicsSoftMask, cancellationToken)) return;
             bool naturalSamples = Math.Abs(sampleStepX - 1) <= 1e-9
                 && Math.Abs(sampleStepY - 1) <= 1e-9;
             bool assumedCmyk = colorSpace is { Components: 4, IsDeviceCmyk: true, Profile: null,

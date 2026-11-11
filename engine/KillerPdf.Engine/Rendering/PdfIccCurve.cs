@@ -12,7 +12,7 @@ internal sealed class PdfIccCurve
     internal int EncodedLength { get; }
     internal bool CanInvert => _monotonic;
 
-    internal PdfIccCurve(ReadOnlyMemory<byte> data)
+    internal PdfIccCurve(ReadOnlyMemory<byte> data, PdfIccStorageBudget? storage = null)
     {
         ReadOnlySpan<byte> bytes = data.Span;
         if (bytes.Length < 12) throw new FormatException("An ICC curve is truncated.");
@@ -31,6 +31,7 @@ internal sealed class PdfIccCurve
             else
             {
                 _parameters = [];
+                storage?.Reserve((long)count * sizeof(double));
                 _samples = new double[count];
                 ReadOnlySpan<byte> encoded = bytes.Slice(12, (int)count * 2);
                 for (int index = 0; index < count; index++)

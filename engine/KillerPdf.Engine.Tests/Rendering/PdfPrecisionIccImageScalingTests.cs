@@ -122,11 +122,21 @@ public sealed class PdfPrecisionIccImageScalingTests
         }
     }
 
+    [Fact]
+    public void SingleAxisReductionRetainsSourcePrecision()
+    {
+        var renderer = Renderer(Convert.FromBase64String(IdentityRgbProfile), interpolate: false,
+            width: 1, content: "1 0 0 1 0 0 cm /Image Do");
+        var frame = renderer.RenderFrame(0, new PdfRenderOptions(1, 1));
+        // The identity TRC makes the mean of the two independent natural-size vectors exact.
+        AssertPixel(frame, 0, (1.51082417f + 1.51087027f) / 2,
+            (-.47186967f - .47188407f) / 2, (.03469589f + .03469695f) / 2);
+    }
+
     [Theory]
-    [InlineData(1, "1 0 0 1 0 0 cm /Image Do", false)]
     [InlineData(4, "4 0 0 1 0.5 0 cm /Image Do", false)]
     [InlineData(4, "4 0 1 1 0 0 cm /Image Do", true)]
-    public void ReductionUnalignedEdgesAndShearRemainRejected(int width, string content, bool interpolate)
+    public void UnalignedEdgesAndShearRemainRejected(int width, string content, bool interpolate)
     {
         var renderer = Renderer(Convert.FromBase64String(IdentityRgbProfile), interpolate: interpolate,
             width: width, content: content);
