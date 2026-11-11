@@ -121,6 +121,33 @@ public sealed class PdfEditablePageOverlayTests
     }
 
     [Fact]
+    public void Read_HashesThePageFrameOncePerPageNoMatterHowManyUnitsItHolds()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(100, 100).Build());
+        for (int unit = 0; unit < 5; unit++)
+            document = PdfDocument.Open(PdfEditablePageOverlayEditor.Append(document, 0, 100, 100,
+                new PdfContentStreamBuilder().Rectangle(unit, unit, 5, 5).Fill(), new byte[] { (byte)unit }, null));
+
+        PdfEditablePageOverlayEditor.PageFrameHashes = 0;
+        IReadOnlyList<PdfEditablePageOverlay> units = PdfEditablePageOverlayEditor.Read(document);
+
+        Assert.Equal(5, units.Count);
+        Assert.Equal(1, PdfEditablePageOverlayEditor.PageFrameHashes);
+    }
+
+    [Fact]
+    public void Remove_StopsWhenItsCancellationTokenIsCancelled()
+    {
+        PdfDocument saved = PdfDocument.Open(PdfEditablePageOverlayEditor.Append(
+            PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(100, 100).Build()),
+            0, 100, 100, new PdfContentStreamBuilder().Rectangle(1, 1, 5, 5).Fill(), new byte[] { 1 }, null));
+        IReadOnlyList<PdfEditablePageOverlay> units = PdfEditablePageOverlayEditor.Read(saved);
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => PdfEditablePageOverlayEditor.Remove(saved, units, cancelled.Token));
+    }
+    [Fact]
     public void Lifecycle_ExistingNonzeroPageGenerationPreservesEditableData()
     {
         string[] objects = [

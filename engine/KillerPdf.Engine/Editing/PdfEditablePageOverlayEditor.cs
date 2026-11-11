@@ -47,6 +47,7 @@ public static class PdfEditablePageOverlayEditor
     private const int MaximumGraph = 32 * 1024 * 1024;
     // Counts the Form graphs Read hashes on the current thread, so a test can check that a shared Form is hashed once.
     [ThreadStatic] internal static int FormGraphHashes;
+    [ThreadStatic] internal static int PageFrameHashes;
     private static PdfName N(string name) => new(Encoding.ASCII.GetBytes(name));
     private static readonly PdfName Metadata = N("KillerPDFEditableOverlay");
 
@@ -156,6 +157,17 @@ public static class PdfEditablePageOverlayEditor
             try
             {
                 int pageStart = result.Count;
+                // The frame depends only on the page, so each unit on it compares against one hash.
+                byte[]? pageFrame = null;
+                byte[] PageFrame()
+                {
+                    if (pageFrame is null)
+                    {
+                        PageFrameHashes++;
+                        pageFrame = Frame(document, page, null, lookup);
+                    }
+                    return pageFrame;
+                }
                 PdfArray contents = Contents(document, page);
                 var seen = new HashSet<int>();
                 for (int index = contents.Count - 1; index >= 0; index--)
@@ -184,7 +196,7 @@ public static class PdfEditablePageOverlayEditor
                         || !Same(XObjects(document, page)[name], form)) throw Invalid();
                     var data = metadata[N("Data")] as PdfString ?? throw Invalid();
                     if (data.Bytes.Length > MaximumData
-                        || !StringBytes(metadata[N("Frame")]).SequenceEqual(Frame(document, page, null, lookup))
+                        || !StringBytes(metadata[N("Frame")]).SequenceEqual(PageFrame())
                         || !StringBytes(metadata[N("Graph")]).SequenceEqual(FormGraph(form))) throw Invalid();
                     if (!PdfObjectWriter.Write(metadata[N("Structure")]).AsSpan()
                         .SequenceEqual(PdfObjectWriter.Write(CaptureStructure(document, page, form, lookup)))) throw Invalid();
@@ -202,12 +214,13 @@ public static class PdfEditablePageOverlayEditor
         return result.AsReadOnly();
     }
     /// <summary>Removes revalidated owned units.</summary>
-    public static byte[] Remove(PdfDocument document, IReadOnlyList<PdfEditablePageOverlay> overlays)
+    public static byte[] Remove(PdfDocument document, IReadOnlyList<PdfEditablePageOverlay> overlays,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(overlays);
         if (PdfSignatureReader.ReadCertificationPermission(document).HasValue)
             throw new InvalidOperationException("The document certification signature prohibits removing page content.");
-        IReadOnlyList<PdfEditablePageOverlay> current = Read(document);
+        IReadOnlyList<PdfEditablePageOverlay> current = Read(document, cancellationToken);
         if (overlays.Count != overlays.Select(unit => unit.ContentsObjectNumber).Distinct().Count()) throw Invalid();
         foreach (PdfEditablePageOverlay unit in overlays)
             if (!current.Any(item => item.PageIndex == unit.PageIndex
