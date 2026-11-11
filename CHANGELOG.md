@@ -15,7 +15,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Crop keeps the area you drew on pages whose box does not start at the page corner, including a page cropped a second time, crops the page you drew on in Continuous view, sizes its fields from that page, follows All and the page range when you press Enter in a field, and no longer freezes on a very large end page.
-- Pictures placed from a format the page shows but saving could not read, such as JPEG XR, appear in saved, printed and flattened copies instead of disappearing from them.
+- Pictures and image watermarks in a format the page shows but saving could not read, such as JPEG XR, appear in saved, printed and flattened copies instead of disappearing from them.
 - Quoted full paths can be opened even when the file picker's folder listing fails.
 - PDFs whose layer settings leave out their list of layers show their pages instead of a blank page. (#476)
 - In split view, Delete removes the annotation selected in the pane you are working in instead of a form field selected in the other pane.
