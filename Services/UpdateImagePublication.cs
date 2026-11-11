@@ -202,7 +202,19 @@ function Invoke-UpdateImagePublication {
             }
         }
         catch { $restoration += [Environment]::NewLine + 'Restoration failed: ' + $_.Exception.ToString() }
-        if ($captureNote.Length -gt 0) { $restoration += [Environment]::NewLine + $captureNote }
+        # Without a captured identity the installed copy is reopened only when it is the verified image, as recovery
+        # decides, so the note is left out when it will be.
+        if ($captureNote.Length -gt 0) {
+            $reopens = $false
+            try {
+                if (& $ops.Exists $plan.Target) {
+                    $probe = & $ops.OpenImage $plan.Target
+                    try { $reopens = ((& $ops.HashStream $probe) -eq $plan.Hash) } finally { $probe.Dispose() }
+                }
+            }
+            catch { }
+            if (-not $reopens) { $restoration += [Environment]::NewLine + $captureNote }
+        }
         $message = 'Update publication failed: ' + $failure + $restoration + [Environment]::NewLine +
             'Target: ' + $plan.Target + [Environment]::NewLine + 'Download: ' + $plan.Download +
             [Environment]::NewLine + 'Staging path (verified: ' + $stageVerified + '): ' + $plan.Staged +

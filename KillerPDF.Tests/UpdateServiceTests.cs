@@ -85,6 +85,19 @@ public sealed class UpdateServiceTests
         Assert.Contains("identity of the installed copy could not be captured", File.ReadAllText(run.Download + ".recovery.txt"));
     }
 
+    // The note about an uncaptured identity says the installed copy will not be reopened. When the swap fails after the
+    // verified image is already in place, recovery does reopen it, so the report must not say it will not.
+    [Fact]
+    public void TheCaptureNoteIsLeftOutWhenRecoveryReopensTheVerifiedImage()
+    {
+        using var run = new HelperRun(StandIn,
+            "$ops.VerifiedTargetThumb = { param($path, $signer) throw 'fixture identity failure' }\n" +
+            "$ops.Replace = { param($staged, $target, $backup) [IO.File]::Copy($staged, $target, $true); throw 'fixture swap failure' }");
+        Assert.True(run.Exit != 0, run.ToString());
+        Assert.True(run.Relaunched, run.ToString());
+        Assert.DoesNotContain("will not be reopened automatically", File.ReadAllText(run.Download + ".recovery.txt"));
+    }
+
     private sealed class HelperRun : IDisposable
     {
         internal static readonly byte[] Original = Encoding.UTF8.GetBytes("original inert launcher image");
