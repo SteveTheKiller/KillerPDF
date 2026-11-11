@@ -246,6 +246,8 @@ namespace KillerPDF.Shell
                 PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
                 var replacements = new Dictionary<int, string>();
                 var bakedAnnotationPages = new List<int>();
+                var unburnedByPage = new Dictionary<int, IReadOnlySet<int>>();
+                int skippedPictures = 0;
                 int done = 0;
                 foreach (var (page, tilt) in tilts.OrderBy(pair => pair.Key))
                 {
@@ -256,9 +258,15 @@ namespace KillerPDF.Shell
 
                     // Annotations drawn on the page turn with it, the way the Transform tool
                     // bakes them, so they stay where they were placed on the scan.
-                    string? burned = BurnPageAnnotationsToTemp(page);
+                    PageBake bake = BurnPageAnnotationsToTemp(page);
+                    string? burned = bake.Path;
                     isSourceCurrent = CaptureDocumentOrigin();
-                    if (burned is not null) bakedAnnotationPages.Add(page);
+                    if (burned is not null)
+                    {
+                        bakedAnnotationPages.Add(page);
+                        skippedPictures += bake.Skipped;
+                        if (bake.Unburned.Count > 0) unburnedByPage[page] = bake.Unburned;
+                    }
                     var (pageWidth, pageHeight) = engineSession.VisualPageSize(page, _pageRotations);
                     int budget = Math.Clamp((int)Math.Ceiling(Math.Max(pageWidth, pageHeight) * 300 / 72.0), 1000, 6000);
                     var source = RenderPageBitmap(page, budget, burned)
@@ -274,10 +282,7 @@ namespace KillerPDF.Shell
                 SaveTempAndReload(
                     keepAnnotations: true,
                     remapAnnotations: annotations =>
-                    {
-                        foreach (int page in bakedAnnotationPages)
-                            if (annotations.TryGetValue(page, out var pageAnnotations)) pageAnnotations.Clear();
-                    },
+                        PdfEngineBurn.RemapAfterBake(annotations, bakedAnnotationPages, unburnedByPage),
                     finalizeSavedFile: path =>
                     {
                         if (changed.Length == engineSession.PageCount)
@@ -290,7 +295,9 @@ namespace KillerPDF.Shell
                         PdfEngineIntegration.RemapRotationsAfterPageReplacements(rotations, changed),
                     selectedPageAfterReload: restore,
                     documentUndo: documentUndo);
-                SetStatus(string.Format(Loc("Str_Pages_Straightened"), changed.Length) + skipped);
+                SetStatus(Services.PicturesSkippedNote.Append(
+                    string.Format(Loc("Str_Pages_Straightened"), changed.Length) + skipped,
+                    skippedPictures, Loc("Str_Save_PicturesSkipped")));
             }
             catch (OperationCanceledException)
             {

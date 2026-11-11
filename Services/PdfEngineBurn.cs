@@ -89,6 +89,27 @@ internal static class PdfEngineBurn
     /// that the saved file is missing them.</summary>
     [ThreadStatic] internal static int SkippedPictures;
 
+    /// <summary>The picture and signature-image records the last <see cref="Burn"/> on this thread left out, so a caller that
+    /// replaces the page can keep exactly those records as overlays.</summary>
+    [ThreadStatic] internal static List<PageAnnotation>? SkippedPictureRecords;
+
+    /// <summary>Applies a page bake to the annotation lists: the burned pages lose their records, except the picture
+    /// records at the given positions (the ones the burn could not draw), which stay so the picture is not lost.</summary>
+    internal static void RemapAfterBake(Dictionary<int, List<PageAnnotation>> annotations,
+        IEnumerable<int> bakedPages, IReadOnlyDictionary<int, IReadOnlySet<int>> unburnedByPage)
+    {
+        foreach (int page in bakedPages)
+        {
+            if (!annotations.TryGetValue(page, out var list)) continue;
+            if (!unburnedByPage.TryGetValue(page, out var keep) || keep.Count == 0) { list.Clear(); continue; }
+            var kept = new List<PageAnnotation>();
+            for (int index = 0; index < list.Count; index++)
+                if (keep.Contains(index)) kept.Add(list[index]);
+            list.Clear();
+            list.AddRange(kept);
+        }
+    }
+
     internal static void Burn(
         string path,
         IReadOnlyDictionary<int, List<PageAnnotation>> annotations,
@@ -106,6 +127,7 @@ internal static class PdfEngineBurn
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         SkippedPictures = 0;
+        SkippedPictureRecords = null;
         if (annotations.Values.Any(items => items.Count > 0))
             PdfEngineIntegration.StripLinkAppearances(path);
         var document = PdfDocument.Open(File.ReadAllBytes(path));
@@ -421,6 +443,17 @@ internal static class PdfEngineBurn
         double sx, double sy, Dictionary<string, TrueTypeFont> fonts)
     {
         if (!ReplacementLayers.IsVisible(annotation)) return;
+        int skippedBefore = SkippedPictures;
+        try { DrawVisibleAnnotation(content, annotation, sx, sy, fonts); }
+        finally
+        {
+            if (SkippedPictures > skippedBefore) (SkippedPictureRecords ??= []).Add(annotation);
+        }
+    }
+
+    private static void DrawVisibleAnnotation(PdfContentStreamBuilder content, PageAnnotation annotation,
+        double sx, double sy, Dictionary<string, TrueTypeFont> fonts)
+    {
         switch (annotation)
         {
             case TextAnnotation text: DrawText(content, text, sx, sy, fonts); break;

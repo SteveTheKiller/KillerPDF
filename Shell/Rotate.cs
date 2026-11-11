@@ -53,7 +53,7 @@ namespace KillerPDF.Shell
                 {
                     // The preview burns the page's annotations into a temporary copy. A temp folder that refuses
                     // the copy is reported like a failed Apply instead of escaping the toolbar click.
-                    burned = BurnPageAnnotationsToTemp(selectedPage);
+                    burned = BurnPageAnnotationsToTemp(selectedPage).Path;
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
@@ -131,6 +131,8 @@ namespace KillerPDF.Shell
                 // when the replacement document succeeds.
                 var replacements = new Dictionary<int, string>();
                 var bakedAnnotationPages = new List<int>();
+                var unburnedByPage = new Dictionary<int, IReadOnlySet<int>>();
+                int skippedPictures = 0;
                 for (int i = 0; i < pages.Length; i++)
                 {
                     if (ct.IsCancellationRequested)
@@ -144,9 +146,15 @@ namespace KillerPDF.Shell
                         System.Windows.Threading.DispatcherPriority.Background);
                     if (!IsSourceCurrent() || ct.IsCancellationRequested) return;
 
-                    string? burned = BurnPageAnnotationsToTemp(pageIdx);
+                    PageBake bake = BurnPageAnnotationsToTemp(pageIdx);
+                    string? burned = bake.Path;
                     sourceDocument = _doc;
-                    if (burned != null) bakedAnnotationPages.Add(pageIdx);
+                    if (burned != null)
+                    {
+                        bakedAnnotationPages.Add(pageIdx);
+                        skippedPictures += bake.Skipped;
+                        if (bake.Unburned.Count > 0) unburnedByPage[pageIdx] = bake.Unburned;
+                    }
                     var (epw, eph) = engineSession.PhysicalPageSize(pageIdx, _pageRotations);
                     int renderBudget = outputDpi > 0
                         ? Math.Max(1, checked((int)Math.Ceiling(Math.Max(epw, eph) * outputDpi / 72.0)))
@@ -184,11 +192,9 @@ namespace KillerPDF.Shell
                 }
                 SaveTempAndReload(
                     keepAnnotations: true,
+                    // A picture the burn could not draw is in no page, so its record stays as an overlay.
                     remapAnnotations: annotations =>
-                    {
-                        foreach (int pageIdx in bakedAnnotationPages)
-                            if (annotations.TryGetValue(pageIdx, out var pageAnns)) pageAnns.Clear();
-                    },
+                        PdfEngineBurn.RemapAfterBake(annotations, bakedAnnotationPages, unburnedByPage),
                     finalizeSavedFile: path =>
                     {
                         if (pages.Length == engineSession.PageCount)
@@ -211,9 +217,10 @@ namespace KillerPDF.Shell
                         if (pageIdx >= 0 && pageIdx < PageList.Items.Count)
                             PageList.SelectedItems.Add(PageList.Items[pageIdx]);
                 }));
-                SetStatus(pages.Length == 1
+                SetStatus(Services.PicturesSkippedNote.Append(pages.Length == 1
                     ? string.Format(Loc("Str_Tf_Done"), pages[0] + 1)
-                    : string.Format(Loc("Str_Tf_DoneBatch"), pages.Length));
+                    : string.Format(Loc("Str_Tf_DoneBatch"), pages.Length),
+                    skippedPictures, Loc("Str_Save_PicturesSkipped")));
             }
             catch (Exception ex)
             {
@@ -231,10 +238,14 @@ namespace KillerPDF.Shell
         // (null if the page has no annotations - the caller then renders the normal source). Non-destructive:
         // _doc is restored to its pre-burn state by reopening from a clean snapshot, mirroring the proven
         // Save-Flattened pattern, so this is safe for the preview as well as Apply.
-        private string? BurnPageAnnotationsToTemp(int pageIdx)
+        // The result carries how many pictures the burn left out and their positions in the page's list, so the
+        // caller can say so and keep those records.
+        private readonly record struct PageBake(string? Path, int Skipped, IReadOnlySet<int> Unburned);
+
+        private PageBake BurnPageAnnotationsToTemp(int pageIdx)
         {
-            if (_doc is null) return null;
-            if (!(_annotations.TryGetValue(pageIdx, out var pa) && pa.Count > 0)) return null;
+            if (_doc is null) return default;
+            if (!(_annotations.TryGetValue(pageIdx, out var pa) && pa.Count > 0)) return default;
 
             var tempClean  = App.MakeTempFile("xfclean");
             var tempBurned = App.MakeTempFile("xfburn");
@@ -243,11 +254,19 @@ namespace KillerPDF.Shell
             // preview. The clean snapshot is already on disk, so on failure fall through to the
             // restore below and render without the annotation layer instead.
             bool burnOk = true;
+            int skipped = 0;
+            var unburned = new HashSet<int>();
             try
             {
                 System.IO.File.Copy(tempClean, tempBurned, true);
                 PdfEngineBurn.Burn(tempBurned, _annotations, _renderDims,
                     null, pageIdx, _pageRotations);
+                skipped = PdfEngineBurn.SkippedPictures;
+                foreach (PageAnnotation left in PdfEngineBurn.SkippedPictureRecords ?? [])
+                {
+                    int position = pa.FindIndex(item => ReferenceEquals(item, left));
+                    if (position >= 0) unburned.Add(position);
+                }
             }
             catch { burnOk = false; }
             _doc.Close();
@@ -265,7 +284,7 @@ namespace KillerPDF.Shell
                 _doc = PdfWorkingDocument.Open(tempClean, null);
             }
             _currentFile = tempClean;
-            return burnOk ? tempBurned : null;
+            return burnOk ? new PageBake(tempBurned, skipped, unburned) : default;
         }
 
         // Renders a page to a white-backed bitmap (transparent page backgrounds show white, not the dark

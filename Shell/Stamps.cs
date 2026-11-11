@@ -55,7 +55,7 @@ namespace KillerPDF.Shell
         {
             try
             {
-                burned = BurnPageAnnotationsToTemp(pageIdx);
+                burned = BurnPageAnnotationsToTemp(pageIdx).Path;
                 return true;
             }
             catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
