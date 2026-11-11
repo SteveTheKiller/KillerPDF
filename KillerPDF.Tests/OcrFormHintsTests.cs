@@ -36,6 +36,24 @@ public sealed class OcrFormHintsTests
     }
 
     [Fact]
+    public void AFormatFailureGivesNoHintsButRunningOutOfMemoryIsNotHidden()
+    {
+        Assert.Empty(new OcrFormHints(() => throw new FormatException("damaged")).ForPage(0));
+        var hints = new OcrFormHints(() => throw new OutOfMemoryException());
+        Assert.Throws<OutOfMemoryException>(() => hints.ForPage(0));
+    }
+
+    [Fact]
+    public void EveryOcrRunReadsItsHintsThroughTheSharedReader()
+    {
+        string root = AppContext.BaseDirectory;
+        while (!File.Exists(Path.Combine(root, "KillerPDF.csproj")))
+            root = Path.GetDirectoryName(root) ?? throw new DirectoryNotFoundException("KillerPDF.csproj");
+        string source = File.ReadAllText(Path.Combine(root, "Features", "Ocr", "OcrController.cs"));
+        Assert.DoesNotContain("ReadAllFormHints(", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void APageBeyondTheFileGivesNoHints()
     {
         var hints = new OcrFormHints(() => [[]]);
