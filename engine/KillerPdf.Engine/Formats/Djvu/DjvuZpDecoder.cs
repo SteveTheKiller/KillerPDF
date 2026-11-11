@@ -104,9 +104,9 @@ internal sealed class DjvuZpDecoder
         return result;
     }
 
-    private readonly record struct State(int Delta, int Threshold, byte More, byte Less);
+    internal readonly record struct State(int Delta, int Threshold, byte More, byte Less);
 
-    private static readonly State[] States =
+    internal static readonly State[] States =
     [
         new(0x8000, 0x0000, 84, 145),
         new(0x8000, 0x0000, 3, 4),

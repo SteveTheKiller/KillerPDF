@@ -54,7 +54,7 @@ public sealed partial class DjvuDocument
         var mask = chunks.First(c => c.Id == SjbzId);
         var budget = new DjvuJb2Budget((long)page.Width * page.Height);
         var bits = DjvuJb2Decoder.DecodeImage(_data.AsSpan(mask.Offset, mask.Length).ToArray(), page.Width, page.Height,
-            () => SharedDictionary(chunks, budget, [], token), budget, blit, token);
+            () => SharedDictionary(chunks, budget, new IncludeSearch(), token), budget, blit, token);
         token.ThrowIfCancellationRequested();
         return bits;
     }
@@ -246,7 +246,7 @@ public sealed partial class DjvuDocument
 
     // The shape dictionary a page or component provides: its own Djbz chunk, or else the first one its INCL chunks
     // lead to inside this bundle. A dictionary may itself require a dictionary its own component includes.
-    private DjvuJb2Dictionary? SharedDictionary(List<Chunk> chunks, DjvuJb2Budget budget, HashSet<string> visiting,
+    private DjvuJb2Dictionary? SharedDictionary(List<Chunk> chunks, DjvuJb2Budget budget, IncludeSearch visiting,
         CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
@@ -284,7 +284,7 @@ public sealed partial class DjvuDocument
         => dictionary.Symbols.Sum(symbol => (long)symbol.Bits.Length + 64);
 
     private DjvuJb2Dictionary CachedDictionary(Chunk djbz, List<Chunk> chunks, DjvuJb2Budget budget,
-        HashSet<string> visiting, CancellationToken token)
+        IncludeSearch visiting, CancellationToken token)
     {
         lock (_dictionaryLock)
         {
@@ -320,7 +320,23 @@ public sealed partial class DjvuDocument
         return dictionary;
     }
 
-    private DjvuJb2Dictionary? Included(List<Chunk> chunks, DjvuJb2Budget budget, HashSet<string> visiting,
+    private int _includeComponentVisits;
+
+    /// <summary>How many times a shape dictionary search has opened an included component, over this document's life.</summary>
+    internal int IncludeComponentVisits => Volatile.Read(ref _includeComponentVisits);
+
+    // The components one dictionary search is inside of (for cycles and depth), and those it has already searched
+    // and found no dictionary in, which later INCL chunks to them need not search again.
+    private sealed class IncludeSearch
+    {
+        internal HashSet<string> Visiting { get; } = [];
+        internal HashSet<string> Empty { get; } = [];
+    }
+
+    // Opening a component costs this much of the JB2 work budget, so no path through the includes is free.
+    private const long IncludeVisitWork = 1024;
+
+    private DjvuJb2Dictionary? Included(List<Chunk> chunks, DjvuJb2Budget budget, IncludeSearch search,
         CancellationToken token)
     {
         foreach (var include in chunks.Where(c => c.Id == InclId))
@@ -328,13 +344,17 @@ public sealed partial class DjvuDocument
             string id = IncludeId(include);
             if (!_includes.TryGetValue(id, out var component))
                 throw new InvalidDataException("An included component is not part of this bundled document.");
-            if (visiting.Count == 8 || !visiting.Add(id))
+            if (search.Empty.Contains(id)) continue;
+            if (search.Visiting.Count == 8 || !search.Visiting.Add(id))
                 throw new InvalidDataException("Included components nest too deeply or include themselves.");
+            Interlocked.Increment(ref _includeComponentVisits);
+            budget.Work(IncludeVisitWork);
             var budgetChunks = 65_535;
             var children = ReadChunks(_data, component.Offset + 4, component.Offset + component.Length, token, ref budgetChunks);
-            var found = SharedDictionary(children, budget, visiting, token);
-            visiting.Remove(id);
+            var found = SharedDictionary(children, budget, search, token);
+            search.Visiting.Remove(id);
             if (found is not null) return found;
+            search.Empty.Add(id);
         }
         return null;
     }
