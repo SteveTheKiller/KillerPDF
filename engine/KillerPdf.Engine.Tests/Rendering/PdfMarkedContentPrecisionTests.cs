@@ -46,7 +46,7 @@ public sealed class PdfMarkedContentPrecisionTests
     }
 
     [Theory]
-    [InlineData("1 i")]
+    [InlineData("BX")]
     public void MarkersDoNotMakeOtherUnsupportedOperatorsImplicitlySupported(string operation)
     {
         byte[] source = new PdfDocumentBuilder().AddPage(1, 1,

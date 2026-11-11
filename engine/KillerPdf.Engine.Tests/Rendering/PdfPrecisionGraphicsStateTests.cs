@@ -10,7 +10,6 @@ public sealed class PdfPrecisionGraphicsStateTests
     [Theory]
     [InlineData("fill-overprint")]
     [InlineData("stroke-overprint")]
-    [InlineData("overprint-mode")]
     [InlineData("alpha-shape")]
     [InlineData("text-knockout")]
     public void ActiveUnsupportedCompositingSettingsRemainDiagnosed(string setting)

@@ -99,7 +99,7 @@ public sealed class PdfPrecisionWidgetFilteringTests
 
     [Theory]
     [InlineData("BT /Missing 12 Tf (A) Tj ET")]
-    [InlineData("1 i .5 g 0 0 120 60 re f")]
+    [InlineData("BX .5 g 0 0 120 60 re f EX")]
     public void UnsupportedSavedWidgetPaintReportsPrecisionFailure(string appearance)
     {
         var renderer = new PdfPageRenderer(PdfDocument.Open(DocumentWithTextWidget(appearance)));

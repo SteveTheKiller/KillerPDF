@@ -53,6 +53,10 @@ public sealed partial class PdfPageRenderer
     /// including region rendering, visibility filtering and printer proof conversion.
     /// Requested form-field regeneration remains unsupported.
     /// Explicit neutral graphics-state defaults, including a None soft-mask reset, retain precision.
+    /// Line cap, join and miter operators and parameters, stroke adjustment, flatness, marked points,
+    /// an overprint mode while overprint is off, device-dependent parameters and unknown
+    /// graphics-state keys draw as byte rendering does. Overprint, alpha as shape, text knockout off,
+    /// transfer functions, black-point compensation and graphics-state rendering intents are refused.
     /// Graphics-state alpha and luminosity soft masks, with backdrop and transfer function, take
     /// eight-bit mask values from the same mask group render as byte rendering; the masked paint,
     /// image or transparency group keeps its float color and composites in float. Mask samples and
@@ -249,6 +253,8 @@ public sealed partial class PdfPageRenderer
         "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "gs" or "w" or "d"
         // Marked content only decides visibility, which the float path honors before proofing.
         or "BMC" or "BDC" or "EMC"
+        // Line styles shape the rasterized stroke; flatness and marked points paint nothing.
+        or "J" or "j" or "M" or "i" or "MP" or "DP"
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"
         or "n" or "W" or "W*"
@@ -258,6 +264,9 @@ public sealed partial class PdfPageRenderer
     private static bool PreciseOperationSupported(string operation) => operation is
         "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "k" or "K" or "gs" or "w" or "d"
         or "BMC" or "BDC" or "EMC" or "ri"
+        // Line styles shape the stroke both renderers rasterize; flatness, marked points and
+        // Type 3 glyph metrics paint nothing in either.
+        or "J" or "j" or "M" or "i" or "MP" or "DP" or "d0" or "d1"
         or "cs" or "CS" or "sc" or "SC" or "scn" or "SCN"
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"
@@ -265,19 +274,25 @@ public sealed partial class PdfPageRenderer
         or "BT" or "ET" or "Tf" or "Tm" or "Td" or "TD" or "T*" or "TL" or "Tc" or "Tw" or "Tz" or "Ts"
         or "Tj" or "TJ" or "Tr" or "'" or "\"";
 
+    // Only parameters that change paint the float path cannot reproduce are refused. Line styles
+    // and stroke adjustment shape the stroke both renderers rasterize; overprint mode matters only
+    // while overprint is on; smoothness, flatness, halftones, black generation, undercolor removal
+    // and keys the renderer does not know change nothing either renderer draws.
     private bool PreciseGraphicsStateSupported(PdfDictionary settings)
     {
         foreach (var entry in settings)
         {
             string name = entry.Key.ValueAsLatin1();
-            // Soft masks render through the byte mask path; a mask it cannot read is diagnosed there.
-            if (name is "Type" or "ca" or "CA" or "BM" or "SMask") continue;
+            if (name is not ("op" or "OP" or "AIS" or "TK" or "TR" or "TR2" or "RI" or "UseBlackPtComp"))
+                continue;
             PdfObject value = Resolve(entry.Value);
             bool neutral = name switch
             {
                 "op" or "OP" or "AIS" => value is PdfBoolean { Value: false },
+                "UseBlackPtComp" => value is PdfName policy && policy.ValueAsLatin1() is "OFF" or "Default",
                 "TK" => value is PdfBoolean { Value: true },
-                "OPM" => value is PdfInteger { Value: 0 },
+                // The byte path applies transfer functions as eight-bit tables.
+                "TR" or "TR2" => value is PdfName function && function.ValueAsLatin1() is "Identity" or "Default",
                 _ => false
             };
             if (!neutral) return false;
