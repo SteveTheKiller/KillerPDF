@@ -33,6 +33,7 @@ internal sealed class ColorManagementDialog : Window
         close.Click += (_, _) => Close();
         var apply = UiKit.Make(L("Str_Tf_Apply"), accent: true);
         AutomationProperties.SetAutomationId(apply, "ColorManagementApply");
+        apply.IsDefault = true;
         var footer = UiKit.ButtonRow(close, apply);
         footer.Margin = new Thickness(0, 12, 0, 0);
         DockPanel.SetDock(footer, Dock.Bottom);
@@ -72,6 +73,8 @@ internal sealed class ColorManagementDialog : Window
         bool importBusy = false;
         bool closed = false;
         var resolvedKinds = new Dictionary<string, ProofProfileResolutionKind>(StringComparer.Ordinal);
+        // Profiles being resolved off the UI thread. Apply waits for them, so it never reads a half answer.
+        int resolving = 0;
         Closed += (_, _) => closed = true;
         var import = UiKit.Make(L("Str_CM_ImportProfile"), accent: false);
         import.IsEnabled = libraryReadable;
@@ -198,7 +201,7 @@ internal sealed class ColorManagementDialog : Window
         enabled.Unchecked += (_, _) => UpdateProfileAvailability();
         UpdateProfileAvailability();
 
-        void UpdateProfileAvailability()
+        async void UpdateProfileAvailability()
         {
             if (importBusy || profile.SelectedIndex < 0) return;
             if (!libraryReadable)
@@ -216,18 +219,36 @@ internal sealed class ColorManagementDialog : Window
             ProofProfileResolutionKind kind = ProofProfileResolutionKind.NotSelected;
             if (reference is not null && !resolvedKinds.TryGetValue(reference, out kind))
             {
+                // Reading and parsing the ICC copy can take a while for a large profile, so it runs off
+                // the UI thread. A newer selection while it runs wins; this answer is still cached.
+                resolving++;
+                apply.IsEnabled = false;
                 try
                 {
-                    var preset = JsonNode.Parse(PdfProofPreset.Capture("Document", settings).ToJson())!;
-                    preset["proof"]!["printerProfileSha256"] = reference;
-                    kind = library.Resolve(PdfProofPreset.FromJson(preset.ToJsonString())).Kind;
+                    kind = await Task.Run(() =>
+                    {
+                        try
+                        {
+                            var preset = JsonNode.Parse(PdfProofPreset.Capture("Document", settings).ToJson())!;
+                            preset["proof"]!["printerProfileSha256"] = reference;
+                            return library.Resolve(PdfProofPreset.FromJson(preset.ToJsonString())).Kind;
+                        }
+                        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+                            or FormatException or NotSupportedException or ArgumentException)
+                        {
+                            return ProofProfileResolutionKind.Invalid;
+                        }
+                    });
                 }
-                catch (Exception error) when (error is IOException or UnauthorizedAccessException
-                    or FormatException or NotSupportedException or ArgumentException)
+                finally
                 {
-                    kind = ProofProfileResolutionKind.Invalid;
+                    resolving--;
+                    if (!closed) apply.IsEnabled = !importBusy && resolving == 0;
                 }
+                if (closed) return;
                 resolvedKinds[reference] = kind;
+                if (importBusy || profile.SelectedIndex < 0
+                    || (profile.SelectedIndex == 0 ? null : entries[profile.SelectedIndex - 1].ContentSha256) != reference) return;
             }
             profileStatus.Visibility = kind != ProofProfileResolutionKind.Matched ? Visibility.Visible : Visibility.Collapsed;
         }
@@ -348,9 +369,9 @@ internal sealed class ColorManagementDialog : Window
                 if (!closed) SetOperationBusy(false);
             }
         };
-        apply.Click += (_, _) =>
+        apply.Click += async (_, _) =>
         {
-            if (importBusy || profile.SelectedIndex < 0) return;
+            if (importBusy || resolving > 0 || profile.SelectedIndex < 0) return;
             string? working = workingCmyk.SelectedIndex > 0 ? workingEntries[workingCmyk.SelectedIndex - 1].ContentSha256 : null;
             if (libraryReadable && working != savedWorking)
             {
@@ -367,7 +388,19 @@ internal sealed class ColorManagementDialog : Window
                     return;
                 }
             }
-            AppliedSettings = library.Resolve(CapturePreset("Document")).Settings;
+            // Resolving reads and parses the chosen ICC copy, so it runs off the UI thread like the import.
+            var chosen = CapturePreset("Document");
+            SetOperationBusy(true);
+            try
+            {
+                var resolved = await Task.Run(() => library.Resolve(chosen).Settings);
+                if (closed) return;
+                AppliedSettings = resolved;
+            }
+            finally
+            {
+                if (!closed) SetOperationBusy(false);
+            }
             DialogResult = true;
         };
 
@@ -390,7 +423,7 @@ internal sealed class ColorManagementDialog : Window
         {
             importBusy = busy;
             import.IsEnabled = profile.IsEnabled = workingCmyk.IsEnabled = libraryReadable && !busy;
-            apply.IsEnabled = !busy;
+            apply.IsEnabled = !busy && resolving == 0;
             presetChoice.IsEnabled = presetName.IsEnabled = savePreset.IsEnabled = presetsReadable && !busy;
             loadPreset.IsEnabled = presetsReadable && !busy && presetChoice.SelectedIndex > 0;
             if (previousChoice is not null) previousChoice.IsEnabled = !busy;
