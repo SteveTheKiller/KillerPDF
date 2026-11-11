@@ -14,6 +14,26 @@ public sealed class ProofProfileLibraryTests : IDisposable
     private readonly string _parent = Path.GetFullPath(Path.GetTempPath());
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "kp-proof-profiles-" + Guid.NewGuid().ToString("N"));
 
+    // A background thread that lets any exception out ends the whole process.
+    [Theory]
+    [InlineData(typeof(InvalidDataException))]
+    [InlineData(typeof(IndexOutOfRangeException))]
+    [InlineData(typeof(NullReferenceException))]
+    [InlineData(typeof(KeyNotFoundException))]
+    public void TheCmykWarmUpThreadNeverLetsAFailureEscape(Type failure)
+    {
+        Exception? escaped = null;
+        UnhandledExceptionEventHandler handler = (_, e) => escaped = e.ExceptionObject as Exception;
+        AppDomain.CurrentDomain.UnhandledException += handler;
+        try
+        {
+            var thread = WorkingCmykProfiles.StartWarmUp(() => throw (Exception)Activator.CreateInstance(failure)!);
+            Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
+            Assert.Null(escaped);
+        }
+        finally { AppDomain.CurrentDomain.UnhandledException -= handler; }
+    }
+
     [Fact]
     public void ImportedProfileCanBeReopenedAndAppliedAfterCallerBytesAreDiscarded()
     {

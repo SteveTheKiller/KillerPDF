@@ -391,7 +391,7 @@ public sealed class ProofProfileLibrary(string directory)
 /// built-in CGATS TR 001 profile. A changed choice is picked up after <see cref="Invalidate"/>,
 /// or in any process once the saved choice file changes.
 /// </remarks>
-internal static class WorkingCmykProfiles
+internal static partial class WorkingCmykProfiles
 {
     private sealed record Choice(long Generation, long Stamp, PdfColorProfile? Profile);
     private static long _generation;
@@ -435,20 +435,26 @@ internal static class WorkingCmykProfiles
     /// Builds the chosen profile's RGB to ink table on a background thread at low priority, so the first RGB paint
     /// into a CMYK surface finds it ready. Called once after startup and again when the choice changes.
     /// </summary>
-    internal static void WarmDisplayTableInBackground()
+    internal static void WarmDisplayTableInBackground() =>
+        StartWarmUp(() => KillerPdf.Engine.Rendering.PdfCmykWarmUp.Prepare(Current()));
+
+    /// <summary>Runs the warm-up body on its own low-priority thread. Nothing the body throws can leave the thread,
+    /// because an unhandled exception on a thread of this kind ends the process; the first paint builds the table
+    /// itself and reports any real problem then.</summary>
+    internal static Thread StartWarmUp(Action prepare)
     {
         var thread = new Thread(() =>
         {
-            try { KillerPdf.Engine.Rendering.PdfCmykWarmUp.Prepare(Current()); }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException or FormatException
-                or NotSupportedException or ArgumentException or InvalidOperationException)
-            {
-                // The first paint builds the table itself and reports any real problem then.
-            }
+            try { prepare(); }
+            catch (Exception error) { LogWarmUpFailure(error); }
         })
         { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = "Working CMYK warm-up" };
         thread.Start();
+        return thread;
     }
+
+    /// <summary>Records a warm-up failure in the app's local log. The app supplies the body.</summary>
+    static partial void LogWarmUpFailure(Exception error);
 
     /// <summary>Gives render options the chosen working CMYK profile; never sets null.</summary>
     internal static KillerPdf.Engine.Rendering.PdfRenderOptions Apply(KillerPdf.Engine.Rendering.PdfRenderOptions options) =>
