@@ -10,7 +10,9 @@ namespace KillerPDF.Controls;
 
 public partial class PdfViewer
 {
-    private (PdfWorkingDocument Owner, PdfImagePlacementSelection Occurrence, ImageAnnotation Image)? _sourceImageSelection;
+    // Ordinal is the picture's position in the page's cached placement list; Asset is its extraction, made once per
+    // page and picture. Image.ImageData stays empty until copy or cut needs it (MaterializedSourceImage).
+    private (PdfWorkingDocument Owner, PdfImagePlacementSelection Occurrence, ImageAnnotation Image, int Ordinal, PdfImageAsset Asset)? _sourceImageSelection;
     // Corner is null for a move; otherwise the dragged handle, with the opposite corner fixed.
     private (Canvas Canvas, Point Start, Rect Original, Rect Current, string? Corner)? _sourceImageDrag;
     private string? _pendingSourceImageCorner;
@@ -156,14 +158,10 @@ public partial class PdfViewer
                 selectedPageAfterReload: page, finalizeSavedFile: path =>
                 {
                     var document = PdfDocument.Open(File.ReadAllBytes(path));
-                    var expected = selection.Occurrence;
-                    var current = new PdfPageContentReader(document).ReadImagePlacements(page)
-                        .SingleOrDefault(image => image.ResourceName == expected.ResourceName
-                            && image.BoundingBox == expected.BoundingBox
-                            && image.PixelWidth == expected.PixelWidth && image.PixelHeight == expected.PixelHeight)
-                        ?? throw new InvalidOperationException("The selected image occurrence is no longer available.");
+                    var placements = new PdfPageContentReader(document).ReadImagePlacements(page);
+                    var current = ResolveSelectedPlacement(placements, selection.Occurrence, selection.Ordinal);
                     byte[] asset = PdfImagePlacementExtractor.Extract(document, current).ToPdfBytes();
-                    if (!asset.AsSpan().SequenceEqual(Convert.FromBase64String(selection.Image.ImageData)))
+                    if (!asset.AsSpan().SequenceEqual(selection.Asset.ToPdfBytes()))
                         throw new InvalidOperationException("The selected image resource has changed.");
                     AtomicFileOutput.Write(path, PdfImagePlacementEditor.SetBounds(document, current,
                         new PdfContentBounds(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top)));
@@ -173,8 +171,22 @@ public partial class PdfViewer
         return true;
     }
 
+    /// <summary>Finds the selected occurrence in a freshly read page by its position in the page's picture list.
+    /// The saved copy keeps the page's picture order, so the same position is the same picture; the resource name,
+    /// size and bounds are only a check that it still is.</summary>
+    private static PdfImagePlacementSelection ResolveSelectedPlacement(
+        IReadOnlyList<PdfImagePlacementSelection> placements, PdfImagePlacementSelection expected, int ordinal)
+    {
+        if (ordinal < 0 || ordinal >= placements.Count
+            || placements[ordinal] is not { } current
+            || current.ResourceName != expected.ResourceName || current.BoundingBox != expected.BoundingBox
+            || current.PixelWidth != expected.PixelWidth || current.PixelHeight != expected.PixelHeight)
+            throw new InvalidOperationException("The selected image occurrence is no longer available.");
+        return current;
+    }
+
     internal ImageAnnotation? SelectedSourceImageExt => _sourceImageSelection is { } selection
-        && ReferenceEquals(selection.Owner, _doc) ? selection.Image : null;
+        && ReferenceEquals(selection.Owner, _doc) ? MaterializedSourceImage() : null;
 
     internal bool CanDeleteSelectedSourceImageExt => _sourceImageSelection is { } selection
         && ReferenceEquals(selection.Owner, _doc) && _doc is { IsReadOnly: false }
@@ -190,14 +202,10 @@ public partial class PdfViewer
                 selectedPageAfterReload: selection.Occurrence.PageIndex, finalizeSavedFile: path =>
                 {
                     var document = PdfDocument.Open(File.ReadAllBytes(path));
-                    var expected = selection.Occurrence;
-                    var current = new PdfPageContentReader(document).ReadImagePlacements(expected.PageIndex)
-                        .SingleOrDefault(image => image.ResourceName == expected.ResourceName
-                            && image.BoundingBox == expected.BoundingBox
-                            && image.PixelWidth == expected.PixelWidth && image.PixelHeight == expected.PixelHeight)
-                        ?? throw new InvalidOperationException("The selected image occurrence is no longer available.");
+                    var placements = new PdfPageContentReader(document).ReadImagePlacements(selection.Occurrence.PageIndex);
+                    var current = ResolveSelectedPlacement(placements, selection.Occurrence, selection.Ordinal);
                     byte[] asset = PdfImagePlacementExtractor.Extract(document, current).ToPdfBytes();
-                    if (!asset.AsSpan().SequenceEqual(Convert.FromBase64String(selection.Image.ImageData)))
+                    if (!asset.AsSpan().SequenceEqual(selection.Asset.ToPdfBytes()))
                         throw new InvalidOperationException("The selected image resource has changed.");
                     AtomicFileOutput.Write(path, PdfImagePlacementEditor.Remove(document, current));
                 });
@@ -233,40 +241,34 @@ public partial class PdfViewer
                 }
             }
         var location = RedactionGeometry.CanvasPointToPage(point, pw, ph, cw, ch, rotation);
-        PdfDocument? source;
-        try { source = _doc.OpenStrictForContentCopy(); }
-        catch (Exception error) when (error is not OutOfMemoryException) { return false; }
-        if (source is null) return false;
-        IReadOnlyList<PdfImagePlacementSelection> images;
         // A page the viewer can display may still hold content this reader refuses; that is not a click error.
-        try { images = new PdfPageContentReader(source).ReadImagePlacements(page); }
-        catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException)) { return false; }
+        var images = PlacementsForPage(_doc, page);
+        if (images is null) return false;
         string? uneditable = null;
-        foreach (var image in images.Reverse())
+        for (int ordinal = images.Count - 1; ordinal >= 0; ordinal--)
         {
+            var image = images[ordinal];
             var box = image.BoundingBox;
             if (location.X < box.Left || location.X > box.Right || location.Y < box.Bottom || location.Y > box.Top) continue;
             // A picture that cannot be moved or resized stays page content; say why once no editable one is hit.
             if (!image.CanSetBounds) { uneditable ??= image.BoundsUnsupportedReason; continue; }
-            try
+            // Extraction enforces copying restrictions and keeps the original resource graph. It runs once per page and
+            // picture, so a picture it refuses stays page content (no raster substitute is copied) at no cost on a
+            // repeat press. The base-64 copy waits for copy or cut (MaterializedSourceImage).
+            if (AssetForPlacement(page, ordinal, image) is not { } asset) return false;
             {
-                // Extraction enforces copying restrictions and retains the original resource graph.
-                var asset = PdfImagePlacementExtractor.Extract(source, image);
                 var bounds = RedactionGeometry.PageToCanvas(box.Left, box.Bottom, box.Right, box.Top,
                     pw, ph, cw, ch, rotation);
                 var copy = new ImageAnnotation
                 {
                     PageIndex = page, Position = bounds.TopLeft, Scale = 1,
-                    SourceWidth = bounds.Width, SourceHeight = bounds.Height,
-                    ImageData = Convert.ToBase64String(asset.ToPdfBytes())
+                    SourceWidth = bounds.Width, SourceHeight = bounds.Height
                 };
                 wasSelected = _sourceImageSelection is { } held && ReferenceEquals(held.Owner, _doc)
-                    && held.Occurrence.PageIndex == page && held.Occurrence.ResourceName == image.ResourceName
-                    && held.Occurrence.BoundingBox == image.BoundingBox
-                    && held.Occurrence.PixelWidth == image.PixelWidth && held.Occurrence.PixelHeight == image.PixelHeight;
+                    && held.Occurrence.PageIndex == page && held.Ordinal == ordinal;
                 ClearSelection();
                 ClearTextSelection();
-                _sourceImageSelection = (_doc, image, copy);
+                _sourceImageSelection = (_doc, image, copy, ordinal, asset);
                 var canvas = CanvasForPage(page);
                 double inverseScale = canvas.LayoutTransform is System.Windows.Media.ScaleTransform scale
                     && scale.ScaleX > .0001 ? 1 / scale.ScaleX : 1;
@@ -296,15 +298,79 @@ public partial class PdfViewer
                 ShowSourceImageFrame(bounds);
                 return true;
             }
-            catch (Exception error) when (error is NotSupportedException or InvalidOperationException or FormatException
-                or KillerPdf.Engine.Filters.PdfFilterException)
-            {
-                // Unsupported occurrences remain page content; no raster substitute is copied.
-                return false;
-            }
         }
         if (uneditable is not null) SetStatus(Loc(SourceImageDiagnosis.ReasonKey(uneditable)));
         return false;
+    }
+
+    /// <summary>The selected picture with its base-64 bytes, encoded the first time copy or cut asks for them and
+    /// kept for the rest of the selection. A move or delete never needs them.</summary>
+    private ImageAnnotation? MaterializedSourceImage()
+    {
+        if (_sourceImageSelection is not { } selection || !ReferenceEquals(selection.Owner, _doc)) return null;
+        if (selection.Image.ImageData.Length == 0)
+            selection.Image.ImageData = Convert.ToBase64String(selection.Asset.ToPdfBytes());
+        return selection.Image;
+    }
+
+    private PdfImageAsset? AssetForPlacement(int page, int ordinal, PdfImagePlacementSelection image)
+    {
+        if (_placementAssets.TryGetValue((page, ordinal), out var known)) return known;
+        PdfImageAsset? asset;
+        try { asset = PdfImagePlacementExtractor.Extract(_placementCacheSource!, image); }
+        catch (Exception error) when (error is NotSupportedException or InvalidOperationException or FormatException
+            or KillerPdf.Engine.Filters.PdfFilterException)
+        {
+            asset = null;
+        }
+        if (_placementAssets.Count >= MaximumCachedPlacementAssets) _placementAssets.Clear();
+        _placementAssets[(page, ordinal)] = asset;
+        return asset;
+    }
+
+    // Placement reads are cached per page for one document. A working document never changes its source, so the
+    // document instance is the revision: reloading after an edit or opening another file starts an empty cache.
+    private WeakReference<PdfWorkingDocument>? _placementCacheOwner;
+    private PdfPageContentReader? _placementCacheReader;
+    private PdfDocument? _placementCacheSource;
+    private readonly Dictionary<int, IReadOnlyList<PdfImagePlacementSelection>?> _placementCache = [];
+    // A refused picture is remembered as null, so a repeat press does not extract it again.
+    private readonly Dictionary<(int Page, int Ordinal), PdfImageAsset?> _placementAssets = [];
+    private const int MaximumCachedPlacementPages = 8;
+    private const int MaximumCachedPlacementAssets = 8;
+
+    private IReadOnlyList<PdfImagePlacementSelection>? PlacementsForPage(PdfWorkingDocument doc, int page)
+    {
+        if (_placementCacheOwner is null || !_placementCacheOwner.TryGetTarget(out var owner) || !ReferenceEquals(owner, doc))
+        {
+            _placementCache.Clear();
+            _placementAssets.Clear();
+            _placementCacheReader = null;
+            _placementCacheSource = null;
+            _placementCacheOwner = new WeakReference<PdfWorkingDocument>(doc);
+        }
+        if (_placementCache.TryGetValue(page, out var cached)) return cached;
+        IReadOnlyList<PdfImagePlacementSelection>? read;
+        try
+        {
+            var source = doc.OpenStrictForContentCopy();
+            if (source is null) return null;
+            _placementCacheSource = source;
+            _placementCacheReader ??= new PdfPageContentReader(source);
+            read = _placementCacheReader.ReadImagePlacements(page);
+        }
+        catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException))
+        {
+            // This document's page is one the reader refuses; remember that so a click does not parse it again.
+            read = null;
+        }
+        if (_placementCache.Count >= MaximumCachedPlacementPages)
+        {
+            _placementCache.Clear();
+            _placementAssets.Clear();
+        }
+        _placementCache[page] = read;
+        return read;
     }
 
     /// <summary>Places Extract Image results on a page as editable images in one Undo step. The
