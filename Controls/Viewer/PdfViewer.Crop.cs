@@ -136,38 +136,6 @@ namespace KillerPDF.Controls
             UpdateCropRectVisuals();
         }
 
-        /// <summary>
-        /// Parse a page-range string like "1-3,5,7-9" (1-based) into a zero-based index array.
-        /// Returns <c>null</c> on parse error or if no valid pages are produced.
-        /// </summary>
-        private static int[]? ParsePageRange(string input, int pageCount)
-        {
-            if (string.IsNullOrWhiteSpace(input)) return null;
-            var result = new System.Collections.Generic.HashSet<int>();
-            foreach (var part in input.Split([','], StringSplitOptions.RemoveEmptyEntries))
-            {
-                var seg = part.Trim();
-                if (seg.Contains('-'))
-                {
-                    var halves = seg.Split('-');
-                    if (halves.Length == 2 &&
-                        int.TryParse(halves[0].Trim(), out int lo) &&
-                        int.TryParse(halves[1].Trim(), out int hi))
-                    {
-                        for (int p = lo; p <= hi; p++)
-                            if (p >= 1 && p <= pageCount) result.Add(p - 1);
-                    }
-                    else return null;
-                }
-                else if (int.TryParse(seg, out int pg))
-                {
-                    if (pg >= 1 && pg <= pageCount) result.Add(pg - 1);
-                }
-                else return null;
-            }
-            return result.Count == 0 ? null : [.. result.OrderBy(x => x)];
-        }
-
         // Entering the Crop tool drops a default crop box (inset from the page edges) and shows the bar
         // straight away, so the box is visible without the user having to draw one first.
         private void ShowDefaultCropBox()
@@ -377,7 +345,7 @@ namespace KillerPDF.Controls
                 if (cropAll) pages = [.. Enumerable.Range(0, pc)];
                 else if (!string.IsNullOrWhiteSpace(_cropRangeBox?.Text))
                 {
-                    pages = ParsePageRange(_cropRangeBox!.Text, pc);
+                    pages = CropMath.ParsePageRange(_cropRangeBox!.Text, pc);
                     if (pages is null) { SetStatus(Loc("Str_InvalidRange")); return; }
                 }
                 else pages = [currentPage];

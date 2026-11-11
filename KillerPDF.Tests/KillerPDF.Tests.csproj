@@ -139,6 +139,7 @@
     <Compile Include="..\Services\PrintJobTicket.cs" Link="Services\PrintJobTicket.cs" />
     <Compile Include="..\Services\PrinterDriverProperties.cs" Link="Services\PrinterDriverProperties.cs" />
     <Compile Include="..\Services\RedactionGeometry.cs" Link="Services\RedactionGeometry.cs" />
+    <Compile Include="..\Controls\Viewer\CropMath.cs" Link="Controls\Viewer\CropMath.cs" />
     <Compile Include="..\Services\TextTurn.cs" Link="Services\TextTurn.cs" />
     <Compile Include="..\Services\PdfPrintSource.cs" Link="Services\PdfPrintSource.cs" />
     <Compile Include="..\Services\PrintRasterDocument.cs" Link="Services\PrintRasterDocument.cs" />
