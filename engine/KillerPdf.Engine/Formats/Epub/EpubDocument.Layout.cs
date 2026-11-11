@@ -64,6 +64,9 @@ public sealed partial class EpubDocument
         var chargedStylesheets = new HashSet<string>(StringComparer.Ordinal);
         // The box an image first decodes at is kept per image, so every later use and every redraw decodes it identically.
         var imageBoxes = new Dictionary<string, (double Width, double Height)>(StringComparer.Ordinal);
+        // For each chapter, the box each picture it used had before the chapter began (none if it was new), so laying the
+        // chapter out again decodes every picture as the first layout did, not at a larger box a later chapter asked for.
+        var chapterImageBoxes = new Dictionary<int, Dictionary<string, (double Width, double Height)?>>();
         var images = new EpubImageStore(key => DecodeNativeImage(key, CancellationToken.None));
         var bookReaders = new Dictionary<TrueTypeFont, TrueTypeOutlineReader>(ReferenceEqualityComparer.Instance) { [options.DefaultFont] = reader };
         var chapterDiagnostics = new List<EpubChapterDiagnostic>();
@@ -144,6 +147,7 @@ public sealed partial class EpubDocument
             bool laidOut = false;
             string? noticeMessage = null;
             var points = new List<EpubResumePoint?>();
+            var boxesBefore = new Dictionary<string, (double Width, double Height)?>(StringComparer.Ordinal);
             var destinations = new Dictionary<(int SpineIndex, int Offset), EpubNavigationDestination>();
             try
             {
@@ -152,9 +156,10 @@ public sealed partial class EpubDocument
                     int ignored = AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors, cellAnchors,
                         ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences,
                         imageBoxes, images, bookReaders, ResolveFamily, contentDiagnostics, chargedStylesheets, token,
-                        resumePoints: points, anchorLimitedChapters: anchorLimitedChapters);
+                        resumePoints: points, anchorLimitedChapters: anchorLimitedChapters, boxesBefore: boxesBefore);
                     if (ignored > 0) ignoredDeclarations.Add(new(spineIndex, Spine[spineIndex].Item.Href, ignored));
                     laidOut = true;
+                    chapterImageBoxes[spineIndex] = boxesBefore;
                 }
                 catch (Exception error) when (options.IsolateChapterFailures
                     && error is not (OperationCanceledException or OutOfMemoryException))
@@ -253,6 +258,11 @@ public sealed partial class EpubDocument
             again.AddRange(Enumerable.Repeat<EpubLayoutPage>(null!, firstPage));
             int text = int.MaxValue, stylesheetBytes = int.MaxValue, stylesheetReferences = int.MaxValue;
             IReadOnlyList<EpubLayoutPage> laid;
+            // The picture boxes as they stood when this chapter first began, for the pictures it uses.
+            var chapterBoxes = new Dictionary<string, (double Width, double Height)>(StringComparer.Ordinal);
+            if (chapterImageBoxes.TryGetValue(spineIndex, out var before))
+                foreach (var (target, box) in before)
+                    if (box is { } known) chapterBoxes[target] = known;
             // Font lookups follow this work's token. The layout lock keeps pagination from running meanwhile, and its next
             // chapter sets its own token again.
             layoutToken = relayoutToken;
@@ -261,7 +271,7 @@ public sealed partial class EpubDocument
                 AppendNativeSpinePages(spineIndex, options, contentWidth, reader, again,
                     new List<(int SpineIndex, string Id, int Offset)>(),
                     new Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination>(),
-                    ref text, ref stylesheetBytes, ref stylesheetReferences, imageBoxes, images, bookReaders, ResolveFamily,
+                    ref text, ref stylesheetBytes, ref stylesheetReferences, chapterBoxes, images, bookReaders, ResolveFamily,
                     new List<EpubChapterDiagnostic>(), new HashSet<string>(StringComparer.Ordinal), relayoutToken,
                     stopAfterPages, resume,
                     // Where the page after the last one asked for begins, so glyphs past it are not shaped.
@@ -511,7 +521,8 @@ public sealed partial class EpubDocument
         Func<EpubFontFamily?, double, EpubFontStyle, TrueTypeFont?> resolveFamily,
         List<EpubChapterDiagnostic> contentDiagnostics, HashSet<string> chargedStylesheets, CancellationToken cancellationToken,
         int stopAfterPages = int.MaxValue, EpubResumePoint? resume = null, List<EpubResumePoint?>? resumePoints = null,
-        int stopAtOffset = int.MaxValue, HashSet<int>? anchorLimitedChapters = null)
+        int stopAtOffset = int.MaxValue, HashSet<int>? anchorLimitedChapters = null,
+        Dictionary<string, (double Width, double Height)?>? boxesBefore = null)
     {
         // Itemref properties (page-spread-*, rendition:*) only affect synthetic spreads and fixed layout; they are ignored.
         var resource = Spine[spineIndex].Item;
@@ -2320,6 +2331,7 @@ public sealed partial class EpubDocument
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     string target = ResolveNativeImage(resource.Href, source);
+                    boxesBefore?.TryAdd(target, imageBoxes.TryGetValue(target, out var seen) ? seen : null);
                     // The decode box is the largest this picture has been asked for, so a later, larger use is not drawn
                     // from the soft decode a first use in a narrow cell made.
                     (double Width, double Height) box = (contentWidth, options.PageHeight - 2 * options.Margin);

@@ -115,6 +115,36 @@ public sealed class EpubChapterRelayoutTests
         Assert.Equal(0, cache.ResidentPageCount(4));
     }
 
+    // A picture is decoded for the box it is asked for, and the box only grows as later chapters ask for more. Laying a
+    // chapter out again must give the same decode it first had, not the larger one a later chapter asked for.
+    [Fact]
+    public void ALaterWiderUseOfAPictureDoesNotChangeAnEarlierChaptersRelayout()
+    {
+        var book = new Book
+        {
+            Chapters =
+            {
+                Chapter("<table style='width:150px'><tr><td style='width:150px'><img src='../images/big.png' alt=''/></td></tr></table>"),
+                Chapter("<p><img src='../images/big.png' alt=''/></p>")
+            },
+            ExtraManifest = "<item id='big' href='images/big.png' media-type='image/png'/>"
+        };
+        book.Resources.Add(("images/big.png", EpubImageCompatibilityTests.Png(1600, 1200, colorType: 2)));
+        var first = new Dictionary<int, (int Width, int Height)>();
+        var layout = EpubDocument.Open(book.Build()).CreateLayout(Options(), (page, index) =>
+        {
+            if (page.Glyphs.OfType<KillerPdf.Engine.Rendering.NativeImagePaint>().FirstOrDefault() is { } paint)
+                first[index] = (paint.Image.Width, paint.Image.Height);
+        }, CancellationToken.None);
+
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.Equal(2, first.Count);
+        // The cell's picture was decoded for a narrower box than the full-width one of the second chapter.
+        Assert.True(first[0].Width < first[1].Width);
+        var again = layout.Pages[0].Glyphs.OfType<KillerPdf.Engine.Rendering.NativeImagePaint>().Single();
+        Assert.Equal(first[0], (again.Image.Width, again.Image.Height));
+    }
+
     private static string Fingerprint(EpubLayoutPage page) => string.Join("|",
         page.Text, page.TextStart, page.SpineIndex, page.CanvasBackground,
         string.Join(";", page.TextPlacements), string.Join(";", page.NavigationPlacements),
