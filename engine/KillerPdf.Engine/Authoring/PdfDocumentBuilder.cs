@@ -5926,6 +5926,7 @@ public sealed partial class PdfDocumentBuilder
         var hashing = new PdfHashingStream(hash);
         foreach (PdfIndirectObject value in objects.OrderBy(value => value.ObjectNumber))
             PdfObjectWriter.Write(hashing, value);
+        hashing.Flush();
         return hash.GetHashAndReset()[..16];
     }
 
