@@ -1054,7 +1054,11 @@ public sealed partial class PdfPageRenderer
             // The conversion is pure, so two ranges that race on one ink may both convert it; one result is kept.
             // Entries are counted in an int, because a ConcurrentDictionary's Count takes every bucket lock.
             var converted = new System.Collections.Concurrent.ConcurrentDictionary<uint, (float Red, float Green, float Blue)>();
-            const int cacheCap = 1 << 16;
+            // Measured with GC.GetTotalMemory around filling a ConcurrentDictionary<uint, (float, float, float)>:
+            // about 58 bytes per entry, so 1 << 20 entries retain 58.7 MB and 1 << 18 entries retain 14.5 MB.
+            // 1 << 18 holds a photograph of up to 262,144 distinct inks without converting any twice, and keeps
+            // the cache small; a larger picture converts the inks past the cap again rather than holding them.
+            const int cacheCap = 1 << 18;
             int entries = 0;
             (float Red, float Green, float Blue) Convert(uint ink)
             {

@@ -59,18 +59,29 @@ public sealed class PdfPrecisionComposedInkConversionTests
         Assert.InRange(conversions, 1, 50_000);
     }
 
-    // The converted-ink cache holds at most 65,536 entries. Each of the 200,000 inks appears five times, far
-    // apart, so an ink the cache cannot hold is converted at every appearance: at least 65,536 + 5 * (200,000 -
-    // 65,536) conversions. A cache that holds more than the cap converts fewer. Row workers share the cache,
-    // so the cap holds under parallel rows too, and the pixels do not depend on the thread count.
+    // A picture with 200,000 distinct inks fits the converted-ink cache, so each ink is converted once and
+    // nothing is converted again. The count is exact: one conversion per distinct ink.
+    [Fact]
+    public void PictureOfTwoHundredThousandInksConvertsEachInkExactlyOnce()
+    {
+        var (conversions, _) = RenderPicture(1);
+
+        Assert.Equal(DistinctInks, conversions);
+    }
+
+    // The converted-ink cache holds at most 262,144 entries. Each of the 300,000 inks appears at least three
+    // times, far apart, so an ink the cache cannot hold is converted at every appearance: at least 262,144 +
+    // 3 * (300,000 - 262,144) conversions. A cache that holds more than the cap converts fewer. Row workers
+    // share the cache, so the cap holds under parallel rows too, and the pixels do not depend on the thread count.
     [Fact]
     public void ConvertedInkCacheStaysWithinItsEntryCap()
     {
-        const int cap = 1 << 16;
-        const long minimum = cap + 5L * (DistinctInks - cap);
+        const int cap = 1 << 18;
+        const int inks = 300_000;
+        const long minimum = cap + 3L * (inks - cap);
 
-        var (serialConversions, serialPixels) = RenderPicture(1);
-        var (parallelConversions, parallelPixels) = RenderPicture(4);
+        var (serialConversions, serialPixels) = RenderPicture(1, inks);
+        var (parallelConversions, parallelPixels) = RenderPicture(4, inks);
 
         Assert.True(serialConversions >= minimum, $"serial conversions {serialConversions} < {minimum}");
         Assert.True(parallelConversions >= minimum, $"parallel conversions {parallelConversions} < {minimum}");
