@@ -23,6 +23,10 @@ internal sealed class PdfWorkingDocument : IDisposable
     private long _contentCopyUsedAt;
     private ITimer? _contentCopyTimer;
 
+    /// <summary>Raised, outside the document's locks and possibly on a timer thread, after the idle strict parse is
+    /// let go, so whatever was read from that parse can be let go with it.</summary>
+    internal event Action? ContentCopyDropped;
+
     /// <summary>True while a strict parse is held for picture copies; a cached refusal holds nothing.</summary>
     internal bool HoldsContentCopy { get { lock (_contentCopySync) return _contentCopy is { Document: not null }; } }
 
@@ -91,13 +95,16 @@ internal sealed class PdfWorkingDocument : IDisposable
     // Runs on the timer: drops the parse if it has gone unused for the whole limit, else waits out the rest of it.
     private void DropIdleContentCopy()
     {
+        bool dropped = false;
         lock (_contentCopySync)
         {
             if (Volatile.Read(ref _closed) || _contentCopy is not { Document: not null }) return;
             TimeSpan idle = IdleFor();
-            if (idle >= ContentCopyIdleLimit) _contentCopy = null;
+            if (idle >= ContentCopyIdleLimit) { _contentCopy = null; dropped = true; }
             else _contentCopyTimer?.Change(ContentCopyIdleLimit - idle, Timeout.InfiniteTimeSpan);
         }
+        // Outside the lock: a listener takes its own lock, which another thread may hold while asking for the parse.
+        if (dropped) ContentCopyDropped?.Invoke();
     }
 
     internal PdfCapturedReadRevision CaptureReadRevision()

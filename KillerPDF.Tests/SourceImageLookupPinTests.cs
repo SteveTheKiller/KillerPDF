@@ -12,14 +12,14 @@ public sealed class SourceImageLookupPinTests
     public void PlacementsAreReadOncePerPageAndDocumentAndShareOneReader()
     {
         string images = Viewer("PdfViewer.SourceImages.cs");
-        string helper = Between(images, "IReadOnlyList<PdfImagePlacementSelection>? PlacementsForPage(", "/// <summary>Places Extract Image results");
+        string cache = Source("Services", "PlacementReadCache.cs");
 
-        Assert.Equal(1, Count(images, "_placementCacheReader.ReadImagePlacements(page)"));
-        Assert.Contains("_placementCacheReader ??= new PdfPageContentReader(source);", helper);
-        Assert.Contains("_placementCache.TryGetValue(page, out var cached)", helper);
-        Assert.Contains("ReferenceEquals(owner, doc)", helper);
-        Assert.Contains("_placementCache.Clear();", helper);
-        Assert.Contains("MaximumCachedPlacementPages", images);
+        Assert.Equal(1, Count(cache, ".ReadImagePlacements(page)"));
+        Assert.Contains("reader = new PdfPageContentReader(source);", cache);
+        Assert.Contains("_pages.TryGetValue(page, out var cached)", cache);
+        Assert.Contains("ReferenceEquals(owner, doc)", cache);
+        Assert.Contains("MaximumPages", cache);
+        Assert.Contains("_placementCache.PlacementsForPage(doc, page)", images);
     }
 
     // The set of pictures a press can select is the set whose extraction succeeds, as before. Extraction runs once per
@@ -29,15 +29,15 @@ public sealed class SourceImageLookupPinTests
     {
         string images = Viewer("PdfViewer.SourceImages.cs");
         string select = Between(images, "private bool TrySelectSourceImage(int page, Point point, out bool wasSelected)", "private ImageAnnotation? MaterializedSourceImage()");
-        string asset = Between(images, "private PdfImageAsset? AssetForPlacement(", "// Placement reads are cached per page");
+        string asset = Source("Services", "PlacementReadCache.cs");
 
         Assert.Contains("AssetForPlacement(page, ordinal, image) is not { } asset) return false;", select);
         Assert.DoesNotContain("PdfImagePlacementExtractor.Extract(", select);
         Assert.DoesNotContain("Convert.ToBase64String(", select);
         Assert.DoesNotContain("new PdfPageContentReader(", select);
-        Assert.Equal(1, Count(images, "PdfImagePlacementExtractor.Extract(_placementCacheSource!, image)"));
-        Assert.Contains("_placementAssets.TryGetValue((page, ordinal), out var known)", asset);
-        Assert.Contains("_placementAssets[(page, ordinal)] = asset;", asset);
+        Assert.Equal(1, Count(asset, "PdfImagePlacementExtractor.Extract(source, image)"));
+        Assert.Contains("_assets.TryGetValue((page, ordinal), out var known)", asset);
+        Assert.Contains("_assets[(page, ordinal)] = asset;", asset);
         Assert.Contains("Convert.ToBase64String(selection.Asset.ToPdfBytes())", Between(images, "private ImageAnnotation? MaterializedSourceImage()", "private PdfImageAsset? AssetForPlacement("));
         Assert.Contains("&& ReferenceEquals(selection.Owner, _doc) ? MaterializedSourceImage() : null;", images);
     }

@@ -110,6 +110,7 @@
     <Compile Include="..\Services\WicJpegDecoder.cs" Link="Services\WicJpegDecoder.cs" />
     <Compile Include="..\Services\NativeWicJpegDecoder.cs" Link="Services\NativeWicJpegDecoder.cs" />
     <Compile Include="..\Services\PdfWorkingDocument.cs" Link="Services\PdfWorkingDocument.cs" />
+    <Compile Include="..\Services\PlacementReadCache.cs" Link="Services\PlacementReadCache.cs" />
     <Compile Include="..\Services\NativeWorkingDocument.cs" Link="Services\NativeWorkingDocument.cs" />
     <Compile Include="..\Services\AnnotationScale.cs" Link="Services\AnnotationScale.cs" />
     <Compile Include="..\Services\PdfImageJpeg.cs" Link="Services\PdfImageJpeg.cs" />

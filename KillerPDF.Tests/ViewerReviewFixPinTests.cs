@@ -32,9 +32,12 @@ public sealed class ViewerReviewFixPinTests
 
         string images = Viewer("PdfViewer.SourceImages.cs");
         string release = Between(images, "private void ReleasePlacementCache()", "private IReadOnlyList<PdfImagePlacementSelection>? PlacementsForPage(");
-        foreach (string field in new[] { "_placementCache.Clear();", "_placementAssets.Clear();", "_placementCacheReader = null;",
-            "_placementCacheSource = null;", "_placementCacheOwner = null;" })
-            Assert.Contains(field, release);
+        Assert.Contains("_placementCache.Release();", release);
+        string cache = Source("Services", "PlacementReadCache.cs");
+        Assert.Contains("_owner = null;", Between(cache, "internal void Release()", "// Placement reads are cached per page"));
+        string clear = Between(cache, "private void ClearAll()", "private PdfPageContentReader ReaderFor(");
+        foreach (string field in new[] { "_pages.Clear();", "_assets.Clear();", "_reader = null;", "_parse = null;" })
+            Assert.Contains(field, clear);
     }
 
     // controls:BF-018. The Delete key only asks whether a picture is selected; SelectedSourceImageExt would

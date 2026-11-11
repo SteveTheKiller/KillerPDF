@@ -320,76 +320,19 @@ public partial class PdfViewer
         return selection.Image;
     }
 
-    private PdfImageAsset? AssetForPlacement(int page, int ordinal, PdfImagePlacementSelection image)
-    {
-        if (_placementAssets.TryGetValue((page, ordinal), out var known)) return known;
-        PdfImageAsset? asset;
-        try { asset = PdfImagePlacementExtractor.Extract(_placementCacheSource!, image); }
-        catch (Exception error) when (error is NotSupportedException or InvalidOperationException or FormatException
-            or KillerPdf.Engine.Filters.PdfFilterException)
-        {
-            asset = null;
-        }
-        if (_placementAssets.Count >= MaximumCachedPlacementAssets) _placementAssets.Clear();
-        _placementAssets[(page, ordinal)] = asset;
-        return asset;
-    }
-
-    // Placement reads are cached per page for one document. A working document never changes its source, so the
-    // document instance is the revision: reloading after an edit or opening another file starts an empty cache.
-    private WeakReference<PdfWorkingDocument>? _placementCacheOwner;
-    private PdfPageContentReader? _placementCacheReader;
-    private PdfDocument? _placementCacheSource;
-    private readonly Dictionary<int, IReadOnlyList<PdfImagePlacementSelection>?> _placementCache = [];
-    // A refused picture is remembered as null, so a repeat press does not extract it again.
-    private readonly Dictionary<(int Page, int Ordinal), PdfImageAsset?> _placementAssets = [];
-    private const int MaximumCachedPlacementPages = 8;
-    private const int MaximumCachedPlacementAssets = 8;
+    // Placement reads, and the pictures extracted from them, are cached per page for one document. The cache owns
+    // them and drops them with the document's idle strict parse, so the viewer never keeps that parse reachable.
+    private readonly PlacementReadCache _placementCache = new();
 
     /// <summary>Drops every placement read, extracted asset and the strict parse behind them. Called where the
     /// viewer lets go of its document, so a closed tab's parse is not kept until another picture is pressed.</summary>
-    private void ReleasePlacementCache()
-    {
-        _placementCache.Clear();
-        _placementAssets.Clear();
-        _placementCacheReader = null;
-        _placementCacheSource = null;
-        _placementCacheOwner = null;
-    }
+    private void ReleasePlacementCache() => _placementCache.Release();
 
-    private IReadOnlyList<PdfImagePlacementSelection>? PlacementsForPage(PdfWorkingDocument doc, int page)
-    {
-        if (_placementCacheOwner is null || !_placementCacheOwner.TryGetTarget(out var owner) || !ReferenceEquals(owner, doc))
-        {
-            _placementCache.Clear();
-            _placementAssets.Clear();
-            _placementCacheReader = null;
-            _placementCacheSource = null;
-            _placementCacheOwner = new WeakReference<PdfWorkingDocument>(doc);
-        }
-        if (_placementCache.TryGetValue(page, out var cached)) return cached;
-        IReadOnlyList<PdfImagePlacementSelection>? read;
-        try
-        {
-            var source = doc.OpenStrictForContentCopy();
-            if (source is null) return null;
-            _placementCacheSource = source;
-            _placementCacheReader ??= new PdfPageContentReader(source);
-            read = _placementCacheReader.ReadImagePlacements(page);
-        }
-        catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException))
-        {
-            // This document's page is one the reader refuses; remember that so a click does not parse it again.
-            read = null;
-        }
-        if (_placementCache.Count >= MaximumCachedPlacementPages)
-        {
-            _placementCache.Clear();
-            _placementAssets.Clear();
-        }
-        _placementCache[page] = read;
-        return read;
-    }
+    private IReadOnlyList<PdfImagePlacementSelection>? PlacementsForPage(PdfWorkingDocument doc, int page) =>
+        _placementCache.PlacementsForPage(doc, page);
+
+    private PdfImageAsset? AssetForPlacement(int page, int ordinal, PdfImagePlacementSelection image) =>
+        _doc is { } doc ? _placementCache.AssetForPlacement(doc, page, ordinal, image) : null;
 
     /// <summary>Places Extract Image results on a page as editable images in one Undo step. The
     /// rectangles are pixels of a page preview drawn in the page's on-screen orientation; a Cut fill
