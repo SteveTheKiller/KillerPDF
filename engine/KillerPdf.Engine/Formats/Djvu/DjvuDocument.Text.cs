@@ -13,6 +13,17 @@ public sealed partial class DjvuDocument
     {
         cancellationToken.ThrowIfCancellationRequested();
         if ((uint)pageIndex >= (uint)_pageForms.Length) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        // Search, copy and selection treat an unreadable text layer as InvalidDataException; arithmetic or argument
+        // failures from hostile geometry must not escape as other types.
+        try { return ReadTextPageCore(pageIndex, cancellationToken); }
+        catch (Exception error) when (error is ArgumentException or OverflowException)
+        {
+            throw new InvalidDataException("Page " + (pageIndex + 1) + " text could not be read: " + error.Message, error);
+        }
+    }
+
+    private DjvuTextPage ReadTextPageCore(int pageIndex, CancellationToken cancellationToken)
+    {
         var form = _pageForms[pageIndex];
         var budget = 65_535;
         var chunks = ReadChunks(_data, form.Offset + 4, form.Offset + form.Length, cancellationToken, ref budget);
@@ -122,7 +133,8 @@ public sealed partial class DjvuDocument
                 }
                 childrenRemaining[depth - 1]--;
             }
-            var bounds = (Left: left, Bottom: bottom, Right: checked(left + width), Top: checked(bottom + height));
+            // Each field is 16 bits and at most 65,536 zones accumulate, so these sums stay far inside a long.
+            var bounds = (Left: left, Bottom: bottom, Right: left + width, Top: bottom + height);
             if (bounds.Right <= bounds.Left || bounds.Top <= bounds.Bottom)
                 throw new InvalidDataException("TXTa zone rectangle is empty or inverted.");
             if (start < 0 || start > textLength || length > textLength - start)

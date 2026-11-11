@@ -143,6 +143,30 @@ public sealed class PdfDjvuReadSnapshotTests
         Assert.Equal("The DjVu container has no local pages available for reading.", error.Message);
     }
 
+    // The most extreme geometry the 16 bit zone fields can encode: 65,535 words in a row, each 32,767 pixels wide, so the
+    // last word's right edge is 65,535 x 32,767 = 2,147,385,345 pixels. Reading it must neither throw nor wrap.
+    [Fact]
+    public void ExtremeButEncodableZoneGeometryReadsWithoutOverflow()
+    {
+        const int words = 65_535;
+        byte[] parent = [1, 0x80, 0, 0x80, 0, 0x80, 100, 0x80, 100, 0x80, 0, 0, 0xFF, 0xFF, 0, 0xFF, 0xFF];
+        byte[] word = [6, 0x80, 0, 0x80, 0, 0xFF, 0xFF, 0x80, 1, 0x80, 0, 0, 0, 1, 0, 0, 0];
+        var text = new byte[3 + words + 1 + 17 * (words + 1)];
+        text[1] = 0xFF; text[2] = 0xFF;
+        Array.Fill(text, (byte)'A', 3, words);
+        text[3 + words] = 1;
+        parent.CopyTo(text, 4 + words);
+        for (int index = 0; index < words; index++) word.CopyTo(text, 4 + words + 17 * (index + 1));
+        byte[] file = [.. "AT&T"u8, .. Chunk("FORM", [.. "DJVU"u8,
+            .. Chunk("INFO", [0, 3, 0, 2, 26, 0, 0x2c, 1, 22, 1]), .. Chunk("TXTa", text)])];
+
+        var page = PdfReadSnapshot.OpenDjvu(file).ReadTextPage(0);
+
+        // 300 dpi maps one pixel to 72 / 300 points.
+        Assert.Equal(words, page.Regions.Count);
+        Assert.Equal(2_147_385_345.0 * 72 / 300, page.Regions[^1].Bounds.Right, 3);
+    }
+
     private static byte[] Page(int dpi, byte orientation) => [.. "AT&T"u8,
         .. Chunk("FORM", [.. "DJVU"u8,
             .. Chunk("INFO", [0, 3, 0, 2, 26, 0, (byte)dpi, (byte)(dpi >> 8), 22, orientation]),
