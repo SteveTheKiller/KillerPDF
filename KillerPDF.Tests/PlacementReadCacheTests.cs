@@ -179,15 +179,42 @@ public sealed class PlacementReadCacheTests
         Assert.True(cache.FollowsADocument);
     }
     [Fact]
-    public void ClosingADocumentThatHeldNoParseRaisesNoDropEvent()
+    public void ClosingADocumentRaisesTheDropEventOnce()
     {
         using var scope = new Scope();
         int dropped = 0;
         scope.Document.ContentCopyDropped += () => dropped++;
 
         scope.Document.Close();
+        scope.Document.Close();
 
-        Assert.Equal(0, dropped);
+        Assert.Equal(1, dropped);
+    }
+
+    [Fact]
+    public void AClosedDocumentIsLetGoAfterAnIdleDrop()
+    {
+        using var scope = new Scope();
+        var cache = new PlacementReadCache();
+        Assert.NotNull(cache.PlacementsForPage(scope.Document, 0));
+        scope.Clock.Advance(PdfWorkingDocument.ContentCopyIdleLimit);
+        Assert.True(cache.FollowsADocument);
+
+        scope.Document.Close();
+
+        Assert.False(cache.FollowsADocument);
+        Assert.Equal(0, cache.PagesRemembered);
+    }
+
+    [Fact]
+    public void AReadOfAnAlreadyClosedDocumentDoesNotFollowIt()
+    {
+        using var scope = new Scope();
+        var cache = new PlacementReadCache();
+        scope.Document.Close();
+
+        Assert.Null(cache.PlacementsForPage(scope.Document, 0));
+        Assert.False(cache.FollowsADocument);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

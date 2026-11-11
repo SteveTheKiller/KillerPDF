@@ -113,6 +113,13 @@ internal sealed class PlacementReadCache
         _owner = new WeakReference<PdfWorkingDocument>(doc);
         _subscribed = doc;
         doc.ContentCopyDropped += OnContentCopyDropped;
+        // A document that is already closed raises no more drops; Close sets the flag before it raises, so a close
+        // racing this subscribe is caught either here or by the handler.
+        if (doc.IsClosed)
+        {
+            doc.ContentCopyDropped -= OnContentCopyDropped;
+            _subscribed = null;
+        }
     }
 
     // Runs on the document's idle timer, or when it closes: the parse is gone, so what was read from it goes with it.

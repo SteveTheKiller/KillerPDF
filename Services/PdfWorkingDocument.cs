@@ -24,7 +24,8 @@ internal sealed class PdfWorkingDocument : IDisposable
     private ITimer? _contentCopyTimer;
 
     /// <summary>Raised, outside the document's locks and possibly on a timer thread, after the idle strict parse is
-    /// let go, so whatever was read from that parse can be let go with it.</summary>
+    /// let go, so whatever was read from that parse can be let go with it. It is also raised once when the document
+    /// closes, whether or not a parse was still held, so a listener can let go of the document itself.</summary>
     internal event Action? ContentCopyDropped;
 
     /// <summary>True while a strict parse is held for picture copies; a cached refusal holds nothing.</summary>
@@ -245,17 +246,16 @@ internal sealed class PdfWorkingDocument : IDisposable
             _readRevision = null;
             Interlocked.Exchange(ref _parsedDocument, null);
         }
-        bool heldCopy;
         lock (_contentCopySync)
         {
-            heldCopy = _contentCopy is { Document: not null };
             _contentCopy = null;
             _contentCopyTimer?.Dispose();
             _contentCopyTimer = null;
         }
         revision?.Dispose();
-        // Outside both locks, as in DropIdleContentCopy: a listener holding a read of the parse lets it go with the document.
-        if (heldCopy) ContentCopyDropped?.Invoke();
+        // Outside both locks, as in DropIdleContentCopy: a listener holding a read of the parse, or the document itself,
+        // lets it go. The _closed guard above makes this run once.
+        ContentCopyDropped?.Invoke();
     }
     public void Dispose() => Close();
 }
