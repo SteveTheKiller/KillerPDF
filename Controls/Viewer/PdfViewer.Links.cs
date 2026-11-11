@@ -34,8 +34,9 @@ namespace KillerPDF.Controls
 
         // What a page's cached links were read for: the bitmap size their rects are measured in, and the document.
         // A redraw at the same size of the same document reuses them; anything else reads the page again. The document
-        // is held weakly so a closed document is not kept alive by a page nobody draws again.
-        private readonly Dictionary<int, (int W, int H, WeakReference<object>? Owner)> _continuousLinkKeys = [];
+        // is held weakly so a closed document is not kept alive by a page nobody draws again. The key also holds the list
+        // it was made for, so a list the continuous layout cleared or refilled elsewhere never matches a stale key.
+        private readonly Dictionary<int, LinkCacheKey> _continuousLinkKeys = [];
 
         /// <summary>The link-rect map, for the window side. ContextMenu.cs bounds-tests it to build
         /// the right-click menu and FileOperations.cs clears it on document change; both live on the
@@ -428,12 +429,11 @@ namespace KillerPDF.Controls
             object? owner = (object?)_nativeDoc ?? _doc;
             if (!(_continuousLinks.TryGetValue(pageIndex, out var links)
                 && _continuousLinkKeys.TryGetValue(pageIndex, out var key)
-                && key.W == bitmapW && key.H == bitmapH
-                && (key.Owner is null ? owner is null : key.Owner.TryGetTarget(out var held) && ReferenceEquals(held, owner))))
+                && key.Matches(links, bitmapW, bitmapH, owner)))
             {
                 links = GetPageLinks(pageIndex, bitmapW, bitmapH);
                 _continuousLinks[pageIndex] = links;
-                _continuousLinkKeys[pageIndex] = (bitmapW, bitmapH, owner is null ? null : new WeakReference<object>(owner));
+                _continuousLinkKeys[pageIndex] = LinkCacheKey.For(bitmapW, bitmapH, owner, links);
             }
 
             // Keyboard and screen-reader access (BF-U001). These overlays ignore the mouse, so
