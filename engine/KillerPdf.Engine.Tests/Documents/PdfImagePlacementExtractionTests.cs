@@ -159,6 +159,33 @@ public sealed class PdfImagePlacementExtractionTests
         Assert.NotEqual(PixelAt(shown, x1, y1), PixelAt(shown, x2, y2));
     }
 
+    [Theory]
+    [InlineData("-100 0 0 50 150 100", 2, 1, new byte[] { 255, 0, 0, 0, 0, 255 }, 75, 75, 125, 75)]
+    [InlineData("100 0 0 -50 50 150", 1, 2, new byte[] { 255, 0, 0, 0, 0, 255 }, 100, 60, 100, 90)]
+    public void AFlippedPictureKeptAsPdfBytesStaysFlippedWhenReadAndDrawnAgain(
+        string matrix, int width, int height, byte[] samples, int x1, int y1, int x2, int y2)
+    {
+        // The viewer keeps a copied picture as the asset's PDF bytes and reads them back on paste and on save.
+        byte[] source = FlippedFixture(matrix, width, height, Compress(samples));
+        var document = PdfDocument.Open(source);
+        PdfImageAsset copied = PdfImagePlacementExtractor.Extract(document, Assert.Single(new PdfPageContentReader(document).ReadImagePlacements(0)));
+        var kept = PdfDocument.Open(copied.ToPdfBytes());
+        PdfImageAsset pasted = PdfImagePlacementExtractor.Extract(kept, Assert.Single(new PdfPageContentReader(kept).ReadImagePlacements(0)));
+        var target = PdfDocument.Open(new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
+            .AddPage(200, 200, new KillerPdf.Engine.Authoring.PdfContentStreamBuilder()
+                .DrawImage(pasted, 50, 100, 100, 50)).Build());
+
+        var shown = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(200, 200));
+        var result = new PdfPageRenderer(target).Render(0, new PdfRenderOptions(200, 200));
+        var preview = new PdfPageRenderer(kept).Render(0, new PdfRenderOptions(width * 2, height * 2));
+
+        foreach ((int px, int py) in new[] { (x1, y1), (x2, y2) })
+            Assert.Equal(PixelAt(shown, px, py), PixelAt(result, px, py));
+        // The asset's own page, which the viewer shows as the picture, is mirrored the same way.
+        Assert.Equal(PixelAt(shown, x1, y1), PixelAt(preview, 0, 0));
+        Assert.Equal(PixelAt(shown, x2, y2), PixelAt(preview, preview.Width - 1, preview.Height - 1));
+    }
+
     [Fact]
     public void AnUnmirroredAssetDrawsWithTheCallersMatrixUnchanged()
     {

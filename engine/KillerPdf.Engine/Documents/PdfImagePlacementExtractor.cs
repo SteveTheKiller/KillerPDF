@@ -213,7 +213,10 @@ public static class PdfImagePlacementExtractor
             entries[Name("Intent")] = Name(renderingIntent.ValueAsLatin1());
         }
         var imageReference = update.AddObject(new PdfStream(new PdfDictionary(entries), image.EncodedData.Span));
-        var content = string.Create(CultureInfo.InvariantCulture, $"q {width} 0 0 {height} 0 0 cm /Image Do Q\n");
+        // The asset page shows the picture the way the source page did, so a copy kept as these bytes stays mirrored or flipped.
+        bool mirrored = selection.Placement is { A: < 0 }, flipped = selection.Placement is { D: < 0 };
+        var content = string.Create(CultureInfo.InvariantCulture,
+            $"q {(mirrored ? -width : width)} 0 0 {(flipped ? -height : height)} {(mirrored ? width : 0)} {(flipped ? height : 0)} cm /Image Do Q\n");
         var contentReference = update.AddObject(new PdfStream(new PdfDictionary([]), Encoding.ASCII.GetBytes(content)));
         var pageEntries = seedPage.Dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
         pageEntries[Name("Resources")] = new PdfDictionary([
@@ -226,7 +229,7 @@ public static class PdfImagePlacementExtractor
         if (result.Length > MaximumAssetBytes)
             throw new NotSupportedException("The detached image asset exceeds its size limit.");
         return new PdfImageAsset(width, height, result,
-            mirrored: selection.Placement is { A: < 0 }, flipped: selection.Placement is { D: < 0 });
+            mirrored, flipped);
 
         PdfName EffectiveIntent()
         {
