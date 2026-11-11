@@ -73,6 +73,7 @@ namespace KillerPDF.Services
             if (!guardEmitted && !elevated)
                 script.AppendLine("try {").AppendLine(Guard).AppendLine("} catch {")
                     .AppendLine("    try { [IO.File]::AppendAllText($plan.Report, [Environment]::NewLine + 'The update helper could not load: ' + $_.Exception.Message) } catch { }")
+                    .AppendLine("    if ($plan.ShowReport) { try { Start-Process -FilePath (Join-Path ([Environment]::SystemDirectory) 'notepad.exe') -ArgumentList ('\"' + $plan.Report + '\"') } catch { } }")
                     .AppendLine("    if (Test-Path -LiteralPath $plan.Target) { try { if ($plan.Reopen) { Start-Process -FilePath $plan.Target -ArgumentList $plan.Reopen } else { Start-Process -FilePath $plan.Target } } catch { } }")
                     .AppendLine("    exit 1").AppendLine("}");
             else if (!guardEmitted) script.AppendLine(Guard);
@@ -865,11 +866,19 @@ function Start-KillerUpdatedApp {
             try { $instance.Refresh(); $state = $instance.State } catch { $state = 0 }
         }
         if ($report) {
-            $status = if ($state -eq 2) { 'queued' } elseif ($state -eq 4) { 'running' } elseif ($state -eq 3) { 'completed' } else { 'unavailable' }
-            [IO.File]::AppendAllText($report, ([Environment]::NewLine + 'Automatic relaunch helper state: ' + $status + '. Task: ' + $name + '. This state does not confirm application startup. Failure details are saved in the desktop user''s LocalAppData\KillerPDF\Updates folder.'))
+            $reportStream = $null
+            try {
+                $reportStream = [IO.File]::Open($report, [IO.FileMode]::Open, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+                $status = if ($state -eq 2) { 'queued' } elseif ($state -eq 4) { 'running' } elseif ($state -eq 3) { 'completed' } else { 'unavailable' }
+                $bytes = [Text.Encoding]::UTF8.GetBytes([Environment]::NewLine + 'Automatic relaunch helper state: ' + $status + '. Task: ' + $name + '. This state does not confirm application startup. Failure details are saved in the desktop user''s LocalAppData\KillerPDF\Updates folder.')
+                $null = $reportStream.Seek(0, [IO.SeekOrigin]::End)
+                $reportStream.Write($bytes, 0, $bytes.Length)
+            }
+            catch [IO.FileNotFoundException] { }
+            finally { if ($null -ne $reportStream) { $reportStream.Dispose() } }
         }
     }
-    finally { if ($state -eq 3 -and $registered.State -ne 2 -and $registered.State -ne 4) { $folder.DeleteTask($name, 0) } }
+    finally { if ($state -notin @(2, 4) -and $registered.State -ne 2 -and $registered.State -ne 4) { $folder.DeleteTask($name, 0) } }
 }
 """;
     }

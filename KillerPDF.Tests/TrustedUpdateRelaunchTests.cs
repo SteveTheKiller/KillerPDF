@@ -70,3 +70,131 @@ public sealed class TrustedUpdateRelaunchTests : IDisposable
         return reader.ReadToEnd();
     }
 }
+
+public sealed class UpdateDeferredTaskBoundaryTests
+{
+    [Theory]
+    [InlineData(0, 1, true)]
+    [InlineData(1, 1, true)]
+    [InlineData(3, 3, true)]
+    [InlineData(2, 2, false)]
+    [InlineData(4, 4, false)]
+    [InlineData(3, 4, false)]
+    public void DeferredTaskIsRemovedWhenNoInstanceOrRegistrationIsActive(int instanceState, int registeredState, bool deleted)
+    {
+        using var run = new DeferredRun(instanceState, registeredState);
+        Assert.True(run.Exit == 0, run.Output);
+        Assert.DoesNotContain("automatic relaunch failed", run.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(deleted, File.Exists(Path.Combine(run.Root, "deleted.txt")));
+        Assert.Equal("updated image", File.ReadAllText(run.Target));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DeferredRelaunchOnlyAddsStatusToARetainedWarningReport(bool warning)
+    {
+        using var run = new DeferredRun(3, 3, warning);
+        Assert.True(run.Exit == 0, run.Output);
+        Assert.DoesNotContain("automatic relaunch failed", run.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("updated image", File.ReadAllText(run.Target));
+        Assert.False(File.Exists(run.Download));
+        Assert.Equal(warning, File.Exists(run.Download + ".recovery.txt"));
+        if (warning)
+        {
+            Assert.Contains("Fixture metadata warning", run.Output);
+            Assert.Contains("Automatic relaunch helper state: completed.", run.Output);
+        }
+    }
+
+    private sealed class DeferredRun : IDisposable
+    {
+        internal string Root { get; } = Path.Combine(Path.GetTempPath(), "killerpdf-task-boundary-" + Guid.NewGuid().ToString("N"));
+        internal string Target => Path.Combine(Root, "app.exe");
+        internal string Download => Path.Combine(Root, "download.exe");
+        internal int Exit { get; }
+        internal string Output { get; }
+
+        internal DeferredRun(int instanceState, int registeredState, bool warning = false)
+        {
+            Directory.CreateDirectory(Root);
+            File.WriteAllText(Target, "original image");
+            File.WriteAllText(Download, "updated image");
+            string hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(Download)));
+            UpdateImagePublication.RememberVerified(Download, hash, new string('B', 40));
+            string prelude = """
+$ErrorActionPreference = 'Stop'
+Add-Type -TypeDefinition @'
+using System;
+using System.IO;
+public static class KillerUpdateGuard {
+    public static IDisposable PinParents(string path) { return new MemoryStream(); }
+    public static Stream OpenImage(string path) { return new MemoryStream(File.ReadAllBytes(path)); }
+    public static bool Publisher(string path, string thumb, string signer) { return true; }
+    public static void Launch(string path, string args, bool elevated) { throw new InvalidOperationException("No desktop token in fixture"); }
+    public static int ConsoleSession() { return 1; }
+    public static string SessionUser(int session) { return "S-1-5-21-1"; }
+}
+'@
+$script:killerDeferredAssembly = [byte[]]@(1, 2, 3)
+$fixtureInstance = [pscustomobject]@{ State = INSTANCE_STATE }
+$fixtureInstance | Add-Member ScriptMethod Refresh { }
+$fixtureRegistered = [pscustomobject]@{ State = REGISTERED_STATE }
+$fixtureRegistered | Add-Member ScriptMethod RunEx { param($a,$b,$c,$d) $fixtureInstance }
+$fixtureRegistered | Add-Member ScriptMethod GetSecurityDescriptor { param($flags) 'O:BAG:BAD:P(A;;GA;;;SY)(A;;GA;;;BA)' }
+$folder = [pscustomobject]@{}
+$folder | Add-Member ScriptMethod GetTasks { param($flags) @() }
+$folder | Add-Member ScriptMethod RegisterTaskDefinition { param($a,$b,$c,$d,$e,$f,$g) $fixtureRegistered }
+$folder | Add-Member ScriptMethod DeleteTask { param($name,$flags) [IO.File]::WriteAllText((Join-Path $fixtureRoot 'deleted.txt'), $name) }
+$actions = [pscustomobject]@{}
+$actions | Add-Member ScriptMethod Create { param($kind) [pscustomobject]@{Path='';WorkingDirectory='';Arguments=''} }
+$task = [pscustomobject]@{
+    RegistrationInfo=[pscustomobject]@{Date=''}
+    Settings=[pscustomobject]@{Hidden=$false;DisallowStartIfOnBatteries=$true;StopIfGoingOnBatteries=$true;ExecutionTimeLimit=''}
+    Principal=[pscustomobject]@{GroupId='';RunLevel=1}
+    Actions=$actions
+}
+$service = [pscustomobject]@{}
+$service | Add-Member ScriptMethod Connect { }
+$service | Add-Member ScriptMethod GetFolder { param($path) $folder }
+$service | Add-Member ScriptMethod NewTask { param($flags) $task }
+function New-Object {
+    param([string]$TypeName, [object[]]$ArgumentList, [string]$ComObject)
+    if ($ComObject) {
+        if ($ComObject -ne 'Schedule.Service') { throw 'Unexpected COM request' }
+        return $service
+    }
+    Microsoft.PowerShell.Utility\New-Object @PSBoundParameters
+}
+function Start-Sleep { param($Milliseconds) }
+function Start-Process { throw 'Unexpected process launch' }
+""";
+            prelude = "$fixtureRoot = '" + Root.Replace("'", "''") + "'\n" + prelude
+                .Replace("INSTANCE_STATE", instanceState.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Replace("REGISTERED_STATE", registeredState.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            string script = prelude + "\n" + UpdateImagePublication.Script(Download, Target, true,
+                "https://example.invalid/releases", "KillerPDF",
+                overrides: warning ? "$ops.Metadata = { throw 'Fixture metadata warning' }" : null);
+            var start = new System.Diagnostics.ProcessStartInfo(
+                Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"),
+                ImmutablePowerShell.Arguments(script))
+            { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true };
+            using var process = System.Diagnostics.Process.Start(start)!;
+            var errors = process.StandardError.ReadToEndAsync();
+            var output = process.StandardOutput.ReadToEndAsync();
+            if (!process.WaitForExit(60_000))
+            {
+                process.Kill(true);
+                Assert.Fail("The deferred launch fixture did not finish: " + Root);
+            }
+            Exit = process.ExitCode;
+            Output = "Exit " + Exit + "\n" + output.Result + errors.Result +
+                (File.Exists(Download + ".recovery.txt") ? File.ReadAllText(Download + ".recovery.txt") : "");
+        }
+
+        public void Dispose()
+        {
+            try { Directory.Delete(Root, recursive: true); } catch (IOException) { }
+        }
+    }
+}

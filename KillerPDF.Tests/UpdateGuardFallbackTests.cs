@@ -8,6 +8,62 @@ namespace KillerPDF.Tests;
 
 public sealed class UpdateGuardFallbackTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async System.Threading.Tasks.Task GuardFailureHonorsRequestedReportAndStillReopensTheApp(bool showReport, bool reportLaunchFails)
+    {
+        string root = Path.Combine(Path.GetTempPath(), "killerpdf-guard-boundary-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            string target = Path.Combine(root, "app.exe");
+            string download = Path.Combine(root, "download.exe");
+            string calls = Path.Combine(root, "launches.txt");
+            string reopen = "\"" + Path.Combine(root, "book to reopen.pdf") + "\"";
+            File.WriteAllText(target, "inert installed image");
+            UpdateImagePublication.RememberVerified(download, new string('A', 64), new string('B', 40));
+            string prelude = "$fixtureCalls = '" + calls.Replace("'", "''") + "'\n" +
+                "$fixtureReportFails = " + (reportLaunchFails ? "$true" : "$false") + "\n" + """
+$ErrorActionPreference = 'Stop'
+function Add-Type { throw 'Fixture guard unavailable' }
+function New-Object { throw 'Fixture guard unavailable' }
+function Start-Process {
+    param($FilePath, $ArgumentList)
+    [IO.File]::AppendAllText($fixtureCalls, $FilePath + '|' + $ArgumentList + [Environment]::NewLine)
+    if ($fixtureReportFails -and [IO.Path]::GetFileName($FilePath) -eq 'notepad.exe') { throw 'Fixture report launch failed' }
+}
+""";
+            string script = prelude + "\n" + UpdateImagePublication.Script(download, target, false,
+                "https://example.invalid/releases", "KillerPDF", reopen: reopen, showReport: showReport);
+            var start = new System.Diagnostics.ProcessStartInfo(
+                Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"),
+                ImmutablePowerShell.Arguments(script))
+            { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true };
+            using var process = System.Diagnostics.Process.Start(start)!;
+            var errors = process.StandardError.ReadToEndAsync();
+            var output = process.StandardOutput.ReadToEndAsync();
+            if (!process.WaitForExit(60_000))
+            {
+                process.Kill(true);
+                Assert.Fail("The guard failure fixture did not finish: " + root);
+            }
+            string standardOutput = await output;
+            string standardError = await errors;
+            Assert.True(process.ExitCode == 1, standardOutput + standardError);
+            Assert.Contains("Fixture guard unavailable", File.ReadAllText(download + ".recovery.txt"));
+            string appCall = target + "|" + reopen;
+            string reportCall = Path.Combine(Environment.SystemDirectory, "notepad.exe") + "|\"" + download + ".recovery.txt\"";
+            Assert.Equal(showReport ? new[] { reportCall, appCall } : new[] { appCall }, File.ReadAllLines(calls));
+            Assert.Equal("inert installed image", File.ReadAllText(target));
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch (IOException) { }
+        }
+    }
+
     private static string HelperScript(bool elevated)
     {
         string path = Path.Combine(Path.GetTempPath(), "KillerPDF.Tests", "guard", Guid.NewGuid().ToString("N") + ".exe");
