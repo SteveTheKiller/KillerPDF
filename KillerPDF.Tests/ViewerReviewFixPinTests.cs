@@ -60,4 +60,17 @@ public sealed class ViewerReviewFixPinTests
         string restriction = Viewer("PdfViewer.Restriction.cs");
         Assert.Contains("private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> _restrictionDismissed = [];", restriction);
     }
+
+    // controls:BF-027. The click-versus-drag decision on a selected picture is measured in the viewer's own
+    // units, which the page zoom does not scale, against a start point taken in the same units.
+    [Fact]
+    public void PictureDragThresholdIsMeasuredInZoomIndependentUnits()
+    {
+        string images = Viewer("PdfViewer.SourceImages.cs");
+        Assert.Contains("private (Canvas Canvas, Point Start, Point ScreenStart)? _pictureSelectionPress;", images);
+        Assert.Contains("_pictureSelectionPress = (canvas, point, Mouse.GetPosition(this));", images);
+        string move = Between(images, "private bool MoveSourceImageDrag(MouseEventArgs e)", "BeginSelectionMarquee(press.Start);");
+        Assert.Contains("Vector moved = e.GetPosition(this) - press.ScreenStart;", move);
+        Assert.DoesNotContain("e.GetPosition(press.Canvas)", move);
+    }
 }

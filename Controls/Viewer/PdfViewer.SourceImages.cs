@@ -17,13 +17,15 @@ public partial class PdfViewer
     private (Canvas Canvas, Point Start, Rect Original, Rect Current, string? Corner)? _sourceImageDrag;
     private string? _pendingSourceImageCorner;
     // The press that just selected a picture: nothing moves yet. A drag from it draws the selection box;
-    // a release leaves the picture selected.
-    private (Canvas Canvas, Point Start)? _pictureSelectionPress;
+    // a release leaves the picture selected. Start is in the page canvas's units (the selection box begins there);
+    // ScreenStart is in the viewer's own units, which zoom does not scale, so the drag threshold means the same
+    // distance on screen at every zoom.
+    private (Canvas Canvas, Point Start, Point ScreenStart)? _pictureSelectionPress;
     private const double MinimumSourceImageSide = 4;
 
     private void BeginPictureSelectionPress(Canvas canvas, Point point)
     {
-        _pictureSelectionPress = (canvas, point);
+        _pictureSelectionPress = (canvas, point, Mouse.GetPosition(this));
         canvas.CaptureMouse();
     }
 
@@ -103,7 +105,7 @@ public partial class PdfViewer
                 EndPictureSelectionPress(releaseCapture: true);
                 return true;
             }
-            Vector moved = e.GetPosition(press.Canvas) - press.Start;
+            Vector moved = e.GetPosition(this) - press.ScreenStart;
             if (Math.Abs(moved.X) < SystemParameters.MinimumHorizontalDragDistance
                 && Math.Abs(moved.Y) < SystemParameters.MinimumVerticalDragDistance) return true;
             // The pointer dragged away from the press that selected the picture: this is the 1.9.2 selection box.
