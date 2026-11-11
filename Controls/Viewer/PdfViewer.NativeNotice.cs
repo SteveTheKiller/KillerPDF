@@ -33,6 +33,9 @@ namespace KillerPDF.Controls
 
         private void UpdateNativeNotice()
         {
+            // This runs on every open, tab switch, close and move between panes or windows, so the viewer showing a
+            // document is the one that follows its later notices.
+            FollowNativeNoticesExt(_nativeDoc);
             // Ignored style rules alone are normal for real books, so only omissions raise the notice.
             if (_nativeDoc is not { HasOmissions: true } native || _nativeNoticeDismissed.TryGetValue(native, out _))
             {
@@ -87,15 +90,26 @@ namespace KillerPDF.Controls
                 Services.NativeDocumentDiagnostics.WordingFor(native.Format)).ShowDialog();
         }
 
+        private Services.NativeWorkingDocument? _noticesFollowed;
+        private Action? _noticesChanged;
+
         /// <summary>
-        /// Follows a native document's notices: a DjVu page whose text is first read with characters it could not read
-        /// raises the bar then, on the UI thread, if that document is still the one shown.
+        /// Follows the notices of the native document this viewer shows: a DjVu page whose text is first read with
+        /// characters it could not read raises the bar then, on the UI thread, if that document is still the one shown.
+        /// Each viewer follows only the document it shows now, so a document moved to the other pane or torn out to a
+        /// new window is followed by the viewer that shows it there. Repeat calls for the same document do nothing.
         /// </summary>
-        internal void FollowNativeNoticesExt(Services.NativeWorkingDocument document)
-            => document.NoticesChanged += () => Dispatcher.BeginInvoke(() =>
+        internal void FollowNativeNoticesExt(Services.NativeWorkingDocument? document)
+        {
+            if (ReferenceEquals(_noticesFollowed, document)) return;
+            _noticesChanged ??= () => Dispatcher.BeginInvoke(() =>
             {
-                if (ReferenceEquals(_nativeDoc, document)) UpdateNativeNotice();
+                if (_noticesFollowed is { } followed && ReferenceEquals(_nativeDoc, followed)) UpdateNativeNotice();
             });
+            if (_noticesFollowed is not null) _noticesFollowed.NoticesChanged -= _noticesChanged;
+            _noticesFollowed = document;
+            if (document is not null) document.NoticesChanged += _noticesChanged;
+        }
 
         // Same surface tokens, grain host and shadow as the restriction notice, centered at the top of the pane.
         private static (Border Bar, TextBlock Message) BuildNativeNotice(Features.IViewerHost host,
