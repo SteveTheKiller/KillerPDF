@@ -36,8 +36,7 @@ public sealed class SavedCopyConsumerTests
     }
 
     // Every call site takes the result as a SavedCopy and then reads its count (.Note or .SkippedPictures). The two
-    // exceptions are named: CreateOutputSnapshot passes the result on to its own caller, and the OCR host reads the
-    // copy only as recognition input.
+    // exception is named: CreateOutputSnapshot passes the result on to its own caller.
     [Fact]
     public void EveryCallerOfTheCopyWriterConsumesTheSkippedCount()
     {
@@ -52,13 +51,12 @@ public sealed class SavedCopyConsumerTests
             var consumers = Regex.Matches(text, @"SavedCopy\s+(\w+)\s*=\s*(?:await\s+BusyCue\.ThenRun\(|WriteSavedCopyToTemp\(|CreateOutputSnapshot\(|window\.WriteSavedCopyToTemp\()")
                 .Select(match => match.Groups[1].Value).ToList();
             int passedOn = name == "DataExchange.cs" ? Regex.Matches(text, @"return WriteSavedCopyToTemp\(").Count : 0;
-            int recognitionInput = name == "Ocr.cs" ? Regex.Matches(text, @"WriteSavedCopyToTemp\([^)]*\)\.Path").Count : 0;
             // A ThenRun call hands the writer over as a lambda, so its own call site is counted once more.
             int lambdas = Regex.Matches(text, @"\(\)\s*=>\s*WriteSavedCopyToTemp\(").Count;
-            int handled = consumers.Count + passedOn + recognitionInput;
+            int handled = consumers.Count + passedOn;
             // Declarations with a lambda writer count once as a consumer (the ThenRun result), once as a call site.
             if (sites != handled)
-                problems.Add($"{name}: {sites} call sites, {handled} consumed ({consumers.Count} SavedCopy results, {passedOn} passed on, {recognitionInput} recognition input, {lambdas} lambdas)");
+                problems.Add($"{name}: {sites} call sites, {handled} consumed ({consumers.Count} SavedCopy results, {passedOn} passed on, {lambdas} lambdas)");
             foreach (string variable in consumers)
                 if (!Regex.IsMatch(text, $@"\b{variable}\.(Note\(|SkippedPictures)"))
                     problems.Add($"{name}: {variable} is never read for its skipped-picture count");

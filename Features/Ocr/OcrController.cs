@@ -228,7 +228,8 @@ namespace KillerPDF.Features
             // Recognize the complete displayed document from an immutable copy, including pending
             // form values, visible markup and page rotations.
             string src = App.MakeTempFile("ocrsrc");
-            try { _host.SaveDocumentTo(src); }
+            int skippedPictures;
+            try { skippedPictures = _host.SaveDocumentTo(src); }
             catch (Exception ex)
             {
                 KillerDialog.Show(_host.Window, _host.Loc("Str_Err_PrepareDoc") + "\n" + ex.Message, "KillerPDF",
@@ -248,7 +249,8 @@ namespace KillerPDF.Features
                     src, outPath, report, lang, formAware, ct));
                 _host.HideBusy();
                 if (ct.IsCancellationRequested) { _host.SetStatus(_host.Loc("Str_St_SearchablePdfCanceled")); return; }
-                _host.SetStatus(string.Format(_host.Loc("Str_St_SearchableSaved"), pages, words));
+                _host.SetStatus(PicturesSkippedNote.Append(string.Format(_host.Loc("Str_St_SearchableSaved"), pages, words),
+                    skippedPictures, _host.Loc("Str_Save_PicturesSkipped")));
                 KillerDialog.Show(_host.Window,
                     string.Format(_host.Loc("Str_Dlg_SearchableSaved"), outPath, pages, words),
                     "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -339,7 +341,8 @@ namespace KillerPDF.Features
             string outPath = dlg.FileName;
 
             string src = App.MakeTempFile("scantext");
-            try { _host.SaveDocumentTo(src); }
+            int skippedPictures;
+            try { skippedPictures = _host.SaveDocumentTo(src); }
             catch (Exception ex)
             {
                 KillerDialog.Show(_host.Window, _host.Loc("Str_Err_PrepareDoc") + "\n" + ex.Message, "KillerPDF",
@@ -366,8 +369,8 @@ namespace KillerPDF.Features
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                _host.SetStatus(string.Format(_host.Loc("Str_St_ScanTextSaved"),
-                    summary.ScannedPages, summary.ConvertedWords));
+                _host.SetStatus(PicturesSkippedNote.Append(string.Format(_host.Loc("Str_St_ScanTextSaved"),
+                    summary.ScannedPages, summary.ConvertedWords), skippedPictures, _host.Loc("Str_Save_PicturesSkipped")));
                 KillerDialog.Show(_host.Window,
                     string.Format(_host.Loc("Str_Dlg_ScanTextSaved"), outPath,
                         summary.ScannedPages, summary.ConvertedWords, summary.KeptWords),
@@ -633,7 +636,7 @@ namespace KillerPDF.Features
 
             string src = App.MakeTempFile("ocrtxt");
             int pageCount;
-            try { _host.SaveDocumentTo(src); pageCount = _host.PageCount; }
+            try { _ = _host.SaveDocumentTo(src); pageCount = _host.PageCount; }
             catch (Exception ex)
             {
                 KillerDialog.Show(_host.Window, _host.Loc("Str_Err_PrepareDoc") + "\n" + ex.Message, "KillerPDF",

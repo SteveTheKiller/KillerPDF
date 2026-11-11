@@ -55,8 +55,10 @@ namespace KillerPDF.Features
         void CommitActiveTextBox();
 
         /// <summary>Writes an immutable snapshot with current forms, visible markup and page rotation
-        /// to <paramref name="path"/> without changing the live document. Throws on failure.</summary>
-        void SaveDocumentTo(string path);
+        /// to <paramref name="path"/> without changing the live document. Throws on failure. Returns the
+        /// number of pictures the snapshot left out because they could not be read, which the output built from it
+        /// reports in its status.</summary>
+        int SaveDocumentTo(string path);
         /// <summary>False until a restricted document has its owner password.</summary>
         bool EnsureDocumentMayWrite(KillerPDF.Services.PdfOutput output);
 

@@ -386,13 +386,14 @@ namespace KillerPDF.Shell
         void IOcrHost.CommitActiveTextBox() => CommitActiveTextBox();
         bool IOcrHost.EnsureDocumentMayWrite(PdfOutput output) => EnsureMayWrite(output);
 
-        void IOcrHost.SaveDocumentTo(string path)
+        int IOcrHost.SaveDocumentTo(string path)
         {
-            // The copy only feeds recognition and is read back, not delivered as an output, so no status can carry
-            // the skipped-picture count; IOcrHost has no result to hand it to.
-            string snapshot = WriteSavedCopyToTemp(forRasterization: true, throwaway: true).Path;
-            try { System.IO.File.Copy(snapshot, path, overwrite: true); }
-            finally { System.IO.File.Delete(snapshot); }
+            // The snapshot feeds recognition, and the delivered file is built from it, so its skipped-picture count
+            // goes back to the caller for the success status.
+            SavedCopy copy = WriteSavedCopyToTemp(forRasterization: true, throwaway: true);
+            try { System.IO.File.Copy(copy.Path, path, overwrite: true); }
+            finally { System.IO.File.Delete(copy.Path); }
+            return copy.SkippedPictures;
         }
 
         // The busy overlay Border stays a shell detail: the host tracks the one live overlay so
