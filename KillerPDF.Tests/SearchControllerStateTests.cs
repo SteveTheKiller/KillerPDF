@@ -24,6 +24,26 @@ public sealed class SearchControllerStateTests
         Assert.False(controller.HasResults);
     }
 
+    [Fact]
+    public async Task ASearchErrorClearsTheTooltipTheEarlierResultLeft()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(
+            NativeSearchServiceTests.Page("A A", NativeSearchServiceTests.Zone(10, 20, 10, 10, 0, 1),
+                NativeSearchServiceTests.Zone(30, 20, 10, 10, 2, 1))));
+        var host = new Host(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("A");
+        Assert.Equal("1 / 2", await host.NextText.Task.WaitAsync(Patience));
+        Assert.NotNull(host.Tooltip);
+
+        host.NextText = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        revision.Dispose();
+        controller.Run("A");
+
+        Assert.Equal("Str_Search_Error", await host.NextText.Task.WaitAsync(Patience));
+        Assert.Null(host.Tooltip);
+    }
+
     internal sealed class Host(CurrentSearchSnapshot source) : KillerPDF.Features.ISearchHost
     {
         public TaskCompletionSource<string> NextText { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);

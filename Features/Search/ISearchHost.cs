@@ -27,8 +27,8 @@ namespace KillerPDF.Features
         /// <summary>Navigates to the page (the match being stepped to lives there).</summary>
         void GoToPage(int pageIdx);
 
-        /// <summary>Writes the result counter's text only ("", "No matches", "Search error"),
-        /// leaving the tooltip alone - mirrors what the old code did on those paths.</summary>
+        /// <summary>Writes the result counter's text ("", "No matches") and clears its tooltip, so no note or
+        /// count from an earlier result stays on it.</summary>
         void SetResultText(string text);
 
         /// <summary>Writes a short note in the result counter with a longer tooltip, such as how far a book still

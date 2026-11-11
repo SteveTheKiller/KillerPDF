@@ -41,7 +41,9 @@ namespace KillerPDF.Shell
 
         void ISearchHost.SetResultText(string text)
         {
-            _searchStatus?.Text = text;
+            if (_searchStatus is null) return;
+            _searchStatus.Text = text;
+            _searchStatus.ToolTip = null;
         }
 
         void ISearchHost.SetResultNote(string text, string? tooltip)

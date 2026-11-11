@@ -330,7 +330,8 @@ namespace KillerPDF.Features
             catch
             {
                 ClearResults(query, matchCase, wholeWord);
-                _host.SetResultText(_host.Loc("Str_Search_Error"));
+                // The tooltip an earlier result or pagination note left on the counter goes with it.
+                _host.SetResultNote(_host.Loc("Str_Search_Error"), null);
             }
         }
 
