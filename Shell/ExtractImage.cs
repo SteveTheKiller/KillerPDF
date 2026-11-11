@@ -24,10 +24,12 @@ namespace KillerPDF.Shell
             }
             CommitActiveTextBox();
             string file = _currentFile;
-            PdfPageInformation page = PdfEngineIntegration.ReadPageInformation(file, _protection)[pageIndex];
-            int rotation = ((_pageRotations.TryGetValue(pageIndex, out int turned) ? turned : page.Rotation) % 360 + 360) % 360;
             (PdfRenderedFrame Frame, System.Windows.Media.Imaging.BitmapSource Preview) source;
-            try { source = ExtractImageSource(file, _protection, pageIndex, page, rotation); }
+            try {
+                // Reading the page can fail like drawing it can, so both answer with the same message.
+                PdfPageInformation page = PdfEngineIntegration.ReadPageInformation(file, _protection)[pageIndex];
+                int rotation = ((_pageRotations.TryGetValue(pageIndex, out int turned) ? turned : page.Rotation) % 360 + 360) % 360;
+                source = ExtractImageSource(file, _protection, pageIndex, page, rotation); }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
                 KillerDialog.Show(this, string.Format(Loc("Str_ExtractImage_Failed"), ex.Message), "KillerPDF",
