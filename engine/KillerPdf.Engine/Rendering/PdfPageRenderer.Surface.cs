@@ -50,17 +50,39 @@ public sealed partial class PdfPageRenderer
         private byte[]? _rgbSpotValid;
         private bool _rgbSpotShadow;
         internal bool HasSpotPlates => _spotPlates is { Count: > 0 };
-        // Bytes the named-colorant plates of this surface may hold in all. Each new plate is charged
-        // before it is rented, so a page cannot allocate past the render's storage limit.
-        internal long SpotPlateBudget { get; set; } = long.MaxValue;
-        private long _spotPlateBytes;
+        // Bytes the named-colorant plates of a render may hold in all. The page surface owns the ledger and every
+        // group, knockout and mask surface rented from it shares it, so a group's copy of the page plates is
+        // charged too. Each new plate is charged before it is rented, so a page cannot allocate past the limit.
+        internal sealed class SpotPlateLedger
+        {
+            internal long Limit = long.MaxValue;
+            private long _charged;
+            internal void Charge(long bytes)
+            {
+                long total = Interlocked.Add(ref _charged, bytes);
+                if (total > Limit)
+                {
+                    Interlocked.Add(ref _charged, -bytes);
+                    throw new ArgumentException("The high-precision render exceeds its combined pixel storage limit.", "options");
+                }
+            }
+            internal void Refund(long bytes) => Interlocked.Add(ref _charged, -bytes);
+        }
+        internal SpotPlateLedger SpotLedger { get; set; } = new();
+        internal long SpotPlateBudget { get => SpotLedger.Limit; set => SpotLedger.Limit = value; }
         private byte[] RentSpotPlate()
         {
-            long bytes = checked(_spotPlateBytes + Length);
-            if (bytes > SpotPlateBudget)
-                throw new ArgumentException("The high-precision render exceeds its combined pixel storage limit.", "options");
-            _spotPlateBytes = bytes;
-            byte[] plate = RasterBuffers.Rent(Length);
+            SpotLedger.Charge(Length);
+            byte[] plate;
+            try
+            {
+                plate = RasterBuffers.Rent(Length);
+            }
+            catch
+            {
+                SpotLedger.Refund(Length);
+                throw;
+            }
             Array.Clear(plate, 0, Length);
             return plate;
         }
@@ -143,11 +165,12 @@ public sealed partial class PdfPageRenderer
         internal bool Contains(int x, int y) => x >= Left && x < Right && y >= Top && y < Bottom;
 
         internal static RasterSurface Rent((int Left, int Top, int Right, int Bottom) bounds, bool cmyk = false,
-            PdfColorTransform? profile = null, bool pdf20BlendEndpoints = true)
+            PdfColorTransform? profile = null, bool pdf20BlendEndpoints = true, SpotPlateLedger? spotLedger = null)
         {
             int width = bounds.Right - bounds.Left, height = bounds.Bottom - bounds.Top;
             var surface = new RasterSurface(RasterBuffers.Rent(checked(width * height * 4)),
                 bounds.Left, bounds.Top, width, height, pdf20BlendEndpoints);
+            if (spotLedger is not null) surface.SpotLedger = spotLedger;
             try
             {
                 if (cmyk) surface.EnableInk(Color.White, preserveAlpha: false, profile);
@@ -931,6 +954,7 @@ public sealed partial class PdfPageRenderer
             _rgbSpotShadow = false;
             if (_spotPlates is null) return;
             foreach (byte[] plate in _spotPlateValues) RasterBuffers.Return(plate);
+            SpotLedger.Refund((long)_spotPlateValues.Length * Length);
             _spotPlates = null;
             _spotPlateValues = [];
         }
@@ -1213,7 +1237,7 @@ public sealed partial class PdfPageRenderer
                         .CopyTo(_spotBaseInk.AsSpan(Offset(Left, y), Width * 4));
                 foreach ((string name, byte[] sourcePlate) in source._spotPlates!)
                 {
-                    byte[] plate = RasterBuffers.Rent(Length);
+                    byte[] plate = RentSpotPlate();
                     for (int y = Top; y < Bottom; y++)
                         sourcePlate.AsSpan(source.Offset(Left, y), Width * 4)
                             .CopyTo(plate.AsSpan(Offset(Left, y), Width * 4));

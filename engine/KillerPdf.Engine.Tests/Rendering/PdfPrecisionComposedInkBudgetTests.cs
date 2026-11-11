@@ -34,6 +34,38 @@ public sealed class PdfPrecisionComposedInkBudgetTests
         else Assert.Throws<ArgumentException>(() => renderer.RenderFrame(0, options));
     }
 
+    // A non-isolated transparency group blended against the page copies the page's named-colorant plates.
+    // Each copy is charged against the same storage limit, so the two page plates fit with one plate of
+    // slack, but a copy of both does not: 44 + 2 * 4 bytes a pixel for the page, 4 more for the slack.
+    [Fact]
+    public void NamedColorantPlatesCopiedIntoABlendedGroupCountAgainstTheComposedProofStorageLimit()
+    {
+        const long groupLimit = FramePixels * (44 + 2 * 4 + 4);
+        var renderer = new PdfPageRenderer(PdfDocument.Open(PageWithBlendedGroup()));
+        var options = new PdfRenderOptions(Side, Side, maximumPixelBytes: groupLimit)
+        {
+            Proof = new PdfDocumentProofSettings(true, PdfProofPaperWhiteTests.MisalignedPrinter(true),
+                new PdfProofOptions { RenderingIntent = KillerPdf.Engine.Authoring.PdfRenderingIntent.RelativeColorimetric,
+                    BlackPointCompensation = false })
+        };
+
+        Assert.Throws<ArgumentException>(() => renderer.RenderFrame(0, options));
+    }
+
+    private static byte[] PageWithBlendedGroup()
+    {
+        string tint(int index) => $"<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [0 .{index + 1} 1 0] /N 1 >>";
+        return TestIccProfiles.Pdf([
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {Side} {Side}] /Resources << /ExtGState << /O << /op true /OP true /OPM 1 >> /M << /BM /Multiply >> >> "
+                + $"/ColorSpace << /S0 [/Separation /Ink0 /DeviceCMYK {tint(0)}] /S1 [/Separation /Ink1 /DeviceCMYK {tint(1)}] >> /XObject << /Fm 5 0 R >> >> /Contents 4 0 R >>",
+            TestIccProfiles.Stream("", Encoding.ASCII.GetBytes(
+                $"/O gs /S0 cs 1 scn 0 0 10 {Side} re f /S1 cs 1 scn 10 0 10 {Side} re f /M gs /Fm Do")),
+            TestIccProfiles.Stream($"/Type /XObject /Subtype /Form /BBox [0 0 {Side} {Side}] /Group << /S /Transparency >>",
+                Encoding.ASCII.GetBytes($"0 0 0 1 k 100 100 50 50 re f"))]);
+    }
+
     private static byte[] Page(int colorants)
     {
         var spaces = new StringBuilder("/ColorSpace << ");

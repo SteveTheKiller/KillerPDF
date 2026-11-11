@@ -1357,7 +1357,7 @@ public sealed partial class PdfPageRenderer
                     options.Width, options.Height, scaleX, scaleY), backdrop);
                 if (bounds.Right <= bounds.Left || bounds.Bottom <= bounds.Top) return;
                 RasterSurface group = RasterSurface.Rent(bounds, backdrop.Ink is not null,
-                    backdrop.BlendProfile, backdrop.Pdf20BlendEndpoints);
+                    backdrop.BlendProfile, backdrop.Pdf20BlendEndpoints, backdrop.SpotLedger);
                 try
                 {
                     group.CopyFrom(backdrop);
@@ -2220,7 +2220,7 @@ public sealed partial class PdfPageRenderer
 
                     RasterSurface nonisolatedPagePixels = pixels;
                     RasterSurface nonisolatedGroupPixels = RasterSurface.Rent(groupBounds,
-                        pixels.Ink is not null, pixels.BlendProfile, pixels.Pdf20BlendEndpoints);
+                        pixels.Ink is not null, pixels.BlendProfile, pixels.Pdf20BlendEndpoints, pixels.SpotLedger);
                     try
                     {
                         nonisolatedGroupPixels.CopyFrom(nonisolatedPagePixels);
@@ -2302,7 +2302,7 @@ public sealed partial class PdfPageRenderer
                     RasterSurface backdropPixels = pixels;
                     RasterSurface blendedGroupPixels = RasterSurface.Rent(Within(GetRasterBounds(
                         formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY), pixels),
-                        pixels.Ink is not null, pixels.BlendProfile, pixels.Pdf20BlendEndpoints);
+                        pixels.Ink is not null, pixels.BlendProfile, pixels.Pdf20BlendEndpoints, pixels.SpotLedger);
                     try
                     {
                         blendedGroupPixels.CopyFrom(backdropPixels);
@@ -2364,7 +2364,7 @@ public sealed partial class PdfPageRenderer
                     if (parentState.GraphicsSoftMask is { } mask
                         && !mask.TryNonzeroBounds(ref groupBounds, cancellationToken)) return;
                     RasterSurface maskedGroupPixels = RasterSurface.Rent(groupBounds,
-                        pixels.Ink is not null, pixels.BlendProfile, pixels.Pdf20BlendEndpoints);
+                        pixels.Ink is not null, pixels.BlendProfile, pixels.Pdf20BlendEndpoints, pixels.SpotLedger);
                     try
                     {
                         maskedGroupPixels.CopyFrom(backdropPixels);
@@ -2531,7 +2531,7 @@ public sealed partial class PdfPageRenderer
                         ? (tileLeft, tileTop, tileRight, tileBottom) : isolatedBounds;
                     RasterSurface groupPixels = RasterSurface.Rent(
                         (left, top, right, bottom), cmykGroup, groupProfile,
-                        pagePixels.Pdf20BlendEndpoints);
+                        pagePixels.Pdf20BlendEndpoints, pagePixels.SpotLedger);
                     try
                     {
                         Array.Clear(groupPixels.Data, 0, groupPixels.Length);
