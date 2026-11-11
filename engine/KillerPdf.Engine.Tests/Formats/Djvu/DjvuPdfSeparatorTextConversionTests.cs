@@ -102,6 +102,27 @@ public sealed class DjvuPdfSeparatorTextConversionTests
         Assert.Equal("TextNotConverted", Assert.Single(notices).Code);
     }
 
+    // 4096 words (stacked on one rectangle) with a separator character before, between and after them make 4097
+    // separator runs, over the limit of 4096. The word count is within its own limit, so the notice names the separator-run limit.
+    [Fact]
+    public void ConversionNamesTheSeparatorRunLimitWhenTooManySeparatorRunsSitBetweenWords()
+    {
+        const int words = 4096;
+        string text = "-" + string.Concat(Enumerable.Repeat("a-", words));
+        var native = DjvuDocument.Open(Page(text,
+            new Node(5, 0, 4, 30, 10, 0, text.Length,
+                [.. Enumerable.Range(0, words).Select(index => new Node(6, 2, 4, 5, 10, 1 + index * 2, 1))])));
+        var notices = new List<DjvuDiagnostic>();
+
+        var pdf = PdfDocument.Open(native.ConvertToPdf(notices));
+
+        Assert.Empty(new PdfPageContentReader(pdf).Read(0).Letters);
+        var notice = Assert.Single(notices);
+        Assert.Equal("TextNotConverted", notice.Code);
+        Assert.Contains("4096 text runs between word zones", notice.Message);
+        Assert.DoesNotContain("leaf zones", notice.Message);
+    }
+
     private static void AssertBox(PdfExtractedLetter letter, double left, double bottom, double right, double top)
     {
         Assert.Equal(left, letter.BoundingBox.Left, 6);

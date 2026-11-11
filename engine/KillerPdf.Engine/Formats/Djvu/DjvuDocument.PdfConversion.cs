@@ -336,7 +336,7 @@ public sealed partial class DjvuDocument
             else
             {
                 if (++separatorRuns > 4096)
-                    return (segments, "conversion requires between 1 and 4096 nonempty leaf zones per page");
+                    return (segments, "conversion supports at most 4096 text runs between word zones per page");
                 children ??= BuildChildren(text, hasChildren, cancellationToken);
                 var (left, bottom, width, height) = GapRectangle(text.Zones, children, id, start, end);
                 segments.Add(new(left, bottom, width, height, leading + run, true));
