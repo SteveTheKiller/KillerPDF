@@ -535,6 +535,60 @@ public sealed class EpubEmbeddedImageLayoutTests
         EpubImageCompatibilityTests.AssertImageOmitted(ImageLayout(RgbPng(metadata: [(type, [0])])), type);
     }
 
+    // Editors label the standard sRGB profile 'ICC profile'; the profile's own description says what it is.
+    [Theory]
+    [InlineData("ICC profile", "sRGB IEC61966-2.1", true, false)]
+    [InlineData("Photoshop ICC profile", "sRGB IEC61966-2.1", true, false)]
+    [InlineData("ICC profile", "Adobe RGB (1998)", false, false)]
+    [InlineData("ICC profile", "Adobe RGB (1998)", true, true)]
+    [InlineData("sRGB", "unreadable", true, false)]
+    [InlineData("ICC profile", "unreadable", false, false)]
+    public void ASrgbProfileUnderAnyLabelPaintsAndAnotherProfileDoesNot(string name, string description, bool paints, bool withSrgbChunk)
+    {
+        byte[] payload;
+        if (description == "unreadable") payload = [.. Encoding.Latin1.GetBytes(name), 0, 0, 0xFF, 0xFF, 0xFF];
+        else
+        {
+            using var packed = new MemoryStream();
+            using (var zlib = new ZLibStream(packed, CompressionLevel.SmallestSize, true)) zlib.Write(IccProfile(description));
+            payload = [.. Encoding.Latin1.GetBytes(name), 0, 0, .. packed.ToArray()];
+        }
+        var metadata = withSrgbChunk
+            ? new[] { ("iCCP", payload), ("sRGB", new byte[] { 0 }) }
+            : new[] { ("iCCP", payload) };
+
+        var layout = ImageLayout(RgbPng(metadata: metadata));
+
+        if (paints)
+        {
+            Assert.Empty(layout.ContentDiagnostics);
+            var frame = layout.RenderPage(0);
+            Assert.Equal(new float[] { 1, 0, 0, 1 }, frame.Pixels.Slice((8 * 16 + 2) * 4, 4).ToArray());
+        }
+        else EpubImageCompatibilityTests.AssertImageOmitted(layout, "profile");
+    }
+
+    // A minimal ICC v2 profile: the 128 byte header, one 'desc' tag holding the description as ASCII text.
+    private static byte[] IccProfile(string description)
+    {
+        byte[] text = Encoding.ASCII.GetBytes(description + "\0");
+        byte[] desc = new byte[12 + text.Length];
+        "desc"u8.CopyTo(desc);
+        BinaryPrimitives.WriteUInt32BigEndian(desc.AsSpan(8), (uint)text.Length);
+        text.CopyTo(desc, 12);
+        byte[] profile = new byte[128 + 4 + 12 + desc.Length];
+        BinaryPrimitives.WriteUInt32BigEndian(profile, (uint)profile.Length);
+        BinaryPrimitives.WriteUInt32BigEndian(profile.AsSpan(8), 0x02100000);
+        "mntrRGB XYZ "u8.CopyTo(profile.AsSpan(12));
+        "acsp"u8.CopyTo(profile.AsSpan(36));
+        BinaryPrimitives.WriteUInt32BigEndian(profile.AsSpan(128), 1);
+        "desc"u8.CopyTo(profile.AsSpan(132));
+        BinaryPrimitives.WriteUInt32BigEndian(profile.AsSpan(136), 144);
+        BinaryPrimitives.WriteUInt32BigEndian(profile.AsSpan(140), (uint)desc.Length);
+        desc.CopyTo(profile, 144);
+        return profile;
+    }
+
     [Theory]
     [InlineData("sRGB", "00", "duplicate")]
     [InlineData("gAMA", "0000B18F", "duplicate")]

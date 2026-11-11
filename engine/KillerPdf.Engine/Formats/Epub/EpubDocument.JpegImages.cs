@@ -104,12 +104,14 @@ public sealed partial class EpubDocument
     }
 
     // An ICC profile is honored here only when its description names sRGB, since the reader renders in sRGB.
-    private static bool IsSrgbProfile(List<byte> profile)
+    private static bool IsSrgbProfile(List<byte> profile) => IsSrgbProfile(profile.ToArray());
+
+    private static bool IsSrgbProfile(byte[] profile)
     {
-        if (profile.Count < 132) return false;
-        string text = Encoding.Latin1.GetString(profile.ToArray());
+        if (profile.Length < 132) return false;
+        string text = Encoding.Latin1.GetString(profile);
         return text.Contains("sRGB", StringComparison.OrdinalIgnoreCase)
-            || Encoding.BigEndianUnicode.GetString(profile.ToArray()).Contains("sRGB", StringComparison.OrdinalIgnoreCase);
+            || Encoding.BigEndianUnicode.GetString(profile).Contains("sRGB", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Applies an EXIF orientation (TIFF 6.0) to RGB samples so the image displays upright.</summary>
