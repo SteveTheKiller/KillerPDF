@@ -12,6 +12,12 @@ public sealed partial class DjvuDocument
 
     private enum PageLayers { Other, Jb2Mask, Compound }
 
+    // The layers that draw page pixels, and the includes that may carry them. A chunk of any other kind (a producer's
+    // own metadata, a thumbnail) does not change the picture, so a page that carries one still draws, as the reference
+    // viewer draws it; a layer in this list that a decode path cannot draw makes the page unsupported.
+    private static bool IsVisualLayer(uint id) => id is SjbzId or SmmrId or DjbzId or InclId or Fg44Id or FgbzId or Bg44Id
+        or 0x42476a70 or 0x46476a70;
+
     // A compound page (7.1.3) has a background: with a mask or foreground colors, or stored below page size, it is
     // composed here. Without one a JB2 mask is a bilevel image, black on white, whatever colors it carries, as the
     // reference decoder draws it. A lone Smmr mask and a lone full-size background keep their own paths.
@@ -38,7 +44,7 @@ public sealed partial class DjvuDocument
     // A JB2 mask alone draws black on white, kept as one bit per pixel like Smmr.
     private PdfNativeCompactRaster DecodeJb2Raster(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)
     {
-        if (chunks.Any(c => c.Id is not (InfoId or SjbzId or DjbzId or InclId or Fg44Id or FgbzId or TxtaId or TxtzId)))
+        if (chunks.Any(c => IsVisualLayer(c.Id) && c.Id is not (SjbzId or DjbzId or InclId or Fg44Id or FgbzId)))
             throw new NotSupportedException("Rendering this page requires unsupported layers, annotations or component content.");
         if (chunks.Count(c => c.Id == Fg44Id) > 1 || chunks.Count(c => c.Id == FgbzId) > 1)
             throw new InvalidDataException("A page contains duplicate foreground chunks.");
@@ -63,8 +69,7 @@ public sealed partial class DjvuDocument
     // background (BG44, else white). Every layer keeps its stored size and the page turn applies when it is read.
     private PdfNativeCompactRaster DecodeCompoundRaster(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)
     {
-        if (chunks.Any(c => c.Id is not (InfoId or SjbzId or SmmrId or DjbzId or InclId or Fg44Id or FgbzId or Bg44Id
-                or TxtaId or TxtzId)))
+        if (chunks.Any(c => IsVisualLayer(c.Id) && c.Id is not (SjbzId or SmmrId or DjbzId or InclId or Fg44Id or FgbzId or Bg44Id)))
             throw new NotSupportedException("Rendering this page requires unsupported layers, annotations or component content.");
         if (chunks.Count(c => c.Id is SjbzId or SmmrId) > 1) throw new InvalidDataException("A page contains more than one mask.");
         if (chunks.Count(c => c.Id == Fg44Id) > 1 || chunks.Count(c => c.Id == FgbzId) > 1)

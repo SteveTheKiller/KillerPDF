@@ -162,7 +162,6 @@ public sealed class DjvuRenderingTests
     [Theory]
     [InlineData("Sjbz")]
     [InlineData("INCL")]
-    [InlineData("XXXX")]
     [InlineData("BGjp")]
     [InlineData("")]
     public void UnsupportedOrMissingVisualContentDoesNotReturnASuccessfulFrame(string extraChunk)

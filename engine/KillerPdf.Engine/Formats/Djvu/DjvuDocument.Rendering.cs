@@ -130,7 +130,7 @@ public sealed partial class DjvuDocument
         }
         if (chunks.Any(c => c.Id == 0x42473434))
             return DecodeIw44Raster(page, chunks, cancellationToken, callerBytesPerPixel, subsample);
-        if (chunks.Any(c => c.Id is not (0x494e464f or 0x536d6d72 or 0x54585461 or 0x5458547a)))
+        if (chunks.Any(c => IsVisualLayer(c.Id) && c.Id != SmmrId))
             throw new NotSupportedException("Rendering this page requires unsupported layers, annotations or component content.");
         if (chunks.Count(c => c.Id == 0x536d6d72) > 1) throw new InvalidDataException("A page contains duplicate Smmr masks.");
         var mask = chunks.FirstOrDefault(c => c.Id == 0x536d6d72);
@@ -197,7 +197,7 @@ public sealed partial class DjvuDocument
         int callerBytesPerPixel, int subsample = 1)
     {
         token.ThrowIfCancellationRequested();
-        if (chunks.Any(c => c.Id is not (0x494e464f or 0x42473434 or 0x54585461 or 0x5458547a)))
+        if (chunks.Any(c => IsVisualLayer(c.Id) && c.Id != Bg44Id))
             throw new NotSupportedException("Color IW44 rendering requires a background without other visual layers.");
         var gamma = InfoGamma(chunks);
         var backgrounds = chunks.Where(c => c.Id == 0x42473434).Take(257)
@@ -224,7 +224,7 @@ public sealed partial class DjvuDocument
     private (byte[] Gray, double Gamma) DecodeIw44Page(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token,
         int callerBytesPerPixel = 32)
     {
-        if (chunks.Any(c => c.Id is not (0x494e464f or 0x42473434 or 0x54585461 or 0x5458547a)))
+        if (chunks.Any(c => IsVisualLayer(c.Id) && c.Id != Bg44Id))
             throw new NotSupportedException("IW44 rendering requires a grayscale background without other visual layers.");
         var gamma = InfoGamma(chunks);
         var backgrounds = chunks.Where(c => c.Id == 0x42473434).Take(257)

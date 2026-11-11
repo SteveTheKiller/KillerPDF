@@ -141,6 +141,25 @@ public sealed partial class DjvuDocument
         return new DjvuDocument(pages, diagnostics, ownedData, pageForms, includes);
     }
 
+    // Every chunk id the reader or the format's own rules give a meaning: the file's structure, page layers, text,
+    // annotations, navigation and thumbnails.
+    private static readonly HashSet<uint> KnownChunks =
+    [
+        0x464f524d, 0x4449524d, 0x4e41564d, 0x494e464f, 0x536a627a, 0x446a627a, 0x536d6d72, 0x42473434, 0x46473434,
+        0x4647627a, 0x42476a70, 0x46476a70, 0x54483434, 0x494e434c, 0x414e5461, 0x414e547a, 0x54585461, 0x5458547a
+    ];
+
+    private static string ChunkName(uint id)
+    {
+        var name = new char[4];
+        for (int i = 0; i < 4; i++)
+        {
+            int value = (int)(id >> (24 - 8 * i)) & 0xff;
+            name[i] = value is >= 0x20 and < 0x7f ? (char)value : '?';
+        }
+        return new string(name);
+    }
+
     private static void DiagnoseFeatures(List<Chunk> chunks, List<DjvuDiagnostic> diagnostics)
     {
         foreach (var chunk in chunks)
@@ -152,9 +171,17 @@ public sealed partial class DjvuDocument
                 // JB2 masks (Sjbz, Djbz), FGbz colors and FG44 foregrounds are decoded; JPEG layers and thumbnails are not.
                 0x42476a70 or 0x46476a70 or 0x54483434
                     => new("ImageDecodingUnsupported", "JPEG page layers and embedded thumbnails are not decoded."),
-                _ => null
+                _ when KnownChunks.Contains(chunk.Id) => null,
+                // A chunk this reader does not know is skipped, as the reference viewer skips it; one notice per name.
+                _ => new("UnrecognizedChunkSkipped", $"The chunk '{ChunkName(chunk.Id)}' is not one this reader knows. " +
+                    "It was skipped, and the page was drawn without it.")
             };
-            if (diagnostic is not null && diagnostics.All(d => d.Code != diagnostic.Code)) diagnostics.Add(diagnostic);
+            if (diagnostic is null) continue;
+            // The other notices are one each; unrecognized chunks one per name, up to a bounded number.
+            bool unrecognized = diagnostic.Code == "UnrecognizedChunkSkipped";
+            if (diagnostics.Any(d => d.Code == diagnostic.Code && (!unrecognized || d.Message == diagnostic.Message))) continue;
+            if (unrecognized && diagnostics.Count(d => d.Code == diagnostic.Code) >= 16) continue;
+            diagnostics.Add(diagnostic);
         }
     }
 
