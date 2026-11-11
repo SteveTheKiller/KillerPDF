@@ -1,4 +1,6 @@
 using KillerPDF.Services;
+using System.Runtime.ExceptionServices;
+using System.Windows.Threading;
 using Xunit;
 
 namespace KillerPDF.Tests;
@@ -8,6 +10,49 @@ namespace KillerPDF.Tests;
 public sealed class NativePaginationFollowerTests
 {
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(20);
+
+    [Fact]
+    public void EveryFollowingWindowReceivesItsOwnPageGrowth()
+    {
+        OnDispatcher(async () =>
+        {
+            using var gate = new ManualResetEventSlim();
+            using var book = NativeWorkingDocument.OpenEpub(NativeProgressiveOpenTests.Book(),
+                NativeProgressiveOpenTests.Gated(gate), inBackground: true);
+            int initial = book.ShownPageCount;
+            var first = new List<(int Before, int After)>();
+            var second = new List<(int Before, int After)>();
+            Task followingFirst = NativePaginationFollower.FollowAsync(book, TimeSpan.FromMilliseconds(20),
+                () => false, (before, after, _) => first.Add((before, after)));
+            Task followingSecond = NativePaginationFollower.FollowAsync(book, TimeSpan.FromMilliseconds(20),
+                () => false, (before, after, _) => second.Add((before, after)));
+            gate.Set();
+            await Task.WhenAll(followingFirst, followingSecond).WaitAsync(Patience);
+            Assert.Contains(first, update => update.Before == initial && update.After > initial);
+            Assert.Contains(second, update => update.Before == initial && update.After > initial);
+        });
+    }
+
+    private static void OnDispatcher(Func<Task> action)
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            var dispatcher = Dispatcher.CurrentDispatcher;
+            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(dispatcher));
+            dispatcher.BeginInvoke(async () =>
+            {
+                try { await action(); }
+                catch (Exception error) { failure = error; }
+                finally { dispatcher.BeginInvokeShutdown(DispatcherPriority.Background); }
+            });
+            Dispatcher.Run();
+        }) { IsBackground = true };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "Pagination observers did not finish.");
+        if (failure is not null) ExceptionDispatchInfo.Capture(failure).Throw();
+    }
 
     [Fact]
     public async Task AFailedViewUpdateStillTakesEveryPageInAndShowsTheFinishedBook()

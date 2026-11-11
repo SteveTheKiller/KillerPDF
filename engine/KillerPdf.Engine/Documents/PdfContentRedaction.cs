@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.ColorManagement;
 using KillerPdf.Engine.CrossReference;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Fonts;
@@ -1389,6 +1390,8 @@ public static partial class PdfContentRedaction
         internal PdfName? FontResource { get; init; }
         // The operators that set the current nonstroking color, replayed to restore it.
         internal PdfContentInstruction[] Fill { get; init; } = [];
+        // A Form can shadow color names without changing the inherited current color.
+        internal ResourceScope? FillScope { get; init; }
         // The graphics states applied so far, as an id the rewriter hands out for each distinct
         // sequence, so paints can be compared without reading each one.
         internal int ExtGStates { get; init; }
@@ -1396,6 +1399,9 @@ public static partial class PdfContentRedaction
         // clip bounds then say less than the real clip does.
         internal bool ClipIsRectangle { get; init; } = true;
         internal bool SoftMasked { get; init; }
+        internal double? NonstrokingAlpha { get; init; } = 1;
+        internal string? BlendMode { get; init; } = "Normal";
+        internal bool HighlightPaintKnown { get; init; } = true;
         internal int RenderMode { get; init; }
         internal double LineWidth { get; init; } = 1;
         internal double MiterLimit { get; init; } = 10;
@@ -1430,6 +1436,9 @@ public static partial class PdfContentRedaction
         // How many draws of retired content have been met, to tell a form that holds none.
         private int _retiredDraws;
         private readonly Dictionary<PdfDictionary, bool> _wholeResources = new(ReferenceEqualityComparer.Instance);
+        private const int MaximumHighlightProfileBytes = 4 * 1024 * 1024;
+        private int _highlightProfileBytes;
+        private readonly Dictionary<PdfStream, PdfColorProfile?> _highlightProfiles = new(ReferenceEqualityComparer.Instance);
 
         internal HashSet<string> Reasons { get; } = new(StringComparer.Ordinal);
         // Every retired area the draws of this page hid, for the check of a page image's invisible layer.
@@ -1484,7 +1493,8 @@ public static partial class PdfContentRedaction
                     Reasons.Add("RedactionCover");
             }
             var initial = new TextState(new Matrix(1, 0, 0, 1, -geometry.CropLeft, -geometry.CropBottom),
-                new PdfContentBounds(0, 0, geometry.Width, geometry.Height));
+                new PdfContentBounds(0, 0, geometry.Width, geometry.Height))
+            { HighlightPaintKnown = !page.Dictionary.ContainsKey(Name("Group")) };
             if (Recording) retired!.CoverPage(bytes, resources, regions.Select(region => new PdfContentBounds(
                 region.Left + geometry.CropLeft, region.Bottom + geometry.CropBottom,
                 region.Right + geometry.CropLeft, region.Top + geometry.CropBottom)));
@@ -1650,6 +1660,12 @@ public static partial class PdfContentRedaction
                     case "gs":
                         GraphicsState(instruction);
                         break;
+                    case "ri":
+                        if (textOnly) { localChanged = true; break; }
+                        if (args.Count != 1 || args[0] is not PdfName renderingIntent
+                            || renderingIntent.ValueAsLatin1() != "RelativeColorimetric")
+                            state = state with { HighlightPaintKnown = false };
+                        Emit(instruction); break;
                     case "Do":
                         Draw(instruction);
                         break;
@@ -1679,12 +1695,13 @@ public static partial class PdfContentRedaction
                         if (textOnly) { localChanged = true; break; }
                         if (args.Count == 1 && args[0] is PdfName space && !IsDeviceSpace(space))
                             scope.Use(ColorSpaceCategory, space);
-                        if (instruction.Operator == "cs") state = state with { Fill = [instruction] };
+                        if (instruction.Operator == "cs") state = state with { Fill = [instruction], FillScope = scope };
                         Emit(instruction); break;
                     case "SC": case "SCN": case "sc": case "scn": case "G": case "g": case "RG": case "rg": case "K": case "k":
                         if (textOnly) { localChanged = true; break; }
                         if (args.Count > 0 && args[^1] is PdfName pattern) scope.Use(PatternCategory, pattern);
-                        if (instruction.Operator is "g" or "rg" or "k") state = state with { Fill = [instruction] };
+                        if (instruction.Operator is "g" or "rg" or "k")
+                            state = state with { Fill = [instruction], FillScope = scope };
                         else if (instruction.Operator is "sc" or "scn")
                             state = state with
                             {
@@ -1713,7 +1730,7 @@ public static partial class PdfContentRedaction
                             _ => state with { MiterLimit = Arg(args, 0) }
                         };
                         Emit(instruction); break;
-                    case "d": case "ri": case "i":
+                    case "d": case "i":
                         if (textOnly) { localChanged = true; break; }
                         Emit(instruction); break;
                     case "BX": case "EX": case "d0": case "d1":
@@ -1959,11 +1976,45 @@ public static partial class PdfContentRedaction
             void GraphicsState(PdfContentInstruction instruction)
             {
                 IReadOnlyList<PdfObject> args = instruction.Operands;
-                if (args.Count != 1 || args[0] is not PdfName name) { Emit(instruction); return; }
+                if (args.Count != 1 || args[0] is not PdfName name)
+                {
+                    state = state with { HighlightPaintKnown = false };
+                    Emit(instruction); return;
+                }
                 PdfDictionary? gs = scope.Lookup(ExtGStateCategory, name) is { } value
                     ? Resolve(document, value) as PdfDictionary : null;
                 if (gs is not null)
                 {
+                    foreach (string transfer in new[] { "TR", "TR2" })
+                        if (gs.TryGetValue(Name(transfer), out PdfObject? function)
+                            && (Resolve(document, function) is not PdfName identity || identity.ValueAsLatin1() != "Identity"))
+                            state = state with { HighlightPaintKnown = false };
+                    foreach (string overprint in new[] { "OP", "op" })
+                        if (gs.TryGetValue(Name(overprint), out PdfObject? enabled)
+                            && Resolve(document, enabled) is not PdfBoolean { Value: false })
+                            state = state with { HighlightPaintKnown = false };
+                    if (gs.TryGetValue(Name("RI"), out PdfObject? intent)
+                        && (Resolve(document, intent) is not PdfName intentName || intentName.ValueAsLatin1() != "RelativeColorimetric"))
+                        state = state with { HighlightPaintKnown = false };
+                    if (gs.TryGetValue(Name("ca"), out PdfObject? alpha))
+                        state = state with
+                        {
+                            NonstrokingAlpha = Resolve(document, alpha) switch
+                            {
+                                PdfInteger integer => integer.Value,
+                                PdfReal real when double.IsFinite(real.Value) => real.Value,
+                                _ => null
+                            }
+                        };
+                    if (gs.TryGetValue(Name("BM"), out PdfObject? blend))
+                        state = state with { BlendMode = (Resolve(document, blend) as PdfName)?.ValueAsLatin1() };
+                    if (gs.TryGetValue(Name("SMask"), out PdfObject? highlightMask))
+                    {
+                        PdfObject resolvedMask = Resolve(document, highlightMask);
+                        if (resolvedMask is not PdfDictionary
+                            && (resolvedMask is not PdfName maskName || maskName.ValueAsLatin1() != "None"))
+                            state = state with { HighlightPaintKnown = false };
+                    }
                     if (gs.TryGetValue(Name("LW"), out PdfObject? width))
                         state = state with { LineWidth = Number(document, width) };
                     if (gs.TryGetValue(Name("ML"), out PdfObject? miter))
@@ -1986,6 +2037,7 @@ public static partial class PdfContentRedaction
                         state = state with { ExtGStates = id };
                     }
                 }
+                else state = state with { HighlightPaintKnown = false };
                 PdfObject? fontValue = null;
                 if (gs is not null && gs.TryGetValue(Name("Font"), out PdfObject? fontEntry)
                     && Resolve(document, fontEntry) is PdfArray fontArray && fontArray.Count == 2)
@@ -2144,7 +2196,11 @@ public static partial class PdfContentRedaction
                     bool formChanged;
                     try
                     {
-                        rewritten = Rewrite(formBytes, formScope, state with { Ctm = formCtm, Clip = formClip },
+                        rewritten = Rewrite(formBytes, formScope, state with
+                        {
+                            Ctm = formCtm, Clip = formClip,
+                            HighlightPaintKnown = state.HighlightPaintKnown && !xobject.Dictionary.ContainsKey(Name("Group"))
+                        },
                             depth + 1, out formChanged);
                     }
                     finally { _hidden = outerHidden; }
@@ -2389,7 +2445,14 @@ public static partial class PdfContentRedaction
                 bool stroked = paint.Operator is "S" or "s" or "B" or "B*" or "b" or "b*";
                 PdfContentBounds paintedBounds = !textOnly && !glyphsOnly && pathPoints.Count > 0 && stroked
                     ? StrokeBounds(bounds, state) : bounds;
-                if (pathPoints.Count > 0 && paint.Operator is "f" or "F" or "f*" or "B" or "B*" or "b" or "b*")
+                bool translucentHighlight = insertion is { Written: true, ProtectedBox: { } protectedBox }
+                    && Overlaps(Visible(bounds), protectedBox) && paint.Operator is "f" or "F" or "f*"
+                    && state.HighlightPaintKnown && state.BlendMode == "Multiply"
+                    && state.NonstrokingAlpha is > 0 and <= 1 && !state.SoftMasked
+                    && !pendingClip && state.ClipIsRectangle && !HasPatternFill(state)
+                    && IsAxisAlignedRectangle(pendingPath, pathPoints)
+                    && (state.NonstrokingAlpha < 1 || IsKnownNonblackHighlight(state, scope));
+                if (!translucentHighlight && pathPoints.Count > 0 && paint.Operator is "f" or "F" or "f*" or "B" or "B*" or "b" or "b*")
                     insertion?.Paint(Visible(bounds));
                 // The stroke's own width, without the most a miter corner could reach: a rule beside the
                 // text is not over it. A hairline has no width in page units, so its path stands for it.
@@ -2507,6 +2570,96 @@ public static partial class PdfContentRedaction
             item.Operator is "sc" or "scn" && item.Operands.Count > 0 && item.Operands[^1] is PdfName
             || item.Operator == "cs" && item.Operands.Count == 1 && item.Operands[0] is PdfName space
                 && space.ValueAsLatin1() == "Pattern");
+
+        private bool IsKnownNonblackHighlight(TextState state, ResourceScope scope)
+        {
+            if (state.Fill.Length == 0) return false;
+            try
+            {
+                PdfContentInstruction color = state.Fill[^1];
+                PdfObject? space = color.Operator switch
+                {
+                    "g" => Name("DeviceGray"),
+                    "rg" => Name("DeviceRGB"),
+                    "sc" or "scn" when state.Fill.Length == 2 && state.Fill[0].Operator == "cs"
+                        && state.Fill[0].Operands.Count == 1 => state.Fill[0].Operands[0],
+                    _ => null
+                };
+                if (space is null || color.Operands.Count is not (1 or 3)) return false;
+                double[] components = new double[color.Operands.Count];
+                for (int index = 0; index < components.Length; index++)
+                {
+                    components[index] = Number(document, color.Operands[index]);
+                    if (!double.IsFinite(components[index])) return false;
+                }
+                if (!TryHighlightRgb(space, components, state.FillScope ?? scope, 0, useDefaults: true, out var rgb)) return false;
+                return double.IsFinite(rgb.Red) && double.IsFinite(rgb.Green) && double.IsFinite(rgb.Blue)
+                    && Math.Max(Math.Clamp(rgb.Red, 0, 1),
+                        Math.Max(Math.Clamp(rgb.Green, 0, 1), Math.Clamp(rgb.Blue, 0, 1))) > 1d / 255;
+            }
+            catch (Exception error) when (error is FormatException or NotSupportedException
+                or ArgumentException or InvalidDataException or PdfFilterException)
+            {
+                return false;
+            }
+        }
+
+        private bool TryHighlightRgb(PdfObject space, double[] components, ResourceScope scope, int depth,
+            bool useDefaults, out (double Red, double Green, double Blue) rgb)
+        {
+            rgb = default;
+            if (depth >= 32) return false;
+            space = Resolve(document, space);
+            if (space is PdfName name)
+            {
+                string kind = name.ValueAsLatin1();
+                if (kind is "DeviceRGB" or "RGB" or "DeviceGray" or "G")
+                {
+                    bool gray = kind is "DeviceGray" or "G";
+                    if (useDefaults && scope.Lookup(ColorSpaceCategory, Name(gray ? "DefaultGray" : "DefaultRGB")) is { } replacement)
+                        return TryHighlightRgb(replacement, components, scope, depth + 1, false, out rgb);
+                    if (components.Length != (gray ? 1 : 3)) return false;
+                    rgb = gray ? (components[0], components[0], components[0])
+                        : (components[0], components[1], components[2]);
+                    return true;
+                }
+                if (scope.Lookup(ColorSpaceCategory, name) is not { } alias) return false;
+                return TryHighlightRgb(alias, components, scope, depth + 1, useDefaults, out rgb);
+            }
+            if (space is not PdfArray { Count: 2 } array || Resolve(document, array[0]) is not PdfName family
+                || family.ValueAsLatin1() != "ICCBased" || Resolve(document, array[1]) is not PdfStream stream
+                || stream.Dictionary.ContainsKey(Name("Range"))) return false;
+            var profile = HighlightProfile(stream);
+            if (profile is null || profile.DeviceColorSpaceSignature is not ("RGB " or "GRAY")
+                || profile.ComponentCount != components.Length) return false;
+            Span<double> xyz = stackalloc double[3];
+            profile.ToXyz(components, xyz);
+            if (!double.IsFinite(xyz[0]) || !double.IsFinite(xyz[1]) || !double.IsFinite(xyz[2])) return false;
+            rgb = PdfPageRenderer.PreciseConnectionToRgb(xyz[0], xyz[1], xyz[2]);
+            return true;
+        }
+
+        private PdfColorProfile? HighlightProfile(PdfStream stream)
+        {
+            if (_highlightProfiles.TryGetValue(stream, out var cached)) return cached;
+            _highlightProfiles[stream] = null;
+            int remaining = MaximumHighlightProfileBytes - _highlightProfileBytes;
+            if (remaining <= 0) return null;
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] data;
+            try { data = document.DecodeStream(stream, remaining); }
+            catch (Exception error) when (error is FormatException or NotSupportedException
+                or ArgumentException or InvalidDataException or PdfFilterException)
+            {
+                _highlightProfileBytes = MaximumHighlightProfileBytes;
+                return null;
+            }
+            _highlightProfileBytes += data.Length;
+            cancellationToken.ThrowIfCancellationRequested();
+            var profile = PdfColorProfile.Load(data);
+            _highlightProfiles[stream] = profile;
+            return profile;
+        }
 
         private static PdfContentBounds StrokeBounds(PdfContentBounds bounds, TextState state)
         {

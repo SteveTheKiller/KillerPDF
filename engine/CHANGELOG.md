@@ -14,6 +14,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Relative printer proofs keep unprinted paper white and inside the gamut warning mask without changing absolute or paper-simulation endpoints. Native proof storage refusals allow the viewer to fall back to normal rendering. (#264)
 - EPUB layout handles padded and nested tables, bounds table and navigation work, recovers optional CSS and list content, and preserves the rest of a book when a chapter, navigation or optional resource cannot be read. (#472)
 - DjVu conversion accepts full-resolution grayscale scans and keeps page positions when content cannot be converted. Reduced compound layers stay aligned with their masks, and shared annotations no longer stop page rendering. (#472)
+- Paragraph replacement preserves supported colored Multiply highlights while retaining opaque-cover checks. (#413)
 - Embedded TrueType fonts with a custom encoding write the required /Type, /CMapName and /CIDSystemInfo entries on their CMap stream, and incremental updates continue a source's cross-reference-stream format instead of appending a classic table.
 - Text fields with automatic font sizing save with a valid appearance while retaining their automatic setting. Unstyled fields stay transparent.
 - Page import preserves optional popup links, saved markup appearances, resource metadata, image-mask precedence and inherited form fonts and alignment. (#455)

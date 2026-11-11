@@ -11,23 +11,25 @@ internal static class NativePaginationFollower
     internal static async Task FollowAsync(NativeWorkingDocument book, TimeSpan refresh, Func<bool> stopped,
         Action<int, int, bool> showViews)
     {
+        int shown = book.ShownPageCount;
         while (book.IsPaginating)
         {
             await Task.WhenAny(book.Pagination, Task.Delay(refresh));
             if (stopped()) return;
-            Show(book, showViews, finished: false);
+            shown = Show(book, showViews, shown, finished: false);
         }
         if (stopped()) return;
-        Show(book, showViews, finished: true);
+        Show(book, showViews, shown, finished: true);
     }
 
-    private static void Show(NativeWorkingDocument book, Action<int, int, bool> showViews, bool finished)
+    private static int Show(NativeWorkingDocument book, Action<int, int, bool> showViews, int before, bool finished)
     {
-        var (before, after) = book.ShowPaginatedPages();
-        try { showViews(before, after, finished); }
+        var (_, after) = book.ShowPaginatedPages();
+        try { showViews(before, after, finished); return after; }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
             // The views keep the pages they already show; the next look shows what they can.
+            return before;
         }
     }
 }

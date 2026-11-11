@@ -939,7 +939,7 @@ namespace KillerPDF.Shell
         // Ctrl+Shift+N: the keyboard twin of dragging the active tab out of the window.
         private void MoveActiveTabToNewWindow()
         {
-            if (_doc is null || _active is null) { SetStatus(Loc("Str_Msg_OpenFirst")); return; }
+            if (!HasReadingDocument || _active is null) { SetStatus(Loc("Str_Msg_OpenFirst")); return; }
             TearOutTab(ActiveViewer, _active);
         }
 

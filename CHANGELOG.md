@@ -12,6 +12,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - Quoted full paths can be opened even when the file picker's folder listing fails.
 - Color-managed viewing and proofing support process-only CMYK overprint pages, more scaled scans and image masks. (#264)
+- Paragraph edits keep supported colored highlights and still refuse opaque covers. (#413)
+- Detached EPUB windows continue pagination after the original window closes. Installed font families beyond the lookup limit fall back without stopping the chapter. (#472)
 - The first text highlight on a page can be undone and redone. (#485)
 - A per-user or portable update that fails now reopens KillerPDF instead of leaving it closed, including when antivirus or a locked-down PowerShell stops the update helper from loading, and a published copy that fails its final check is swapped back for the previous version and never started.
 - Searchable PDFs made with OCR, and other saves that add text, open in Adobe Reader again. Added fonts carry their complete encoding details, and saves keep the original file's cross-reference format.

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using KillerPDF.Controls;
@@ -34,6 +35,8 @@ namespace KillerPDF.Shell
             source.RebuildTabStripExt();
 
             detachedWindow.Show();
+            if (session.NativeDoc is { IsClosed: false } book)
+                detachedWindow.FollowNativePagination(book, Path.GetFileName(session.OriginalFile ?? session.CurrentFile ?? ""));
             detachedWindow.Activate();
         }
     }

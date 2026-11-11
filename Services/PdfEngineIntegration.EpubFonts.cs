@@ -9,10 +9,10 @@ internal static partial class PdfEngineIntegration
     internal static Func<EpubFontFaceRequest, EpubFontFaceResult?> EpubFontFaceResolver(string defaultFamily) => request =>
     {
         string name = request.Family is { } family ? EpubFamilyName(family) : defaultFamily;
-        var selected = InstalledFontCatalog.EpubFaceBytes(name, request.Weight, request.Style);
-        if (selected is null) return null;
         try
         {
+            var selected = InstalledFontCatalog.EpubFaceBytes(name, request.Weight, request.Style);
+            if (selected is null) return null;
             var font = TrueTypeFont.Load(selected.Value.Bytes);
             EpubFontStyle? actualStyle = font.DeclaredStyle switch
             {

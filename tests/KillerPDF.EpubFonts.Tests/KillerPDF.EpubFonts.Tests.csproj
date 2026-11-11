@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableDefaultItems>false</EnableDefaultItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.analyzers" Version="2.3.0" PrivateAssets="all" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" PrivateAssets="all" />
+    <Compile Include="InstalledEpubFontLimitTests.cs" />
+    <Compile Include="../../Services/InstalledFontMetadata.cs" Link="Services/InstalledFontMetadata.cs" />
+    <Compile Include="../../Services/PdfFonts.cs" Link="Services/PdfFonts.cs" />
+    <Compile Include="../../Services/PdfFonts.Epub.cs" Link="Services/PdfFonts.Epub.cs" />
+    <Compile Include="../../Services/PdfEngineIntegration.EpubFonts.cs" Link="Services/PdfEngineIntegration.EpubFonts.cs" />
+    <Compile Include="../../Services/AppDataPaths.cs" Link="Services/AppDataPaths.cs" />
+    <ProjectReference Include="../../engine/KillerPdf.Engine/KillerPdf.Engine.csproj" />
+  </ItemGroup>
+</Project>
