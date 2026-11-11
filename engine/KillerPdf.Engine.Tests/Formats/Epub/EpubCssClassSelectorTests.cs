@@ -1127,7 +1127,7 @@ public sealed class EpubCssClassSelectorTests
         byte[] source = Book(string.Concat(Enumerable.Repeat("div.missing span{}", 4096)), body), preserved = source.ToArray();
         var book = EpubDocument.Open(source);
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var deadline = new CancellationTokenSource(); // the selector work limit bounds the run, not a clock
         const string diagnostic = "Native EPUB CSS selector matching exceeds its work limit.";
         Assert.Equal(diagnostic, Assert.Throws<InvalidDataException>(() => book.CreateLayout(
             new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 }, deadline.Token)).Message);
@@ -1366,7 +1366,7 @@ public sealed class EpubCssClassSelectorTests
     {
         VerifyEngine();
         byte[] source = Book(css, body), original = source.ToArray();
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var deadline = new CancellationTokenSource(); // the selector work limit bounds the run, not a clock
         var book = EpubDocument.Open(source, deadline.Token);
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
         var layout = book.CreateLayout(new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 }, deadline.Token);

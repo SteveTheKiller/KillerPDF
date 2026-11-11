@@ -14,7 +14,7 @@ public sealed class PdfFormExpansionTests
     {
         PdfDocument document = SharedForms(25);
         if (recovery) document = PdfDocument.OpenWithCompatibilityRecovery(document.Source);
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var timeout = new CancellationTokenSource(); // the nested form work limit bounds the render, not a clock
 
         FormatException error = Assert.Throws<FormatException>(() =>
             new PdfPageRenderer(document).Render(0, new PdfRenderOptions(16, 16), timeout.Token));
@@ -26,7 +26,7 @@ public sealed class PdfFormExpansionTests
     public void SharedFormsCannotMultiplyLongTextPastTheNestedFormLimit()
     {
         PdfDocument document = SharedForms(25, "BT /F1 1 Tf (" + new string('A', 10000) + ") Tj ET");
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var timeout = new CancellationTokenSource(); // the nested form work limit bounds the render, not a clock
         FormatException error = Assert.Throws<FormatException>(() =>
             new PdfPageRenderer(document).Render(0, new PdfRenderOptions(16, 16), timeout.Token));
         Assert.Contains("Nested Form XObject work limit exceeded", error.Message, StringComparison.Ordinal);
@@ -35,7 +35,7 @@ public sealed class PdfFormExpansionTests
     [Fact]
     public void DeepRepeatedFormsReportTheNestedExpansionLimit()
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var timeout = new CancellationTokenSource(); // the nested form work limit bounds the render, not a clock
         FormatException error = Assert.Throws<FormatException>(() => new PdfPageRenderer(SharedForms(25))
             .Render(0, new PdfRenderOptions(16, 16), timeout.Token));
         Assert.Contains("Nested Form XObject work limit exceeded", error.Message, StringComparison.Ordinal);

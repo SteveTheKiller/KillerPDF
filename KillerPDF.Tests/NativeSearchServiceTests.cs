@@ -22,7 +22,7 @@ public sealed class NativeSearchServiceTests
         var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
         var controller = new KillerPDF.Features.SearchController(host);
         controller.Run("A A");
-        Assert.Equal("1 / 2", await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal("1 / 2", await host.Completed.Task.WaitAsync(Hang));
         Assert.Equal(0, controller.CurrentOccurrence!.Start);
         var firstAreas = controller.CurrentOccurrence.Areas.ToArray();
         Assert.Equal(2, firstAreas.Length);
@@ -45,7 +45,7 @@ public sealed class NativeSearchServiceTests
         var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
         var controller = new KillerPDF.Features.SearchController(host);
         controller.Run("A");
-        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await host.Completed.Task.WaitAsync(Hang);
         var parked = controller.Capture();
         host.SearchRevision++;
         int clears = host.HighlightClears;
@@ -66,7 +66,7 @@ public sealed class NativeSearchServiceTests
         var other = new KillerPDF.Features.SearchController(secondHost);
         controller.Run("A");
         other.Run("A");
-        await Task.WhenAll(firstHost.Completed.Task, secondHost.Completed.Task).WaitAsync(TimeSpan.FromSeconds(5));
+        await Task.WhenAll(firstHost.Completed.Task, secondHost.Completed.Task).WaitAsync(Hang);
         var firstParked = controller.Capture();
         firstHost.NativeSearchRevisionId = second.Id;
         controller.Restore(other.Capture());
@@ -90,7 +90,7 @@ public sealed class NativeSearchServiceTests
         var other = new KillerPDF.Features.SearchController(otherHost);
         controller.Run("A");
         other.Run("A");
-        await Task.WhenAll(host.Completed.Task, otherHost.Completed.Task).WaitAsync(TimeSpan.FromSeconds(5));
+        await Task.WhenAll(host.Completed.Task, otherHost.Completed.Task).WaitAsync(Hang);
         host.NativeSearchRevisionId = second.Id;
         host.CurrentFile = otherHost.CurrentFile;
         host.SearchRevision = 4;
@@ -109,7 +109,7 @@ public sealed class NativeSearchServiceTests
         host.OnCapture = () => host.NativeSearchRevisionId = second.Id;
         var controller = new KillerPDF.Features.SearchController(host);
         controller.Run("A");
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var deadline = new CancellationTokenSource(Hang);
         while (controller.IsSearching) await Task.Delay(1, deadline.Token);
         Assert.Null(controller.CurrentOccurrence);
         Assert.False(host.Completed.Task.IsCompleted);
@@ -123,7 +123,7 @@ public sealed class NativeSearchServiceTests
         var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = first });
         var controller = new KillerPDF.Features.SearchController(host);
         controller.Run("A");
-        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await host.Completed.Task.WaitAsync(Hang);
         var parked = controller.Capture();
         controller.Restore(parked);
         Assert.NotNull(controller.CurrentOccurrence);
@@ -141,7 +141,7 @@ public sealed class NativeSearchServiceTests
         var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = first });
         var controller = new KillerPDF.Features.SearchController(host);
         controller.Run("A");
-        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await host.Completed.Task.WaitAsync(Hang);
         Assert.True(controller.ResultsCurrent);
         host.NativeSearchRevisionId = second.Id;
         Assert.False(controller.ResultsCurrent);
@@ -155,7 +155,7 @@ public sealed class NativeSearchServiceTests
         var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
         var controller = new KillerPDF.Features.SearchController(host);
         controller.Run("A");
-        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await host.Completed.Task.WaitAsync(Hang);
         Assert.Equal(0, controller.CurrentOccurrence!.Start);
         controller.Next();
         Assert.Equal(2, controller.CurrentOccurrence!.Start);
@@ -169,7 +169,7 @@ public sealed class NativeSearchServiceTests
         var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
         var controller = new KillerPDF.Features.SearchController(host);
         controller.Run("A A");
-        Assert.Equal("1 / 1", await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal("1 / 1", await host.Completed.Task.WaitAsync(Hang));
         Assert.Equal(2, controller.AllSearchRects[0].Count);
         var first = controller.AllSearchRects[0][0];
         var second = controller.AllSearchRects[0][1];
@@ -240,7 +240,7 @@ public sealed class NativeSearchServiceTests
         var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
         var controller = new KillerPDF.Features.SearchController(host);
         controller.Run("A");
-        Assert.Equal("1 / 2", await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal("1 / 2", await host.Completed.Task.WaitAsync(Hang));
         Assert.True(controller.HasResults);
         Assert.Empty(controller.AllSearchRects);
         Assert.Null(controller.CurrentMatch);
@@ -273,7 +273,13 @@ public sealed class NativeSearchServiceTests
         public bool? ReplaceShown { get; private set; }
         public void ShowReplaceAvailable(bool available) => ReplaceShown = available;
         public Func<int, bool> OnScreen { get; set; } = _ => true;
-        public bool IsPageOnScreen(int pageIdx) => OnScreen(pageIdx);
+        public List<int> PagesTurnedAway { get; } = [];
+        public bool IsPageOnScreen(int pageIdx)
+        {
+            bool onScreen = OnScreen(pageIdx);
+            if (!onScreen) lock (PagesTurnedAway) PagesTurnedAway.Add(pageIdx);
+            return onScreen;
+        }
         public int Repaints { get; private set; }
         public void RepaintHighlights() => Repaints++;
         public bool IsCovered(int pageIdx, double left, double bottom, double right, double top) => false;
@@ -494,7 +500,7 @@ public sealed class NativeSearchServiceTests
         var controller = new KillerPDF.Features.SearchController(host) { MatchCase = true, WholeWord = true };
 
         controller.Run("AAAA");
-        Assert.Equal("1 / 300", await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal("1 / 300", await host.Completed.Task.WaitAsync(Hang));
         // One repaint when the search lands, one when the current hit's areas arrive.
         await Until(() => host.Repaints >= 2);
 
@@ -532,11 +538,17 @@ public sealed class NativeSearchServiceTests
         var controller = new KillerPDF.Features.SearchController(host) { MatchCase = true, WholeWord = true };
 
         controller.Run("AAAA");
-        Assert.Equal("1 / 300", await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal("1 / 300", await host.Completed.Task.WaitAsync(Hang));
         await Until(() => host.Repaints >= 2);
         foreach (int page in controller.PagesWithResults.ToArray()) controller.TryGetPageRects(page, out _);
-        await Task.Delay(300);
 
+        // Locating a page starts only when the host says the page is on screen, and that decision is made inside the
+        // calls above. So every page but the first was put to the host and turned away, and no location was started for
+        // it; nothing is left running that a pause would have to outwait.
+        int[] offScreen = controller.PagesWithResults.Where(page => page != 0).ToArray();
+        Assert.NotEmpty(offScreen);
+        Assert.All(offScreen, page => Assert.Contains(page, host.PagesTurnedAway));
+        Assert.DoesNotContain(host.PagesTurnedAway, page => page == 0);
         Assert.Equal(new[] { 0 }, controller.AllSearchRects.Keys);
         Assert.Equal(1, ChapterLayoutCount(chapters));
         Assert.True(controller.WaitsForPagesOnScreen);
@@ -549,9 +561,13 @@ public sealed class NativeSearchServiceTests
         Assert.Equal(2, ChapterLayoutCount(chapters));
     }
 
+    // Every wait below is for a signal or a state the code under test reaches by itself, so the limit is only a hang
+    // guard: a search worker or a layout that has to start cold on a starved machine takes longer than any short limit.
+    private static readonly TimeSpan Hang = TimeSpan.FromMinutes(2);
+
     private static async Task Until(Func<bool> condition)
     {
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var deadline = new CancellationTokenSource(Hang);
         while (!condition()) await Task.Delay(1, deadline.Token);
     }
 

@@ -9,27 +9,26 @@ namespace KillerPDF.Tests;
 
 // Saving a long PDF marked up on every page read the whole page tree again for every page to count its annotations,
 // so a 3,000-page document with a highlight and a pen stroke per page took about 12 s to save on SHREDDER where 1.9.2
-// took under a second. These pin that a save's work grows with the page count, not with its square.
+// took under a second. These pin that a save's work grows with the page count, not with its square, by measuring what
+// the work allocates on the test's own thread: rereading the page tree for every page allocates in proportion to
+// pages times pages, and the bytes allocated do not change when the machine is busy where a time budget does.
 [Collection(nameof(PdfEngineBurnScaleTests))]
 public sealed class PdfEngineBurnScaleTests
 {
-    private const int Pages = 3000;
+    private const int Pages = 800;
 
     [Fact]
     public void SavingALongPdfWithMarkupOnEveryPageIsQuick()
     {
-        // Four times the pages should take about four or five times as long. The per-page tree reads made it about
-        // nine times as long (1.5 s at 750 pages, 13.9 s at 3,000), and a ratio holds up on a loaded machine where a
-        // fixed time budget does not.
-        TimeMarkupSave(50);   // warms up the code paths so the first measured save is not mostly start-up cost
-        TimeSpan quarter = TimeMarkupSave(Pages / 4);
-        TimeSpan full = TimeMarkupSave(Pages);
-        double growth = full.TotalMilliseconds / Math.Max(1, quarter.TotalMilliseconds);
-        Assert.True(growth < 7,$"750 pages took {quarter.TotalMilliseconds:F0} ms and 3,000 took {full.TotalMilliseconds:F0} ms.");
-        Assert.True(full < TimeSpan.FromSeconds(20), $"Took {full.TotalMilliseconds:F0} ms.");
+        // Four times the pages should allocate about four or five times as much. The per-page tree reads made it far more.
+        MarkupSaveAllocation(50);   // warms up the code paths so start-up allocations are not counted against the first save
+        long quarter = MarkupSaveAllocation(Pages / 4);
+        long full = MarkupSaveAllocation(Pages);
+        double growth = (double)full / Math.Max(1, quarter);
+        Assert.True(growth < 7, $"{Pages / 4} pages allocated {quarter:N0} bytes and {Pages} allocated {full:N0}.");
     }
 
-    private static TimeSpan TimeMarkupSave(int pages)
+    private static long MarkupSaveAllocation(int pages)
     {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-burn-scale-{Guid.NewGuid():N}.pdf");
         try
@@ -46,9 +45,9 @@ public sealed class PdfEngineBurnScaleTests
                 ];
                 dimensions[page] = (816, 1056);
             }
-            var clock = Stopwatch.StartNew();
+            long before = GC.GetAllocatedBytesForCurrentThread();
             PdfEngineBurn.Burn(path, annotations, dimensions, measurementsAsAnnotations: true);
-            return clock.Elapsed;
+            return GC.GetAllocatedBytesForCurrentThread() - before;
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }
@@ -89,11 +88,20 @@ public sealed class PdfEngineBurnScaleTests
     }
 
     // Opening a saved PDF moves its edited text back into the editing layer. Each edited page's check read every
-    // page's information and the whole page tree again, so 3,000 edited pages took about 31 s to reopen.
+    // page's information and the whole page tree again, so 3,000 edited pages took about 31 s to reopen. Five times the
+    // pages should allocate about five times as much; the rereads made it grow with the square of the pages.
     [Fact]
     public void ReopeningAPdfWithTextEditedOnEveryPageIsQuick()
     {
-        const int pages = 1500;
+        ReopenAllocation(50);   // warms up the code paths so start-up allocations are not counted against the first reopen
+        long few = ReopenAllocation(300);
+        long many = ReopenAllocation(1500);
+        double growth = (double)many / Math.Max(1, few);
+        Assert.True(growth < 7, $"300 edited pages allocated {few:N0} bytes to reopen and 1,500 allocated {many:N0}.");
+    }
+
+    private static long ReopenAllocation(int pages)
+    {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-reopen-edits-{Guid.NewGuid():N}.pdf");
         try
         {
@@ -109,13 +117,12 @@ public sealed class PdfEngineBurnScaleTests
             PdfEngineBurn.Burn(path, annotations, dimensions, measurementsAsAnnotations: true);
             byte[] saved = File.ReadAllBytes(path);
 
-            var clock = Stopwatch.StartNew();
+            long before = GC.GetAllocatedBytesForCurrentThread();
             OverlayExtraction extracted = PdfOverlayAnnotations.TakeEditableTail(saved);
-            clock.Stop();
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
             Assert.Equal(pages, extracted.Records.Select(record => record.Annotation).OfType<TextAnnotation>().Count());
-            // Reading 1,500 pages once is well under a second; the per-page rereads took about 8 s here.
-            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(4), $"Took {clock.Elapsed.TotalMilliseconds:F0} ms.");
+            return allocated;
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }

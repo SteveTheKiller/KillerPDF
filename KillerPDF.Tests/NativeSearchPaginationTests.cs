@@ -50,13 +50,13 @@ public sealed class NativeSearchPaginationTests
         await host.NextText().WaitAsync(Patience);
 
         controller.CancelPending();
-        await Task.Delay(300);
+        // The cancelled search ends by taking its waiting note down, which is the last thing it writes: wait for that
+        // write instead of for a stretch of time. A search that kept running would never write it.
+        await host.NoteTakenDown.Task.WaitAsync(Patience);
         int textsAfterCancel = host.Texts.Count;
         string last = host.Texts[^1];
-        await Task.Delay(800);
         gate.Set();
         await owner.Pagination.WaitAsync(Patience);
-        await Task.Delay(500);
 
         // The waiting note is taken down, no more progress is written and no count arrives.
         Assert.Equal("", last);
@@ -72,6 +72,7 @@ public sealed class NativeSearchPaginationTests
         public List<string> Texts { get; } = [];
         public List<string> Counts { get; } = [];
         public TaskCompletionSource<string> Count { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource NoteTakenDown { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task<string> NextText() { lock (_gate) return _next.Task; }
         public Guid? NativeSearchRevisionId => source.NativeRevision?.Id;
         public System.Windows.Window Window => throw new NotSupportedException();
@@ -98,6 +99,7 @@ public sealed class NativeSearchPaginationTests
             lock (_gate)
             {
                 Texts.Add(text);
+                if (text.Length == 0) NoteTakenDown.TrySetResult();
                 _next.TrySetResult(text);
                 _next = new(TaskCreationOptions.RunContinuationsAsynchronously);
             }

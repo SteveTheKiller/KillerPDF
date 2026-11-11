@@ -67,20 +67,54 @@ public sealed class ThumbnailWindowTests
     [Fact]
     public void TheRendererIsLetGoWhenNoRowIsWaiting()
     {
-        int drained = 0;
-        var shown = new ConcurrentDictionary<int, string>();
+        // The callbacks signal this monitor, so the test waits for each one to happen instead of polling a clock.
+        // The wait is bounded only so that a callback which never comes fails the test instead of hanging it.
+        var gate = new object();
+        int drained = 0, shownCount = 0, drainedAtLastShown = 0;
+        int lastShownPage = -1;
         using var window = new ThumbnailWindow<string>(100, (page, _) => $"thumb {page}",
-            (page, image) => { if (image is not null) shown[page] = image; }, retain: 8,
-            drained: () => Interlocked.Increment(ref drained));
+            (page, image) =>
+            {
+                if (image is null) return;
+                lock (gate)
+                {
+                    shownCount++;
+                    lastShownPage = page;
+                    drainedAtLastShown = drained;
+                    Monitor.PulseAll(gate);
+                }
+            }, retain: 8,
+            drained: () => { lock (gate) { drained++; Monitor.PulseAll(gate); } });
 
+        // The drain that follows the last row drawn is the one that lets the renderer go, so it must come after the
+        // last row was published, whichever pass of the background thread drew it.
         window.Request(3);
         window.Request(4);
-        Assert.True(SpinWait.SpinUntil(() => shown.Count == 2 && Volatile.Read(ref drained) >= 1, TimeSpan.FromSeconds(10)),
+        int afterFirst = WaitForDrainAfterRow(gate, () => shownCount == 2, () => (drained, drainedAtLastShown),
             "The renderer was not let go after the rows were drawn.");
-        int afterFirst = Volatile.Read(ref drained);
+        Assert.True(afterFirst > 0);
+
         window.Request(5);
-        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref drained) > afterFirst, TimeSpan.FromSeconds(10)),
-            "The renderer was not let go after a later row was drawn.");
+        int afterSecond = WaitForDrainAfterRow(gate, () => shownCount == 3 && lastShownPage == 5,
+            () => (drained, drainedAtLastShown), "The renderer was not let go after a later row was drawn.");
+        Assert.True(afterSecond > afterFirst);
+    }
+
+    // Waits until the row condition holds and the drain count has gone past the count when the last row was published;
+    // returns the drain count then. All state is read under the gate that the callbacks pulse.
+    private static int WaitForDrainAfterRow(object gate, Func<bool> rowsShown, Func<(int Drained, int AtLastShown)> counts,
+        string failure)
+    {
+        var hang = System.Diagnostics.Stopwatch.StartNew();
+        lock (gate)
+        {
+            while (!(rowsShown() && counts() is var (drained, atLastShown) && drained > atLastShown))
+            {
+                TimeSpan left = TimeSpan.FromSeconds(60) - hang.Elapsed;
+                Assert.True(left > TimeSpan.Zero && Monitor.Wait(gate, left), failure);
+            }
+            return counts().Drained;
+        }
     }
 
     // A fast scroll realizes far more rows than the window retains. Drawing every one of them would release most

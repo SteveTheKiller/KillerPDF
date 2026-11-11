@@ -170,7 +170,7 @@ public sealed class EpubCssAttributeTests
     {
         byte[] source = Book(css, body);
         byte[] original = source.ToArray();
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var deadline = new CancellationTokenSource(); // the selector work limit bounds the run, not a clock
         var book = EpubDocument.Open(source, deadline.Token);
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
         Assert.Equal(message, Assert.Throws<T>(() => book.CreateLayout(new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 }, deadline.Token)).Message);
@@ -182,7 +182,7 @@ public sealed class EpubCssAttributeTests
     {
         byte[] source = Book(css, body);
         byte[] original = source.ToArray();
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var deadline = new CancellationTokenSource(); // the selector work limit bounds the run, not a clock
         var book = EpubDocument.Open(source, deadline.Token);
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
         var layout = book.CreateLayout(new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 }, deadline.Token);

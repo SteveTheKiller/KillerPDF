@@ -175,31 +175,49 @@ public sealed class PdfTimestampAuthorityTests : IDisposable
     [Fact]
     public async Task HttpTransport_DeadlineCancelsAStalledResponseBody()
     {
-        using var body = new StalledReplyStream();
-        using var client = new HttpClient(new StubHandler(HttpStatusCode.OK,
-            "application/timestamp-reply", [], body: body))
-            { Timeout = Timeout.InfiniteTimeSpan };
-        Func<ReadOnlyMemory<byte>, byte[]> send = PdfTimestampAuthority.HttpTransport(
-            new Uri("http://timestamp.example.test/tsa"), client, timeout: TimeSpan.FromSeconds(1));
-        Task<Exception?> request = Task.Factory.StartNew<Exception?>(
-            () => Record.Exception(() => send(new byte[] { 1, 2, 3 })),
-            CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-        try
+        // The transport's deadline is a real timer that starts when the request starts. On a starved machine the
+        // start-up of the first HTTP call (JIT, thread hand-offs) can take longer than the deadline itself, and then
+        // the deadline expires before the body is ever read, which says nothing about reading the body. An attempt
+        // counts only when the body read began; one that lost that race is discarded and run again with a fresh timer.
+        // One ordinary exchange first, so the first-use cost of the HTTP stack is not spent against the deadline below.
+        using (var warm = new HttpClient(new StubHandler(HttpStatusCode.OK, "application/timestamp-reply", [1])))
+            PdfTimestampAuthority.HttpTransport(new Uri("http://timestamp.example.test/tsa"), warm)(new byte[] { 1 });
+        const int attempts = 20;
+        for (int attempt = 1; attempt <= attempts; attempt++)
         {
-            // Stall at the HTTP boundary after headers, without racing loopback setup against
-            // the transport deadline on a loaded runner. The real transport must cancel its read.
-            await body.ReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(15));
-            Task completed = await Task.WhenAny(request, Task.Delay(TimeSpan.FromSeconds(10)));
-            Assert.True(ReferenceEquals(request, completed),
-                "The timestamp transport ignored its one-second deadline after response headers arrived.");
-            Assert.IsAssignableFrom<OperationCanceledException>(await request);
+            using var body = new StalledReplyStream();
+            using var client = new HttpClient(new StubHandler(HttpStatusCode.OK,
+                "application/timestamp-reply", [], body: body))
+                { Timeout = Timeout.InfiniteTimeSpan };
+            Func<ReadOnlyMemory<byte>, byte[]> send = PdfTimestampAuthority.HttpTransport(
+                new Uri("http://timestamp.example.test/tsa"), client, timeout: TimeSpan.FromSeconds(1));
+            Task<Exception?> request = Task.Factory.StartNew<Exception?>(
+                () => Record.Exception(() => send(new byte[] { 1, 2, 3 })),
+                CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            bool counted;
+            try
+            {
+                // Whichever happens first: the read starts (the attempt counts) or the request ends without one.
+                Task first = await Task.WhenAny(body.ReadStarted.Task, request);
+                counted = first == body.ReadStarted.Task;
+                if (!counted) continue;
+                // The body never ends by itself, so only the transport's own deadline can end the request. This wait
+                // is not a race against a clock, it is the wait for that deadline; it is bounded only so that a
+                // transport which ignores the deadline fails the test instead of hanging it.
+                Task completed = await Task.WhenAny(request, Task.Delay(TimeSpan.FromSeconds(10)));
+                Assert.True(ReferenceEquals(request, completed),
+                    "The timestamp transport ignored its one-second deadline after response headers arrived.");
+                Assert.IsAssignableFrom<OperationCanceledException>(await request);
+                return;
+            }
+            finally
+            {
+                body.Release.TrySetResult();
+                client.Dispose();
+                await request.WaitAsync(TimeSpan.FromSeconds(10));
+            }
         }
-        finally
-        {
-            body.Release.TrySetResult();
-            client.Dispose();
-            await request.WaitAsync(TimeSpan.FromSeconds(10));
-        }
+        Assert.Fail($"The body read never began before the one-second deadline in {attempts} attempts.");
     }
 
     [Theory]

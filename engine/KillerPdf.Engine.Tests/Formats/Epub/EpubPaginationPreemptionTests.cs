@@ -38,8 +38,16 @@ public sealed class EpubPaginationPreemptionTests
         Assert.NotEmpty((await Task.Run(() => entries[0].TextPlacements).WaitAsync(Patience)));
         Assert.True(secondRun.Wait(Patience), "Pagination did not run the chapter again.");
         var reader = Task.Run(() => entries[1].TextPlacements);
-        bool readerReturned = await Task.WhenAny(reader, Task.Delay(TimeSpan.FromSeconds(1))) == reader;
-        release.Set();
+        // Pagination stays held until the reader is done, so the reader can only return by stopping the run: there is
+        // no race against a clock. Patience only ends the wait if the reader is stuck behind the run for good.
+        bool readerReturned;
+        try
+        {
+            await reader.WaitAsync(Patience);
+            readerReturned = true;
+        }
+        catch (TimeoutException) { readerReturned = false; }
+        finally { release.Set(); }
         await reader.WaitAsync(Patience);
         await pagination.WaitAsync(Patience);
 

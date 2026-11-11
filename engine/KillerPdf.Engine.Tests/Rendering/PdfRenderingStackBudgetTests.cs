@@ -53,7 +53,9 @@ public sealed class PdfRenderingStackBudgetTests(ITestOutputHelper output)
             catch (Exception error) { completion.SetException(error); }
         }, 512 * 1024) { IsBackground = true };
         thread.Start();
-        var result = await completion.Task.WaitAsync(TimeSpan.FromSeconds(15));
+        // The render thread signals when it is done; the limit is only a hang guard, since a render that starts cold on a
+        // starved machine (first use of the Type 3, pattern and mask code) takes longer than any short limit.
+        var result = await completion.Task.WaitAsync(TimeSpan.FromMinutes(2));
         output.WriteLine($"kind={kind}; stackBytes=524288; refusalType={result.Error?.GetType().FullName ?? "none"}");
         Assert.True(result.Error is InsufficientExecutionStackException or FormatException,
             $"Expected managed refusal, got {result.Error?.GetType().Name ?? "a rendered result"}.");

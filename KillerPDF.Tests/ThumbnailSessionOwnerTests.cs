@@ -17,13 +17,21 @@ public sealed class ThumbnailSessionOwnerTests
         var draw = Task.Run(() => owner.Use(() => renderer, _ =>
         {
             drawing.Set();
-            finish.Wait(TimeSpan.FromSeconds(10));
+            finish.Wait();
             return "thumbnail";
         }, CancellationToken.None));
         Assert.True(drawing.Wait(TimeSpan.FromSeconds(5)));
 
+        // The draw is held open until Release returns, so Release can only return by not waiting for the draw: there
+        // is no race against a clock. The timeout only ends the wait if Release is stuck behind the draw for good.
         var release = Task.Run(owner.Release);
-        bool returned = await Task.WhenAny(release, Task.Delay(TimeSpan.FromMilliseconds(500))) == release;
+        bool returned;
+        try
+        {
+            await release.WaitAsync(TimeSpan.FromSeconds(30));
+            returned = true;
+        }
+        catch (TimeoutException) { returned = false; }
         bool closedEarly = renderer.Closed;
         finish.Set();
         Assert.Equal("thumbnail", await draw.WaitAsync(TimeSpan.FromSeconds(5)));

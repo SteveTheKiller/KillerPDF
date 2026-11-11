@@ -24,14 +24,14 @@ public sealed class DjvuIw44RealPageTests
         var chunks = CodedChunks(color: false, width, height, crcb: 0, seed, payloadDivisor: 4);
         GC.Collect();
         long before = GC.GetAllocatedBytesForCurrentThread();
-        var watch = Stopwatch.StartNew();
+        DjvuIw44Decoder.CoefficientVisits = 0;
         byte[] gray = DjvuIw44Decoder.DecodeGrayscale(chunks, width, height, CancellationToken.None, callerBytesPerPixel: 0);
-        watch.Stop();
+        long visits = DjvuIw44Decoder.CoefficientVisits;
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.Equal(expected, Convert.ToHexString(SHA256.HashData(gray)));
         Assert.True(allocated < (long)allocationMiB << 20, $"A {width} x {height} gray decode allocated {allocated} bytes.");
-        // About 1 second for a 600 dpi page on the development machine; the bound leaves room for a loaded test host.
-        Assert.True(watch.ElapsedMilliseconds < 15_000, $"A {width} x {height} gray decode took {watch.ElapsedMilliseconds} ms.");
+        // The decode's cost is the coefficients it visits; counting them holds on a loaded test host where a time budget does not.
+        Assert.Equal(ExpectedVisits(width, height, [99]), visits);
     }
 
     // c44's default color coding is full-resolution chroma that starts 10 slices after luminance (delay byte 0x8a);
@@ -49,13 +49,15 @@ public sealed class DjvuIw44RealPageTests
         var chunks = CodedChunks(color: true, width, height, (byte)crcb, seed, payloadDivisor);
         GC.Collect();
         long before = GC.GetAllocatedBytesForCurrentThread();
-        var watch = Stopwatch.StartNew();
+        DjvuIw44Decoder.CoefficientVisits = 0;
         byte[] rgb = DjvuIw44Decoder.DecodeColor(chunks, width, height, CancellationToken.None, callerBytesPerPixel: 0);
-        watch.Stop();
+        long visits = DjvuIw44Decoder.CoefficientVisits;
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.Equal(expected, Convert.ToHexString(SHA256.HashData(rgb)));
         Assert.True(allocated < (long)allocationMiB << 20, $"A {width} x {height} color decode allocated {allocated} bytes.");
-        Assert.True(watch.ElapsedMilliseconds < 30_000, $"A {width} x {height} color decode took {watch.ElapsedMilliseconds} ms.");
+        // Counted work, as for the gray page: luminance codes every slice, each chroma component the slices after the delay.
+        int chromaSlices = 99 - (crcb & 0x7f);
+        Assert.Equal(ExpectedVisits(width, height, [99, chromaSlices, chromaSlices]), visits);
     }
 
     // The viewer draws a 600 dpi gray page's thumbnail inside its 128 MiB budget: the decode holds 2 bytes per padded
@@ -133,6 +135,32 @@ public sealed class DjvuIw44RealPageTests
         Assert.ThrowsAny<OperationCanceledException>(() =>
             DjvuIw44Decoder.DecodeColor(chunks, 4800, 6016, cancellation.Token, callerBytesPerPixel: 0));
         Assert.True(watch.ElapsedMilliseconds < 3000, $"Cancellation took {watch.ElapsedMilliseconds} ms to stop the decode.");
+    }
+
+    // The coefficient visits a decode makes, from DjVu v3 section 10.4 alone: a component of n slices codes slice k in band
+    // k % 10, a band's coefficients are 1, 1, 1, 1, 4, 4, 4, 16, 16, 16 buckets of 16 for bands 0 to 9 of every 32 x 32
+    // block, and a slice whose band has no quantization step between 0 and 0x8000 codes nothing. Each slice then halves its
+    // steps (band 0: groups 0 to 6; others: group 6 + band).
+    private static long ExpectedVisits(int width, int height, int[] componentSlices)
+    {
+        long blocks = (long)((width + 31) / 32) * ((height + 31) / 32);
+        int[] buckets = [1, 1, 1, 1, 4, 4, 4, 16, 16, 16];
+        long visits = 0;
+        foreach (int slices in componentSlices)
+        {
+            int[] steps = [0x4000, 0x8000, 0x8000, 0x10000, 0x10000, 0x10000, 0x20000, 0x20000,
+                0x20000, 0x40000, 0x40000, 0x40000, 0x80000, 0x40000, 0x40000, 0x80000];
+            for (int slice = 0; slice < slices; slice++)
+            {
+                int band = slice % 10;
+                bool codes = band == 0 ? steps[..7].Any(step => step is > 0 and < 0x8000)
+                    : steps[6 + band] is > 0 and < 0x8000;
+                if (codes) visits += blocks * buckets[band] * 16;
+                if (band == 0) for (int group = 0; group < 7; group++) steps[group] /= 2;
+                else steps[6 + band] /= 2;
+            }
+        }
+        return visits;
     }
 
     private static byte[] Chunk(string id, byte[] payload)

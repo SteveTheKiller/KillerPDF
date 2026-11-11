@@ -8,6 +8,9 @@ internal static class DjvuIw44Decoder
     private const long MaximumWork = 2_000_000_000;
     private const int MaximumSlices = 4096;
 
+    /// <summary>Coefficients the calling thread's decodes have visited in their slices (tests count work, not time).</summary>
+    [ThreadStatic] internal static long CoefficientVisits;
+
     // Reconstruction work per padded pixel and component: the move out of block order, about 2.7 lifting steps
     // across the five scales, and the output sample.
     private const int ReconstructionWorkPerPixel = 8;
@@ -320,6 +323,7 @@ internal static class DjvuIw44Decoder
         for (long block = 0; block < coefficients.LongLength; block += kept)
         {
             token.ThrowIfCancellationRequested();
+            CoefficientVisits += count;
             var values = coefficients.AsSpan((int)block + first, count);
             byte blockFlags = 0;
             bucketFlags.Clear();
@@ -404,6 +408,7 @@ internal static class DjvuIw44Decoder
         for (long block = 0; block < plane.Blocks; block++)
         {
             token.ThrowIfCancellationRequested();
+            CoefficientVisits += count;
             byte blockFlags = 0;
             bucketFlags.Clear();
             for (var bucket = 0; bucket < bucketCount; bucket++)

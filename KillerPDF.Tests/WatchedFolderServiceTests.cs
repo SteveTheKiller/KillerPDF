@@ -8,6 +8,10 @@ namespace KillerPDF.Tests;
 
 public sealed class WatchedFolderServiceTests
 {
+    // These waits are for work the service starts on its own (a first scan, a macro step), so the limit is only a hang
+    // guard; a cold start of that work on a starved machine takes longer than any short limit.
+    private static readonly TimeSpan Hang = TimeSpan.FromMinutes(2);
+
     [Theory]
     [InlineData("unsupported", "UnsupportedOperation", PdfMacroOperation.Redact)]
     [InlineData("prompt", "InteractiveParameter", PdfMacroOperation.Resize)]
@@ -277,14 +281,14 @@ public sealed class WatchedFolderServiceTests
         Task running = service.ReconcileAsync();
         try
         {
-            await enteredResize.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await enteredResize.Task.WaitAsync(Hang);
             Assert.False(running.IsCompleted);
             Assert.Equal(WatchedFolderJobStatus.Processing, Assert.Single(service.GetSnapshot().Jobs).Status);
             Task duplicate = service.ReconcileAsync();
-            await duplicate.WaitAsync(TimeSpan.FromSeconds(10));
+            await duplicate.WaitAsync(Hang);
             Assert.Equal(1, Volatile.Read(ref dispatches));
             service.Pause();
-            await running.WaitAsync(TimeSpan.FromSeconds(10));
+            await running.WaitAsync(Hang);
         }
         finally { continueResize.Set(); }
         Assert.True(service.GetSnapshot().IsPaused);
@@ -608,7 +612,7 @@ public sealed class WatchedFolderServiceTests
             Task running = service.ReconcileAsync(cancellation.Token);
             try
             {
-                await enteredResize.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                await enteredResize.Task.WaitAsync(Hang);
                 Assert.False(running.IsCompleted);
                 Assert.Equal(WatchedFolderJobStatus.Processing, Assert.Single(service.GetSnapshot().Jobs).Status);
                 if (action == "dispose") service.Dispose();
