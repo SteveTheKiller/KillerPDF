@@ -108,7 +108,12 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
                 if (token.IsCancellationRequested) { _running = false; return; }
                 // A failed draw holds nothing, but it is still published (as null) so a row showing a carried-over
                 // picture from the list it replaced drops it.
-                if (image is not null) _heldNodes[page] = _held.AddLast(page);
+                if (image is not null)
+                {
+                    _heldNodes[page] = _held.AddLast(page);
+                    // A page that has drawn can be drawn, so an earlier throw no longer counts against it.
+                    _throwCounts.Remove(page);
+                }
                 while (_held.Count > _retain && _held.First is { } oldest)
                 {
                     _held.RemoveFirst();
