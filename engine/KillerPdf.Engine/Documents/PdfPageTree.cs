@@ -37,9 +37,13 @@ internal sealed class PdfPageTree
 
     internal bool RecoveredCycle { get; private init; }
 
+    /// <summary>Counts the tree reads of the calling thread, so tests can bound repeated reads.</summary>
+    [ThreadStatic] internal static int ReadCountOnThisThread;
+
     internal static PdfPageTree Read(PdfDocument document, bool allowCycleRecovery = false)
     {
         ArgumentNullException.ThrowIfNull(document);
+        ReadCountOnThisThread++;
         try
         {
             PdfPageTree tree = ReadCore(document, allowCycleRecovery);

@@ -92,6 +92,7 @@ public static class PdfPartialRasterization
                 nameof(replacements));
         var reader = new PdfPageContentReader(document);
         var editor = new PdfIncrementalPageEditor(document).KeepStructureAcrossContentChanges();
+        PdfPageTree? tree = null;
         foreach (IGrouping<int, PdfPartialRasterizationReplacement> pageGroup
             in selected.GroupBy(replacement => replacement.PageIndex))
         {
@@ -109,8 +110,8 @@ public static class PdfPartialRasterization
             }
             // The page content is in the page's own coordinates, so a crop box that does not start
             // at the origin shifts every region the way it shifts the page content.
-            PdfContentBounds box = PdfPageInformation.EffectiveBox(document,
-                PdfPageTree.Read(document, allowCycleRecovery: true).Pages[pageGroup.Key]);
+            tree ??= PdfPageTree.Read(document, allowCycleRecovery: true);
+            PdfContentBounds box = PdfPageInformation.EffectiveBox(document, tree.Pages[pageGroup.Key]);
             var retained = new List<PdfContentInstruction>(
                 page.Instructions.Count + pageReplacements.Length + 6)
             {

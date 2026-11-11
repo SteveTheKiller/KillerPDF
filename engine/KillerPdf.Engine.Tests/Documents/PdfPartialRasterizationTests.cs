@@ -201,6 +201,38 @@ public sealed class PdfPartialRasterizationTests
         Assert.Equal(0, lowest);
     }
 
+    [Fact]
+    public void ApplyReadsThePageTreeOnceHoweverManyPagesAreReplaced()
+    {
+        const int pages = 200;
+        var objects = new List<string>
+        {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            $"<< /Type /Pages /Kids [{string.Join(" ", Enumerable.Range(0, pages).Select(page => $"{3 + page * 2} 0 R"))}] /Count {pages} >>"
+        };
+        for (int page = 0; page < pages; page++)
+        {
+            objects.Add($"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents {4 + page * 2} 0 R >>");
+            objects.Add("<< /Length 30 >>\nstream\n0 0 1 rg 0 0 100 100 re f   \nendstream");
+        }
+        PdfDocument document = PdfDocument.Open(Rendering.TestIccProfiles.Pdf([.. objects]));
+        var reader = new PdfPageContentReader(document);
+        var replacements = new List<PdfPartialRasterizationReplacement>();
+        for (int page = 0; page < pages; page++)
+        {
+            PdfPartialRasterizationPlan plan = PdfPartialRasterization.Plan(
+                reader.Read(page), new PdfContentBounds(0, 0, 10, 10), 72);
+            replacements.Add(new PdfPartialRasterizationReplacement(page, plan,
+                SolidRaster(plan.PixelWidth, plan.PixelHeight, 255, 0, 0)));
+        }
+
+        PdfPageTree.ReadCountOnThisThread = 0;
+        PdfPartialRasterization.Apply(document, replacements);
+
+        // The incremental editor reads the tree once for each page it changes when it builds, and the rasterization
+        // itself adds a handful of reads in all, not one for each page.
+        Assert.InRange(PdfPageTree.ReadCountOnThisThread, 1, pages + 5);
+    }
     private static PdfImage SolidRaster(int width, int height, byte red, byte green, byte blue)
     {
         byte[] rgb = new byte[width * height * 3];
