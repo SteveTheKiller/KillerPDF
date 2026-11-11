@@ -23,6 +23,9 @@ internal sealed class PlacementReadCache
     /// <summary>How many extraction results are remembered, for tests.</summary>
     internal int AssetsRemembered { get { lock (_sync) return _assets.Count; } }
 
+    /// <summary>How many pages' placement reads are remembered, for tests.</summary>
+    internal int PagesRemembered { get { lock (_sync) return _pages.Count; } }
+
     internal IReadOnlyList<PdfImagePlacementSelection>? PlacementsForPage(PdfWorkingDocument doc, int page)
     {
         lock (_sync)

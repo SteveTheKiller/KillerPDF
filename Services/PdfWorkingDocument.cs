@@ -242,13 +242,17 @@ internal sealed class PdfWorkingDocument : IDisposable
             _readRevision = null;
             Interlocked.Exchange(ref _parsedDocument, null);
         }
+        bool heldCopy;
         lock (_contentCopySync)
         {
+            heldCopy = _contentCopy is { Document: not null };
             _contentCopy = null;
             _contentCopyTimer?.Dispose();
             _contentCopyTimer = null;
         }
         revision?.Dispose();
+        // Outside both locks, as in DropIdleContentCopy: a listener holding a read of the parse lets it go with the document.
+        if (heldCopy) ContentCopyDropped?.Invoke();
     }
     public void Dispose() => Close();
 }

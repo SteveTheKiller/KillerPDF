@@ -133,6 +133,33 @@ public sealed class PlacementReadCacheTests
         Assert.NotSame(old, replacement);
     }
 
+    // Closing a document is the end of its parse (a cancelled Transform or Stamp preview closes and replaces it), so
+    // the cache must let go of what it read, not keep a closed document's parse until the next read or the tab closes.
+    [Fact]
+    public void ClosingTheDocumentDropsWhatTheCacheReadFromIt()
+    {
+        using var scope = new Scope();
+        var cache = new PlacementReadCache();
+        Assert.NotNull(cache.PlacementsForPage(scope.Document, 0));
+        Assert.Equal(1, cache.PagesRemembered);
+
+        scope.Document.Close();
+
+        Assert.Equal(0, cache.PagesRemembered);
+    }
+
+    [Fact]
+    public void ClosingADocumentThatHeldNoParseRaisesNoDropEvent()
+    {
+        using var scope = new Scope();
+        int dropped = 0;
+        scope.Document.ContentCopyDropped += () => dropped++;
+
+        scope.Document.Close();
+
+        Assert.Equal(0, dropped);
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference<PdfDocument> ReadFirstPage(PlacementReadCache cache, PdfWorkingDocument document)
     {
