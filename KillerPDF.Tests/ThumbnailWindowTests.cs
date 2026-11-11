@@ -379,6 +379,52 @@ public sealed class ThumbnailWindowTests
         Thread.Sleep(300);
         Assert.Equal(3, Volatile.Read(ref attempts0));
     }
+
+    // A page that used its one more try and then drew is a working page again: if it later throws twice after being
+    // let go, it gets that one more try back the next time another page draws.
+    [Fact]
+    public void ARearmedPageThatDrewGetsItsRetryBackAfterLaterThrows()
+    {
+        int attempts0 = 0;
+        using var drained = new SemaphoreSlim(0);
+        var shown = new ConcurrentDictionary<int, string>();
+        using var window = new ThumbnailWindow<string>(100, (page, _) =>
+        {
+            if (page == 0)
+            {
+                int attempt = Interlocked.Increment(ref attempts0);
+                if (attempt is 1 or 2 or 4 or 5) throw new IOException("locked for a moment");
+            }
+            return $"thumb {page} {Volatile.Read(ref attempts0)}";
+        }, (page, image) => { if (image is null) shown.TryRemove(page, out _); else shown[page] = image; },
+            retain: 1, drained: () => drained.Release());
+
+        void ThrowTwice(int expected)
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                window.Request(0);
+                Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+            }
+            Assert.Equal(expected, Volatile.Read(ref attempts0));
+        }
+        void Draw(int page)
+        {
+            window.Request(page);
+            Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(page), TimeSpan.FromSeconds(10)));
+            Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        }
+
+        ThrowTwice(2);                                       // page 0 settles by throwing
+        Draw(1);                                             // a success re-arms it
+        Draw(0);                                             // its one more try draws (attempt 3)
+        Draw(1);                                             // retain 1: page 0 is let go
+        ThrowTwice(5);                                       // a later brief lock settles it again
+        Draw(2);                                             // a success must re-arm it again
+        window.Request(0);
+        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts0) == 6 && shown.ContainsKey(0),
+            TimeSpan.FromSeconds(10)), $"page 0 was not drawn again (attempts {Volatile.Read(ref attempts0)})");
+    }
     // A page the renderer refuses by throwing is tried once more, then settled, so a broken page does not reopen and
     // parse the file on every later pass.
     [Fact]

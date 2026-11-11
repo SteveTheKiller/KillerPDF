@@ -119,8 +119,10 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
                 if (image is not null)
                 {
                     _heldNodes[page] = _held.AddLast(page);
-                    // A page that has drawn can be drawn, so an earlier throw no longer counts against it.
+                    // A page that has drawn can be drawn, so neither an earlier throw nor a retry it already used counts
+                    // against it.
                     _throwCounts.Remove(page);
+                    _rearmed.Remove(page);
                     // The renderer is working again: pages that gave up by throwing get one more try each.
                     foreach (int thrown in _threwFailed)
                         if (_rearmed.Add(thrown)) _failed.Remove(thrown);
