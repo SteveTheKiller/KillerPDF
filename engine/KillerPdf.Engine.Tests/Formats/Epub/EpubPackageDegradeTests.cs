@@ -110,4 +110,81 @@ public sealed class EpubPackageDegradeTests
         Assert.Equal(1, reader.PageCount);
         Assert.Equal("A", string.Concat(reader.Read(0).Letters.Select(letter => letter.Value)));
     }
+
+    // ZIP structure: the central record gives the name, the local header offset and the compressed size; the local
+    // header gives where the data starts. The compressed bytes become garbage, or the method field becomes 14 in both.
+    private static byte[] Damage(byte[] zip, string name, bool methodOnly)
+    {
+        byte[] result = (byte[])zip.Clone();
+        for (int at = 0; at + 46 <= result.Length; at++)
+        {
+            if (BitConverter.ToUInt32(result, at) != 0x02014b50) continue;
+            int nameLength = BitConverter.ToUInt16(result, at + 28);
+            if (System.Text.Encoding.UTF8.GetString(result, at + 46, nameLength) != name) continue;
+            int local = (int)BitConverter.ToUInt32(result, at + 42);
+            int data = local + 30 + BitConverter.ToUInt16(result, local + 26) + BitConverter.ToUInt16(result, local + 28);
+            if (methodOnly)
+            {
+                BitConverter.GetBytes((ushort)14).CopyTo(result, at + 10);
+                BitConverter.GetBytes((ushort)14).CopyTo(result, local + 8);
+            }
+            else Array.Fill(result, (byte)0xFF, data, (int)BitConverter.ToUInt32(result, at + 20));
+            return result;
+        }
+        throw new InvalidOperationException("The ZIP has no entry " + name);
+    }
+
+    private static Book BookWithImage()
+    {
+        var source = new Book
+        {
+            Chapters = { Chapter("<p>A</p>"), Chapter("<p>B</p>") },
+            ExtraManifest = "<item id=\"img\" href=\"images/a.png\" media-type=\"image/png\"/>"
+        };
+        source.Resources.Add(("images/a.png", Enumerable.Repeat((byte)7, 4000).ToArray()));
+        return source;
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ACorruptImageEntryIsLeftOutWithADiagnosticAndTheBookStillConverts(bool methodOnly)
+    {
+        byte[] damaged = Damage(BookWithImage().Build(), "OEBPS/images/a.png", methodOnly);
+
+        var book = EpubDocument.Open(damaged);
+
+        var reported = new List<EpubChapterDiagnostic>();
+        var pdf = book.ConvertToPdf(new EpubPdfConversionOptions(Options().DefaultFont)
+        { IsolateChapterFailures = true, DiagnosticReported = reported.Add });
+        Assert.Equal(2, new PdfPageContentReader(PdfDocument.Open(pdf)).PageCount);
+        var diagnostic = Assert.Single(reported, item => item.SpineIndex == -1);
+        Assert.Equal("OEBPS/images/a.png", diagnostic.Href);
+        Assert.Contains("OEBPS/images/a.png", diagnostic.Message);
+    }
+
+    [Fact]
+    public void ACorruptChapterEntryBecomesThatChaptersNoticePage()
+    {
+        var source = new Book { Chapters = { Chapter("<p>A</p>"), Chapter("<p>B</p>") } };
+
+        var book = EpubDocument.Open(Damage(source.Build(), "OEBPS/text/c0.xhtml", false));
+
+        Assert.Equal(2, book.Spine.Count);
+        var layout = book.CreateLayout(Options());
+        Assert.Equal(2, layout.Pages.Count);
+        var diagnostic = Assert.Single(layout.ChapterDiagnostics);
+        Assert.Equal("OEBPS/text/c0.xhtml", diagnostic.Href);
+        Assert.Equal("B", layout.Pages[1].Text.Trim());
+    }
+
+    [Theory]
+    [InlineData("META-INF/container.xml")]
+    [InlineData("OEBPS/content.opf")]
+    public void ACorruptRequiredPackageDocumentStillRefusesOpening(string path)
+    {
+        byte[] source = new Book { Chapters = { Chapter("<p>A</p>") } }.Build();
+
+        Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Damage(source, path, false)));
+    }
 }

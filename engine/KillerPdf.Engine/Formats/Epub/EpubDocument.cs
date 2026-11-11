@@ -10,6 +10,8 @@ public sealed partial class EpubDocument
 {
     private readonly Dictionary<string, byte[]> _resources;
     private readonly HashSet<string> _oversizedResources;
+    // Entries that could not be read; they are also in _oversizedResources, so a chapter keeps its place in the spine.
+    private readonly HashSet<string> _damagedResources;
     private readonly List<EpubChapterDiagnostic> _packageDiagnostics = [];
     private const int MaxEntryBytes = 8 * 1024 * 1024;
     /// <summary>The largest EPUB package the engine opens.</summary>
@@ -18,10 +20,11 @@ public sealed partial class EpubDocument
     private static readonly XNamespace Opf = "http://www.idpf.org/2007/opf";
     private static readonly XNamespace Dc = "http://purl.org/dc/elements/1.1/";
     private EpubDocument(Dictionary<string, byte[]> resources, XDocument package, string packagePath,
-        HashSet<string> oversizedResources)
+        HashSet<string> oversizedResources, HashSet<string> damagedResources)
     {
         _resources = resources;
         _oversizedResources = oversizedResources;
+        _damagedResources = damagedResources;
         var root = package.Root ?? throw new InvalidDataException("Missing package.");
         if (root.Name != Opf + "package")
             throw new InvalidDataException("Invalid EPUB package namespace.");
@@ -113,6 +116,7 @@ public sealed partial class EpubDocument
             packageDiagnostics.Add(new(-1, href, OversizedResource(href).Message)
             { Reason = EpubOmissionReason.LimitExceeded, ItemHref = href });
         }
+        var damagedResources = new HashSet<string>(StringComparer.Ordinal);
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         long expandedBytes = 0;
         foreach (var entry in zip.Entries)
@@ -137,12 +141,23 @@ public sealed partial class EpubDocument
             }
             if (entry.Length > MaxExpandedBytes - expandedBytes)
                 throw new InvalidDataException("EPUB exceeds the total expanded size limit.");
-            using var stream = entry.Open();
+            // An entry the ZIP reader cannot decode (damaged data or a compression method it lacks) is left out.
+            Exception? damage = null;
+            Stream? stream = null;
+            try { stream = entry.Open(); }
+            catch (Exception error) when (error is InvalidDataException or IOException or NotSupportedException) { damage = error; }
             using var output = new MemoryStream();
             var buffer = new byte[8192];
             int count;
-            while ((count = stream.Read(buffer)) != 0)
+            while (damage is null && stream is not null)
             {
+                try { count = stream.Read(buffer); }
+                catch (Exception error) when (error is InvalidDataException or IOException or NotSupportedException)
+                {
+                    damage = error;
+                    break;
+                }
+                if (count == 0) break;
                 cancellationToken.ThrowIfCancellationRequested();
                 if (output.Length + count > MaxEntryBytes)
                 {
@@ -154,8 +169,20 @@ public sealed partial class EpubDocument
                     throw new InvalidDataException("EPUB exceeds the total expanded size limit.");
                 output.Write(buffer, 0, count);
             }
+            stream?.Dispose();
+            if (damage is not null)
+            {
+                damagedResources.Add(entry.FullName);
+                oversizedResources.Add(entry.FullName);
+                packageDiagnostics.Add(new(-1, entry.FullName,
+                    "EPUB resource " + entry.FullName + " could not be read and was left out: " + damage.Message)
+                { Reason = EpubOmissionReason.MissingResource, ItemHref = entry.FullName });
+                continue;
+            }
             if (!oversizedResources.Contains(entry.FullName)) resources[entry.FullName] = output.ToArray();
         }
+        if (damagedResources.Contains("mimetype")) throw new InvalidDataException("Invalid EPUB mimetype.");
+        if (damagedResources.Contains("META-INF/container.xml")) throw new InvalidDataException("Missing EPUB container document.");
         if (!resources.TryGetValue("mimetype", out var mimetype) || !mimetype.AsSpan().SequenceEqual("application/epub+zip"u8))
             throw new InvalidDataException("Invalid EPUB mimetype.");
         if (oversizedResources.Contains("META-INF/container.xml")) throw OversizedResource("META-INF/container.xml");
@@ -169,10 +196,11 @@ public sealed partial class EpubDocument
             .FirstOrDefault(x => (string?)x.Attribute("media-type") == "application/oebps-package+xml")
             ?? throw new InvalidDataException("Missing EPUB package reference.");
         var path = ResolvePath("", Required(rootfile, "full-path"));
+        if (damagedResources.Contains(path)) throw new InvalidDataException("Missing EPUB package document.");
         if (oversizedResources.Contains(path)) throw OversizedResource(path);
         if (!resources.TryGetValue(path, out var packageData))
             throw new InvalidDataException("Missing EPUB package document.");
-        var document = new EpubDocument(resources, Xml(packageData), path, oversizedResources);
+        var document = new EpubDocument(resources, Xml(packageData), path, oversizedResources, damagedResources);
         var spinePaths = document.Spine.Select(item => item.Item.Href).ToHashSet(StringComparer.Ordinal);
         document._packageDiagnostics.AddRange(packageDiagnostics.Where(item => !spinePaths.Contains(item.Href)));
         document.RestoreObfuscatedFonts(cancellationToken);
@@ -181,6 +209,10 @@ public sealed partial class EpubDocument
 
     private static InvalidDataException OversizedResource(string href) =>
         new("EPUB resource exceeds its 8 MiB expanded size limit: " + href + ".");
+
+    // Why a resource kept out of _resources is unavailable: it was too large, or its ZIP entry could not be read.
+    private InvalidDataException UnavailableResource(string href) => _damagedResources.Contains(href)
+        ? new("EPUB resource could not be read: " + href + ".") : OversizedResource(href);
 
     private static void ValidateArchivePath(string path)
     {

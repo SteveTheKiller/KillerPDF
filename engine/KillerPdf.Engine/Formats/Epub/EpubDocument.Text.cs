@@ -13,7 +13,7 @@ public sealed partial class EpubDocument
     {
         cancellationToken.ThrowIfCancellationRequested();
         var resource = Spine[spineIndex].Item;
-        if (_oversizedResources.Contains(resource.Href)) throw OversizedResource(resource.Href);
+        if (_oversizedResources.Contains(resource.Href)) throw UnavailableResource(resource.Href);
         if (resource.MediaType != "application/xhtml+xml" || Tokens(resource.Properties).Contains("scripted", StringComparer.Ordinal))
             throw new NotSupportedException("EPUB text requires an unscripted XHTML spine resource.");
         if (_encryptedResources.Contains(resource.Href)) throw EncryptedChapter(resource.Href);
