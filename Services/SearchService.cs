@@ -505,8 +505,18 @@ namespace KillerPDF.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 // The tolerant read: one malformed annotation anywhere skips that annotation, not the whole search.
-                var comments = KillerPdf.Engine.Documents.PdfCommentReader.Read(saved, true, new List<int>())
+                var skippedPages = new List<int>();
+                var comments = KillerPdf.Engine.Documents.PdfCommentReader.Read(saved, true, skippedPages)
                     .ToDictionary(comment => (comment.PageIndex, comment.AnnotationIndex));
+                // A page whose annotation was skipped may have lost replacement text from the search too, so it is
+                // named with the pages that were not searched.
+                foreach (int page in skippedPages)
+                    if (!result.UnreadablePages.Contains(page))
+                    {
+                        result.UnreadablePages.Add(page);
+                        result.UnreadableMessages.TryAdd(page, "An annotation on this page could not be read.");
+                    }
+                result.UnreadablePages.Sort();
                 var pages = KillerPdf.Engine.Documents.PdfPageInformation.Read(saved);
                 foreach (OverlayRecord record in owned)
                 {

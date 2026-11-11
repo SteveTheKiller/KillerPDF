@@ -56,4 +56,27 @@ public sealed class SearchMalformedAnnotationTests
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }
+
+    // The tolerant comment read skips the malformed annotation on page 2 and says so; the search result must carry
+    // that page into its "pages not searched" list instead of dropping it.
+    [Fact]
+    public void ThePageOfASkippedMalformedAnnotationIsListedAsNotSearched()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"kp-search-malformed-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, PageWithMalformedAnnotsSibling());
+            var text = new TextAnnotation { PageIndex = 0, Content = "Replacement words", Position = new Point(20, 10), Width = 160, Height = 40 };
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [text] },
+                new Dictionary<int, (int w, int h)> { [0] = (200, 100) }, measurementsAsAnnotations: true);
+            byte[] saved = File.ReadAllBytes(path);
+
+            var result = new SearchResult();
+            SearchService.AddOverlayHits(result, saved, null, "Replacement", false, false, CancellationToken.None);
+
+            Assert.Contains(1, result.UnreadablePages);
+            Assert.Equal(1, result.TotalHits);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
 }
