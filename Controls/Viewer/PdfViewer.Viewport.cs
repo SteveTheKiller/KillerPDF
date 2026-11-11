@@ -899,8 +899,9 @@ namespace KillerPDF.Controls
                 else AddSecondaryPageLinks(fi, rdW, rdH);
             }
 
-            // Slot heights are now exact; recompute scroll offsets from them.
-            LayoutContinuousSlots();
+            // Slot heights are now exact; recompute scroll offsets from them. The offsets depend only on the heights, so
+            // a page whose slot kept its height leaves them as they are.
+            if (Math.Abs(dipH - oldH) > 0.5) LayoutContinuousSlots();
 
             // Pages render in order, so when the target page is reached every page above it has its final
             // height; re-scroll so a crop lands you back on the same page instead of drifting.

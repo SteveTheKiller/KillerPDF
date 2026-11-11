@@ -110,6 +110,18 @@ public sealed class ViewerPresentationPinTests
         Assert.DoesNotContain("_doc", settled);
     }
 
+    // viewer BF-007: every attached continuous page relaid out every slot, so a long document did work that grew with the
+    // square of its length while it drew. The layout depends only on the slot heights, so it runs when one changed.
+    [Fact]
+    public void ContinuousSlotsAreRelaidOutOnlyWhenAPageChangesItsSlotHeight()
+    {
+        string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+        string slot = Between(viewport, "private void SetContinuousSlot(", "/// <summary>True when part of the page is in the document viewport now.");
+
+        Assert.Equal(1, Count(slot, "LayoutContinuousSlots();"));
+        Assert.Contains("if (Math.Abs(dipH - oldH) > 0.5) LayoutContinuousSlots();", slot);
+    }
+
     private static int Count(string source, string text)
     {
         int count = 0;
