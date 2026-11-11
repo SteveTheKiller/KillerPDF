@@ -270,6 +270,7 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_OpenedRasterRepair">Otwarto rasteryzowaną naprawioną kopię {0} (zapisz, aby zachować zmiany) - {1} stronę(y)</sys:String>
     <sys:String x:Key="Str_PageOf">Strona {0} z {1}</sys:String>
     <sys:String x:Key="Str_PagesOf">Strony {0}-{1} z {2}</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">Strony {0} i {1} z {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Strona {0} z {1} (linki: {2})</sys:String>
     <sys:String x:Key="Str_PageFormFields">Strona {0} z {1} - ta strona zawiera pola formularza do wypełnienia</sys:String>
     <sys:String x:Key="Str_PageRenderError">Nie można wyrenderować strony {0}</sys:String>
@@ -316,6 +317,7 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_Print_AllPages">Wszystkie strony</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Tylko strony nieparzyste</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Tylko strony parzyste</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Strony nieparzyste lub parzyste</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Odwróć kolory dokumentu</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Odwróć kolory dokumentu (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Podzielony ekran - dwa dokumenty obok siebie (F10)</sys:String>
@@ -1410,6 +1412,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_St_DeletedAnnotationMany">Usunięto {0} adnotacji</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">Brak wyników</sys:String>
     <sys:String x:Key="Str_Search_Error">Błąd wyszukiwania</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">Zbyt wiele wyników</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">Wyników jest więcej, niż można wyświetlić na liście. Użyj dłuższej frazy wyszukiwania.</sys:String>
     <sys:String x:Key="Str_Search_Summary">{0} wyników na {1} stronach</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Nieczytelne strony, nieprzeszukane: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Brak wyników na czytelnych stronach. Liczba stron, których nie udało się odczytać: {0}.</sys:String>
@@ -2097,6 +2101,18 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF otworzy się w nowej karcie. Oryginalny plik pozostanie bez zmian.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Podaj prawidłowy rozmiar papieru i marginesy, które pozostawią miejsce na treść.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Ten plik PDF jest otwarty na karcie. Najpierw go zamknij lub wybierz inną nazwę.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">Czcionka potrzebna do konwersji tej książki nie jest dostępna na tym komputerze.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">Przekonwertowany plik PDF musi zostać zapisany w stałym folderze, a nie w tymczasowym.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Wybierz inną nazwę dla przekonwertowanego pliku PDF. Nie może on zastąpić książki, z której pochodzi.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">Przekonwertowany plik musi zostać zapisany z rozszerzeniem .pdf.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">Plik o tej nazwie już istnieje.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">Nie udało się odczytać reszty tej książki. Strony, które już wyświetlono, pozostają otwarte.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">Część tego pliku ma postać, której ten czytnik nie rozpoznaje. Została pominięta, a strony narysowano bez niej.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">Nie udało się wyświetlić strony, do której prowadzi ten link.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">Pozycja, do której prowadzi ten link, jest nieprawidłowa.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">Nie udało się zachować tekstu stron {0}, więc te strony przekonwertowano tylko jako obrazy.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">Niektórych znaków w tekście stron {0} nie udało się odczytać, więc zastąpiono je znakiem zastępczym.</sys:String>
     <sys:String x:Key="Str_CM_Title">Zarządzanie kolorami</sys:String>

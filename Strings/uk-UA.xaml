@@ -270,6 +270,7 @@
     <sys:String x:Key="Str_OpenedRasterRepair">Відкрито {0} (растрове відновлення - збережіть, щоб зберегти зміни) - сторінок: {1}</sys:String>
     <sys:String x:Key="Str_PageOf">Сторінка {0} з {1}</sys:String>
     <sys:String x:Key="Str_PagesOf">Сторінки {0}-{1} з {2}</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">Сторінки {0} і {1} з {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Сторінка {0} з {1}  (посилань: {2})</sys:String>
     <sys:String x:Key="Str_PageFormFields">Сторінка {0} з {1} - ця сторінка містить поля форми для заповнення</sys:String>
     <sys:String x:Key="Str_PageRenderError">Сторінка {0} - не вдалося відобразити</sys:String>
@@ -316,6 +317,7 @@
     <sys:String x:Key="Str_Print_AllPages">Усі сторінки</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Лише непарні сторінки</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Лише парні сторінки</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Непарні або парні сторінки</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Інвертувати кольори документа</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Інвертувати кольори документа (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Розділена панель - два документи поруч (F10)</sys:String>
@@ -1422,6 +1424,8 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_St_DeletedAnnotationMany">Видалено анотацій: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">Збігів немає</sys:String>
     <sys:String x:Key="Str_Search_Error">Помилка пошуку</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">Забагато збігів</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">Збігів більше, ніж можна показати в списку. Використайте довший пошуковий запит.</sys:String>
     <sys:String x:Key="Str_Search_Summary">Збігів: {0} на сторінках: {1}</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Нечитабельні сторінки, без пошуку: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Збігів на читабельних сторінках немає. Не вдалося прочитати сторінок: {0}.</sys:String>
@@ -2109,6 +2113,18 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF відкриється в новій вкладці. Початковий файл залишиться без змін.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Укажіть допустимий розмір паперу й поля, що залишають місце для вмісту.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Цей PDF відкрито у вкладці. Спершу закрийте його або виберіть інше ім'я.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">Шрифт, потрібний для перетворення цієї книги, недоступний на цьому комп'ютері.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">Перетворений PDF потрібно зберегти в постійній папці, а не в тимчасовій.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Виберіть інше ім'я для перетвореного PDF. Він не може замінити книгу, з якої створений.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">Перетворений файл потрібно зберегти з ім'ям, що закінчується на .pdf.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">Файл із таким іменем уже існує.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">Не вдалося прочитати решту цієї книги. Уже показані сторінки залишаються відкритими.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">Частина цього файлу має форму, яку програма читання не розпізнає. Її пропущено, а сторінки намальовано без неї.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">Не вдалося показати сторінку, на яку вказує це посилання.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">Позиція, на яку вказує це посилання, недійсна.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">Текст сторінок {0} не вдалося зберегти, тому ці сторінки перетворено лише як зображення.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">Деякі символи в тексті сторінок {0} не вдалося прочитати, тому їх замінено символом-заповнювачем.</sys:String>
     <sys:String x:Key="Str_CM_Title">Керування кольором</sys:String>

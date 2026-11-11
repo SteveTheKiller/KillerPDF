@@ -192,6 +192,7 @@
     <sys:String x:Key="Str_OpenedRasterRepair">{0} ашылды (растрленген жөндеу - өзгерістерді сақтаңыз) - {1} бет</sys:String>
     <sys:String x:Key="Str_PageOf">{0} / {1} бет</sys:String>
     <sys:String x:Key="Str_PagesOf">{0}-{1} / {2} бет</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">{0} және {1} беттер / {2} бет</sys:String>
     <sys:String x:Key="Str_PageOfLinks">{0} / {1} бет  ({2} сілтеме)</sys:String>
     <sys:String x:Key="Str_PageFormFields">{0} / {1} бет - бұл бетте толтырылатын пішін өрістері бар</sys:String>
     <sys:String x:Key="Str_PageRenderError">{0} бет - көрсетілмеді</sys:String>
@@ -238,6 +239,7 @@
     <sys:String x:Key="Str_Print_AllPages">Барлық беттер</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Тек тақ беттер</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Тек жұп беттер</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Тақ немесе жұп беттер</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Құжат түстерін терістеу</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Құжат түстерін терістеу (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Бөлінген панель - екі құжат қатар (F10)</sys:String>
@@ -1322,6 +1324,8 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_St_DeletedAnnotationMany">{0} ескертпе жойылды</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">Сәйкестік жоқ</sys:String>
     <sys:String x:Key="Str_Search_Error">Іздеу қатесі</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">Сәйкестік көп</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">Сәйкестіктер тізімде көрсетуге болатыннан көп. Ұзынырақ іздеу сөзін пайдаланыңыз.</sys:String>
     <sys:String x:Key="Str_Search_Summary">{1} бетте {0} сәйкестік</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Оқылмайтын беттер, ізделмеді: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Оқуға болатын беттерде сәйкестік жоқ. {0} бетті оқу мүмкін болмады.</sys:String>
@@ -2112,6 +2116,18 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF жаңа қойындыда ашылады. Бастапқы файлыңыз өзгеріссіз қалады.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Жарамды қағаз өлшемін және мазмұнға орын қалдыратын жиектерді енгізіңіз.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Бұл PDF қойындыда ашық тұр. Алдымен оны жабыңыз немесе басқа атау таңдаңыз.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">Бұл кітапты түрлендіруге қажетті қаріп осы компьютерде жоқ.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">Түрлендірілген PDF уақытша емес, тұрақты қалтаға сақталуы керек.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Түрлендірілген PDF үшін басқа атау таңдаңыз. Ол өзі жасалған кітапты алмастыра алмайды.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">Түрлендірілген файл .pdf атауымен сақталуы керек.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">Мұндай атаулы файл бұрыннан бар.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">Бұл кітаптың қалған бөлігін оқу мүмкін болмады. Көрсетілген беттер ашық күйінде қалады.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">Бұл файлдың бір бөлігі осы оқу құралы танымайтын пішімде. Ол өткізіп жіберілді, беттер онсыз салынды.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">Бұл сілтеме нұсқайтын бетті көрсету мүмкін болмады.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">Бұл сілтеме нұсқайтын орын жарамсыз.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">{0} беттердің мәтінін сақтау мүмкін болмады, сондықтан бұл беттер тек сурет ретінде түрлендірілді.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">{0} беттердің мәтініндегі кейбір таңбалар оқылмады, сондықтан олар орынбасар таңбамен ауыстырылды.</sys:String>
     <sys:String x:Key="Str_CM_Title">Түстерді басқару</sys:String>

@@ -270,6 +270,7 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_OpenedRasterRepair">Megnyitva: {0} (raszterizált javítás - mentse a változások megtartásához) - {1} oldal</sys:String>
     <sys:String x:Key="Str_PageOf">{0}. oldal / {1}</sys:String>
     <sys:String x:Key="Str_PagesOf">{0}-{1}. oldal / {2}</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">{0}. és {1}. oldal / {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">{0}. oldal / {1}  ({2} hivatkozás)</sys:String>
     <sys:String x:Key="Str_PageFormFields">{0}. oldal / {1} - ez az oldal kitölthető űrlapmezőket tartalmaz</sys:String>
     <sys:String x:Key="Str_PageRenderError">{0}. oldal - nem sikerült megjeleníteni</sys:String>
@@ -316,6 +317,7 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_Print_AllPages">Minden oldal</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Csak páratlan oldalak</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Csak páros oldalak</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Páratlan vagy páros oldalak</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Dokumentum színeinek invertálása</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Dokumentum színeinek invertálása (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Osztott ablaktábla - két dokumentum egymás mellett (F10)</sys:String>
@@ -1409,6 +1411,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_St_DeletedAnnotationMany">{0} jegyzet törölve</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">Nincs találat</sys:String>
     <sys:String x:Key="Str_Search_Error">Keresési hiba</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">Túl sok találat</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">A találatok száma meghaladja a listázhatót. Használjon hosszabb keresőkifejezést.</sys:String>
     <sys:String x:Key="Str_Search_Summary">{0} találat {1} oldalon</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Olvashatatlan oldalak, nem keresve: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Nincs találat az olvasható oldalakon. {0} oldalt nem sikerült beolvasni.</sys:String>
@@ -2096,6 +2100,18 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_NativePdf_KeepOriginal">A PDF új lapon nyílik meg. Az eredeti fájl változatlan marad.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Adjon meg érvényes papírméretet és olyan margókat, amelyek mellett marad hely a tartalomnak.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Ez a PDF meg van nyitva egy lapon. Először zárja be, vagy válasszon másik nevet.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">A könyv átalakításához szükséges betűtípus nem érhető el ezen a számítógépen.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">Az átalakított PDF-et állandó mappába kell menteni, nem ideiglenesbe.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Válasszon másik nevet az átalakított PDF-nek. Nem cserélheti le a könyvet, amelyből készült.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">Az átalakított fájlt .pdf kiterjesztéssel kell menteni.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">Már létezik ilyen nevű fájl.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">A könyv hátralévő részét nem sikerült beolvasni. A már megjelenített oldalak nyitva maradnak.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">A fájl egy része olyan formában van, amelyet ez az olvasó nem ismer fel. Kimaradt, és az oldalak nélküle jelentek meg.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">Nem sikerült megjeleníteni azt az oldalt, amelyre ez a hivatkozás mutat.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">A pozíció, amelyre ez a hivatkozás mutat, érvénytelen.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">A következő oldalak szövegét nem sikerült megőrizni, ezért ezek az oldalak csak képként lettek átalakítva: {0}.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">A következő oldalak szövegében néhány karakter olvashatatlan volt, ezért helyettesítő jelre lett cserélve: {0}.</sys:String>
     <sys:String x:Key="Str_CM_Title">Színkezelés</sys:String>

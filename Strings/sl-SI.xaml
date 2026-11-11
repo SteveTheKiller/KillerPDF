@@ -248,6 +248,7 @@
     <sys:String x:Key="Str_OpenedRasterRepair">Odprta je rastrirana popravljena kopija datoteke {0}; shranite za ohranitev sprememb (strani: {1})</sys:String>
     <sys:String x:Key="Str_PageOf">Stran {0} od {1}</sys:String>
     <sys:String x:Key="Str_PagesOf">Strani {0}-{1} od {2}</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">Strani {0} in {1} od {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Stran {0} od {1}  (povezave: {2})</sys:String>
     <sys:String x:Key="Str_PageFormFields">Stran {0} od {1} vsebuje izpolnljiva polja obrazca</sys:String>
     <sys:String x:Key="Str_PageRenderError">Strani {0} ni bilo mogoče izrisati</sys:String>
@@ -294,6 +295,7 @@
     <sys:String x:Key="Str_Print_AllPages">Vse strani</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Samo lihe strani</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Samo sode strani</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Lihe ali sode strani</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Obrni barve dokumenta</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Obrni barve dokumenta (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Razdeljen pogled: dva dokumenta drug ob drugem (F10)</sys:String>
@@ -1318,6 +1320,8 @@
     <sys:String x:Key="Str_St_DeletedAnnotationMany">Izbrisane pripombe: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">Ni ujemanj</sys:String>
     <sys:String x:Key="Str_Search_Error">Napaka pri iskanju</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">Preveč ujemanj</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">Ujemanj je več, kot jih je mogoče navesti. Uporabite daljši iskalni niz.</sys:String>
     <sys:String x:Key="Str_Search_Summary">Ujemanja: {0}, na straneh: {1}</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Neberljive strani, niso preiskane: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Ni ujemanj na berljivih straneh. Število strani, ki jih ni bilo mogoče prebrati: {0}.</sys:String>
@@ -1998,6 +2002,18 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF se odpre v novem zavihku. Izvirna datoteka ostane nespremenjena.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Vnesite veljavno velikost papirja in robove, ki pustijo prostor za vsebino.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Ta PDF je odprt v zavihku. Najprej ga zaprite ali izberite drugo ime.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">Pisava, potrebna za pretvorbo te knjige, v tem računalniku ni na voljo.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">Pretvorjeni PDF mora biti shranjen v stalno mapo, ne v začasno.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Izberite drugo ime za pretvorjeni PDF. Ne more nadomestiti knjige, iz katere je nastal.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">Pretvorjena datoteka mora biti shranjena z imenom, ki se konča na .pdf.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">Datoteka s tem imenom že obstaja.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">Preostanka te knjige ni bilo mogoče prebrati. Že prikazane strani ostanejo odprte.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">Del te datoteke je v obliki, ki je ta bralnik ne prepozna. Preskočen je bil, strani pa so bile narisane brez njega.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">Strani, na katero kaže ta povezava, ni bilo mogoče prikazati.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">Položaj, na katerega kaže ta povezava, ni veljaven.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">Besedila strani {0} ni bilo mogoče ohraniti, zato so bile te strani pretvorjene samo kot slike.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">Nekaterih znakov v besedilu strani {0} ni bilo mogoče prebrati, zato so bili nadomeščeni z nadomestnim znakom.</sys:String>
     <sys:String x:Key="Str_CM_Title">Upravljanje barv</sys:String>

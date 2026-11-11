@@ -270,6 +270,7 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_OpenedRasterRepair">Đã mở {0} (đã sửa bằng cách rasterize - hãy lưu lại để giữ các thay đổi) - {1} trang</sys:String>
     <sys:String x:Key="Str_PageOf">Trang {0} / {1}</sys:String>
     <sys:String x:Key="Str_PagesOf">Trang {0}-{1} / {2}</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">Trang {0} và {1} / {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Trang {0} / {1}  ({2} liên kết)</sys:String>
     <sys:String x:Key="Str_PageFormFields">Trang {0} / {1} - trang này chứa các trường biểu mẫu có thể điền</sys:String>
     <sys:String x:Key="Str_PageRenderError">Trang {0} - không thể kết xuất</sys:String>
@@ -316,6 +317,7 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_Print_AllPages">Tất cả trang</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Chỉ trang lẻ</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Chỉ trang chẵn</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Trang lẻ hoặc chẵn</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Đảo ngược màu tài liệu</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Đảo ngược màu tài liệu (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Chia đôi khung - hai tài liệu song song nhau (F10)</sys:String>
@@ -1422,6 +1424,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_St_DeletedAnnotationMany">Đã xóa {0} chú thích</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">Không tìm thấy kết quả phù hợp</sys:String>
     <sys:String x:Key="Str_Search_Error">Lỗi tìm kiếm</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">Quá nhiều kết quả</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">Có nhiều kết quả hơn mức có thể liệt kê. Hãy dùng cụm từ tìm kiếm dài hơn.</sys:String>
     <sys:String x:Key="Str_Search_Summary">{0} kết quả phù hợp trên {1} trang</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Trang không đọc được, chưa tìm: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Không có kết quả phù hợp trên các trang đọc được. Có {0} trang không đọc được.</sys:String>
@@ -2109,6 +2113,18 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF sẽ mở trong một tab mới. Tệp gốc của bạn không thay đổi.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Nhập kích thước giấy hợp lệ và lề sao cho còn chỗ cho nội dung.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Tệp PDF đó đang mở trong một tab. Hãy đóng nó trước, hoặc chọn tên khác.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">Phông chữ cần để chuyển đổi sách này không có trên máy tính này.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">PDF đã chuyển đổi phải được lưu trong thư mục cố định, không phải thư mục tạm.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Hãy chọn tên khác cho PDF đã chuyển đổi. Nó không thể thay thế cuốn sách mà nó được tạo ra từ đó.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">Tệp đã chuyển đổi phải được lưu với tên có đuôi .pdf.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">Đã có một tệp với tên đó.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">Không thể đọc phần còn lại của sách này. Các trang đã hiển thị vẫn được giữ mở.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">Một phần của tệp này ở dạng mà trình đọc này không nhận ra. Phần đó đã bị bỏ qua và các trang được vẽ mà không có nó.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">Không thể hiển thị trang mà liên kết này trỏ tới.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">Vị trí mà liên kết này trỏ tới không hợp lệ.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">Không thể giữ lại văn bản của các trang {0}, vì vậy các trang này chỉ được chuyển đổi dưới dạng hình ảnh.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">Một số ký tự trong văn bản của các trang {0} không đọc được và đã được thay bằng ký tự giữ chỗ.</sys:String>
     <sys:String x:Key="Str_CM_Title">Quản lý màu</sys:String>

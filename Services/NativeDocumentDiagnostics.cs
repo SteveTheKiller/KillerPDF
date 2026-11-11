@@ -27,7 +27,7 @@ internal static class NativeDocumentDiagnostics
     /// no pages at all, so the document never reaches the viewer.
     /// </summary>
     internal static IReadOnlyList<string> RaisingDjvuCodes { get; } =
-        ["IncludedComponentUnsupported", "PageVersionUnsupported", "TextEncodingInvalid"];
+        ["IncludedComponentUnsupported", "PageVersionUnsupported", "TextEncodingInvalid", "UnrecognizedChunkSkipped"];
 
     internal static bool RaisesNotice(KillerPdf.Engine.Formats.Djvu.DjvuDiagnostic notice)
         => RaisingDjvuCodes.Contains(notice.Code);

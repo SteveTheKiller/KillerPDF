@@ -252,6 +252,7 @@
     <sys:String x:Key="Str_OpenedRasterRepair">已打开 {0}（栅格化修复 - 请保存以保留变更）- {1} 页</sys:String>
     <sys:String x:Key="Str_PageOf">第 {0} 页，共 {1} 页</sys:String>
     <sys:String x:Key="Str_PagesOf">第 {0}-{1} 页，共 {2} 页</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">第 {0} 页和第 {1} 页，共 {2} 页</sys:String>
     <sys:String x:Key="Str_PageOfLinks">第 {0} 页，共 {1} 页（{2} 个链接）</sys:String>
     <sys:String x:Key="Str_PageFormFields">第 {0} 页，共 {1} 页 - 此页面包含可填写的表单字段</sys:String>
     <sys:String x:Key="Str_PageRenderError">第 {0} 页 - 无法呈现</sys:String>
@@ -1080,6 +1081,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Print_AllPages">所有页面</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">仅奇数页</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">仅偶数页</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">奇数页或偶数页</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">反转文档颜色</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">反转文档颜色 (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">拆分视图 - 两份文档并排显示 (F10)</sys:String>
@@ -1406,6 +1408,8 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_St_DeletedAnnotationMany">已删除 {0} 个注释</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">无匹配项</sys:String>
     <sys:String x:Key="Str_Search_Error">搜索错误</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">匹配项过多</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">匹配项多于可列出的数量。请使用更长的搜索词。</sys:String>
     <sys:String x:Key="Str_Search_Summary">在 {1} 页中找到 {0} 个匹配项</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">无法读取的页面，未搜索：{0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">可读取的页面中没有匹配项。有 {0} 页无法读取。</sys:String>
@@ -2093,6 +2097,18 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF 会在新标签页中打开。原始文件保持不变。</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">请输入有效的纸张大小和页边距，确保有足够的空间容纳内容。</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">该 PDF 已在标签页中打开。请先将其关闭，或选择其他名称。</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">此计算机上没有转换这本书所需的字体。</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">转换后的 PDF 必须保存在永久文件夹中，而不能保存在临时文件夹中。</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">请为转换后的 PDF 选择其他名称。它不能替换其来源的那本书。</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">转换后的文件必须使用 .pdf 扩展名保存。</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">已存在同名文件。</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">无法读取这本书的其余部分。已显示的页面会保持打开。</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">此文件的一部分采用了阅读器无法识别的形式。该部分已被跳过，页面是在没有它的情况下绘制的。</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">无法显示此链接所指向的页面。</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">此链接所指向的位置无效。</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">第 {0} 页的文字无法保留，因此这些页面仅以图像形式转换。</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">第 {0} 页的文字中有部分字符无法读取，已替换为占位符。</sys:String>
     <sys:String x:Key="Str_CM_Title">色彩管理</sys:String>

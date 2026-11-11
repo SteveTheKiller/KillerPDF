@@ -1434,6 +1434,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_St_DeletedAnnotationMany">Deleted {0} annotations</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">No matches</sys:String>
     <sys:String x:Key="Str_Search_Error">Search error</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">Too many matches</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">More matches than can be listed. Use a longer search term.</sys:String>
     <sys:String x:Key="Str_Search_Summary">{0} matches on {1} pages</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Unreadable pages, not searched: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">No matches on the readable pages. {0} pages could not be read.</sys:String>
@@ -2106,6 +2108,14 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_NativePdf_DestinationOpen">That PDF is open in a tab. Close it first, or choose another name.</sys:String>
     <sys:String x:Key="Str_Convert_FontUnavailable">The font needed to convert this book is not available on this computer.</sys:String>
     <sys:String x:Key="Str_Convert_DestinationNotPermanent">The converted PDF must be saved in a permanent folder, not a temporary one.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Choose a different name for the converted PDF. It cannot replace the book it comes from.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">The converted file must be saved with a .pdf name.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">A file with that name already exists.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">The rest of this book could not be read. The pages already shown stay open.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">Part of this file is in a form this reader does not recognize. It was skipped, and the pages were drawn without it.</sys:String>
     <sys:String x:Key="Str_Native_NavigationPageUnavailable">The page this link points to could not be shown.</sys:String>
     <sys:String x:Key="Str_Native_NavigationPositionInvalid">The position this link points to is not valid.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">The text of pages {0} could not be kept, so those pages were converted as images only.</sys:String>

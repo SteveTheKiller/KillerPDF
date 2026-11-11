@@ -252,6 +252,7 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_OpenedRasterRepair">Açıldı {0} (rasterize edilerek onarıldı - değişiklikleri korumak için kaydedin) - {1} sayfa</sys:String>
     <sys:String x:Key="Str_PageOf">Sayfa {0} / {1}</sys:String>
     <sys:String x:Key="Str_PagesOf">Sayfa {0}-{1} / {2}</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">Sayfa {0} ve {1} / {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Sayfa {0} / {1}  ({2} bağlantı)</sys:String>
     <sys:String x:Key="Str_PageFormFields">Sayfa {0} / {1} - bu sayfa doldurulabilir form alanları içeriyor</sys:String>
     <sys:String x:Key="Str_PageRenderError">Sayfa {0} - görüntülenemedi</sys:String>
@@ -1076,6 +1077,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Print_AllPages">Tüm sayfalar</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Yalnızca tek sayfalar</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Yalnızca çift sayfalar</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Tek veya çift sayfalar</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Belge renklerini ters çevir</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Belge renklerini ters çevir (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Bölünmüş görünüm - iki belge yan yana (F10)</sys:String>
@@ -1402,6 +1404,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_St_DeletedAnnotationMany">{0} ek açıklama silindi</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">Eşleşme yok</sys:String>
     <sys:String x:Key="Str_Search_Error">Arama hatası</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">Çok fazla eşleşme</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">Listelenebilenden fazla eşleşme var. Daha uzun bir arama terimi kullanın.</sys:String>
     <sys:String x:Key="Str_Search_Summary">{0} eşleşme, {1} sayfa</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Okunamayan sayfalar, aranmadı: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Okunabilir sayfalarda eşleşme yok. {0} sayfa okunamadı.</sys:String>
@@ -2089,6 +2093,18 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF yeni bir sekmede açılır. Özgün dosyanız değişmeden kalır.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Geçerli bir kağıt boyutu ve içeriğe yer bırakan kenar boşlukları girin.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Bu PDF bir sekmede açık. Önce onu kapatın veya başka bir ad seçin.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">Bu kitabı dönüştürmek için gereken yazı tipi bu bilgisayarda yok.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">Dönüştürülen PDF, geçici bir klasöre değil, kalıcı bir klasöre kaydedilmelidir.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Dönüştürülen PDF için başka bir ad seçin. Geldiği kitabın yerine geçemez.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">Dönüştürülen dosya .pdf uzantılı bir adla kaydedilmelidir.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">Bu adda bir dosya zaten var.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">Bu kitabın geri kalanı okunamadı. Zaten gösterilen sayfalar açık kalır.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">Bu dosyanın bir bölümü, bu okuyucunun tanımadığı bir biçimde. Bölüm atlandı ve sayfalar o bölüm olmadan çizildi.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">Bu bağlantının işaret ettiği sayfa gösterilemedi.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">Bu bağlantının işaret ettiği konum geçerli değil.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">{0} sayfalarının metni korunamadı, bu nedenle bu sayfalar yalnızca görüntü olarak dönüştürüldü.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">{0} sayfalarının metnindeki bazı karakterler okunamadı ve yer tutucu bir karakterle değiştirildi.</sys:String>
     <sys:String x:Key="Str_CM_Title">Renk Yönetimi</sys:String>

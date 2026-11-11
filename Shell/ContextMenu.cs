@@ -607,7 +607,8 @@ namespace KillerPDF.Shell
         // text/cover pair keeps its pairing internally but is regenerated so it's independent of the source.
         private void PasteAnnotations(int pageIdx)
         {
-            if (_annotationClipboard.Count == 0 || pageIdx < 0) return;
+            // EPUB and DjVu books are read-only; annotations cannot be added to them.
+            if (_annotationClipboard.Count == 0 || pageIdx < 0 || ActiveViewer.NativeDocumentRef is not null) return;
             const double off = 14;
 
             var pasted = new List<PageAnnotation>();

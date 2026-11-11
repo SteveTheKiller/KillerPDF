@@ -270,6 +270,7 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_OpenedRasterRepair">Åpnet {0} (rasterisert reparasjon, lagre for å beholde endringer) - {1} side(r)</sys:String>
     <sys:String x:Key="Str_PageOf">Side {0} av {1}</sys:String>
     <sys:String x:Key="Str_PagesOf">Sider {0}-{1} av {2}</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">Sidene {0} og {1} av {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Side {0} av {1}  ({2} lenke(r))</sys:String>
     <sys:String x:Key="Str_PageFormFields">Side {0} av {1} - denne siden har fyllbare skjemafelt</sys:String>
     <sys:String x:Key="Str_PageRenderError">Side {0} - kunne ikke gjengis</sys:String>
@@ -316,6 +317,7 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_Print_AllPages">Alle sider</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Bare oddetallssider</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Bare partallssider</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Oddetalls- eller partallssider</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Inverter dokumentfargene</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Inverter dokumentfargene (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Delt panel: to dokumenter side ved side (F10)</sys:String>
@@ -1422,6 +1424,8 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_St_DeletedAnnotationMany">Slettet {0} merknader</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">Ingen treff</sys:String>
     <sys:String x:Key="Str_Search_Error">Søkefeil</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">For mange treff</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">Det er flere treff enn det går an å vise i listen. Bruk et lengre søkeord.</sys:String>
     <sys:String x:Key="Str_Search_Summary">{0} treff på {1} sider</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Uleselige sider, ikke søkt: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Ingen treff på de lesbare sidene. {0} sider kunne ikke leses.</sys:String>
@@ -2109,6 +2113,18 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF-en åpnes i en ny fane. Originalfilen din forblir uendret.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Angi en gyldig papirstørrelse og marger som gir plass til innholdet.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Denne PDF-en er åpen i en fane. Lukk den først, eller velg et annet navn.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">Skriften som trengs for å konvertere denne boken, er ikke tilgjengelig på denne datamaskinen.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">Den konverterte PDF-en må lagres i en permanent mappe, ikke i en midlertidig.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Velg et annet navn for den konverterte PDF-en. Den kan ikke erstatte boken den kommer fra.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">Den konverterte filen må lagres med filtypen .pdf.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">Det finnes allerede en fil med dette navnet.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">Resten av denne boken kunne ikke leses. Sidene som allerede vises, forblir åpne.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">En del av denne filen har en form leseren ikke gjenkjenner. Den ble hoppet over, og sidene ble tegnet uten den.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">Siden denne lenken peker til, kunne ikke vises.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">Posisjonen denne lenken peker til, er ugyldig.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">Teksten på sidene {0} kunne ikke beholdes, så disse sidene ble bare konvertert som bilder.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">Noen tegn i teksten på sidene {0} kunne ikke leses og ble erstattet med et plassholdertegn.</sys:String>
     <sys:String x:Key="Str_CM_Title">Fargestyring</sys:String>

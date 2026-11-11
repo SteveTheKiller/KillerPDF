@@ -252,6 +252,7 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_OpenedRasterRepair">Geöffnet: {0} (Raster-Reparatur - zum Beibehalten der Änderungen speichern) - {1} Seite(n)</sys:String>
     <sys:String x:Key="Str_PageOf">Seite {0} von {1}</sys:String>
     <sys:String x:Key="Str_PagesOf">Seiten {0}-{1} von {2}</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">Seiten {0} und {1} von {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Seite {0} von {1}  ({2} Link(s))</sys:String>
     <sys:String x:Key="Str_PageFormFields">Seite {0} von {1} - diese Seite enthält ausfüllbare Formularfelder</sys:String>
     <sys:String x:Key="Str_PageRenderError">Seite {0} konnte nicht dargestellt werden</sys:String>
@@ -1082,6 +1083,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Print_AllPages">Alle Seiten</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Nur ungerade Seiten</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Nur gerade Seiten</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Ungerade oder gerade Seiten</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Dokumentfarben invertieren</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Dokumentfarben invertieren (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Geteilte Ansicht - zwei Dokumente nebeneinander (F10)</sys:String>
@@ -1411,6 +1413,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_St_DeletedAnnotationMany">{0} Anmerkungen gelöscht</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">Keine Treffer</sys:String>
     <sys:String x:Key="Str_Search_Error">Suchfehler</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">Zu viele Treffer</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">Es gibt mehr Treffer, als aufgelistet werden können. Verwenden Sie einen längeren Suchbegriff.</sys:String>
     <sys:String x:Key="Str_Search_Summary">{0} Treffer auf {1} Seiten</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Unlesbare Seiten, nicht durchsucht: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Keine Treffer auf den lesbaren Seiten. {0} Seiten konnten nicht gelesen werden.</sys:String>
@@ -2098,6 +2102,18 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_NativePdf_KeepOriginal">Die PDF wird in einem neuen Tab geöffnet. Ihre Originaldatei bleibt unverändert.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Geben Sie ein gültiges Papierformat und Ränder ein, die Platz für den Inhalt lassen.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Diese PDF-Datei ist in einem Tab geöffnet. Schließen Sie sie zuerst, oder wählen Sie einen anderen Namen.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">Die zum Konvertieren dieses Buchs benötigte Schriftart ist auf diesem Computer nicht verfügbar.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">Die konvertierte PDF-Datei muss in einem dauerhaften Ordner gespeichert werden, nicht in einem temporären.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Wählen Sie einen anderen Namen für die konvertierte PDF-Datei. Sie darf das Buch, aus dem sie stammt, nicht ersetzen.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">Die konvertierte Datei muss mit der Endung .pdf gespeichert werden.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">Eine Datei mit diesem Namen ist bereits vorhanden.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">Der Rest dieses Buchs konnte nicht gelesen werden. Die bereits angezeigten Seiten bleiben geöffnet.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">Ein Teil dieser Datei liegt in einer Form vor, die dieser Reader nicht erkennt. Er wurde übersprungen, und die Seiten wurden ohne ihn dargestellt.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">Die Seite, auf die dieser Link verweist, konnte nicht angezeigt werden.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">Die Position, auf die dieser Link verweist, ist ungültig.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">Der Text der Seiten {0} konnte nicht übernommen werden. Diese Seiten wurden daher nur als Bilder konvertiert.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">Einige Zeichen im Text der Seiten {0} waren nicht lesbar und wurden durch einen Platzhalter ersetzt.</sys:String>
     <sys:String x:Key="Str_CM_Title">Farbmanagement</sys:String>

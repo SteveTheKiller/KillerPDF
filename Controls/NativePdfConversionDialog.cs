@@ -29,7 +29,7 @@ internal sealed class NativePdfConversionDialog : Window
         _paper = new ComboBox
         {
             Name = "NativeConversionPaper", Height = 28, Margin = new Thickness(0, 0, 0, 12),
-            ItemsSource = new[] { "A4", "Letter", "Legal", L("Str_Blank_Custom") }, SelectedIndex = 0
+            ItemsSource = new[] { "A4", L("Str_Paper_Letter"), L("Str_Paper_Legal"), L("Str_Blank_Custom") }, SelectedIndex = 0
         };
         _paper.SetResourceReference(FontFamilyProperty, "UiFont");
         AutomationProperties.SetName(_paper, L("Str_Print_Paper"));
@@ -39,14 +39,15 @@ internal sealed class NativePdfConversionDialog : Window
         dimensions.ColumnDefinitions.Add(new ColumnDefinition());
         dimensions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
         dimensions.ColumnDefinitions.Add(new ColumnDefinition());
-        _width = Dimension(dimensions, 0, "NativeConversionWidth", L("Str_Sign_Width") + " (mm)");
-        _height = Dimension(dimensions, 2, "NativeConversionHeight", L("Str_Sign_Height") + " (mm)");
+        string millimeters = L("Str_Unit_InMillimeters");
+        _width = Dimension(dimensions, 0, "NativeConversionWidth", string.Format(millimeters, L("Str_Sign_Width")));
+        _height = Dimension(dimensions, 2, "NativeConversionHeight", string.Format(millimeters, L("Str_Sign_Height")));
         body.Children.Add(dimensions);
-        body.Children.Add(UiKit.GroupLabel(L("Str_Print_Margins") + " (mm)"));
+        body.Children.Add(UiKit.GroupLabel(string.Format(millimeters, L("Str_Print_Margins"))));
         _margin = UiKit.Field();
         _margin.Name = "NativeConversionMargin";
         _margin.Text = "15";
-        AutomationProperties.SetName(_margin, L("Str_Print_Margins") + " (mm)");
+        AutomationProperties.SetName(_margin, string.Format(millimeters, L("Str_Print_Margins")));
         body.Children.Add(_margin);
         var note = new TextBlock
         {

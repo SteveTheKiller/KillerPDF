@@ -252,6 +252,7 @@ La página se puede sustituir por una imagen de sí misma con las áreas marcada
     <sys:String x:Key="Str_OpenedRasterRepair">Abierto {0} (reparación rasterizada - guarda para conservar cambios) - {1} página(s)</sys:String>
     <sys:String x:Key="Str_PageOf">Página {0} de {1}</sys:String>
     <sys:String x:Key="Str_PagesOf">Páginas {0}-{1} de {2}</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">Páginas {0} y {1} de {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Página {0} de {1}  ({2} enlace(s))</sys:String>
     <sys:String x:Key="Str_PageFormFields">Página {0} de {1} - esta página contiene campos de formulario rellenables</sys:String>
     <sys:String x:Key="Str_PageRenderError">Página {0} - no se pudo renderizar</sys:String>
@@ -1076,6 +1077,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Todas las páginas</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Solo páginas impares</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Solo páginas pares</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Páginas impares o pares</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Invertir colores del documento</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Invertir colores del documento (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Vista dividida - dos documentos lado a lado (F10)</sys:String>
@@ -1402,6 +1404,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_St_DeletedAnnotationMany">Se eliminaron {0} anotaciones</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">Sin coincidencias</sys:String>
     <sys:String x:Key="Str_Search_Error">Error de búsqueda</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">Muchas coincidencias</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">Hay más coincidencias de las que se pueden mostrar. Usa un término de búsqueda más largo.</sys:String>
     <sys:String x:Key="Str_Search_Summary">{0} coincidencias en {1} páginas</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Páginas ilegibles, sin buscar: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Sin coincidencias en las páginas legibles. No se pudieron leer {0} páginas.</sys:String>
@@ -2089,6 +2093,18 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_NativePdf_KeepOriginal">El PDF se abre en una pestaña nueva. El archivo original no se modifica.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Introduce un tamaño de papel válido y unos márgenes que dejen espacio para el contenido.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Ese PDF está abierto en una pestaña. Ciérralo primero o elige otro nombre.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">La fuente necesaria para convertir este libro no está disponible en este equipo.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">El PDF convertido debe guardarse en una carpeta permanente, no en una temporal.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Elige otro nombre para el PDF convertido. No puede reemplazar el libro del que procede.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">El archivo convertido debe guardarse con un nombre que termine en .pdf.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">Ya existe un archivo con ese nombre.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Carta</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">No se pudo leer el resto de este libro. Las páginas que ya se muestran siguen abiertas.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">Una parte de este archivo tiene una forma que este lector no reconoce. Se omitió y las páginas se dibujaron sin ella.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">No se pudo mostrar la página a la que apunta este enlace.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">La posición a la que apunta este enlace no es válida.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">No se pudo conservar el texto de las páginas {0}, así que esas páginas se convirtieron solo como imágenes.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">Algunos caracteres del texto de las páginas {0} no se pudieron leer y se sustituyeron por un marcador.</sys:String>
     <sys:String x:Key="Str_CM_Title">Gestión del color</sys:String>

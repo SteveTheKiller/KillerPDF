@@ -123,7 +123,7 @@ public sealed class NativeDjvuNoticeTests
             wording.Notice, wording.Title, wording.Intro, wording.None, "Str_Djvu_Diagnostics_Document",
             "Str_Djvu_Diagnostics_Page", .. NativeDocumentDiagnostics.RaisingDjvuCodes.Select(NativeDocumentDiagnostics.DjvuReasonKey)
         ];
-        Assert.Equal(9, keys.Distinct().Count());
+        Assert.Equal(10, keys.Distinct().Count());
         foreach (string file in files)
         {
             string text = File.ReadAllText(file);

@@ -104,13 +104,17 @@ internal static class NativePdfConversion
     // Probed before any conversion work, so an unconfirmed existing file fails at once rather than at the end.
     private static void CheckDestination(string sourcePath, string destination, bool replaceExisting)
     {
+        // The conversion dialog shows these messages, so they come from the string table. A parameter
+        // name would add untranslated text to the message.
         if (string.Equals(Path.GetFullPath(sourcePath), Path.GetFullPath(destination), StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("The converted PDF must use a different path from its source.", nameof(destination));
+            throw new ArgumentException(Loc("Str_Convert_SameAsSource"));
         if (!Path.GetExtension(destination).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("The converted document requires a PDF destination.", nameof(destination));
+            throw new ArgumentException(Loc("Str_Convert_NeedsPdfName"));
         if (!replaceExisting && File.Exists(destination))
-            throw new IOException("The converted PDF destination already exists.");
+            throw new IOException(Loc("Str_Convert_DestinationExists"));
     }
+
+    private static string Loc(string key) => System.Windows.Application.Current?.TryFindResource(key) as string ?? key;
 
     // Both paths write a temporary file beside the destination and publish it only once it is complete,
     // so a failed conversion never touches the file it would replace.

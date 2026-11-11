@@ -270,6 +270,7 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_OpenedRasterRepair">Otevřeno {0} (rastrová oprava - změny zachováte uložením) - stránek: {1}</sys:String>
     <sys:String x:Key="Str_PageOf">Stránka {0} z {1}</sys:String>
     <sys:String x:Key="Str_PagesOf">Stránky {0}-{1} z {2}</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">Stránky {0} a {1} z {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Stránka {0} z {1}  (odkazů: {2})</sys:String>
     <sys:String x:Key="Str_PageFormFields">Stránka {0} z {1} - tato stránka obsahuje vyplnitelná pole formuláře</sys:String>
     <sys:String x:Key="Str_PageRenderError">Stránka {0} - nelze vykreslit</sys:String>
@@ -316,6 +317,7 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_Print_AllPages">Všechny stránky</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Pouze liché stránky</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Pouze sudé stránky</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Liché nebo sudé stránky</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Invertovat barvy dokumentu</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Invertovat barvy dokumentu (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Rozdělené zobrazení - dva dokumenty vedle sebe (F10)</sys:String>
@@ -1407,6 +1409,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_St_DeletedAnnotationMany">Odstraněno {0} anotací</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">Žádné shody</sys:String>
     <sys:String x:Key="Str_Search_Error">Chyba hledání</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">Příliš shod</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">Shod je více, než lze zobrazit v seznamu. Použijte delší hledaný výraz.</sys:String>
     <sys:String x:Key="Str_Search_Summary">{0} shod na {1} stránkách</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Nečitelné stránky, nehledáno: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Na čitelných stránkách nejsou žádné shody. Počet stránek, které se nepodařilo přečíst: {0}.</sys:String>
@@ -2094,6 +2098,18 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF se otevře na nové kartě. Původní soubor zůstane beze změny.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Zadejte platný formát papíru a okraje, které ponechají místo pro obsah.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">Tento soubor PDF je otevřený na kartě. Nejprve ji zavřete, nebo zvolte jiný název.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">Písmo potřebné k převodu této knihy není v tomto počítači k dispozici.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">Převedený soubor PDF musí být uložen ve stálé složce, ne v dočasné.</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">Zvolte pro převedený soubor PDF jiný název. Nemůže nahradit knihu, ze které vznikl.</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">Převedený soubor musí být uložen s příponou .pdf.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">Soubor s tímto názvem již existuje.</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">Letter</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">Legal</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">Zbytek této knihy se nepodařilo přečíst. Již zobrazené stránky zůstávají otevřené.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">Část tohoto souboru má podobu, kterou tato čtečka nerozpoznává. Byla přeskočena a stránky byly vykresleny bez ní.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">Stránku, na kterou tento odkaz ukazuje, se nepodařilo zobrazit.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">Pozice, na kterou tento odkaz ukazuje, není platná.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">Text stránek {0} nebylo možné zachovat, proto byly tyto stránky převedeny pouze jako obrázky.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">Některé znaky v textu stránek {0} nebylo možné přečíst, a proto byly nahrazeny zástupným znakem.</sys:String>
     <sys:String x:Key="Str_CM_Title">Správa barev</sys:String>

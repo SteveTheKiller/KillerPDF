@@ -270,6 +270,7 @@
     <sys:String x:Key="Str_OpenedRasterRepair">{0} を開きました (ラスタライズ修復 - 変更を保存するには保存が必要) - {1} ページ</sys:String>
     <sys:String x:Key="Str_PageOf">{0} / {1} ページ</sys:String>
     <sys:String x:Key="Str_PagesOf">{0}-{1} / {2} ページ</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">{0} ページと {1} ページ / {2} ページ</sys:String>
     <sys:String x:Key="Str_PageOfLinks">{0} / {1} ページ  ({2} リンク)</sys:String>
     <sys:String x:Key="Str_PageFormFields">{0} / {1} ページ - このページには入力可能なフォームフィールドが含まれています</sys:String>
     <sys:String x:Key="Str_PageRenderError">ページ {0} - レンダリングできませんでした</sys:String>
@@ -316,6 +317,7 @@
     <sys:String x:Key="Str_Print_AllPages">すべてのページ</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">奇数ページのみ</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">偶数ページのみ</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">奇数または偶数ページ</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">文書の色を反転</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">文書の色を反転 (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">分割ビュー - 2つの文書を左右に並べて表示 (F10)</sys:String>
@@ -1422,6 +1424,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_St_DeletedAnnotationMany">注釈を {0} 件削除しました</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">一致なし</sys:String>
     <sys:String x:Key="Str_Search_Error">検索エラー</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">一致が多すぎます</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">一覧に表示できる数より多く一致しました。より長い検索語を使用してください。</sys:String>
     <sys:String x:Key="Str_Search_Summary">{1} ページに {0} 件の一致</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">読み取れないページ（検索対象外）：{0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">読み取れたページに一致はありません。{0} ページは読み取れませんでした。</sys:String>
@@ -2109,6 +2113,18 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF は新しいタブで開きます。元のファイルは変更されません。</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">有効な用紙サイズと、コンテンツを配置するスペースを確保できる余白を入力してください。</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">その PDF はタブで開かれています。先に閉じるか、別の名前を選択してください。</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">この本の変換に必要なフォントは、このコンピューターで利用できません。</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">変換した PDF は、一時フォルダーではなく、永続的なフォルダーに保存する必要があります。</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">変換した PDF には別の名前を選択してください。元の本を置き換えることはできません。</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">変換したファイルは、.pdf の名前で保存する必要があります。</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">その名前のファイルは既に存在します。</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">レター</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">リーガル</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">この本の残りの部分は読み取れませんでした。すでに表示されているページは開いたままです。</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">このファイルの一部は、このリーダーが認識できない形式です。その部分は省略され、ページはそれなしで描画されました。</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">このリンクの参照先のページを表示できませんでした。</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">このリンクの参照先の位置が無効です。</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">{0} ページのテキストは保持できなかったため、これらのページは画像としてのみ変換されました。</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">{0} ページのテキストに読み取れない文字があったため、代替文字に置き換えました。</sys:String>
     <sys:String x:Key="Str_CM_Title">カラーマネジメント</sys:String>

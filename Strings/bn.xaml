@@ -252,6 +252,7 @@
     <sys:String x:Key="Str_OpenedRasterRepair">{0} খোলা হয়েছে (রাস্টারাইজড মেরামত - পরিবর্তন রাখতে সংরক্ষণ করুন) - {1} পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_PageOf">{1}-এর মধ্যে {0} পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_PagesOf">{2}-এর মধ্যে {0}-{1} পৃষ্ঠা</sys:String>
+    <sys:String x:Key="Str_Print_PagesAndOf">{2}-এর মধ্যে {0} ও {1} পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_PageOfLinks">{1}-এর মধ্যে {0} পৃষ্ঠা  ({2}টি লিংক)</sys:String>
     <sys:String x:Key="Str_PageFormFields">{1}-এর মধ্যে {0} পৃষ্ঠা - এই পৃষ্ঠায় পূরণযোগ্য ফর্ম ফিল্ড রয়েছে</sys:String>
     <sys:String x:Key="Str_PageRenderError">{0} পৃষ্ঠা - রেন্ডার করা যায়নি</sys:String>
@@ -1076,6 +1077,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Print_AllPages">সব পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">শুধু বিজোড় পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">শুধু জোড় পৃষ্ঠা</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">বিজোড় বা জোড় পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">ডকুমেন্টের রং উল্টে দিন</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">ডকুমেন্টের রং উল্টে দিন (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">বিভক্ত ভিউ - পাশাপাশি দুটি নথি (F10)</sys:String>
@@ -1402,6 +1404,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_St_DeletedAnnotationMany">{0}টি টীকা মুছে ফেলা হয়েছে</sys:String>
     <sys:String x:Key="Str_Search_NoMatches">কোনো মিল নেই</sys:String>
     <sys:String x:Key="Str_Search_Error">অনুসন্ধান ত্রুটি</sys:String>
+    <sys:String x:Key="Str_Search_TooMany">অনেক বেশি মিল</sys:String>
+    <sys:String x:Key="Str_Search_TooManyTT">তালিকায় দেখানোর চেয়ে বেশি মিল পাওয়া গেছে। আরও দীর্ঘ অনুসন্ধান শব্দ ব্যবহার করুন।</sys:String>
     <sys:String x:Key="Str_Search_Summary">{1}টি পাতায় {0}টি মিল</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">অপঠনযোগ্য পৃষ্ঠা, অনুসন্ধান হয়নি: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">পড়া যায় এমন পৃষ্ঠাগুলোতে কোনো মিল নেই। {0}টি পৃষ্ঠা পড়া যায়নি।</sys:String>
@@ -2089,6 +2093,18 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF একটি নতুন ট্যাবে খুলবে। আপনার মূল ফাইল অপরিবর্তিত থাকবে।</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">কাগজের একটি বৈধ আকার ও এমন মার্জিন দিন যাতে বিষয়বস্তুর জন্য জায়গা থাকে।</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">সেই PDF-টি একটি ট্যাবে খোলা আছে। আগে সেটি বন্ধ করুন, অথবা অন্য একটি নাম বেছে নিন।</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">এই বইটি রূপান্তর করতে প্রয়োজনীয় ফন্ট এই কম্পিউটারে নেই।</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">রূপান্তরিত PDF অবশ্যই স্থায়ী ফোল্ডারে সংরক্ষণ করতে হবে, অস্থায়ী ফোল্ডারে নয়।</sys:String>
+    <sys:String x:Key="Str_Convert_SameAsSource">রূপান্তরিত PDF-এর জন্য অন্য একটি নাম বেছে নিন। এটি যে বই থেকে তৈরি, সেটিকে প্রতিস্থাপন করতে পারবে না।</sys:String>
+    <sys:String x:Key="Str_Convert_NeedsPdfName">রূপান্তরিত ফাইলটি .pdf নামে সংরক্ষণ করতে হবে।</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationExists">সেই নামে একটি ফাইল আগে থেকেই আছে।</sys:String>
+    <sys:String x:Key="Str_Paper_Letter">লেটার</sys:String>
+    <sys:String x:Key="Str_Paper_Legal">লিগ্যাল</sys:String>
+    <sys:String x:Key="Str_Unit_InMillimeters">{0} (mm)</sys:String>
+    <sys:String x:Key="Str_Native_PaginationStopped">এই বইয়ের বাকি অংশ পড়া যায়নি। যে পৃষ্ঠাগুলো ইতিমধ্যে দেখানো হয়েছে সেগুলো খোলা থাকবে।</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_UnrecognizedChunkSkipped">এই ফাইলের একটি অংশ এমন আকারে আছে যা এই রিডার চিনতে পারে না। অংশটি বাদ দেওয়া হয়েছে এবং সেটি ছাড়াই পৃষ্ঠাগুলো আঁকা হয়েছে।</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">এই লিঙ্কটি যে পৃষ্ঠার দিকে নির্দেশ করে সেটি দেখানো যায়নি।</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">এই লিঙ্কটি যে অবস্থানের দিকে নির্দেশ করে সেটি বৈধ নয়।</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">পৃষ্ঠা {0}-এর লেখা রাখা যায়নি, তাই সেই পৃষ্ঠাগুলো শুধু ছবি হিসেবে রূপান্তরিত হয়েছে।</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">পৃষ্ঠা {0}-এর লেখার কিছু অক্ষর পড়া যায়নি, তাই সেগুলোর জায়গায় একটি স্থানধারক চিহ্ন বসানো হয়েছে।</sys:String>
     <sys:String x:Key="Str_CM_Title">রং ব্যবস্থাপনা</sys:String>
