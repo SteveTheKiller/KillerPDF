@@ -792,17 +792,15 @@ internal static class PdfEngineBurn
             if (bytes.AsSpan().StartsWith("%PDF-"u8))
             {
                 // A PDF picture that cannot be read or placed is skipped, like any other picture that cannot be
-                // drawn, instead of failing the save, and is counted so the caller can report it. Only the
-                // reader's own failures are skipped; running out of memory is not one of them.
+                // drawn, instead of failing the save, and is counted so the caller can report it. Only
+                // running out of memory and cancellation are let through.
                 try
                 {
                     var asset = PdfAnnotationImageSource.ReadPdfAsset(bytes);
                     content.DrawImage(asset, position.X * sx, position.Y * sy + height * sy,
                         width * sx, -height * sy);
                 }
-                catch (Exception error) when (error is FormatException or NotSupportedException
-                    or InvalidOperationException or ArgumentException or IOException or OverflowException
-                    or KillerPdf.Engine.Filters.PdfFilterException)
+                catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException))
                 {
                     SkippedPictures++;
                 }
