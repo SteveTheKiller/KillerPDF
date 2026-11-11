@@ -28,6 +28,8 @@ namespace KillerPDF.Controls
 
         private static bool AnnotDragStillAClick(UIElement relativeTo, Point onScreenPress, Point pageNow)
         {
+            // A canvas torn down while the press is held has no screen to measure on; treat the pointer as travelled.
+            if (PresentationSource.FromVisual(relativeTo) is null) return false;
             DpiScale dpi = VisualTreeHelper.GetDpi(relativeTo);
             return !DragStartGate.HasTravelled(onScreenPress, relativeTo.PointToScreen(pageNow),
                 SystemParameters.MinimumHorizontalDragDistance * dpi.DpiScaleX,
@@ -924,6 +926,7 @@ namespace KillerPDF.Controls
         {
             var gc = _gestureCanvas ?? _activeCanvas;
             if (_selectRect is null || gc is null) return;
+            if (PresentationSource.FromVisual(gc) is null) return;
             if (!ReferenceEquals(_selectRect.Parent, MarqueeLayer))
             {
                 (_selectRect.Parent as Panel)?.Children.Remove(_selectRect);

@@ -43,4 +43,21 @@ public sealed class AnnotationClickGateTests
         int click = release.IndexOf("if (_annotDragPressScreen is not null)", StringComparison.Ordinal);
         Assert.True(release.IndexOf("return;", click, StringComparison.Ordinal) > click);
     }
+
+    // SOURCE PIN. The viewer is not compiled into this project, so the helper cannot be called here with a canvas that
+    // was never shown; PointToScreen throws on a visual with no presentation source, so both callers check first.
+    [Fact]
+    public void ScreenPointsAreNotTakenFromACanvasThatHasNoPresentationSource()
+    {
+        string annotations = Viewer("PdfViewer.Annotations.cs").Replace("\r\n", "\n");
+        string gate = Between(annotations, "private static bool AnnotDragStillAClick(", "private void CaptureAnnotationDragUndo(");
+        int guard = gate.IndexOf("PresentationSource.FromVisual(relativeTo) is null", StringComparison.Ordinal);
+        Assert.True(guard >= 0, "AnnotDragStillAClick does not check for a presentation source.");
+        Assert.True(guard < gate.IndexOf("PointToScreen", StringComparison.Ordinal));
+
+        string marquee = Between(annotations, "internal void UpdateMarquee(", "PlaceMarquee(_selectRect, MarqueeLayer, a, b);");
+        int marqueeGuard = marquee.IndexOf("PresentationSource.FromVisual(gc) is null", StringComparison.Ordinal);
+        Assert.True(marqueeGuard >= 0, "UpdateMarquee does not check for a presentation source.");
+        Assert.True(marqueeGuard < marquee.IndexOf("PointToScreen", StringComparison.Ordinal));
+    }
 }
