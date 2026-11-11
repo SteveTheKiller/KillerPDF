@@ -220,6 +220,8 @@ namespace KillerPDF.Services
         }
 
         // Gives each span on the page the text regions it overlaps, in one pass over spans and regions in text order.
+        // A region that two or more spans overlap (two hits inside one DjVu zone or one EPUB text run) is given to
+        // each of them as its own share, so the hits do not draw, or count as current, the same rectangle.
         private static List<SearchHit> Locate(int pageIndex, KillerPdf.Engine.Documents.PdfReadTextPage page,
             IReadOnlyList<(int Start, int Length)> spans, ref int highlightAreas, Action checkCancellation)
         {
@@ -227,7 +229,9 @@ namespace KillerPDF.Services
             var regions = page.Regions.OrderBy(region => region.Start).ToArray();
             var activeRegions = new SortedDictionary<int, KillerPdf.Engine.Documents.PdfReadTextRegion>();
             var regionEnds = new PriorityQueue<int, int>();
-            int nextRegion = 0;
+            var overlapping = new int[regions.Length];
+            var perSpan = new List<(int Index, KillerPdf.Engine.Documents.PdfReadTextRegion Region)>[spans.Count];
+            int nextRegion = 0, spanIndex = 0;
             foreach (var span in spans)
             {
                 checkCancellation();
@@ -249,18 +253,27 @@ namespace KillerPDF.Services
                     }
                     nextRegion++;
                 }
-                var areas = new List<KillerPdf.Engine.Documents.PdfContentBounds>();
-                foreach (var region in activeRegions.Values)
+                var overlaps = new List<(int Index, KillerPdf.Engine.Documents.PdfReadTextRegion Region)>();
+                foreach (var (index, region) in activeRegions)
                 {
                     checkCancellation();
                     if (region.Start < span.Start + span.Length && region.Start + region.Length > span.Start)
                     {
                         if (highlightAreas == MaximumNativeHighlightAreas)
                             throw new SearchLimitException("Native search exceeded the highlight area limit.");
-                        areas.Add(region.Bounds);
+                        overlaps.Add((index, region));
+                        overlapping[index]++;
                         highlightAreas++;
                     }
                 }
+                perSpan[spanIndex++] = overlaps;
+            }
+            spanIndex = 0;
+            foreach (var span in spans)
+            {
+                var areas = new List<KillerPdf.Engine.Documents.PdfContentBounds>();
+                foreach (var (index, region) in perSpan[spanIndex++])
+                    areas.Add(overlapping[index] >= 2 ? ShareOfRegion(region, span.Start, span.Length) : region.Bounds);
                 bool found = areas.Count > 0;
                 double left = found ? areas.Min(area => area.Left) : 0, bottom = found ? areas.Min(area => area.Bottom) : 0;
                 double right = found ? areas.Max(area => area.Right) : 0, top = found ? areas.Max(area => area.Top) : 0;
@@ -272,6 +285,19 @@ namespace KillerPDF.Services
             return located;
         }
 
+        // The part of a region the span's characters cover, by character share along the text axis: left to right,
+        // or top to bottom when the region is clearly taller than wide (height more than twice the width).
+        private static KillerPdf.Engine.Documents.PdfContentBounds ShareOfRegion(
+            KillerPdf.Engine.Documents.PdfReadTextRegion region, int start, int length)
+        {
+            var bounds = region.Bounds;
+            if (region.Length <= 0) return bounds;
+            double from = (double)(Math.Max(start, region.Start) - region.Start) / region.Length;
+            double to = (double)(Math.Min(start + length, region.Start + region.Length) - region.Start) / region.Length;
+            if (bounds.Height > bounds.Width * 2)
+                return bounds with { Top = bounds.Top - bounds.Height * from, Bottom = bounds.Top - bounds.Height * to };
+            return bounds with { Left = bounds.Left + bounds.Width * from, Right = bounds.Left + bounds.Width * to };
+        }
         private static SearchResult SearchNative(PdfCapturedReadRevision revision, string query, bool matchCase,
             bool wholeWord, CancellationToken cancellationToken)
         {

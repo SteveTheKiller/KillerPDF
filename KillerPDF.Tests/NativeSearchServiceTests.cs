@@ -183,6 +183,56 @@ public sealed class NativeSearchServiceTests
         Assert.Equal(28.8, second.top, 12);
     }
 
+    // One zone (10,20,30,40) on a 100x200 page at 300 dpi is the rectangle x 2.4..9.6, y 4.8..14.4 (the points are
+    // 0.24 of a DjVu pixel). Its text "A A" has 3 characters, so each character takes 7.2 / 3 = 2.4 of the width.
+    // Hit 0 is character 0 (x 2.4..4.8) and hit 1 is character 2 (x 7.2..9.6); the height is not clearly greater
+    // than twice the width (9.6 < 14.4), so the split is horizontal and the heights stay 4.8..14.4.
+    [Fact]
+    public async Task TwoHitsInOneNativeRegionGetTheirOwnShareOfItAndOnlyOneIsCurrent()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A A",
+            Zone(10, 20, 30, 40, 0, 3))));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("A");
+        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var rects = controller.AllSearchRects[0];
+        Assert.Equal(2, rects.Count);
+        Assert.Equal(2.4, rects[0].left, 12);
+        Assert.Equal(4.8, rects[0].right, 12);
+        Assert.Equal(7.2, rects[1].left, 12);
+        Assert.Equal(9.6, rects[1].right, 12);
+        foreach (var rect in rects)
+        {
+            Assert.Equal(4.8, rect.bottom, 12);
+            Assert.Equal(14.4, rect.top, 12);
+        }
+        var areas = rects.Select(rect => new KillerPdf.Engine.Documents.PdfContentBounds(
+            rect.left, rect.bottom, rect.right, rect.top)).ToArray();
+        Assert.Single(areas, area => controller.IsCurrentArea(0, area));
+        Assert.True(controller.IsCurrentArea(0, areas[0]));
+    }
+
+    // A region taller than twice its width (zone 10,20,10,30: 2.4 wide, 7.2 tall) is text running down the page,
+    // so its share is taken along the height, first character at the top: characters 0 and 2 of 3 are the top and bottom 2.4 of y 4.8..12.0.
+    [Fact]
+    public async Task TwoHitsInOneTallNativeRegionSplitVertically()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A A",
+            Zone(10, 20, 10, 30, 0, 3))));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("A");
+        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var rects = controller.AllSearchRects[0];
+        Assert.Equal(2, rects.Count);
+        Assert.Equal(2.4, rects[0].left, 12);
+        Assert.Equal(4.8, rects[0].right, 12);
+        Assert.Equal((9.6, 12.0), (rects[0].bottom, rects[0].top));
+        Assert.Equal((4.8, 7.2), (rects[1].bottom, rects[1].top));
+    }
     [Fact]
     public async Task SearchControllerCountsUnlocatedNativeMatchesWithoutPaintingRectangles()
     {
