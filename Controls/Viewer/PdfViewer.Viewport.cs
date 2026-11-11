@@ -2787,7 +2787,7 @@ namespace KillerPDF.Controls
                 if (!e.WidthChanged) return;
                 // Hold the column count through a non-modal resize: scale the already-laid-out tiles via
                 // the transform so the same number of columns fills the new width (lite, no re-render).
-                if (_doc is null || _gridColumns < 1) return;
+                if (!HasReadDocument || _gridColumns < 1) return;
                 double rdWg = _annotationCanvas.Width > 0 ? _annotationCanvas.Width : 1583;
                 if (PagePreviewPanel.ActualWidth <= 0 || rdWg <= 0) return;
                 _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, GridZoomForN(_gridColumns)));
@@ -2851,7 +2851,7 @@ namespace KillerPDF.Controls
                 // Crisp re-render at the held column count for the final size (the drag only transform-
                 // scaled the tiles). The grid's width is stable (vertical scrollbar reserved), so this
                 // settles in one pass instead of looping.
-                if (_doc is not null && _gridColumns >= 1)
+                if (HasReadDocument && _gridColumns >= 1)
                     SetZoom(Math.Max(ZoomMin, Math.Min(ZoomMax, GridZoomForN(_gridColumns))));
                 return;
             }

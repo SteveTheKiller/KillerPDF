@@ -96,6 +96,20 @@ public sealed class ViewerPresentationPinTests
         Assert.DoesNotContain("_doc", preset);
     }
 
+    // viewer BF-004: the Grid resize paths returned early for a book, whose reader is not a working PDF.
+    [Fact]
+    public void GridResizeKeepsItsColumnsForBooksToo()
+    {
+        string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+        string sizeChanged = Between(viewport, "private void PagePreviewPanelSizeChangedCore(", "// Coalesces resize ticks");
+        string settled = Between(viewport, "private void OnResizeSettled()", "private int NearestContinuousPage(");
+
+        Assert.Contains("if (!HasReadDocument || _gridColumns < 1) return;", sizeChanged);
+        Assert.Contains("if (HasReadDocument && _gridColumns >= 1)", settled);
+        Assert.DoesNotContain("_doc", sizeChanged);
+        Assert.DoesNotContain("_doc", settled);
+    }
+
     private static int Count(string source, string text)
     {
         int count = 0;
