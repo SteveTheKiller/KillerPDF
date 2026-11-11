@@ -37,6 +37,25 @@ namespace KillerPDF.Controls
                 + edge.Left + edge.Right + padding.Left + padding.Right;
         }
 
+        /// <summary>Draws the notice at the app scale, or smaller where its pane cannot hold it at that scale. Call
+        /// outside a layout pass: the fit measures the notice.</summary>
+        internal static void Fit(System.Windows.Controls.Border notice, FrameworkElement message, double appScale)
+        {
+            double scale = appScale;
+            if (notice.Parent is FrameworkElement pane)
+                scale = FitScale(appScale, pane.ActualWidth, MinimumWidth(notice, message));
+            double current = notice.LayoutTransform is ScaleTransform applied ? applied.ScaleX : 1;
+            if (Math.Abs(current - scale) > 0.0005)
+                notice.LayoutTransform = scale == 1 ? Transform.Identity : new ScaleTransform(scale, scale);
+        }
+
+        /// <summary>Gives the notice the top margin that keeps it clear of the floating bar, or none.</summary>
+        internal static void Place(FrameworkElement notice, FrameworkElement? floating)
+        {
+            double top = TopClearOf(notice, floating);
+            if (Math.Abs(notice.Margin.Top - top) > 0.5) notice.Margin = new Thickness(0, top, 0, 0);
+        }
+
         /// <summary>
         /// The notice's top margin in pane pixels. Both rectangles are taken as drawn, so the notice's app-scale
         /// transform counts, and the notice is tested at its natural place at the top whatever margin it has now, so

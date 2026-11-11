@@ -51,7 +51,17 @@ namespace KillerPDF.Controls
             if (_restrictionNotice is null) return;
             double scale = ScaledDialogFit.OwnerScale<Window>(Window.GetWindow(this),
                 window => window is Shell.MainWindow main ? main.AppScale : null, window => window.Owner);
-            _restrictionNotice.LayoutTransform = scale == 1 ? Transform.Identity : new ScaleTransform(scale, scale);
+            // The narrowest window at a large app size leaves the pane narrower than the notice at that scale; it is
+            // then drawn just small enough to fit, so its message and button stay whole.
+            if (_restrictionMessage is not null) NoticePlacement.Fit(_restrictionNotice, _restrictionMessage, scale);
+            else _restrictionNotice.LayoutTransform = scale == 1 ? Transform.Identity : new ScaleTransform(scale, scale);
+        }
+
+        // Below the find bar while the two would overlap, at the top of the pane otherwise.
+        private void PlaceRestrictionNotice()
+        {
+            if (_restrictionNotice is { Visibility: Visibility.Visible } notice)
+                NoticePlacement.Place(notice, Host?.SearchBar);
         }
 
         internal void UpdateRestrictionNotice()
@@ -72,6 +82,12 @@ namespace KillerPDF.Controls
                     UpdateRestrictionNotice();
                 });
                 previewArea.Children.Add(_restrictionNotice);
+                // The find bar floats over the same pane and is moved, opened and closed at will, so the notice checks
+                // its place after every layout pass; the answer only changes when the find bar or the pane does.
+                _restrictionNotice.LayoutUpdated += (_, _) => PlaceRestrictionNotice();
+                // Refitted after the pane's layout pass, since the fit measures the notice's content.
+                previewArea.SizeChanged += (_, _) => Dispatcher.BeginInvoke(() => RescaleRestrictionNotice(),
+                    System.Windows.Threading.DispatcherPriority.Loaded);
             }
             // A certificate recipient's permissions have no owner password to lift them.
             _restrictionMessage?.SetResourceReference(TextBlock.TextProperty,
