@@ -210,34 +210,39 @@ public sealed partial class PdfPageRenderer
     // pattern and Type 3 glyph resources, and annotation appearance streams. Each object is visited once.
     private bool ResourcesSetOverprint(PdfDictionary page, PdfDictionary resources, CancellationToken cancellationToken)
     {
-        var visited = new HashSet<PdfObject>(ReferenceEqualityComparer.Instance);
-        var pending = new Stack<PdfDictionary>();
-        pending.Push(resources);
+        var traversed = new HashSet<PdfObject>(ReferenceEqualityComparer.Instance);
+        var judged = new HashSet<PdfObject>(ReferenceEqualityComparer.Instance);
+        // The flag records that a form, pattern, glyph or appearance reached the dictionary. The page's own
+        // states were already followed through its content, so only those reached that way are judged by
+        // their definitions, even when the dictionary is the page's own.
+        var pending = new Stack<(PdfDictionary Resources, bool Reached)>();
+        pending.Push((resources, false));
         if (page.TryGetValue(Name("Annots"), out var annotsValue) && Resolve(annotsValue) is PdfArray annots)
             foreach (PdfObject item in annots)
                 if (Resolve(item) is PdfDictionary annotation
                     && annotation.TryGetValue(Name("AP"), out var apValue) && Resolve(apValue) is PdfDictionary ap)
                     foreach (var entry in ap)
                         PushAppearance(Resolve(entry.Value));
-        while (pending.TryPop(out PdfDictionary? current))
+        while (pending.TryPop(out var item))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!visited.Add(current)) continue;
-            // The page's own states were already followed through its content, so only states reached
-            // through forms, patterns, glyphs and appearances are judged by their definitions here.
-            if (!ReferenceEquals(current, resources)
+            PdfDictionary current = item.Resources;
+            if (item.Reached && judged.Add(current)
                 && current.TryGetValue(Name("ExtGState"), out var statesValue) && Resolve(statesValue) is PdfDictionary states)
                 foreach (var entry in states)
-                    if (Resolve(entry.Value) is PdfDictionary settings
-                        && (IsTrue(settings, "op") || IsTrue(settings, "OP"))) return true;
+                    if (Resolve(entry.Value) is PdfDictionary settings && SetsOverprint(settings)) return true;
+            if (!traversed.Add(current)) continue;
             foreach (string category in (string[])["XObject", "Pattern", "Font"])
                 if (current.TryGetValue(Name(category), out var groupValue) && Resolve(groupValue) is PdfDictionary group)
                     foreach (var entry in group)
                     {
                         PdfObject resolved = Resolve(entry.Value);
                         PdfDictionary? owner = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
-                        if (owner is not null && owner.TryGetValue(Name("Resources"), out var nested)
-                            && Resolve(nested) is PdfDictionary nestedResources) pending.Push(nestedResources);
+                        if (owner is null) continue;
+                        if (owner.TryGetValue(Name("Resources"), out var nested) && Resolve(nested) is PdfDictionary nestedResources)
+                            pending.Push((nestedResources, true));
+                        // A form, tiling pattern or Type 3 font without resources of its own draws with the page's.
+                        else if (ReachesPageResources(category, resolved, owner)) pending.Push((resources, true));
                     }
         }
         return false;
@@ -247,16 +252,25 @@ public sealed partial class PdfPageRenderer
             if (value is PdfStream stream)
             {
                 if (stream.Dictionary.TryGetValue(Name("Resources"), out var nested) && Resolve(nested) is PdfDictionary r)
-                    pending.Push(r);
+                    pending.Push((r, true));
+                else pending.Push((resources, true));
             }
             else if (value is PdfDictionary states)
                 foreach (var entry in states) if (Resolve(entry.Value) is PdfStream state) PushAppearance(state);
         }
 
+        bool ReachesPageResources(string category, PdfObject resolved, PdfDictionary owner) => category switch
+        {
+            "XObject" => resolved is PdfStream && IsName(owner, "Subtype", "Form"),
+            "Pattern" => resolved is PdfStream,
+            _ => IsName(owner, "Subtype", "Type3")
+        };
+
+        bool SetsOverprint(PdfDictionary settings) => IsTrue(settings, "op") || IsTrue(settings, "OP");
+
         bool IsTrue(PdfDictionary settings, string key) =>
             settings.TryGetValue(Name(key), out var value) && Resolve(value) is PdfBoolean { Value: true };
     }
-
     private static void PaintPreciseProcessPixel(RasterSurface surface, int offset,
         PreciseProcessPaint source, double opacity)
     {
