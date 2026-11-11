@@ -917,6 +917,8 @@ namespace KillerPDF.Controls
             var gc = _gestureCanvas ?? _activeCanvas;
             if (_selectRect is null || gc is null) return;
             if (PresentationSource.FromVisual(gc) is null) return;
+            // Pages in another presentation source can outlive the layer's own, so the layer is checked on its own.
+            if (PresentationSource.FromVisual(MarqueeLayer) is not { } sharedSource) return;
             if (!ReferenceEquals(_selectRect.Parent, MarqueeLayer))
             {
                 (_selectRect.Parent as Panel)?.Children.Remove(_selectRect);
@@ -925,7 +927,6 @@ namespace KillerPDF.Controls
             Point a = gc.PointToScreen(startInStartCanvas);
             Point b = gc.PointToScreen(currentInStartCanvas);
             PlaceMarquee(_selectRect, MarqueeLayer, a, b);
-            var sharedSource = PresentationSource.FromVisual(MarqueeLayer);
             // One reused list, not a new set per mouse move: pages in another presentation source are few and usually none.
             _nativeMarqueePages.Clear();
             foreach (var page in _pages.Values)

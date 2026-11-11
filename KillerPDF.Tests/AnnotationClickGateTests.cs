@@ -97,5 +97,10 @@ public sealed class AnnotationClickGateTests
         int gcGuard = marquee.IndexOf("PresentationSource.FromVisual(gc) is null", StringComparison.Ordinal);
         Assert.True(gcGuard >= 0, "UpdateMarquee does not check for a presentation source.");
         Assert.True(gcGuard < marquee.IndexOf("PointToScreen", StringComparison.Ordinal));
+        int layerGuard = marquee.IndexOf("PresentationSource.FromVisual(MarqueeLayer) is not { } sharedSource", StringComparison.Ordinal);
+        Assert.True(layerGuard >= 0, "UpdateMarquee does not check the marquee layer for a presentation source.");
+        Assert.True(layerGuard < marquee.IndexOf("PlaceMarquee(_selectRect, MarqueeLayer", StringComparison.Ordinal));
+        Assert.True(layerGuard < marquee.IndexOf("MarqueeLayer.PointToScreen", StringComparison.Ordinal));
+        Assert.Equal(1, marquee.Split("PresentationSource.FromVisual(MarqueeLayer)").Length - 1);
     }
 }
