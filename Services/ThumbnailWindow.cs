@@ -122,8 +122,8 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
                 {
                     _heldNodes[page] = _held.AddLast(page);
                     // A page that has drawn can be drawn, so neither an earlier throw nor a retry it already used counts
-                    // against it. A row may have asked for it again while a throwing draw of it was still running, so
-                    // it can still be marked as failed by that throw; it is not failed now, and is not re-armed below.
+                    // against it. Request no longer queues a page whose draw is running, so a page that just drew is not
+                    // also marked failed; clearing those marks keeps it so, and keeps it out of the re-arm below.
                     _throwCounts.Remove(page);
                     _rearmed.Remove(page);
                     _failed.Remove(page);
