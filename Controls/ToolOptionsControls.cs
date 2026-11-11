@@ -254,7 +254,7 @@ namespace KillerPDF.Controls
     }
 
     /// <summary>
-    /// One user gesture on an options bar slider: a thumb drag, a held or pressed key, or a track click. A bar
+    /// One user gesture on an options bar slider: a thumb drag, a held or pressed key, a track click, or one wheel tick. A bar
     /// records one undo step per gesture, not one per tick, so a drag cannot fill the undo history by itself.
     /// </summary>
     internal sealed class SliderGesture
@@ -270,6 +270,10 @@ namespace KillerPDF.Controls
             slider.AddHandler(UIElement.KeyUpEvent, new KeyEventHandler((_, _) => _open = false), true);
             slider.AddHandler(UIElement.LostKeyboardFocusEvent,
                 new KeyboardFocusChangedEventHandler((_, _) => _open = false), true);
+            // The app's wheel handler changes the value without focusing the slider or raising any event above, so a
+            // wheel tick would leave the gesture open. Class handlers run first: the tick opens a gesture while the
+            // value changes and this closes it right after, one undo step per tick.
+            slider.AddHandler(UIElement.PreviewMouseWheelEvent, new MouseWheelEventHandler((_, _) => _open = false), true);
         }
 
         /// <summary>True for the first change of a gesture, false for the rest of it.</summary>

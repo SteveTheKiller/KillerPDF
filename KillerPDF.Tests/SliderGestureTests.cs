@@ -52,6 +52,48 @@ public sealed class SliderGestureTests
         });
     }
 
+    // The app's slider wheel handler (UiKit) is a class handler that changes the value and marks the wheel handled,
+    // without focusing the slider or raising a mouse-up or key-up. Each wheel tick must still be its own undo step.
+    [Fact]
+    public void EachMouseWheelTickIsItsOwnGesture()
+    {
+        RunSta(() =>
+        {
+            EnsureWheelClassHandler();
+            var (slider, starts) = Tracked();
+
+            RaiseWheel(slider, 120);
+            RaiseWheel(slider, 120);
+            RaiseWheel(slider, -120);
+
+            Assert.Equal(3, starts());
+        });
+    }
+
+    private static readonly object WheelHandlerLock = new();
+    private static bool _wheelHandlerRegistered;
+
+    // The same shape as UiKit's class handler for every Slider.
+    private static void EnsureWheelClassHandler()
+    {
+        lock (WheelHandlerLock)
+        {
+            if (_wheelHandlerRegistered) return;
+            _wheelHandlerRegistered = true;
+            EventManager.RegisterClassHandler(typeof(Slider), UIElement.PreviewMouseWheelEvent,
+                new MouseWheelEventHandler((sender, e) =>
+                {
+                    var s = (Slider)sender;
+                    s.Value = Math.Max(s.Minimum, Math.Min(s.Maximum, s.Value + (e.Delta > 0 ? .1 : -.1)));
+                    e.Handled = true;
+                }));
+        }
+    }
+
+    private static void RaiseWheel(Slider slider, int delta) =>
+        slider.RaiseEvent(new MouseWheelEventArgs(Mouse.PrimaryDevice, 0, delta)
+            { RoutedEvent = UIElement.PreviewMouseWheelEvent });
+
     private static (Slider Slider, Func<int> Starts) Tracked()
     {
         var slider = new Slider { Minimum = 0, Maximum = 2 };
