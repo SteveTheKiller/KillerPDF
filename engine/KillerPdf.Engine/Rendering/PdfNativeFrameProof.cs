@@ -18,8 +18,14 @@ internal static class PdfNativeFrameProof
             throw new NotSupportedException("Native proof rendering exceeds the combined pixel storage limit.");
     }
 
-    internal static PdfRenderedFrame Apply(PdfRenderedFrame source, PdfRenderOptions render, CancellationToken token)
+    internal static PdfRenderedFrame Apply(PdfRenderedFrame source, PdfRenderOptions render, CancellationToken token) =>
+        Apply(source, render, token, out _);
+
+    // chainApplications counts the pixels that ran the full printer round trip, so a test can prove repeats do not.
+    internal static PdfRenderedFrame Apply(PdfRenderedFrame source, PdfRenderOptions render, CancellationToken token,
+        out long chainApplications)
     {
+        chainApplications = 0;
         if (render.Proof is not { Enabled: true } proof) return source;
         token.ThrowIfCancellationRequested();
         if (source.ColorEncoding != PdfFrameColorEncoding.LinearSrgbD65)
@@ -37,6 +43,9 @@ internal static class PdfNativeFrameProof
         // Neighboring pixels of one fill share a color, so the last classification is reused for them.
         double lastX = double.NaN, lastY = double.NaN, lastZ = double.NaN;
         byte lastClassification = 0;
+        // The printer round trip depends on the pixel's color alone, so the last color's result is reused for repeats.
+        float lastR = float.NaN, lastG = 0, lastB = 0;
+        float outR = 0, outG = 0, outB = 0;
         for (int offset = 0; offset < pixels.Length; offset += 4)
         {
             if ((offset & 4095) == 0) token.ThrowIfCancellationRequested();
@@ -58,8 +67,17 @@ internal static class PdfNativeFrameProof
                 }
                 classifications![offset / 4] = lastClassification;
             }
-            chain.Apply(xyz, PdfPageRenderer.EncodeSrgb(Math.Min(r, Math.Min(g, b))), device);
-            ToLinearRgb(xyz, pixels.AsSpan(offset, 3));
+            if (BitConverter.SingleToInt32Bits(pixels[offset]) != BitConverter.SingleToInt32Bits(lastR)
+                || BitConverter.SingleToInt32Bits(pixels[offset + 1]) != BitConverter.SingleToInt32Bits(lastG)
+                || BitConverter.SingleToInt32Bits(pixels[offset + 2]) != BitConverter.SingleToInt32Bits(lastB))
+            {
+                (lastR, lastG, lastB) = (pixels[offset], pixels[offset + 1], pixels[offset + 2]);
+                chainApplications++;
+                chain.Apply(xyz, PdfPageRenderer.EncodeSrgb(Math.Min(r, Math.Min(g, b))), device);
+                ToLinearRgb(xyz, pixels.AsSpan(offset, 3));
+                (outR, outG, outB) = (pixels[offset], pixels[offset + 1], pixels[offset + 2]);
+            }
+            else (pixels[offset], pixels[offset + 1], pixels[offset + 2]) = (outR, outG, outB);
         }
         token.ThrowIfCancellationRequested();
         var mask = classifications is null ? null
