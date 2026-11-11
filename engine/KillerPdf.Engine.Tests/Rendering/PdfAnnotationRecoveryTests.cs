@@ -62,6 +62,50 @@ public sealed class PdfAnnotationRecoveryTests
         return Encoding.ASCII.GetBytes(pdf.ToString());
     }
 
+    // An ink annotation without an appearance is drawn from its InkList. Damaged coordinates cost only that
+    // annotation in recovery, as malformed geometry does, and strict rendering still rejects them.
+    [Theory]
+    [InlineData("[[20 20 80]]")]
+    [InlineData("[[20 20 /bad 80]]")]
+    [InlineData("[5]")]
+    public void RecoverySkipsAnInkAnnotationWithDamagedCoordinatesAndRendersTheNeighbor(string inkList)
+    {
+        byte[] pdf = CreateInkPdf(inkList);
+
+        PdfRenderedPage result = new PdfPageRenderer(PdfDocument.OpenWithCompatibilityRecovery(pdf))
+            .Render(0, new PdfRenderOptions(100, 100));
+
+        Assert.Contains("An invalid annotation was skipped.", result.Diagnostics);
+        Assert.Contains(Pixels(result.Pixels.ToArray()), pixel => pixel.SequenceEqual(new byte[] { 255, 0, 0, 255 }));
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(PdfDocument.Open(pdf)).Render(0, new PdfRenderOptions(100, 100)));
+    }
+
+    private static byte[] CreateInkPdf(string inkList)
+    {
+        string goodPaint = "0 0 1 rg 0 0 40 40 re f";
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots [4 0 R 5 0 R] >>",
+            $"<< /Type /Annot /Subtype /Ink /Rect [10 10 90 90] /C [1 0 0] /InkList {inkList} >>",
+            "<< /Type /Annot /Subtype /Square /Rect [50 50 90 90] /AP << /N 6 0 R >> >>",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 40 40] /Resources << >> /Length {Encoding.ASCII.GetByteCount(goodPaint)} >>\nstream\n{goodPaint}\nendstream"
+        ];
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        foreach (int index in Enumerable.Range(0, objects.Length))
+        {
+            offsets.Add(Encoding.ASCII.GetByteCount(pdf.ToString()));
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = Encoding.ASCII.GetByteCount(pdf.ToString());
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:D10} 00000 n \n");
+        pdf.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return Encoding.ASCII.GetBytes(pdf.ToString());
+    }
+
     private static IEnumerable<byte[]> Pixels(byte[] pixels)
     {
         for (int offset = 0; offset < pixels.Length; offset += 4)
