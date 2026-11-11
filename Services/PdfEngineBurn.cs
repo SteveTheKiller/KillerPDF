@@ -96,7 +96,8 @@ internal static class PdfEngineBurn
         bool measurementsAsAnnotations = false,
         CancellationToken cancellationToken = default,
         bool flattenEditing = false,
-        bool allowNativeText = true)
+        bool allowNativeText = true,
+        bool allowEditableBatches = true)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -143,12 +144,18 @@ internal static class PdfEngineBurn
                 ? NativeTextTail(pageAnnotations!, existing > 0).ToHashSet() : [];
             var pageModels = hasAnnotations ? pageAnnotations!.Where(annotation => !nativeTail.Contains(annotation)
                 && !(measurementsAsAnnotations && annotation is MeasurementAnnotation)).ToList() : [];
-            bool editableBatch = !forRasterization && !flattenEditing
+            bool editableBatch = !forRasterization && !flattenEditing && allowEditableBatches
                 && pageModels.Any(annotation => annotation is TextAnnotation { PairId.Length: > 0 })
                 && pageModels.All(annotation => annotation is TextAnnotation or HighlightAnnotation or InkAnnotation or PlacedAnnotation);
             // An image the editing batch cannot hold is drawn as page content instead of failing the save.
             HashSet<PageAnnotation> unbatched = editableBatch ? PdfOverlayAnnotations.UnbatchablePlaced(pageModels) : [];
             if (unbatched.Count > 0) pageModels.RemoveAll(unbatched.Contains);
+            // A page with more markup than the editing batch can hold is drawn as page content, as 1.9.2 did.
+            if (editableBatch && !PdfOverlayAnnotations.BatchFits(pageModels))
+            {
+                editableBatch = false;
+                unbatched.Clear();
+            }
             var content = new PdfContentStreamBuilder().SaveState();
             ApplyVisualTransform(content, page.Left, page.Bottom, page.Width, page.Height, rotation);
 
@@ -211,7 +218,18 @@ internal static class PdfEngineBurn
         // All edited pages go into one update; one update per page passed the reader's revision limit at a few
         // hundred pages.
         if (pageBatches.Count > 0)
-            result = PdfOverlayAnnotations.AppendPageBatches(PdfDocument.Open(result), pageBatches);
+        {
+            try { result = PdfOverlayAnnotations.AppendPageBatches(PdfDocument.Open(result), pageBatches); }
+            catch (ArgumentException)
+            {
+                // The editing layer refused a batch the size check let through: draw every page's markup as page
+                // content instead of failing the save.
+                Burn(path, annotations, renderDims, stamps, onlyPage, rotations, forRasterization,
+                    measurementsAsAnnotations, cancellationToken, flattenEditing, allowNativeText,
+                    allowEditableBatches: false);
+                return;
+            }
+        }
         if (!forRasterization && !flattenEditing && allowNativeText)
         {
             try { result = SaveTextAnnotations(result, annotations, renderDims, onlyPage, rotations, fonts, cancellationToken); }
@@ -220,7 +238,8 @@ internal static class PdfEngineBurn
                 // A page whose own annotation list cannot take a new entry: draw the text boxes and pictures as page
                 // content, as 1.9.2 did, instead of failing the save.
                 Burn(path, annotations, renderDims, stamps, onlyPage, rotations, forRasterization,
-                    measurementsAsAnnotations, cancellationToken, flattenEditing, allowNativeText: false);
+                    measurementsAsAnnotations, cancellationToken, flattenEditing, allowNativeText: false,
+                    allowEditableBatches: allowEditableBatches);
                 return;
             }
         }

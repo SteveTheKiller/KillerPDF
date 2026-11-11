@@ -26,6 +26,7 @@ public static class PdfOverlayAnnotations
 {
     private const int MaximumPayload = 8 * 1024 * 1024;
     private const int MaximumRecords = 10000;
+    private const int MaximumJsonValues = 300000;
     private static readonly PdfName MetadataName = Name("KillerPDFOverlay");
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -74,6 +75,44 @@ public static class PdfOverlayAnnotations
             else used += size;
         }
         return result;
+    }
+
+    /// <summary>Whether one page's markup fits an editing batch: at most 10,000 items, at most 300,000 JSON values,
+    /// valid models and a payload under the limit. A page that does not fit is drawn as page content by the caller.
+    /// Large pages are measured by serializing; small ones by a conservative estimate that avoids the cost.</summary>
+    internal static bool BatchFits(IReadOnlyList<PageAnnotation> annotations)
+    {
+        if (annotations.Count is 0 or > MaximumRecords) return false;
+        long nodes = 0, estimate = 64 * 1024;
+        try
+        {
+            foreach (PageAnnotation annotation in annotations)
+            {
+                ValidateModel(annotation);
+                long points = annotation switch
+                {
+                    InkAnnotation ink => ink.Points.Count,
+                    HighlightAnnotation { Erases: { } erases } => erases.Sum(erase => (long)erase.Points.Count),
+                    SignatureAnnotation signature => signature.Strokes.Sum(stroke => (long)stroke.Count),
+                    _ => 0
+                };
+                nodes += 30 + points * 3;
+                estimate += 1024 + points * 64 + annotation switch
+                {
+                    TextAnnotation text => text.Content.Length * 6L,
+                    ImageAnnotation image => image.ImageData.Length,
+                    SignatureAnnotation signature => (signature.ImageData?.Length ?? 0)
+                        + (signature.Vectors?.Sum(vector => vector.Data.Length * 6L) ?? 0),
+                    _ => 0L
+                };
+            }
+            if (nodes > MaximumJsonValues) return false;
+            if (estimate <= MaximumPayload / 2) return true;
+            long exact = 64 * 1024;
+            foreach (PageAnnotation annotation in annotations) exact += ModelSize(annotation);
+            return exact <= MaximumPayload;
+        }
+        catch (Exception error) when (Unsupported(error)) { return false; }
     }
 
     private static long ModelSize(PageAnnotation annotation) =>
@@ -489,7 +528,7 @@ public static class PdfOverlayAnnotations
         Visit(root);
         void Visit(JsonElement element)
         {
-            if (++nodes > 300000) throw new ArgumentException("Overlay metadata contains too many values.");
+            if (++nodes > MaximumJsonValues) throw new ArgumentException("Overlay metadata contains too many values.");
             switch (element.ValueKind)
             {
                 case JsonValueKind.Object:

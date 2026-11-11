@@ -111,4 +111,49 @@ public sealed class SaveMalformedMarkupTests : IDisposable
         // The text box is on page 2 either as a saved annotation or as page content; the file reopens.
         Assert.Equal(2, PdfPageInformation.Read(PdfDocument.Open(File.ReadAllBytes(path))).Count);
     }
+
+    [Fact]
+    public void ATextEditedPageWithAnExtremeAmountOfInkStillSaves()
+    {
+        string path = TwoPagePdf("[]", null);
+        var pair = new ReplacementPair(
+            new TextAnnotation { PairId = "edit", Content = "Edited", Position = new Point(20, 20), Width = 150, Height = 40 },
+            new CoverAnnotation { PairId = "edit", Bounds = new Rect(15, 15, 160, 50) });
+        // Three strokes of 100,000 points each, 300,000 in all, along a diagonal across the lower page.
+        var ink = Enumerable.Range(0, 3).Select(stroke => new InkAnnotation
+        {
+            PageIndex = 0, StrokeWidth = 4,
+            Points = Enumerable.Range(0, 100000).Select(index => new Point(30 + index % 340, 200 + stroke * 40)).ToList()
+        }).ToList();
+        var all = new List<PageAnnotation> { pair.Cover, pair.Text };
+        all.AddRange(ink);
+
+        PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = all }, Dims());
+
+        byte[] pixels = new PdfPageRenderer(PdfDocument.Open(File.ReadAllBytes(path)))
+            .Render(0, new PdfRenderOptions(400, 400)).Pixels.ToArray();
+        bool inked = false;
+        for (int x = 60; x < 340 && !inked; x++)
+            for (int y = 195; y < 210 && !inked; y++)
+                inked = pixels[(y * 400 + x) * 4] != 255 || pixels[(y * 400 + x) * 4 + 1] != 255;
+        Assert.True(inked, "The ink was not saved.");
+    }
+
+    [Fact]
+    public void ATextEditedPageWithMoreThanTenThousandMarksStillSaves()
+    {
+        string path = TwoPagePdf("[]", null);
+        var pair = new ReplacementPair(
+            new TextAnnotation { PairId = "edit", Content = "Edited", Position = new Point(20, 20), Width = 150, Height = 40 },
+            new CoverAnnotation { PairId = "edit", Bounds = new Rect(15, 15, 160, 50) });
+        var all = new List<PageAnnotation> { pair.Cover, pair.Text };
+        for (int index = 0; index < 10001; index++)
+            all.Add(new HighlightAnnotation { PageIndex = 0, Bounds = new Rect(index % 40 * 9, 200 + index / 40 % 40 * 4, 8, 3) });
+
+        var error = Record.Exception(() => PdfEngineBurn.Burn(path,
+            new Dictionary<int, List<PageAnnotation>> { [0] = all }, Dims()));
+
+        Assert.Null(error);
+        Assert.Equal(2, PdfPageInformation.Read(PdfDocument.Open(File.ReadAllBytes(path))).Count);
+    }
 }
