@@ -576,3 +576,122 @@ public sealed class PdfOverlayAnnotationTests
             .AddFreeText(0, 10, 20, 140, 60, content,
                 new PdfFormXObject(140, 60, new PdfContentStreamBuilder())).Build());
 }
+
+public sealed class PdfOverlayPrefixTests(Xunit.Abstractions.ITestOutputHelper output)
+{
+    [Fact]
+    public void AttachingAnImageDoesNotAllocateAnotherWholeDecodedPayloadForClassification()
+    {
+        byte[] payload = new byte[2 * 1024 * 1024];
+        "%PDF-"u8.CopyTo(payload);
+        string data = Convert.ToBase64String(payload);
+        var image = new ImageAnnotation { ImageData = data };
+        var signature = new SignatureAnnotation { ImageData = data };
+        PdfDocument native = NativeStamp();
+        int number = Assert.Single(PdfCommentReader.Read(native, true)).ObjectNumber!.Value;
+        OverlayWriteRecord[] imageRecords = [new(image, 400, 600, 0, 0, number)];
+        OverlayWriteRecord[] signatureRecords = [new(signature, 400, 600, 0, 0, number)];
+        // Both placed models validate and serialize the same data on the same native stamp.
+        // Warm serializer metadata and buffer pools before comparing their allocation costs.
+        for (int warm = 0; warm < 2; warm++)
+        {
+            _ = PdfOverlayAnnotations.Attach(native, imageRecords);
+            _ = PdfOverlayAnnotations.Attach(native, signatureRecords);
+        }
+        long imageBytes = long.MaxValue, signatureBytes = long.MaxValue;
+        for (int sample = 0; sample < 3; sample++)
+        {
+            imageBytes = Math.Min(imageBytes, Measure(imageRecords));
+            signatureBytes = Math.Min(signatureBytes, Measure(signatureRecords));
+        }
+        output.WriteLine($"Decoded bytes: {payload.Length}; Base64 characters: {data.Length}; image allocation: {imageBytes}; signature allocation: {signatureBytes}; difference: {imageBytes - signatureBytes}.");
+        Assert.True(imageBytes <= signatureBytes + 512 * 1024,
+            $"Image allocated {imageBytes} bytes; the same signature payload allocated {signatureBytes} bytes. Classification exceeded the 512 KiB schema-overhead allowance.");
+
+        long Measure(OverlayWriteRecord[] records)
+        {
+            long start = GC.GetAllocatedBytesForCurrentThread();
+            byte[] attached = PdfOverlayAnnotations.Attach(native, records);
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - start;
+            GC.KeepAlive(attached);
+            return allocated;
+        }
+    }
+
+    [Theory]
+    [InlineData("JVBERi0=", 2)]
+    [InlineData("JVBERi0w", 2)]
+    [InlineData("JVBERi1B", 2)]
+    [InlineData("JVBERi3/", 2)]
+    [InlineData(" \tJ\rV\nBE\tRi 0=\r\n", 2)]
+    [InlineData("JQ==", 1)]
+    [InlineData("JVBE", 1)]
+    [InlineData("JVBERg==", 1)]
+    [InlineData("AAAA", 1)]
+    [InlineData(" \t\r\n", 1)]
+    [InlineData("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=", 1)]
+    public void ImagePrefixClassificationAndBase64WhitespaceSurviveRoundtrip(string data, int schema)
+    {
+        byte[] saved = AttachImage(data);
+        PdfDocument document = PdfDocument.Open(saved);
+        int number = Assert.Single(PdfCommentReader.Read(document, true)).ObjectNumber!.Value;
+        var annotation = Assert.IsType<PdfDictionary>(document.Resolve(number));
+        var metadata = Assert.IsType<PdfDictionary>(annotation[Name("KillerPDFOverlay")]);
+        Assert.Equal(schema, Assert.IsType<PdfInteger>(metadata[Name("V")]).Value);
+        Assert.Equal(data, Assert.IsType<ImageAnnotation>(Assert.Single(PdfOverlayAnnotations.Read(document)).Annotation).ImageData);
+        OverlayExtraction extraction = PdfOverlayAnnotations.TakeEditableTail(saved);
+        Assert.Equal(data, Assert.IsType<ImageAnnotation>(Assert.Single(extraction.Records).Annotation).ImageData);
+        Assert.Empty(PdfCommentReader.Read(PdfDocument.Open(extraction.Bytes), true));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("JVBERi0=!")]
+    [InlineData("JVBERi0===")]
+    [InlineData("JVBERi0=\u00a0")]
+    public void AttachingAnImageStillValidatesTheEntireBase64Payload(string data)
+    {
+        if (data.Length == 0) Assert.Throws<ArgumentException>(() => AttachImage(data));
+        else Assert.Throws<FormatException>(() => AttachImage(data));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("JVBERi0=!")]
+    [InlineData("JVBERi0===")]
+    [InlineData("JVBERi0=\u00a0")]
+    [InlineData("JVBE")]
+    public void InvalidSourcePdfImageMetadataRemainsNativeAndLeavesBytesUnchanged(string data)
+    {
+        PdfDocument document = PdfDocument.Open(AttachImage("JVBERi0="));
+        int number = Assert.Single(PdfCommentReader.Read(document, true)).ObjectNumber!.Value;
+        var annotation = Assert.IsType<PdfDictionary>(document.Resolve(number));
+        var metadata = Assert.IsType<PdfDictionary>(annotation[Name("KillerPDFOverlay")]);
+        JsonObject payload = JsonNode.Parse(Assert.IsType<PdfString>(metadata[Name("Data")]).Bytes.Span)!.AsObject();
+        payload["Model"]!["ImageData"] = data;
+        var changedMetadata = new PdfDictionary(metadata.Where(pair => !pair.Key.Equals(Name("Data")))
+            .Append(new(Name("Data"), new PdfString(Encoding.UTF8.GetBytes(payload.ToJsonString()), PdfStringForm.Hexadecimal))));
+        byte[] changed = new PdfIncrementalUpdateBuilder(document).ReplaceObject(number,
+            new PdfDictionary(annotation.Where(pair => !pair.Key.Equals(Name("KillerPDFOverlay")))
+                .Append(new(Name("KillerPDFOverlay"), changedMetadata)))).Build();
+        Assert.Empty(PdfOverlayAnnotations.Read(PdfDocument.Open(changed)));
+        OverlayExtraction extraction = PdfOverlayAnnotations.TakeEditableTail(changed);
+        Assert.Empty(extraction.Records);
+        Assert.Same(changed, extraction.Bytes);
+        Assert.Single(PdfCommentReader.Read(PdfDocument.Open(changed), true));
+    }
+
+    private static byte[] AttachImage(string data)
+    {
+        PdfDocument native = NativeStamp();
+        int number = Assert.Single(PdfCommentReader.Read(native, true)).ObjectNumber!.Value;
+        return PdfOverlayAnnotations.Attach(native, [new(new ImageAnnotation { ImageData = data }, 400, 600, 0, 0, number)]);
+    }
+
+    private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+
+    private static PdfDocument NativeStamp() => PdfDocument.Open(
+        new PdfIncrementalAnnotationEditor(PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(200, 300).Build()))
+            .AddStamp(0, 10, 20, 140, 60, new PdfFormXObject(140, 60, new PdfContentStreamBuilder())).Build());
+}

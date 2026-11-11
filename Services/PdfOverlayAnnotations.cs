@@ -457,8 +457,22 @@ public static class PdfOverlayAnnotations
         _ = Convert.FromBase64String(value);
     }
 
-    private static bool IsSourcePdfImage(PageAnnotation model) => model is ImageAnnotation image
-        && Convert.FromBase64String(image.ImageData).AsSpan().StartsWith("%PDF-"u8);
+    private static bool IsSourcePdfImage(PageAnnotation model)
+    {
+        if (model is not ImageAnnotation image) return false;
+        // Full image validation precedes classification; two Base64 groups contain the PDF prefix.
+        Span<char> encoded = stackalloc char[8];
+        int count = 0;
+        foreach (char value in image.ImageData)
+        {
+            if (value is ' ' or '\t' or '\r' or '\n') continue;
+            encoded[count++] = value;
+            if (count == encoded.Length) break;
+        }
+        Span<byte> decoded = stackalloc byte[6];
+        return Convert.TryFromBase64Chars(encoded[..count], decoded, out int written)
+            && decoded[..written].StartsWith("%PDF-"u8);
+    }
 
     private static void ValidateJson(JsonElement root)
     {
