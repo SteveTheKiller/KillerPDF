@@ -32,6 +32,11 @@ namespace KillerPDF.Controls
         // handler never fires, so no visual overlay is created - these rects are the source of truth.
         private readonly Dictionary<int, List<LinkInfo>> _continuousLinks = [];
 
+        // What a page's cached links were read for: the bitmap size their rects are measured in, and the document.
+        // A redraw at the same size of the same document reuses them; anything else reads the page again. The document
+        // is held weakly so a closed document is not kept alive by a page nobody draws again.
+        private readonly Dictionary<int, (int W, int H, WeakReference<object>? Owner)> _continuousLinkKeys = [];
+
         /// <summary>The link-rect map, for the window side. ContextMenu.cs bounds-tests it to build
         /// the right-click menu and FileOperations.cs clears it on document change; both live on the
         /// window while Links.cs lives here.</summary>
@@ -420,8 +425,16 @@ namespace KillerPDF.Controls
         /// </summary>
         internal void AddSecondaryPageLinks(int pageIndex, int bitmapW, int bitmapH)
         {
-            var links = GetPageLinks(pageIndex, bitmapW, bitmapH);
-            _continuousLinks[pageIndex] = links;
+            object? owner = (object?)_nativeDoc ?? _doc;
+            if (!(_continuousLinks.TryGetValue(pageIndex, out var links)
+                && _continuousLinkKeys.TryGetValue(pageIndex, out var key)
+                && key.W == bitmapW && key.H == bitmapH
+                && (key.Owner is null ? owner is null : key.Owner.TryGetTarget(out var held) && ReferenceEquals(held, owner))))
+            {
+                links = GetPageLinks(pageIndex, bitmapW, bitmapH);
+                _continuousLinks[pageIndex] = links;
+                _continuousLinkKeys[pageIndex] = (bitmapW, bitmapH, owner is null ? null : new WeakReference<object>(owner));
+            }
 
             // Keyboard and screen-reader access (BF-U001). These overlays ignore the mouse, so
             // clicks keep resolving through the bounds-test above, but Tab reaches each link,
