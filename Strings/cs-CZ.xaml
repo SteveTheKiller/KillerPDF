@@ -1307,6 +1307,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_St_Merged">Sloučeno souborů: {0} - celkem {1} stránek</sys:String>
     <sys:String x:Key="Str_St_Saved">Uloženo - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Uloženo s anotacemi do {0}</sys:String>
+    <sys:String x:Key="Str_Save_PicturesSkipped">Vynechané obrázky, které se nepodařilo přečíst: {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Uloženo do {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Sloučené PDF uloženo do {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">Jazyk OCR: {0}</sys:String>

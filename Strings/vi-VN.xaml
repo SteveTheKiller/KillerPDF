@@ -1319,6 +1319,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_St_Merged">Đã hợp nhất {0} tệp - tổng cộng {1} trang</sys:String>
     <sys:String x:Key="Str_St_Saved">Đã lưu - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Đã lưu kèm theo chú thích vào {0}</sys:String>
+    <sys:String x:Key="Str_Save_PicturesSkipped">Hình ảnh bị bỏ qua vì không đọc được: {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Đã lưu vào {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Đã lưu PDF đã làm phẳng vào {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">Ngôn ngữ OCR: {0}</sys:String>

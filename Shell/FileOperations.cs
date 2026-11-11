@@ -1677,6 +1677,7 @@ namespace KillerPDF.Shell
                     PdfEngineIntegration.ClearInvalidatedSignatures(tempEdited);
                     PdfEngineBurn.Burn(tempEdited, _annotations, _renderDims,
                         _docStampSpec, null, _pageRotations, measurementsAsAnnotations: true);
+                    _lastSaveSkippedPictures = PdfEngineBurn.SkippedPictures;
                     PdfEngineIntegration.StripLinkAppearances(tempEdited);
                     WriteFormValuesToDocument(tempEdited);
                     WriteRedactionMarksToDocument(tempEdited);
@@ -1724,6 +1725,9 @@ namespace KillerPDF.Shell
             }
         }
 
+        // Pictures the last save could not read and left out, reported once with that save.
+        private int _lastSaveSkippedPictures;
+
         // The tail of every save. A file that lost its protection says so and stops counting as
         // protected (#149), and a field that could not take a value is named with the save.
         private void ReportSaved(string path, bool keptProtection, string plainStatusKey)
@@ -1740,6 +1744,9 @@ namespace KillerPDF.Shell
                 _protection = OpenedProtection.None;
             }
             if (viewer.ProofPreferenceNoticeKeyExt is { } notice) status += " " + Loc(notice);
+            if (_lastSaveSkippedPictures > 0)
+                status += " " + string.Format(Loc("Str_Save_PicturesSkipped"), _lastSaveSkippedPictures);
+            _lastSaveSkippedPictures = 0;
             SetStatus(WithFieldsThatKeptTheirValue(status, viewer.FieldsThatKeptTheirValueRef));
         }
 
@@ -1896,6 +1903,7 @@ namespace KillerPDF.Shell
                     PdfEngineIntegration.ClearInvalidatedSignatures(tempEdited);
                     PdfEngineBurn.Burn(tempEdited, _annotations, _renderDims,
                         _docStampSpec, null, _pageRotations, measurementsAsAnnotations: true);
+                    _lastSaveSkippedPictures = PdfEngineBurn.SkippedPictures;
                     PdfEngineIntegration.StripLinkAppearances(tempEdited);
                     WriteFormValuesToDocument(tempEdited);
                     WriteRedactionMarksToDocument(tempEdited);

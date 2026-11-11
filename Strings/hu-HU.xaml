@@ -1309,6 +1309,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_St_Merged">{0} fájl egyesítve - összesen {1} oldal</sys:String>
     <sys:String x:Key="Str_St_Saved">Mentve - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Jegyzetekkel mentve ide: {0}</sys:String>
+    <sys:String x:Key="Str_Save_PicturesSkipped">Kihagyott képek, mert nem voltak olvashatók: {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Mentve ide: {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Lapított PDF mentve ide: {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">OCR-nyelv: {0}</sys:String>

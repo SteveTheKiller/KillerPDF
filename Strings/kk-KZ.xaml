@@ -1215,6 +1215,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_St_Merged">{0} файл біріктірілді - барлығы {1} бет</sys:String>
     <sys:String x:Key="Str_St_Saved">Сақталды - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Ескертпелермен {0} ішіне сақталды</sys:String>
+    <sys:String x:Key="Str_Save_PicturesSkipped">Оқу мүмкін болмағандықтан қалдырылған суреттер: {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">{0} ішіне сақталды</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Тегістелген PDF {0} ішіне сақталды</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">OCR тілі: {0}</sys:String>

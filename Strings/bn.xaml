@@ -1302,6 +1302,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_St_Merged">{0}টি ফাইল একত্রিত - মোট {1} পাতা</sys:String>
     <sys:String x:Key="Str_St_Saved">সংরক্ষিত - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">টীকাসহ সংরক্ষিত: {0}</sys:String>
+    <sys:String x:Key="Str_Save_PicturesSkipped">যে ছবিগুলো পড়া যায়নি সেগুলো বাদ দেওয়া হয়েছে: {0}।</sys:String>
     <sys:String x:Key="Str_St_SavedTo">সংরক্ষিত: {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">ফ্ল্যাট করা PDF সংরক্ষিত: {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">OCR ভাষা: {0}</sys:String>
