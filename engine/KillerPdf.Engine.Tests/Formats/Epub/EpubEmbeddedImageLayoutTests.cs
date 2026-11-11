@@ -540,7 +540,8 @@ public sealed class EpubEmbeddedImageLayoutTests
     [InlineData("ICC profile", "sRGB IEC61966-2.1", true, false)]
     [InlineData("Photoshop ICC profile", "sRGB IEC61966-2.1", true, false)]
     [InlineData("ICC profile", "Adobe RGB (1998)", false, false)]
-    [InlineData("ICC profile", "Adobe RGB (1998)", true, true)]
+    [InlineData("ICC profile", "Display P3", false, true)]
+    [InlineData("ICC profile", "unreadable", true, true)]
     [InlineData("sRGB", "unreadable", true, false)]
     [InlineData("ICC profile", "unreadable", false, false)]
     public void ASrgbProfileUnderAnyLabelPaintsAndAnotherProfileDoesNot(string name, string description, bool paints, bool withSrgbChunk)

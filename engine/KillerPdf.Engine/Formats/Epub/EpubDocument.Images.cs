@@ -159,7 +159,7 @@ public sealed partial class EpubDocument
             throw new EpubImageUnavailableException("Native EPUB PNG exceeds the decodable size.", EpubOmissionReason.ImageTooLarge);
         if (data[28] != 0)
             throw new EpubImageUnavailableException("Native EPUB interlaced PNG images are not implemented.");
-        bool foreignProfile = false, srgbChunk = false, profileSeen = false;
+        bool foreignProfile = false, srgbChunk = false, profileSeen = false, inflatedForeign = false;
         for (int offset = 8; offset < data.Length;)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -178,13 +178,19 @@ public sealed partial class EpubDocument
                 profileSeen = true;
                 // The profile's own description decides; editors often label the standard sRGB profile 'ICC profile'.
                 // The name is only a fallback for a profile that cannot be inflated. An sRGB chunk (checked below)
-                // also vouches for the image.
+                // vouches only for such a profile: an inflated profile judged foreign outranks the chunk (PNG gives
+                // iCCP precedence over sRGB).
                 var payload = data.Slice(offset + 8, (int)length);
                 int nul = payload.IndexOf((byte)0);
                 string name = Encoding.Latin1.GetString(nul < 0 ? payload : payload[..nul]);
-                bool srgb = InflateIccProfile(nul < 0 ? default : payload[(nul + 1)..]) is { } profile
+                var inflated = InflateIccProfile(nul < 0 ? default : payload[(nul + 1)..]);
+                bool srgb = inflated is { } profile
                     ? IsSrgbProfile(profile) : name.Contains("sRGB", StringComparison.OrdinalIgnoreCase);
-                if (!srgb) foreignProfile = true;
+                if (!srgb)
+                {
+                    foreignProfile = true;
+                    inflatedForeign = inflated is not null;
+                }
             }
             if (type.SequenceEqual("sRGB"u8) && length == 1) srgbChunk = true;
             // Coding-independent code points select another transfer or primaries, which an sRGB reader cannot honor.
@@ -197,7 +203,7 @@ public sealed partial class EpubDocument
                 throw new EpubImageUnavailableException("Native EPUB PNG critical chunk is not implemented.");
             offset = checked(offset + (int)length + 12);
         }
-        if (foreignProfile && !srgbChunk)
+        if (foreignProfile && (!srgbChunk || inflatedForeign))
             throw new EpubImageUnavailableException("Native EPUB PNG embedded color profiles (iCCP) other than sRGB are not implemented.",
                 EpubOmissionReason.ImageColorProfile);
         var image = PdfPngDecoder.Decode(bytes, MaximumDecodeBytes);
