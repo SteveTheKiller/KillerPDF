@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.IO;
 using KillerPDF.Services;
 using Xunit;
 
@@ -229,5 +230,45 @@ public sealed class ThumbnailWindowTests
 
             Assert.Equal(1, Volatile.Read(ref attempts));
         }
+    }
+
+    // A draw that throws may have hit a passing problem, such as a briefly locked file. It is not drawn again inside
+    // the pass that failed it, but a request after the pass has drained draws it.
+    [Fact]
+    public void APageWhoseDrawThrewIsDrawnWhenAskedForAfterThePassDrained()
+    {
+        int attempts = 0;
+        using var drained = new SemaphoreSlim(0);
+        var shown = new ConcurrentDictionary<int, string>();
+        using var window = new ThumbnailWindow<string>(100, (page, _) =>
+        {
+            if (Interlocked.Increment(ref attempts) == 1) throw new IOException("briefly locked");
+            return $"thumb {page}";
+        }, (page, image) => { if (image is not null) shown[page] = image; }, retain: 8, drained: () => drained.Release());
+
+        window.Request(3);
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)), "The pass did not drain.");
+        window.Request(3);
+
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(10)),
+            "The page was never drawn when asked for after the failed pass.");
+        Assert.Equal(2, Volatile.Read(ref attempts));
+    }
+
+    // A page the renderer refuses by returning nothing is a settled answer, so it is not drawn again.
+    [Fact]
+    public void APageTheRendererRefusedIsNotDrawnAgainAfterThePassDrained()
+    {
+        int attempts = 0;
+        using var drained = new SemaphoreSlim(0);
+        using var window = new ThumbnailWindow<string>(100, (page, _) => { Interlocked.Increment(ref attempts); return null; },
+            (page, image) => { }, retain: 8, drained: () => drained.Release());
+
+        window.Request(3);
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        window.Request(3);
+        Thread.Sleep(300);
+
+        Assert.Equal(1, Volatile.Read(ref attempts));
     }
 }
