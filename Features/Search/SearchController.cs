@@ -340,6 +340,13 @@ namespace KillerPDF.Features
                 {
                     // Stopped (a new query, Esc or the tab closing): the waiting note goes unless a newer search wrote its own.
                     if (waited && !_runner.IsRunning) _host.SetResultNote("", null);
+                    // No newer search took over, so the results on show stay. Starting this search stopped the reading
+                    // of their highlight areas; read the current hit's page and any page on screen again now.
+                    if (!_runner.IsRunning && WaitsForPagesOnScreen)
+                    {
+                        if (_matchCursor >= 0 && _matchCursor < _matches.Count) Locate(_matches[_matchCursor].page);
+                        _host.RepaintHighlights();
+                    }
                     return;
                 }
                 // The waiting note's tooltip goes with it; the results write their own.

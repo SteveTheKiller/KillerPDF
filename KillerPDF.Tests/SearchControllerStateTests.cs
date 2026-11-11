@@ -98,6 +98,28 @@ public sealed class SearchControllerStateTests
         Assert.False(restarted, "Showing an old result's page started reading its highlight areas again.");
     }
 
+    // Starting a search stops reading the old results' highlight areas. If that search is then dropped with Esc, the
+    // old results stay, so their pages must be read again instead of staying bare until the reader scrolls.
+    [Fact]
+    public async Task DroppingANewSearchLeavesTheOldResultsRereadingTheirHighlightAreas()
+    {
+        using var owner = NativeWorkingDocument.OpenEpub(NativeProgressiveOpenTests.Book(), NativeOpenTests.Options());
+        var host = new Host(new CurrentSearchSnapshot([], []) { NativeRevision = owner.CaptureReadRevision() });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("AAAAA");
+        Assert.StartsWith("1 / ", await host.NextText.Task.WaitAsync(Patience));
+        using var deadline = new CancellationTokenSource(Patience);
+        while (!controller.LocationToken.CanBeCanceled) await Task.Delay(1, deadline.Token);
+        Assert.True(controller.WaitsForPagesOnScreen, "The fixture has no page whose highlight areas are still unread.");
+        int repaints = host.Repaints;
+
+        controller.Run("AAAAA");
+        controller.CancelPending();   // Esc: the new search delivers nothing and the old results stay
+
+        Assert.True(SpinWait.SpinUntil(() => host.Repaints > repaints || controller.LocationToken.CanBeCanceled,
+            TimeSpan.FromSeconds(5)), "Nothing asked for the old results' pages to be read again.");
+    }
+
     internal sealed class Host(CurrentSearchSnapshot source) : KillerPDF.Features.ISearchHost
     {
         public TaskCompletionSource<string> NextText { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -141,7 +163,9 @@ public sealed class SearchControllerStateTests
             NextText.TrySetResult(text);
         }
         public void ClearHighlights() { }
-        public void RepaintHighlights() { }
+        private int _repaints;
+        public int Repaints => Volatile.Read(ref _repaints);
+        public void RepaintHighlights() => Interlocked.Increment(ref _repaints);
         public bool IsCovered(int pageIdx, double left, double bottom, double right, double top) => false;
     }
 }
