@@ -96,7 +96,10 @@ internal partial class WindowsPdfViewportHost : HwndHost
             return;
         }
         FitOverlay(client);
-        PositionDetail();
+        // Placement runs from layout: a detail window that cannot be moved is recorded, never raised, and retried on
+        // the next pass. Preparing the detail window still throws, where its caller releases the window.
+        try { PositionDetail(); }
+        catch (System.ComponentModel.Win32Exception error) { WindowsPdfLayoutFailure.Record("detail placement", error); }
         if (presenter is WindowsPdfFramePresenter native) native.RefreshViewport();
     }
 
