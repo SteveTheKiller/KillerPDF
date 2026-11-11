@@ -352,11 +352,16 @@ namespace KillerPDF.Shell
             var cached = thumbnailOwner.ThumbCache;
             int preservedPage = thumbnailOwner.CurrentPageIndex;
 
+            // A book has no PdfDocument; its pages are counted from the book, and a book still being
+            // paginated is still growing, so its list is rebuilt.
+            var nativeBook = thumbnailOwner.NativeDocumentRef;
+            int? pageCount = nativeBook is null ? _doc?.PageCount
+                : nativeBook.IsPaginating ? null : nativeBook.ShownPageCount;
             bool usable = cached != null
-                       && _doc != null
+                       && pageCount != null
                        && _currentFile != null
                        && thumbnailOwner.ThumbCacheComplete
-                       && cached.Length == _doc.PageCount
+                       && cached.Length == pageCount
                        && cached.All(item => item.ProofStamp == proof?.Stamp
                            && item.WorkingCmyk == KillerPDF.Services.WorkingCmykProfiles.Generation)
                        && string.Equals(thumbnailOwner.ThumbCacheFile, _currentFile,
