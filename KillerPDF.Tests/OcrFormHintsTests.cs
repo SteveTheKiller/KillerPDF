@@ -44,6 +44,15 @@ public sealed class OcrFormHintsTests
     }
 
     [Fact]
+    public void AnyOtherFailureOfTheReaderStillGivesNoHints()
+    {
+        Assert.Empty(new OcrFormHints(() => throw new KeyNotFoundException("damaged form")).ForPage(0));
+        Assert.Empty(new OcrFormHints(() => throw new NullReferenceException()).ForPage(0));
+        Assert.Empty(new OcrFormHints(() => throw new IndexOutOfRangeException()).ForPage(0));
+        Assert.Empty(new OcrFormHints(() => throw new InvalidCastException()).ForPage(0));
+    }
+
+    [Fact]
     public void EveryOcrRunReadsItsHintsThroughTheSharedReader()
     {
         string root = AppContext.BaseDirectory;

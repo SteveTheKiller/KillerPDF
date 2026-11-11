@@ -1,4 +1,3 @@
-using System.IO;
 using KillerPdf.Engine.Documents;
 
 namespace KillerPDF.Features
@@ -19,10 +18,10 @@ namespace KillerPDF.Features
         private IReadOnlyList<IReadOnlyList<PdfFormWidgetInfo>> Read()
         {
             try { return readAll(); }
-            // The reader's own failures give no hints; running out of memory is not one of them and stops the run.
-            catch (Exception error) when (error is FormatException or InvalidOperationException or NotSupportedException
-                or ArgumentException or IOException or InvalidDataException or OverflowException or UnauthorizedAccessException
-                or KillerPdf.Engine.Filters.PdfFilterException) { return []; }
+            // Any failure of the reader gives no hints, as in 1.9.2. Running out of memory and cancellation are
+            // not the reader's failures and still stop the run.
+            catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException))
+            { return []; }
         }
     }
 }
