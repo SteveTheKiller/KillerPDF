@@ -29,5 +29,14 @@ namespace KillerPDF.Controls
         /// no pointer coordinate measured on it means anything.</summary>
         internal static bool ShouldAbandonDrag(UIElement? gestureCanvas) =>
             gestureCanvas is null || PresentationSource.FromVisual(gestureCanvas) is null;
-    }
+
+        /// <summary>True when a pointer move must end the running gesture instead of reading a position: a move, a
+        /// resize or a text-edit handle drag is running and its canvas has no presentation source.</summary>
+        internal static bool ShouldAbandonGesture(UIElement? gestureCanvas, bool movingAnnotation, bool resizing, bool draggingTextEditHandle) =>
+            (movingAnnotation || resizing || draggingTextEditHandle) && ShouldAbandonDrag(gestureCanvas);
+
+        /// <summary>True when a move press is being ended before the pointer travelled the drag distance, so nothing
+        /// moved and the end of the gesture has no change to mark and no undo step to keep.</summary>
+        internal static bool IsUntravelledPress(bool movingAnnotation, Point? pressOnScreen) =>
+            movingAnnotation && pressOnScreen is not null;    }
 }

@@ -59,6 +59,49 @@ public sealed class AnnotationClickGateTests
             Assert.True(DragStartGate.ShouldAbandonDrag(null));
         });
 
+    // Resizes and the text-edit handle drag read the pointer from the gesture canvas just like a move does, so all
+    // three end on a canvas with no presentation source, and a gesture that is not running never ends.
+    [Theory]
+    [InlineData(true, false, false, true)]
+    [InlineData(false, true, false, true)]
+    [InlineData(false, false, true, true)]
+    [InlineData(false, false, false, false)]
+    public void EveryGestureThatReadsThePointerIsAbandonedOnADetachedCanvas(bool moving, bool resizing, bool handle, bool expected) =>
+        OnSta(() =>
+        {
+            Assert.Equal(expected, DragStartGate.ShouldAbandonGesture(new Canvas(), moving, resizing, handle));
+            Assert.Equal(expected, DragStartGate.ShouldAbandonGesture(null, moving, resizing, handle));
+        });
+
+    [Theory]
+    [InlineData(true, true, true)]
+    [InlineData(true, false, false)]    // the press already travelled: it changed the page
+    [InlineData(false, true, false)]    // not a move at all
+    public void OnlyAMovePressThatNeverTravelledChangesNothing(bool moving, bool pressed, bool expected) =>
+        Assert.Equal(expected, DragStartGate.IsUntravelledPress(moving, pressed ? new Point(540, 537) : null));
+
+    // SOURCE PIN (unverified in a window). The abandon guard covers every gesture that reads its position from the
+    // canvas, and ending a gesture clears the text-edit handle flag and skips the changed mark and the undo step for
+    // a press that never travelled, for both callers of FinishStuckGesture.
+    [Fact]
+    public void EndingAStuckGestureClearsTheHandleDragAndKeepsAnUntravelledPressClean()
+    {
+        string annotations = Viewer("PdfViewer.Annotations.cs").Replace("\r\n", "\n");
+
+        string move = Between(annotations, "if (e.LeftButton != MouseButtonState.Pressed && (_isDraggingAnnot || _isResizingSig))",
+            "var pos = e.GetPosition(gc);");
+        Assert.Contains("DragStartGate.ShouldAbandonGesture(gc, _isDraggingAnnot, _isResizingSig, _draggingTextEditHandle)", move);
+
+        string finish = Between(annotations, "private void FinishStuckGesture()", "private void AddAnnotation(");
+        int computed = finish.IndexOf("bool untravelledPress = DragStartGate.IsUntravelledPress(_isDraggingAnnot, _annotDragPressScreen);", StringComparison.Ordinal);
+        Assert.True(computed >= 0, "FinishStuckGesture does not work out whether the press never travelled.");
+        Assert.True(computed < finish.IndexOf("_annotDragPressScreen = null;", StringComparison.Ordinal));
+        int undo = finish.IndexOf("if (untravelledPress) _annotationDragUndo = null;", StringComparison.Ordinal);
+        Assert.True(undo > computed, "An untravelled press still keeps an undo step.");
+        Assert.True(undo < finish.IndexOf("CommitAnnotationDragUndo();", StringComparison.Ordinal));
+        Assert.Contains("_draggingTextEditHandle = false;", finish);
+        Assert.Contains("if (!unchangedResize && !untravelledPress) MarkDirty();", finish);
+    }
     private static void OnSta(Action body)
     {
         Exception? failure = null;
@@ -83,7 +126,7 @@ public sealed class AnnotationClickGateTests
 
         string move = Between(annotations, "if (e.LeftButton != MouseButtonState.Pressed && (_isDraggingAnnot || _isResizingSig))",
             "var pos = e.GetPosition(gc);");
-        int abandon = move.IndexOf("if (_isDraggingAnnot && DragStartGate.ShouldAbandonDrag(gc))", StringComparison.Ordinal);
+        int abandon = move.IndexOf("if (DragStartGate.ShouldAbandonGesture(gc, _isDraggingAnnot, _isResizingSig, _draggingTextEditHandle))", StringComparison.Ordinal);
         Assert.True(abandon >= 0, "The move handler does not end a drag on a canvas with no presentation source.");
         string abandoned = move[abandon..];
         Assert.True(abandoned.IndexOf("FinishStuckGesture();", StringComparison.Ordinal) > 0);

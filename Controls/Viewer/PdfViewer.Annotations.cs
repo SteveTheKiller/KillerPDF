@@ -1770,7 +1770,7 @@ namespace KillerPDF.Controls
             var gc = _gestureCanvas ?? _activeCanvas;
             // A gesture canvas that was torn down mid-drag has no screen to measure on, and GetPosition against it
             // would give a position that is not on the page: end the drag instead of moving from it.
-            if (_isDraggingAnnot && DragStartGate.ShouldAbandonDrag(gc))
+            if (DragStartGate.ShouldAbandonGesture(gc, _isDraggingAnnot, _isResizingSig, _draggingTextEditHandle))
             {
                 FinishStuckGesture();
                 return;
@@ -2849,7 +2849,10 @@ namespace KillerPDF.Controls
             // A resize that ended with the size unchanged leaves no undo step and no dirty mark.
             bool unchangedResize = _resizeUndoAnnot is not null && ReferenceEquals(keep, _resizeUndoAnnot)
                 && AnnotBounds(keep) == _resizeStartBounds;
+            // A press that ended before the pointer travelled moved nothing: no undo step and no changed mark.
+            bool untravelledPress = DragStartGate.IsUntravelledPress(_isDraggingAnnot, _annotDragPressScreen);
             if (unchangedResize) _annotationDragUndo = null;
+            if (untravelledPress) _annotationDragUndo = null;
             _resizeUndoArmed = false;
             _resizeUndoAnnot = null;
             CommitAnnotationDragUndo();
@@ -2857,6 +2860,7 @@ namespace KillerPDF.Controls
             _isDraggingAnnot = false;
             _annotDragPressScreen = null;
             _isResizingSig = false;
+            _draggingTextEditHandle = false;
             _dragAnnot = null;
             _resizeTextAnnot = null;
             _resizeHlAnnot = null;
@@ -2873,7 +2877,7 @@ namespace KillerPDF.Controls
             {
                 RenderAllAnnotations(keep.PageIndex);
                 SelectAnnotation(keep, AnnotBounds(keep));
-                if (!unchangedResize) MarkDirty();
+                if (!unchangedResize && !untravelledPress) MarkDirty();
             }
         }
 
