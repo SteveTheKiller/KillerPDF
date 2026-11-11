@@ -8,6 +8,7 @@ internal sealed class PageThumbnailSpreadPanel : VirtualizingPanel, IScrollInfo
 {
     private const double EstimatedRowHeight = 160;
     private readonly Dictionary<int, double> _rowHeights = new();
+    private double[] _tree = [0];
     private readonly Dictionary<UIElement, int> _indices = new();
     private double _width;
     private int? _bringIndex;
@@ -15,7 +16,7 @@ internal sealed class PageThumbnailSpreadPanel : VirtualizingPanel, IScrollInfo
     protected override void OnItemsChanged(object sender, ItemsChangedEventArgs args)
     {
         base.OnItemsChanged(sender, args);
-        _rowHeights.Clear();
+        ClearRowHeights();
         _bringIndex = null;
         var owner = ItemsControl.GetItemsOwner(this);
         _indices.Clear();
@@ -29,15 +30,48 @@ internal sealed class PageThumbnailSpreadPanel : VirtualizingPanel, IScrollInfo
         InvalidateMeasure();
     }
 
+    /// <summary>Counted work for tests: calls to RowTop and the steps they took.</summary>
+    internal long RowTopCalls, RowTopSteps;
+
     private int RowCount => ((ItemsControl.GetItemsOwner(this)?.Items.Count ?? 0) + 1) / 2;
 
     private double RowTop(int row)
     {
         // Unvisited pages contribute an estimate without creating their containers.
         double top = row * EstimatedRowHeight;
-        foreach (var pair in _rowHeights)
-            if (pair.Key < row) top += pair.Value - EstimatedRowHeight;
+        RowTopCalls++;
+        // A prefix sum over the measured rows' differences from the estimate (a Fenwick tree), so a
+        // call costs about log2(rows) steps however many rows have been measured.
+        for (int i = Math.Min(row, _tree.Length - 1); i > 0; i -= i & -i)
+        {
+            RowTopSteps++;
+            top += _tree[i];
+        }
         return top;
+    }
+
+    private void SetRowHeight(int row, double height)
+    {
+        int rows = RowCount;
+        if (_tree.Length != rows + 1) RebuildTree(rows);
+        double delta = height - (_rowHeights.TryGetValue(row, out double known) ? known : EstimatedRowHeight);
+        _rowHeights[row] = height;
+        if (delta == 0) return;
+        for (int i = row + 1; i < _tree.Length; i += i & -i) _tree[i] += delta;
+    }
+
+    private void ClearRowHeights()
+    {
+        _rowHeights.Clear();
+        Array.Clear(_tree);
+    }
+
+    private void RebuildTree(int rows)
+    {
+        _tree = new double[rows + 1];
+        foreach (var pair in _rowHeights)
+            if (pair.Key < rows)
+                for (int i = pair.Key + 1; i < _tree.Length; i += i & -i) _tree[i] += pair.Value - EstimatedRowHeight;
     }
 
     private int RowAt(double offset)
@@ -58,7 +92,7 @@ internal sealed class PageThumbnailSpreadPanel : VirtualizingPanel, IScrollInfo
         var count = ItemsControl.GetItemsOwner(this)?.Items.Count ?? 0;
         if (_width != availableSize.Width)
         {
-            _rowHeights.Clear();
+            ClearRowHeights();
             _width = availableSize.Width;
         }
         ViewportWidth = double.IsFinite(availableSize.Width) ? availableSize.Width : Math.Max(1, ActualWidth);
@@ -95,7 +129,7 @@ internal sealed class PageThumbnailSpreadPanel : VirtualizingPanel, IScrollInfo
                         height = Math.Max(height, child.DesiredSize.Height);
                     }
                 }
-                _rowHeights[row] = Math.Max(1, height);
+                SetRowHeight(row, Math.Max(1, height));
             }
             ExtentHeight = RowTop(RowCount);
             VerticalOffset = _bringIndex is { } requested

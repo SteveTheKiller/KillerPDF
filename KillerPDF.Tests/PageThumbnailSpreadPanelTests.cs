@@ -66,6 +66,35 @@ public sealed class PageThumbnailSpreadPanelTests
         Assert.InRange(panel.Children.Count, 2, 24);
     });
 
+    // viewer BF-012: RowTop added up every measured row on each call, so a long document that had been
+    // scrolled through made every layout pass cost rows x calls. The work per call is logarithmic now.
+    [Fact]
+    public void RowTopWorkDoesNotGrowWithTheNumberOfMeasuredRows() => OnSta(() =>
+    {
+        var list = Create(0);
+        var thumbnail = new FrameworkElementFactory(typeof(Border));
+        thumbnail.SetValue(FrameworkElement.HeightProperty, 40d);
+        list.ItemTemplate = new DataTemplate { VisualTree = thumbnail };
+        var pages = Enumerable.Range(0, 10000).Select(_ => new object()).ToArray();
+        list.ItemsSource = pages;
+        Layout(list, 200, 200);
+        for (int index = 0; index < 1000; index += 8)
+        {
+            list.ScrollIntoView(pages[index]);
+            Layout(list, 200, 200);
+        }
+        var panel = Find<PageThumbnailSpreadPanel>(list)!;
+        panel.RowTopCalls = panel.RowTopSteps = 0;
+
+        list.ScrollIntoView(pages[400]);
+        Layout(list, 200, 200);
+
+        Assert.True(panel.RowTopCalls > 0);
+        // 5000 rows: a prefix sum over them takes at most 13 steps, and one more for the loop's own bound.
+        Assert.True(panel.RowTopSteps <= panel.RowTopCalls * 14,
+            $"{panel.RowTopSteps} steps for {panel.RowTopCalls} calls");
+    });
+
     [Fact]
     public void ReplacingDocumentDiscardsPreviousRowsHeightCache() => OnSta(() =>
     {
