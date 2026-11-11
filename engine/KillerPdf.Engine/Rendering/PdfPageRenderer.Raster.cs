@@ -316,7 +316,7 @@ public sealed partial class PdfPageRenderer
     private const long ParallelPaintThreshold = 262_144;
 
     /// <summary>Runs a row loop sequentially or across row ranges when large enough.</summary>
-    private static void ForEachRow(int top, int bottom, long pixelCount,
+    internal static void ForEachRow(int top, int bottom, long pixelCount,
         Action<int, int> body, int? maximumParallelism, CancellationToken cancellationToken)
     {
         int parallelism = maximumParallelism ?? _rowParallelism;
@@ -328,6 +328,7 @@ public sealed partial class PdfPageRenderer
         int rows = bottom - top;
         int chunks = Math.Min(parallelism * 4, rows);
         int chunkRows = (rows + chunks - 1) / chunks;
+        var failures = new System.Collections.Concurrent.ConcurrentBag<(int Chunk, Exception Error)>();
         try
         {
             Parallel.For(0, chunks, new ParallelOptions
@@ -338,18 +339,20 @@ public sealed partial class PdfPageRenderer
             {
                 int start = top + chunk * chunkRows;
                 int end = Math.Min(bottom, start + chunkRows);
-                if (start < end) body(start, end);
+                try { if (start < end) body(start, end); }
+                catch (Exception error) { failures.Add((chunk, error)); throw; }
             });
         }
-        catch (AggregateException error)
+        catch (AggregateException)
         {
-            // Rows fail the way the serial path does: a refused paint stays a NotSupportedException that
-            // callers fall back on, and cancellation stays cancellation, not an aggregate of row failures.
-            var inner = error.Flatten().InnerExceptions;
-            Exception first = inner[0];
-            if ((first is NotSupportedException or OperationCanceledException or InvalidDataException or ArgumentException)
-                && inner.All(other => other.GetType() == first.GetType()))
-                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(first).Throw();
+            // Rows fail the way the serial path does: cancellation stays cancellation, and a refused paint
+            // stays the expected exception its first failing row threw, which callers fall back on, whatever
+            // other row ranges threw. Only failures that are none of these stay an aggregate.
+            Exception[] ordered = [.. failures.OrderBy(failure => failure.Chunk).Select(failure => failure.Error)];
+            Exception? chosen = ordered.FirstOrDefault(error => error is OperationCanceledException)
+                ?? ordered.FirstOrDefault(error => error is NotSupportedException or InvalidDataException or ArgumentException);
+            if (chosen is not null)
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(chosen).Throw();
             throw;
         }
     }
