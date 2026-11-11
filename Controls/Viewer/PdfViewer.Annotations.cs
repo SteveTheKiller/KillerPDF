@@ -900,6 +900,7 @@ namespace KillerPDF.Controls
         }
 
         private readonly Dictionary<Canvas, Rectangle> _nativeMarquees = new();
+        private readonly List<Canvas> _nativeMarqueePages = new();
 
         // The shared outline covers ordinary pages and gaps. Native page roots need
         // local projections above their image windows, using the same screen bounds.
@@ -916,17 +917,22 @@ namespace KillerPDF.Controls
             Point b = gc.PointToScreen(currentInStartCanvas);
             PlaceMarquee(_selectRect, MarqueeLayer, a, b);
             var sharedSource = PresentationSource.FromVisual(MarqueeLayer);
-            var nativePages = _pages.Values.Where(canvas => canvas.IsVisible
-                && PresentationSource.FromVisual(canvas) is { } source
-                && !ReferenceEquals(source, sharedSource)).ToHashSet();
-            foreach (var canvas in _nativeMarquees.Keys.Where(canvas => !nativePages.Contains(canvas)).ToArray())
-            {
-                canvas.Children.Remove(_nativeMarquees[canvas]);
-                _nativeMarquees.Remove(canvas);
-            }
+            // One reused list, not a new set per mouse move: pages in another presentation source are few and usually none.
+            _nativeMarqueePages.Clear();
+            foreach (var page in _pages.Values)
+                if (page.IsVisible && PresentationSource.FromVisual(page) is { } source
+                    && !ReferenceEquals(source, sharedSource))
+                    _nativeMarqueePages.Add(page);
+            if (_nativeMarquees.Count != 0)
+                foreach (var canvas in _nativeMarquees.Keys.ToArray())
+                    if (!_nativeMarqueePages.Contains(canvas))
+                    {
+                        canvas.Children.Remove(_nativeMarquees[canvas]);
+                        _nativeMarquees.Remove(canvas);
+                    }
             Point sharedOrigin = MarqueeLayer.PointToScreen(new Point());
             double sharedScale = (MarqueeLayer.PointToScreen(new Point(1, 0)) - sharedOrigin).Length;
-            foreach (var canvas in nativePages)
+            foreach (var canvas in _nativeMarqueePages)
             {
                 if (!_nativeMarquees.TryGetValue(canvas, out var projection))
                 {
