@@ -117,24 +117,13 @@ public sealed partial class DjvuDocument
             return result;
         }
 
-        // The foreground colors inside the rectangle as one RGB image, each pixel its palette color (black where no
-        // shape lies, which the page mask hides).
+        // The foreground colors inside the rectangle as one RGB image, each pixel its palette color. Pixels no shape
+        // covers take the nearest shape color so a viewer that smooths the image never averages black into an edge.
         void DrawPaletteImage((int Left, int Top, int Right, int Bottom) box)
         {
             int w = box.Right - box.Left, h = box.Bottom - box.Top;
-            var rgb = new byte[3L * w * h];
-            for (int y = 0; y < h; y++)
-            {
-                token.ThrowIfCancellationRequested();
-                for (int x = 0; x < w; x++)
-                {
-                    int px = box.Left + x, py = box.Top + y;
-                    if (!Masked(px, py)) continue;
-                    int rank = layers.Index(px, py);
-                    long at = 3L * (y * w + x);
-                    for (int channel = 0; channel < 3; channel++) rgb[at + channel] = encoded[layers.Palette[3 * rank + channel]];
-                }
-            }
+            var rgb = BuildPaletteRgb(w, h, (x, y) => Masked(box.Left + x, box.Top + y),
+                (x, y) => layers.Index(box.Left + x, box.Top + y), layers.Palette, encoded, token);
             content.DrawImage(PdfImage.FromRgb(w, h, rgb), box.Left * scale, (height - box.Bottom) * scale, w * scale, h * scale);
         }
 
@@ -161,6 +150,61 @@ public sealed partial class DjvuDocument
             return new PdfGraphicsState(softMask: new PdfSoftMask(form, PdfSoftMaskSubtype.Luminosity,
                 new PdfSoftMaskBackdrop(0)));
         }
+    }
+
+    // The RGB samples of a merged foreground, row by row. A masked pixel holds its palette color (through the eight-bit
+    // sRGB table). Every other pixel holds the color of the nearest masked pixel in its row (the left one on a tie),
+    // and a row with no masked pixel copies the nearest row that has one, so a viewer that averages the image while
+    // scaling it never pulls black into a glyph edge. The page mask still hides every unmasked pixel.
+    internal static byte[] BuildPaletteRgb(int w, int h, Func<int, int, bool> masked, Func<int, int, int> rank,
+        byte[] palette, byte[] encoded, CancellationToken token)
+    {
+        var rgb = new byte[3L * w * h];
+        var nearest = new int[w];
+        var rowHasShape = new bool[h];
+        for (int y = 0; y < h; y++)
+        {
+            token.ThrowIfCancellationRequested();
+            int last = -1;
+            for (int x = 0; x < w; x++)
+            {
+                if (masked(x, y)) last = x;
+                nearest[x] = last;
+            }
+            if (last < 0) continue;
+            rowHasShape[y] = true;
+            // Right to left, taking the right neighbor only where it is strictly closer than the left one.
+            int next = -1;
+            for (int x = w - 1; x >= 0; x--)
+            {
+                if (nearest[x] == x) next = x;
+                else if (next >= 0 && (nearest[x] < 0 || next - x < x - nearest[x])) nearest[x] = next;
+            }
+            for (int x = 0; x < w; x++)
+            {
+                int source = nearest[x];
+                int shape = rank(source, y);
+                long at = 3L * (y * w + x);
+                for (int channel = 0; channel < 3; channel++) rgb[at + channel] = encoded[palette[3 * shape + channel]];
+            }
+        }
+        int above = -1;
+        var copyFrom = new int[h];
+        for (int y = 0; y < h; y++)
+        {
+            if (rowHasShape[y]) above = y;
+            copyFrom[y] = above;
+        }
+        int below = -1;
+        for (int y = h - 1; y >= 0; y--)
+        {
+            if (rowHasShape[y]) below = y;
+            else if (below >= 0 && (copyFrom[y] < 0 || below - y < y - copyFrom[y])) copyFrom[y] = below;
+        }
+        for (int y = 0; y < h; y++)
+            if (!rowHasShape[y] && copyFrom[y] >= 0)
+                Array.Copy(rgb, 3L * copyFrom[y] * w, rgb, 3L * y * w, 3L * w);
+        return rgb;
     }
 
     // A color photo page (one color IW44 image at page size, no mask) converts as one RGB image at its stored

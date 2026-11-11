@@ -37,6 +37,29 @@ public sealed class DjvuManyColorPdfConversionTests
         AssertColors(bytes, 500);
     }
 
+    // The merged foreground image holds black where no shape lies, and a viewer that smooths it while scaling averages
+    // that black into a glyph edge. Every pixel must hold a real palette color: the nearest shape in its row (the left
+    // one on a tie), or the nearest row that has a shape.
+    [Fact]
+    public void TheMergedForegroundImageHoldsNoBlackNextToAShape()
+    {
+        // 6 x 4 pixels: rank 0 (yellow) at (2,1) and rank 1 (blue) at (4,1); rows 0, 2 and 3 have no shape.
+        byte[] palette = [255, 255, 0, 0, 0, 255];
+        byte[] identity = [.. Enumerable.Range(0, 256).Select(value => (byte)value)];
+        var shapes = new Dictionary<(int, int), int> { [(2, 1)] = 0, [(4, 1)] = 1 };
+
+        var rgb = DjvuDocument.BuildPaletteRgb(6, 4, (x, y) => shapes.ContainsKey((x, y)),
+            (x, y) => shapes[(x, y)], palette, identity, CancellationToken.None);
+
+        byte[] yellow = [255, 255, 0], blue = [0, 0, 255];
+        // Row 1: left of and at the first shape and the tie between the two shapes are yellow; the rest are blue.
+        byte[][] row = [yellow, yellow, yellow, yellow, blue, blue];
+        for (int y = 0; y < 4; y++)
+            for (int x = 0; x < 6; x++)
+                Assert.True(rgb.AsSpan(3 * (y * 6 + x), 3).SequenceEqual(row[x]),
+                    $"pixel ({x},{y}) is {rgb[3 * (y * 6 + x)]},{rgb[3 * (y * 6 + x) + 1]},{rgb[3 * (y * 6 + x) + 2]}, expected {string.Join(",", row[x])}");
+    }
+
     // Each soft mask is an ExtGState with /S /Luminosity; the builder writes its objects uncompressed.
     private static int SoftMasks(byte[] pdf)
     {
