@@ -117,6 +117,7 @@ namespace KillerPDF.Features
         // Forgets the pages waiting for their areas; a reading still running for them is dropped when it lands.
         private void ForgetLocation()
         {
+            CancelLocation();
             _locator = null;
             _unlocatedPages.Clear();
             _locating.Clear();
@@ -132,16 +133,37 @@ namespace KillerPDF.Features
             else _unlocatedPages.Clear();
         }
 
+        /// <summary>The token the pages being located read under. Tests read it to see a new search stop that work.</summary>
+        internal CancellationToken LocationToken => _locateCancellation?.Token ?? default;
+
+        // One source for the pages being located: a new search, or results that are replaced or cleared, cancel it.
+        private CancellationTokenSource? _locateCancellation;
+
+        private void CancelLocation()
+        {
+            _locateCancellation?.Cancel();
+            _locateCancellation?.Dispose();
+            _locateCancellation = null;
+        }
+
         private void Locate(int page)
         {
             if (_locator is not { } revision || !_unlocatedPages.Contains(page) || !_locating.Add(page)) return;
-            _ = LocateAsync(revision, page, [.. HitsOn(page)], _locateGeneration);
+            _locateCancellation ??= new CancellationTokenSource();
+            _ = LocateAsync(revision, page, [.. HitsOn(page)], _locateGeneration, _locateCancellation.Token);
         }
 
-        private async Task LocateAsync(PdfCapturedReadRevision revision, int page, SearchHit[] hits, int generation)
+        private async Task LocateAsync(PdfCapturedReadRevision revision, int page, SearchHit[] hits, int generation,
+            CancellationToken cancellationToken)
         {
             IReadOnlyList<SearchHit>? located = null;
-            try { located = await Task.Run(() => SearchService.LocateNative(revision, page, hits, CancellationToken.None)); }
+            try { located = await Task.Run(() => SearchService.LocateNative(revision, page, hits, cancellationToken)); }
+            // A new search stopped the reading. The page stays unread, so showing it again reads it then.
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                if (generation == _locateGeneration) _locating.Remove(page);
+                return;
+            }
             // A closed book or a page that cannot be laid out keeps its hits counted, without highlights.
             catch (Exception) { }
             if (generation != _locateGeneration) return;
@@ -297,6 +319,8 @@ namespace KillerPDF.Features
                 // Read here rather than on the worker, so nothing holds the working file open while an
                 // edit rewrites it and the worker searches one version from start to end.
                 FileRevision? revision = Revision(file);
+                // The results on show are about to be replaced, so reading their pages' highlight areas stops.
+                CancelLocation();
                 CurrentSearchSnapshot source = _host.CaptureSearchSnapshot();
                 long editRevision = _host.SearchRevision;
                 _searchedFile = file;

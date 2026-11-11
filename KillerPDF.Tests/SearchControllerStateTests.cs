@@ -44,6 +44,29 @@ public sealed class SearchControllerStateTests
         Assert.Null(host.Tooltip);
     }
 
+    // Reading a hit's highlight areas lays out its page. A new search ends the results those pages belong to, so the
+    // reading stops instead of running on behind it.
+    [Fact]
+    public async Task ANewSearchCancelsTheNativeHighlightReadingOfTheResultsItReplaces()
+    {
+        using var owner = NativeWorkingDocument.OpenEpub(NativeProgressiveOpenTests.Book(), NativeOpenTests.Options());
+        var host = new Host(new CurrentSearchSnapshot([], []) { NativeRevision = owner.CaptureReadRevision() });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("AAAAA");
+        Assert.StartsWith("1 / ", await host.NextText.Task.WaitAsync(Patience));
+        // The count lands before the current hit's page starts being read.
+        using var deadline = new CancellationTokenSource(Patience);
+        while (!controller.LocationToken.CanBeCanceled) await Task.Delay(1, deadline.Token);
+        var reading = controller.LocationToken;
+        Assert.False(reading.IsCancellationRequested);
+
+        host.NextText = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        controller.Run("AAAAA");
+
+        Assert.True(reading.IsCancellationRequested);
+        await host.NextText.Task.WaitAsync(Patience);
+    }
+
     internal sealed class Host(CurrentSearchSnapshot source) : KillerPDF.Features.ISearchHost
     {
         public TaskCompletionSource<string> NextText { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
