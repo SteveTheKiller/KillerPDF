@@ -682,7 +682,7 @@ namespace KillerPDF
             _subsetCombo.Items.Add(S("Str_Print_EvenOnly"));
             _subsetCombo.SelectedIndex = 0;
             _subsetCombo.SelectionChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
-            System.Windows.Automation.AutomationProperties.SetName(_subsetCombo, S("Str_Print_Pages"));
+            System.Windows.Automation.AutomationProperties.SetName(_subsetCombo, S("Str_Print_OddEvenPages"));
             Cell(essentials, " ", _subsetCombo);
 
             var reverseCheck = UiKit.CheckBox(S("Str_Print_Reverse"));

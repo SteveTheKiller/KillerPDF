@@ -318,6 +318,7 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_Print_AllPages">All pages</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Odd pages only</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Even pages only</sys:String>
+    <sys:String x:Key="Str_Print_OddEvenPages">Odd or even pages</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Invert document colors</sys:String>
     <sys:String x:Key="Str_TT_DocInvert">Invert document colors (N)</sys:String>
     <sys:String x:Key="Str_TT_SplitPane">Split pane: two documents side by side (F10)</sys:String>

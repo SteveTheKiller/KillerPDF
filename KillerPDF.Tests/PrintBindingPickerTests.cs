@@ -25,6 +25,15 @@ public sealed class PrintBindingPickerTests
         Assert.True(restored >= 0 && shown > restored);
     }
 
+    // UI2-006: the all, odd or even picker had the range box's name, so a screen reader said Pages twice.
+    [Fact]
+    public void TheOddEvenPickerHasItsOwnAccessibleName()
+    {
+        string source = Preview();
+        Assert.Contains("SetName(_subsetCombo, S(\"Str_Print_OddEvenPages\"))", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetName(_subsetCombo, S(\"Str_Print_Pages\"))", source, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void LoadedPagesAreMatchedAgainstTheSheetActuallyShown()
     {
