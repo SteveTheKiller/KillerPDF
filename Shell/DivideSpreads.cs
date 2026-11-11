@@ -42,6 +42,7 @@ namespace KillerPDF.Shell
             var burn = marked.ToDictionary(page => page, page => _annotations[page]);
             var dims = new Dictionary<int, (int w, int h)>(_renderDims);
             int[] descending = [.. pages.OrderByDescending(page => page)];
+            int skippedPictures = 0;
             try
             {
                 ReloadWithRemappedAnnotations(
@@ -59,7 +60,10 @@ namespace KillerPDF.Shell
                         finalizeSavedFile: path =>
                         {
                             if (burn.Count > 0)
+                            {
                                 PdfEngineBurn.Burn(path, burn, dims, rotations: rotations);
+                                skippedPictures = PdfEngineBurn.SkippedPictures;
+                            }
                             PdfEngineIntegration.ApplyPageRotations(path, rotations);
                             PdfEngineIntegration.DivideSpreads(path, requests);
                         },
@@ -70,7 +74,9 @@ namespace KillerPDF.Shell
                         },
                         selectedPageAfterReload: pages[0],
                         documentUndo: documentUndo));
-                SetStatus(string.Format(Loc("Str_Divide_Done"), pages.Length, pages.Length * 2));
+                SetStatus(Services.PicturesSkippedNote.Append(
+                    string.Format(Loc("Str_Divide_Done"), pages.Length, pages.Length * 2),
+                    skippedPictures, Loc("Str_Save_PicturesSkipped")));
             }
             catch (Exception ex)
             {

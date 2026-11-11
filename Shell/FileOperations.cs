@@ -1663,6 +1663,7 @@ namespace KillerPDF.Shell
             try
             {
                 bool hasAnnotations = _annotations.Values.Any(list => list.Count > 0);
+                _lastSaveSkippedPictures = 0;
                 Dictionary<int, int> finalRotations = SnapshotPageRotations();
                 if (hasAnnotations || HasActiveStamps)   // #147: stamps alone must still burn
                 {
@@ -1721,12 +1722,16 @@ namespace KillerPDF.Shell
             }
             catch (Exception ex)
             {
+                _lastSaveSkippedPictures = 0;   // a failed save must not lend its count to the next one
                 KillerDialog.Show(this, Loc("Str_Err_SaveFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         // Pictures the last save could not read and left out, reported once with that save.
         private int _lastSaveSkippedPictures;
+
+        // The same count for the last saved copy written to a temporary file (WriteSavedCopyToTemp).
+        private int _lastCopySkippedPictures;
 
         // The tail of every save. A file that lost its protection says so and stops counting as
         // protected (#149), and a field that could not take a value is named with the save.
@@ -1744,8 +1749,7 @@ namespace KillerPDF.Shell
                 _protection = OpenedProtection.None;
             }
             if (viewer.ProofPreferenceNoticeKeyExt is { } notice) status += " " + Loc(notice);
-            if (_lastSaveSkippedPictures > 0)
-                status += " " + string.Format(Loc("Str_Save_PicturesSkipped"), _lastSaveSkippedPictures);
+            status = Services.PicturesSkippedNote.Append(status, _lastSaveSkippedPictures, Loc("Str_Save_PicturesSkipped"));
             _lastSaveSkippedPictures = 0;
             SetStatus(WithFieldsThatKeptTheirValue(status, viewer.FieldsThatKeptTheirValueRef));
         }
@@ -1891,6 +1895,7 @@ namespace KillerPDF.Shell
             try
             {
                 bool hasAnnotations = _annotations.Values.Any(list => list.Count > 0);
+                _lastSaveSkippedPictures = 0;
                 Dictionary<int, int> finalRotations = SnapshotPageRotations();
                 if (hasAnnotations || HasActiveStamps)   // #147: stamps alone must still burn
                 {
@@ -1954,6 +1959,7 @@ namespace KillerPDF.Shell
             }
             catch (Exception ex)
             {
+                _lastSaveSkippedPictures = 0;   // a failed save must not lend its count to the next one
                 KillerDialog.Show(this, Loc("Str_Err_SaveFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1991,6 +1997,7 @@ namespace KillerPDF.Shell
             var source = ActiveViewer;
             var proof = source.DocumentProofView?.CaptureProof().Settings;
             string snapshot = WriteSavedCopyToTemp();
+            int skippedPictures = _lastCopySkippedPictures;
             ProtectedDocumentFiles.Publish(snapshot, outputPath, _protection);
             var other = ReferenceEquals(source, Viewer) ? ViewerB : Viewer;
             bool otherEmpty = !other.SessionsRef.Any(session => session.Doc is not null
@@ -1998,6 +2005,10 @@ namespace KillerPDF.Shell
             var target = _isSplit && otherEmpty ? other : source;
             FocusPane(target);
             target.OpenInNewTabExt(outputPath, proof);
+            if (skippedPictures > 0)
+                SetStatus(Services.PicturesSkippedNote.Append(
+                    string.Format(Loc("Str_St_SavedTo"), System.IO.Path.GetFileName(outputPath)),
+                    skippedPictures, Loc("Str_Save_PicturesSkipped")));
         }
 
         private Dictionary<int, int> SnapshotPageRotations()
@@ -2043,6 +2054,7 @@ namespace KillerPDF.Shell
                     () => overlay = ShowFlattenProgress(_doc.PageCount, Loc("Str_Busy_FlattenPage"), () => _busyCts?.Cancel()),
                     async () => await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background),
                     () => WriteSavedCopyToTemp(forRasterization: true));
+                int flattenSkippedPictures = _lastCopySkippedPictures;
                 if (ct.IsCancellationRequested) { SetStatus(Loc("Str_St_FlattenCanceled")); return; }
                 Border shown = overlay!;
 
@@ -2066,7 +2078,9 @@ namespace KillerPDF.Shell
                     ct, incomplete));
 
                 if (ct.IsCancellationRequested) { SetStatus(Loc("Str_St_FlattenCanceled")); return; }
-                SetStatus(string.Format(Loc("Str_St_FlattenedSaved"), System.IO.Path.GetFileName(outputPath)));
+                SetStatus(Services.PicturesSkippedNote.Append(
+                    string.Format(Loc("Str_St_FlattenedSaved"), System.IO.Path.GetFileName(outputPath)),
+                    flattenSkippedPictures, Loc("Str_Save_PicturesSkipped")));
                 WarnIncompletePages(incomplete);
             }
             catch (OperationCanceledException ex) when (ct.IsCancellationRequested

@@ -51,6 +51,7 @@ namespace KillerPDF.Shell
             try
             {
                 string source = WriteSavedCopyToTemp();
+                int skippedPictures = _lastCopySkippedPictures;
                 ct = BeginCancellableOp(Loc("Str_Reduce_Title"));
                 started = true;
                 busy = ShowBusyOverlay(Loc("Str_Reduce_Working"));
@@ -68,9 +69,10 @@ namespace KillerPDF.Shell
                 OpenedProtection protection = _protection;
                 var (before, after, resampled, repairs) = await Task.Run(
                     () => ProtectedDocumentFiles.ReduceSize(source, output, working, images, ct, protection), ct);
-                SetStatus(string.Format(Loc("Str_Reduce_Done"), System.IO.Path.GetFileName(output),
+                SetStatus(Services.PicturesSkippedNote.Append(string.Format(Loc("Str_Reduce_Done"), System.IO.Path.GetFileName(output),
                     Megabytes(before), Megabytes(after), resampled)
-                    + (repairs.Count > 0 ? " " + Loc("Str_Save_ReferenceRepairs") : ""));
+                    + (repairs.Count > 0 ? " " + Loc("Str_Save_ReferenceRepairs") : ""),
+                    skippedPictures, Loc("Str_Save_PicturesSkipped")));
             }
             catch (OperationCanceledException)
             {
@@ -110,10 +112,12 @@ namespace KillerPDF.Shell
                 PdfEngineIntegration.StripLinkAppearances(clean);
                 System.IO.File.Copy(clean, copy, true);
                 PdfEngineIntegration.ClearInvalidatedSignatures(copy);
+                _lastCopySkippedPictures = 0;
                 if (_annotations.Values.Any(list => list.Count > 0) || HasActiveStamps)
                 {
                     PdfEngineBurn.Burn(copy, _annotations, _renderDims, _docStampSpec, null, _pageRotations,
                         forRasterization: forRasterization, measurementsAsAnnotations: true, flattenEditing: flattenEditing);
+                    _lastCopySkippedPictures = PdfEngineBurn.SkippedPictures;
                     PdfEngineIntegration.StripLinkAppearances(copy);
                 }
                 WriteFormValuesToDocument(copy);
