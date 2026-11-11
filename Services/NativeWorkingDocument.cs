@@ -26,7 +26,8 @@ internal sealed class NativeWorkingDocument : IDisposable
         CancellationToken cancellationToken = default)
     {
         byte[] captured = CaptureSource(source, cancellationToken);
-        return new NativeWorkingDocument(captured, PdfReadSnapshot.OpenDjvu(captured, cancellationToken));
+        // The captured copy is ours alone and never changes, so the engine reads pages from it without another copy.
+        return new NativeWorkingDocument(captured, PdfReadSnapshot.OpenDjvuOwned(captured, cancellationToken));
     }
 
     internal static NativeWorkingDocument OpenEpub(ReadOnlyMemory<byte> source, EpubLayoutOptions options,
@@ -152,7 +153,7 @@ internal sealed class NativeWorkingDocument : IDisposable
                 throw new NotSupportedException("DjVu conversion requires a DjVu document.");
             source = _source;
         }
-        return DjvuDocument.Open(source, cancellationToken).ConvertToPdf(new DjvuPdfConversionOptions
+        return DjvuDocument.OpenOwned(source, cancellationToken).ConvertToPdf(new DjvuPdfConversionOptions
         {
             JpegEncoder = (pixels, width, height, components, quality) =>
                 PdfImageJpeg.EncodePhoto(pixels, width, height, components, quality, cancellationToken),

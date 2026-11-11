@@ -31,12 +31,28 @@ public sealed partial class DjvuDocument
         _includes = includes ?? new(StringComparer.Ordinal);
     }
 
+    /// <summary>
+    /// Opens as <see cref="Open"/> does, taking <paramref name="ownedData"/> itself instead of copying it. The caller
+    /// hands the array over and must not change it afterwards: the document reads its pages from it.
+    /// </summary>
+    public static DjvuDocument OpenOwned(byte[] ownedData, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ownedData);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (ownedData.Length > 64 * 1024 * 1024) throw new InvalidDataException("DjVu input exceeds the 64 MiB limit.");
+        return OpenCore(ownedData, cancellationToken);
+    }
+
     /// <summary>Opens metadata with limits of 64 MiB, 65536 chunks, 4096 pages and 100 million pixels per page. Resolutions outside 25 to 6000 DPI read as 300.</summary>
     public static DjvuDocument Open(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (data.Length > 64 * 1024 * 1024) throw new InvalidDataException("DjVu input exceeds the 64 MiB limit.");
-        var ownedData = data.ToArray();
+        return OpenCore(data.ToArray(), cancellationToken);
+    }
+
+    private static DjvuDocument OpenCore(byte[] ownedData, CancellationToken cancellationToken)
+    {
         var span = ownedData.AsSpan();
         if (span.Length < 16 || !span[..8].SequenceEqual("AT&TFORM"u8))
             throw new InvalidDataException("Expected an AT&T FORM container.");

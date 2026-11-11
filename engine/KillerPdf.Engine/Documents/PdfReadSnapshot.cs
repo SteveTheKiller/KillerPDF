@@ -74,10 +74,27 @@ public sealed partial class PdfReadSnapshot
         cancellationToken.ThrowIfCancellationRequested();
         if (bytes.Length > 64 * 1024 * 1024)
             throw new InvalidDataException("DjVu input exceeds the 64 MiB limit.");
-        var document = DjvuDocument.Open(bytes, cancellationToken);
+        return FromDjvu(DjvuDocument.Open(bytes, cancellationToken), cancellationToken);
+    }
+
+    private static PdfReadSnapshot FromDjvu(DjvuDocument document, CancellationToken cancellationToken)
+    {
         if (document.Pages.Count == 0)
             throw new NotSupportedException("The DjVu container has no local pages available for reading.");
         return new PdfReadSnapshot(document, document.SourceSha256, cancellationToken);
+    }
+
+    /// <summary>
+    /// Opens as <see cref="OpenDjvu"/> does, taking <paramref name="ownedBytes"/> itself instead of copying it. The
+    /// caller hands the array over and must not change it afterwards.
+    /// </summary>
+    public static PdfReadSnapshot OpenDjvuOwned(byte[] ownedBytes, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ownedBytes);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (ownedBytes.Length > 64 * 1024 * 1024)
+            throw new InvalidDataException("DjVu input exceeds the 64 MiB limit.");
+        return FromDjvu(DjvuDocument.OpenOwned(ownedBytes, cancellationToken), cancellationToken);
     }
 
     private readonly EpubLayoutDocument? _layout;
