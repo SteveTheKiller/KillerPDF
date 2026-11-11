@@ -42,9 +42,10 @@ public sealed partial class DjvuDocument
                     text = ReadTextPage(pageIndex, cancellationToken);
                     foreach (var notice in text.Diagnostics) diagnostics.Add(notice);
                 }
-                catch (InvalidDataException error)
+                catch (Exception error) when (error is InvalidDataException or NotSupportedException or ArgumentException
+                    or OverflowException)
                 {
-                    // A malformed text layer costs only that page's text; the page image still converts.
+                    // A malformed or unsupported text layer costs only that page's text; the page image still converts.
                     text = new DjvuTextPage(string.Empty, []);
                     diagnostics.Add(TextLeftOut(pageIndex, error.Message));
                 }

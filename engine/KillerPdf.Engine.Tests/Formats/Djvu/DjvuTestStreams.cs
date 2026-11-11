@@ -191,10 +191,12 @@ internal static class DjvuTestStreams
     /// <summary>A bundled document whose directory lists each component's ID and kind (0 include, 1 page, 3 annotations).</summary>
     internal static byte[] Bundle(params (string Id, int Kind, byte[] Form)[] components)
     {
+        // A component FORM that ends the file may lack its pad byte; inside a bundle every component is padded.
+        components = [.. components.Select(c => (c.Id, c.Kind, Padded(c.Form)))];
         var decoded = new List<byte>();
         foreach (var (_, _, form) in components)
         {
-            int length = form.Length - (form.Length % 2 == 1 ? 1 : 0);
+            int length = 8 + System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(form.AsSpan(4));
             decoded.AddRange([(byte)(length >> 16), (byte)(length >> 8), (byte)length]);
         }
         foreach (var (_, kind, _) in components) decoded.Add((byte)kind);
@@ -211,6 +213,12 @@ internal static class DjvuTestStreams
             offset += components[i].Form.Length;
         }
         return [.. "AT&T"u8, .. Form("DJVM", [Chunk("DIRM", directory), .. components.Select(c => c.Form)])];
+    }
+
+    private static byte[] Padded(byte[] form)
+    {
+        int length = System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(form.AsSpan(4));
+        return [.. form.AsSpan(0, 8 + length), .. (length % 2 == 1 ? new byte[1] : [])];
     }
 
     // The Sjbz payload of DjvuJb2Tests.NestedDictionaryBundle's page: it requires a shared dictionary of two shapes
