@@ -1027,8 +1027,11 @@ public sealed partial class PdfPageRenderer
             if (profile is not null && profile.HasSameIdentity(working.InkTransform)) profile = null;
             // Row ranges share one cache, so an ink that appears in several of them is converted once.
             // Past the cap an ink is converted again each time rather than held, which bounds the memory.
-            var converted = new System.Collections.Concurrent.ConcurrentDictionary<uint, Lazy<(float Red, float Green, float Blue)>>();
-            const int cacheCap = 1 << 20;
+            // The conversion is pure, so two ranges that race on one ink may both convert it; one result is kept.
+            // Entries are counted in an int, because a ConcurrentDictionary's Count takes every bucket lock.
+            var converted = new System.Collections.Concurrent.ConcurrentDictionary<uint, (float Red, float Green, float Blue)>();
+            const int cacheCap = 1 << 16;
+            int entries = 0;
             (float Red, float Green, float Blue) Convert(uint ink)
             {
                 conversionObserver?.Invoke();
@@ -1057,9 +1060,13 @@ public sealed partial class PdfPageRenderer
                     uint ink = ReadInk(inkData, offset);
                     if (!hasLast || ink != lastInk)
                     {
-                        if (converted.TryGetValue(ink, out var known)) last = known.Value;
-                        else if (converted.Count >= cacheCap) last = Convert(ink);
-                        else last = converted.GetOrAdd(ink, key => new Lazy<(float, float, float)>(() => Convert(key))).Value;
+                        if (!converted.TryGetValue(ink, out last))
+                        {
+                            last = Convert(ink);
+                            // Reserve a slot before adding, so the cap holds however the row ranges interleave.
+                            if (Interlocked.Increment(ref entries) > cacheCap || !converted.TryAdd(ink, last))
+                                Interlocked.Decrement(ref entries);
+                        }
                         lastInk = ink;
                         hasLast = true;
                     }
