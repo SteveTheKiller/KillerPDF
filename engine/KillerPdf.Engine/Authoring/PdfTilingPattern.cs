@@ -1,6 +1,7 @@
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Parsing;
 
 namespace KillerPdf.Engine.Authoring;
 
@@ -22,11 +23,12 @@ public sealed class PdfTilingPattern
         VerticalStep = NonZero(verticalStep ?? height, nameof(verticalStep));
         if (!Enum.IsDefined(tilingType)) throw new ArgumentOutOfRangeException(nameof(tilingType));
         if (!Enum.IsDefined(paintType)) throw new ArgumentOutOfRangeException(nameof(paintType));
-        if (paintType == PdfTilingPatternPaintType.Uncolored && content.HasColorOperators)
+        if (paintType == PdfTilingPatternPaintType.Uncolored
+            && (content.HasColorOperators || NestedFormsSelectColors(content)))
             throw new ArgumentException(
                 "An uncolored tiling pattern cannot contain color-selection or shading operators.",
                 nameof(content));
-        if (paintType == PdfTilingPatternPaintType.Uncolored && ContainsImageAsset(content))
+        if (paintType == PdfTilingPatternPaintType.Uncolored && ContainsImage(content))
             throw new ArgumentException(
                 "An uncolored tiling pattern cannot contain colored image assets.", nameof(content));
         if (content.MarkedContentIds.Count > 0)
@@ -96,34 +98,62 @@ public sealed class PdfTilingPattern
     internal IReadOnlyDictionary<PdfIndexedColorSpace, PdfName> IndexedColorSpaces { get; }
     internal IReadOnlyDictionary<PdfCalibratedColorSpace, PdfName> CalibratedColorSpaces { get; }
 
-    private static bool ContainsImageAsset(PdfContentStreamBuilder content)
+    // Images inside an uncolored cell carry their own colors, nested forms and patterns included.
+    private static bool ContainsImage(PdfContentStreamBuilder content)
     {
-        if (content.AssetResources.Count > 0) return true;
-        var pending = new Stack<PdfFormXObject>(content.FormResources.Keys);
-        var visited = new HashSet<PdfFormXObject>();
-        var patterns = new Stack<PdfTilingPattern>(content.PatternResources.Keys);
-        var visitedPatterns = new HashSet<PdfTilingPattern>();
-        while (pending.Count > 0 || patterns.Count > 0)
+        if (content.AssetResources.Count > 0 || content.ImageResources.Count > 0) return true;
+        foreach (object nested in NestedContent(content))
+            if (nested is PdfFormXObject { Assets.Count: > 0 } or PdfFormXObject { Images.Count: > 0 }
+                or PdfTilingPattern { Assets.Count: > 0 } or PdfTilingPattern { Images.Count: > 0 })
+                return true;
+        return false;
+    }
+
+    // The builder tracks color operators for the cell itself, but a nested form keeps only its encoded content.
+    private static bool NestedFormsSelectColors(PdfContentStreamBuilder content)
+    {
+        foreach (object nested in NestedContent(content))
         {
-            if (pending.TryPop(out var form))
+            if (nested is PdfFormXObject { Shadings.Count: > 0 } or PdfTilingPattern { Shadings.Count: > 0 })
+                return true;
+            byte[]? encoded = nested switch
             {
-                if (!visited.Add(form)) continue;
-                if (form.Assets.Count > 0) return true;
-                foreach (var nested in form.Forms.Keys) pending.Push(nested);
-                foreach (var pattern in form.Patterns.Keys) patterns.Push(pattern);
-            }
-            else
-            {
-                var pattern = patterns.Pop();
-                if (!visitedPatterns.Add(pattern)) continue;
-                if (pattern.Assets.Count > 0) return true;
-                foreach (var nested in pattern.Forms.Keys) pending.Push(nested);
-                foreach (var nested in pattern.Patterns.Keys) patterns.Push(nested);
-            }
+                PdfFormXObject form => form.Content,
+                PdfTilingPattern pattern => pattern.Content,
+                _ => null
+            };
+            if (encoded is null) continue;
+            foreach (PdfContentInstruction instruction in PdfContentStreamReader.Read(encoded))
+                if (instruction.Operator is "g" or "G" or "rg" or "RG" or "k" or "K" or "cs" or "CS"
+                    or "sc" or "SC" or "scn" or "SCN" or "sh")
+                    return true;
         }
         return false;
     }
 
+    // Every form and pattern reachable from the cell, each visited once.
+    private static IEnumerable<object> NestedContent(PdfContentStreamBuilder content)
+    {
+        var pending = new Stack<object>();
+        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        foreach (PdfFormXObject form in content.FormResources.Keys) pending.Push(form);
+        foreach (PdfTilingPattern pattern in content.PatternResources.Keys) pending.Push(pattern);
+        while (pending.TryPop(out object? item))
+        {
+            if (!visited.Add(item)) continue;
+            yield return item;
+            if (item is PdfFormXObject form)
+            {
+                foreach (PdfFormXObject nested in form.Forms.Keys) pending.Push(nested);
+                foreach (PdfTilingPattern nested in form.Patterns.Keys) pending.Push(nested);
+            }
+            else if (item is PdfTilingPattern pattern)
+            {
+                foreach (PdfFormXObject nested in pattern.Forms.Keys) pending.Push(nested);
+                foreach (PdfTilingPattern nested in pattern.Patterns.Keys) pending.Push(nested);
+            }
+        }
+    }
     private static double Positive(double value, string name)
     {
         if (!double.IsFinite(value) || value <= 0) throw new ArgumentOutOfRangeException(name);

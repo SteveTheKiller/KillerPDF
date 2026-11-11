@@ -77,6 +77,50 @@ public sealed class PdfTilingPatternTests
     }
 
     [Fact]
+    public void UncoloredPatternRefusesNestedFormsThatSelectColors()
+    {
+        var colored = new PdfFormXObject(8, 8,
+            new PdfContentStreamBuilder().SetFillRgb(1, 0, 0).Rectangle(0, 0, 8, 8).Fill());
+        var outer = new PdfFormXObject(8, 8, new PdfContentStreamBuilder().DrawForm(colored, 0, 0));
+
+        Assert.Throws<ArgumentException>(() => new PdfTilingPattern(8, 8,
+            new PdfContentStreamBuilder().DrawForm(colored, 0, 0),
+            paintType: PdfTilingPatternPaintType.Uncolored));
+        Assert.Throws<ArgumentException>(() => new PdfTilingPattern(8, 8,
+            new PdfContentStreamBuilder().DrawForm(outer, 0, 0),
+            paintType: PdfTilingPatternPaintType.Uncolored));
+    }
+
+    [Fact]
+    public void UncoloredPatternRefusesImagesDrawnDirectlyOrInsideNestedForms()
+    {
+        PdfImage image = PdfImage.FromRgb(1, 1, new byte[] { 255, 0, 0 });
+        var holder = new PdfFormXObject(8, 8, new PdfContentStreamBuilder().DrawImage(image, 0, 0, 8, 8));
+        var outer = new PdfFormXObject(8, 8, new PdfContentStreamBuilder().DrawForm(holder, 0, 0));
+
+        Assert.Throws<ArgumentException>(() => new PdfTilingPattern(8, 8,
+            new PdfContentStreamBuilder().DrawImage(image, 0, 0, 8, 8),
+            paintType: PdfTilingPatternPaintType.Uncolored));
+        Assert.Throws<ArgumentException>(() => new PdfTilingPattern(8, 8,
+            new PdfContentStreamBuilder().DrawForm(holder, 0, 0),
+            paintType: PdfTilingPatternPaintType.Uncolored));
+        Assert.Throws<ArgumentException>(() => new PdfTilingPattern(8, 8,
+            new PdfContentStreamBuilder().DrawForm(outer, 0, 0),
+            paintType: PdfTilingPatternPaintType.Uncolored));
+    }
+
+    [Fact]
+    public void UncoloredPatternStillAcceptsNestedFormsThatOnlyPaintShapes()
+    {
+        var shape = new PdfFormXObject(8, 8, new PdfContentStreamBuilder().Rectangle(1, 1, 6, 6).Fill());
+
+        var stencil = new PdfTilingPattern(8, 8, new PdfContentStreamBuilder().DrawForm(shape, 0, 0),
+            paintType: PdfTilingPatternPaintType.Uncolored);
+
+        Assert.Equal(PdfTilingPatternPaintType.Uncolored, stencil.PaintType);
+    }
+
+    [Fact]
     public void Build_WritesUncoloredStencilWithDeviceCmykBaseColor()
     {
         var stencil = new PdfTilingPattern(6, 6,
