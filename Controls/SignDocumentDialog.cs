@@ -57,9 +57,13 @@ namespace KillerPDF
         // Localized string from the active locale dictionary (falls back to the key if missing).
         private static string L(string key) => Application.Current.TryFindResource(key) as string ?? key;
 
+        // Pictures the signed copy left out because they could not be read, said in the result message.
+        private readonly int _skippedPictures;
+
         public SignDocumentDialog(Window? owner, string sourcePdf, string? suggestedSource = null,
-            string? suggestedName = null)
+            string? suggestedName = null, int skippedPictures = 0)
         {
+            _skippedPictures = skippedPictures;
             _sourcePdf = sourcePdf;
             _suggestedSource = suggestedSource ?? sourcePdf;
             _suggestedName = suggestedName;
@@ -395,7 +399,8 @@ namespace KillerPDF
                 Mouse.OverrideCursor = null;
             }
 
-            KillerDialog.Show(this, L("Str_Dlg_SignedSavedTo") + "\n" + output, L("Str_Sign_Name"), MessageBoxButton.OK, MessageBoxImage.Information);
+            KillerDialog.Show(this, KillerPDF.Services.PicturesSkippedNote.Append(L("Str_Dlg_SignedSavedTo") + "\n" + output,
+                _skippedPictures, L("Str_Save_PicturesSkipped")), L("Str_Sign_Name"), MessageBoxButton.OK, MessageBoxImage.Information);
             DialogResult = true;
             Close();
         }

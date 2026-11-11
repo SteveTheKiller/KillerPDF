@@ -200,9 +200,12 @@ public partial class MainWindow
         PdfDataMergePlan plan;
         PdfDataMergeOutputMode outputMode;
         string? snapshot = null;
+        int skippedPictures = 0;
         try
         {
-            snapshot = CreateOutputSnapshot();
+            SavedCopy templateCopy = CreateOutputSnapshot();
+            snapshot = templateCopy.Path;
+            skippedPictures = templateCopy.SkippedPictures;
             templateBytes = File.ReadAllBytes(snapshot);
             var template = PdfDocument.Open(templateBytes);
             var settings = new DataMergeDialog(this, template, records, Path.GetFileName(outputDialog.FileName));
@@ -253,8 +256,8 @@ public partial class MainWindow
             HideBusyOverlay(busy);
             SetStatus(token.IsCancellationRequested
                 ? Loc("Str_DataMerge_Canceled")
-                : string.Format(Loc("Str_DataMerge_Complete"),
-                    report.SucceededRecords, report.FailedRecords));
+                : Services.PicturesSkippedNote.Append(string.Format(Loc("Str_DataMerge_Complete"),
+                    report.SucceededRecords, report.FailedRecords), skippedPictures, Loc("Str_Save_PicturesSkipped")));
             new DocumentReportDialog(this, Loc("Str_DocumentTools_DataMerge"),
                 report.ToText()).ShowDialog();
         }

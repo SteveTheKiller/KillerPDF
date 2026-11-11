@@ -11,7 +11,7 @@ namespace KillerPDF;
 
 internal enum GuidedTaskKind { Email, Scan, Privacy, Form }
 internal sealed record GuidedTaskRequest(GuidedTaskKind Kind, string Output, bool Flatten, bool Ocr, bool Search);
-internal sealed record GuidedTaskResult(string Path, long Before, long After);
+internal sealed record GuidedTaskResult(string Path, long Before, long After, int SkippedPictures = 0);
 
 internal sealed class GuidedTasksDialog : Window
 {
@@ -123,7 +123,9 @@ internal sealed class GuidedTasksDialog : Window
             GuidedTaskResult result = await _execute(this, Request, new Progress<string>(value =>
             { if (ReferenceEquals(_cancellation, cancellation) && !cancellation.IsCancellationRequested) _status.Text = value; }), cancellation.Token);
             _completed = result.Path;
-            _status.Text = string.Format(CultureInfo.CurrentCulture, L("Str_Guided_Complete"), result.Path, Size(result.Before), Size(result.After));
+            _status.Text = KillerPDF.Services.PicturesSkippedNote.Append(
+                string.Format(CultureInfo.CurrentCulture, L("Str_Guided_Complete"), result.Path, Size(result.Before), Size(result.After)),
+                result.SkippedPictures, L("Str_Save_PicturesSkipped"));
             _open.Visibility = Visibility.Visible;
         }
         catch (OperationCanceledException) { _status.Text = L("Str_St_Canceled"); _run.Content = L("Str_Guided_Retry"); }

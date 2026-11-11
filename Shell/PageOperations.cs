@@ -87,10 +87,13 @@ namespace KillerPDF.Shell
             {
                 CommitActiveTextBox();
                 var rotations = SnapshotPageRotations();
-                snapshot = WriteSavedCopyToTemp(throwaway: true);
+                SavedCopy extractCopy = WriteSavedCopyToTemp(throwaway: true);
+                snapshot = extractCopy.Path;
                 PdfEngineIntegration.ExtractPages(
                     snapshot, dlg.FileName, ordered, rotations);
-                SetStatus(string.Format(Loc("Str_Extracted"), ordered.Length, System.IO.Path.GetFileName(dlg.FileName)));
+                SetStatus(extractCopy.Note(
+                    string.Format(Loc("Str_Extracted"), ordered.Length, System.IO.Path.GetFileName(dlg.FileName)),
+                    Loc("Str_Save_PicturesSkipped")));
             }
             catch (Exception ex)
             {

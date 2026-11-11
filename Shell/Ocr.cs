@@ -388,7 +388,9 @@ namespace KillerPDF.Shell
 
         void IOcrHost.SaveDocumentTo(string path)
         {
-            string snapshot = WriteSavedCopyToTemp(forRasterization: true, throwaway: true);
+            // The copy only feeds recognition and is read back, not delivered as an output, so no status can carry
+            // the skipped-picture count; IOcrHost has no result to hand it to.
+            string snapshot = WriteSavedCopyToTemp(forRasterization: true, throwaway: true).Path;
             try { System.IO.File.Copy(snapshot, path, overwrite: true); }
             finally { System.IO.File.Delete(snapshot); }
         }

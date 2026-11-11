@@ -50,8 +50,9 @@ namespace KillerPDF.Shell
             CancellationToken ct = default;
             try
             {
-                string source = WriteSavedCopyToTemp();
-                int skippedPictures = _lastCopySkippedPictures;
+                SavedCopy sourceCopy = WriteSavedCopyToTemp();
+                string source = sourceCopy.Path;
+                int skippedPictures = sourceCopy.SkippedPictures;
                 ct = BeginCancellableOp(Loc("Str_Reduce_Title"));
                 started = true;
                 busy = ShowBusyOverlay(Loc("Str_Reduce_Working"));
@@ -99,7 +100,7 @@ namespace KillerPDF.Shell
         // signed, certified or usage-rights document is refused, because the output stands in for it.
         // Extract Pages and Export pass throwaway: their output is a new file the protection never
         // carries into, so the copy is readied instead.
-        private string WriteSavedCopyToTemp(bool forRasterization = false, bool throwaway = false, bool flattenEditing = false)
+        private SavedCopy WriteSavedCopyToTemp(bool forRasterization = false, bool throwaway = false, bool flattenEditing = false)
         {
             Dictionary<int, int> rotations = SnapshotPageRotations();
             string clean = App.MakeTempFile("reduceclean");
@@ -112,19 +113,19 @@ namespace KillerPDF.Shell
                 PdfEngineIntegration.StripLinkAppearances(clean);
                 System.IO.File.Copy(clean, copy, true);
                 PdfEngineIntegration.ClearInvalidatedSignatures(copy);
-                _lastCopySkippedPictures = 0;
+                int skippedPictures = 0;
                 if (_annotations.Values.Any(list => list.Count > 0) || HasActiveStamps)
                 {
                     PdfEngineBurn.Burn(copy, _annotations, _renderDims, _docStampSpec, null, _pageRotations,
                         forRasterization: forRasterization, measurementsAsAnnotations: true, flattenEditing: flattenEditing);
-                    _lastCopySkippedPictures = PdfEngineBurn.SkippedPictures;
+                    skippedPictures = PdfEngineBurn.SkippedPictures;
                     PdfEngineIntegration.StripLinkAppearances(copy);
                 }
                 WriteFormValuesToDocument(copy);
                 WriteRedactionMarksToDocument(copy);
                 WriteMeasurementsToDocument(copy);
                 PdfEngineIntegration.ApplyPageRotations(copy, rotations);
-                return copy;
+                return new SavedCopy(copy, skippedPictures);
             }
             catch { System.IO.File.Delete(copy); throw; }
             finally { System.IO.File.Delete(clean); }

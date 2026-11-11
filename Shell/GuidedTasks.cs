@@ -47,7 +47,8 @@ public partial class MainWindow
                 string? snapshot = null;
                 try
                 {
-                    snapshot = WriteSavedCopyToTemp();
+                    SavedCopy guidedCopy = WriteSavedCopyToTemp();
+                    snapshot = guidedCopy.Path;
                     byte[] source = await File.ReadAllBytesAsync(snapshot, token);
                     Current(token);
                     byte[] result;
@@ -109,7 +110,7 @@ public partial class MainWindow
                     }
                     Current(token);
                     WriteMacroOutput(destination, result, overwrite, token);
-                    return new(destination, source.LongLength, result.LongLength);
+                    return new(destination, source.LongLength, result.LongLength, guidedCopy.SkippedPictures);
                 }
                 finally { if (snapshot is not null) File.Delete(snapshot); }
             }

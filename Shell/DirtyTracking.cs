@@ -97,17 +97,22 @@ namespace KillerPDF.Shell
             CommitActiveTextBox();
             string suggestedSource = _originalFile ?? _currentFile!;
             string? snapshot = null;
+            int skippedPictures = 0;
             try
             {
                 if (UnchangedDocumentBytes() is not { } unchanged)
-                    snapshot = WriteSavedCopyToTemp();
+                {
+                    SavedCopy signCopy = WriteSavedCopyToTemp();
+                    snapshot = signCopy.Path;
+                    skippedPictures = signCopy.SkippedPictures;
+                }
                 else
                 {
                     // Preserve existing signatures on an unchanged document without rewriting it.
                     snapshot = App.MakeTempFile("signsource");
                     File.Copy(unchanged, snapshot, overwrite: true);
                 }
-                new SignDocumentDialog(this, snapshot, suggestedSource, _suggestedName).ShowDialog();
+                new SignDocumentDialog(this, snapshot, suggestedSource, _suggestedName, skippedPictures).ShowDialog();
             }
             catch (Exception ex)
             {

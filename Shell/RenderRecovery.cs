@@ -88,8 +88,18 @@ namespace KillerPDF.Shell
                                     if (plain)
                                         try { window.WriteRecoveryState(state, session, edit); }
                                         catch (Exception ex) when (ex is not OutOfMemoryException) { backupErrors.Add(ex.Message); }
-                                    string snapshot = pane.WriteRecoverySnapshot(edit, () => window.WriteSavedCopyToTemp());
+                                    int leftOut = 0;
+                                    string snapshot = pane.WriteRecoverySnapshot(edit, () =>
+                                    {
+                                        SavedCopy saved = window.WriteSavedCopyToTemp();
+                                        leftOut = saved.SkippedPictures;
+                                        return saved.Path;
+                                    });
                                     RenderFailureRecovery.WriteCopy(snapshot, copy, route, session.Protection);
+                                    // The recovery dialog has no line for it, so the log records that the copy lacks pictures.
+                                    if (leftOut > 0)
+                                        CrashReporter.Capture(new InvalidDataException(
+                                            $"The recovered copy left out {leftOut} picture(s) that could not be read."), "Recovery copy pictures");
                                 });
                                 recovered.Add(new RecoveredDocument(session.OriginalFile, copy, session.SuggestedName,
                                     session.LoadedRevision, Protected: session.ProtectedSource));

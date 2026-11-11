@@ -127,7 +127,8 @@ public partial class MainWindow
         string? snapshot = null;
         try
         {
-            snapshot = WriteSavedCopyToTemp(flattenEditing: MacroSourceCopy.NeedsAddedTextInPageContent(macro));
+            SavedCopy macroCopy = WriteSavedCopyToTemp(flattenEditing: MacroSourceCopy.NeedsAddedTextInPageContent(macro));
+            snapshot = macroCopy.Path;
             byte[] source = await File.ReadAllBytesAsync(snapshot, token);
             PdfMacroRunReport report = await Task.Run(() => dispatcher.RunReport(
                 macro, [new ReadOnlyMemory<byte>(source)],
@@ -147,7 +148,7 @@ public partial class MainWindow
 
             HideBusyOverlay(busy);
             SetStatus(result.Succeeded && written
-                ? string.Format(Loc("Str_Macro_Complete"), outputDialog.FileName)
+                ? macroCopy.Note(string.Format(Loc("Str_Macro_Complete"), outputDialog.FileName), Loc("Str_Save_PicturesSkipped"))
                 : Loc("Str_Macro_Failed"));
             string reportText = report.ToText() + Environment.NewLine + writeReport;
             if (_macroRedaction.Areas > 0)

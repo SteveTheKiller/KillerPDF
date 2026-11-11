@@ -35,7 +35,8 @@ public partial class MainWindow
         CancellationToken token = BeginCancellableOp(title);
         try
         {
-            snapshot = CreateOutputSnapshot();
+            SavedCopy layoutCopy = CreateOutputSnapshot();
+            snapshot = layoutCopy.Path;
             byte[] source = File.ReadAllBytes(snapshot);
             byte[] result = await Task.Run(() => PdfImpositionMacro.Execute(settings.Step, source, token).ToArray(), token);
             HideBusyOverlay(busy); EndCancellableOp(token);
@@ -49,7 +50,7 @@ public partial class MainWindow
             PdfEngineIntegration.PlanBatchOutputs(sourcePaths.Concat(
                 new[] { _currentFile, _originalFile }.OfType<string>()), picker.FileName);
             PdfEngineIntegration.WriteExchangeFile(picker.FileName, result);
-            SetStatus(string.Format(Loc("Str_Macro_Complete"), picker.FileName));
+            SetStatus(layoutCopy.Note(string.Format(Loc("Str_Macro_Complete"), picker.FileName), Loc("Str_Save_PicturesSkipped")));
         }
         catch (OperationCanceledException) { SetStatus(Loc("Str_Macro_Canceled")); }
         catch (Exception error) { ShowExchangeError(error); }

@@ -257,8 +257,8 @@ public sealed class OutputConsumerAnnotationTests
             Shell("FileOperations.cs"));
 
     [Theory]
-    [InlineData("Macros.cs", "snapshot = WriteSavedCopyToTemp(flattenEditing: MacroSourceCopy.NeedsAddedTextInPageContent(macro));")]
-    [InlineData("MacroDataMerge.cs", "snapshot = WriteSavedCopyToTemp(flattenEditing: MacroSourceCopy.NeedsAddedTextInPageContent(macro));")]
+    [InlineData("Macros.cs", "SavedCopy macroCopy = WriteSavedCopyToTemp(flattenEditing: MacroSourceCopy.NeedsAddedTextInPageContent(macro));")]
+    [InlineData("MacroDataMerge.cs", "SavedCopy mergeCopy = WriteSavedCopyToTemp(flattenEditing: MacroSourceCopy.NeedsAddedTextInPageContent(macro));")]
     public void MacroRunsAskForTheFlattenedCopyOnlyWhenTheirStepsNeedIt(string file, string call) =>
         Assert.Contains(call, Shell(file));
 }

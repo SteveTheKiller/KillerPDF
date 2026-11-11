@@ -33,7 +33,7 @@ public partial class MainWindow
     // Production layouts and Data Merge rebuild pages from their content and do not carry
     // annotations, so KillerPDF's own text and markup are drawn into the page here, as 1.9.2 did,
     // with replaced text still removed; a save keeps added text as editable annotations instead.
-    private string CreateOutputSnapshot()
+    private SavedCopy CreateOutputSnapshot()
     {
         CommitActiveTextBox();
         return WriteSavedCopyToTemp(flattenEditing: true);

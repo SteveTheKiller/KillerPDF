@@ -12,6 +12,7 @@ public partial class MainWindow
     {
         string title = Loc("Str_DocumentTools_Macros");
         string? snapshot = null;
+        int skippedPictures = 0;
         Func<bool> sourceCurrent = CaptureDocumentOrigin();
         try
         {
@@ -69,7 +70,9 @@ public partial class MainWindow
             {
                 if (!EnsureMayWrite(PdfOutput.Printable)) return;
                 CommitActiveTextBox();
-                snapshot = WriteSavedCopyToTemp(flattenEditing: MacroSourceCopy.NeedsAddedTextInPageContent(macro));
+                SavedCopy mergeCopy = WriteSavedCopyToTemp(flattenEditing: MacroSourceCopy.NeedsAddedTextInPageContent(macro));
+                snapshot = mergeCopy.Path;
+                skippedPictures = mergeCopy.SkippedPictures;
             }
             var busy = ShowBusyOverlay(Loc("Str_Macro_Running"));
             CancellationToken token = BeginCancellableOp(title);
@@ -93,7 +96,8 @@ public partial class MainWindow
             }
             catch (OperationCanceledException) { report.AppendLine(Loc("Str_Macro_Canceled")); }
             finally { HideBusyOverlay(busy); EndCancellableOp(token); }
-            new DocumentReportDialog(this, title, report.ToString()).ShowDialog();
+            new DocumentReportDialog(this, title, Services.PicturesSkippedNote.Append(report.ToString().TrimEnd(),
+                skippedPictures, Loc("Str_Save_PicturesSkipped"))).ShowDialog();
         }
         catch (Exception error) when (error is not OutOfMemoryException
             and not StackOverflowException and not AccessViolationException) { ShowExchangeError(error); }

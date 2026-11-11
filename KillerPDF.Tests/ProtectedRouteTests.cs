@@ -267,17 +267,17 @@ public sealed class ProtectedRouteTests : IDisposable
         Assert.DoesNotContain("RepairHarmlessSaveArtifacts(printPath)", print);
 
         // Only extraction, OCR and raster exports request disposable copies.
-        Assert.Matches(@"string WriteSavedCopyToTemp\(bool forRasterization = false, bool throwaway = false, bool flattenEditing = false\)", reduce);
+        Assert.Matches(@"SavedCopy WriteSavedCopyToTemp\(bool forRasterization = false, bool throwaway = false, bool flattenEditing = false\)", reduce);
         Assert.Matches(@"if \(throwaway\) PdfEngineIntegration\.PrepareThrowawayCopy\(clean\);\s*else PdfEngineIntegration\.RepairHarmlessSaveArtifacts\(clean\);", reduce);
         // Reduce, Save Copy, Sign, the macros and the rest keep the refusal: nothing else in the shell asks.
         string[] askers = [.. Directory.EnumerateFiles(Path.Combine(root, "Shell"), "*.cs")
-            .SelectMany(file => Regex.Matches(File.ReadAllText(file), @"(?<!string )WriteSavedCopyToTemp\([^)]*throwaway: true")
+            .SelectMany(file => Regex.Matches(File.ReadAllText(file), @"(?<!SavedCopy )WriteSavedCopyToTemp\([^)]*throwaway: true")
                 .Select(_ => Path.GetFileName(file)))
             .Order()];
         Assert.Equal(["FileOperations.cs", "FileOperations.cs", "Ocr.cs", "PageOperations.cs"], askers);
         Assert.Contains("WriteSavedCopyToTemp(throwaway: true)", pages);
         Assert.Contains("forRasterization: options.OfficeMode == PdfOfficeExportMode.PageImages, throwaway: true", print);
-        Assert.Contains("string source = WriteSavedCopyToTemp();", reduce);
+        Assert.Contains("SavedCopy sourceCopy = WriteSavedCopyToTemp();", reduce);
     }
 
     [Fact]

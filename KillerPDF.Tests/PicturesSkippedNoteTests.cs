@@ -52,7 +52,8 @@ public sealed class PicturesSkippedNoteTests
         string reduce = Source("Shell", "ReduceSize.cs");
         string divide = Source("Shell", "DivideSpreads.cs");
 
-        Assert.Contains("_lastCopySkippedPictures = PdfEngineBurn.SkippedPictures;", reduce);
+        Assert.Contains("skippedPictures = PdfEngineBurn.SkippedPictures;", reduce);
+        Assert.Contains("return new SavedCopy(copy, skippedPictures);", reduce);
         Assert.Contains("PicturesSkippedNote.Append(string.Format(Loc(\"Str_Reduce_Done\")", reduce);
         Assert.Contains("skippedPictures = PdfEngineBurn.SkippedPictures;", divide);
         Assert.Contains("PicturesSkippedNote.Append(", divide);

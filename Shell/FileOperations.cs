@@ -1730,9 +1730,6 @@ namespace KillerPDF.Shell
         // Pictures the last save could not read and left out, reported once with that save.
         private int _lastSaveSkippedPictures;
 
-        // The same count for the last saved copy written to a temporary file (WriteSavedCopyToTemp).
-        private int _lastCopySkippedPictures;
-
         // The tail of every save. A file that lost its protection says so and stops counting as
         // protected (#149), and a field that could not take a value is named with the save.
         private void ReportSaved(string path, bool keptProtection, string plainStatusKey)
@@ -1996,8 +1993,9 @@ namespace KillerPDF.Shell
         {
             var source = ActiveViewer;
             var proof = source.DocumentProofView?.CaptureProof().Settings;
-            string snapshot = WriteSavedCopyToTemp();
-            int skippedPictures = _lastCopySkippedPictures;
+            SavedCopy copy = WriteSavedCopyToTemp();
+            string snapshot = copy.Path;
+            int skippedPictures = copy.SkippedPictures;
             ProtectedDocumentFiles.Publish(snapshot, outputPath, _protection);
             var other = ReferenceEquals(source, Viewer) ? ViewerB : Viewer;
             bool otherEmpty = !other.SessionsRef.Any(session => session.Doc is not null
@@ -2050,11 +2048,12 @@ namespace KillerPDF.Shell
                 operationStarted = true;
                 // Capture forms, annotations, and complete page rotations before rendering.
                 // Saving this temporary copy leaves the editor's dirty state intact.
-                string sourcePath = await BusyCue.ThenRun(
+                SavedCopy flattenCopy = await BusyCue.ThenRun(
                     () => overlay = ShowFlattenProgress(_doc.PageCount, Loc("Str_Busy_FlattenPage"), () => _busyCts?.Cancel()),
                     async () => await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background),
                     () => WriteSavedCopyToTemp(forRasterization: true));
-                int flattenSkippedPictures = _lastCopySkippedPictures;
+                string sourcePath = flattenCopy.Path;
+                int flattenSkippedPictures = flattenCopy.SkippedPictures;
                 if (ct.IsCancellationRequested) { SetStatus(Loc("Str_St_FlattenCanceled")); return; }
                 Border shown = overlay!;
 
@@ -2173,8 +2172,9 @@ namespace KillerPDF.Shell
             string? snapshot = null;
             try
             {
-                snapshot = WriteSavedCopyToTemp(
+                SavedCopy exportCopy = WriteSavedCopyToTemp(
                     forRasterization: options.OfficeMode == PdfOfficeExportMode.PageImages, throwaway: true, flattenEditing: true);
+                snapshot = exportCopy.Path;
                 // The saved copy holds the tab's own bytes, so it reads under the tab's protection.
                 var document = PdfEngineIntegration.OpenForReading(System.IO.File.ReadAllBytes(snapshot), _protection);
                 PdfStructuredExportReport losses = PdfStructuredExport.InspectLosses(document, options.Format, pages, officeMode: options.OfficeMode);
@@ -2190,7 +2190,8 @@ namespace KillerPDF.Shell
                     document, options.Format, pages, cancellationToken: cancellation, officeMode: options.OfficeMode), cancellation);
                 if (cancellation.IsCancellationRequested || !sourceCurrent()) return;
                 await AtomicFileOutput.WriteAsync(destination, output, cancellation);
-                if (sourceCurrent()) SetStatus(string.Format(Loc("Str_ExportDoc_Done"), System.IO.Path.GetFileName(destination)));
+                if (sourceCurrent()) SetStatus(exportCopy.Note(
+                    string.Format(Loc("Str_ExportDoc_Done"), System.IO.Path.GetFileName(destination)), Loc("Str_Save_PicturesSkipped")));
             }
             catch (OperationCanceledException) { }
             catch (Exception ex)
@@ -2277,10 +2278,11 @@ namespace KillerPDF.Shell
             {
                 // Writing the copy blocks the window, on a large file for a long time, so the overlay
                 // shows first.
-                sourcePath = await BusyCue.ThenRun(
+                SavedCopy imagesCopy = await BusyCue.ThenRun(
                     () => overlay = ShowFlattenProgress(selected.Count, Loc("Str_Busy_ExportPage"), () => _busyCts?.Cancel()),
                     async () => await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background),
                     () => WriteSavedCopyToTemp(forRasterization: true, throwaway: true));
+                sourcePath = imagesCopy.Path;
                 string rendered = sourcePath;
                 Border shown = overlay!;
                 // The per-page render/encode/write core lives in Services/PdfRasterize.cs;
@@ -2299,9 +2301,9 @@ namespace KillerPDF.Shell
                         ct, incomplete, approvedOverwrites, nativeDpi is null ? null : page => nativeDpi[page], hold);
                 });
                 string statusKey = PdfRasterize.ExportStatusKey(written, pages.Count, ct.IsCancellationRequested);
-                SetStatus(statusKey == "Str_ExportImg_Done"
+                SetStatus(imagesCopy.Note(statusKey == "Str_ExportImg_Done"
                     ? string.Format(Loc(statusKey), written, outDir)
-                    : string.Format(Loc(statusKey), written, pages.Count, outDir));
+                    : string.Format(Loc(statusKey), written, pages.Count, outDir), Loc("Str_Save_PicturesSkipped")));
                 WarnIncompletePages(incomplete);
             }
             catch (Exception ex)
