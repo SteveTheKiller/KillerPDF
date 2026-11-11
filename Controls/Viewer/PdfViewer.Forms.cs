@@ -175,6 +175,14 @@ namespace KillerPDF.Controls
         internal bool HasSelectedFormField => _currentTool is EditTool.Select or EditTool.FormField
             && !string.IsNullOrEmpty(_selectedFormFieldName);
 
+        /// <summary>Drops this pane's selected form field and the size bar that goes with it. A pane that loses focus to
+        /// the other pane calls this, so a later Delete in it cannot remove a field the user has moved away from.</summary>
+        internal void ClearSelectedFormField()
+        {
+            _selectedFormFieldName = null;
+            HideFormSizeBar();
+        }
+
         // The box that edits the selected field: its text or password box, or null when the selection is a
         // check box, button or other field, when the field is read-only, or when it is not on screen. Only
         // the Select tool edits; the Form Field tool drags its fields.

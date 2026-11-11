@@ -541,6 +541,8 @@ namespace KillerPDF.Shell
             // uses. Without it the sidebar, page count and status line keep describing the pane you
             // just left. Capture before the swap, apply after, or the outgoing pane's scroll and
             // zoom land in the incoming pane's session.
+            // The pane losing focus keeps no selected form field, so a later Delete in it cannot hit one.
+            ActiveViewer.ClearSelectedFormFieldExt();
             ActiveViewer.CaptureActiveIfAny();
             ActiveViewer = pane;
             pane.ApplyActiveSessionIfAny();
