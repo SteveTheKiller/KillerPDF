@@ -83,7 +83,7 @@ public static class PdfOverlayAnnotations
     internal static bool BatchFits(IReadOnlyList<PageAnnotation> annotations)
     {
         if (annotations.Count is 0 or > MaximumRecords) return false;
-        long nodes = 0, estimate = 64 * 1024;
+        long nodes = EnvelopeJsonValues, estimate = 64 * 1024;
         try
         {
             foreach (PageAnnotation annotation in annotations)
@@ -96,7 +96,12 @@ public static class PdfOverlayAnnotations
                     SignatureAnnotation signature => signature.Strokes.Sum(stroke => (long)stroke.Count),
                     _ => 0
                 };
-                nodes += 30 + points * 3;
+                // The values ValidateJson will count for this item: the model as it serializes plus the batch
+                // item's own object, Kind and HistoryId. Counting them rather than assuming a number per item keeps
+                // this an exact match for the writer's limit, whatever fields a model gains.
+                nodes += ItemJsonValues + CountJsonValues(JsonSerializer.SerializeToElement(
+                    annotation, ModelType(Kind(annotation)), Json));
+                if (nodes > MaximumJsonValues) return false;
                 estimate += 1024 + points * 64 + annotation switch
                 {
                     TextAnnotation text => text.Content.Length * 6L,
@@ -113,6 +118,21 @@ public static class PdfOverlayAnnotations
             return exact <= MaximumPayload;
         }
         catch (Exception error) when (Unsupported(error)) { return false; }
+    }
+
+    // The batch item's own values (its object, Kind and HistoryId) and the envelope's (its object, nine fields and the
+    // item array) that surround the models.
+    private const int ItemJsonValues = 3;
+    private const int EnvelopeJsonValues = 11;
+
+    private static long CountJsonValues(JsonElement element)
+    {
+        long count = 1;
+        if (element.ValueKind == JsonValueKind.Object)
+            foreach (JsonProperty property in element.EnumerateObject()) count += CountJsonValues(property.Value);
+        else if (element.ValueKind == JsonValueKind.Array)
+            foreach (JsonElement item in element.EnumerateArray()) count += CountJsonValues(item);
+        return count;
     }
 
     private static long ModelSize(PageAnnotation annotation) =>
