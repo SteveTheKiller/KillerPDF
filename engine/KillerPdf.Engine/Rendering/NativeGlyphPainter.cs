@@ -60,6 +60,11 @@ internal static class NativeGlyphPainter
         else Array.Fill(pixels, 1f);
         long imageWork = 0;
         long markerWork = 0;
+        // Rectangles are charged against their own budget, which grows with the pixels actually rendered: a page can
+        // legitimately stack many page-sized backgrounds, so a fixed count of pixels would fail large pages, while a
+        // multiple of the render size still bounds hostile input (at most 32 full overdraws, 16M pixels at the least).
+        long rectangleWork = 0;
+        long rectangleLimit = Math.Max(16L * 1024 * 1024, pixelCount * 32);
         foreach (var paint in paints)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -74,9 +79,9 @@ internal static class NativeGlyphPainter
                 int topEdge = (int)Math.Clamp(Math.Floor(y0), regionTop, regionBottom);
                 int rightEdge = (int)Math.Clamp(Math.Ceiling(x1), regionLeft, regionRight);
                 int bottomEdge = (int)Math.Clamp(Math.Ceiling(y1), regionTop, regionBottom);
-                imageWork += (long)(rightEdge - leftEdge) * (bottomEdge - topEdge);
-                if (imageWork > 16 * 1024 * 1024)
-                    throw new InvalidDataException("The native page exceeds its image paint work limit.");
+                rectangleWork += (long)(rightEdge - leftEdge) * (bottomEdge - topEdge);
+                if (rectangleWork > rectangleLimit)
+                    throw new InvalidDataException("The native page exceeds its rectangle paint work limit.");
                 for (int y = topEdge; y < bottomEdge; y++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
