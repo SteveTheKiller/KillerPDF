@@ -271,4 +271,29 @@ public sealed class ThumbnailWindowTests
 
         Assert.Equal(1, Volatile.Read(ref attempts));
     }
+
+    // A page the renderer refuses by throwing is tried once more, then settled, so a broken page does not reopen and
+    // parse the file on every later pass.
+    [Fact]
+    public void APageWhoseDrawKeepsThrowingIsDrawnAtMostTwice()
+    {
+        int attempts = 0;
+        using var drained = new SemaphoreSlim(0);
+        using var window = new ThumbnailWindow<string>(100, (page, _) =>
+        {
+            Interlocked.Increment(ref attempts);
+            throw new NotSupportedException("refused");
+        }, (page, image) => { }, retain: 8, drained: () => drained.Release());
+
+        // Two passes draw it; a settled page starts no third pass, so the third request is only given time to act.
+        for (int cycle = 0; cycle < 2; cycle++)
+        {
+            window.Request(3);
+            Assert.True(drained.Wait(TimeSpan.FromSeconds(10)), "The pass did not drain.");
+        }
+        window.Request(3);
+        Thread.Sleep(300);
+
+        Assert.True(Volatile.Read(ref attempts) <= 2, $"The page was drawn {attempts} times.");
+    }
 }

@@ -24,6 +24,9 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
     // Pages whose draw threw. That can be a passing problem, such as a briefly locked file, so unlike a page the
     // renderer refused by returning nothing, these are tried again once the pass has drained.
     private readonly HashSet<int> _threw = [];
+    // How many times each page's draw has thrown in this window. A second throw settles the page as failed, so a
+    // page the engine can never draw does not reopen and parse the file after every pass.
+    private readonly Dictionary<int, int> _throwCounts = [];
     private readonly LinkedList<int> _held = [];          // oldest first
     private readonly Dictionary<int, LinkedListNode<int>> _heldNodes = [];
     private bool _running;
@@ -93,7 +96,15 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
             lock (_sync)
             {
                 _pending.Remove(page);
-                if (image is null && !outOfMemory) (threw ? _threw : _failed).Add(page);
+                if (image is null && !outOfMemory)
+                {
+                    if (threw && _throwCounts.GetValueOrDefault(page) < 1)
+                    {
+                        _throwCounts[page] = 1;
+                        _threw.Add(page);
+                    }
+                    else _failed.Add(page);
+                }
                 if (token.IsCancellationRequested) { _running = false; return; }
                 // A failed draw holds nothing, but it is still published (as null) so a row showing a carried-over
                 // picture from the list it replaced drops it.
