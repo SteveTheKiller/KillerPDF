@@ -790,9 +790,15 @@ internal static class PdfEngineBurn
             catch (FormatException) { return; }
             if (bytes.AsSpan().StartsWith("%PDF-"u8))
             {
-                var asset = PdfAnnotationImageSource.ReadPdfAsset(bytes);
-                content.DrawImage(asset, position.X * sx, position.Y * sy + height * sy,
-                    width * sx, -height * sy);
+                // A PDF picture that cannot be read or placed is skipped, like any other picture that cannot be
+                // drawn, instead of failing the save.
+                try
+                {
+                    var asset = PdfAnnotationImageSource.ReadPdfAsset(bytes);
+                    content.DrawImage(asset, position.X * sx, position.Y * sy + height * sy,
+                        width * sx, -height * sy);
+                }
+                catch { }
                 return;
             }
         }

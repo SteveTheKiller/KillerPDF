@@ -156,4 +156,22 @@ public sealed class SaveMalformedMarkupTests : IDisposable
         Assert.Null(error);
         Assert.Equal(2, PdfPageInformation.Read(PdfDocument.Open(File.ReadAllBytes(path))).Count);
     }
+
+    [Fact]
+    public void AMalformedImageAnnotationIsSkippedNotThrown()
+    {
+        string path = TwoPagePdf("[]", null);
+        // Starts with the PDF signature but is not a PDF.
+        string bad = Convert.ToBase64String(Encoding.ASCII.GetBytes("%PDF-1.7\nthis is not a document"));
+        var image = new ImageAnnotation
+        {
+            PageIndex = 0, Position = new Point(20, 20), SourceWidth = 100, SourceHeight = 100, Scale = 1, ImageData = bad
+        };
+
+        var error = Record.Exception(() => PdfEngineBurn.Burn(path,
+            new Dictionary<int, List<PageAnnotation>> { [0] = [image] }, Dims()));
+
+        Assert.Null(error);
+        Assert.Equal(2, PdfPageInformation.Read(PdfDocument.Open(File.ReadAllBytes(path))).Count);
+    }
 }
