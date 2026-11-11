@@ -33,6 +33,18 @@ namespace KillerPDF.Controls
         /// <summary>The name of the options column's scroller, for tests and acceptance drivers.</summary>
         public const string OptionsScrollerName = "PageWindowOptions";
 
+        /// <summary>
+        /// The size of the page image on a print sheet, given the page's scaled size and the printable
+        /// area. A page within a pixel or so of the area snaps to it plus one bleed pixel, so the white
+        /// sheet does not peek through as a hairline. Any other size is kept and clipped by the sheet.
+        /// </summary>
+        public static (double Width, double Height) PrintedImageBox(double width, double height, double areaWidth, double areaHeight)
+        {
+            if (Math.Abs(width - areaWidth) <= 1.5) width = areaWidth + 1;
+            if (Math.Abs(height - areaHeight) <= 1.5) height = areaHeight + 1;
+            return (width, height);
+        }
+
         /// <summary>The fixed width of the options content: two columns and the gap, or one column.</summary>
         public static double ContentWidth(int columns)
             => columns >= 2 ? 2 * ColumnWidth + ColumnGap : NarrowColumnWidth;

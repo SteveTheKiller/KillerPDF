@@ -473,8 +473,7 @@ namespace KillerPDF
                     if (placement.Rotated) (iw, ih) = (placement.Width, placement.Height);
                     // Snap to the printable area when the page is within a pixel of filling it, so the
                     // white sheet doesn't peek through as a 1px hairline at the page edge (float seam).
-                    if (iw >= (aw - 2 * m) - 1.5) iw = aw - 2 * m + 1;   // +1 bleed: covers the right hairline (clipped by the sheet)
-                    if (ih >= (ah - 2 * m) - 1.5) ih = ah - 2 * m + 1;
+                    (iw, ih) = PageWindowLayout.PrintedImageBox(iw, ih, aw - 2 * m, ah - 2 * m);
                     BitmapSource source = layout.Grayscale
                         ? PrintColorConverter.CreateGrayscaleBitmap(pages[idx]!) : pages[idx]!;
                     if (placement.Rotated) source = PrintPagePlacement.Turn(source);

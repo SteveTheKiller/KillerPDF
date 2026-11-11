@@ -17,6 +17,34 @@ namespace KillerPDF.Tests;
 // page fitted with 16 of margin. Nothing here is shown.
 public sealed class PageWindowLayoutTests
 {
+    // UI2-002: Custom 150% of an 816 x 1056 DIP page on a 768 x 1008 printable area is 1224 x 1584,
+    // clipped by the sheet; it used to be shrunk to fit. Actual size of the page is 816 x 1056.
+    [Theory]
+    [InlineData(1224, 1584)]
+    [InlineData(816, 1056)]
+    public void APageLargerThanThePrintableAreaKeepsItsScaledSize(double width, double height)
+    {
+        var box = PageWindowLayout.PrintedImageBox(width, height, 768, 1008);
+
+        Assert.Equal((width, height), box);
+    }
+
+    // The hairline snap stays for a page within 1.5 of the area on each axis.
+    [Theory]
+    [InlineData(767, 1007)]
+    [InlineData(768, 1008)]
+    [InlineData(769.4, 1009.4)]
+    public void APageWithinAPixelAndAHalfOfTheAreaSnapsToItPlusABleedPixel(double width, double height)
+    {
+        Assert.Equal((769.0, 1009.0), PageWindowLayout.PrintedImageBox(width, height, 768, 1008));
+    }
+
+    [Fact]
+    public void APageSmallerThanTheAreaIsLeftAlone()
+    {
+        Assert.Equal((700.0, 900.0), PageWindowLayout.PrintedImageBox(700, 900, 768, 1008));
+    }
+
     // Print fixed this for gradient themes; Transform and Stamp still cast every lookup.
     [Fact]
     public void AGradientThemeBrushIsUsedAsItIsInsteadOfThrowing()
