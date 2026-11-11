@@ -81,6 +81,7 @@ namespace KillerPDF.Shell
                                 try { session.Doc!.Save(working); }
                                 catch (Exception ex) when (ex is not OutOfMemoryException) { backupErrors.Add(ex.Message); }
                             window.ActiveViewer = pane;
+                            int leftOut = 0;
                             try
                             {
                                 pane.WithSessionLive(session, () =>
@@ -88,7 +89,6 @@ namespace KillerPDF.Shell
                                     if (plain)
                                         try { window.WriteRecoveryState(state, session, edit); }
                                         catch (Exception ex) when (ex is not OutOfMemoryException) { backupErrors.Add(ex.Message); }
-                                    int leftOut = 0;
                                     string snapshot = pane.WriteRecoverySnapshot(edit, () =>
                                     {
                                         SavedCopy saved = window.WriteSavedCopyToTemp();
@@ -96,13 +96,9 @@ namespace KillerPDF.Shell
                                         return saved.Path;
                                     });
                                     RenderFailureRecovery.WriteCopy(snapshot, copy, route, session.Protection);
-                                    // The recovery dialog has no line for it, so the log records that the copy lacks pictures.
-                                    if (leftOut > 0)
-                                        CrashReporter.Capture(new InvalidDataException(
-                                            $"The recovered copy left out {leftOut} picture(s) that could not be read."), "Recovery copy pictures");
                                 });
                                 recovered.Add(new RecoveredDocument(session.OriginalFile, copy, session.SuggestedName,
-                                    session.LoadedRevision, Protected: session.ProtectedSource));
+                                    session.LoadedRevision, Protected: session.ProtectedSource, SkippedPictures: leftOut));
                                 // The unedited working copy and state exist only for a failed copy; beside a
                                 // complete one they could be opened by mistake.
                                 foreach (string backup in new[] { working, state })
@@ -286,6 +282,8 @@ namespace KillerPDF.Shell
                 // One line per document: a copy already listed with its errors is not listed again.
                 string name = RenderFailureRecovery.DocumentName(document);
                 if (document.RecoveryError is not null) incomplete.Add(RenderFailureRecovery.ProblemNote(document));
+                if (RenderFailureRecovery.PicturesSkippedLine(document, Loc("Str_Save_PicturesSkipped")) is { } pictures)
+                    incomplete.Add(pictures);
                 try
                 {
                     if (!File.Exists(document.RecoveredPath))

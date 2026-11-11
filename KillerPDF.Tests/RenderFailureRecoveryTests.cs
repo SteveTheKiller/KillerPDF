@@ -280,6 +280,36 @@ namespace KillerPDF.Tests
             Assert.DoesNotContain("string.Join(\"\\n\", incomplete", recovery);
         }
 
+        // A recovered copy that left pictures out says so under its document in the restart dialog, and the manifest
+        // keeps the count across the restart.
+        [Fact]
+        public void ARecoveredCopyThatLeftPicturesOutSaysSoInTheRestartDialog()
+        {
+            var document = new RecoveredDocument(@"C:\Docs\a.pdf", @"C:\Recovery\01-a.pdf", null, SkippedPictures: 2);
+            Assert.Equal("a.pdf: Left out: 2.",
+                RenderFailureRecovery.PicturesSkippedLine(document, "Left out: {0}."));
+            Assert.Null(RenderFailureRecovery.PicturesSkippedLine(document with { SkippedPictures = 0 }, "Left out: {0}."));
+            Assert.Equal(0, new RecoveredDocument(null, "x", null).SkippedPictures);
+
+            string folder = Path.Combine(Path.GetTempPath(), "kp-skip-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                string copy = Path.Combine(folder, "01-a.pdf");
+                File.WriteAllBytes(copy, [1]);
+                string manifest = RenderFailureRecovery.WriteManifest(folder,
+                    [new RecoveredDocument(null, copy, null, SkippedPictures: 2)]);
+                Assert.Equal(2, Assert.Single(RenderFailureRecovery.ReadManifest(manifest)).SkippedPictures);
+            }
+            finally { Directory.Delete(folder, recursive: true); }
+
+            string recovery = File.ReadAllText(Path.Combine(
+                Path.GetDirectoryName(Path.GetDirectoryName(SourcePath()))!, "Shell", "RenderRecovery.cs"));
+            Assert.DoesNotContain("Recovery copy pictures", recovery);
+            Assert.Contains("SkippedPictures: leftOut", recovery);
+            Assert.Contains("RenderFailureRecovery.PicturesSkippedLine(document, Loc(\"Str_Save_PicturesSkipped\"))", recovery);
+        }
+
         // A copy whose backup steps failed more than once used to list its later errors on lines of
         // their own, reading like other documents, and a copy that also failed to reopen was listed
         // twice.

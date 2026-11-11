@@ -10,7 +10,7 @@ namespace KillerPDF.Services
     /// <summary>One document saved aside when the window could no longer draw.</summary>
     internal sealed record RecoveredDocument(string? OriginalPath, string RecoveredPath, string? SuggestedName,
         FileRevision? LoadedRevision = null, string? RecoveryError = null, string? StatePath = null,
-        bool Protected = false);
+        bool Protected = false, int SkippedPictures = 0);
 
     /// <summary>How an unsaved tab is written aside. A protected document never reaches the folder decrypted.</summary>
     internal enum RecoveryRoute { Plain, UnderItsEncryption, NotWritten }
@@ -175,6 +175,13 @@ namespace KillerPDF.Services
         internal static string ProblemNote(RecoveredDocument document) =>
             DocumentName(document) + ": " + string.Join("; ",
                 (document.RecoveryError ?? string.Empty).Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries));
+
+        /// <summary>The restart's line for a recovered copy that left pictures out because they could not be read, or
+        /// null when it left none out. <paramref name="format"/> is the localized Str_Save_PicturesSkipped text.</summary>
+        internal static string? PicturesSkippedLine(RecoveredDocument document, string format) =>
+            document.SkippedPictures > 0
+                ? DocumentName(document) + ": " + string.Format(format, document.SkippedPictures)
+                : null;
 
         /// <summary>The restart's list: one line per note, in order, even when two read the same.</summary>
         internal static string JoinNotes(IEnumerable<string> notes) => string.Join("\n", notes);
