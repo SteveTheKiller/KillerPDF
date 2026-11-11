@@ -180,8 +180,14 @@ public sealed class PdfRenderedFrame
     /// monitor conversion. The combined budget counts input floats, output bytes and any retained gamut mask.
     /// </remarks>
     public byte[] ToDisplayBgra32(KillerPdf.Engine.ColorManagement.PdfColorProfile monitor,
-        CancellationToken cancellationToken = default, long maximumCombinedPixelBytes = MaximumPixelBytes)
+        CancellationToken cancellationToken = default, long maximumCombinedPixelBytes = MaximumPixelBytes) =>
+        ToDisplayBgra32(monitor, cancellationToken, maximumCombinedPixelBytes, out _);
+
+    // monitorConversions counts the pixels that reached monitor.FromXyz, so a test can prove repeats are not converted.
+    internal byte[] ToDisplayBgra32(KillerPdf.Engine.ColorManagement.PdfColorProfile monitor,
+        CancellationToken cancellationToken, long maximumCombinedPixelBytes, out long monitorConversions)
     {
+        monitorConversions = 0;
         ArgumentNullException.ThrowIfNull(monitor);
         cancellationToken.ThrowIfCancellationRequested();
         if (monitor.ProfileClassSignature != "mntr")
@@ -202,17 +208,40 @@ public sealed class PdfRenderedFrame
         var output = new byte[_pixels.Length];
         Span<double> xyz = stackalloc double[3];
         Span<double> device = stackalloc double[3];
+        // The monitor conversion depends on the three color channels alone, and a page repeats few colors (paper white,
+        // ink, fills), so the last color is kept and a small direct-mapped table remembers recent ones.
+        // A repeat costs a comparison of the channels' bits instead of a profile conversion.
+        const int CacheSize = 256;
+        var cache = new DisplayColor[CacheSize];
+        DisplayColor last = default;
         for (int offset = 0; offset < _pixels.Length; offset += 4)
         {
             if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            double r = Linear(_pixels[offset]), g = Linear(_pixels[offset + 1]), b = Linear(_pixels[offset + 2]);
-            xyz[0] = .4360747 * r + .3850649 * g + .1430804 * b;
-            xyz[1] = .2225045 * r + .7168786 * g + .0606169 * b;
-            xyz[2] = .0139322 * r + .0971045 * g + .7141733 * b;
-            monitor.FromXyz(xyz, device);
-            output[offset] = Quantize(device[2]);
-            output[offset + 1] = Quantize(device[1]);
-            output[offset + 2] = Quantize(device[0]);
+            int rBits = BitConverter.SingleToInt32Bits(_pixels[offset]);
+            int gBits = BitConverter.SingleToInt32Bits(_pixels[offset + 1]);
+            int bBits = BitConverter.SingleToInt32Bits(_pixels[offset + 2]);
+            if (!(last.Valid && last.R == rBits && last.G == gBits && last.B == bBits))
+            {
+                // Float bits of round values have empty low bytes, so the mix folds the high bits down before indexing.
+                uint mix = (uint)rBits * 73856093u ^ (uint)gBits * 19349663u ^ (uint)bBits * 83492791u;
+                mix = (mix ^ mix >> 15) * 0x2c1b3c6du;
+                int slot = (int)((mix ^ mix >> 12) % CacheSize);
+                ref DisplayColor entry = ref cache[slot];
+                if (!(entry.Valid && entry.R == rBits && entry.G == gBits && entry.B == bBits))
+                {
+                    double r = Linear(_pixels[offset]), g = Linear(_pixels[offset + 1]), b = Linear(_pixels[offset + 2]);
+                    xyz[0] = .4360747 * r + .3850649 * g + .1430804 * b;
+                    xyz[1] = .2225045 * r + .7168786 * g + .0606169 * b;
+                    xyz[2] = .0139322 * r + .0971045 * g + .7141733 * b;
+                    monitorConversions++;
+                    monitor.FromXyz(xyz, device);
+                    entry = new DisplayColor(rBits, gBits, bBits, Quantize(device[2]), Quantize(device[1]), Quantize(device[0]));
+                }
+                last = entry;
+            }
+            output[offset] = last.Blue;
+            output[offset + 1] = last.Green;
+            output[offset + 2] = last.Red;
             output[offset + 3] = Quantize(_pixels[offset + 3]);
         }
         return output;
@@ -221,6 +250,18 @@ public sealed class PdfRenderedFrame
             : value <= .04045 ? value / 12.92 : Math.Pow((value + .055) / 1.055, 2.4);
         static byte Quantize(double value) =>
             (byte)Math.Round(Math.Clamp(value, 0, 1) * 255, MidpointRounding.AwayFromZero);
+    }
+
+    private readonly struct DisplayColor(int r, int g, int b, byte blue, byte green, byte red)
+    {
+        public int R { get; } = r;
+        public int G { get; } = g;
+        public int B { get; } = b;
+        public byte Blue { get; } = blue;
+        public byte Green { get; } = green;
+        public byte Red { get; } = red;
+        // A default entry was never filled; the constructor marks real ones.
+        public bool Valid { get; } = true;
     }
 
     /// <summary>Copies the frame to straight-alpha BGRA32 in sRGB, clipping at this output boundary.</summary>

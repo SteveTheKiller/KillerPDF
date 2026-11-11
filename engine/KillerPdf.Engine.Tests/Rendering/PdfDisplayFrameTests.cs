@@ -84,6 +84,32 @@ public sealed class PdfDisplayFrameTests
         Assert.Equal(.5f, frame.Pixels[3]);
     }
 
+    [Fact]
+    public void MonitorConversionRunsOncePerDistinctColorEvenWhenAlphaChangesAndColorsRepeat()
+    {
+        // Rows of paper white and ink alternate with varying alpha: only the two colors need converting.
+        var pixels = new float[400 * 4];
+        for (int pixel = 0; pixel < 400; pixel++)
+        {
+            bool ink = pixel / 10 % 2 == 1 || pixel % 2 == 1 && pixel >= 200;
+            float value = ink ? .25f : 1f;
+            pixels[pixel * 4] = pixels[pixel * 4 + 1] = pixels[pixel * 4 + 2] = value;
+            pixels[pixel * 4 + 3] = pixel % 3 == 0 ? .5f : 1f;
+        }
+        var frame = new PdfRenderedFrame(400, 1, pixels, PdfFrameColorEncoding.LinearSrgbD65);
+        var monitor = PdfColorProfile.Load(IdentityXyzMonitor());
+
+        byte[] bytes = frame.ToDisplayBgra32(monitor, CancellationToken.None, PdfRenderedFrame.MaximumPixelBytes,
+            out long conversions);
+
+        Assert.Equal(2, conversions);
+        for (int pixel = 0; pixel < 400; pixel++)
+        {
+            var single = new PdfRenderedFrame(1, 1, pixels[(pixel * 4)..(pixel * 4 + 4)], PdfFrameColorEncoding.LinearSrgbD65);
+            Assert.Equal(single.ToDisplayBgra32(monitor), bytes[(pixel * 4)..(pixel * 4 + 4)]);
+        }
+    }
+
     private static byte[] IdentityXyzMonitor()
     {
         var data = new byte[300];
