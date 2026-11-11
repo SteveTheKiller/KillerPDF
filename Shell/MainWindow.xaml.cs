@@ -320,6 +320,7 @@ namespace KillerPDF.Shell
         {
             _startupTearOutSession = startupTearOutSession;
             InitializeComponent();
+            RestoreWindowBounds();
             _about = new Features.About.AboutController(this);
             _ownsWindowGeometry = App.RegisterDocumentWindow(this);
             _tray = KillerFamily.Shell.CloseToTray.Attach(this, "KillerPDF", Loc,
@@ -831,10 +832,11 @@ namespace KillerPDF.Shell
             catch { return null; }
         }
 
-        /// <summary>True once a saved window size was applied, so WorkAreaFit keeps it whole.</summary>
-        private bool _windowSizeRestored;
-
-        private void RestoreWindowSettings()
+        // Runs from the constructor, before the first show. Restored from Loaded instead, the
+        // window had already opened CenterScreen on the monitor under the pointer and been fitted
+        // to it, so opening a PDF from a file manager on another screen dragged the app there.
+        // WorkAreaFit then runs from SourceInitialized against the restored rect.
+        private void RestoreWindowBounds()
         {
             try
             {
@@ -843,7 +845,6 @@ namespace KillerPDF.Shell
                 {
                     Width  = w;
                     Height = h;
-                    _windowSizeRestored = true;
                 }
                 if (int.TryParse(App.GetSetting("WindowTop"),  out int savedTop) &&
                     int.TryParse(App.GetSetting("WindowLeft"), out int savedLeft))
@@ -859,18 +860,24 @@ namespace KillerPDF.Shell
                                   && savedTop  + 50  < vBottom && savedTop  + Height > vTop;
                     if (onScreen)
                     {
+                        WindowStartupLocation = WindowStartupLocation.Manual;
                         Left = savedLeft;
                         Top  = savedTop;
                     }
                 }
-                // A default or saved size larger than this monitor's work area is shrunk and moved
-                // onto it. A saved size may use the whole work area; the XAML default keeps a margin.
-                WorkAreaFit.Fit(this, keepMargin: !_windowSizeRestored);
                 if (Enum.TryParse<WindowState>(App.GetSetting("WindowState"), out var ws) &&
                     ws == WindowState.Maximized)
                 {
                     WindowState = WindowState.Maximized;
                 }
+            }
+            catch { /* best-effort */ }
+        }
+
+        private void RestoreWindowSettings()
+        {
+            try
+            {
                 if (double.TryParse(App.GetSetting("ZoomLevel"),
                     System.Globalization.NumberStyles.Float,
                     System.Globalization.CultureInfo.InvariantCulture, out double z) && z > 0)
