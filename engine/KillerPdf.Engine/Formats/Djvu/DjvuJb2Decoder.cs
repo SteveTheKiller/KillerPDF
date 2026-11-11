@@ -93,13 +93,13 @@ internal sealed class DjvuJb2Decoder
     private const int BigPositive = 262142, BigNegative = -262143;
     private const int MaximumCells = 262_144;
 
+    /// <summary>What a kept shape holds besides its bits: its object (16 header, 24 fields) and its bit array header (24).</summary>
+    internal const long SymbolOverhead = 64;
+
     /// <summary>
     /// The most the coder's contexts take: pixel contexts and, for numbers, a state byte and two child links per
     /// cell, counted twice for the moment a growing table is copied.
     /// </summary>
-    /// <summary>What a kept shape holds besides its bits: its object (16 header, 24 fields) and its bit array header (24).</summary>
-    internal const long SymbolOverhead = 64;
-
     internal const long ContextBytes = 3072 + 2L * MaximumCells * (1 + 2 * sizeof(int));
 
     // Integer contexts (Table 7 plus the dictionary size).
