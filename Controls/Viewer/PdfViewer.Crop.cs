@@ -328,7 +328,6 @@ namespace KillerPDF.Controls
                 VerticalAlignment = VerticalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center,
                 Style = (Style)FindResource("DarkComboBox")
             };
-            unitCombo.Height = ToolOptionsControls.ControlHeight;
             System.Windows.Automation.AutomationProperties.SetAutomationId(unitCombo, "CropUnits");
             System.Windows.Automation.AutomationProperties.SetName(unitCombo, Loc("Str_Crop_Units"));
             unitCombo.SetResourceReference(FrameworkElement.ToolTipProperty, "Str_Crop_Units");
