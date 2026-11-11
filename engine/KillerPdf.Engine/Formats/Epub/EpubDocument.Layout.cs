@@ -142,6 +142,7 @@ public sealed partial class EpubDocument
             int stylesheetReferencesBefore = remainingStylesheetReferences;
             var chargedBefore = new HashSet<string>(chargedStylesheets, StringComparer.Ordinal);
             bool laidOut = false;
+            string? noticeMessage = null;
             var points = new List<EpubResumePoint?>();
             var destinations = new Dictionary<(int SpineIndex, int Offset), EpubNavigationDestination>();
             try
@@ -162,6 +163,7 @@ public sealed partial class EpubDocument
                     token.ThrowIfCancellationRequested();
                     WithdrawChapter();
                     string href = Spine[spineIndex].Item.Href;
+                    noticeMessage = error.Message;
                     chapterDiagnostics.Add(new(spineIndex, href, error.Message) { Reason = OmissionReason(error) });
                     pages.Add(ChapterDiagnosisPage(spineIndex, options, reader, href, error.Message,
                         () => ResolveFamily(null, 400, EpubFontStyle.Normal), token));
@@ -188,13 +190,24 @@ public sealed partial class EpubDocument
             {
                 if (residentPage is null) break;
                 if (laidOut) { residentPage(pages[pageIndex], pageIndex); continue; }
-                // A notice page the host cannot write becomes a plain page with the same text, so one unwritable
-                // notice never ends the conversion of the book.
+                // A notice page the host cannot write becomes a plain page drawn in the default font only, and if that
+                // cannot be written either, a blank page with the same text and a diagnostic, so one unwritable notice
+                // never ends the conversion of the book.
                 try { residentPage(pages[pageIndex], pageIndex); }
                 catch (Exception error) when (error is not (OperationCanceledException or OutOfMemoryException))
                 {
-                    pages[pageIndex] = new EpubLayoutPage(pages[pageIndex].Text, 0, spineIndex, [], []);
-                    residentPage(pages[pageIndex], pageIndex);
+                    string href = Spine[spineIndex].Item.Href;
+                    pages[pageIndex] = ChapterDiagnosisPage(spineIndex, options, reader, href, noticeMessage ?? "",
+                        () => null, CancellationToken.None, plain: true);
+                    try { residentPage(pages[pageIndex], pageIndex); }
+                    catch (Exception again) when (again is not (OperationCanceledException or OutOfMemoryException))
+                    {
+                        pages[pageIndex] = new EpubLayoutPage(pages[pageIndex].Text, 0, spineIndex, [], []);
+                        contentDiagnostics.Add(new(spineIndex, href,
+                            "The notice page for this chapter could not be written, so its page is blank: " + again.Message)
+                        { Reason = EpubOmissionReason.Other });
+                        residentPage(pages[pageIndex], pageIndex);
+                    }
                 }
             }
             // A laid-out chapter keeps only its index entries; a diagnosis page is small and stays whole.
@@ -360,7 +373,7 @@ public sealed partial class EpubDocument
     /// </summary>
     private static EpubLayoutPage ChapterDiagnosisPage(int spineIndex, EpubLayoutOptions options,
         TrueTypeOutlineReader reader, string href, string message, Func<TrueTypeFont?> resolveHostFace,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool plain = false)
     {
         var font = options.DefaultFont;
         double size = options.FontSize, lineHeight = size * 1.2;
@@ -402,6 +415,8 @@ public sealed partial class EpubDocument
         {
             ushort glyph = font.GetGlyphId(scalar);
             if (glyph != 0) return (font, glyph);
+            // The plain page is drawn in the default font alone; a character it does not map is left undrawn.
+            if (plain) return (font, 0);
             if (!hostFaceAsked)
             {
                 hostFaceAsked = true;
@@ -419,6 +434,7 @@ public sealed partial class EpubDocument
             foreach (var rune in value.EnumerateRunes())
             {
                 var (face, glyph) = Choose(rune.Value);
+                if (plain && glyph == 0) continue;
                 total += face.GetPdfAdvanceWidth(glyph) * size / 1000;
             }
             return total;
@@ -438,6 +454,11 @@ public sealed partial class EpubDocument
                 // A run is consecutive characters drawn by one font; a character no font maps is a run of its own.
                 var first = Choose(Rune.GetRuneAt(value, at).Value);
                 bool missing = first.Glyph == 0;
+                if (plain && missing)
+                {
+                    at += Rune.GetRuneAt(value, at).Utf16SequenceLength;
+                    continue;
+                }
                 int end = at;
                 var runGlyphs = new List<EpubClusterGlyph>();
                 double runLeft = x;

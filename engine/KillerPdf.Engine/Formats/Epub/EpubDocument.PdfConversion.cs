@@ -97,7 +97,7 @@ public sealed partial class EpubDocument
 
         void AddPage(EpubLayoutPage page, int pageIndex)
         {
-            foreach (var run in page.LinkRuns(cancellationToken)) linkRuns.Add((pageIndex, run));
+            var pageLinks = page.LinkRuns(cancellationToken).ToList();
             cancellationToken.ThrowIfCancellationRequested();
             if (page.Glyphs.Any(paint => paint is not (NativeGlyphPaint or NativeRectanglePaint or NativeMarkerPaint)
                     && paint is not NativeImagePaint { Image: { Components: 3, Bits: 8 } }))
@@ -154,6 +154,8 @@ public sealed partial class EpubDocument
                     .EndText();
             }
             builder.AddPage(options.PageWidthPoints, options.PageHeightPoints, content);
+            // Recorded only once the page exists, so a page the host had to write again keeps one set of links.
+            foreach (var run in pageLinks) linkRuns.Add((pageIndex, run));
 
             void DrawImage(NativeImagePaint paint)
             {

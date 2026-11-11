@@ -111,6 +111,45 @@ public sealed class EpubConversionIsolationTests
         Assert.Equal(16 * 1.2, tops[1] - tops[0], 6);
     }
 
+    // A host that cannot write a notice page gets a plain page with the same text, drawn in the default font, so the PDF
+    // page is not blank; if it cannot write that either, the page stays blank with a diagnostic and the book still converts.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnUnwritableNoticePageBecomesAPlainPageThenABlankOneWithoutEndingTheConversion(bool alwaysFails)
+    {
+        var book = EpubDocument.Open(new Book { Chapters = { Chapter(Unscripted), Chapter("<p>B</p>") } }.Build());
+        var options = new EpubLayoutOptions(400, 600, Liberation()) { FontSize = 16, Margin = 2, IsolateChapterFailures = true,
+            UnavailableChapterLabel = "Chapter unavailable" };
+        var received = new List<EpubLayoutPage>();
+        int notices = 0;
+        void Resident(EpubLayoutPage page, int index)
+        {
+            received.Add(page);
+            if (!page.Text.Contains("OEBPS/text/c0.xhtml")) return;
+            // The first attempt always fails; a second failure is asked for only when the page has something to draw.
+            if (++notices == 1 || (alwaysFails && page.TextPlacements.Count > 0))
+                throw new InvalidOperationException("The host cannot write this page.");
+        }
+
+        var layout = book.CreateLayout(options, Resident, CancellationToken.None);
+
+        Assert.Equal(2, layout.Pages.Count);
+        Assert.Equal("B", received[^1].Text.Trim());
+        var written = received.Last(page => page.Text.Contains("OEBPS/text/c0.xhtml"));
+        Assert.Equal("Chapter unavailable" + "\n" + "OEBPS/text/c0.xhtml" + "\n" + "Scripted EPUB XHTML text is unsupported.", written.Text);
+        if (alwaysFails)
+        {
+            Assert.Empty(written.TextPlacements);
+            Assert.Contains(layout.ContentDiagnostics, item => item.SpineIndex == 0 && item.Message.Contains("could not be written"));
+        }
+        else
+        {
+            Assert.NotEmpty(written.TextPlacements);
+            Assert.NotEmpty(written.Glyphs);
+        }
+    }
+
     [Fact]
     public void ANoticeLabelThatNoFontCanDrawShowsAMissingGlyphBoxPerCharacter()
     {
