@@ -279,39 +279,37 @@ namespace KillerPDF.Shell
             }
             foreach (RecoveredDocument document in documents)
             {
-                // One line per document: a copy already listed with its errors is not listed again.
-                string name = RenderFailureRecovery.DocumentName(document);
-                if (document.RecoveryError is not null) incomplete.Add(RenderFailureRecovery.ProblemNote(document));
-                if (RenderFailureRecovery.PicturesSkippedLine(document, Loc("Str_Save_PicturesSkipped")) is { } pictures)
-                    incomplete.Add(pictures);
+                // One line per document, built once the reopen outcome is known, so its errors, a failed open and
+                // the pictures its copy left out share that line.
+                bool documentReopened = false;
+                string? openError = null;
                 try
                 {
-                    if (!File.Exists(document.RecoveredPath))
+                    if (File.Exists(document.RecoveredPath))
                     {
-                        if (document.RecoveryError is null) incomplete.Add(name);
-                        continue;
+                        // A protected copy opens like any protected file, on a background thread or after
+                        // its password, so it finds its way home when that open finishes. A canceled prompt
+                        // or a failed open leaves no tab, and that copy is listed with the rest.
+                        if (document.Protected) ProtectedRecoveries.Expect(document);
+                        TabOpen open = ActiveViewer.OpenInNewTabExt(document.RecoveredPath);
+                        documentReopened = document.Protected
+                            ? ProtectedRecoveries.Settle(document.RecoveredPath, open) != ProtectedReopen.NotOpened
+                            : _doc is not null && string.Equals(_originalFile, document.RecoveredPath, StringComparison.OrdinalIgnoreCase);
+                        if (documentReopened)
+                        {
+                            if (!document.Protected) ReturnRecoveredTabHome(document);
+                            reopened++;
+                        }
                     }
-                    // A protected copy opens like any protected file, on a background thread or after
-                    // its password, so it finds its way home when that open finishes. A canceled prompt
-                    // or a failed open leaves no tab, and that copy is listed with the rest.
-                    if (document.Protected) ProtectedRecoveries.Expect(document);
-                    TabOpen open = ActiveViewer.OpenInNewTabExt(document.RecoveredPath);
-                    bool opened = document.Protected
-                        ? ProtectedRecoveries.Settle(document.RecoveredPath, open) != ProtectedReopen.NotOpened
-                        : _doc is not null && string.Equals(_originalFile, document.RecoveredPath, StringComparison.OrdinalIgnoreCase);
-                    if (!opened)
-                    {
-                        if (document.RecoveryError is null) incomplete.Add(name);
-                        continue;
-                    }
-                    if (!document.Protected) ReturnRecoveredTabHome(document);
-                    reopened++;
                 }
                 catch (Exception ex) when (ex is not OutOfMemoryException)
                 {
                     ProtectedRecoveries.Abandon(document.RecoveredPath);
-                    if (document.RecoveryError is null) incomplete.Add(name + ": " + ex.Message);
+                    documentReopened = false;
+                    openError = ex.Message;
                 }
+                if (RenderFailureRecovery.RestartLine(document, Loc("Str_Save_PicturesSkipped"), documentReopened, openError) is { } line)
+                    incomplete.Add(line);
             }
             RebuildTabStrip();
             // With nothing reopened there are no recovered copies to review. Each document keeps its

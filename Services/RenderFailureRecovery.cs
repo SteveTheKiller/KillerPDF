@@ -176,12 +176,22 @@ namespace KillerPDF.Services
             DocumentName(document) + ": " + string.Join("; ",
                 (document.RecoveryError ?? string.Empty).Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries));
 
-        /// <summary>The restart's line for a recovered copy that left pictures out because they could not be read, or
-        /// null when it left none out. <paramref name="format"/> is the localized Str_Save_PicturesSkipped text.</summary>
-        internal static string? PicturesSkippedLine(RecoveredDocument document, string format) =>
-            document.SkippedPictures > 0
-                ? DocumentName(document) + ": " + string.Format(format, document.SkippedPictures)
-                : null;
+        /// <summary>
+        /// The restart's one line for a document, built after its reopen outcome is known: its recorded errors, the
+        /// message of a failed open, and the count of pictures its copy left out, joined with semicolons under its
+        /// name. A copy that was not reopened and has nothing else to say is listed by its bare name; a clean,
+        /// reopened copy has no line (null). <paramref name="picturesFormat"/> is the localized Str_Save_PicturesSkipped text.
+        /// </summary>
+        internal static string? RestartLine(RecoveredDocument document, string picturesFormat, bool reopened, string? openError)
+        {
+            var parts = new List<string>();
+            if (document.RecoveryError is not null)
+                parts.AddRange(document.RecoveryError.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries));
+            if (openError is not null) parts.Add(openError);
+            if (document.SkippedPictures > 0) parts.Add(string.Format(picturesFormat, document.SkippedPictures));
+            if (parts.Count > 0) return DocumentName(document) + ": " + string.Join("; ", parts);
+            return reopened ? null : DocumentName(document);
+        }
 
         /// <summary>The restart's list: one line per note, in order, even when two read the same.</summary>
         internal static string JoinNotes(IEnumerable<string> notes) => string.Join("\n", notes);

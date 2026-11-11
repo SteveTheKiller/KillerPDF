@@ -274,8 +274,7 @@ namespace KillerPDF.Tests
 
             string recovery = File.ReadAllText(Path.Combine(
                 Path.GetDirectoryName(Path.GetDirectoryName(SourcePath()))!, "Shell", "RenderRecovery.cs"));
-            Assert.Contains("string name = RenderFailureRecovery.DocumentName(document);", recovery);
-            Assert.Contains("incomplete.Add(RenderFailureRecovery.ProblemNote(document));", recovery);
+            Assert.Contains("RenderFailureRecovery.RestartLine(document,", recovery);
             Assert.Contains("RenderFailureRecovery.JoinNotes(incomplete)", recovery);
             Assert.DoesNotContain("string.Join(\"\\n\", incomplete", recovery);
         }
@@ -286,9 +285,8 @@ namespace KillerPDF.Tests
         public void ARecoveredCopyThatLeftPicturesOutSaysSoInTheRestartDialog()
         {
             var document = new RecoveredDocument(@"C:\Docs\a.pdf", @"C:\Recovery\01-a.pdf", null, SkippedPictures: 2);
-            Assert.Equal("a.pdf: Left out: 2.",
-                RenderFailureRecovery.PicturesSkippedLine(document, "Left out: {0}."));
-            Assert.Null(RenderFailureRecovery.PicturesSkippedLine(document with { SkippedPictures = 0 }, "Left out: {0}."));
+            Assert.Equal("a.pdf: Left out: 2.", RenderFailureRecovery.RestartLine(document, "Left out: {0}.", true, null));
+            Assert.Null(RenderFailureRecovery.RestartLine(document with { SkippedPictures = 0 }, "Left out: {0}.", true, null));
             Assert.Equal(0, new RecoveredDocument(null, "x", null).SkippedPictures);
 
             string folder = Path.Combine(Path.GetTempPath(), "kp-skip-" + Guid.NewGuid().ToString("N"));
@@ -307,25 +305,43 @@ namespace KillerPDF.Tests
                 Path.GetDirectoryName(Path.GetDirectoryName(SourcePath()))!, "Shell", "RenderRecovery.cs"));
             Assert.DoesNotContain("Recovery copy pictures", recovery);
             Assert.Contains("SkippedPictures: leftOut", recovery);
-            Assert.Contains("RenderFailureRecovery.PicturesSkippedLine(document, Loc(\"Str_Save_PicturesSkipped\"))", recovery);
+            Assert.Contains("RenderFailureRecovery.RestartLine(document, Loc(\"Str_Save_PicturesSkipped\")", recovery);
         }
 
         // A copy whose backup steps failed more than once used to list its later errors on lines of
-        // their own, reading like other documents, and a copy that also failed to reopen was listed
-        // twice.
+        // their own, reading like other documents, and a copy that also failed to reopen, or left pictures
+        // out, was listed twice. Each document is one line, built once its reopen outcome is known.
         [Fact]
         public void EachDocumentIsOneLineOfTheRestartList()
         {
-            var document = new RecoveredDocument(@"C:\Docs\a.pdf", @"C:\Recovery\01-a.pdf", null,
+            const string left = "Left out: {0}.";
+            var errored = new RecoveredDocument(@"C:\Docs\a.pdf", @"C:\Recovery\01-a.pdf", null,
                 RecoveryError: "The copy could not be written.\nThe state could not be saved.");
             Assert.Equal("a.pdf: The copy could not be written.; The state could not be saved.",
-                RenderFailureRecovery.ProblemNote(document));
+                RenderFailureRecovery.ProblemNote(errored));
+            Assert.Equal(RenderFailureRecovery.ProblemNote(errored),
+                RenderFailureRecovery.RestartLine(errored, left, false, null));
+
+            var pictures = new RecoveredDocument(@"C:\Docs\b.pdf", @"C:\Recovery\02-b.pdf", null, SkippedPictures: 3);
+            // Reopened: one line with the count.
+            Assert.Equal("b.pdf: Left out: 3.", RenderFailureRecovery.RestartLine(pictures, left, true, null));
+            // The copy is missing or was not reopened: still one line, the name once, with the count.
+            Assert.Equal("b.pdf: Left out: 3.", RenderFailureRecovery.RestartLine(pictures, left, false, null));
+            // The open threw: one line with the message and the count.
+            Assert.Equal("b.pdf: boom; Left out: 3.", RenderFailureRecovery.RestartLine(pictures, left, false, "boom"));
+
+            var clean = new RecoveredDocument(@"C:\Docs\c.pdf", @"C:\Recovery\03-c.pdf", null);
+            Assert.Null(RenderFailureRecovery.RestartLine(clean, left, true, null));
+            Assert.Equal("c.pdf", RenderFailureRecovery.RestartLine(clean, left, false, null));
+            Assert.Equal("c.pdf: boom", RenderFailureRecovery.RestartLine(clean, left, false, "boom"));
 
             string recovery = File.ReadAllText(Path.Combine(
                 Path.GetDirectoryName(Path.GetDirectoryName(SourcePath()))!, "Shell", "RenderRecovery.cs"));
             string open = recovery[recovery.IndexOf("private void OpenRenderRecovery()", StringComparison.Ordinal)..];
-            Assert.Equal(1, open.Split("incomplete.Add(RenderFailureRecovery.ProblemNote(document));").Length - 1);
-            Assert.Equal(3, open.Split("if (document.RecoveryError is null) incomplete.Add(").Length - 1);
+            Assert.Equal(1, open.Split("RenderFailureRecovery.RestartLine(").Length - 1);
+            Assert.DoesNotContain("incomplete.Add(name", open);
+            Assert.DoesNotContain("incomplete.Add(RenderFailureRecovery.ProblemNote", open);
+            Assert.DoesNotContain("RecoveryError is null", open);
         }
 
         // R4-004: a protected copy waits for its open, which can finish after a password prompt or on a
