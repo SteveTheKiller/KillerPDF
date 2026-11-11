@@ -34,6 +34,21 @@ public sealed class EpubLigatureTests
         Assert.Equal(original, source);
     }
 
+    // A zero width non-joiner between f and i asks for no ligature; its blank cluster separates the two letters.
+    [Fact]
+    public void AZeroWidthNonJoinerBetweenLettersStillBlocksTheLigature()
+    {
+        var font = TrueTypeFont.Load(Font());
+        var book = EpubDocument.Open(Book("<p>f" + (char)0x200C + "i</p>"));
+
+        var layout = book.CreateLayout(new EpubLayoutOptions(200, 200, font) { Margin = 8, FontSize = 20 });
+
+        Assert.Empty(layout.ChapterDiagnostics);
+        var page = Assert.Single(layout.Pages);
+        Assert.DoesNotContain(page.Clusters.Values, cluster => cluster.Substituted);
+        Assert.Equal(new[] { 0, 1, 2 }, page.Clusters.Keys.OrderBy(key => key));
+    }
+
     [Fact]
     public void VisibilityProjectionKeepsVisibleLigatureClustersAtomic()
     {

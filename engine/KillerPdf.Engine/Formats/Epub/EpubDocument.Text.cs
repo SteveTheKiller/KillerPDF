@@ -151,6 +151,14 @@ public sealed partial class EpubDocument
                     {
                         char character = reader.Value[offset];
                         cancellationToken.ThrowIfCancellationRequested();
+                        // U+2028 and U+2029 are hard breaks in any text; the formatting tree turns them into line ends.
+                        if (character is '\u2028' or '\u2029')
+                        {
+                            pendingSpace = false;
+                            Append('\n', source is null ? null : new(source, offset));
+                            if (preDepth >= 0) preservedTextEnd = result.Length;
+                            continue;
+                        }
                         if (preDepth >= 0)
                         {
                             pendingSpace = false;

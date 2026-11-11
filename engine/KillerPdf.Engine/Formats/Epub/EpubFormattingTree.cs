@@ -87,8 +87,12 @@ internal sealed class EpubFormattingTree
                         if (preserved && !mapped)
                             throw new InvalidDataException("Native EPUB preserved text has no source position.");
                         if (!preserved && space && sequence.Atoms.LastOrDefault() is { IsSpace: true }) continue;
+                        // U+2028 is a forced line break and U+2029 a paragraph break, which ends the line twice.
+                        bool separator = text.Value[raw] is '\u2028' or '\u2029';
                         sequence.Atoms.Add(new(mapped ? index : cursor, text.Owner, IsSpace: space, HasSource: mapped,
-                            HardBreak: preserved && text.Value[raw] is '\n' or '\r'));
+                            HardBreak: separator || preserved && text.Value[raw] is '\n' or '\r'));
+                        if (text.Value[raw] == '\u2029')
+                            sequence.Atoms.Add(new(mapped ? index : cursor, text.Owner, IsSpace: false, HasSource: mapped, HardBreak: true));
                     }
                     continue;
                 }
