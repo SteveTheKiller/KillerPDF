@@ -40,6 +40,36 @@ namespace KillerPDF.Controls
             if (entry is { } captured) PushUndo(captured);
         }
 
+        // A corner-handle resize pushes its undo step on release, and only if the size changed.
+        private bool _resizeUndoArmed;
+        private Point _resizePressPos;
+        private Rect _resizeStartBounds;
+        private PageAnnotation? _resizeUndoAnnot;
+
+        /// <summary>Takes the page snapshot just before the first change of a resize, once the pointer has moved
+        /// off the press point. Nothing has changed before this point, so the snapshot is the pre-resize page.</summary>
+        private void CaptureResizeUndoOnFirstMove(Point pos)
+        {
+            if (!_resizeUndoArmed || _resizeUndoAnnot is not { } annotation || pos == _resizePressPos) return;
+            _resizeUndoArmed = false;
+            CaptureAnnotationDragUndo(annotation.PageIndex);
+        }
+
+        private void FinishResizeUndo(PageAnnotation annotation)
+        {
+            bool changed = _resizeUndoAnnot is null || AnnotBounds(annotation) != _resizeStartBounds;
+            _resizeUndoArmed = false;
+            _resizeUndoAnnot = null;
+            if (!changed)
+            {
+                // A click on the handle without a size change: no undo step, and the tab stays clean.
+                _annotationDragUndo = null;
+                return;
+            }
+            CommitAnnotationDragUndo();
+            MarkDirty();
+        }
+
         private double CanvasLetterSpacing(int pageIndex)
         {
             double spacing = _textLetterSpacing;
@@ -1193,9 +1223,19 @@ namespace KillerPDF.Controls
                         pos.Y >= hy && pos.Y <= hy + hd.Height)
                     {
                         _resizeCorner = hd.Tag as string ?? "SE";
+                        // No undo step yet: a press without movement must leave none. The snapshot is taken just
+                        // before the first change (CaptureResizeUndoOnFirstMove) and pushed on release if the size changed.
+                        _annotationDragUndo = null;
+                        _resizeUndoAnnot = null;
+                        _resizeUndoArmed = false;
                         if (_selectedAnnotation is PlacedAnnotation or TextAnnotation or HighlightAnnotation
                             or InkAnnotation { Points.Count: > 0 })
-                            PushPageSnapshotUndo(_selectedAnnotation.PageIndex);
+                        {
+                            _resizeUndoArmed = true;
+                            _resizeUndoAnnot = _selectedAnnotation;
+                            _resizePressPos = pos;
+                            _resizeStartBounds = AnnotBounds(_selectedAnnotation);
+                        }
                         // Anchor on the opposite corner so it stays put while the dragged corner moves.
                         if (_selectedAnnotation is PlacedAnnotation rsa)
                         {
@@ -1733,6 +1773,8 @@ namespace KillerPDF.Controls
                 return;
             }
 
+            if (_isResizingSig) CaptureResizeUndoOnFirstMove(pos);
+
             // Text box resize drag: width follows the dragged corner; height auto-fits the wrapped text.
             if (_isResizingSig && _resizeTextAnnot is not null)
             {
@@ -2130,7 +2172,7 @@ namespace KillerPDF.Controls
                 _resizeTextAnnot = null;
                 RenderAllAnnotations(rta.PageIndex);
                 SelectAnnotation(rta, new Rect(rta.Position, rta.FootprintSize));
-                MarkDirty();
+                FinishResizeUndo(rta);
                 return;
             }
 
@@ -2143,7 +2185,7 @@ namespace KillerPDF.Controls
                 _resizeHlAnnot = null;
                 RenderAllAnnotations(rha.PageIndex);
                 SelectAnnotation(rha, rha.Bounds);
-                MarkDirty();
+                FinishResizeUndo(rha);
                 return;
             }
 
@@ -2157,7 +2199,7 @@ namespace KillerPDF.Controls
                 _resizeInkOrigPoints = null;
                 RenderAllAnnotations(rink.PageIndex);
                 SelectAnnotation(rink, AnnotBounds(rink));
-                MarkDirty();
+                FinishResizeUndo(rink);
                 return;
             }
 
@@ -2175,7 +2217,7 @@ namespace KillerPDF.Controls
                     double newW = sa.SourceWidth * sa.Scale;
                     double newH = sa.SourceHeight * sa.Scale;
                     SelectAnnotation(sa, new Rect(sa.Position.X, sa.Position.Y, newW, newH));
-                    MarkDirty();
+                    FinishResizeUndo(sa);
                 }
                 return;
             }
@@ -2753,12 +2795,18 @@ namespace KillerPDF.Controls
         // the window deactivated. Leaves the annotation selected at its last position so it stays usable.
         private void FinishStuckGesture()
         {
-            CommitAnnotationDragUndo();
             PageAnnotation? keep = _dragAnnot;
             keep ??= _resizeTextAnnot;
             keep ??= _resizeHlAnnot;
             keep ??= _resizeInkAnnot;
             keep ??= _resizeSigAnnot;
+            // A resize that ended with the size unchanged leaves no undo step and no dirty mark.
+            bool unchangedResize = _resizeUndoAnnot is not null && ReferenceEquals(keep, _resizeUndoAnnot)
+                && AnnotBounds(keep) == _resizeStartBounds;
+            if (unchangedResize) _annotationDragUndo = null;
+            _resizeUndoArmed = false;
+            _resizeUndoAnnot = null;
+            CommitAnnotationDragUndo();
 
             _isDraggingAnnot = false;
             _isResizingSig = false;
@@ -2778,7 +2826,7 @@ namespace KillerPDF.Controls
             {
                 RenderAllAnnotations(keep.PageIndex);
                 SelectAnnotation(keep, AnnotBounds(keep));
-                MarkDirty();
+                if (!unchangedResize) MarkDirty();
             }
         }
 
