@@ -395,9 +395,9 @@ namespace KillerPDF.Shell
                 Delete_Click(this, e);
                 e.Handled = true;
             }
-            else if (key == Key.Delete && Viewer.HasSelectedFormFieldExt)
+            else if (key == Key.Delete && ActiveViewer.HasSelectedFormFieldExt)
             {
-                Viewer.DeleteSelectedFormFieldExt();
+                ActiveViewer.DeleteSelectedFormFieldExt();
                 e.Handled = true;
             }
             else if (key == Key.Delete && (_selectedAnnotation is not null || _selectedSet.Count > 0
