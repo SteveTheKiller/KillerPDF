@@ -14,7 +14,23 @@ public partial class PdfViewer
     // Corner is null for a move; otherwise the dragged handle, with the opposite corner fixed.
     private (Canvas Canvas, Point Start, Rect Original, Rect Current, string? Corner)? _sourceImageDrag;
     private string? _pendingSourceImageCorner;
+    // The press that just selected a picture: nothing moves yet. A drag from it draws the selection box;
+    // a release leaves the picture selected.
+    private (Canvas Canvas, Point Start)? _pictureSelectionPress;
     private const double MinimumSourceImageSide = 4;
+
+    private void BeginPictureSelectionPress(Canvas canvas, Point point)
+    {
+        _pictureSelectionPress = (canvas, point);
+        canvas.CaptureMouse();
+    }
+
+    private void EndPictureSelectionPress(bool releaseCapture)
+    {
+        if (_pictureSelectionPress is not { } press) return;
+        _pictureSelectionPress = null;
+        if (releaseCapture && ReferenceEquals(Mouse.Captured, press.Canvas)) press.Canvas.ReleaseMouseCapture();
+    }
 
     private Rect SelectedSourceImageRect(ImageAnnotation image) =>
         new(image.Position, new Size(image.SourceWidth, image.SourceHeight));
@@ -33,6 +49,7 @@ public partial class PdfViewer
     private void CancelSourceImageDrag()
     {
         _pendingSourceImageCorner = null;
+        EndPictureSelectionPress(releaseCapture: true);
         if (_sourceImageDrag is not { } drag) return;
         _sourceImageDrag = null;
         if (ReferenceEquals(Mouse.Captured, drag.Canvas)) drag.Canvas.ReleaseMouseCapture();
@@ -77,6 +94,24 @@ public partial class PdfViewer
 
     private bool MoveSourceImageDrag(MouseEventArgs e)
     {
+        if (_pictureSelectionPress is { } press)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed)
+            {
+                EndPictureSelectionPress(releaseCapture: true);
+                return true;
+            }
+            Vector moved = e.GetPosition(press.Canvas) - press.Start;
+            if (Math.Abs(moved.X) < SystemParameters.MinimumHorizontalDragDistance
+                && Math.Abs(moved.Y) < SystemParameters.MinimumVerticalDragDistance) return true;
+            // The pointer dragged away from the press that selected the picture: this is the 1.9.2 selection box.
+            EndPictureSelectionPress(releaseCapture: false);
+            ClearSelection();
+            ClearTextSelection();
+            if (_gestureCanvas is not null) _activeCanvas = _gestureCanvas;
+            BeginSelectionMarquee(press.Start);
+            return false;
+        }
         if (_sourceImageDrag is not { } drag) return false;
         if (e.LeftButton != MouseButtonState.Pressed || _sourceImageSelection is not { } selection
             || !ReferenceEquals(selection.Owner, _doc))
@@ -101,6 +136,12 @@ public partial class PdfViewer
 
     private bool FinishSourceImageDrag()
     {
+        if (_pictureSelectionPress is not null)
+        {
+            // A click without a drag only selects the picture.
+            EndPictureSelectionPress(releaseCapture: true);
+            return true;
+        }
         if (_sourceImageDrag is not { } drag) return false;
         _sourceImageDrag = null;
         if (ReferenceEquals(Mouse.Captured, drag.Canvas)) drag.Canvas.ReleaseMouseCapture();
@@ -165,8 +206,13 @@ public partial class PdfViewer
         return true;
     }
 
-    internal bool TrySelectSourceImageExt(int page, Point point)
+    internal bool TrySelectSourceImageExt(int page, Point point) => TrySelectSourceImage(page, point, out _);
+
+    /// <summary>Selects the topmost editable picture under a page point. wasSelected is true when that same
+    /// picture was already selected before this call, or the point is on its corner handle.</summary>
+    private bool TrySelectSourceImage(int page, Point point, out bool wasSelected)
     {
+        wasSelected = false;
         if (_nativeDoc is not null || _doc is null || _currentTool != EditTool.Select
             || !TryPageGeometry(page, out double pw, out double ph, out double cw, out double ch, out int rotation))
             return false;
@@ -182,6 +228,7 @@ public partial class PdfViewer
                     && point.Y >= top && point.Y <= top + handle.Height)
                 {
                     _pendingSourceImageCorner = corner;
+                    wasSelected = true;
                     return true;
                 }
             }
@@ -213,6 +260,10 @@ public partial class PdfViewer
                     SourceWidth = bounds.Width, SourceHeight = bounds.Height,
                     ImageData = Convert.ToBase64String(asset.ToPdfBytes())
                 };
+                wasSelected = _sourceImageSelection is { } held && ReferenceEquals(held.Owner, _doc)
+                    && held.Occurrence.PageIndex == page && held.Occurrence.ResourceName == image.ResourceName
+                    && held.Occurrence.BoundingBox == image.BoundingBox
+                    && held.Occurrence.PixelWidth == image.PixelWidth && held.Occurrence.PixelHeight == image.PixelHeight;
                 ClearSelection();
                 ClearTextSelection();
                 _sourceImageSelection = (_doc, image, copy);

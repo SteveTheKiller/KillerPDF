@@ -1374,9 +1374,12 @@ namespace KillerPDF.Controls
                         }
                         if (!hitPlaced)
                         {
-                            if (!shiftSel && !_ocrRegionMode && TrySelectSourceImageExt(pageIdx, pos))
+                            if (!shiftSel && !_ocrRegionMode && TrySelectSourceImage(pageIdx, pos, out bool pictureWasSelected))
                             {
-                                BeginSourceImageDrag(_gestureCanvas ?? _activeCanvas, pos);
+                                // Only a press on a picture that was already selected may move it. The first press
+                                // selects it and waits: a drag from there draws the selection box, as in 1.9.2.
+                                if (pictureWasSelected) BeginSourceImageDrag(_gestureCanvas ?? _activeCanvas, pos);
+                                else BeginPictureSelectionPress(_gestureCanvas ?? _activeCanvas, pos);
                                 if (_viewMode == ViewMode.Grid) _currentPage = pageIdx;
                                 e.Handled = true;
                                 break;
@@ -1386,19 +1389,7 @@ namespace KillerPDF.Controls
                             if (!shiftSel) ClearSelection();
                             ClearTextSelection();
                             if (_viewMode == ViewMode.Grid && !shiftSel) _currentPage = pageIdx;  // grid: click selects the page
-                            _isSelecting = true;
-                            _selectStart = pos;
-                            _selectRect = new Rectangle
-                            {
-                                Fill = AccentBrush(40),
-                                Stroke = AccentBrush(150),
-                                StrokeThickness = 1,
-                                Width = 0, Height = 0,
-                                IsHitTestVisible = false
-                            };
-                            MarqueeLayer.Children.Add(_selectRect);
-                            UpdateMarquee(pos, pos);
-                            _activeCanvas.CaptureMouse();
+                            BeginSelectionMarquee(pos);
                             e.Handled = true;
                         }
                     }
@@ -1622,6 +1613,24 @@ namespace KillerPDF.Controls
         {
             if (_brushPreview is not null)
                 (_brushPreview.Parent as Canvas)?.Children.Remove(_brushPreview);
+        }
+
+        /// <summary>Starts the Select tool's selection box at a page point and captures the mouse for it.</summary>
+        private void BeginSelectionMarquee(Point pos)
+        {
+            _isSelecting = true;
+            _selectStart = pos;
+            _selectRect = new Rectangle
+            {
+                Fill = AccentBrush(40),
+                Stroke = AccentBrush(150),
+                StrokeThickness = 1,
+                Width = 0, Height = 0,
+                IsHitTestVisible = false
+            };
+            MarqueeLayer.Children.Add(_selectRect);
+            UpdateMarquee(pos, pos);
+            _activeCanvas.CaptureMouse();
         }
 
         // The pointer left a page surface: drop the brush cursor so it doesn't hang frozen at the page
