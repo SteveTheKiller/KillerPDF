@@ -508,22 +508,25 @@ namespace KillerPDF.Services
                 var skippedPages = new List<int>();
                 var comments = KillerPdf.Engine.Documents.PdfCommentReader.Read(saved, true, skippedPages)
                     .ToDictionary(comment => (comment.PageIndex, comment.AnnotationIndex));
-                // A page whose annotation was skipped may have lost replacement text from the search too, so it is
-                // named with the pages that were not searched.
-                foreach (int page in skippedPages)
-                    if (!result.UnreadablePages.Contains(page))
-                    {
-                        result.UnreadablePages.Add(page);
-                        result.UnreadableMessages.TryAdd(page, "An annotation on this page could not be read.");
-                    }
-                result.UnreadablePages.Sort();
                 var pages = KillerPdf.Engine.Documents.PdfPageInformation.Read(saved);
                 foreach (OverlayRecord record in owned)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (record.Annotation is not TextAnnotation text || !ReplacementLayers.IsVisible(text)
-                        || !comments.TryGetValue((text.PageIndex, record.AnnotationIndex), out var comment)
-                        || comment.ObjectNumber != record.ObjectNumber || comment.Bounds is not { } bounds) continue;
+                    if (record.Annotation is not TextAnnotation text || !ReplacementLayers.IsVisible(text)) continue;
+                    bool found = comments.TryGetValue((text.PageIndex, record.AnnotationIndex), out var comment)
+                        && comment.ObjectNumber == record.ObjectNumber;
+                    // A page is named as not searched only when one of this app's own annotation-backed records on it
+                    // could not be read back because the tolerant read skipped an annotation there. A malformed foreign
+                    // annotation does not make its page unsearched, and a record written as page content (no annotation
+                    // index) is found by the page search itself.
+                    if (!found && record.AnnotationIndex >= 0 && skippedPages.Contains(text.PageIndex)
+                        && !result.UnreadablePages.Contains(text.PageIndex))
+                    {
+                        result.UnreadablePages.Add(text.PageIndex);
+                        result.UnreadablePages.Sort();
+                        result.UnreadableMessages.TryAdd(text.PageIndex, "An annotation on this page could not be read.");
+                    }
+                    if (!found || comment!.Bounds is not { } bounds) continue;
                     foreach (var span in TextReplacePlanner.FindSpans(text.Content, query, matchCase, wholeWord))
                     {
                         var page = pages[text.PageIndex];
