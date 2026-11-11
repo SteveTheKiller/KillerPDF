@@ -11,12 +11,22 @@ public sealed class EpubOmissionReasonTests
     [Theory]
     [InlineData("<p>A</p><script>x</script>", EpubOmissionReason.Scripting)]
     [InlineData("<p>A&#x05D7;</p>", EpubOmissionReason.UnsupportedScript)]
-    [InlineData("<pre>A<pre>A</pre></pre>", EpubOmissionReason.UnsupportedLayout)]
+    [InlineData("<p xml:base='elsewhere/'>A</p>", EpubOmissionReason.UnsupportedLayout)]
     public void ChapterRefusalsCarryTheirReason(string body, EpubOmissionReason reason)
     {
-        var layout = Layout(new Book { Chapters = { Chapter(body) } });
+        var book = EpubDocument.Open(new Book { Chapters =
+        { Chapter("<p>A</p>"), Chapter(body), Chapter("<p>A</p>") } }.Build());
+        var layout = book.CreateLayout(Options() with { UnavailableChapterLabel = "Chapter unavailable" });
 
-        Assert.Equal(reason, Assert.Single(layout.ChapterDiagnostics).Reason);
+        var diagnostic = Assert.Single(layout.ChapterDiagnostics);
+        Assert.Equal(reason, diagnostic.Reason);
+        Assert.Equal(1, diagnostic.SpineIndex);
+        Assert.Equal("OEBPS/text/c1.xhtml", diagnostic.Href);
+        Assert.Equal(3, layout.Pages.Count);
+        Assert.Equal("A", layout.Pages[0].Text.Trim());
+        Assert.Equal("A", layout.Pages[2].Text.Trim());
+        Assert.Contains("Chapter unavailable", layout.Pages[1].Text);
+        Assert.Contains(diagnostic.Href, layout.Pages[1].Text);
     }
 
     [Fact]

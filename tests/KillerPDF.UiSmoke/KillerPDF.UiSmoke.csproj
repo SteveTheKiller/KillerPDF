@@ -14,6 +14,7 @@
     <ProjectReference Include="..\..\engine\KillerPdf.Engine\KillerPdf.Engine.csproj" />
     <!-- Test tooling only. The application excludes tests/** from its item globs. -->
     <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
+    <PackageReference Include="System.Management" Version="11.0.0" />
     <Compile Include="..\..\PreviewHandler\ShellInterfaces.cs" Link="PreviewShellInterfaces.cs" />
   </ItemGroup>
 </Project>

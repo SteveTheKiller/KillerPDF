@@ -239,11 +239,16 @@ public sealed class EpubLayoutDocument
 {
     private readonly EpubLayoutOptions _options;
     private readonly string[] _spineHrefs;
+    private readonly Dictionary<string, int> _spineIndices = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _ambiguousSpineHrefs = new(StringComparer.Ordinal);
     // Pagination adds whole chapters, in reading order, while readers use the pages before it; everything a reader
     // looks up is published here under _published, and nothing published changes afterwards.
     private readonly Lock _published = new();
     private readonly EpubPageIndex _pages = new();
-    private readonly List<(int SpineIndex, string Id, int Offset)> _anchors = new();
+    private readonly Dictionary<(int SpineIndex, string Id), int> _anchors = new();
+    private readonly HashSet<(int SpineIndex, string Id)> _ambiguousAnchors = new();
+    private readonly Dictionary<int, int> _firstPages = new();
+    private readonly HashSet<int> _diagnosedChapters = new();
     private readonly Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> _cellAnchors = new();
     private readonly Dictionary<(int SpineIndex, int Offset), EpubNavigationDestination> _anchorDestinations = new();
     private readonly HashSet<int> _paginatedChapters = new();
@@ -258,6 +263,8 @@ public sealed class EpubLayoutDocument
     {
         _options = options with { };
         _spineHrefs = spineHrefs.ToArray();
+        for (int index = 0; index < _spineHrefs.Length; index++)
+            if (!_spineIndices.TryAdd(_spineHrefs[index], index)) _ambiguousSpineHrefs.Add(_spineHrefs[index]);
     }
 
     /// <summary>Adds one chapter's pages, anchors and diagnostics, as pagination finishes the chapter.</summary>
@@ -271,7 +278,11 @@ public sealed class EpubLayoutDocument
         TaskCompletionSource woken;
         lock (_published)
         {
-            _anchors.AddRange(anchors);
+            foreach (var anchor in anchors)
+                if (!_anchors.TryAdd((anchor.SpineIndex, anchor.Id), anchor.Offset))
+                    _ambiguousAnchors.Add((anchor.SpineIndex, anchor.Id));
+            if (pages.Count > 0) _firstPages.TryAdd(spineIndex, _pages.Count);
+            foreach (var diagnostic in chapterDiagnostics) _diagnosedChapters.Add(diagnostic.SpineIndex);
             foreach (var (key, value) in cellAnchors) _cellAnchors[key] = value;
             foreach (var (key, value) in anchorDestinations) _anchorDestinations[key] = value;
             _chapterDiagnostics = [.. _chapterDiagnostics, .. chapterDiagnostics];
@@ -341,7 +352,7 @@ public sealed class EpubLayoutDocument
     {
         ArgumentNullException.ThrowIfNull(target);
         int fragmentStart = target.IndexOf('#');
-        int spineIndex = Array.IndexOf(_spineHrefs, fragmentStart < 0 ? target : target[..fragmentStart]);
+        int spineIndex = _spineIndices.GetValueOrDefault(fragmentStart < 0 ? target : target[..fragmentStart], -1);
         if (spineIndex < 0) return;
         while (true)
         {
@@ -421,8 +432,8 @@ public sealed class EpubLayoutDocument
         int fragmentStart = target.IndexOf('#');
         string fragment = fragmentStart < 0 ? "" : Uri.UnescapeDataString(target[(fragmentStart + 1)..]);
         if (fragmentStart >= 0) target = target[..fragmentStart];
-        int spineIndex = Array.IndexOf(_spineHrefs, target);
-        if (spineIndex >= 0 && Array.IndexOf(_spineHrefs, target, spineIndex + 1) >= 0)
+        int spineIndex = _spineIndices.GetValueOrDefault(target, -1);
+        if (_ambiguousSpineHrefs.Contains(target))
             throw new InvalidDataException("The EPUB navigation target occurs more than once in the native spine.");
         lock (_published)
             return Resolve(target, fragment, spineIndex, cancellationToken);
@@ -432,28 +443,18 @@ public sealed class EpubLayoutDocument
     private EpubNavigationDestination Resolve(string target, string fragment, int spineIndex,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         // Its page numbers are not known until pagination reaches it; WaitForNavigationTargetAsync waits for that.
         if (spineIndex >= 0 && !_paginatedChapters.Contains(spineIndex) && IsPaginating)
             throw new InvalidOperationException("The EPUB navigation target's chapter is not paginated yet.");
         // An isolated chapter has no laid-out anchors; every target in it lands on its diagnosis page.
-        if (spineIndex >= 0 && _chapterDiagnostics.Any(item => item.SpineIndex == spineIndex))
-        {
-            for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++)
-                if (Pages[pageIndex].SpineIndex == spineIndex)
-                    return new(pageIndex, spineIndex, 0, _options.Margin, _options.Margin);
-        }
+        if (_diagnosedChapters.Contains(spineIndex) && _firstPages.TryGetValue(spineIndex, out int diagnosisPage))
+            return new(diagnosisPage, spineIndex, 0, _options.Margin, _options.Margin);
         if (fragment.Length > 0)
         {
-            int? anchorOffset = null;
-            foreach (var anchor in _anchors)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (anchor.SpineIndex != spineIndex || anchor.Id != fragment) continue;
-                if (anchorOffset is not null)
-                    throw new InvalidDataException("The EPUB navigation anchor occurs more than once in the native chapter.");
-                anchorOffset = anchor.Offset;
-            }
-            if (anchorOffset is { } offset)
+            if (_ambiguousAnchors.Contains((spineIndex, fragment)))
+                throw new InvalidDataException("The EPUB navigation anchor occurs more than once in the native chapter.");
+            if (_anchors.TryGetValue((spineIndex, fragment), out int offset))
             {
                 if (_cellAnchors.TryGetValue((spineIndex, fragment, offset), out var cellDestination))
                     return cellDestination;
@@ -463,9 +464,8 @@ public sealed class EpubLayoutDocument
             }
             throw new ArgumentException("The EPUB navigation anchor is not in the native chapter.", nameof(target));
         }
-        for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++)
-            if (Pages[pageIndex].SpineIndex == spineIndex)
-                return new EpubNavigationDestination(pageIndex, spineIndex, 0, _options.Margin, _options.Margin);
+        if (_firstPages.TryGetValue(spineIndex, out int firstPage))
+            return new EpubNavigationDestination(firstPage, spineIndex, 0, _options.Margin, _options.Margin);
         throw new ArgumentException("The EPUB navigation target is not in the native spine.", nameof(target));
     }
 

@@ -4,9 +4,16 @@ using System.Windows.Media.Imaging;
 
 namespace KillerPDF.Services;
 
-/// <summary>The JPEG encoder Reduce File Size hands the engine for resampled images (#433).</summary>
+/// <summary>The JPEG encoder the app supplies for PDF images and DjVu photo conversion.</summary>
 internal static class PdfImageJpeg
 {
+    internal static byte[] EncodePhoto(ReadOnlySpan<byte> samples, int width, int height, int components, int quality)
+        => EncodePhoto(samples, width, height, components, quality, CancellationToken.None);
+
+    internal static byte[] EncodePhoto(ReadOnlySpan<byte> samples, int width, int height, int components, int quality,
+        CancellationToken cancellationToken)
+        => NativeWicJpegEncoder.EncodePhoto(samples, width, height, components, quality, cancellationToken);
+
     /// <summary>Encodes tightly packed 8-bit gray or RGB samples at the given quality.</summary>
     internal static byte[] Encode(ReadOnlySpan<byte> samples, int width, int height, int components, int quality)
     {

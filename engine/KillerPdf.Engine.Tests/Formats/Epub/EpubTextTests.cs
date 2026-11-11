@@ -42,11 +42,13 @@ public sealed partial class EpubDocumentTests
         Assert.Equal(text, TextBook(body, head).ReadText(0));
     }
 
-    [Theory]
-    [InlineData("<pre>  Code<pre>  Indent</pre></pre>")]
-    public void DiagnosesUnsupportedXhtmlInsteadOfInventingTextLayout(string body)
+    [Fact]
+    public void NestedPreformattedBlocksKeepOuterAndInnerWhitespace()
     {
-        Assert.Throws<NotSupportedException>(() => TextBook(body).ReadText(0));
+        string text = TextBook("<pre>  Code<pre>  Indent</pre>  Tail</pre>").ReadText(0);
+        Assert.Contains("  Code", text);
+        Assert.Contains("  Indent", text);
+        Assert.Contains("  Tail", text);
     }
 
     // An SVG drawing the reader cannot show is left out whole; its text is not invented and the rest still reads.

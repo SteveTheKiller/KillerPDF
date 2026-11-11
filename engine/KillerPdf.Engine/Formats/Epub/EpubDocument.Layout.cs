@@ -481,7 +481,7 @@ public sealed partial class EpubDocument
         }
         var font = options.DefaultFont;
         var substitutions = new Dictionary<(TrueTypeFont Font, bool SmallCaps, bool Ligatures), OpenTypeGlyphSubstitution>();
-        bool reportedSmallCaps = false;
+        bool reportedSmallCaps = false, reportedListMarker = false;
         // One outline reader per face for the whole book, so chapters share glyph outlines instead of rebuilding them.
         var readers = bookReaders;
         int fontWork = 0;
@@ -872,9 +872,6 @@ public sealed partial class EpubDocument
                     if (block is EpubFormattingTree.ListItem resumedItem && (resume.Marked >> level & 1) != 0)
                         markedItems.Add(resumedItem);
                 }
-                // An empty numbered item still advances its list's count; it simply draws no marker line.
-                if (block is EpubFormattingTree.ListItem && block.Source.ListOrdinal is null && !HasFlowContent(block))
-                    throw new NotSupportedException("Native EPUB empty list items are not implemented.");
                 double parentLeft = contentLeft, parentRight = contentRight, parentWidth = contentWidth;
                 var margins = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth);
                 var padding = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth, padding: true);
@@ -1004,8 +1001,13 @@ public sealed partial class EpubDocument
                     }
 
                     if (block is EpubFormattingTree.ListItem completedItem && completedItem.Source.ListOrdinal is null
-                        && !markedItems.Contains(completedItem))
-                        throw new NotSupportedException("Native EPUB list items require a supported first line.");
+                        && !markedItems.Contains(completedItem) && !completedItem.Source.Style.Hidden && !reportedListMarker)
+                    {
+                        reportedListMarker = true;
+                        contentDiagnostics.Add(new(spineIndex, resource.Href,
+                            "A list marker was left out because its item has no supported first line.")
+                        { Reason = EpubOmissionReason.UnsupportedLayout });
+                    }
 
                     void PaintPadding(double height)
                     {

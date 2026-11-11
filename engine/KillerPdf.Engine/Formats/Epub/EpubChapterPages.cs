@@ -24,7 +24,7 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
     private int _current = -1;
     private int _readersWaiting;
     private int _aheadChapter = -1;
-    private readonly Lock _lock = new();
+    private readonly object _lock = new();
     // Layout shares the book's font, outline and image-box caches, so chapters are laid out one at a time.
     private readonly Lock _layoutLock = new();
     // Each cached chapter holds one slot per page; a jump fills only the page it needed.
@@ -90,6 +90,7 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
             lock (_lock)
             {
                 _readersWaiting--;
+                if (_readersWaiting == 0) Monitor.PulseAll(_lock);
                 ThrowIfClosed();
             }
             if (Cached(entry.SpineIndex, ordinal) is { } raced)
@@ -144,11 +145,21 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
             running = _aheadCancel;
         }
         // The running layout ahead may dispose its token source as it finishes; then there is nothing left to cancel.
-        try { running?.Cancel(); }
-        catch (ObjectDisposedException) { }
-        // Pagination stops at its next check and its thread ends, so it no longer holds the book either.
-        _closing.Cancel();
-        EpubLayoutAhead.Remove(this);
+        try
+        {
+            try { running?.Cancel(); }
+            catch (ObjectDisposedException) { }
+        }
+        finally
+        {
+            // Pagination stops at its next check; gate waiters wake only after close cancellation is requested.
+            try { _closing.Cancel(); }
+            finally
+            {
+                lock (_lock) Monitor.PulseAll(_lock);
+                EpubLayoutAhead.Remove(this);
+            }
+        }
     }
 
     /// <summary>Cancelled when the book closes.</summary>
@@ -172,7 +183,9 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
         while (true)
         {
             // Readers go first: one waiting for the lock is let in before pagination takes it again.
-            SpinWait.SpinUntil(() => { lock (_lock) return _readersWaiting == 0 || _closed; });
+            lock (_lock)
+                while ((_readersWaiting != 0 && !_closed) || (_closed && !_closing.IsCancellationRequested))
+                    Monitor.Wait(_lock);
             _closing.Token.ThrowIfCancellationRequested();
             using var preempted = CancellationTokenSource.CreateLinkedTokenSource(_closing.Token);
             lock (_layoutLock)
@@ -315,7 +328,8 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
     {
         while (LayOutAhead()) { }
         // A chapter the background thread took before this call finishes too.
-        SpinWait.SpinUntil(() => { lock (_lock) return _inFlight == 0; });
+        lock (_lock)
+            while (_inFlight != 0) Monitor.Wait(_lock);
     }
 
     // Lays out one wanted chapter, then yields the background thread to other open books until its next turn.
@@ -373,6 +387,7 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
                     _aheadChapter = -1;
                 }
                 _inFlight--;
+                if (_inFlight == 0) Monitor.PulseAll(_lock);
             }
             cancel.Dispose();
         }

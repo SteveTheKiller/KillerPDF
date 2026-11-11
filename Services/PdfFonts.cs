@@ -1,6 +1,5 @@
 using System.IO;
 using System.Text;
-using SixLabors.Fonts;
 
 namespace KillerPDF.Services
 {
@@ -23,9 +22,8 @@ namespace KillerPDF.Services
     //
     // NOTE ON FILE SIZE: embedded fonts are SUBSET (PdfTrueTypeFont /PdfCIDFont
     // call CreateFontSubSet), so a few Japanese characters cost tens of KB in
-    // the output, not megabytes. The exception is fonts with no 'loca' table -
-    // i.e. CFF/.otf - which PdfCIDFont embeds WHOLE. That is why .otf is
-    // enumerated last and only used when nothing else covers the text.
+    // the output, not megabytes. This catalog keeps its existing TrueType-only
+    // registration policy; CFF outlines are not registered by metadata lookup.
     // ============================================================
     internal static partial class InstalledFontCatalog
     {
@@ -37,7 +35,7 @@ namespace KillerPDF.Services
         private static bool _indexed;
         // Faces in registration order, so the persisted index replays the same first-wins choices.
         private static readonly List<(string Family, FaceStyle Style, string Path, int FaceIndex)> Order = [];
-        private const string IndexFormat = "killerpdf-font-index-2";
+        private const string IndexFormat = "killerpdf-font-index-3";
 
         private readonly record struct FaceFile(string Path, int FaceIndex);
         private enum FaceStyle { Regular, Bold, Italic, BoldItalic }
@@ -59,8 +57,8 @@ namespace KillerPDF.Services
                 foreach (var dir in dirs)
                 {
                     // .ttf first, then .ttc, then .otf - AddFace keeps the first face registered
-                    // for a (family, style), so this order is the preference order. .otf is last
-                    // because CFF faces embed unsubsetted (see the note above).
+                    // for a (family, style), so this order is the preference order. An .otf file
+                    // may contain TrueType outlines; CFF faces remain excluded by the reader.
                     foreach (var pattern in new[] { "*.ttf", "*.ttc", "*.otf" })
                     {
                         string[] files;
@@ -160,36 +158,26 @@ namespace KillerPDF.Services
         {
             try
             {
-                bool isCollection = path.EndsWith(".ttc", StringComparison.OrdinalIgnoreCase);
-                if (isCollection)
-                {
-                    // One description per face inside the collection; the array index IS the face
-                    // index, which is what ExtractTtcFace needs.
-                    var descs = FontDescription.LoadFontCollectionDescriptions(path);
-                    for (int i = 0; i < descs.Length; i++) AddFace(descs[i], path, i);
-                }
-                else
-                {
-                    AddFace(FontDescription.LoadDescription(path), path, 0);
-                }
+                using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+                foreach (var face in InstalledFontMetadata.Read(input)) AddFace(face, path);
             }
             catch { /* unreadable or exotic font file - skip it, never fail the scan */ }
         }
 
-        private static void AddFace(FontDescription desc, string path, int faceIndex)
+        private static void AddFace(InstalledFontFace face, string path)
         {
-            string family = desc.FontFamilyInvariantCulture;
+            string family = face.Family;
             if (string.IsNullOrWhiteSpace(family)) return;
 
-            var style = desc.Style switch
+            var style = (face.Bold, face.Italic) switch
             {
-                SixLabors.Fonts.FontStyle.Bold       => FaceStyle.Bold,
-                SixLabors.Fonts.FontStyle.Italic     => FaceStyle.Italic,
-                SixLabors.Fonts.FontStyle.BoldItalic => FaceStyle.BoldItalic,
-                _                                    => FaceStyle.Regular,
+                (true, true) => FaceStyle.BoldItalic,
+                (true, false) => FaceStyle.Bold,
+                (false, true) => FaceStyle.Italic,
+                _ => FaceStyle.Regular,
             };
 
-            AddFace(family, style, path, faceIndex);
+            AddFace(family, style, path, face.FaceIndex);
         }
 
         private static void AddFace(string family, FaceStyle style, string path, int faceIndex)

@@ -54,7 +54,6 @@
   <!-- The engine and preview handler projects build independently; keep the app's implicit
        source globs out of those trees or their files compile as part of the WPF application. -->
   <ItemGroup>
-    <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta17" />
     <Compile Remove="engine\**" />
     <Compile Remove="third_party\**" />
     <Compile Remove="Packaging\**" />

@@ -95,16 +95,16 @@ public sealed class EpubListLayoutTests
     [InlineData("<ul><li><p style='padding-top:1px'></p></li></ul>")]
     [InlineData("<ul><li/></ul>")]
     [InlineData("<ul><li>  </li></ul>")]
-    [InlineData("<ul>A<li>A</li></ul>")]
     [InlineData("<ul><li><ul><li>A</li></ul></li></ul>")]
-    public void UnsupportedListShapesKeepExplicitResults(string body)
+    public void ListShapesWithoutOwnedMarkerLinesOmitOnlyTheirMarker(string body)
     {
         byte[] source = Book(body, "ul{margin:0}"), original = source.ToArray();
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
         var book = EpubDocument.Open(source);
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(120, 60, font)
-        { FontSize = 10, Margin = 2 }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        var layout = book.CreateLayout(new EpubLayoutOptions(120, 60, font) { FontSize = 10, Margin = 2 });
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.Contains("marker", Assert.Single(layout.ContentDiagnostics).Message);
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
         Assert.Equal(original, source);
     }
 
@@ -112,6 +112,7 @@ public sealed class EpubListLayoutTests
     // (numbers are not drawn yet) instead of refusing the chapter.
     [Theory]
     [InlineData("<ul><p>A</p></ul>")]
+    [InlineData("<ul>A<li>A</li></ul>")]
     [InlineData("<ol><li>A</li></ol>")]
     public void ParagraphsInListsAndOrderedListsLayOut(string body)
     {

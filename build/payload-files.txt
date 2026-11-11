@@ -178,7 +178,6 @@ ru/UIAutomationClientSideProviders.resources.dll
 ru/UIAutomationProvider.resources.dll
 ru/UIAutomationTypes.resources.dll
 ru/WindowsBase.resources.dll
-SixLabors.Fonts.dll
 System.AppContext.dll
 System.Buffers.dll
 System.CodeDom.dll

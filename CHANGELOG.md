@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- The first text highlight on a page can be undone and redone. (#485)
 - A per-user or portable update that fails now reopens KillerPDF instead of leaving it closed, including when antivirus or a locked-down PowerShell stops the update helper from loading, and a published copy that fails its final check is swapped back for the previous version and never started.
 - Searchable PDFs made with OCR, and other saves that add text, open in Adobe Reader again. Added fonts carry their complete encoding details, and saves keep the original file's cross-reference format.
 - An update started from an administrator's copy reopens KillerPDF at normal rights. An update that is applied but cannot record its version in the registry now finishes and reopens instead of reporting failure, and putting the previous copy back after a failed update retries a busy file and survives a leftover from an earlier attempt.
@@ -55,6 +56,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
+- DjVu photo pages convert to high-quality JPEG with full color detail, reducing the converted file size. (#472)
+- Updates OCR, cryptography and test dependencies, and reads installed font metadata without a separate font library.
 - Saved TrueType text retains fractional font advances. (#472)
 - Color edges in JPEG photos and scans are smoother, most visibly red or blue text on white.
 - CMYK colors without their own profile now look the same in the viewer, thumbnails, printing, exports, the preview pane, the command line and the color conversion macro, all following the working CMYK profile (CGATS TR 001 unless you choose another). Colors move very little: about 0.6 delta E on average across test pages, and about 6 at most on test swatches. (#264)

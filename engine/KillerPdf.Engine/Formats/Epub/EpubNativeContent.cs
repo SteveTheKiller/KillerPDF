@@ -422,8 +422,6 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal Text TextNode(string value)
     {
         var owner = _ancestors.Peek();
-        if (owner.Name == "ul" && !IsFormattingWhitespace(value))
-            throw new NotSupportedException("Native EPUB unordered-list text requires a list item.");
         if (owner.Name == "hr")
             throw new NotSupportedException("Native EPUB horizontal rules cannot contain text.");
         var node = new Text(value, owner, Characters.Count);
@@ -528,7 +526,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
             if (css.AsSpan(position).StartsWith("@namespace", StringComparison.OrdinalIgnoreCase))
             {
-                if (styleSeen) throw NamespaceSyntax();
+                int namespaceStart = position;
+                try
+                {
                 if (++namespaceCount > 256)
                     throw new InvalidDataException("Native EPUB CSS namespace declarations exceed their 256-declaration limit.");
                 position += 10;
@@ -570,7 +570,14 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     SkipSpace();
                 }
                 if (position == css.Length || css[position++] != ';') throw NamespaceSyntax();
-                namespaces[prefix] = uri;
+                if (styleSeen) IgnoredDeclarations++;
+                else namespaces[prefix] = uri;
+                }
+                catch (NotSupportedException)
+                {
+                    IgnoredDeclarations++;
+                    position = SkipAtRule(namespaceStart);
+                }
                 continue;
             }
             if (css[position] == '@')
@@ -1938,7 +1945,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             while (at < value.Length && IsSpace(value[at])) at++;
             if (at == value.Length) throw Syntax();
             if (result.Count >= 32)
-                throw new InvalidDataException("Native EPUB font-family exceeds its 32-family limit.");
+                throw new NotSupportedException("Native EPUB font-family exceeds its 32-family limit.");
             bool quoted = value[at] is '\'' or '"';
             string name;
             if (quoted)

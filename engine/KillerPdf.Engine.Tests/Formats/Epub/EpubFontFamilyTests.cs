@@ -151,7 +151,7 @@ public sealed class EpubFontFamilyTests
     [Theory]
     [InlineData(32, false)]
     [InlineData(33, true)]
-    public void FamilyListsHaveAnExplicitProcessingLimit(int count, bool exceeds)
+    public void FamilyListsBeyondTheProcessingLimitDropOnlyTheirDeclaration(int count, bool exceeds)
     {
         string names = string.Join(',', Enumerable.Repeat("MissingFace", count));
         var book = EpubDocument.Open(EpubNavigationDestinationTests.Book(firstBody:
@@ -159,8 +159,9 @@ public sealed class EpubFontFamilyTests
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
         var options = new EpubLayoutOptions(30, 23, font) { FontSize = 10, Margin = 2 };
 
-        if (exceeds) Assert.Throws<InvalidDataException>(() => book.CreateLayout(options));
-        else Assert.Equal(6, Assert.Single(book.CreateLayout(options).Pages[0].TextPlacements).Width);
+        var layout = book.CreateLayout(options);
+        Assert.Equal(6, Assert.Single(layout.Pages[0].TextPlacements).Width);
+        Assert.Equal(exceeds ? 1 : 0, layout.IgnoredDeclarations.Sum(item => item.Count));
     }
 
     [Fact]

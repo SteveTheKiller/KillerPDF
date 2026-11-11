@@ -166,7 +166,7 @@ public sealed class NativeWorkingDocumentTests
     [InlineData("wrong-format")]
     [InlineData("navigation")]
     [InlineData("malformed")]
-    public void FailedDjvuPublicationPreservesOriginalAndLeavesNoPartialOutput(string failure)
+    public void DjvuPublicationPreservesOriginalAndPublishesOnlyACompletePdf(string failure)
     {
         string folder = Path.Combine(Path.GetTempPath(), "KillerPDF-DjvuConversion-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
@@ -195,7 +195,8 @@ public sealed class NativeWorkingDocumentTests
             File.WriteAllBytes(originalPath, original);
             if (failure == "existing") File.WriteAllBytes(destination, priorOutput);
             if (failure == "closed") owner.Close();
-            Action publish = () => NativePdfConversion.WriteNewDjvu(owner, originalPath, destination,
+            IReadOnlyList<KillerPdf.Engine.Formats.Djvu.DjvuDiagnostic> notices = [];
+            Action publish = () => notices = NativePdfConversion.WriteNewDjvu(owner, originalPath, destination,
                 new CancellationToken(failure == "canceled"));
 
             switch (failure)
@@ -203,14 +204,22 @@ public sealed class NativeWorkingDocumentTests
                 case "existing": Assert.Throws<IOException>(publish); break;
                 case "canceled": Assert.Throws<OperationCanceledException>(publish); break;
                 case "closed": Assert.Throws<ObjectDisposedException>(publish); break;
-                case "malformed": Assert.Throws<InvalidDataException>(publish); break;
+                case "navigation":
+                case "malformed":
+                    publish();
+                    // The outline fixture contains page metadata without an image; both cases keep
+                    // that unreadable page's position as a labeled placeholder.
+                    Assert.Contains(notices, notice => notice.Code == "PageNotConverted");
+                    Assert.Single(PdfPageInformation.Read(PdfDocument.Open(File.ReadAllBytes(destination))));
+                    break;
                 default: Assert.Throws<NotSupportedException>(publish); break;
             }
 
             Assert.Equal(original, File.ReadAllBytes(originalPath));
             if (failure == "existing") Assert.Equal(priorOutput, File.ReadAllBytes(destination));
-            else Assert.False(File.Exists(destination));
-            Assert.Equal(failure == "existing" ? 2 : 1, Directory.GetFiles(folder).Length);
+            else if (failure is not ("navigation" or "malformed")) Assert.False(File.Exists(destination));
+            Assert.Equal(failure is "existing" or "navigation" or "malformed" ? 2 : 1,
+                Directory.GetFiles(folder).Length);
             if (failure != "closed")
             {
                 using var copy = new MemoryStream();

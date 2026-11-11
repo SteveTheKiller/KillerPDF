@@ -14,12 +14,12 @@
 
   <ItemGroup>
     <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+    <PackageReference Include="xunit.analyzers" Version="2.3.0" PrivateAssets="all" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta17" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -110,6 +110,9 @@
     <Compile Include="..\Services\NativeWicJpegDecoder.cs" Link="Services\NativeWicJpegDecoder.cs" />
     <Compile Include="..\Services\PdfWorkingDocument.cs" Link="Services\PdfWorkingDocument.cs" />
     <Compile Include="..\Services\NativeWorkingDocument.cs" Link="Services\NativeWorkingDocument.cs" />
+    <Compile Include="..\Services\PdfImageJpeg.cs" Link="Services\PdfImageJpeg.cs" />
+    <Compile Include="..\Services\NativeWicJpegEncoder.cs" Link="Services\NativeWicJpegEncoder.cs" />
+    <Compile Include="..\Services\InstalledFontMetadata.cs" Link="Services\InstalledFontMetadata.cs" />
     <Compile Include="..\Services\NativePdfConversion.cs" Link="Services\NativePdfConversion.cs" />
     <Compile Include="..\Services\NativeOpen.cs" Link="Services\NativeOpen.cs" />
     <Compile Include="..\Services\NativeDocumentDiagnostics.cs" Link="Services\NativeDocumentDiagnostics.cs" />

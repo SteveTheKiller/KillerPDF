@@ -113,8 +113,7 @@ public sealed partial class EpubDocument
                     }
                     if (reader.LocalName == "pre")
                     {
-                        if (preDepth >= 0) throw new NotSupportedException("Nested EPUB preformatted text blocks are unsupported.");
-                        if (!reader.IsEmptyElement) preDepth = reader.Depth;
+                        if (preDepth < 0 && !reader.IsEmptyElement) preDepth = reader.Depth;
                     }
                     Separate(TextBlockLines(reader.LocalName));
                     if (reader.LocalName == "img")

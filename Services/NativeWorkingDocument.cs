@@ -152,7 +152,12 @@ internal sealed class NativeWorkingDocument : IDisposable
                 throw new NotSupportedException("DjVu conversion requires a DjVu document.");
             source = _source;
         }
-        return DjvuDocument.Open(source, cancellationToken).ConvertToPdf(notices, cancellationToken);
+        return DjvuDocument.Open(source, cancellationToken).ConvertToPdf(new DjvuPdfConversionOptions
+        {
+            JpegEncoder = (pixels, width, height, components, quality) =>
+                PdfImageJpeg.EncodePhoto(pixels, width, height, components, quality, cancellationToken),
+            JpegQuality = 100
+        }, notices, cancellationToken);
     }
 
     internal byte[] ConvertEpubToPdf(EpubPdfConversionOptions options,

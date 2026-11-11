@@ -40,19 +40,20 @@ public sealed partial class EpubDocument
             data.AsSpan(bytePosition + byteLength).CopyTo(sanitized.AsSpan(bytePosition));
             data = sanitized;
         }
-        return width == 1 ? WithHtmlEntitiesAsReferences(data) : data;
+        return WithHtmlEntitiesAsReferences(data, littleEndian ? Encoding.Unicode
+            : bigEndian ? Encoding.BigEndianUnicode : Encoding.Latin1);
     }
 
     private static readonly Regex NamedEntity = new("&([A-Za-z][A-Za-z0-9]{1,31});",
         RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
 
     // XHTML documents use the HTML 4 named entities their DTD would declare (&nbsp;, &mdash;, ...). Without
-    // processing that DTD, each known name becomes the numeric reference it stands for. The bytes are read as
-    // Latin-1 so every ASCII-compatible encoding keeps its other bytes unchanged.
-    private static byte[] WithHtmlEntitiesAsReferences(byte[] data)
+    // processing that DTD, each known name becomes its numeric reference. UTF-16 keeps its detected byte order;
+    // Latin-1 preserves the other bytes in ASCII-compatible encodings.
+    private static byte[] WithHtmlEntitiesAsReferences(byte[] data, Encoding encoding)
     {
         if (data.AsSpan().IndexOf((byte)'&') < 0) return data;
-        string text = Encoding.Latin1.GetString(data);
+        string text = encoding.GetString(data);
         bool changed = false;
         string result = NamedEntity.Replace(text, match =>
         {
@@ -64,6 +65,6 @@ public sealed partial class EpubDocument
             changed = true;
             return "&#" + rune.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + ";";
         });
-        return changed ? Encoding.Latin1.GetBytes(result) : data;
+        return changed ? encoding.GetBytes(result) : data;
     }
 }

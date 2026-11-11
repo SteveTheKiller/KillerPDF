@@ -2835,8 +2835,9 @@ namespace KillerPDF.Controls
         {
             var snap = new Dictionary<int, List<PageAnnotation>>();
             foreach (int p in pages.Distinct())
-                if (_annotations.TryGetValue(p, out var list))
-                    snap[p] = [.. list.Select(CloneHistoryAnnotation).Where(c => c is not null).Cast<PageAnnotation>()];
+                snap[p] = _annotations.TryGetValue(p, out var list)
+                    ? [.. list.Select(CloneHistoryAnnotation).Where(c => c is not null).Cast<PageAnnotation>()]
+                    : [];
             if (snap.Count > 0)
                 PushUndo(new UndoEntry(UndoKind.PageSnapshot, WasDirty: _isDirty, AnnotSnapshot: snap));
         }

@@ -8,6 +8,20 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubPackageDegradeTests
 {
+    [Fact]
+    public void OversizedChapterKeepsItsOutlineTargetAndResolvesToItsDiagnosisPage()
+    {
+        var source = new Book { Chapters = { Chapter("<p>" + new string('A', 9 * 1024 * 1024) + "</p>"), Chapter("<p>A</p>") } };
+        var book = EpubDocument.Open(source.Build());
+
+        string target = Assert.Single(book.ReadNavigation()).Target;
+
+        Assert.Equal("OEBPS/text/c0.xhtml", target);
+        var layout = book.CreateLayout(Options());
+        Assert.Equal(0, layout.ResolveNavigationTarget(target).PageIndex);
+        Assert.Equal(0, layout.ResolveNavigationTarget(target + "#unavailable-anchor").PageIndex);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

@@ -18,7 +18,6 @@ onnxruntime.lib
 onnxruntime_providers_shared.dll
 onnxruntime_providers_shared.lib
 pdf-file.ico
-SixLabors.Fonts.dll
 System.Numerics.Tensors.dll
 Tesseract.dll
 THIRD-PARTY-NOTICES.txt

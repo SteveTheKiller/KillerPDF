@@ -8,10 +8,11 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubPreformattedTextTests
 {
     [Fact]
-    public void NestedPreformattedBlocksKeepExplicitUnsupportedResult()
+    public void NestedPreformattedBlocksKeepTheirText()
     {
         byte[] source = Book("<pre>A<pre>A</pre> A</pre>"), original = source.ToArray();
-        Assert.Throws<NotSupportedException>(() => EpubDocument.Open(source).ReadText(0));
+        string text = EpubDocument.Open(source).ReadText(0);
+        Assert.Equal("AAA", new string(text.Where(char.IsLetter).ToArray()));
         Assert.Equal(original, source);
     }
 

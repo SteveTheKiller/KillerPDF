@@ -43,9 +43,12 @@ public sealed class EpubCssNamespaceTests
     [InlineData("@namespace h url(urn:test;")]
     [InlineData("@namespace h 'urn:test' garbage;")]
     [InlineData("body{}@namespace h 'urn:test';")]
-    public void MalformedOrMisplacedNamespaceUsesStrictRefusalPolicy(string css)
+    public void MalformedOrMisplacedNamespaceIsIgnoredWithoutDiscardingTheChapter(string css)
     {
-        Reject([css], "Native EPUB CSS namespace syntax is not implemented.");
+        Dropped([css]);
+        var book = EpubDocument.Open(Book([css]));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
     }
 
     [Fact]

@@ -158,7 +158,8 @@ public sealed partial class EpubDocument
             throw new InvalidDataException("Invalid EPUB navigation fragment.");
         var prefix = navigationPath.Contains('/') ? navigationPath[..(navigationPath.LastIndexOf('/') + 1)] : "";
         var resolved = path.Length == 0 ? navigationPath : ResolvePath(prefix, path);
-        if (!_resources.ContainsKey(resolved)) throw new InvalidDataException("Missing EPUB navigation target.");
+        if (!_resources.ContainsKey(resolved) && !_oversizedResources.Contains(resolved))
+            throw new InvalidDataException("Missing EPUB navigation target.");
         return resolved + fragment;
     }
 }
