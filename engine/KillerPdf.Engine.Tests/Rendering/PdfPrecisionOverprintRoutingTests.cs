@@ -30,6 +30,20 @@ public sealed class PdfPrecisionOverprintRoutingTests
         Assert.NotNull(Proof(file));
     }
 
+    [Fact]
+    public void OverprintSetByAShadingPatternsOwnGraphicsStateGetsAComposedProof()
+    {
+        byte[] file = TestIccProfiles.Pdf([
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /Pattern << /P1 5 0 R >> >> /Contents 4 0 R >>",
+            TestIccProfiles.Stream("", Encoding.ASCII.GetBytes("/Pattern cs /P1 scn 0 0 100 100 re f")),
+            $"<< /PatternType 2 /ExtGState {Overprint} /Shading << /ShadingType 2 /ColorSpace /DeviceCMYK /Coords [0 0 100 0] "
+                + "/Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [0 0 1 0] /N 1 >> >> >>"]);
+
+        Assert.NotNull(Proof(file));
+    }
+
     private static PdfRenderedFrame Proof(byte[] file) => new PdfPageRenderer(PdfDocument.Open(file)).RenderFrame(0,
         new PdfRenderOptions(10, 10)
         {

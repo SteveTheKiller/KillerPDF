@@ -239,6 +239,9 @@ public sealed partial class PdfPageRenderer
                         PdfObject resolved = Resolve(entry.Value);
                         PdfDictionary? owner = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
                         if (owner is null) continue;
+                        // A shading pattern carries its own graphics state parameters.
+                        if (category == "Pattern" && owner.TryGetValue(Name("ExtGState"), out var ownState)
+                            && Resolve(ownState) is PdfDictionary patternState && SetsOverprint(patternState)) return true;
                         if (owner.TryGetValue(Name("Resources"), out var nested) && Resolve(nested) is PdfDictionary nestedResources)
                             pending.Push((nestedResources, true));
                         // A form, tiling pattern or Type 3 font without resources of its own draws with the page's.
