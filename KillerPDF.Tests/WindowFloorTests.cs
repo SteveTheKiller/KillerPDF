@@ -34,4 +34,15 @@ public sealed class WindowFloorTests
     {
         Assert.Equal(1467.5, WindowFloor.Compute(500, 387, 2.5, split: false, gutter: 8), 6);
     }
+
+    // SOURCE PIN: the split pane is built in the window, which this project does not compile. The minimum the test
+    // above pins must be the one the pane applies, not a second copy of the same number.
+    [Fact]
+    public void TheSplitPaneAppliesTheSharedMinimum()
+    {
+        string split = ViewerSourcePin.Source("Shell", "SplitPane.cs");
+
+        Assert.Contains("private const double MinPaneWidth = WindowFloor.SplitPaneMinimum;", split);
+        Assert.DoesNotContain("MinPaneWidth = 320", split);
+    }
 }

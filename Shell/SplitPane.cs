@@ -17,7 +17,7 @@ namespace KillerPDF.Shell
     {
         /// <summary>Neither pane may go below this. Both handles clamp against both minimums, so
         /// dragging either one stops at whichever pane would go under first.</summary>
-        private const double MinPaneWidth = 320;
+        private const double MinPaneWidth = WindowFloor.SplitPaneMinimum;
 
         /// <summary>Inset a pane keeps from the window edge.</summary>
         private const double PaneEdge = 8;
