@@ -923,9 +923,11 @@ namespace KillerPDF.Shell
         }
 
         // Ctrl+V and the page menu's Paste. Copied annotations take priority over whatever image or
-        // text the Windows clipboard holds.
+        // text the Windows clipboard holds. A book is read-only: it has no page layer to hold what
+        // is pasted, and a paste would mark its tab changed with nothing to save.
         private void PasteInView(int pageIndex)
         {
+            if (ActiveViewer.NativeDocumentRef is not null) return;
             if (_annotationClipboard.Count > 0) PasteAnnotations(pageIndex);
             else PasteFromClipboard();
         }
@@ -934,6 +936,7 @@ namespace KillerPDF.Shell
         // another program holding it open is treated as nothing to paste.
         private bool CanPasteInView()
         {
+            if (ActiveViewer.NativeDocumentRef is not null) return false;
             if (_annotationClipboard.Count > 0) return true;
             try { return Clipboard.ContainsImage() || Clipboard.ContainsText(); }
             catch (System.Runtime.InteropServices.ExternalException) { return false; }
