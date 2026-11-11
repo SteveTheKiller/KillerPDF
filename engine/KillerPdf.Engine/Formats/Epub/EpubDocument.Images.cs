@@ -147,7 +147,7 @@ public sealed partial class EpubDocument
         static int Index(int sign, int value, int extent) => sign switch { 1 => value, -1 => extent - 1 - value, _ => 0 };
     }
 
-    private static PngDecodedImage ReadNativePng(ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
+    internal static PngDecodedImage ReadNativePng(ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
     {
         var data = bytes.Span;
         if (data.Length < 33 || !PdfPngDecoder.HasSignature(data)
@@ -159,7 +159,7 @@ public sealed partial class EpubDocument
             throw new EpubImageUnavailableException("Native EPUB PNG exceeds the decodable size.", EpubOmissionReason.ImageTooLarge);
         if (data[28] != 0)
             throw new EpubImageUnavailableException("Native EPUB interlaced PNG images are not implemented.");
-        bool foreignProfile = false, srgbChunk = false;
+        bool foreignProfile = false, srgbChunk = false, profileSeen = false;
         for (int offset = 8; offset < data.Length;)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -170,6 +170,12 @@ public sealed partial class EpubDocument
             // A color profile that is not sRGB cannot be honored without color management, so that image is refused.
             if (type.SequenceEqual("iCCP"u8))
             {
+                // PNG allows one iCCP chunk. Refusing a second keeps the inflated profile bytes bounded for the whole
+                // image, however many tiny chunks a hostile file packs into its entry.
+                if (profileSeen)
+                    throw new EpubImageUnavailableException("Native EPUB PNG has more than one iCCP chunk.",
+                        EpubOmissionReason.ImageUnreadable);
+                profileSeen = true;
                 // The profile's own description decides; editors often label the standard sRGB profile 'ICC profile'.
                 // The name is only a fallback for a profile that cannot be inflated. An sRGB chunk (checked below)
                 // also vouches for the image.
@@ -199,6 +205,9 @@ public sealed partial class EpubDocument
         return image;
     }
 
+    // Counts the profile bytes inflated on this thread, so a test can prove the work stays bounded per image.
+    [ThreadStatic] internal static long IccInflatedBytes;
+
     // The bytes of an iCCP profile (a compression method byte, then a zlib stream), or null when it cannot be inflated
     // within 4 MiB.
     private static byte[]? InflateIccProfile(ReadOnlySpan<byte> afterName)
@@ -215,6 +224,7 @@ public sealed partial class EpubDocument
             while ((count = inflater.Read(buffer)) != 0)
             {
                 if (output.Length + count > limit) return null;
+                IccInflatedBytes += count;
                 output.Write(buffer, 0, count);
             }
             return output.ToArray();

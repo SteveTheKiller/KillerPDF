@@ -568,6 +568,25 @@ public sealed class EpubEmbeddedImageLayoutTests
         else EpubImageCompatibilityTests.AssertImageOmitted(layout, "profile");
     }
 
+    // PNG allows one iCCP chunk. A file packing about 2,000 tiny chunks that each inflate to 4 MiB would otherwise make
+    // the reader inflate about 8 GiB for one image; the second chunk refuses the image before any more work is done.
+    [Fact]
+    public void ManyIccChunksAreRefusedAfterAtMostOneProfileIsInflated()
+    {
+        using var packed = new MemoryStream();
+        using (var zlib = new ZLibStream(packed, CompressionLevel.SmallestSize, true)) zlib.Write(new byte[4 * 1024 * 1024]);
+        byte[] payload = [(byte)'p', 0, 0, .. packed.ToArray()];
+        var chunks = Enumerable.Range(0, 2000).Select(_ => ("iCCP", payload)).ToArray();
+        byte[] png = RgbPng(metadata: chunks);
+
+        EpubDocument.IccInflatedBytes = 0;
+        var error = Assert.Throws<EpubImageUnavailableException>(() => EpubDocument.ReadNativePng(png, CancellationToken.None));
+
+        Assert.True(EpubDocument.IccInflatedBytes <= 4 * 1024 * 1024,
+            $"Inflated {EpubDocument.IccInflatedBytes} profile bytes for one image; the most allowed is {4 * 1024 * 1024}.");
+        Assert.Equal(EpubOmissionReason.ImageUnreadable, error.Reason);
+    }
+
     // A minimal ICC v2 profile: the 128 byte header, one 'desc' tag holding the description as ASCII text.
     private static byte[] IccProfile(string description)
     {
