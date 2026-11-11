@@ -8,8 +8,11 @@ public sealed partial class DjvuDocument
     // A compound page (7.1.3) converts as its layers, so text stays as sharp as the scan and the file stays small:
     // the background as an image at its own stored resolution, and the foreground as the page's one-bit mask used as a
     // luminosity soft mask, once per foreground color (each FGbz palette color, or black) over a fill of that color,
-    // or once over the FG44 image. Each color's mask is cut to the rectangle its pixels cover. Everything is drawn in
+    // or once over the FG44 image. Each color's mask is cut to the rectangle its pixels cover. A page with many colors\r\n    // (or colors whose rectangles together cover several pages) draws them as one RGB image under one mask instead. Everything is drawn in
     // stored orientation under the page's turn, as the located text is.
+    // Past this many colors, or boxes covering more than this many page areas together, the foreground is one image.
+    private const int MaximumColorMasks = 16, BoxAreaPages = 4;
+
     private void AddCompoundPdfPage(PdfDocumentBuilder builder, DjvuPageInfo page, List<Chunk> chunks,
         DjvuTextPage text, int pageIndex, ICollection<DjvuDiagnostic> diagnostics, CancellationToken token)
     {
@@ -46,6 +49,21 @@ public sealed partial class DjvuDocument
         else
         {
             var boxes = ColorBounds();
+            int usedColors = boxes.Count(box => box is not null);
+            long boxArea = boxes.Sum(box => box is { } b ? (long)(b.Right - b.Left) * (b.Bottom - b.Top) : 0);
+            if (usedColors > MaximumColorMasks || boxArea > BoxAreaPages * width * height)
+            {
+                // Many colors, or boxes that overlap across the page: one image of the colors under one mask.
+                if (Bounds(rank: -1) is { } all)
+                {
+                    content.SaveState().SetGraphicsState(SoftMask(all, rank: -1));
+                    DrawPaletteImage(all);
+                    content.RestoreState();
+                }
+                diagnostics.Add(new("ForegroundColorsMerged", $"Page {pageIndex + 1} has {usedColors} foreground colors. " +
+                    "They are drawn as one image under one mask, with the colors unchanged.") { PageIndex = pageIndex });
+                boxes = [];
+            }
             for (int rank = 0; rank < boxes.Length; rank++)
             {
                 if (boxes[rank] is not { } box) continue;
@@ -97,6 +115,27 @@ public sealed partial class DjvuDocument
                 }
             }
             return result;
+        }
+
+        // The foreground colors inside the rectangle as one RGB image, each pixel its palette color (black where no
+        // shape lies, which the page mask hides).
+        void DrawPaletteImage((int Left, int Top, int Right, int Bottom) box)
+        {
+            int w = box.Right - box.Left, h = box.Bottom - box.Top;
+            var rgb = new byte[3L * w * h];
+            for (int y = 0; y < h; y++)
+            {
+                token.ThrowIfCancellationRequested();
+                for (int x = 0; x < w; x++)
+                {
+                    int px = box.Left + x, py = box.Top + y;
+                    if (!Masked(px, py)) continue;
+                    int rank = layers.Index(px, py);
+                    long at = 3L * (y * w + x);
+                    for (int channel = 0; channel < 3; channel++) rgb[at + channel] = encoded[layers.Palette[3 * rank + channel]];
+                }
+            }
+            content.DrawImage(PdfImage.FromRgb(w, h, rgb), box.Left * scale, (height - box.Bottom) * scale, w * scale, h * scale);
         }
 
         // The masked pixels of one color (or all of them) inside the rectangle, white where painted, as a one-bit image

@@ -221,6 +221,40 @@ internal static class DjvuTestStreams
         => Chunk("INFO", [(byte)(width >> 8), (byte)width, (byte)(height >> 8), (byte)height, 24, 0, 0x2c, 1, 22, 1]);
 
     /// <summary>
+    /// A 48 x 48 compound page (a 4 x 4 gray BG44 at subsample 12, a JB2 mask and an FGbz palette) on which each of
+    /// <paramref name="colors"/> colors paints two one-pixel shapes: color k at column k % 48, row k / 48 and at the
+    /// mirrored place (47 - column, 47 - row). Every pixel is a different one, so each color's pixels span a wide box.
+    /// </summary>
+    internal static byte[] ManyColorPage(int colors)
+    {
+        const int size = 48;
+        var writer = new DjvuTestJb2Writer();
+        writer.StartOfData(size, size);
+        var indexes = new List<byte>();
+        for (int k = 0; k < colors; k++)
+        {
+            int x = k % size, y = k / size;
+            writer.OnePixelShape(x, y, size, size);
+            writer.OnePixelShape(size - 1 - x, size - 1 - y, size, size);
+            indexes.AddRange([(byte)(k >> 8), (byte)k, (byte)(k >> 8), (byte)k]);
+        }
+        var palette = new List<byte> { 0x80, (byte)(colors >> 8), (byte)colors };
+        for (int k = 0; k < colors; k++)
+        {
+            var (r, g, b) = PaletteColor(k);
+            palette.AddRange([b, g, r]);
+        }
+        int blits = 2 * colors;
+        palette.AddRange([(byte)(blits >> 16), (byte)(blits >> 8), (byte)blits]);
+        palette.AddRange(Bzz([.. indexes]));
+        return [.. "AT&T"u8, .. Form("DJVU", Info(size, size), Chunk("Sjbz", writer.Finish()), Chunk("FGbz", [.. palette]),
+            Chunk("BG44", Convert.FromHexString("000181020004000400FFFF")))];
+    }
+
+    /// <summary>The red, green and blue palette entry <see cref="ManyColorPage"/> gives color <paramref name="k"/>.</summary>
+    internal static (byte R, byte G, byte B) PaletteColor(int k)
+        => ((byte)(k * 37 + 11), (byte)(k * 91 + 5), (byte)(k * 53 + 200));
+    /// <summary>
     /// A bundle of <paramref name="levels"/> include components, each holding <paramref name="fanOut"/> INCL chunks to
     /// the next and no Djbz, and a 64 x 40 page that includes the first and whose Sjbz requires a shared dictionary
     /// the bundle does not hold. Searching every INCL path visits fanOut^(levels - 1) times the last component.
@@ -236,3 +270,145 @@ internal static class DjvuTestStreams
         return Bundle([.. components]);
     }
 }
+
+/// <summary>Writes JB2 records as the decoder reads them (Appendix 2): numbers through context trees, bitmaps through the 10-pixel template.</summary>
+internal sealed class DjvuTestJb2Writer
+{
+    private const int StartRecord = 0, NewMarkLibraryOnlyRecord = 2, NonMarkRecord = 8, EndRecord = 11, BigPositive = 262142;
+    private const int RecordTypeContext = 0, ImageSizeContext = 1, SymbolWidthContext = 3, SymbolHeightContext = 4,
+        ColumnContext = 7, RowContext = 8;
+
+    private readonly DjvuTestZpEncoder _zp = new(ordinaryUnmodeled: false);
+    private readonly byte[] _direct = new byte[1024];
+    private readonly byte[] _flag = new byte[1];
+    private readonly int[] _roots = new int[16];
+    private byte[] _states = new byte[4096];
+    private int[] _left = new int[4096], _right = new int[4096];
+    private int _cells = 1;
+
+    internal void StartOfData(int width, int height)
+    {
+        Number(StartRecord, 0, EndRecord, RecordTypeContext);
+        Number(width, 0, BigPositive, ImageSizeContext);
+        Number(height, 0, BigPositive, ImageSizeContext);
+        _zp.Bit(0, _flag, 0);
+    }
+
+    /// <summary>A shape of one black pixel placed with its top left pixel at (x, y), counted from the top left of the page.</summary>
+    internal void OnePixelShape(int x, int y, int pageWidth, int pageHeight)
+    {
+        Number(NonMarkRecord, 0, EndRecord, RecordTypeContext);
+        Number(1, 0, BigPositive, SymbolWidthContext);
+        Number(1, 0, BigPositive, SymbolHeightContext);
+        Direct(new bool[1, 1] { { true } });
+        Number(x + 1, 1, pageWidth, ColumnContext);
+        Number(pageHeight - y, 1, pageHeight, RowContext);
+    }
+
+    /// <summary>A library-only shape with no pixels at all.</summary>
+    internal void EmptyLibraryShape()
+    {
+        Number(NewMarkLibraryOnlyRecord, 0, EndRecord, RecordTypeContext);
+        Number(0, 0, BigPositive, SymbolWidthContext);
+        Number(0, 0, BigPositive, SymbolHeightContext);
+    }
+
+    internal byte[] Finish()
+    {
+        Number(EndRecord, 0, EndRecord, RecordTypeContext);
+        return _zp.Finish();
+    }
+
+    private void Direct(bool[,] shape)
+    {
+        int height = shape.GetLength(0), width = shape.GetLength(1);
+        byte[] up2 = new byte[width + 5], up1 = new byte[width + 5], up0 = new byte[width + 5];
+        for (int y = 0; y < height; y++)
+        {
+            int context = (up2[1] << 9) | (up2[2] << 8) | (up2[3] << 7) | (up1[0] << 6) | (up1[1] << 5)
+                | (up1[2] << 4) | (up1[3] << 3) | (up1[4] << 2) | (up0[0] << 1) | up0[1];
+            for (int x = 0; x < width; x++)
+            {
+                int pixel = shape[y, x] ? 1 : 0;
+                _zp.Bit(pixel, _direct, context);
+                up0[x + 2] = (byte)pixel;
+                context = ((context << 1) & 0x37a) | (up1[x + 5] << 2) | (up2[x + 4] << 7) | pixel;
+            }
+            (up2, up1, up0) = (up1, up0, up2);
+            Array.Clear(up0);
+        }
+    }
+
+    // 11.2.5 run in the coding direction: each decision the allowed range leaves open is the value's comparison with
+    // the current cutoff.
+    private void Number(int value, int low, int high, int root)
+    {
+        bool negative = false;
+        int cutoff = 0, phase = 1, range = -1, parent = -1, target = value;
+        bool right = false;
+        while (range != 1)
+        {
+            int cell = parent < 0 ? _roots[root] : right ? _right[parent] : _left[parent];
+            if (cell == 0)
+            {
+                cell = Allocate();
+                if (parent < 0) _roots[root] = cell;
+                else if (right) _right[parent] = cell;
+                else _left[parent] = cell;
+            }
+            bool decision;
+            if (low >= cutoff) decision = true;
+            else if (high >= cutoff)
+            {
+                decision = target >= cutoff;
+                _zp.Bit(decision ? 1 : 0, _states, cell);
+            }
+            else decision = false;
+            parent = cell;
+            right = decision;
+            switch (phase)
+            {
+                case 1:
+                    negative = !decision;
+                    if (negative)
+                    {
+                        int temp = -low - 1;
+                        low = -high - 1;
+                        high = temp;
+                        target = -target - 1;
+                    }
+                    phase = 2;
+                    cutoff = 1;
+                    break;
+                case 2:
+                    if (!decision)
+                    {
+                        phase = 3;
+                        range = (cutoff + 1) / 2;
+                        if (range == 1) cutoff = 0;
+                        else cutoff -= range / 2;
+                    }
+                    else cutoff += cutoff + 1;
+                    break;
+                default:
+                    range /= 2;
+                    if (range != 1) cutoff += decision ? range / 2 : -(range / 2);
+                    else if (!decision) cutoff--;
+                    break;
+            }
+        }
+        int result = negative ? -cutoff - 1 : cutoff;
+        if (result != value) throw new InvalidOperationException($"Number {value} coded as {result}.");
+    }
+
+    private int Allocate()
+    {
+        if (_cells == _states.Length)
+        {
+            Array.Resize(ref _states, _states.Length * 2);
+            Array.Resize(ref _left, _left.Length * 2);
+            Array.Resize(ref _right, _right.Length * 2);
+        }
+        return _cells++;
+    }
+}
