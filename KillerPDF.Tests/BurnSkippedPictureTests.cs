@@ -3,6 +3,8 @@ using System.Text;
 using System.Windows;
 using KillerPDF.Services;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Rendering;
 using Xunit;
 using static KillerPDF.Tests.ViewerSourcePin;
 
@@ -149,6 +151,36 @@ public sealed class BurnSkippedPictureTests
         finally { Directory.Delete(folder, recursive: true); }
     }
 
+    // The left half of the picture is opaque with blue 200, green 40, red 40 and the right half is fully transparent. A
+    // swapped red and blue turns the left half red; a dropped alpha turns the right half into a solid block.
+    [Fact]
+    public void AJpegXrPictureKeepsItsChannelOrderAndItsTransparency()
+    {
+        byte[] pixels = new byte[4 * 4 * 4];
+        for (int y = 0; y < 4; y++)
+            for (int x = 0; x < 4; x++)
+            {
+                int offset = (y * 4 + x) * 4;
+                if (x < 2) { pixels[offset] = 200; pixels[offset + 1] = 40; pixels[offset + 2] = 40; pixels[offset + 3] = 255; }
+            }
+        var bitmap = System.Windows.Media.Imaging.BitmapSource.Create(4, 4, 96, 96,
+            System.Windows.Media.PixelFormats.Bgra32, null, pixels, 16);
+        var encoder = new System.Windows.Media.Imaging.WmpBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+        using var encoded = new MemoryStream();
+        encoder.Save(encoded);
+
+        var (skipped, output) = BurnPictureAndRead(encoded.ToArray());
+        Assert.Equal(0, skipped);
+        var rendered = new PdfPageRenderer(PdfDocument.Open(output)).Render(0, new PdfRenderOptions(200, 200));
+        byte[] At(int x, int y) => rendered.Pixels.Slice((y * 200 + x) * 4, 4).ToArray();
+        // The picture covers (10,10) to (60,60): its left half is x 10 to 35 and its right half is x 35 to 60.
+        byte[] opaque = At(20, 35), clear = At(50, 35);
+        Assert.True(opaque[0] > opaque[2] + 60, $"left half should be blue, not red (B {opaque[0]}, G {opaque[1]}, R {opaque[2]})");
+        Assert.True(clear[0] > 240 && clear[1] > 240 && clear[2] > 240,
+            $"right half should show the white page (B {clear[0]}, G {clear[1]}, R {clear[2]})");
+    }
+
     [Fact]
     public void AJpegXrPictureIsBurnedOnAWorkerThreadToo()
     {
@@ -162,10 +194,15 @@ public sealed class BurnSkippedPictureTests
     public void TheSkippedCountBelongsToTheThreadThatBurned()
     {
         byte[] unreadable = Encoding.ASCII.GetBytes("not a picture at all, random bytes 12345");
-        int onCaller = PdfEngineBurn.SkippedPictures;
-        int onWorker = System.Threading.Tasks.Task.Run(() => BurnPictureAndRead(unreadable).Skipped).GetAwaiter().GetResult();
+        // A value the worker's burn can never leave behind (it sets 0, then at most 1), so this cannot pass by chance.
+        PdfEngineBurn.SkippedPictures = 7;
+        // A dedicated thread: waiting on a pool task can run it inline on this very thread, which would share the field.
+        int onWorker = 0;
+        var worker = new System.Threading.Thread(() => onWorker = BurnPictureAndRead(unreadable).Skipped);
+        worker.Start();
+        worker.Join();
         Assert.Equal(1, onWorker);
-        Assert.Equal(onCaller, PdfEngineBurn.SkippedPictures);
+        Assert.Equal(7, PdfEngineBurn.SkippedPictures);
     }
 
     private static int BurnPictureAndCountSkipped(byte[] pictureBytes)
