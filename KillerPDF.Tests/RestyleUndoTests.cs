@@ -8,8 +8,8 @@ namespace KillerPDF.Tests;
 public sealed class RestyleUndoTests
 {
     [Theory]
-    [InlineData("private void ApplyTextStyleToSelection()", "private void ApplyDrawStyleToSelection()")]
-    [InlineData("private void ApplyDrawStyleToSelection()", "private void ShowTextSettings()")]
+    [InlineData("private void ApplyTextStyleToSelection(", "private void ApplyDrawStyleToSelection(")]
+    [InlineData("private void ApplyDrawStyleToSelection(", "private void ShowTextSettings()")]
     public void RestylingTakesAPageSnapshotBeforeItChangesAnything(string start, string end)
     {
         string bar = ShellSource.Read("Shell", "TextSettingsBar.cs");
@@ -23,17 +23,31 @@ public sealed class RestyleUndoTests
         Assert.Contains("Apply(", method[snapshot..], StringComparison.Ordinal);
         // The snapshot is the page's annotations, taken once per page of the selection.
         string helper = ShellSource.Between(ShellSource.Read("Shell", "TextSettingsBar.cs"),
-            "private void PushStyleUndo(", "private void ApplyTextStyleToSelection()");
+            "private void PushStyleUndo(", "private void ApplyTextStyleToSelection(");
         Assert.Contains("PushPageSnapshotUndoExt(page)", helper, StringComparison.Ordinal);    }
 
+    // No slider is found by guessing from the mouse capture or the keys down: each slider on the text and draw bars
+    // owns the SliderGesture made for it and hands it to the apply call, as the Blur slider does.
     [Fact]
     public void ASliderDragIsOneStepNotOnePerTick()
     {
         string bar = ShellSource.Read("Shell", "TextSettingsBar.cs");
-        string gesture = ShellSource.Between(bar, "SliderGesture? ActiveSliderGesture()", "private void ApplyTextStyleToSelection()");
+        string bars = ShellSource.Read("Shell", "AnnotationBars.cs");
 
-        Assert.Contains("Mouse.Captured", gesture, StringComparison.Ordinal);
-        Assert.Contains("new Controls.SliderGesture(", gesture, StringComparison.Ordinal);
-        Assert.Contains(".Starts()", bar, StringComparison.Ordinal);
+        Assert.DoesNotContain("ActiveSliderGesture", bar, StringComparison.Ordinal);
+        Assert.DoesNotContain("Mouse.Captured", bar, StringComparison.Ordinal);
+        Assert.DoesNotContain("Keyboard.IsKeyDown", bar, StringComparison.Ordinal);
+        string helper = ShellSource.Between(bar, "private void PushStyleUndo(", "private void ApplyTextStyleToSelection(");
+        Assert.Contains("gesture is not null && !gesture.Starts()", helper, StringComparison.Ordinal);
+
+        foreach (string slider in new[] { "sizeSlider", "opacitySlider", "fillOpSlider", "spacingSlider" })
+            Assert.Contains($"new Controls.SliderGesture({slider})", bar, StringComparison.Ordinal);
+        foreach (string gesture in new[] { "sizeGesture", "opacityGesture", "fillOpGesture", "spacingGesture" })
+            Assert.Contains($"ApplyTextStyleToSelection({gesture})", bar, StringComparison.Ordinal);
+
+        foreach (string slider in new[] { "sizeSlider", "opacitySlider" })
+            Assert.Contains($"new Controls.SliderGesture({slider})", bars, StringComparison.Ordinal);
+        foreach (string gesture in new[] { "sizeGesture", "opacityGesture" })
+            Assert.Contains($"ApplyDrawStyleToSelection({gesture})", bars, StringComparison.Ordinal);
     }
 }

@@ -130,34 +130,18 @@ namespace KillerPDF.Shell
         }
 
         // One slider gesture, a drag or a run of key presses, is one undo step, so a slider on the options bar
-        // takes its snapshot at the first change only. A swatch pick, a toggle or a stepper has no gesture and
-        // is one step by itself. The slider is found from where the input is: the control holding the mouse, or
-        // the focused slider while an arrow, Home, End or Page key is down.
-        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Slider, Controls.SliderGesture> _styleGestures = [];
-
-        private Controls.SliderGesture? ActiveSliderGesture()
-        {
-            DependencyObject? at = Mouse.Captured as DependencyObject;
-            if (at is null && (Keyboard.IsKeyDown(Key.Left) || Keyboard.IsKeyDown(Key.Right) || Keyboard.IsKeyDown(Key.Up)
-                || Keyboard.IsKeyDown(Key.Down) || Keyboard.IsKeyDown(Key.Home) || Keyboard.IsKeyDown(Key.End)
-                || Keyboard.IsKeyDown(Key.PageUp) || Keyboard.IsKeyDown(Key.PageDown)))
-                at = Keyboard.FocusedElement as DependencyObject;
-            while (at is not null and not Slider)
-                at = at is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D
-                    ? System.Windows.Media.VisualTreeHelper.GetParent(at) : LogicalTreeHelper.GetParent(at);
-            return at is Slider slider ? _styleGestures.GetValue(slider, static s => new Controls.SliderGesture(s)) : null;
-        }
-
+        // takes its snapshot at the first change only. Each slider owns a SliderGesture made for it and passes it
+        // to the apply call; a swatch pick, a toggle or a stepper passes none and is one step by itself.
         // Ctrl+Z puts back how the selected annotations looked before the change. Called before the first change
         // of a gesture; the rest of a slider gesture adds no step.
-        private void PushStyleUndo(IEnumerable<PageAnnotation> annotations)
+        private void PushStyleUndo(IEnumerable<PageAnnotation> annotations, Controls.SliderGesture? gesture = null)
         {
-            if (ActiveSliderGesture() is { } gesture && !gesture.Starts()) return;
+            if (gesture is not null && !gesture.Starts()) return;
             foreach (int page in annotations.Select(a => a.PageIndex).Distinct())
                 ActiveViewer.PushPageSnapshotUndoExt(page);
         }
 
-        private void ApplyTextStyleToSelection()
+        private void ApplyTextStyleToSelection(Controls.SliderGesture? gesture = null)
         {
             if (_activeTextBox is not null)
             {
@@ -187,7 +171,7 @@ namespace KillerPDF.Shell
             foreach (var a in _selectedSet)
                 if (a is TextAnnotation ta && !ReferenceEquals(ta, _selectedAnnotation)) targets.Add(ta);
             if (targets.Count == 0) return;
-            PushStyleUndo(targets);
+            PushStyleUndo(targets, gesture);
             foreach (var target in targets) Apply(target);
             if (touched.Count == 0) return;
 
@@ -205,7 +189,7 @@ namespace KillerPDF.Shell
         // Draw-bar counterpart to ApplyTextStyleToSelection: when a highlight / line / ink annotation
         // is selected (not just being freshly drawn), push the bar's current color, opacity and width
         // onto it and repaint - so editing an existing annotation works the same as setting up a new one.
-        private void ApplyDrawStyleToSelection()
+        private void ApplyDrawStyleToSelection(Controls.SliderGesture? gesture = null)
         {
             // Apply to the primary selection AND every shift-selected highlight / line / ink annotation.
             var touched = new HashSet<int>();
@@ -234,7 +218,7 @@ namespace KillerPDF.Shell
             foreach (var a in _selectedSet)
                 if (!ReferenceEquals(a, _selectedAnnotation)) targets.Add(a);
             if (targets.Any(a => a is HighlightAnnotation or InkAnnotation or MeasurementAnnotation))
-                PushStyleUndo(targets.Where(a => a is HighlightAnnotation or InkAnnotation or MeasurementAnnotation));
+                PushStyleUndo(targets.Where(a => a is HighlightAnnotation or InkAnnotation or MeasurementAnnotation), gesture);
             foreach (var target in targets) Apply(target);
             if (touched.Count == 0) return;
 
@@ -335,12 +319,13 @@ namespace KillerPDF.Shell
             };
             ptLabel.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
             // Slider drives the box; the box drives the slider. _suppressSizeSync breaks the feedback loop.
+            var sizeGesture = new Controls.SliderGesture(sizeSlider);
             sizeSlider.ValueChanged += (s, e) =>
             {
                 if (_suppressSizeSync) return;
                 _textFontSize = e.NewValue;
                 sizeBox.Text = $"{e.NewValue:0.##}";
-                ApplyTextStyleToSelection();
+                ApplyTextStyleToSelection(sizeGesture);
             };
             void CommitSizeBox()
             {
@@ -418,36 +403,39 @@ namespace KillerPDF.Shell
             // Opacity and Fill Opacity: two independent groups.
             var opacitySlider = BarSlider(10, 255, _textOpacity, LabelName(Loc("Str_Bar_Opacity")));
             var opacityLabel = BarReadout($"{(int)(_textOpacity / 255.0 * 100)}%");
+            var opacityGesture = new Controls.SliderGesture(opacitySlider);
             opacitySlider.ValueChanged += (s, e) =>
             {
                 byte a = (byte)e.NewValue;
                 opacityLabel.Text = $"{(int)(a / 255.0 * 100)}%";
                 _textOpacity = a;
                 _textColor = Color.FromArgb(a, _textColor.R, _textColor.G, _textColor.B);
-                ApplyTextStyleToSelection();
+                ApplyTextStyleToSelection(opacityGesture);
             };
 
             byte curFillA = _textFillColor.A == 0 ? (byte)255 : _textFillColor.A;
             var fillOpSlider = BarSlider(10, 255, curFillA, LabelName(Loc("Str_Bar_FillOpacity")));
             var fillOpLabel = BarReadout($"{(int)(curFillA / 255.0 * 100)}%");
+            var fillOpGesture = new Controls.SliderGesture(fillOpSlider);
             fillOpSlider.ValueChanged += (s, e) =>
             {
                 byte a = (byte)e.NewValue;
                 fillOpLabel.Text = $"{(int)(a / 255.0 * 100)}%";
                 // Dragging opacity turns the fill on (defaults to the current color, white for whiteout).
                 _textFillColor = Color.FromArgb(a, _textFillColor.R, _textFillColor.G, _textFillColor.B);
-                ApplyTextStyleToSelection();
+                ApplyTextStyleToSelection(fillOpGesture);
             };
 
             var spacingSlider = BarSlider(-2, 20, _textLetterSpacing, LabelName(Loc("Str_Bar_LetterSpacing")));
             spacingSlider.TickFrequency = .25;
             spacingSlider.IsSnapToTickEnabled = true;
             var spacingLabel = BarReadout($"{_textLetterSpacing:0.##} pt", 48);
+            var spacingGesture = new Controls.SliderGesture(spacingSlider);
             spacingSlider.ValueChanged += (_, e) =>
             {
                 _textLetterSpacing = Math.Round(e.NewValue, 2);
                 spacingLabel.Text = $"{_textLetterSpacing:0.##} pt";
-                ApplyTextStyleToSelection();
+                ApplyTextStyleToSelection(spacingGesture);
             };
 
             bar.Add(Controls.ToolOptionGroup.Fill, grpFill);

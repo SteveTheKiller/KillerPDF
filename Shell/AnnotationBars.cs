@@ -317,11 +317,12 @@ namespace KillerPDF.Shell
                 sizeSlider.TickFrequency = 1;
                 sizeSlider.IsSnapToTickEnabled = true;
                 var sizeReadout = BarReadout($"{_drawWidth:F0}px");
+                var sizeGesture = new Controls.SliderGesture(sizeSlider);
                 sizeSlider.ValueChanged += (_, e) =>
                 {
                     _drawWidth = e.NewValue;
                     sizeReadout.Text = $"{e.NewValue:F0}px";
-                    ApplyDrawStyleToSelection();
+                    ApplyDrawStyleToSelection(sizeGesture);
                 };
                 bar.Add(ToolOptionGroup.Size, BarGroup(BarLabel(Loc("Str_Bar_Size")), sizeSlider, sizeReadout));
             }
@@ -329,6 +330,7 @@ namespace KillerPDF.Shell
             byte currentOpacity = usesDrawStyle ? _drawOpacity : isLineTool ? _lineAnnotColor.A : _highlightColor.A;
             var opacitySlider = BarSlider(10, 255, currentOpacity, LabelName(Loc("Str_Bar_Opacity")));
             var opacityReadout = BarReadout($"{(int)(currentOpacity / 255.0 * 100)}%");
+            var opacityGesture = new Controls.SliderGesture(opacitySlider);
             opacitySlider.ValueChanged += (_, e) =>
             {
                 byte a = (byte)e.NewValue;
@@ -340,7 +342,7 @@ namespace KillerPDF.Shell
                 }
                 else if (isLineTool) _lineAnnotColor = Color.FromArgb(a, _lineAnnotColor.R, _lineAnnotColor.G, _lineAnnotColor.B);
                 else _highlightColor = Color.FromArgb(a, _highlightColor.R, _highlightColor.G, _highlightColor.B);
-                ApplyDrawStyleToSelection();
+                ApplyDrawStyleToSelection(opacityGesture);
             };
             var opacityGroup = BarGroup(BarLabel(Loc("Str_Bar_Opacity")), opacitySlider, opacityReadout);
             // Level (Line) and the brush eraser (Draw) ride with Opacity, so they shed together.
