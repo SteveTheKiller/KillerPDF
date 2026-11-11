@@ -14,7 +14,9 @@ namespace KillerPDF.Controls
     {
         private Border? _nativeNotice;
         private TextBlock? _nativeNoticeMessage;
-        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> _nativeNoticeDismissed = [];
+        // One table for the process, keyed by the document: a dismissed notice stays dismissed when its tab moves to the
+        // other pane or a new window, where a different viewer shows the same document.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> NativeNoticeDismissed = [];
 
         private void RescaleNativeNotice()
         {
@@ -37,7 +39,7 @@ namespace KillerPDF.Controls
             // document is the one that follows its later notices.
             FollowNativeNoticesExt(_nativeDoc);
             // Ignored style rules alone are normal for real books, so only omissions raise the notice.
-            if (_nativeDoc is not { HasOmissions: true } native || _nativeNoticeDismissed.TryGetValue(native, out _))
+            if (_nativeDoc is not { HasOmissions: true } native || NativeNoticeDismissed.TryGetValue(native, out _))
             {
                 if (_nativeNotice is not null) _nativeNotice.Visibility = Visibility.Collapsed;
                 return;
@@ -47,7 +49,7 @@ namespace KillerPDF.Controls
                 if (PagePreviewPanel.Parent is not Grid previewArea || Host is null) return;
                 (_nativeNotice, _nativeNoticeMessage) = BuildNativeNotice(Host, ShowNativeDiagnostics, () =>
                 {
-                    if (_nativeDoc is { } current) _nativeNoticeDismissed.AddOrUpdate(current, current);
+                    if (_nativeDoc is { } current) NativeNoticeDismissed.AddOrUpdate(current, current);
                     UpdateNativeNotice();
                 });
                 previewArea.Children.Add(_nativeNotice);
