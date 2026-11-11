@@ -122,6 +122,23 @@ public sealed class ViewerPresentationPinTests
         Assert.Contains("if (Math.Abs(dipH - oldH) > 0.5) LayoutContinuousSlots();", slot);
     }
 
+    // viewer BF-009: a book's Grid and Two-Page tile copied and scaled its pixels inside the UI thread callback, one tile
+    // after another. The prepared bitmap is frozen, so the copy and the scaled bitmap are built on the render thread
+    // and the callback only attaches the finished tile.
+    [Fact]
+    public void ABooksGridTileIsBuiltOffTheUiThread()
+    {
+        string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+        string native = Between(viewport, "PrepareNativePrimaryBitmap(nativeRevision, i, secondaryMax", "var rendered = await _viewportRenderQueue.Enqueue(");
+        int invoke = native.IndexOf("Dispatcher.Invoke(", StringComparison.Ordinal);
+
+        Assert.True(invoke > 0, "The tile is attached through the dispatcher.");
+        Assert.InRange(native.IndexOf("source.CopyPixels(", StringComparison.Ordinal), 1, invoke);
+        Assert.InRange(native.IndexOf("BitmapHelpers.BuildScaledBitmap(", StringComparison.Ordinal), 1, invoke);
+        Assert.DoesNotContain("CopyPixels", native[invoke..]);
+        Assert.DoesNotContain("BuildScaledBitmap", native[invoke..]);
+    }
+
     private static int Count(string source, string text)
     {
         int count = 0;

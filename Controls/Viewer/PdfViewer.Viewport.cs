@@ -1557,19 +1557,22 @@ namespace KillerPDF.Controls
                                         token => PrepareNativePrimaryBitmap(nativeRevision, i, secondaryMax, rot, invert, token,
                                             proof?.Settings, secondaryMonitor), secondaryToken);
                                     int nativePage = i;
+                                    if (cts.IsCancellationRequested) break;
+                                    // The prepared bitmap is frozen: copy and scale it here, on the render thread, and
+                                    // leave only the attach to the UI thread.
+                                    var source = prepared.Bitmap;
+                                    byte[] pixels = new byte[checked(source.PixelWidth * source.PixelHeight * 4)];
+                                    source.CopyPixels(pixels, source.PixelWidth * 4, 0);
+                                    int dipWidth = Math.Max(1, (int)Math.Round(primaryDipW));
+                                    int dipHeight = Math.Max(1, (int)Math.Round(primaryDipW * source.PixelHeight / source.PixelWidth));
+                                    var bitmap = BitmapHelpers.BuildScaledBitmap(source.PixelWidth, source.PixelHeight,
+                                        pixels, dipWidth, dipHeight);
+                                    if (RenderWarnings.TryGetValue(source, out var warning))
+                                        RenderWarnings.GetValue(bitmap, _ => warning);
                                     Dispatcher.Invoke(() =>
                                     {
                                         if (!Current()) return;
                                         if (_viewMode is not (ViewMode.Grid or ViewMode.TwoPage)) return;
-                                        var source = prepared.Bitmap;
-                                        byte[] pixels = new byte[checked(source.PixelWidth * source.PixelHeight * 4)];
-                                        source.CopyPixels(pixels, source.PixelWidth * 4, 0);
-                                        int dipWidth = Math.Max(1, (int)Math.Round(primaryDipW));
-                                        int dipHeight = Math.Max(1, (int)Math.Round(primaryDipW * source.PixelHeight / source.PixelWidth));
-                                        var bitmap = BitmapHelpers.BuildScaledBitmap(source.PixelWidth, source.PixelHeight,
-                                            pixels, dipWidth, dipHeight);
-                                        if (RenderWarnings.TryGetValue(source, out var warning))
-                                            RenderWarnings.GetValue(bitmap, _ => warning);
                                         if (secondaryMonitor is null)
                                             CacheRender(session, nativePage, tileBucket, rot, bitmap, proofStamp: proof?.Stamp);
                                         AddSecondaryTile(nativePage, bitmap, primaryDipW);
