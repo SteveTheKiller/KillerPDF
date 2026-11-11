@@ -34,6 +34,17 @@ public sealed class ProofProfileLibraryTests : IDisposable
         finally { AppDomain.CurrentDomain.UnhandledException -= handler; }
     }
 
+    // A render that needs the table waits for the warm-up's fit. A warm-up below Normal priority can be starved by the
+    // render's own row workers while the render waits for it, so it runs at the priority of the threads that wait.
+    [Fact]
+    public void TheCmykWarmUpRunsAtNormalPriorityBecauseRendersWaitOnIt()
+    {
+        using var release = new ManualResetEventSlim();
+        var thread = WorkingCmykProfiles.StartWarmUp(() => release.Wait(TimeSpan.FromSeconds(10)));
+        try { Assert.Equal(ThreadPriority.Normal, thread.Priority); }
+        finally { release.Set(); thread.Join(TimeSpan.FromSeconds(10)); }
+    }
+
     [Fact]
     public void ImportedProfileCanBeReopenedAndAppliedAfterCallerBytesAreDiscarded()
     {

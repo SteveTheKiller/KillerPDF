@@ -432,13 +432,15 @@ internal static partial class WorkingCmykProfiles
     }
 
     /// <summary>
-    /// Builds the chosen profile's RGB to ink table on a background thread at low priority, so the first RGB paint
+    /// Builds the chosen profile's RGB to ink table on a background thread, so the first RGB paint
     /// into a CMYK surface finds it ready. Called once after startup and again when the choice changes.
     /// </summary>
     internal static void WarmDisplayTableInBackground() =>
         StartWarmUp(() => KillerPdf.Engine.Rendering.PdfCmykWarmUp.Prepare(Current()));
 
-    /// <summary>Runs the warm-up body on its own low-priority thread. Nothing the body throws can leave the thread,
+    /// <summary>Runs the warm-up body on its own thread, at Normal priority: a render that needs the table waits for this
+    /// fit, and a lower priority lets the render's own busy threads starve it (measured at 60 s instead of 2 s with every
+    /// core busy). Nothing the body throws can leave the thread,
     /// because an unhandled exception on a thread of this kind ends the process; the first paint builds the table
     /// itself and reports any real problem then.</summary>
     internal static Thread StartWarmUp(Action prepare)
@@ -448,7 +450,7 @@ internal static partial class WorkingCmykProfiles
             try { prepare(); }
             catch (Exception error) { LogWarmUpFailure(error); }
         })
-        { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = "Working CMYK warm-up" };
+        { IsBackground = true, Priority = ThreadPriority.Normal, Name = "Working CMYK warm-up" };
         thread.Start();
         return thread;
     }
