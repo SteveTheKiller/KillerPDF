@@ -7,7 +7,9 @@ using Mask = KillerPdf.Engine.Rendering.PdfPageRenderer.CoverageMask;
 
 namespace KillerPdf.Engine.Tests.Rendering;
 
-// Once warm, a rasterization allocates nothing apart from its output mask.
+// Once warm, a rasterization allocates nothing apart from its output mask. The warmed scratch buffer lives in the
+// shared raster pool, so the class runs apart from other render tests that could evict it.
+[Collection(nameof(SoftMaskAllocationCollection))]
 public sealed class CoverageRasterizerAllocationTests
 {
     private static Func<Mask> Sweeper(List<P[]> polygons, int width, int height)
