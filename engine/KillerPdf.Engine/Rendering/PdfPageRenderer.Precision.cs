@@ -377,6 +377,8 @@ public sealed partial class PdfPageRenderer
 
         internal Func<double, double, double, double, Color> Convert { get; }
         internal bool Used => _used;
+        // The transform an ink surface uses to convert RGB and ICC paint to the same ink space, or null when the profile has no reverse table.
+        internal PdfColorTransform? InkTransform => _profile.ForwardTransform(_intent) is { CanConvertFromXyz: true } transform ? transform : null;
         internal string ContentSha256 => _profile.ContentSha256;
 
         private Color ConvertColor(double cyan, double magenta, double yellow, double black)

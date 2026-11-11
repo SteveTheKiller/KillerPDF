@@ -1023,6 +1023,8 @@ public sealed partial class PdfPageRenderer
             if (Ink is null) throw new InvalidOperationException("Only an ink surface has composed ink to convert.");
             byte[] inkData = Ink;
             PdfColorTransform? profile = InkProfile;
+            // The working profile reads its inks through the render's working space, which records its use.
+            if (profile is not null && profile.HasSameIdentity(working.InkTransform)) profile = null;
             // Composed pages hold few distinct inks; the cache is cleared rather than grown without bound.
             var converted = new Dictionary<uint, (float Red, float Green, float Blue)>();
             Span<double> device = stackalloc double[4];

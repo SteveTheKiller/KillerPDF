@@ -400,8 +400,12 @@ public sealed partial class PdfPageRenderer
         {
             // A plate preview draws everything as ink so each process channel and named
             // colorant can be read back on its own. An overprint proof composes the same inks.
-            pixels.EnableInk(Color.White, profile: outputProfile
-                ?? (CmykGroup(_tree.Pages[pageIndex].Dictionary, pageResources, false) ? pageProfile : null));
+            PdfColorTransform? inkProfile = outputProfile
+                ?? (CmykGroup(_tree.Pages[pageIndex].Dictionary, pageResources, false) ? pageProfile : null);
+            // A proof reads RGB, gray and ICC paint into the ink through the document's output intent, also
+            // on a page with a transparency group, and otherwise through the working CMYK profile.
+            if (composedInk is not null) inkProfile ??= OutputProfile(null) ?? preciseCmyk?.InkTransform;
+            pixels.EnableInk(Color.White, profile: inkProfile);
             pixels.TrackSpotUnits = options.SeparationPlate is not null;
             pixels.SpotPlateBudget = composedSpotPlateBudget;
         }
