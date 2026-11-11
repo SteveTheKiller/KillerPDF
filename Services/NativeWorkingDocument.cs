@@ -45,8 +45,8 @@ internal sealed class NativeWorkingDocument : IDisposable
         // EPUB uses the engine's single package limit (128 MiB) for large illustrated editions.
         byte[] captured = CaptureSource(source, cancellationToken, EpubDocument.MaxPackageBytes);
         return new NativeWorkingDocument(captured, inBackground
-            ? PdfReadSnapshot.OpenEpubProgressive(captured, options, cancellationToken)
-            : PdfReadSnapshot.OpenEpub(captured, options, cancellationToken));
+            ? PdfReadSnapshot.OpenEpubProgressiveOwned(captured, options, cancellationToken)
+            : PdfReadSnapshot.OpenEpubOwned(captured, options, cancellationToken));
     }
 
     private static byte[] CaptureSource(ReadOnlyMemory<byte> source, CancellationToken cancellationToken,

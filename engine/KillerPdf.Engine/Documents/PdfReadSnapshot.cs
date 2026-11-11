@@ -162,6 +162,25 @@ public sealed partial class PdfReadSnapshot
     public static PdfReadSnapshot OpenEpubProgressive(ReadOnlyMemory<byte> bytes, EpubLayoutOptions options,
         CancellationToken cancellationToken = default) => OpenEpub(bytes, options, inBackground: true, cancellationToken);
 
+    /// <summary>
+    /// Opens as <see cref="OpenEpub(ReadOnlyMemory{byte}, EpubLayoutOptions, CancellationToken)"/> does, taking
+    /// <paramref name="ownedBytes"/> itself instead of copying it. The caller hands the array over and must not change it afterwards.
+    /// </summary>
+    public static PdfReadSnapshot OpenEpubOwned(byte[] ownedBytes, EpubLayoutOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ownedBytes);
+        return OpenEpubCore(ownedBytes, options, inBackground: false, cancellationToken);
+    }
+
+    /// <summary>As <see cref="OpenEpubProgressive"/>, taking <paramref name="ownedBytes"/> itself instead of copying it.</summary>
+    public static PdfReadSnapshot OpenEpubProgressiveOwned(byte[] ownedBytes, EpubLayoutOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ownedBytes);
+        return OpenEpubCore(ownedBytes, options, inBackground: true, cancellationToken);
+    }
+
     private static PdfReadSnapshot OpenEpub(ReadOnlyMemory<byte> bytes, EpubLayoutOptions options, bool inBackground,
         CancellationToken cancellationToken)
     {
@@ -170,7 +189,16 @@ public sealed partial class PdfReadSnapshot
         // One package limit for EPUB, owned by the engine reader.
         if (bytes.Length > EpubDocument.MaxPackageBytes)
             throw new InvalidDataException("EPUB exceeds the input size limit.");
-        byte[] source = bytes.ToArray();
+        return OpenEpubCore(bytes.ToArray(), options, inBackground, cancellationToken);
+    }
+
+    private static PdfReadSnapshot OpenEpubCore(byte[] source, EpubLayoutOptions options, bool inBackground,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(options);
+        if (source.Length > EpubDocument.MaxPackageBytes)
+            throw new InvalidDataException("EPUB exceeds the input size limit.");
         string sourceSha256 = Convert.ToHexString(SHA256.HashData(source));
         var capturedOptions = options with { };
         var publication = EpubDocument.Open(source, cancellationToken);

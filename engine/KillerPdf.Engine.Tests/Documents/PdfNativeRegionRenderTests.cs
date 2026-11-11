@@ -208,12 +208,12 @@ public sealed class PdfNativeRegionRenderTests
     }
 
     // 60 x 80 CSS pixels, so the 480 x 640 full render is eight times natural size.
-    private static EpubLayoutOptions Options() => new(60, 80,
+    internal static EpubLayoutOptions Options() => new(60, 80,
         TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true))) { FontSize = 10, Margin = 4 };
 
     private const string RegionBody = """<p>AA A AAA</p><p><img src="red.png" alt="" style="width:12px;height:12px"/></p><p style="color:#000000">A AA</p>""";
 
-    private static byte[] Book(string body = RegionBody)
+    internal static byte[] Book(string body = RegionBody)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
