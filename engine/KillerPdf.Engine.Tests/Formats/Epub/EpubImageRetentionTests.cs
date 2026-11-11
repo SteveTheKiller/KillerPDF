@@ -31,4 +31,27 @@ public sealed class EpubImageRetentionTests
         var last = layout.Pages.Last(page => page.Glyphs.OfType<NativeImagePaint>().Any()).Glyphs.OfType<NativeImagePaint>().Single();
         Assert.Equal((1592, 1992, (byte)128), (last.Image.Width, last.Image.Height, last.Image.Samples[^1]));
     }
+
+    // The decode size follows each use: a picture first drawn small in a narrow table cell is still drawn sharp when the
+    // same file later fills the page width.
+    [Fact]
+    public void ALaterLargerUseOfThePictureIsNotDrawnFromTheFirstSmallDecode()
+    {
+        var book = new Book
+        {
+            Chapters = { Chapter("<table style='width:40px'><tr><td style='width:40px'><img src='../images/p.png' alt=''/></td></tr></table><p><img src='../images/p.png' alt=''/></p>") },
+            ExtraManifest = "<item id=\"p\" href=\"images/p.png\" media-type=\"image/png\"/>"
+        };
+        book.Resources.Add(("images/p.png", EpubImageCompatibilityTests.Png(300, 300, 2)));
+
+        var layout = Layout(book, 400, 600);
+
+        Assert.Empty(layout.ChapterDiagnostics);
+        var paints = layout.Pages.SelectMany(page => page.Glyphs.OfType<NativeImagePaint>()).OrderBy(paint => paint.Top).ToArray();
+        Assert.Equal(2, paints.Length);
+        Assert.True(paints[0].Width < 60, "The first use sits in the narrow cell.");
+        // Drawn at 300 by 300 CSS pixels, so the decode must hold all 300 source columns.
+        Assert.Equal(300, paints[1].Width, 3);
+        Assert.Equal(300, paints[1].Image.Width);
+    }
 }

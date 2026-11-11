@@ -2264,10 +2264,12 @@ public sealed partial class EpubDocument
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     string target = ResolveNativeImage(resource.Href, source);
-                    (double Width, double Height) box = imageBoxes.TryGetValue(target, out var first) ? first
-                        : (contentWidth, options.PageHeight - 2 * options.Margin);
+                    // The decode box is the largest this picture has been asked for, so a later, larger use is not drawn
+                    // from the soft decode a first use in a narrow cell made.
+                    (double Width, double Height) box = (contentWidth, options.PageHeight - 2 * options.Margin);
+                    if (imageBoxes.TryGetValue(target, out var first)) box = (Math.Max(first.Width, box.Width), Math.Max(first.Height, box.Height));
                     var image = LoadImage(new EpubImageKey(target, box.Width, box.Height));
-                    imageBoxes.TryAdd(target, box);
+                    imageBoxes[target] = box;
                     return image;
                 }
                 catch (EpubImageUnavailableException error)
