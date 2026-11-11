@@ -8,7 +8,8 @@ public sealed partial class DjvuDocument
     // A compound page (7.1.3) converts as its layers, so text stays as sharp as the scan and the file stays small:
     // the background as an image at its own stored resolution, and the foreground as the page's one-bit mask used as a
     // luminosity soft mask, once per foreground color (each FGbz palette color, or black) over a fill of that color,
-    // or once over the FG44 image. Each color's mask is cut to the rectangle its pixels cover. A page with many colors\r\n    // (or colors whose rectangles together cover several pages) draws them as one RGB image under one mask instead. Everything is drawn in
+    // or once over the FG44 image. Each color's mask is cut to the rectangle its pixels cover. A page with many colors
+    // (or colors whose rectangles together cover several pages) draws them as one RGB image under one mask instead. Everything is drawn in
     // stored orientation under the page's turn, as the located text is.
     // Past this many colors, or boxes covering more than this many page areas together, the foreground is one image.
     private const int MaximumColorMasks = 16, BoxAreaPages = 4;
