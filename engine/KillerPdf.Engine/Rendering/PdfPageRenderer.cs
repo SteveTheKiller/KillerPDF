@@ -526,7 +526,7 @@ public sealed partial class PdfPageRenderer
                 cancellationToken.ThrowIfCancellationRequested();
                 if (pixels.PreciseRgb is not null && options.Proof is { Enabled: true }
                     && !PreciseProofOperationSupported(instruction.Operator)
-                    && !(pixels.PreciseProcess is not null && instruction.Operator == "k"))
+                    && !(pixels.PreciseProcess is not null && instruction.Operator is "k" or "K"))
                     throw new NotSupportedException($"Printer proof operator {instruction.Operator} is not implemented.");
                 if (pixels.PreciseRgb is not null && !PreciseOperationSupported(instruction.Operator))
                     throw new NotSupportedException($"High-precision operator {instruction.Operator} is not implemented.");

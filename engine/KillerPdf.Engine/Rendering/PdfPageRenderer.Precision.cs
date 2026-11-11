@@ -63,7 +63,7 @@ public sealed partial class PdfPageRenderer
     /// Line cap, join and miter operators and parameters, stroke adjustment, flatness, marked points,
     /// an overprint mode while overprint is off, device-dependent parameters and unknown
     /// graphics-state keys draw as byte rendering does. A qualified page of unprofiled DeviceCMYK Normal
-    /// fills also retains native process plates for OPM0/1 overprint, opacity and printer proofing.
+    /// path fills and strokes also retains native process plates for OPM0/1 overprint, opacity and printer proofing.
     /// Mixed sources, profiles, groups and other overprinted paints remain unsupported.
     /// Other overprint, alpha as shape, text knockout off,
     /// transfer functions, black-point compensation and graphics-state rendering intents are refused.

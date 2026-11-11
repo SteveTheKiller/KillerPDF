@@ -8,7 +8,8 @@ public sealed partial class PdfPageRenderer
         byte ExactZeros, byte Preserve = 0);
 
     private readonly record struct PreciseProcessState(bool FillOverprint = false, bool StrokeOverprint = false,
-        bool DeviceCmyk = false, bool SupportedNormal = true, bool NormalBlend = true);
+        bool FillDeviceCmyk = false, bool StrokeDeviceCmyk = false,
+        bool SupportedNormal = true, bool NormalBlend = true);
 
     // Qualification reads the whole page before allocating or clipping a backdrop. Until an
     // inverse transform is supported, RGB paint cannot supply native process plates.
@@ -45,11 +46,17 @@ public sealed partial class PdfPageRenderer
                 case "q": saved.Push(state); break;
                 case "Q": if (saved.TryPop(out var previous)) state = previous; else unsupported = true; break;
                 case "k":
-                    state = state with { DeviceCmyk = operands.Count == 4
+                    state = state with { FillDeviceCmyk = operands.Count == 4
                         && operands.All(value => Number(Resolve(value)) is >= 0 and <= 1) };
                     break;
                 case "g": case "rg": case "cs": case "sc": case "scn":
-                    state = state with { DeviceCmyk = false }; break;
+                    state = state with { FillDeviceCmyk = false }; break;
+                case "K":
+                    state = state with { StrokeDeviceCmyk = operands.Count == 4
+                        && operands.All(value => Number(Resolve(value)) is >= 0 and <= 1) };
+                    break;
+                case "G": case "RG": case "CS": case "SC": case "SCN":
+                    state = state with { StrokeDeviceCmyk = false }; break;
                 case "gs":
                     if (operands.Count != 1 || Resolve(operands[0]) is not PdfName key
                         || !resources.TryGetValue(Name("ExtGState"), out var statesValue)
@@ -78,10 +85,20 @@ public sealed partial class PdfPageRenderer
                 case "W": case "W*": unsupported |= !rectangle; break;
                 case "f": case "F": case "f*":
                     actualOverprint |= state.FillOverprint;
-                    unsupported |= !state.DeviceCmyk || !state.SupportedNormal || !state.NormalBlend;
+                    unsupported |= !state.FillDeviceCmyk || !state.SupportedNormal || !state.NormalBlend;
                     rectangle = false;
                     break;
-                case "S": case "s": case "B": case "B*": case "b": case "b*":
+                case "S": case "s":
+                    actualOverprint |= state.StrokeOverprint;
+                    unsupported |= !state.StrokeDeviceCmyk || !state.SupportedNormal || !state.NormalBlend;
+                    rectangle = false;
+                    break;
+                case "B": case "B*": case "b": case "b*":
+                    actualOverprint |= state.FillOverprint || state.StrokeOverprint;
+                    unsupported |= !state.FillDeviceCmyk || !state.StrokeDeviceCmyk
+                        || !state.SupportedNormal || !state.NormalBlend;
+                    rectangle = false;
+                    break;
                 case "Tj": case "TJ": case "'": case "\"": case "Do": case "sh":
                     actualOverprint |= state.FillOverprint || state.StrokeOverprint;
                     unsupported = true; break;
@@ -94,7 +111,7 @@ public sealed partial class PdfPageRenderer
         if (unsupported || page.ContainsKey(Name("Group")) || page.ContainsKey(Name("Annots"))
             || source.IsDefault || source.HasIccSource || source.Profile is not null
             || OutputProfile(null) is not null)
-            throw new NotSupportedException("This high-precision graphics state requires an unprofiled page of Normal DeviceCMYK fills without groups or other paint sources.");
+            throw new NotSupportedException("This high-precision graphics state requires an unprofiled page of Normal DeviceCMYK path paints without groups or other paint sources.");
         return true;
     }
 

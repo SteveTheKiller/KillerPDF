@@ -1011,10 +1011,10 @@ The 1.9.3 development `RenderFrame` API also retains floating-point source color
 supported path, text, gradient and image cases, including ordinary Form XObjects with
 their matrices and bounding-box clips. It rejects unsupported precision features
 with a reason instead of returning colors quantized through the BGRA32 surface.
-Qualified pages of unprofiled DeviceCMYK Normal fills retain native process plates for
+Qualified pages of unprofiled DeviceCMYK Normal path fills and strokes retain native process plates for
 OPM0/1 overprint and opacity, including printer proofs. OPM1 preserves only exactly zero
 source inks. These plates add 16 bytes per rendered pixel to the shared storage budget.
-Mixed paint sources, profiles, strokes, images and groups remain diagnosed on these pages.
+Mixed paint sources, profiles, text, images and groups remain diagnosed on these pages.
 Axis-aligned device RGB/Gray and matrix RGB/Gray ICC image reductions average original encoded
 samples, including fractional and mixed-axis scaling at aligned image edges. One-bit images
 and stencils retain source coverage. Independent-size one-, eight- and sixteen-bit device-gray
