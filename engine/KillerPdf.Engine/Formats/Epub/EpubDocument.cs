@@ -199,6 +199,10 @@ public sealed partial class EpubDocument
             if (!oversizedResources.Contains(entry.FullName)) resources[entry.FullName] = output.ToArray();
         }
         if (damagedResources.Contains("mimetype")) throw new InvalidDataException("Invalid EPUB mimetype.");
+        // Without a readable manifest nothing says which resources are encrypted, so none can be trusted as plain.
+        if (damagedResources.Contains("META-INF/encryption.xml"))
+            throw new InvalidDataException("EPUB resource could not be read: META-INF/encryption.xml.");
+        if (oversizedResources.Contains("META-INF/encryption.xml")) throw OversizedResource("META-INF/encryption.xml");
         if (damagedResources.Contains("META-INF/container.xml")) throw new InvalidDataException("Missing EPUB container document.");
         if (!resources.TryGetValue("mimetype", out var mimetype) || !mimetype.AsSpan().SequenceEqual("application/epub+zip"u8))
             throw new InvalidDataException("Invalid EPUB mimetype.");

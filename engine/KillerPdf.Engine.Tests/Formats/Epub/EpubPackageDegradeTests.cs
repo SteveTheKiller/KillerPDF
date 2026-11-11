@@ -187,4 +187,24 @@ public sealed class EpubPackageDegradeTests
 
         Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Damage(source, path, false)));
     }
+
+    // A damaged or oversized encryption manifest cannot say which resources are encrypted, so reading every resource as
+    // plain text would misreport the book; the book is refused instead.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnUnreadableEncryptionManifestRefusesOpening(bool oversized)
+    {
+        string manifest = """
+            <encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:enc="http://www.w3.org/2001/04/xmlenc#">
+            <enc:EncryptedData><enc:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes256-cbc"/>
+            <enc:CipherData><enc:CipherReference URI="OEBPS/text/c0.xhtml"/></enc:CipherData></enc:EncryptedData>
+            """ + (oversized ? new string(' ', 9 * 1024 * 1024) : "") + "</encryption>";
+        byte[] source = new Book { Encryption = manifest, Chapters = { Chapter("<p>A</p>") } }.Build();
+        byte[] archive = oversized ? source : Damage(source, "META-INF/encryption.xml", false);
+
+        var error = Assert.Throws<InvalidDataException>(() => EpubDocument.Open(archive));
+
+        Assert.Contains("META-INF/encryption.xml", error.Message);
+    }
 }
