@@ -85,6 +85,10 @@ internal static class PdfEngineBurn
         finally { if (File.Exists(path)) File.Delete(path); }
     }
 
+    /// <summary>Pictures the last <see cref="Burn"/> on this thread could not draw and left out, so the caller can say
+    /// that the saved file is missing them.</summary>
+    [ThreadStatic] internal static int SkippedPictures;
+
     internal static void Burn(
         string path,
         IReadOnlyDictionary<int, List<PageAnnotation>> annotations,
@@ -101,6 +105,7 @@ internal static class PdfEngineBurn
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        SkippedPictures = 0;
         if (annotations.Values.Any(items => items.Count > 0))
             PdfEngineIntegration.StripLinkAppearances(path);
         var document = PdfDocument.Open(File.ReadAllBytes(path));
@@ -787,18 +792,24 @@ internal static class PdfEngineBurn
         {
             byte[] bytes;
             try { bytes = Convert.FromBase64String(data); }
-            catch (FormatException) { return; }
+            catch (FormatException) { SkippedPictures++; return; }
             if (bytes.AsSpan().StartsWith("%PDF-"u8))
             {
                 // A PDF picture that cannot be read or placed is skipped, like any other picture that cannot be
-                // drawn, instead of failing the save.
+                // drawn, instead of failing the save, and is counted so the caller can report it. Only the
+                // reader's own failures are skipped; running out of memory is not one of them.
                 try
                 {
                     var asset = PdfAnnotationImageSource.ReadPdfAsset(bytes);
                     content.DrawImage(asset, position.X * sx, position.Y * sy + height * sy,
                         width * sx, -height * sy);
                 }
-                catch { }
+                catch (Exception error) when (error is FormatException or NotSupportedException
+                    or InvalidOperationException or ArgumentException or IOException or OverflowException
+                    or KillerPdf.Engine.Filters.PdfFilterException)
+                {
+                    SkippedPictures++;
+                }
                 return;
             }
         }
@@ -809,7 +820,7 @@ internal static class PdfEngineBurn
             if (image is not null) content.DrawImage(image, position.X * sx,
                 position.Y * sy + scaledHeight, width * sx, -scaledHeight);
         }
-        catch { }
+        catch { SkippedPictures++; }
     }
 
     private static void DrawNumber(PdfContentStreamBuilder content, StampSpec spec, int pageIndex,
