@@ -40,4 +40,27 @@ public sealed class NativeGlyphPainterRectangleBudgetTests
         Assert.Throws<InvalidDataException>(() =>
             NativeGlyphPainter.Render(1000, 1000, PageSized(1000, 1000, 33), Ink, CancellationToken.None));
     }
-}
+
+    [Theory]
+    [InlineData(32, false)]
+    [InlineData(33, true)]
+    public void ATileOfAPageIsRefusedExactlyWhenTheWholePageIs(int fills, bool refused)
+    {
+        // The budget follows the page raster and charges each fill's area on the page, so the work of a
+        // page does not depend on how it is cut into tiles.
+        var paints = PageSized(1000, 1000, fills);
+        Action whole = () => NativeGlyphPainter.Render(1000, 1000, paints, Ink, CancellationToken.None);
+        Action tile = () => NativeGlyphPainter.Render(1000, 1000, paints, Ink, CancellationToken.None,
+            region: (0, 0, 100, 100));
+        if (refused)
+        {
+            Assert.Throws<InvalidDataException>(whole);
+            Assert.Throws<InvalidDataException>(tile);
+        }
+        else
+        {
+            whole();
+            tile();
+        }
+    }
+}

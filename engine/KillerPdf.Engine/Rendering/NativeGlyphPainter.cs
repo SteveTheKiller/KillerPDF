@@ -60,11 +60,13 @@ internal static class NativeGlyphPainter
         else Array.Fill(pixels, 1f);
         long imageWork = 0;
         long markerWork = 0;
-        // Rectangles are charged against their own budget, which grows with the pixels actually rendered: a page can
+        // Rectangles are charged against their own budget, which grows with the page raster: a page can
         // legitimately stack many page-sized backgrounds, so a fixed count of pixels would fail large pages, while a
-        // multiple of the render size still bounds hostile input (at most 32 full overdraws, 16M pixels at the least).
+        // multiple of the page size still bounds hostile input (at most 32 full overdraws, 16M pixels at the least).
+        // The limit and the charge follow the whole page, not the region, so a page is accepted or refused the same
+        // way whole or in tiles.
         long rectangleWork = 0;
-        long rectangleLimit = Math.Max(16L * 1024 * 1024, pixelCount * 32);
+        long rectangleLimit = Math.Max(16L * 1024 * 1024, (long)width * height * 32);
         foreach (var paint in paints)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -79,7 +81,9 @@ internal static class NativeGlyphPainter
                 int topEdge = (int)Math.Clamp(Math.Floor(y0), regionTop, regionBottom);
                 int rightEdge = (int)Math.Clamp(Math.Ceiling(x1), regionLeft, regionRight);
                 int bottomEdge = (int)Math.Clamp(Math.Ceiling(y1), regionTop, regionBottom);
-                rectangleWork += (long)(rightEdge - leftEdge) * (bottomEdge - topEdge);
+                int pageLeft = (int)Math.Clamp(Math.Floor(x0), 0, width), pageRight = (int)Math.Clamp(Math.Ceiling(x1), 0, width);
+                int pageTop = (int)Math.Clamp(Math.Floor(y0), 0, height), pageBottom = (int)Math.Clamp(Math.Ceiling(y1), 0, height);
+                rectangleWork += (long)(pageRight - pageLeft) * (pageBottom - pageTop);
                 if (rectangleWork > rectangleLimit)
                     throw new InvalidDataException("The native page exceeds its rectangle paint work limit.");
                 for (int y = topEdge; y < bottomEdge; y++)
