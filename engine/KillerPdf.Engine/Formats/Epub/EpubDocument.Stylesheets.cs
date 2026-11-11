@@ -40,10 +40,18 @@ public sealed partial class EpubDocument
                             if (styleText.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.Whitespace
                                 or XmlNodeType.SignificantWhitespace) embedded.Append(styleText.Value);
                         }
-                    if (embedded.Length > remainingBytes)
-                        throw new InvalidDataException("Native EPUB stylesheet work exceeds its layout limit.");
-                    remainingBytes -= embedded.Length;
-                    content.AddStylesheet(embedded.ToString(), cancellationToken);
+                    string embeddedText = embedded.ToString();
+                    // A sheet repeated in many chapters is charged once, like a shared linked sheet. The key holds a NUL,
+                    // which no package path can, so it never meets a linked sheet's path.
+                    string embeddedKey = "\0style:" + Convert.ToHexString(
+                        System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(embeddedText)));
+                    if (charged.Add(embeddedKey))
+                    {
+                        if (embedded.Length > remainingBytes)
+                            throw new InvalidDataException("Native EPUB stylesheet work exceeds its layout limit.");
+                        remainingBytes -= embedded.Length;
+                    }
+                    content.AddStylesheet(embeddedText, cancellationToken);
                     continue;
                 }
                 if (!inHead || xml.Depth != 2 || xml.LocalName != "link"
