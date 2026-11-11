@@ -196,7 +196,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     {
         if (!_ancestors.TryPeek(out var parent) || !IsFlowContainer(parent.Name)
             || !parent.IsBlock && !parent.IsDisplayNone)
-            throw new NotSupportedException("Native EPUB SVG covers require a block body or container parent.");
+        {
+            OmittedDrawings.Add("Native EPUB SVG covers require a block body or container parent.");
+            return;
+        }
         // The cover always fills the body box; CSS on the svg element (display, size, margins) is ignored.
         var identity = new SelectorIdentity("http://www.w3.org/2000/svg", [], new());
         var element = new Element("svg", parent, parent.Style with { Background = null }, true, offset, identity)

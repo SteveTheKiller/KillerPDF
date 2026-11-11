@@ -299,16 +299,17 @@ public sealed class EpubEmbeddedImageLayoutTests
 
     [Theory]
     [InlineData("div{display:inline}")]
-    public void UnsupportedSvgContainerGeometryRemainsExplicit(string css)
+    public void UnsupportedSvgContainerGeometryOmitsTheDrawingAndConverts(string css)
     {
         var book = EpubDocument.Open(Package(RgbPng(),
             "<div><svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 2 2'>"
             + "<image width='2' height='2' href='../images/check.png'/></svg></div>", css));
         var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(16, 16, font)
-        { Margin = 2, FontSize = 10 }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 16, font) { Margin = 2, FontSize = 10 });
+        EpubImageCompatibilityTests.AssertImageOmitted(layout, "SVG");
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
         { PageWidthPoints = 12, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Empty(new PdfPageContentReader(pdf).Read(0).Images);
     }
 
     [Theory]

@@ -11,91 +11,119 @@ public sealed partial class DjvuDocument
 
     /// <summary>Converts as <see cref="ConvertToPdf(CancellationToken)"/> does and adds a notice for each page whose content was kept only in part.</summary>
     public byte[] ConvertToPdf(ICollection<DjvuDiagnostic> diagnostics, CancellationToken cancellationToken = default)
+        => ConvertToPdf(new DjvuPdfConversionOptions(), diagnostics, cancellationToken);
+
+    /// <summary>Converts pages using the selected platform image encoder and reports omitted content.</summary>
+    public byte[] ConvertToPdf(DjvuPdfConversionOptions options, ICollection<DjvuDiagnostic> diagnostics,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(diagnostics);
         cancellationToken.ThrowIfCancellationRequested();
-        var navigation = ReadNavigation(cancellationToken);
+        options.Validate();
+        IReadOnlyList<DjvuNavigationEntry> navigation;
+        try { navigation = ReadNavigation(cancellationToken); }
+        catch (Exception error) when (error is InvalidDataException or NotSupportedException or ArgumentException
+            or OverflowException)
+        {
+            navigation = [];
+            diagnostics.Add(new("BookmarksNotConverted", "Bookmarks were left out of the PDF: " + error.Message));
+        }
         if (Pages.Count == 0)
             throw new NotSupportedException("DjVu PDF conversion requires supported native pages.");
         var builder = new PdfDocumentBuilder();
         for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++)
         {
-            DjvuTextPage text;
             try
             {
-                text = ReadTextPage(pageIndex, cancellationToken);
-                foreach (var notice in text.Diagnostics) diagnostics.Add(notice);
-            }
-            catch (InvalidDataException error)
-            {
-                // A malformed text layer costs only that page's text; the page image still converts.
-                text = new DjvuTextPage(string.Empty, []);
-                diagnostics.Add(TextLeftOut(pageIndex, error.Message));
-            }
-            var (page, chunks) = ReadPageChunks(pageIndex, cancellationToken);
-            if (Classify(page, chunks) == PageLayers.Compound)
-            {
-                AddCompoundPdfPage(builder, page, chunks, text, pageIndex, diagnostics, cancellationToken);
-                continue;
-            }
-            if (IsColorPhotoPage(page, chunks))
-            {
-                AddColorPhotoPdfPage(builder, page, chunks, text, pageIndex, diagnostics, cancellationToken);
-                continue;
-            }
-            if (chunks.Any(chunk => chunk.Id == 0x42473434))
-            {
-                (page, chunks) = ReadSupportedPage(pageIndex, cancellationToken);
-                var (gray, gamma) = DecodeIw44Page(page, WithoutAnnotations(chunks), cancellationToken);
-                bool quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
-                int pixelWidth = quarterTurn ? page.Height : page.Width;
-                int pixelHeight = quarterTurn ? page.Width : page.Height;
-                var oriented = new byte[gray.Length];
-                for (int y = 0; y < page.Height; y++)
+                DjvuTextPage text;
+                try
+                {
+                    text = ReadTextPage(pageIndex, cancellationToken);
+                    foreach (var notice in text.Diagnostics) diagnostics.Add(notice);
+                }
+                catch (InvalidDataException error)
+                {
+                    // A malformed text layer costs only that page's text; the page image still converts.
+                    text = new DjvuTextPage(string.Empty, []);
+                    diagnostics.Add(TextLeftOut(pageIndex, error.Message));
+                }
+                var (page, chunks) = ReadPageChunks(pageIndex, cancellationToken);
+                if (Classify(page, chunks) == PageLayers.Compound)
+                {
+                    AddCompoundPdfPage(builder, page, chunks, text, pageIndex, diagnostics, cancellationToken);
+                    continue;
+                }
+                if (IsColorPhotoPage(page, chunks))
+                {
+                    AddColorPhotoPdfPage(builder, page, chunks, text, pageIndex, options, diagnostics, cancellationToken);
+                    continue;
+                }
+                if (chunks.Any(chunk => chunk.Id == 0x42473434))
+                {
+                    var (gray, gamma) = DecodeIw44Page(page, WithoutAnnotations(chunks), cancellationToken,
+                        callerBytesPerPixel: 1);
+                    bool quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
+                    int pixelWidth = quarterTurn ? page.Height : page.Width;
+                    int pixelHeight = quarterTurn ? page.Width : page.Height;
+                    var oriented = new byte[gray.Length];
+                    for (int y = 0; y < page.Height; y++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        for (int x = 0; x < page.Width; x++)
+                        {
+                            var (targetX, targetY) = page.Orientation switch
+                            {
+                                DjvuOrientation.Clockwise90 => (page.Height - 1 - y, x),
+                                DjvuOrientation.CounterClockwise90 => (y, page.Width - 1 - x),
+                                DjvuOrientation.UpsideDown => (page.Width - 1 - x, page.Height - 1 - y),
+                                _ => (x, y)
+                            };
+                            oriented[targetY * pixelWidth + targetX] = gray[y * page.Width + x];
+                        }
+                    }
+                    double grayWidth = pixelWidth * 72d / page.Dpi;
+                    double grayHeight = pixelHeight * 72d / page.Dpi;
+                    var grayImage = PdfImage.FromCalibratedGray(pixelWidth, pixelHeight, oriented,
+                        new PdfCalGrayColorSpace(whiteX: 0.95047, whiteZ: 1.08883, gamma: gamma));
+                    var grayContent = new PdfContentStreamBuilder().DrawImage(grayImage, 0, 0, grayWidth, grayHeight);
+                    AddLocatedPdfText(grayContent, text, page, pageIndex, diagnostics, cancellationToken);
+                    builder.AddPage(grayWidth, grayHeight, grayContent);
+                    continue;
+                }
+                // A bitonal page (Smmr, or a JB2 mask alone) is read from its kept bits, one byte per pixel, turned.
+                var raster = DecodeSupportedPage(page, chunks, cancellationToken, callerBytesPerPixel: 0);
+                if (!chunks.Any(chunk => chunk.Id is 0x536d6d72 or 0x536a627a))
+                    throw new NotSupportedException("DjVu PDF conversion currently supports only bitonal Smmr and JB2 pages.");
+                int frameWidth = raster.Width, frameHeight = raster.Height;
+                var (columnOffsets, rowOffsets) = raster.Offsets(Enumerable.Range(0, frameWidth).ToArray(),
+                    Enumerable.Range(0, frameHeight).ToArray());
+                var samples = new byte[(long)frameWidth * frameHeight];
+                for (int y = 0; y < frameHeight; y++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    for (int x = 0; x < page.Width; x++)
-                    {
-                        var (targetX, targetY) = page.Orientation switch
-                        {
-                            DjvuOrientation.Clockwise90 => (page.Height - 1 - y, x),
-                            DjvuOrientation.CounterClockwise90 => (y, page.Width - 1 - x),
-                            DjvuOrientation.UpsideDown => (page.Width - 1 - x, page.Height - 1 - y),
-                            _ => (x, y)
-                        };
-                        oriented[targetY * pixelWidth + targetX] = gray[y * page.Width + x];
-                    }
+                    for (int x = 0; x < frameWidth; x++)
+                        samples[(long)y * frameWidth + x] = raster.Channel(rowOffsets[y] + columnOffsets[x]) == 0 ? (byte)0 : (byte)255;
                 }
-                double grayWidth = pixelWidth * 72d / page.Dpi;
-                double grayHeight = pixelHeight * 72d / page.Dpi;
-                var grayImage = PdfImage.FromCalibratedGray(pixelWidth, pixelHeight, oriented,
-                    new PdfCalGrayColorSpace(whiteX: 0.95047, whiteZ: 1.08883, gamma: gamma));
-                var grayContent = new PdfContentStreamBuilder().DrawImage(grayImage, 0, 0, grayWidth, grayHeight);
-                AddLocatedPdfText(grayContent, text, page, pageIndex, diagnostics, cancellationToken);
-                builder.AddPage(grayWidth, grayHeight, grayContent);
-                continue;
+                double width = frameWidth * 72d / Pages[pageIndex].Dpi;
+                double height = frameHeight * 72d / Pages[pageIndex].Dpi;
+                // Lossless JBIG2 when it is smaller than CCITT G4 or Flate: about a third smaller on text pages.
+                var image = PdfImage.FromBitonal(frameWidth, frameHeight, samples, allowJbig2: true);
+                var content = new PdfContentStreamBuilder().DrawImage(image, 0, 0, width, height);
+                AddLocatedPdfText(content, text, Pages[pageIndex], pageIndex, diagnostics, cancellationToken);
+                builder.AddPage(width, height, content);
             }
-            // A bitonal page (Smmr, or a JB2 mask alone) is read from its kept bits, one byte per pixel, turned.
-            var raster = DecodeSupportedPage(page, chunks, cancellationToken, callerBytesPerPixel: 0);
-            if (!chunks.Any(chunk => chunk.Id is 0x536d6d72 or 0x536a627a))
-                throw new NotSupportedException("DjVu PDF conversion currently supports only bitonal Smmr and JB2 pages.");
-            int frameWidth = raster.Width, frameHeight = raster.Height;
-            var (columnOffsets, rowOffsets) = raster.Offsets(Enumerable.Range(0, frameWidth).ToArray(),
-                Enumerable.Range(0, frameHeight).ToArray());
-            var samples = new byte[(long)frameWidth * frameHeight];
-            for (int y = 0; y < frameHeight; y++)
+            catch (Exception error) when (error is InvalidDataException or NotSupportedException or ArgumentException
+                or OverflowException)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                for (int x = 0; x < frameWidth; x++)
-                    samples[(long)y * frameWidth + x] = raster.Channel(rowOffsets[y] + columnOffsets[x]) == 0 ? (byte)0 : (byte)255;
+                string message = $"Page {pageIndex + 1} could not be converted.";
+                diagnostics.Add(new("PageNotConverted", message + " " + error.Message) { PageIndex = pageIndex });
+                var font = PdfStandardFontSubstitutes.Find("Helvetica");
+                var content = new PdfContentStreamBuilder().BeginText().SetFont(font, 12)
+                    .SetTextMatrix(1, 0, 0, 1, 36, 756).ShowUnicodeText(message).EndText();
+                builder.AddPage(612, 792, content);
             }
-            double width = frameWidth * 72d / Pages[pageIndex].Dpi;
-            double height = frameHeight * 72d / Pages[pageIndex].Dpi;
-            // Lossless JBIG2 when it is smaller than CCITT G4 or Flate: about a third smaller on text pages.
-            var image = PdfImage.FromBitonal(frameWidth, frameHeight, samples, allowJbig2: true);
-            var content = new PdfContentStreamBuilder().DrawImage(image, 0, 0, width, height);
-            AddLocatedPdfText(content, text, Pages[pageIndex], pageIndex, diagnostics, cancellationToken);
-            builder.AddPage(width, height, content);
         }
         AddBookmarks(navigation, 0);
         cancellationToken.ThrowIfCancellationRequested();
@@ -108,16 +136,19 @@ public sealed partial class DjvuDocument
             foreach (var entry in entries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                int destination;
-                try { destination = ResolveNavigationTarget(entry.Target, cancellationToken: cancellationToken); }
+                try
+                {
+                    int destination = ResolveNavigationTarget(entry.Target, cancellationToken: cancellationToken);
+                    builder.AddBookmark(entry.Label, destination, level);
+                }
                 catch (Exception error) when (error is InvalidDataException or NotSupportedException or ArgumentException)
                 {
                     // A bookmark that names no page (an external link, a viewer command, a missing page) is left out and
                     // its children take its place; it does not stop the conversion.
+                    diagnostics.Add(new("BookmarkNotConverted", $"Bookmark '{entry.Label}' was left out of the PDF: " + error.Message));
                     AddBookmarks(entry.Children, level);
                     continue;
                 }
-                builder.AddBookmark(entry.Label, destination, level);
                 AddBookmarks(entry.Children, level + 1);
             }
         }

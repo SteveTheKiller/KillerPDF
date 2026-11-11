@@ -182,12 +182,13 @@ public sealed class EpubProgressivePaginationTests
     }
 
     [Fact]
-    public async Task AFailureAfterTheFirstChapterEndsPaginationWithThatErrorAndKeepsThePagesBeforeIt()
+    public async Task AFailureWithIsolationDisabledEndsPaginationWithThatErrorAndKeepsThePagesBeforeIt()
     {
         byte[] book = Book(gatedChapter: 2);
         int before = PdfReadSnapshot.OpenEpub(book, Options()).EpubLayout!.Pages.Count(page => page.SpineIndex < 2);
         var options = Options() with
         {
+            IsolateChapterFailures = false,
             FontFaceResolver = request => request.Family?.Name == "Later"
                 ? throw new InvalidOperationException("The resolver failed.") : null
         };

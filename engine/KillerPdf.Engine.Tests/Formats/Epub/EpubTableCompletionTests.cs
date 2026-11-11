@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Formats.Epub;
+using KillerPdf.Engine.Documents;
 using Xunit;
 using static KillerPdf.Engine.Tests.Formats.Epub.EpubCompatibilityTests;
 
@@ -8,6 +9,20 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 // leaves 56px, and lines and rows are 10px tall.
 public sealed class EpubTableCompletionTests
 {
+    [Theory]
+    [InlineData("100%", 30d)]
+    [InlineData("40px", 22d)]
+    public void ExplicitWidthTableWithAutomaticCellsSharesItsWidth(string width, double secondLeft)
+    {
+        string body = "<table style='width:" + width + "'><tr><td>A</td><td>A</td></tr></table>";
+        var page = Single(body);
+        Assert.Equal(new[] { (2d, 2d), (secondLeft, 2d) }, Letters(page));
+        var book = EpubDocument.Open(new Book { Chapters = { Chapter(body) } }.Build());
+        var reader = new PdfPageContentReader(PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Options().DefaultFont))));
+        Assert.Equal(1, reader.PageCount);
+        Assert.Equal("AA", string.Concat(reader.Read(0).Letters.Select(letter => letter.Value)));
+    }
+
     // An explicit-width table takes its columns from its first row; a spanning cell covers the sum of its columns.
     [Theory]
     [InlineData("<td colspan='2'>AAA</td>")]

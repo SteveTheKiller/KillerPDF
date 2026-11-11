@@ -29,7 +29,7 @@ public sealed partial class DjvuDocument
         }
         // A reduced layer's last row and column can reach past the page; the page edge cuts them as the viewer does.
         content.Rectangle(0, 0, width * scale, height * scale).Clip();
-        if (layers.Background is { } background) DrawLayer(content, background, gamma, encoded, height, scale);
+        if (layers.Background is { } background) DrawLayer(content, background, gamma, encoded, scale);
 
         int stride = (width + 7) / 8;
         var mask = raster.Samples;
@@ -39,7 +39,7 @@ public sealed partial class DjvuDocument
             if (Bounds(rank: -1) is { } box)
             {
                 content.SaveState().SetGraphicsState(SoftMask(box, rank: -1));
-                DrawLayer(content, foreground, gamma, encoded, height, scale);
+                DrawLayer(content, foreground, gamma, encoded, scale);
                 content.RestoreState();
             }
         }
@@ -128,9 +128,11 @@ public sealed partial class DjvuDocument
     // resolution, never reduced: the eight-bit sRGB values of its linear colors at the page gamma, as compound
     // backgrounds convert, written over the decoded samples in place, and drawn in stored orientation under the page's
     // turn. The full decode holds at most DjvuIw44Decoder.ColorWorkingBytes (about 240 MB for a 600 dpi letter page)
-    // and is released before the image is compressed.
+    // and is released before the image is compressed. A supplied platform encoder stores photo pages as JPEG;
+    // without it the image uses lossless Flate compression.
     private void AddColorPhotoPdfPage(PdfDocumentBuilder builder, DjvuPageInfo page, List<Chunk> chunks,
-        DjvuTextPage text, int pageIndex, ICollection<DjvuDiagnostic> diagnostics, CancellationToken token)
+        DjvuTextPage text, int pageIndex, DjvuPdfConversionOptions options,
+        ICollection<DjvuDiagnostic> diagnostics, CancellationToken token)
     {
         var raster = DecodeColorIw44Raster(page, WithoutAnnotations(chunks), token, callerBytesPerPixel: 0);
         var encoded = SrgbSamples(raster.Linear);
@@ -140,7 +142,9 @@ public sealed partial class DjvuDocument
         int width = page.Width, height = page.Height;
         double scale = 72d / page.Dpi;
         bool quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
-        var image = PdfImage.FromRgbRows(width, height, rgb, token);
+        var image = options.JpegEncoder is { } encoder
+            ? PdfImage.FromJpeg(encoder(rgb, width, height, 3, options.JpegQuality))
+            : PdfImage.FromRgbRows(width, height, rgb, token);
         token.ThrowIfCancellationRequested();
         var content = new PdfContentStreamBuilder().SaveState();
         switch (page.Orientation)
@@ -155,10 +159,10 @@ public sealed partial class DjvuDocument
     }
 
     // A layer at its stored size, placed so each stored sample covers its reduction's square of page pixels from the
-    // top left corner. Gray samples keep the page gamma as a calibrated gray space, as grayscale pages convert; color
+    // bottom left corner. Gray samples keep the page gamma as a calibrated gray space, as grayscale pages convert; color
     // samples are written as the sRGB values of their linear colors.
     private static void DrawLayer(PdfContentStreamBuilder content, PdfNativeImageLayer layer, double gamma,
-        byte[] encoded, int pageHeight, double scale)
+        byte[] encoded, double scale)
     {
         var samples = layer.Samples;
         PdfImage image;
@@ -172,7 +176,7 @@ public sealed partial class DjvuDocument
             image = PdfImage.FromRgb(layer.Width, layer.Height, rgb);
         }
         double coveredWidth = (double)layer.Width * layer.Reduction, coveredHeight = (double)layer.Height * layer.Reduction;
-        content.DrawImage(image, 0, (pageHeight - coveredHeight) * scale, coveredWidth * scale, coveredHeight * scale);
+        content.DrawImage(image, 0, 0, coveredWidth * scale, coveredHeight * scale);
     }
 
     // Each stored sample value's linear channel value, written back as an eight-bit sRGB value.

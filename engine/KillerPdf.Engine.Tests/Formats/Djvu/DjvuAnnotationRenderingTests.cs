@@ -5,6 +5,54 @@ namespace KillerPdf.Engine.Tests.Formats.Djvu;
 
 public sealed class DjvuAnnotationRenderingTests
 {
+    [Fact]
+    public void RepeatedSharedAnnotationReferencesHaveBoundedRenderAllocation()
+    {
+        byte[] shared = DjvuJb2Tests.Chunk("FORM", [.. "DJVI"u8,
+            .. Enumerable.Range(0, 1000).SelectMany(_ => DjvuJb2Tests.Chunk("ANTa", []))]);
+        byte[] page = DjvuJb2Tests.Chunk("FORM", [.. "DJVU"u8,
+            .. DjvuJb2Tests.Chunk("INFO", [0,4,0,4,24,0,100,0,10,1]),
+            .. DjvuJb2Tests.Chunk("BG44", Convert.FromHexString("000181020004000400FFFF")),
+            .. Enumerable.Range(0, 1000).SelectMany(_ => DjvuJb2Tests.Chunk("INCL", "s.djvi"u8.ToArray()))]);
+        // Independent BZZ directory encoding: sizes 8012 and 14050, kinds 3 and 1.
+        byte[] metadata = Convert.FromHexString("FFFFECBF387BD698E645562FF048BC684625ABF31292FA977FFFE0");
+        byte[] directory = [0x81,0,2,0,0,0,0,0,0,0,0,..metadata];
+        int offset = 16 + DjvuJb2Tests.Chunk("DIRM", directory).Length;
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(directory.AsSpan(3), offset);
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(directory.AsSpan(7), offset + shared.Length);
+        byte[] source = [.. "AT&T"u8, .. DjvuJb2Tests.Chunk("FORM", [.. "DJVM"u8,
+            .. DjvuJb2Tests.Chunk("DIRM", directory), .. shared, .. page])];
+        var native = DjvuDocument.Open(source);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        Assert.Equal(4, native.RenderPage(0).Width);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(allocated < 4 * 1024 * 1024, $"Repeated annotation references allocated {allocated} bytes.");
+    }
+
+    [Fact]
+    public void SharedAnnotationsDoNotStopAGrayscalePageFromDrawingOrConverting()
+    {
+        byte[] shared = DjvuJb2Tests.Chunk("FORM", [.. "DJVI"u8,
+            .. DjvuJb2Tests.Chunk("ANTa", "(mode color)"u8.ToArray())]);
+        byte[] page = DjvuJb2Tests.Chunk("FORM", [.. "DJVU"u8,
+            .. DjvuJb2Tests.Chunk("INFO", [0,4,0,4,24,0,100,0,10,1]),
+            .. DjvuJb2Tests.Chunk("BG44", Convert.FromHexString("000181020004000400FFFF")),
+            .. DjvuJb2Tests.Chunk("INCL", "s.djvi"u8.ToArray())]);
+        // Independently BZZ encoded directory: component sizes 32 and 64, kinds 3 and 1.
+        byte[] metadata = Convert.FromHexString("FFFFECBF387BF55F397FE1DA90C9A19008B81B7D8C2EBFFFFC");
+        byte[] directory = [0x81,0,2,0,0,0,0,0,0,0,0,..metadata];
+        int offset = 16 + DjvuJb2Tests.Chunk("DIRM", directory).Length;
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(directory.AsSpan(3), offset);
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(directory.AsSpan(7), offset + shared.Length);
+        byte[] source = [.. "AT&T"u8, .. DjvuJb2Tests.Chunk("FORM", [.. "DJVM"u8,
+            .. DjvuJb2Tests.Chunk("DIRM", directory), .. shared, .. page])];
+        var native = DjvuDocument.Open(source);
+        Assert.Equal(4, native.RenderPage(0).Width);
+        var notices = new List<DjvuDiagnostic>();
+        Assert.NotEmpty(native.ConvertToPdf(notices));
+        Assert.Empty(notices);
+    }
+
     // DjvuCompoundTests' palette page with an annotation chunk appended, uncompressed (ANTa) and BZZ-compressed by
     // DjVuLibre bzz (ANTz). The annotation sets a red background, page zoom and a highlighted hyperlink area; ddjvu
     // draws both pages exactly as it draws the page without it.

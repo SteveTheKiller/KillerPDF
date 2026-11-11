@@ -28,6 +28,7 @@ public sealed partial class EpubDocument
             FontSize = options.FontSizePoints / pointsPerCssPixel,
             FontFamilyResolver = options.FontFamilyResolver,
             FontFaceResolver = options.FontFaceResolver,
+            TableFlowWorkLimit = options.TableFlowWorkLimit,
             IsolateChapterFailures = options.IsolateChapterFailures,
             UnavailableChapterLabel = options.UnavailableChapterLabel
         }, AddPage, cancellationToken);
@@ -50,7 +51,24 @@ public sealed partial class EpubDocument
                 destination.PageIndex, destination: PdfDestination.At(destination.Left * pointsPerCssPixel,
                     options.PageHeightPoints - destination.Top * pointsPerCssPixel));
         }
-        AddBookmarks(ReadNavigation(cancellationToken), 0);
+        foreach (var diagnostic in _packageDiagnostics.Concat(layout.ChapterDiagnostics).Concat(layout.ContentDiagnostics).Distinct())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            options.DiagnosticReported?.Invoke(diagnostic);
+        }
+        IReadOnlyList<EpubNavigationEntry> navigation;
+        try { navigation = ReadNavigation(cancellationToken); }
+        catch (Exception error) when (error is not (OperationCanceledException or OutOfMemoryException))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            string href = Manifest.FirstOrDefault(item => item.Id == _navigationTocId)?.Href
+                ?? Manifest.FirstOrDefault(item => Tokens(item.Properties).Contains("nav", StringComparer.Ordinal))?.Href
+                ?? PackagePath;
+            options.DiagnosticReported?.Invoke(new(-1, href, "Navigation was left out: " + error.Message)
+            { Reason = OmissionReason(error) });
+            navigation = [];
+        }
+        AddBookmarks(navigation, 0);
         cancellationToken.ThrowIfCancellationRequested();
         byte[] result = builder.Build();
         cancellationToken.ThrowIfCancellationRequested();

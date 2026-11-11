@@ -90,8 +90,10 @@ public sealed partial class DjvuDocument
                 if (blits >= blitColors.Length) throw new InvalidDataException("The page places more shapes than FGbz colors.");
                 int value = palette.Dense[blitColors[blits++]];
                 if (indexes is null) return;
+                int x0 = Math.Max(0, -left), x1 = Math.Min(shape.Width, page.Width - left);
+                if (x0 >= x1) return;
                 for (int y = Math.Max(0, -top); y < shape.Height && top + y < page.Height; y++)
-                    for (int x = Math.Max(0, -left); x < shape.Width && left + x < page.Width; x++)
+                    for (int x = x0; x < x1; x++)
                         if (shape[x, y]) layers.SetIndex(left + x, top + y, value);
             };
             mask = DecodeJb2Mask(page, chunks, paint, token).Bits;

@@ -15,6 +15,11 @@ public sealed partial class DjvuDocument
     private readonly Chunk[] _pageForms;
     // Bundled FORM:DJVI components by directory ID, which INCL chunks name. Nothing outside the bundle is resolved.
     private readonly Dictionary<string, Chunk> _includes;
+    private string? _sourceSha256;
+
+    /// <summary>The identity of the immutable captured source, computed only when a reader needs it.</summary>
+    internal string SourceSha256 => _sourceSha256 ??= Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(_data));
 
     private DjvuDocument(List<DjvuPageInfo> pages, List<DjvuDiagnostic> diagnostics, byte[] data, List<Chunk> pageForms,
         Dictionary<string, Chunk>? includes = null)
@@ -94,7 +99,6 @@ public sealed partial class DjvuDocument
             {
                 var chunk = orderedComponents[componentIndex];
                 cancellationToken.ThrowIfCancellationRequested();
-                if (chunk.Id != 0x464f524d) continue;
                 if (chunk.Length < 4) throw new InvalidDataException("Truncated FORM type.");
                 var componentType = BinaryPrimitives.ReadUInt32BigEndian(span[chunk.Offset..]);
                 if (componentType is not (0x444a5655 or 0x444a5649 or 0x5448554d))

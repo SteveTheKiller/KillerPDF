@@ -23,6 +23,8 @@ public sealed partial class EpubDocument
     /// <summary>Resolves an image reference to its packaged path, refusing references the reader cannot show.</summary>
     private string ResolveNativeImage(string chapter, string reference)
     {
+        if (string.IsNullOrWhiteSpace(reference))
+            throw new EpubImageUnavailableException("Native EPUB image has no usable source.", EpubOmissionReason.MissingResource);
         string target;
         try { target = NavigationTarget(chapter, reference.Trim(' ', '\t', '\r', '\n')); }
         catch (InvalidDataException exception)

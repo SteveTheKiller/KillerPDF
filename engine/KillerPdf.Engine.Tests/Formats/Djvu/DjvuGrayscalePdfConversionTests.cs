@@ -12,6 +12,18 @@ namespace KillerPdf.Engine.Tests.Formats.Djvu;
 public sealed class DjvuGrayscalePdfConversionTests
 {
     [Fact]
+    public void LetterScanConversionDoesNotRequireAFloatDisplayFrame()
+    {
+        var source = Constant();
+        SetDimensions(source, 2550, 3300);
+        var notices = new List<DjvuDiagnostic>();
+        var pdf = PdfDocument.Open(DjvuDocument.Open(source).ConvertToPdf(notices));
+        var image = Assert.Single(new PdfPageContentReader(pdf).ReadImagePlacements(0));
+        Assert.Equal((2550, 3300), (image.PixelWidth, image.PixelHeight));
+        Assert.Empty(notices);
+    }
+
+    [Fact]
     public void ConversionPreservesOriginalConstantSamplesAndDeclaredGamma()
     {
         byte[] source = Constant();
@@ -114,7 +126,7 @@ public sealed class DjvuGrayscalePdfConversionTests
     [InlineData("unlocated-text")]
     [InlineData("frame-limit")]
     [InlineData("storage-limit")]
-    public void ConversionRetainsNativeRefusalsAndSource(string scenario)
+    public void ConversionIsolatesNativeRefusalsAndPreservesSource(string scenario)
     {
         var source = Constant();
         switch (scenario)
@@ -148,10 +160,21 @@ public sealed class DjvuGrayscalePdfConversionTests
         {
             var rendering = Record.Exception(() => native.RenderPage(0));
             Assert.NotNull(rendering);
-            var conversion = Record.Exception(() => native.ConvertToPdf());
-            Assert.NotNull(conversion);
-            Assert.Equal(rendering.GetType(), conversion.GetType());
-            Assert.Equal(rendering.Message, conversion.Message);
+            var notices = new List<DjvuDiagnostic>();
+            var pdf = PdfDocument.Open(native.ConvertToPdf(notices));
+            Assert.Single(PdfPageInformation.Read(pdf));
+            if (scenario is "frame-limit" or "storage-limit")
+            {
+                Assert.Single(new PdfPageContentReader(pdf).ReadImagePlacements(0));
+                Assert.Empty(notices);
+            }
+            else
+            {
+                var notice = Assert.Single(notices);
+                Assert.Equal("PageNotConverted", notice.Code);
+                Assert.Equal(0, notice.PageIndex);
+                Assert.Contains(rendering.Message, notice.Message);
+            }
         }
         Assert.Equal(original, source);
     }

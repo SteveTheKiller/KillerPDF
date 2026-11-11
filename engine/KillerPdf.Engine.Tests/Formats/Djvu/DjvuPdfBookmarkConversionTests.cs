@@ -14,6 +14,18 @@ public sealed class DjvuPdfBookmarkConversionTests
     private const string DirectoryMetadata = "FFFFEABF507BF481B02A66B21D64C05E891F0D1D1246CD";
 
     [Fact]
+    public void MalformedOutlineLeavesOnlyTheBookmarksOutOfConversion()
+    {
+        var native = DjvuDocument.Open(Bundle([0], 2));
+        var notices = new List<DjvuDiagnostic>();
+        var pdf = PdfDocument.Open(native.ConvertToPdf(notices));
+        Assert.Equal(2, PdfPageInformation.Read(pdf).Count);
+        Assert.Single(new PdfPageContentReader(pdf).ReadImagePlacements(0));
+        Assert.Single(new PdfPageContentReader(pdf).ReadImagePlacements(1));
+        Assert.Equal("BookmarksNotConverted", Assert.Single(notices).Code);
+    }
+
+    [Fact]
     public void ConversionPreservesNestedUnicodeLabelsAndLocalDestinations()
     {
         byte[] source = Bundle(Convert.FromHexString(NestedNavigation), 2);
@@ -100,11 +112,16 @@ public sealed class DjvuPdfBookmarkConversionTests
     }
 
     [Fact]
-    public void ConversionRejectsAnUnrepresentableEmptyLabelRatherThanDroppingTheChild()
+    public void ConversionLeavesOutAnUnrepresentableEmptyLabelWithANotice()
     {
         var native = DjvuDocument.Open(Bundle(Convert.FromHexString("FFFFE4FE7093E694E6EAA2BE1731ADED9E4A2B7EBF9A16"), 2));
         Assert.Equal(string.Empty, Assert.Single(Assert.Single(native.ReadNavigation()).Children).Label);
-        Assert.Contains("bookmark title cannot be empty", Assert.Throws<ArgumentException>(() => native.ConvertToPdf()).Message);
+        var notices = new List<DjvuDiagnostic>();
+        var pdf = PdfDocument.Open(native.ConvertToPdf(notices));
+        Assert.Equal(2, PdfPageInformation.Read(pdf).Count);
+        Assert.Equal("BookmarkNotConverted", Assert.Single(notices).Code);
+        var outlines = Dictionary(pdf, Dictionary(pdf, pdf.Trailer[Name("Root")])[Name("Outlines")]);
+        Assert.Equal(1, Assert.IsType<PdfInteger>(outlines[Name("Count")]).Value);
         Assert.Single(Assert.Single(native.ReadNavigation()).Children);
     }
 

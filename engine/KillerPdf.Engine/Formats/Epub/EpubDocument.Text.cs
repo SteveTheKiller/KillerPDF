@@ -13,6 +13,7 @@ public sealed partial class EpubDocument
     {
         cancellationToken.ThrowIfCancellationRequested();
         var resource = Spine[spineIndex].Item;
+        if (_oversizedResources.Contains(resource.Href)) throw OversizedResource(resource.Href);
         if (resource.MediaType != "application/xhtml+xml" || Tokens(resource.Properties).Contains("scripted", StringComparer.Ordinal))
             throw new NotSupportedException("EPUB text requires an unscripted XHTML spine resource.");
         if (_encryptedResources.Contains(resource.Href)) throw EncryptedChapter(resource.Href);
@@ -118,9 +119,7 @@ public sealed partial class EpubDocument
                     Separate(TextBlockLines(reader.LocalName));
                     if (reader.LocalName == "img")
                     {
-                        string? reference = reader.GetAttribute("src");
-                        if (string.IsNullOrWhiteSpace(reference))
-                            throw new NotSupportedException("Native EPUB images require a packaged source.");
+                        string reference = reader.GetAttribute("src") ?? "";
                         if (pendingSpace && result.Length > 0 && result[^1] != '\n')
                             Append(' ', pendingSource);
                         pendingSpace = false;

@@ -74,12 +74,10 @@ public sealed partial class PdfReadSnapshot
         cancellationToken.ThrowIfCancellationRequested();
         if (bytes.Length > 64 * 1024 * 1024)
             throw new InvalidDataException("DjVu input exceeds the 64 MiB limit.");
-        byte[] source = bytes.ToArray();
-        string sourceSha256 = Convert.ToHexString(SHA256.HashData(source));
-        var document = DjvuDocument.Open(source, cancellationToken);
+        var document = DjvuDocument.Open(bytes, cancellationToken);
         if (document.Pages.Count == 0)
             throw new NotSupportedException("The DjVu container has no local pages available for reading.");
-        return new PdfReadSnapshot(document, sourceSha256, cancellationToken);
+        return new PdfReadSnapshot(document, document.SourceSha256, cancellationToken);
     }
 
     private readonly EpubLayoutDocument? _layout;

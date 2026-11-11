@@ -144,8 +144,20 @@ public sealed partial class DjvuDocument
 
     // ANTa and ANTz hold view settings and overlaid links and highlights (8.2, Table 1), not page pixels; DjVuLibre
     // draws a page the same with or without them.
-    private static List<Chunk> WithoutAnnotations(List<Chunk> chunks)
-        => chunks.Where(c => c.Id is not (0x414e5461 or 0x414e547a)).ToList();
+    private List<Chunk> WithoutAnnotations(List<Chunk> chunks)
+    {
+        var includes = new Dictionary<int, bool>();
+        return chunks.Where(c => c.Id is not (0x414e5461 or 0x414e547a) && !AnnotationInclude(c, includes)).ToList();
+    }
+
+    private bool AnnotationInclude(Chunk chunk, Dictionary<int, bool> includes)
+    {
+        if (chunk.Id != InclId || !_includes.TryGetValue(IncludeId(chunk), out var component)) return false;
+        if (includes.TryGetValue(component.Offset, out bool annotations)) return annotations;
+        var budget = 65_535;
+        var children = ReadChunks(_data, component.Offset + 4, component.Offset + component.Length, default, ref budget);
+        return includes[component.Offset] = children.All(c => c.Id is 0x414e5461 or 0x414e547a);
+    }
 
     private (byte[] Bits, bool Inverted) DecodeSmmr(DjvuPageInfo page, Chunk mask, CancellationToken cancellationToken)
     {

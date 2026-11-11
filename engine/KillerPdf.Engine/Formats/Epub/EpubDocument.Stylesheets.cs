@@ -71,12 +71,9 @@ public sealed partial class EpubDocument
                         throw new InvalidDataException("Native EPUB stylesheet work exceeds its 8 MiB layout limit.");
                     remainingBytes -= bytes.Length;
                 }
-                string css;
-                try { css = new UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF'); }
-                catch (DecoderFallbackException exception)
-                {
-                    throw new NotSupportedException("Native EPUB stylesheet encoding is not implemented.", exception);
-                }
+                Encoding encoding = bytes.AsSpan().StartsWith(new byte[] { 0xFF, 0xFE }) ? Encoding.Unicode
+                    : bytes.AsSpan().StartsWith(new byte[] { 0xFE, 0xFF }) ? Encoding.BigEndianUnicode : Encoding.UTF8;
+                string css = encoding.GetString(bytes).TrimStart('\uFEFF');
                 content.AddStylesheet(css, cancellationToken);
             }
         }

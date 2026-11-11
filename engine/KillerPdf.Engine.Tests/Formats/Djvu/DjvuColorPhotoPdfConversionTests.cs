@@ -10,6 +10,30 @@ namespace KillerPdf.Engine.Tests.Formats.Djvu;
 // render of the DjVu page, which DjvuIw44RealPageTests pins to ddjvu's bytes.
 public sealed class DjvuColorPhotoPdfConversionTests
 {
+    [Fact]
+    public void PhotoConversionUsesTheRequestedEncoderAndPropagatesItsCancellation()
+    {
+        var document = DjvuDocument.Open(Convert.FromBase64String(DjvuIw44RealPageTests.OwnedC44Color));
+        using var cancellation = new CancellationTokenSource();
+        int calls = 0;
+        var options = new DjvuPdfConversionOptions
+        {
+            JpegQuality = 99,
+            JpegEncoder = (samples, width, height, components, quality) =>
+            {
+                calls++;
+                Assert.Equal((211, 149, 3, 99), (width, height, components, quality));
+                Assert.Equal(211 * 149 * 3, samples.Length);
+                cancellation.Cancel();
+                throw new OperationCanceledException(cancellation.Token);
+            }
+        };
+        var error = Assert.Throws<OperationCanceledException>(() =>
+            document.ConvertToPdf(options, new List<DjvuDiagnostic>(), cancellation.Token));
+        Assert.Equal(cancellation.Token, error.CancellationToken);
+        Assert.Equal(1, calls);
+    }
+
     // KP-J2's owned c44 page (211 x 149 at 100 dpi, three chunks, full chroma delayed 10 slices) in every orientation,
     // and at two other stored gammas. Every channel is within one eight-bit level of the native page: the PDF holds
     // the eight-bit sRGB values of the page's linear colors and the renderer draws eight-bit sRGB, so each value goes

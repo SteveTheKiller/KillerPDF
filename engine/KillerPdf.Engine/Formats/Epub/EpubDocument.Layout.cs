@@ -38,6 +38,8 @@ public sealed partial class EpubDocument
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(options.DefaultFont);
+        if (options.TableFlowWorkLimit is < 1 or > 16_000_000)
+            throw new ArgumentOutOfRangeException(nameof(options), "The table work limit must be from 1 through 16,000,000.");
         if (EpubLayoutOptions.PageLimitError(options.PageWidth, options.PageHeight, options.Margin, options.FontSize) is { } limit)
             throw limit;
         double contentWidth = options.PageWidth - 2 * options.Margin;
@@ -153,7 +155,7 @@ public sealed partial class EpubDocument
                     laidOut = true;
                 }
                 catch (Exception error) when (options.IsolateChapterFailures
-                    && error is NotSupportedException or InvalidDataException)
+                    && error is not (OperationCanceledException or OutOfMemoryException))
                 {
                     // Work already spent stays charged to the shared budgets; only the chapter's output is withdrawn.
                     token.ThrowIfCancellationRequested();
@@ -421,9 +423,11 @@ public sealed partial class EpubDocument
     {
         // Itemref properties (page-spread-*, rendition:*) only affect synthetic spreads and fixed layout; they are ignored.
         var resource = Spine[spineIndex].Item;
+        if (_oversizedResources.Contains(resource.Href)) throw OversizedResource(resource.Href);
         // Only scripting refuses a chapter, as in ReadStructuralText; nav, mathml and remote-resources are not fetched or are ignored.
         if (resource.MediaType != "application/xhtml+xml" || Tokens(resource.Properties).Contains("scripted", StringComparer.Ordinal))
             throw new NotSupportedException("Native EPUB layout requires unscripted XHTML with supported resource properties.");
+        if (_encryptedResources.Contains(resource.Href)) throw EncryptedChapter(resource.Href);
         if (_resources[resource.Href].Length > MaxEntryBytes)
             throw new InvalidDataException("Native EPUB XHTML exceeds its 8 MiB resource limit.");
         var content = new EpubNativeContent(options.FontSize, options.PageHeight - 2 * options.Margin, options.TextColor);
@@ -477,6 +481,7 @@ public sealed partial class EpubDocument
         }
         var font = options.DefaultFont;
         var substitutions = new Dictionary<(TrueTypeFont Font, bool SmallCaps, bool Ligatures), OpenTypeGlyphSubstitution>();
+        bool reportedSmallCaps = false;
         // One outline reader per face for the whole book, so chapters share glyph outlines instead of rebuilding them.
         var readers = bookReaders;
         int fontWork = 0;
@@ -656,8 +661,13 @@ public sealed partial class EpubDocument
         {
             if (!substitutions.TryGetValue((selected, smallCaps, ligatures), out var value))
                 substitutions.Add((selected, smallCaps, ligatures), value = new OpenTypeGlyphSubstitution(selected, cancellationToken, smallCaps, ligatures));
-            if (smallCaps && !value.HasSmallCaps)
-                throw new NotSupportedException("Native EPUB synthetic small capitals are not implemented for fonts without the selected feature.");
+            if (smallCaps && !value.HasSmallCaps && !reportedSmallCaps)
+            {
+                reportedSmallCaps = true;
+                contentDiagnostics.Add(new(spineIndex, resource.Href,
+                    "The font has no small capitals feature, so ordinary text is shown.")
+                { Reason = EpubOmissionReason.UnsupportedLayout });
+            }
             return value;
         }
         TrueTypeFont FontFor(EpubNativeContent.Style style, int? scalar = null)
@@ -763,6 +773,13 @@ public sealed partial class EpubDocument
             throw new NotSupportedException($"Native EPUB layout requires unsupported shaping or bidirectional processing for U+{value:X4}.");
         }
 
+        int tableFlowWork = 0, tableFlowDepth = 0;
+        void ChargeTableFlowWork()
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++tableFlowWork > options.TableFlowWorkLimit)
+                throw new InvalidDataException($"Native EPUB table flow exceeds its {options.TableFlowWorkLimit}-step work limit.");
+        }
         var imageKeys = new Dictionary<PngDecodedImage, EpubImageKey>(ReferenceEqualityComparer.Instance);
         var flow = LayoutFlow(formatting.Root, initialContentLeft, initialContentRight,
             options.Margin + bodyMargins.Top + bodyPadding.Top);
@@ -828,15 +845,20 @@ public sealed partial class EpubDocument
             }
             // The chapter's first page needs no resume point.
             if (chapterRoot) resumePoints?.Add(null);
-            LayoutBlock(flowRoot);
-            cancellationToken.ThrowIfCancellationRequested();
-            if (chapterRoot && bodyPadding.Bottom > 0 && top + bodyPadding.Bottom > options.PageHeight - options.Margin)
-                throw new NotSupportedException("Native EPUB terminal body padding overflow is not implemented.");
-            FinishPage(flowEnd);
+            try
+            {
+                LayoutBlock(flowRoot);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (chapterRoot && bodyPadding.Bottom > 0 && top + bodyPadding.Bottom > options.PageHeight - options.Margin)
+                    throw new NotSupportedException("Native EPUB terminal body padding overflow is not implemented.");
+                FinishPage(flowEnd);
+            }
+            catch (EpubCellFlowOverflow) { return ([], top); }
             return (pages, top);
 
             void LayoutBlock(EpubFormattingTree.Block block)
             {
+                if (tableFlowDepth > 0) ChargeTableFlowWork();
                 // A block on the resume path above the recorded one began on an earlier page: it is entered again for its
                 // box, and what its start did then (breaks, top padding, its margin) is not repeated. The recorded block
                 // itself, and every block after it, lays out as the first time.
@@ -989,7 +1011,7 @@ public sealed partial class EpubDocument
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         if (height <= 0) return;
-                        for (var box = block; box.Parent is not null; box = box.Parent)
+                        for (var box = block; box.Parent is not null && !ReferenceEquals(box, flowRoot.Parent); box = box.Parent)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
                             if (box.Source.Style.Hidden || box.Source.Style.Background?.Color is not { } fill) continue;
@@ -1039,7 +1061,9 @@ public sealed partial class EpubDocument
                 cancellationToken.ThrowIfCancellationRequested();
                 if (block is EpubFormattingTree.Table table)
                 {
-                    LayoutTable(table);
+                    tableFlowDepth++;
+                    try { ChargeTableFlowWork(); LayoutTable(table); }
+                    finally { tableFlowDepth--; }
                     return;
                 }
                 if (block is EpubFormattingTree.RowGroup or EpubFormattingTree.Row
@@ -1157,7 +1181,8 @@ public sealed partial class EpubDocument
                     }
                     if (top + flowHeight > options.PageHeight - options.Margin)
                     {
-                        FinishPage(replaced.Offset);
+                        if (pageHasContent || !chapterRoot || pages.Count != 0 || resume is not null)
+                            FinishPage(replaced.Offset);
                         top = options.Margin;
                     }
                     AddBlockBackgrounds(flowHeight);
@@ -1201,8 +1226,10 @@ public sealed partial class EpubDocument
             {
                 const string columnsUnsupported = "Native EPUB explicit table columns must fill the width and match across rows.";
                 double[]? columns = null;
-                bool automatic = table.Source.Width?.Length is null;
-                if ((!automatic && table.Source.Width is not { Length: { Value: > 0 } }) || table.Children.Count == 0)
+                bool specified = table.Source.Width?.Length is not null;
+                bool automatic = !specified || Rows().SelectMany(row => row.Children)
+                    .OfType<EpubFormattingTree.Cell>().All(cell => cell.Source.Width?.Length is null);
+                if ((specified && table.Source.Width is not { Length: { Value: > 0 } }) || table.Children.Count == 0)
                     throw new NotSupportedException("Native EPUB tables require explicit width and row content.");
                 if (automatic)
                 {
@@ -1266,6 +1293,12 @@ public sealed partial class EpubDocument
                         double fraction = (contentWidth - minimum) / (width - minimum);
                         for (int column = 0; column < columns.Length; column++)
                             columns[column] = minimums![column] + (columns[column] - minimums[column]) * fraction;
+                        width = contentWidth;
+                    }
+                    if (specified && width < contentWidth)
+                    {
+                        double share = (contentWidth - width) / columns.Length;
+                        for (int column = 0; column < columns.Length; column++) columns[column] += share;
                         width = contentWidth;
                     }
                     double remaining = contentWidth - width;
@@ -1371,6 +1404,9 @@ public sealed partial class EpubDocument
                     if (backgrounds.Count + glyphs.Count + rowPaintCount > 100_000)
                         throw new InvalidDataException("The native page exceeds its paint limit.");
                     double shift = top - options.Margin;
+                    double firstBaseline = cells.SelectMany(cell => cell.Page.Glyphs).OfType<NativeGlyphPaint>()
+                        .FirstOrDefault()?.Baseline + shift ?? top + options.FontSize;
+                    PaintListMarker(table, firstBaseline);
                     foreach (var (source, cell, cellLeft) in cells)
                     {
                         if (anchorsByCell.TryGetValue(source, out var ownedAnchors))
@@ -1459,6 +1495,7 @@ public sealed partial class EpubDocument
                 // here because they shrink to fit the column that results.
                 (double Minimum, double Maximum) IntrinsicWidths(EpubFormattingTree.Block cell)
                 {
+                    ChargeTableFlowWork();
                     // A nested table's row is as wide as its cells together; the table takes its widest row.
                     if (cell is EpubFormattingTree.Row nestedRow)
                     {
@@ -1494,6 +1531,7 @@ public sealed partial class EpubDocument
                             cancellationToken.ThrowIfCancellationRequested();
                             if (++inlineMetricWork > chapterWork)
                                 throw new InvalidDataException("Native EPUB inline metrics exceed their work limit.");
+                            ChargeTableFlowWork();
                             var atom = sequence.Atoms[at];
                             if (atom.Reference is not null || atom.HardBreak)
                             {
@@ -1572,6 +1610,7 @@ public sealed partial class EpubDocument
                 if (first <= last) lineStart = sequence.Atoms[first].Offset;
                 for (int at = first; at <= last; at++)
                 {
+                    if (tableFlowDepth > 0) ChargeTableFlowWork();
                     var atom = sequence.Atoms[at];
                     int index = atom.Offset;
                     cancellationToken.ThrowIfCancellationRequested();
@@ -1904,7 +1943,8 @@ public sealed partial class EpubDocument
                     }
                     else
                     {
-                        FinishPage(start);
+                        if (pageHasContent || !chapterRoot || pages.Count != 0 || resume is not null
+                            || line.All(item => item.Image is null)) FinishPage(start);
                         top = options.Margin;
                         if (movePadding)
                         {
@@ -1975,18 +2015,7 @@ public sealed partial class EpubDocument
                         line[at] = item;
                     }
                 double baseline = top + ascent;
-                for (var owner = lineBlock; owner is not null; owner = owner.Parent)
-                    if (owner is EpubFormattingTree.ListItem item)
-                    {
-                        if (markedItems.Add(item) && !item.Source.Style.Hidden)
-                        {
-                            var style = item.Source.Style;
-                            if (item.Source.ListOrdinal is { } ordinal) PaintNumber(item, style, ordinal, baseline);
-                            else glyphs.Add(new NativeMarkerPaint(itemContentLeft[item] - .8 * style.FontSize,
-                                baseline - .35 * style.FontSize, .2 * style.FontSize, style.Color ?? options.TextColor));
-                        }
-                        break;
-                    }
+                PaintListMarker(lineBlock, baseline);
                 AddBlockBackgrounds(height);
                 var fragments = new List<(EpubNativeContent.Element Owner, double Left, double Right, double Top, double Bottom)>();
                 var fragmentIndices = new Dictionary<EpubNativeContent.Element, int>(ReferenceEqualityComparer.Instance);
@@ -2100,6 +2129,22 @@ public sealed partial class EpubDocument
                 top += height;
                 pageHasContent = true;
                 line.Clear();
+            }
+
+            void PaintListMarker(EpubFormattingTree.Block firstBlock, double baseline)
+            {
+                for (var owner = firstBlock; owner is not null && !ReferenceEquals(owner, flowRoot.Parent); owner = owner.Parent)
+                    if (owner is EpubFormattingTree.ListItem item)
+                    {
+                        if (markedItems.Add(item) && !item.Source.Style.Hidden)
+                        {
+                            var style = item.Source.Style;
+                            if (item.Source.ListOrdinal is { } ordinal) PaintNumber(item, style, ordinal, baseline);
+                            else glyphs.Add(new NativeMarkerPaint(itemContentLeft[item] - .8 * style.FontSize,
+                                baseline - .35 * style.FontSize, .2 * style.FontSize, style.Color ?? options.TextColor));
+                        }
+                        break;
+                    }
             }
 
             // An ordered-list marker is "N. " in the item's font, right-aligned to end where the item content starts.
@@ -2235,6 +2280,7 @@ public sealed partial class EpubDocument
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 // A cell flow that needs a second page marks its row as taller than a page; the table lays it out as blocks.
+                if (!chapterRoot && end < flowEnd) throw new EpubCellFlowOverflow();
                 if (existingPageCount + pages.Count >= 10_000)
                     throw new InvalidDataException("Native EPUB layout exceeds its 10000-page limit.");
                 var paints = backgrounds.OrderBy(fill => fill.Depth).Select(fill => fill.Paint)
@@ -2270,6 +2316,8 @@ public sealed partial class EpubDocument
             }
         }
     }
+
+    private sealed class EpubCellFlowOverflow : Exception { }
 
     /// <summary>Ends a chapter's layout once it has the pages a reader asked for; finished pages never change.</summary>
     private sealed class EpubLayoutStopped(List<EpubLayoutPage> pages) : Exception

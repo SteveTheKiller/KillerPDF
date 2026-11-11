@@ -9,15 +9,19 @@ namespace KillerPdf.Engine.Formats.Epub;
 public sealed partial class EpubDocument
 {
     private readonly Dictionary<string, byte[]> _resources;
+    private readonly HashSet<string> _oversizedResources;
+    private readonly List<EpubChapterDiagnostic> _packageDiagnostics = [];
     private const int MaxEntryBytes = 8 * 1024 * 1024;
     /// <summary>The largest EPUB package the engine opens.</summary>
     public const int MaxPackageBytes = 128 * 1024 * 1024;
     private const long MaxExpandedBytes = 256L * 1024 * 1024;
     private static readonly XNamespace Opf = "http://www.idpf.org/2007/opf";
     private static readonly XNamespace Dc = "http://purl.org/dc/elements/1.1/";
-    private EpubDocument(Dictionary<string, byte[]> resources, XDocument package, string packagePath)
+    private EpubDocument(Dictionary<string, byte[]> resources, XDocument package, string packagePath,
+        HashSet<string> oversizedResources)
     {
         _resources = resources;
+        _oversizedResources = oversizedResources;
         var root = package.Root ?? throw new InvalidDataException("Missing package.");
         if (root.Name != Opf + "package")
             throw new InvalidDataException("Invalid EPUB package namespace.");
@@ -35,12 +39,23 @@ public sealed partial class EpubDocument
         var prefix = packagePath.Contains('/') ? packagePath[..(packagePath.LastIndexOf('/') + 1)] : "";
         var manifest = new Dictionary<string, EpubManifestItem>(StringComparer.Ordinal);
         var missingItems = new HashSet<string>(StringComparer.Ordinal);
+        var spineIds = (root.Element(Opf + "spine")?.Elements(Opf + "itemref") ?? [])
+            .Select(item => (string?)item.Attribute("idref")).OfType<string>().ToHashSet(StringComparer.Ordinal);
         foreach (var item in root.Element(Opf + "manifest")?.Elements(Opf + "item") ?? [])
         {
             var id = Required(item, "id");
-            var href = ResolvePath(prefix, Required(item, "href"));
+            string reference = Required(item, "href");
+            string href;
+            try { href = ResolvePath(prefix, reference); }
+            catch (InvalidDataException error)
+            {
+                missingItems.Add(id);
+                _packageDiagnostics.Add(new(-1, packagePath, "A resource was left out: " + error.Message)
+                { Reason = EpubOmissionReason.MissingResource, ItemHref = reference });
+                continue;
+            }
             // An item whose file is not in the package is skipped with any spine reference to it (EP-BF-018).
-            if (!resources.ContainsKey(href))
+            if (!resources.ContainsKey(href) && !(spineIds.Contains(id) && oversizedResources.Contains(href)))
             {
                 missingItems.Add(id);
                 continue;
@@ -90,19 +105,36 @@ public sealed partial class EpubDocument
         if (zip.Entries.Count > 4096)
             throw new InvalidDataException("EPUB exceeds the resource count limit.");
         var resources = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        var packageDiagnostics = new List<EpubChapterDiagnostic>();
+        var oversizedResources = new HashSet<string>(StringComparer.Ordinal);
+        void OmitOversized(string href)
+        {
+            oversizedResources.Add(href);
+            packageDiagnostics.Add(new(-1, href, OversizedResource(href).Message)
+            { Reason = EpubOmissionReason.LimitExceeded, ItemHref = href });
+        }
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         long expandedBytes = 0;
         foreach (var entry in zip.Entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ValidateArchivePath(entry.FullName);
+            if (entry.FullName.Contains('%') || entry.FullName.Contains(':'))
+            {
+                packageDiagnostics.Add(new(-1, entry.FullName, "A resource with an unsupported name was left out.")
+                { Reason = EpubOmissionReason.MissingResource, ItemHref = entry.FullName });
+                continue;
+            }
             if (!names.Add(entry.FullName.Normalize()))
                 throw new InvalidDataException("Ambiguous EPUB resource name.");
             if (entry.FullName.Equals("META-INF/encryption.xml", StringComparison.OrdinalIgnoreCase) &&
                 entry.FullName != "META-INF/encryption.xml")
                 throw new InvalidDataException("Encrypted EPUB publications are unsupported.");
             if (entry.Length > MaxEntryBytes)
-                throw new InvalidDataException("EPUB resource exceeds the expanded size limit.");
+            {
+                OmitOversized(entry.FullName);
+                continue;
+            }
             if (entry.Length > MaxExpandedBytes - expandedBytes)
                 throw new InvalidDataException("EPUB exceeds the total expanded size limit.");
             using var stream = entry.Open();
@@ -113,16 +145,20 @@ public sealed partial class EpubDocument
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (output.Length + count > MaxEntryBytes)
-                    throw new InvalidDataException("EPUB resource exceeds the expanded size limit.");
+                {
+                    OmitOversized(entry.FullName);
+                    break;
+                }
                 expandedBytes += count;
                 if (expandedBytes > MaxExpandedBytes)
                     throw new InvalidDataException("EPUB exceeds the total expanded size limit.");
                 output.Write(buffer, 0, count);
             }
-            resources[entry.FullName] = output.ToArray();
+            if (!oversizedResources.Contains(entry.FullName)) resources[entry.FullName] = output.ToArray();
         }
         if (!resources.TryGetValue("mimetype", out var mimetype) || !mimetype.AsSpan().SequenceEqual("application/epub+zip"u8))
             throw new InvalidDataException("Invalid EPUB mimetype.");
+        if (oversizedResources.Contains("META-INF/container.xml")) throw OversizedResource("META-INF/container.xml");
         if (!resources.TryGetValue("META-INF/container.xml", out var containerData))
             throw new InvalidDataException("Missing EPUB container document.");
         var container = Xml(containerData);
@@ -133,18 +169,26 @@ public sealed partial class EpubDocument
             .FirstOrDefault(x => (string?)x.Attribute("media-type") == "application/oebps-package+xml")
             ?? throw new InvalidDataException("Missing EPUB package reference.");
         var path = ResolvePath("", Required(rootfile, "full-path"));
+        if (oversizedResources.Contains(path)) throw OversizedResource(path);
         if (!resources.TryGetValue(path, out var packageData))
             throw new InvalidDataException("Missing EPUB package document.");
-        var document = new EpubDocument(resources, Xml(packageData), path);
+        var document = new EpubDocument(resources, Xml(packageData), path, oversizedResources);
+        var spinePaths = document.Spine.Select(item => item.Item.Href).ToHashSet(StringComparer.Ordinal);
+        document._packageDiagnostics.AddRange(packageDiagnostics.Where(item => !spinePaths.Contains(item.Href)));
         document.RestoreObfuscatedFonts(cancellationToken);
         return document;
     }
 
+    private static InvalidDataException OversizedResource(string href) =>
+        new("EPUB resource exceeds its 8 MiB expanded size limit: " + href + ".");
+
     private static void ValidateArchivePath(string path)
     {
-        if (string.IsNullOrEmpty(path) || path.StartsWith('/') || path.Contains('\\') || path.Contains(':') ||
-            path.Contains('%') || path.Any(char.IsControl) || path.Split('/').Any(x => x is "." or ".."))
+        if (string.IsNullOrEmpty(path) || Unsafe(path) || Unsafe(Uri.UnescapeDataString(path)))
             throw new InvalidDataException("Unsafe EPUB resource path.");
+
+        static bool Unsafe(string value) => Path.IsPathRooted(value) || value.Contains('\\')
+            || value.Any(char.IsControl) || value.Split('/').Any(segment => segment is "." or "..");
     }
 
     private static string Required(XElement element, string attribute)

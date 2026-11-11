@@ -10,6 +10,10 @@ public sealed record EpubFontFamily(string Name, bool IsGeneric = false);
 /// <summary>Describes native page dimensions and fallback typography in CSS pixels.</summary>
 public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, TrueTypeFont DefaultFont)
 {
+    /// <summary>The default per-chapter budget for table block and inline atom visits.</summary>
+    public const int DefaultTableFlowWorkLimit = 1_000_000;
+    /// <summary>Gets the per-chapter table work budget, from 1 through 16,000,000 visits.</summary>
+    public int TableFlowWorkLimit { get; init; } = DefaultTableFlowWorkLimit;
     /// <summary>Gets the fallback font size.</summary>
     public double FontSize { get; init; } = 16;
     /// <summary>Gets the page margin.</summary>

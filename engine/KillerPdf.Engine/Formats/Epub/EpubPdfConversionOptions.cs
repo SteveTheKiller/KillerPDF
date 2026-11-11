@@ -5,6 +5,8 @@ namespace KillerPdf.Engine.Formats.Epub;
 /// <summary>Controls explicit EPUB conversion paper geometry and fallback typography in points.</summary>
 public sealed record EpubPdfConversionOptions(TrueTypeFont DefaultFont)
 {
+    /// <summary>Gets the per-chapter table work budget, from 1 through 16,000,000 block and inline atom visits.</summary>
+    public int TableFlowWorkLimit { get; init; } = EpubLayoutOptions.DefaultTableFlowWorkLimit;
     /// <summary>Gets the paper width in points.</summary>
     public double PageWidthPoints { get; init; } = 595.2755905511812;
     /// <summary>Gets the paper height in points.</summary>
@@ -17,6 +19,8 @@ public sealed record EpubPdfConversionOptions(TrueTypeFont DefaultFont)
     public Func<EpubFontFamily, TrueTypeFont?>? FontFamilyResolver { get; init; }
     /// <summary>Gets an optional resolver for real font weights and styles shared by native layout and embedded PDF text.</summary>
     public Func<EpubFontFaceRequest, EpubFontFaceResult?>? FontFaceResolver { get; init; }
+    /// <summary>Gets an optional callback for omitted chapters, resources and navigation. Navigation uses spine index -1.</summary>
+    public Action<EpubChapterDiagnostic>? DiagnosticReported { get; init; }
     /// <summary>
     /// Gets whether a chapter whose content is refused converts as a labeled diagnosis page instead of
     /// refusing the whole conversion. Package, safety and cancellation failures still end conversion.

@@ -31,6 +31,7 @@ public sealed partial class EpubDocumentTests
 
     [Theory]
     [InlineData("<p><img src='https://example.invalid/image.png' alt='Image'/></p>", "", "")]
+    [InlineData("<img alt='Alternative'/>", "", "")]
     [InlineData("<p><a href='javascript:execute()'>Text</a></p>", "", "Text")]
     [InlineData("<p><a href='file:///C:/private.txt'>Text</a></p>", "", "Text")]
     [InlineData("<p><a href='../../outside.xhtml'>Text</a></p>", "", "Text")]
@@ -43,7 +44,6 @@ public sealed partial class EpubDocumentTests
 
     [Theory]
     [InlineData("<pre>  Code<pre>  Indent</pre></pre>")]
-    [InlineData("<img alt='Alternative'/>")]
     public void DiagnosesUnsupportedXhtmlInsteadOfInventingTextLayout(string body)
     {
         Assert.Throws<NotSupportedException>(() => TextBook(body).ReadText(0));

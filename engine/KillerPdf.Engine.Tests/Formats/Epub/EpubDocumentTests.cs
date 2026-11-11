@@ -60,10 +60,10 @@ public sealed partial class EpubDocumentTests
     }
 
     [Fact]
-    public void RejectsOversizedExpandedResource()
+    public void SkipsOversizedExpandedOptionalResource()
     {
-        Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Book(Package,
-            ("EPUB/large.bin", new string('x', 8 * 1024 * 1024 + 1)))));
+        var book = EpubDocument.Open(Book(Package, ("EPUB/large.bin", new string('x', 8 * 1024 * 1024 + 1))));
+        Assert.Equal(2, book.Spine.Count);
     }
 
     [Fact]
@@ -95,8 +95,6 @@ public sealed partial class EpubDocumentTests
     [Theory]
     [InlineData("idref=\"first\"", "idref=\"missing\"")]
     [InlineData("id=\"second\"", "id=\"first\"")]
-    [InlineData("href=\"one.xhtml\"", "href=\"https://example.invalid/book.xhtml\"")]
-    [InlineData("href=\"one.xhtml\"", "href=\"../../outside.xhtml\"")]
     [InlineData("version=\"3.0\"", "version=\"9.0\"")]
     public void RejectsInvalidPackageReferences(string oldValue, string newValue)
     {
@@ -104,12 +102,14 @@ public sealed partial class EpubDocumentTests
     }
 
     // A manifest file missing from the package is skipped with its spine entry; the rest of the book opens.
-    [Fact]
-    public void AManifestFileMissingFromThePackageIsSkipped()
+    [Theory]
+    [InlineData("missing.xhtml")]
+    [InlineData("https://example.invalid/book.xhtml")]
+    [InlineData("../../outside.xhtml")]
+    public void AManifestFileMissingFromThePackageIsSkipped(string reference)
     {
-        var book = EpubDocument.Open(Book(Package.Replace("href=\"one.xhtml\"", "href=\"missing.xhtml\"")));
-        Assert.DoesNotContain(book.Manifest, item => item.Href.EndsWith("missing.xhtml", StringComparison.Ordinal));
-        Assert.DoesNotContain(book.Spine, entry => entry.Item.Href.EndsWith("missing.xhtml", StringComparison.Ordinal));
+        var book = EpubDocument.Open(Book(Package.Replace("href=\"one.xhtml\"", "href=\"" + reference + "\"")));
+        Assert.Equal("EPUB/two.xhtml", Assert.Single(book.Spine).Item.Href);
     }
 
     [Theory]

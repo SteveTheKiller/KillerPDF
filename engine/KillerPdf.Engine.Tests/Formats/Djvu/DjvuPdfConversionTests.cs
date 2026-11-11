@@ -10,6 +10,28 @@ namespace KillerPdf.Engine.Tests.Formats.Djvu;
 
 public sealed class DjvuPdfConversionTests(ITestOutputHelper output)
 {
+    [Fact]
+    public void UnreadablePageKeepsItsPlaceAndDoesNotStopTheFollowingPage()
+    {
+        byte[] first = Page(1, Chunk("BGjp", [0]))[4..];
+        byte[] second = Page(5)[4..];
+        int secondOffset = 36 + first.Length;
+        byte[] source = [.. "AT&T"u8, .. Chunk("FORM", [.. "DJVM"u8,
+            .. Chunk("DIRM", [0x81, 0, 2, 0, 0, 0, 36,
+                (byte)(secondOffset >> 24), (byte)(secondOffset >> 16),
+                (byte)(secondOffset >> 8), (byte)secondOffset]), .. first, .. second])];
+        var notices = new List<DjvuDiagnostic>();
+        var pdf = PdfDocument.Open(DjvuDocument.Open(source).ConvertToPdf(notices));
+        Assert.Equal(2, PdfPageInformation.Read(pdf).Count);
+        var notice = Assert.Single(notices);
+        Assert.Equal("PageNotConverted", notice.Code);
+        Assert.Equal(0, notice.PageIndex);
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Contains("Page 1", reader.Read(0).Text);
+        Assert.Equal(new byte[] { 255, 255, 255, 0, 255, 0 },
+            new PdfPageRenderer(pdf).Render(1, new PdfRenderOptions(2, 3)).Pixels.ToArray().Where((_, i) => i % 4 == 0));
+    }
+
     [Theory]
     [InlineData((byte)1, 3, 2, new byte[] { 255, 0, 0, 255, 255, 255 })]
     [InlineData((byte)2, 3, 2, new byte[] { 255, 255, 255, 0, 0, 255 })]
@@ -83,14 +105,16 @@ public sealed class DjvuPdfConversionTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void ConversionRejectsUnsupportedPagesWithoutChangingNavigation()
+    public void ConversionReplacesUnsupportedPagesWithoutChangingNavigation()
     {
         var native = DjvuDocument.Open(Convert.FromHexString(
             "41542654464F524D00000064444A564D4449524D0000001181000100000052FFFFF8BF9E1FCC877DC900" +
             "4E41564D00000020FFFFDCFE710ED97FCE8AD681247C75F5957907266F39911034415499EB17C37B" +
             "464F524D00000016444A5655494E464F0000000A000200011A002C011601"));
         var original = Assert.Single(native.ReadNavigation());
-        Assert.Contains("no supported Smmr image content", Assert.Throws<NotSupportedException>(() => native.ConvertToPdf()).Message);
+        var notices = new List<DjvuDiagnostic>();
+        Assert.Single(PdfPageInformation.Read(PdfDocument.Open(native.ConvertToPdf(notices))));
+        Assert.Contains("no supported Smmr image content", Assert.Single(notices).Message);
         var retained = Assert.Single(native.ReadNavigation());
         Assert.Equal(original.Label, retained.Label);
         Assert.Equal(original.Target, retained.Target);
@@ -101,12 +125,13 @@ public sealed class DjvuPdfConversionTests(ITestOutputHelper output)
     [Theory]
     [InlineData("Sjbz")]
     [InlineData("BGjp")]
-    public void ConversionPropagatesTheNativeUnsupportedLayerDiagnosis(string layer)
+    public void ConversionReportsTheNativeUnsupportedLayerDiagnosis(string layer)
     {
         var native = DjvuDocument.Open(Page(1, Chunk(layer, [0])));
         var rendering = Assert.Throws<NotSupportedException>(() => native.RenderPage(0));
-        var conversion = Assert.Throws<NotSupportedException>(() => native.ConvertToPdf());
-        Assert.Equal(rendering.Message, conversion.Message);
+        var notices = new List<DjvuDiagnostic>();
+        Assert.Single(PdfPageInformation.Read(PdfDocument.Open(native.ConvertToPdf(notices))));
+        Assert.Contains(rendering.Message, Assert.Single(notices).Message);
     }
 
     [Fact]

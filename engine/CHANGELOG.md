@@ -10,6 +10,8 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 
 ### Fixed
 
+- EPUB layout handles padded and nested tables, bounds nested-table work, and preserves the rest of a book when a chapter, navigation or optional resource cannot be read. (#472)
+- DjVu conversion accepts full-resolution grayscale scans and keeps page positions when content cannot be converted. Reduced compound layers stay aligned with their masks, and shared annotations no longer stop page rendering. (#472)
 - Embedded TrueType fonts with a custom encoding write the required /Type, /CMapName and /CIDSystemInfo entries on their CMap stream, and incremental updates continue a source's cross-reference-stream format instead of appending a classic table.
 - Text fields with automatic font sizing save with a valid appearance while retaining their automatic setting. Unstyled fields stay transparent.
 - Page import preserves optional popup links, saved markup appearances, resource metadata, image-mask precedence and inherited form fonts and alignment. (#455)

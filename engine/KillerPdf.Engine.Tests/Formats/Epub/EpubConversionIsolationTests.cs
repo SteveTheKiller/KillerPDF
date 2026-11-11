@@ -11,6 +11,40 @@ public sealed class EpubConversionIsolationTests
     private const string Unscripted = "<p>B</p><script>x</script>";
 
     [Fact]
+    public void UnexpectedChapterFailurePreservesTheNextChapterInLayoutAndConversion()
+    {
+        var book = EpubDocument.Open(new Book { Chapters =
+        { Chapter("<p style='font-family:broken'>A</p>"), Chapter("<p>ALPHA</p>") } }.Build());
+        TrueTypeFont? Resolve(EpubFontFamily family) => family.Name == "broken"
+            ? throw new InvalidOperationException("The host font lookup failed.") : null;
+        var layout = book.CreateLayout(Options() with { FontFamilyResolver = Resolve });
+        Assert.Equal(2, layout.Pages.Count);
+        var diagnostic = Assert.Single(layout.ChapterDiagnostics);
+        Assert.Equal(0, diagnostic.SpineIndex);
+        Assert.Equal(EpubOmissionReason.Other, diagnostic.Reason);
+        Assert.Equal("The host font lookup failed.", diagnostic.Message);
+        Assert.Equal("ALPHA", layout.Pages[1].Text.Trim());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Liberation())
+        { IsolateChapterFailures = true, FontFamilyResolver = Resolve }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(2, reader.PageCount);
+        Assert.Equal("ALPHA", string.Concat(reader.Read(1).Letters.Select(letter => letter.Value)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ChapterIsolationNeverSwallowsCancellationOrOutOfMemory(bool outOfMemory)
+    {
+        var book = EpubDocument.Open(new Book { Chapters = { Chapter("<p style='font-family:broken'>A</p>") } }.Build());
+        Exception failure = outOfMemory ? new OutOfMemoryException("No memory.") : new OperationCanceledException();
+        TrueTypeFont? Resolve(EpubFontFamily _) => throw failure;
+        Assert.Same(failure, Record.Exception(() => book.CreateLayout(Options() with { FontFamilyResolver = Resolve })));
+        Assert.Same(failure, Record.Exception(() => book.ConvertToPdf(new EpubPdfConversionOptions(Liberation())
+        { IsolateChapterFailures = true, FontFamilyResolver = Resolve })));
+    }
+
+    [Fact]
     public void IsolatedConversionReplacesARefusedChapterWithItsLabeledUnavailablePage()
     {
         var font = Liberation();

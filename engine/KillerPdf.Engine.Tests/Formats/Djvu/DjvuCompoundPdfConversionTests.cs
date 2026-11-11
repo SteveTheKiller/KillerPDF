@@ -10,6 +10,27 @@ namespace KillerPdf.Engine.Tests.Formats.Djvu;
 // drawn by KillerPDF's own PDF renderer, must match what ddjvu draws for the DjVu page (DjvuCompoundTests' oracles).
 public sealed class DjvuCompoundPdfConversionTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReducedLayerKeepsItsBottomAnchorWhenThePageHeightHasARemainder(bool converted)
+    {
+        byte[] source = Convert.FromHexString(
+            "41542654464F524D00000039444A5655494E464F0000000A000C000A180064001601" +
+            "424734340000001B006481020004000400FFD5A537F9348F11CFC657F6ACD695FCA23C");
+        var native = DjvuDocument.Open(source);
+        var frame = converted ? Render(ConvertPage(source), 12, 10) : native.RenderPage(0);
+        // DjVuLibre 3.5.29 ddjvu -format=pgm, at stored sample centers. The 4 x 4 layer has reduction 3.
+        byte[] expected = [127,163,198,229,255,225,193,152,127,95,64,31];
+        int index = 0;
+        foreach (int y in new[] { 2, 5, 8 })
+        foreach (int x in new[] { 1, 4, 7, 10 })
+        {
+            int sample = expected[index++];
+            Assert.InRange(Level(frame.Pixels[(y * 12 + x) * 4]), sample - 1.5, sample + 1.5);
+        }
+    }
+
     [Fact]
     public void ACompoundPageConvertsWithEachShapeInItsPaletteColorOverTheBackground()
     {

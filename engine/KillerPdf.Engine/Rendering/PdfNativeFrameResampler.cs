@@ -36,7 +36,7 @@ internal sealed class PdfNativeImageLayer
         Height = height;
         Reduction = reduction;
         (_column0, _column1, _columnWeight) = Axis(pageWidth, width, reduction);
-        (_row0, _row1, _rowWeight) = Axis(pageHeight, height, reduction);
+        (_row0, _row1, _rowWeight) = Axis(pageHeight, height, reduction, height * reduction - pageHeight);
     }
 
     /// <summary>The stored samples, top row first, one or three bytes per pixel.</summary>
@@ -51,13 +51,13 @@ internal sealed class PdfNativeImageLayer
     internal static long StorageBytes(int width, int height, int channels, int pageWidth, int pageHeight)
         => (long)width * height * channels + 12L * (pageWidth + pageHeight);
 
-    private static (int[], int[], float[]) Axis(int page, int stored, int reduction)
+    private static (int[], int[], float[]) Axis(int page, int stored, int reduction, int offset = 0)
     {
         int[] first = new int[page], second = new int[page];
         float[] weight = new float[page];
         for (int i = 0; i < page; i++)
         {
-            double position = (i + .5) / reduction - .5;
+            double position = (i + .5 + offset) / reduction - .5;
             int left = (int)Math.Floor(position);
             weight[i] = (float)(position - left);
             first[i] = Math.Clamp(left, 0, stored - 1);
