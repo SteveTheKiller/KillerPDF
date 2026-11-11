@@ -201,7 +201,7 @@ public sealed partial class PdfReadSnapshot
             throw new InvalidDataException("EPUB exceeds the input size limit.");
         string sourceSha256 = Convert.ToHexString(SHA256.HashData(source));
         var capturedOptions = options with { };
-        var publication = EpubDocument.Open(source, cancellationToken);
+        var publication = EpubDocument.OpenOwned(source, cancellationToken);
         var layout = inBackground ? publication.CreateLayoutInBackground(capturedOptions, cancellationToken)
             : publication.CreateLayout(capturedOptions, cancellationToken);
         try

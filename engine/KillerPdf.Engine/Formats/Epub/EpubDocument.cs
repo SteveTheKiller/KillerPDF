@@ -94,7 +94,24 @@ public sealed partial class EpubDocument
         // package may be up to 128 MiB and expand to 256 MiB; each entry keeps its 8 MiB bound.
         if (data.Length > MaxPackageBytes)
             throw new InvalidDataException("EPUB exceeds the input size limit.");
-        var bytes = data.ToArray();
+        return OpenCore(data.ToArray(), cancellationToken);
+    }
+
+    /// <summary>
+    /// Opens as <see cref="Open"/> does, taking <paramref name="ownedData"/> itself instead of copying it. The caller
+    /// hands the array over and must not change it afterwards.
+    /// </summary>
+    public static EpubDocument OpenOwned(byte[] ownedData, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ownedData);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (ownedData.Length > MaxPackageBytes)
+            throw new InvalidDataException("EPUB exceeds the input size limit.");
+        return OpenCore(ownedData, cancellationToken);
+    }
+
+    private static EpubDocument OpenCore(byte[] bytes, CancellationToken cancellationToken)
+    {
         if (bytes.Length < 57 || BinaryPrimitives.ReadUInt32LittleEndian(bytes) != 0x04034b50 ||
             BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(8)) != 0 ||
             (BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(6)) & 1) != 0 ||

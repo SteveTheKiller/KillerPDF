@@ -53,6 +53,9 @@ public sealed class PdfSnapshotOwnedSourceTests
 
         Assert.Equal(copied.SourceSha256, taken.SourceSha256);
         Assert.Equal(copied.PageCount, taken.PageCount);
+        // An owned array is not copied at all. What remains is reading the padding entry out of the archive, about
+        // three package lengths (measured 3.04); a second copy of the package would make it four.
+        Assert.True(owningCost < book.Length * 7L / 2, $"Opening an owned array allocated {owningCost} for a {book.Length} byte package.");
         Assert.True(copyingCost - owningCost >= book.Length * 9L / 10,
             $"Opening from memory allocated {copyingCost}, from an owned array {owningCost}, for a {book.Length} byte package.");
     }

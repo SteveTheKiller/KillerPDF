@@ -52,6 +52,9 @@ public sealed class NativeOwnedSourceTests
         using var owner = NativeWorkingDocument.OpenEpub(book, options);
         long throughTheApp = GC.GetAllocatedBytesForCurrentThread() - start;
 
+        // The engine takes the captured array as it is: reading the padding entry costs about three package lengths and
+        // the app's capture one more, so the whole open stays under four and a half. A second engine copy made it five.
+        Assert.True(throughTheApp < book.Length * 9L / 2, $"Through the app {throughTheApp}, package {book.Length} bytes.");
         // The app's own capture is the one extra copy; the engine adds none of its own.
         Assert.True(throughTheApp - engineAlone < book.Length * 11L / 10,
             $"Through the app {throughTheApp}, engine alone {engineAlone}, package {book.Length} bytes.");
