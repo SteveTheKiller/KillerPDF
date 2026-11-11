@@ -425,6 +425,59 @@ public sealed class ThumbnailWindowTests
         Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts0) == 6 && shown.ContainsKey(0),
             TimeSpan.FromSeconds(10)), $"page 0 was not drawn again (attempts {Volatile.Read(ref attempts0)})");
     }
+
+    // A row can ask for a page again while that page's second throwing draw is still running, so the same pass draws
+    // it once more. When that draw succeeds the page is a working page: it must not stay marked as failed by throwing,
+    // or a later success would re-arm it and leave it holding a used retry.
+    [Fact]
+    public void APageAskedForAgainDuringItsSecondThrowAndThenDrawnKeepsItsRetry()
+    {
+        int attempts0 = 0;
+        using var drained = new SemaphoreSlim(0);
+        using var inSecondDraw = new ManualResetEventSlim();
+        using var releaseSecondDraw = new ManualResetEventSlim();
+        var shown = new ConcurrentDictionary<int, string>();
+        using var window = new ThumbnailWindow<string>(100, (page, _) =>
+        {
+            if (page == 0)
+            {
+                int attempt = Interlocked.Increment(ref attempts0);
+                if (attempt == 2) { inSecondDraw.Set(); releaseSecondDraw.Wait(TimeSpan.FromSeconds(30)); }
+                if (attempt is 1 or 2 or 4 or 5) throw new IOException("locked for a moment");
+            }
+            return $"thumb {page} {Volatile.Read(ref attempts0)}";
+        }, (page, image) => { if (image is null) shown.TryRemove(page, out _); else shown[page] = image; },
+            retain: 1, drained: () => drained.Release());
+
+        void Draw(int page)
+        {
+            window.Request(page);
+            Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(page), TimeSpan.FromSeconds(10)));
+            Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        }
+
+        window.Request(0);                                   // attempt 1 throws
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        window.Request(0);                                   // attempt 2 throws, but a row asks again while it runs
+        Assert.True(inSecondDraw.Wait(TimeSpan.FromSeconds(10)));
+        window.Request(0);
+        releaseSecondDraw.Set();
+        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts0) == 3 && shown.ContainsKey(0),
+            TimeSpan.FromSeconds(10)), "the re-requested page was not drawn in the same pass");
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+
+        Draw(1);                                             // retain 1: page 0 is let go
+        for (int i = 0; i < 2; i++)                          // a later brief lock settles it by throwing
+        {
+            window.Request(0);
+            Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        }
+        Assert.Equal(5, Volatile.Read(ref attempts0));
+        Draw(2);                                             // a success re-arms it
+        window.Request(0);
+        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts0) == 6 && shown.ContainsKey(0),
+            TimeSpan.FromSeconds(10)), $"page 0 was not drawn again (attempts {Volatile.Read(ref attempts0)})");
+    }
     // A page the renderer refuses by throwing is tried once more, then settled, so a broken page does not reopen and
     // parse the file on every later pass.
     [Fact]
