@@ -55,6 +55,19 @@ public sealed class ViewerPresentationPinTests
         Assert.Contains("KickOffAdjacentPrefetch(pageIndex, scaledMax, pgRot, !(linear || primaryMonitor is not null));", viewport);
     }
 
+    // viewer BF-008: RenderAllAnnotations clears every child of the page's canvas, link overlays included, so links
+    // added to a Grid or Two-Page tile before its annotations were drawn were removed again.
+    [Fact]
+    public void TileLinkOverlaysAreAddedAfterTheTilesAnnotationsAreDrawn()
+    {
+        string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+        string tile = Between(viewport, "private void AddSecondaryTile(", "private void ScrollToGridTile(");
+
+        Assert.Equal(3, Count(tile, "AddSecondaryPageLinks(pi, pageDipW, pageDipH);"));
+        Assert.Equal(3, System.Text.RegularExpressions.Regex.Matches(tile,
+            @"RenderAllAnnotations\(pi\);\s*AddSecondaryPageLinks\(pi, pageDipW, pageDipH\);").Count);
+    }
+
     private static int Count(string source, string text)
     {
         int count = 0;

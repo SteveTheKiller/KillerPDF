@@ -1794,8 +1794,8 @@ namespace KillerPDF.Controls
                     exOverlay.Height = pageDipH;
                     if (!_renderDims.ContainsKey(pi)) _renderDims[pi] = (pageDipW, pageDipH);
                     exImg.Source = bitmap;
-                    AddSecondaryPageLinks(pi, pageDipW, pageDipH);
                     RenderAllAnnotations(pi);
+                    AddSecondaryPageLinks(pi, pageDipW, pageDipH);   // after: drawing annotations clears the canvas
                 }
                 exImg.Source = bitmap;
                 PresentRenderWarning(exImg, bitmap, pi);
@@ -1824,7 +1824,6 @@ namespace KillerPDF.Controls
             var pageGrid = new Grid();
             pageGrid.Children.Add(img);
             pageGrid.Children.Add(overlay);
-            AddSecondaryPageLinks(pi, pageDipW, pageDipH);
 
             // Grid: constant GridGapPx on-screen gap between tiles (the document pane
             // background shows through). Two-Page: no margin on the right page - the spread
@@ -1842,6 +1841,7 @@ namespace KillerPDF.Controls
                 slot.Margin = margin;
                 slot.Child = pageGrid;
                 RenderAllAnnotations(pi);
+                AddSecondaryPageLinks(pi, pageDipW, pageDipH);
                 if (pi == _gridScrollToPage) ScrollToGridTile(slot);
                 return;
             }
@@ -1854,6 +1854,7 @@ namespace KillerPDF.Controls
             };
             _pageContentPanel.Children.Add(tile);
             RenderAllAnnotations(pi);
+            AddSecondaryPageLinks(pi, pageDipW, pageDipH);
             if (_viewMode == ViewMode.TwoPage && pi == State.CurrentPage)
             {
                 if (_active?.PendingZoom is null) SyncZoomBox();
