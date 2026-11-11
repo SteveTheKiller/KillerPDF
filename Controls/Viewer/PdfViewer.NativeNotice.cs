@@ -41,6 +41,9 @@ namespace KillerPDF.Controls
                     UpdateNativeNotice();
                 });
                 previewArea.Children.Add(_nativeNotice);
+                // The find bar floats over the same pane and is moved, opened and closed at will, so the notice
+                // checks its place after every layout pass; the answer only changes when the find bar or the pane does.
+                _nativeNotice.LayoutUpdated += (_, _) => PlaceNativeNotice();
             }
             RescaleNativeNotice();
             // One bar serves every tab, so it takes the wording of the active document's format each time.
@@ -53,6 +56,14 @@ namespace KillerPDF.Controls
                     UIElementAutomationPeer.CreatePeerForElement(_nativeNoticeMessage)
                         ?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged),
                     System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        // Below the find bar while the two would overlap, at the top of the pane otherwise.
+        private void PlaceNativeNotice()
+        {
+            if (_nativeNotice is not { Visibility: Visibility.Visible } notice) return;
+            double top = NoticePlacement.TopClearOf(notice, Host?.SearchBar);
+            if (Math.Abs(notice.Margin.Top - top) > 0.5) notice.Margin = new Thickness(0, top, 0, 0);
         }
 
         private void ShowNativeDiagnostics()
