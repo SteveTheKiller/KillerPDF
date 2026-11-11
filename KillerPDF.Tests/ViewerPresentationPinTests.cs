@@ -68,6 +68,18 @@ public sealed class ViewerPresentationPinTests
             @"RenderAllAnnotations\(pi\);\s*AddSecondaryPageLinks\(pi, pageDipW, pageDipH\);").Count);
     }
 
+    // viewer BF-013: a paginating book reads "340+" in the single-page badge; the Grid span badge printed the settled count.
+    [Fact]
+    public void TheGridSpanBadgeShowsTheSameProvisionalTotalAsTheSingleBadge()
+    {
+        string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+        string span = Between(viewport, "private void ShowPageBadgeSpan(", "private void ShowPageBadgeText(");
+
+        Assert.Contains("$\"{first + 1} / {ReadPageTotal}\"", span);
+        Assert.Contains("$\"{first + 1}-{last + 1} / {ReadPageTotal}\"", span);
+        Assert.DoesNotContain("ReadPageCount}", span);
+    }
+
     private static int Count(string source, string text)
     {
         int count = 0;

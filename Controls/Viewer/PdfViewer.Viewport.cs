@@ -217,8 +217,8 @@ namespace KillerPDF.Controls
         {
             if (ReadPageCount < 2) return;
             ShowPageBadgeText(first == last
-                ? $"{first + 1} / {ReadPageCount}"
-                : $"{first + 1}-{last + 1} / {ReadPageCount}");
+                ? $"{first + 1} / {ReadPageTotal}"
+                : $"{first + 1}-{last + 1} / {ReadPageTotal}");
         }
 
         private void ShowPageBadgeText(string text)
