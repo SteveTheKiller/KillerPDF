@@ -721,7 +721,20 @@ internal static class ColorManagementSmoke
         }
     }
 
-    private static void Invoke(Button button) => ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)!).Invoke();
+    // Since ed1a8cd the dialog resolves the chosen profile off the UI thread and keeps Apply disabled until it finishes,
+    // so a real user clicks only once Apply is enabled. Wait (bounded, pumping the dispatcher) the same way, then invoke.
+    private static void Invoke(Button button)
+    {
+        var waited = Stopwatch.StartNew();
+        while (!button.IsEnabled)
+        {
+            if (waited.Elapsed > TimeSpan.FromSeconds(15))
+                throw new TimeoutException("The " + AutomationProperties.GetAutomationId(button) + " button never became enabled within 15 seconds.");
+            button.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+            Thread.Sleep(25);
+        }
+        ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)!).Invoke();
+    }
     private static byte[] InvalidProfile()
     {
         byte[] bytes = GrayProfile();
