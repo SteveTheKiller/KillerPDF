@@ -30,6 +30,28 @@ public sealed class EpubImageDegradeTests
         Assert.Equal(EpubOmissionReason.MissingResource, Assert.Single(diagnostics).Reason);
     }
 
+    // A picture over the 8 MiB entry limit is reported once, as too large, and never again as an unsupported format.
+    [Fact]
+    public void AnOversizedPictureIsReportedOnceAsTooLarge()
+    {
+        var source = new Book
+        {
+            Chapters = { Chapter("<p>A<img src='../images/big.png'/>A</p>") },
+            ExtraManifest = "<item id='big' href='images/big.png' media-type='image/png'/>"
+        };
+        source.Resources.Add(("images/big.png", new byte[9 * 1024 * 1024]));
+        var book = EpubDocument.Open(source.Build());
+
+        var layout = book.CreateLayout(Options());
+
+        var content = Assert.Single(layout.ContentDiagnostics);
+        Assert.Equal(EpubOmissionReason.ImageTooLarge, content.Reason);
+        var reported = new List<EpubChapterDiagnostic>();
+        book.ConvertToPdf(new EpubPdfConversionOptions(Options().DefaultFont) { DiagnosticReported = reported.Add });
+        var diagnostic = Assert.Single(reported, item => item.Message.Contains("big.png"));
+        Assert.Equal(EpubOmissionReason.ImageTooLarge, diagnostic.Reason);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

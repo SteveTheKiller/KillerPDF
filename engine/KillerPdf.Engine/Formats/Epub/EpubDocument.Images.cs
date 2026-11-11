@@ -33,6 +33,11 @@ public sealed partial class EpubDocument
             throw new EpubImageUnavailableException("Native EPUB image is not packaged: " + reference + ".",
                 EpubOmissionReason.MissingResource, exception);
         }
+        // A picture left out of the package for its size or its damaged entry is reported as that, once.
+        if (_oversizedResources.Contains(target))
+            throw _damagedResources.Contains(target)
+                ? new EpubImageUnavailableException(UnavailableResource(target).Message, EpubOmissionReason.ImageUnreadable)
+                : new EpubImageUnavailableException(OversizedResource(target).Message, EpubOmissionReason.ImageTooLarge);
         var item = Manifest.FirstOrDefault(entry => entry.Href == target);
         if (target.Contains('#') || item?.MediaType is not ("image/png" or "image/jpeg" or "image/jpg"))
             throw new EpubImageUnavailableException("Native EPUB image format is not supported: " + target

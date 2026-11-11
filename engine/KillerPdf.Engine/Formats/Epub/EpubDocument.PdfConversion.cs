@@ -51,7 +51,11 @@ public sealed partial class EpubDocument
                 destination.PageIndex, destination: PdfDestination.At(destination.Left * pointsPerCssPixel,
                     options.PageHeightPoints - destination.Top * pointsPerCssPixel));
         }
-        foreach (var diagnostic in _packageDiagnostics.Concat(layout.ChapterDiagnostics).Concat(layout.ContentDiagnostics).Distinct())
+        // A file a chapter already reports (an oversized or damaged picture) is not reported again for the package.
+        var reportedFiles = layout.ChapterDiagnostics.Concat(layout.ContentDiagnostics)
+            .Select(item => item.ItemHref).Where(href => !string.IsNullOrEmpty(href)).ToHashSet(StringComparer.Ordinal);
+        foreach (var diagnostic in _packageDiagnostics.Where(item => !reportedFiles.Contains(item.ItemHref))
+            .Concat(layout.ChapterDiagnostics).Concat(layout.ContentDiagnostics).Distinct())
         {
             cancellationToken.ThrowIfCancellationRequested();
             options.DiagnosticReported?.Invoke(diagnostic);
