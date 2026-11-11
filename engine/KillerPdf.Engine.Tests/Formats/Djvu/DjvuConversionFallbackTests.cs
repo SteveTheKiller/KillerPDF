@@ -26,4 +26,39 @@ public sealed class DjvuConversionFallbackTests
         Assert.Equal("TextNotConverted", notice.Code);
         Assert.Equal(0, notice.PageIndex);
     }
+
+    [Fact]
+    public void AJpegEncoderFailureOnOnePhotoPageKeepsThatPageLosslessAndConvertsTheRest()
+    {
+        byte[] photoForm = Convert.FromBase64String(DjvuIw44RealPageTests.OwnedC44Color)[4..];
+        byte[] bitonalForm = DjvuJb2Tests.Page(56, 32, 1, DjvuJb2Tests.Chunk("Sjbz", Convert.FromHexString("826C97EA17032BCDF26753F5D158491ECE4D21C50FA445251FF1C6B11C5102AAD66CC9ECF6202997")))[4..];
+        var data = DjvuTestStreams.Bundle(("photo.djvu", 1, photoForm), ("text.djvu", 1, bitonalForm));
+        var options = new DjvuPdfConversionOptions
+        {
+            JpegEncoder = (_, _, _, _, _) => throw new COMException("The image encoder failed.", unchecked((int)0x88982F50))
+        };
+        var notices = new List<DjvuDiagnostic>();
+
+        var pdf = PdfDocument.Open(DjvuDocument.Open(data).ConvertToPdf(options, notices));
+
+        Assert.Equal(2, PdfPageInformation.Read(pdf).Count);
+        var image = Assert.Single(new PdfPageContentReader(pdf).ReadImagePlacements(0));
+        Assert.Equal((211, 149), (image.PixelWidth, image.PixelHeight));
+        Assert.DoesNotContain(notices, n => n.Code == "PageNotConverted");
+        var notice = Assert.Single(notices);
+        Assert.Equal("JpegEncodingFailed", notice.Code);
+        Assert.Equal(0, notice.PageIndex);
+    }
+
+    [Fact]
+    public void AnOutOfMemoryFailureOfTheJpegEncoderIsNotHidden()
+    {
+        var document = DjvuDocument.Open(Convert.FromBase64String(DjvuIw44RealPageTests.OwnedC44Color));
+        var options = new DjvuPdfConversionOptions
+        {
+            JpegEncoder = (_, _, _, _, _) => throw new OutOfMemoryException()
+        };
+
+        Assert.Throws<OutOfMemoryException>(() => document.ConvertToPdf(options, new List<DjvuDiagnostic>()));
+    }
 }

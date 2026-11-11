@@ -181,9 +181,19 @@ public sealed partial class DjvuDocument
         int width = page.Width, height = page.Height;
         double scale = 72d / page.Dpi;
         bool quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
-        var image = options.JpegEncoder is { } encoder
-            ? PdfImage.FromJpeg(encoder(rgb, width, height, 3, options.JpegQuality))
-            : PdfImage.FromRgbRows(width, height, rgb, token);
+        PdfImage image;
+        if (options.JpegEncoder is { } encoder)
+        {
+            try { image = PdfImage.FromJpeg(encoder(rgb, width, height, 3, options.JpegQuality)); }
+            catch (Exception error) when (error is not (OperationCanceledException or OutOfMemoryException))
+            {
+                // The platform encoder failed on this page: keep it lossless, and the rest of the book unaffected.
+                image = PdfImage.FromRgbRows(width, height, rgb, token);
+                diagnostics.Add(new("JpegEncodingFailed", $"Page {pageIndex + 1} could not be compressed as JPEG ({error.Message.TrimEnd('.')}). " +
+                    "It is stored as a lossless image, which makes it larger.") { PageIndex = pageIndex });
+            }
+        }
+        else image = PdfImage.FromRgbRows(width, height, rgb, token);
         token.ThrowIfCancellationRequested();
         var content = new PdfContentStreamBuilder().SaveState();
         switch (page.Orientation)
