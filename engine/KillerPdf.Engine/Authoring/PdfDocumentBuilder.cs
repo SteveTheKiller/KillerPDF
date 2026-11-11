@@ -2951,7 +2951,7 @@ public sealed partial class PdfDocumentBuilder
                 objects.Add(new PdfIndirectObject(
                     allocatedPage.ContentNumber.Value,
                     0,
-                    new PdfStream(Dictionary(), allocatedPage.Definition.Content),
+                    PdfStream.FromOwnedData(Dictionary(), allocatedPage.Definition.Content),
                     0));
             }
             for (int index = 0; index < allocatedPage.Definition.Links.Count; index++)
@@ -3052,7 +3052,7 @@ public sealed partial class PdfDocumentBuilder
             objects.Add(new PdfIndirectObject(
                 encryptionNumber.Value, 0, encryptionDictionary, 0));
         }
-        using var output = new MemoryStream();
+        using var output = new PdfSegmentedBuffer();
         WriteAscii(output, $"%PDF-{Version}\n");
         output.Write([(byte)'%', 0xE2, 0xE3, 0xCF, 0xD3, (byte)'\n']);
         var offsets = new List<(int Number, int Offset)>(objects.Count);
@@ -3089,7 +3089,7 @@ public sealed partial class PdfDocumentBuilder
         output.Write("\nstartxref\n"u8);
         WriteAscii(output, xrefOffset.ToString(CultureInfo.InvariantCulture));
         output.Write("\n%%EOF\n"u8);
-        return output.ToArray();
+        return output.ToArrayAndRelease();
     }
 
     private static PdfObject Number(double value) =>
@@ -5903,8 +5903,9 @@ public sealed partial class PdfDocumentBuilder
     private static byte[] DocumentIdentifier(IEnumerable<PdfIndirectObject> objects)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var hashing = new PdfHashingStream(hash);
         foreach (PdfIndirectObject value in objects.OrderBy(value => value.ObjectNumber))
-            hash.AppendData(PdfObjectWriter.Write(value));
+            PdfObjectWriter.Write(hashing, value);
         return hash.GetHashAndReset()[..16];
     }
 

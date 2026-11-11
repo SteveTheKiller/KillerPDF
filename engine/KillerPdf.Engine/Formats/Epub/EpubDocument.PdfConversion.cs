@@ -6,6 +6,9 @@ namespace KillerPdf.Engine.Formats.Epub;
 
 public sealed partial class EpubDocument
 {
+    /// <summary>Test seam: called on the converting thread just before the PDF is serialized, with the laid-out book.</summary>
+    [ThreadStatic] internal static Action<WeakReference>? BuildProbe;
+
     /// <summary>Explicitly converts supported native EPUB content into an independent PDF.</summary>
     public byte[] ConvertToPdf(EpubPdfConversionOptions options, CancellationToken cancellationToken = default)
     {
@@ -15,6 +18,20 @@ public sealed partial class EpubDocument
         if (!EpubPdfConversionOptions.FitsPdfPageLimit(options.PageWidthPoints, options.PageHeightPoints))
             throw new ArgumentOutOfRangeException(nameof(options),
                 "PDF pages must be 3 to 14,400 points (200 inches) on each side.");
+        var builder = LayOutAndWritePages(options, out WeakReference layoutReference, cancellationToken);
+        // Nothing past this point needs the laid-out book or its decoded-picture cache, and it is out of scope here, so
+        // the serialization below does not stand on top of them.
+        BuildProbe?.Invoke(layoutReference);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] result = builder.Build();
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private PdfDocumentBuilder LayOutAndWritePages(EpubPdfConversionOptions options, out WeakReference layoutReference,
+        CancellationToken cancellationToken)
+    {
         const double pointsPerCssPixel = 72d / 96d;
         var builder = new PdfDocumentBuilder();
         // Each page is written while its chapter's layout is in memory, so the book is laid out only once;
@@ -33,6 +50,7 @@ public sealed partial class EpubDocument
             IsolateChapterFailures = options.IsolateChapterFailures,
             UnavailableChapterLabel = options.UnavailableChapterLabel
         }, AddPage, cancellationToken);
+        layoutReference = new WeakReference(layout);
         foreach (var (pageIndex, placement) in linkRuns)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -75,9 +93,7 @@ public sealed partial class EpubDocument
         }
         AddBookmarks(navigation, 0);
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] result = builder.Build();
-        cancellationToken.ThrowIfCancellationRequested();
-        return result;
+        return builder;
 
         void AddPage(EpubLayoutPage page, int pageIndex)
         {
