@@ -20,8 +20,9 @@ namespace KillerPDF.Controls
         /// restricts editing.</summary>
         internal bool IsOwnerRestricted => _doc?.IsReadOnly == true && _openedFromProtected;
 
-        // Closing the notice lasts for that document; the title keeps saying it is read-only.
-        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> _restrictionDismissed = [];
+        // Closing the notice lasts for that document; the title keeps saying it is read-only. One table for the
+        // process, keyed by the document, so the notice stays closed when its tab moves to the other pane or a new window.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> _restrictionDismissed = [];
         private string? _titleBeforeRestriction;
 
         private void UpdateReadOnlyTitle()

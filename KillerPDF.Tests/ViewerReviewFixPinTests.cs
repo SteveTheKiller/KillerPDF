@@ -51,4 +51,13 @@ public sealed class ViewerReviewFixPinTests
         string has = Between(images, "internal bool HasSelectedSourceImageExt", "internal bool CanDeleteSelectedSourceImageExt");
         Assert.DoesNotContain("MaterializedSourceImage", has);
     }
+
+    // controls:BF-020. The owner-restriction notice's dismissal follows the document to another viewer, as the
+    // book notice's does.
+    [Fact]
+    public void RestrictionNoticeDismissalIsSharedByEveryViewer()
+    {
+        string restriction = Viewer("PdfViewer.Restriction.cs");
+        Assert.Contains("private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> _restrictionDismissed = [];", restriction);
+    }
 }
