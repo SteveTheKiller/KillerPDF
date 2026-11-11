@@ -117,6 +117,26 @@ public sealed class BurnSkippedPictureTests
         Assert.Contains("/Subtype /Image", Encoding.Latin1.GetString(output).Replace("/Subtype/Image", "/Subtype /Image"));
     }
 
+    // The image watermark is decoded from a file with the same chain as a placed picture, so a JPEG XR watermark the
+    // stamp preview shows is burned too instead of silently missing from the output.
+    [Fact]
+    public void AJpegXrImageWatermarkIsBurnedNotDropped()
+    {
+        string folder = Path.Combine(Path.GetTempPath(), $"kp-jxr-watermark-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(folder);
+        try
+        {
+            string image = Path.Combine(folder, "mark.jxr"), pdf = Path.Combine(folder, "page.pdf");
+            File.WriteAllBytes(image, JpegXrPicture());
+            File.WriteAllBytes(pdf, new PdfDocumentBuilder().AddBlankPage(200, 200).Build());
+            PdfEngineBurn.Burn(pdf, new Dictionary<int, List<PageAnnotation>>(), new Dictionary<int, (int w, int h)>(),
+                new StampSpec { WmEnabled = true, WmIsImage = true, WmImagePath = image, WmRange = "", WmScale = 1, WmOpacity = 1 });
+            Assert.Contains("/Subtype /Image",
+                Encoding.Latin1.GetString(File.ReadAllBytes(pdf)).Replace("/Subtype/Image", "/Subtype /Image"));
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
     [Fact]
     public void AJpegXrPictureIsBurnedOnAWorkerThreadToo()
     {

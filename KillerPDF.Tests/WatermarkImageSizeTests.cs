@@ -96,6 +96,24 @@ public sealed class WatermarkImageSizeTests
         Assert.Equal(210.5, height, 6);
     }
 
+    // GDI+ cannot read JPEG XR, so the burn reads its stored resolution from the WIC frame the stamp preview uses.
+    // 96 px stored at 192 DPI is 96 / 192 * 72 = 36 pt; sizing it at the 96 DPI fallback would give 72 pt.
+    [Fact]
+    public void AJpegXrWatermarkIsSizedFromItsStoredResolution()
+    {
+        byte[] pixels = new byte[96 * 96 * 4];
+        Array.Fill(pixels, (byte)200);
+        var bitmap = System.Windows.Media.Imaging.BitmapSource.Create(96, 96, 192, 192,
+            System.Windows.Media.PixelFormats.Bgra32, null, pixels, 96 * 4);
+        var encoder = new System.Windows.Media.Imaging.WmpBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+        using var stream = new MemoryStream();
+        encoder.Save(stream);
+        (double width, double height) = BurnedWatermarkSize(stream.ToArray());
+        Assert.InRange(width, 35.95, 36.05);
+        Assert.InRange(height, 35.95, 36.05);
+    }
+
     private static (double Width, double Height) BurnedWatermarkSize(byte[] png)
     {
         string folder = Path.Combine(Path.GetTempPath(), $"killerpdf-wm478-{Guid.NewGuid():N}");

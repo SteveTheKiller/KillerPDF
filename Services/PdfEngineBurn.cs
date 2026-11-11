@@ -997,17 +997,35 @@ internal static class PdfEngineBurn
         try
         {
             byte[] bytes = File.ReadAllBytes(path);
-            using var stream = new MemoryStream(bytes);
-            using (var header = Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false))
-            {
-                // An image that stores no resolution reads as the display's DPI in a DPI-aware process
-                // (144 at 150% scaling), so only a stored resolution is used; otherwise WatermarkImageSize
-                // falls back to 96, as the preview's decoder does.
-                var (dpiX, dpiY) = StoredResolution(header.Flags, header.HorizontalResolution, header.VerticalResolution);
-                return LoadImage(bytes, opacity) is { } image ? (image, dpiX, dpiY) : null;
-            }
+            // The same decoder chain as a placed picture, so a format only WIC reads (the stamp preview's decoder
+            // reads it too) is burned instead of silently missing from the output.
+            if (LoadImage(bytes, opacity) is not { } image) return null;
+            var (dpiX, dpiY) = ReadResolution(bytes);
+            return (image, dpiX, dpiY);
         }
         catch { return null; }
+    }
+
+    private static (double DpiX, double DpiY) ReadResolution(byte[] bytes)
+    {
+        try
+        {
+            using var stream = new MemoryStream(bytes);
+            using var header = Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false);
+            // An image that stores no resolution reads as the display's DPI in a DPI-aware process
+            // (144 at 150% scaling), so only a stored resolution is used; otherwise WatermarkImageSize
+            // falls back to 96, as the preview's decoder does.
+            return StoredResolution(header.Flags, header.HorizontalResolution, header.VerticalResolution);
+        }
+        catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException))
+        {
+            // GDI+ cannot read this format, so take the resolution from the WIC frame the preview uses.
+            using var stream = new MemoryStream(bytes);
+            var frame = System.Windows.Media.Imaging.BitmapDecoder.Create(stream,
+                System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat,
+                System.Windows.Media.Imaging.BitmapCacheOption.OnLoad).Frames[0];
+            return (frame.DpiX, frame.DpiY);
+        }
     }
 
     /// <summary>The resolution an image stores, or zero when it stores none, so the caller applies
