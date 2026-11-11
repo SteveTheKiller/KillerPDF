@@ -339,6 +339,17 @@ public partial class PdfViewer
     private const int MaximumCachedPlacementPages = 8;
     private const int MaximumCachedPlacementAssets = 8;
 
+    /// <summary>Drops every placement read, extracted asset and the strict parse behind them. Called where the
+    /// viewer lets go of its document, so a closed tab's parse is not kept until another picture is pressed.</summary>
+    private void ReleasePlacementCache()
+    {
+        _placementCache.Clear();
+        _placementAssets.Clear();
+        _placementCacheReader = null;
+        _placementCacheSource = null;
+        _placementCacheOwner = null;
+    }
+
     private IReadOnlyList<PdfImagePlacementSelection>? PlacementsForPage(PdfWorkingDocument doc, int page)
     {
         if (_placementCacheOwner is null || !_placementCacheOwner.TryGetTarget(out var owner) || !ReferenceEquals(owner, doc))

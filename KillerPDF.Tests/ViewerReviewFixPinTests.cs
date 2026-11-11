@@ -20,4 +20,20 @@ public sealed class ViewerReviewFixPinTests
         Assert.True(method.IndexOf("FinishResizeUndo(resizing)", StringComparison.Ordinal)
             < method.IndexOf("_isResizingSig = false;", StringComparison.Ordinal));
     }
+
+    // controls:BF-017. The placement cache holds the closed document's strict parse; it is dropped where the
+    // viewer releases its document session.
+    [Fact]
+    public void ReleasingTheDocumentSessionDropsThePlacementCache()
+    {
+        string links = Viewer("PdfViewer.Links.cs");
+        string close = Between(links, "private void CloseEngineDocumentSession()", "_backgroundRenderCache.Clear();");
+        Assert.Contains("ReleasePlacementCache();", close);
+
+        string images = Viewer("PdfViewer.SourceImages.cs");
+        string release = Between(images, "private void ReleasePlacementCache()", "private IReadOnlyList<PdfImagePlacementSelection>? PlacementsForPage(");
+        foreach (string field in new[] { "_placementCache.Clear();", "_placementAssets.Clear();", "_placementCacheReader = null;",
+            "_placementCacheSource = null;", "_placementCacheOwner = null;" })
+            Assert.Contains(field, release);
+    }
 }

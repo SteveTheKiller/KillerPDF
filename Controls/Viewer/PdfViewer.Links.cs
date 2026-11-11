@@ -337,6 +337,7 @@ namespace KillerPDF.Controls
         private void CloseEngineDocumentSession()
         {
             _engineDocumentSession = null;
+            ReleasePlacementCache();   // the closed document's strict parse must not stay reachable from here
             _primaryRenderSession.Clear();
             _backgroundRenderCache.Clear();
         }
