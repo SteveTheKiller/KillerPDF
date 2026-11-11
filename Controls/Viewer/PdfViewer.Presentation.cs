@@ -21,6 +21,11 @@ public partial class PdfViewer
     /// <summary>Gets or sets an optional platform profile reader, configured before opening a document.</summary>
     public Func<string, CancellationToken, PdfColorProfile>? DisplayProfileReader { get; set; }
 
+    // The native child window hides everything the main window floats over the page, so 1.9.3 never creates it. The
+    // presenter code stays for 1.9.4, which hosts those bars in popups first. A field rather than a constant so the
+    // code behind it stays compiled.
+    internal static readonly bool NativePrimaryViewportEnabled = false;
+
     private WindowsPdfDisplayDiscovery? _presentationDisplayObserver;
     private PdfDisplayDiscoverySnapshot? _presentationDisplay;
     private PdfSdrDisplayConverter? _sdrDisplayConverter;

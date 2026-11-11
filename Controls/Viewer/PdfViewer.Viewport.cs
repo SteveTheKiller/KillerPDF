@@ -1094,8 +1094,10 @@ namespace KillerPDF.Controls
                 var primaryMonitor = !primaryInvert
                     && presentationPolicy.TransformOwner == PdfMonitorTransformOwner.Application
                     ? _sdrDisplayConverter : null;
+                // Advanced Color and HDR displays take the plain path until the native child window can share the page
+                // with the find bar, form size bar, badge and notices (1.9.4); a profiled SDR display still converts here.
                 bool linear = primaryMode == ViewMode.Single && !primaryInvert && pgRot == 0
-                    && (presentationPolicy.Mode == PdfPresentationMode.LinearFloat
+                    && ((NativePrimaryViewportEnabled && presentationPolicy.Mode == PdfPresentationMode.LinearFloat)
                         || presentationPolicy.TransformOwner == PdfMonitorTransformOwner.Application);
 
                 // #197: the cursor-trailing tooltip is gone; the corner badge announces the page.
