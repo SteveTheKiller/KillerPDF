@@ -144,6 +144,9 @@ public sealed partial class PdfPageRenderer
 
     // The byte renderer composes the page in its native ink surface, spot plates included, exactly as a
     // separation preview does. Only the composed ink, eight bits a plate, is converted precisely.
+    /// <summary>Lets tests count the profile conversions of a composed-ink proof.</summary>
+    internal Action? ComposedInkConversionObserver { get; set; }
+
     private PdfRenderedFrame RenderComposedInkFrame(int pageIndex, PdfRenderOptions options,
         (int Left, int Top, int Right, int Bottom)? region, int width, int height, long spotPlateBudget,
         CancellationToken cancellationToken)

@@ -444,7 +444,7 @@ public sealed partial class PdfPageRenderer
                 pageResources, initialState, 0);
             RenderAppearances();
             if (options.SeparationPlate is string plate) pixels.ExtractPlate(plate, cancellationToken);
-            else if (composedInk is not null) pixels.ConvertInkToPrecise(composedInk, preciseCmyk!, cancellationToken);
+            else if (composedInk is not null) pixels.ConvertInkToPrecise(composedInk, preciseCmyk!, cancellationToken, ComposedInkConversionObserver);
             else pixels.ConvertToBgra(cancellationToken);
             float[]? imposedPrecise = preciseRgb ?? composedInk;
             if (isolatePageGroup && !options.TransparentBackground)
