@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.CrossReference;
+using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
@@ -1526,6 +1527,77 @@ public sealed class PdfContentRedactionTests
         Assert.Equal("ssn", remaining.FieldName);
         Assert.Equal(string.Empty, remaining.Value);
         Assert.Equal(string.Empty, remaining.DefaultValue);
+    }
+
+    [Fact]
+    public void RemovingOneWidgetOfARepeatedFieldLeavesNoValueInTheSiblingAppearances()
+    {
+        // The same field is drawn on both pages. Redacting the page 1 widget clears the shared value, and
+        // the page 2 widget must not keep drawing it from its appearance streams.
+        string Appearance(string text) => Stream($"BT /F1 12 Tf 2 4 Td ({text}) Tj ET",
+            "/Type /XObject /Subtype /Form /BBox [0 0 200 20] /Resources << /Font << /F1 10 0 R >> >>");
+        var objects = new List<string>
+        {
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>",
+            "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 10 0 R >> >> /Contents 5 0 R /Annots [7 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 10 0 R >> >> /Contents 9 0 R /Annots [8 0 R] >>",
+            Stream("BT /F1 12 Tf 72 700 Td (Patient NAMEHERE) Tj ET"),
+            "<< /FT /Tx /T (Name) /V (John Smith) /Kids [7 0 R 8 0 R] >>",
+            "<< /Type /Annot /Subtype /Widget /Parent 6 0 R /P 3 0 R /Rect [140 690 340 710] /AP << /N 11 0 R >> >>",
+            "<< /Type /Annot /Subtype /Widget /Parent 6 0 R /P 4 0 R /Rect [100 700 300 720] /AP << /N 12 0 R /D 13 0 R >> >>",
+            Stream("BT /F1 12 Tf 72 700 Td (Page two) Tj ET"),
+            Helvetica,
+            Appearance("John Smith"),
+            Appearance("John Smith"),
+            Appearance("John Smith")
+        };
+        PdfDocument document = PdfDocument.Open(CreatePdf(objects));
+        PdfRedactionRegion region = Region(document, 0, "NAMEHERE");
+
+        PdfContentRedactionResult result = PdfContentRedaction.Apply(document, [region]);
+
+        PdfDocument output = PdfDocument.Open(result.Document);
+        Assert.DoesNotContain(AllObjectText(output), text => text.Contains("John Smith", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain("John Smith", Encoding.Latin1.GetString(result.Document.Span));
+        // The page 2 occurrence stays as an empty field.
+        PdfFormWidgetInfo sibling = Assert.Single(PdfFormWidgetReader.ReadPage(output, 1));
+        Assert.Equal("Name", sibling.FieldName);
+        Assert.Equal(string.Empty, sibling.Value);
+    }
+
+    private static List<string> AllObjectText(PdfDocument document)
+    {
+        var found = new List<string>();
+        foreach (PdfCrossReferenceEntry entry in document.CrossReferences.Values)
+        {
+            if (entry.Type is not (PdfCrossReferenceEntryType.InUse or PdfCrossReferenceEntryType.Compressed)) continue;
+            Walk(document.Resolve(entry.ObjectNumber), 0);
+        }
+        return found;
+
+        void Walk(PdfObject value, int depth)
+        {
+            if (depth > 64) return;
+            switch (value)
+            {
+                case PdfString text:
+                    found.Add(PdfUnicodeEncoding.DecodeTextString(text.Bytes.Span, "Object text"));
+                    break;
+                case PdfArray array:
+                    foreach (PdfObject item in array) Walk(item, depth + 1);
+                    break;
+                case PdfStream stream:
+                    Walk(stream.Dictionary, depth + 1);
+                    byte[] decoded = PdfStreamDecoder.Decode(stream, document.Resolve, 1 << 24);
+                    found.Add(Encoding.Latin1.GetString(decoded));
+                    found.Add(Encoding.BigEndianUnicode.GetString(decoded));
+                    break;
+                case PdfDictionary dictionary:
+                    foreach (PdfObject item in dictionary.Values) Walk(item, depth + 1);
+                    break;
+            }
+        }
     }
 
     [Theory]

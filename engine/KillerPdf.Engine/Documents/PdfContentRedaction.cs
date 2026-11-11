@@ -855,6 +855,7 @@ public static partial class PdfContentRedaction
     {
         if (Resolve(document, acroFormValue) is not PdfDictionary acroForm) return false;
         var removedFields = new HashSet<int>(removedWidgets);
+        var emptiedWidgets = new HashSet<int>();
         PdfArray? pruned = removedWidgets.Count != 0 && acroForm.TryGetValue(FieldsName, out PdfObject? fieldsValue)
             && Resolve(document, fieldsValue) is PdfArray fields ? PruneKids(fields, 0, out _) : null;
         if (pruned is null && !acroForm.ContainsKey(XfaName)) return false;
@@ -912,11 +913,58 @@ public static partial class PdfContentRedaction
                             .ToDictionary(entry => entry.Key, entry => entry.Value);
                         fieldEntries[KidsName] = prunedChildren;
                         update.ReplaceObject(fieldReference.ObjectNumber, new PdfDictionary(fieldEntries));
+                        // The remaining widgets drew that value from their appearance streams.
+                        if (removedChild) EmptyInheritedAppearances(prunedChildren, depth + 1);
                     }
                 }
                 kept.Add(kid);
             }
             return changed ? new PdfArray(kept) : null;
+        }
+
+        // A widget that inherited its value from a field that just lost it keeps drawing the old value from
+        // its appearance streams, so each gets an empty normal appearance in their place. A widget or
+        // subfield with a value of its own keeps its appearance.
+        void EmptyInheritedAppearances(PdfArray kids, int depth)
+        {
+            if (depth > MaximumFieldDepth)
+                throw new NotSupportedException("The form field hierarchy is too deep to redact safely.");
+            foreach (PdfObject kid in kids)
+            {
+                if (kid is not PdfIndirectReference reference
+                    || Resolve(document, kid) is not PdfDictionary field
+                    || field.ContainsKey(Name("V"))) continue;
+                if (field.TryGetValue(KidsName, out PdfObject? childrenValue)
+                    && Resolve(document, childrenValue) is PdfArray children)
+                {
+                    EmptyInheritedAppearances(children, depth + 1);
+                    continue;
+                }
+                if (!emptiedWidgets.Add(reference.ObjectNumber)) continue;
+                PdfName appearanceName = Name("AP");
+                if (!field.ContainsKey(appearanceName)) continue;
+                double width = 0, height = 0;
+                try
+                {
+                    if (field.TryGetValue(RectName, out PdfObject? rectValue)
+                        && Resolve(document, rectValue) is PdfArray { Count: 4 } rect)
+                    {
+                        width = Math.Abs(Number(document, rect[2]) - Number(document, rect[0]));
+                        height = Math.Abs(Number(document, rect[3]) - Number(document, rect[1]));
+                    }
+                }
+                catch (FormatException) { width = height = 0; }
+                PdfIndirectReference blank = update.AddObject(new PdfStream(new PdfDictionary(new Dictionary<PdfName, PdfObject>
+                {
+                    [Name("Type")] = Name("XObject"),
+                    [SubtypeName] = Name("Form"),
+                    [Name("BBox")] = new PdfArray([new PdfInteger(0), new PdfInteger(0), new PdfReal(width), new PdfReal(height)])
+                }), ""u8));
+                var entries = field.Where(entry => !entry.Key.Equals(appearanceName) && !entry.Key.Equals(Name("AS")))
+                    .ToDictionary(entry => entry.Key, entry => entry.Value);
+                entries[appearanceName] = new PdfDictionary(new Dictionary<PdfName, PdfObject> { [Name("N")] = blank });
+                update.ReplaceObject(reference.ObjectNumber, new PdfDictionary(entries));
+            }
         }
     }
 
