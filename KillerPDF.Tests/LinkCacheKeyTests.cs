@@ -44,4 +44,28 @@ public sealed class LinkCacheKeyTests
         var links = new List<int>();
         Assert.True(LinkCacheKey.For(1, 1, null, links).Matches(links, 1, 1, null));
     }
+
+    // The key map outlives a document change (only the link map is cleared), so a key must not keep the old
+    // document's link list reachable.
+    [Fact]
+    public void AKeyDoesNotKeepItsLinkListAlive()
+    {
+        var (key, weak) = KeyForALinkListNothingElseHolds();
+
+        for (int i = 0; i < 3; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        Assert.False(weak.TryGetTarget(out _));
+        Assert.False(key.Matches(new List<int>(), 300, 400, null));
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static (LinkCacheKey Key, WeakReference<object> List) KeyForALinkListNothingElseHolds()
+    {
+        var links = new List<int> { 1, 2, 3 };
+        return (LinkCacheKey.For(300, 400, null, links), new WeakReference<object>(links));
+    }
 }
