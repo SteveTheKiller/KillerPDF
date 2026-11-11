@@ -205,6 +205,51 @@ public sealed class PdfSdrDisplayConverterTests
         Assert.Null(result.FailureOperation);
     }
 
+    // The viewer keys cached pixels by the monitor profile's content hash, learned from a one pixel conversion before
+    // a page is looked up. The hash must not depend on the frame converted, the display generation or the profile's
+    // name, only on the profile's bytes.
+    [Fact]
+    public void TheProfileContentHashIsTheSameForAProbeAndAFullFrameAndForEveryDisplayGeneration()
+    {
+        byte[] content = MonitorBytes();
+        string expected = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(content));
+        var converter = new PdfSdrDisplayConverter((name, token) => PdfColorProfile.Load(content));
+        var probe = new PdfRenderedFrame(1, 1, [0f, 0f, 0f, 1f], PdfFrameColorEncoding.SrgbD65);
+        var page = new PdfRenderedFrame(2, 2, [1f, 0f, 0f, 1f, 0f, 1f, 0f, 1f, 0f, 0f, 1f, 1f, 1f, 1f, 1f, 1f],
+            PdfFrameColorEncoding.LinearSrgbD65);
+
+        converter.UpdateDisplay(Display(70));
+        var first = converter.Convert(probe);
+        var full = converter.Convert(page);
+        converter.UpdateDisplay(Display(71));
+        var later = converter.Convert(probe);
+
+        Assert.Equal(PdfSdrConversionOutcome.Converted, first.Outcome);
+        Assert.Equal(expected, first.ProfileContentSha256);
+        Assert.Equal(expected, full.ProfileContentSha256);
+        Assert.Equal(expected, later.ProfileContentSha256);
+        Assert.NotEqual(first.DisplayGeneration, later.DisplayGeneration);
+    }
+
+    [Fact]
+    public void AProfileReplacedUnderTheSameNameHasAnotherContentHash()
+    {
+        byte[] content = MonitorBytes();
+        var converter = new PdfSdrDisplayConverter((name, token) => PdfColorProfile.Load(content));
+        var probe = new PdfRenderedFrame(1, 1, [0f, 0f, 0f, 1f], PdfFrameColorEncoding.SrgbD65);
+        converter.UpdateDisplay(Display(80));
+        string? before = converter.Convert(probe).ProfileContentSha256;
+
+        content = MonitorBytes();
+        BinaryPrimitives.WriteInt32BigEndian(content.AsSpan(216 + 8), 32768);
+        converter.UpdateDisplay(Display(81));
+        string? after = converter.Convert(probe).ProfileContentSha256;
+
+        Assert.NotNull(before);
+        Assert.NotNull(after);
+        Assert.NotEqual(before, after);
+    }
+
     private static PdfDisplayDiscoverySnapshot Display(long generation,
         PdfDisplayColorMode mode = PdfDisplayColorMode.ConventionalSdr,
         PdfDisplayProfileStatus profile = PdfDisplayProfileStatus.Named) =>

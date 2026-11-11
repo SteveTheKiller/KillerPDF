@@ -54,16 +54,20 @@ namespace KillerPDF.Controls
             if (cts is null) return;
             try { cts.Cancel(); } catch { }
         }
-        private void KickOffAdjacentPrefetch(int pageIndex, int scaledMax, int pgRot, bool primaryReadsCache)
+        private void KickOffAdjacentPrefetch(int pageIndex, int scaledMax, int pgRot, bool primaryReadsCache,
+            KillerPDF.Presentation.PdfSdrDisplayConverter? monitor = null, string? monitorIdentity = null)
         {
             if (_viewMode != ViewMode.Single && _viewMode != ViewMode.TwoPage) return;
             if (_currentFile is null || _doc is null) return;
             CancelAdjacentPrefetch();
             var session = _active;
-            // The primary render looks pages up under the proof stamp. These renders carry no proofing and no monitor
-            // conversion, so they are only worth drawing when proofing is off and the primary reads the cache.
+            // The primary render looks pages up under the proof stamp and, under a monitor profile, the monitor identity.
+            // These renders carry no proofing, and carry monitor conversion only when given the converter, so they are
+            // only worth drawing when proofing is off and the primary reads the cache.
             var proof = session?.ProofView.CaptureProof();
             if (!primaryReadsCache || proof is null || proof.Settings.Enabled) return;
+            // Pixels converted for one display observation are stored only if it is still the one shown when they land.
+            var display = _presentationDisplay;
             var cts = new CancellationTokenSource();
             CancellationToken cancellationToken = cts.Token;
             _prefetchCts = cts;
@@ -88,36 +92,52 @@ namespace KillerPDF.Controls
                         if (cancellationToken.IsCancellationRequested) return;
                         if (target < 0 || target >= total) continue;
                         int rot = rotations.TryGetValue(target, out int r) ? r : pgRot;
-                        var cached = TryGetCachedRender(session, target, scaledMax, rot, proofStamp: proof.Stamp);
+                        var cached = TryGetCachedRender(session, target, scaledMax, rot, proofStamp: proof.Stamp, monitorIdentity: monitorIdentity);
                         if (cached is not null) continue;
-                        PdfRenderedPage rendered = await _viewportRenderQueue.Enqueue(
-                            (renderRequest, "prefetch", target), 1000, 8L * scaledMax * scaledMax, token =>
-                            {
-                                using var lease = renderRequest.Rent(token);
-                                return lease.Render(target, scaledMax, scaledMax, token);
-                            }, cancellationToken);
-                        int w = rendered.Width, h = rendered.Height;
-                        byte[] raw = rendered.Pixels;
-                        if (w <= 0 || h <= 0 || raw is null) continue;
-                        if (invert)
-                            BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h,
-                                ImageRectsFor(currentFile, renderRequest.Protection, target, ref contentDoc));
-                        if (rot != 0)
-                            (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
+                        BitmapSource bitmap;
+                        if (monitor is not null)
+                        {
+                            // The page is drawn the way the primary draws it, converted for the monitor, so the next page
+                            // step finds the same pixels under the same identity.
+                            bitmap = (await _viewportRenderQueue.Enqueue(
+                                (renderRequest, "prefetch", target), 1000, 40L * scaledMax * scaledMax,
+                                token => PreparePrimaryBitmap(renderRequest, target, scaledMax, rot, false, token, null, monitor),
+                                cancellationToken)).Bitmap;
+                        }
+                        else
+                        {
+                            PdfRenderedPage rendered = await _viewportRenderQueue.Enqueue(
+                                (renderRequest, "prefetch", target), 1000, 8L * scaledMax * scaledMax, token =>
+                                {
+                                    using var lease = renderRequest.Rent(token);
+                                    return lease.Render(target, scaledMax, scaledMax, token);
+                                }, cancellationToken);
+                            int w = rendered.Width, h = rendered.Height;
+                            byte[] raw = rendered.Pixels;
+                            if (w <= 0 || h <= 0 || raw is null) continue;
+                            if (invert)
+                                BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h,
+                                    ImageRectsFor(currentFile, renderRequest.Protection, target, ref contentDoc));
+                            if (rot != 0)
+                                (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
+                            if (cancellationToken.IsCancellationRequested) return;
+                            double longest = Math.Max(1, Math.Max(w, h));
+                            int bw = Math.Max(1, (int)Math.Round(2048.0 * w / longest));
+                            int bh = Math.Max(1, (int)Math.Round(2048.0 * h / longest));
+                            var wb = new WriteableBitmap(w, h,
+                                96.0 * w / bw, 96.0 * h / bh, PixelFormats.Bgra32, null);
+                            wb.WritePixels(new Int32Rect(0, 0, w, h), raw, w * 4, 0);
+                            wb.Freeze();
+                            RememberRenderWarning(wb, rendered);
+                            bitmap = wb;
+                        }
                         if (cancellationToken.IsCancellationRequested) return;
-                        double longest = Math.Max(1, Math.Max(w, h));
-                        int bw = Math.Max(1, (int)Math.Round(2048.0 * w / longest));
-                        int bh = Math.Max(1, (int)Math.Round(2048.0 * h / longest));
-                        var wb = new WriteableBitmap(w, h,
-                            96.0 * w / bw, 96.0 * h / bh, PixelFormats.Bgra32, null);
-                        wb.WritePixels(new Int32Rect(0, 0, w, h), raw, w * 4, 0);
-                        wb.Freeze();
-                        RememberRenderWarning(wb, rendered);
                         int localTarget = target, localRot = rot;
                         _ = Dispatcher.BeginInvoke(new Action(() =>
                         {
                             if (cancellationToken.IsCancellationRequested) return;
-                            CacheRender(session, localTarget, scaledMax, localRot, wb, proofStamp: proof.Stamp);
+                            if (monitor is not null && !ReferenceEquals(display, _presentationDisplay)) return;
+                            CacheRender(session, localTarget, scaledMax, localRot, bitmap, proofStamp: proof.Stamp, monitorIdentity: monitorIdentity);
                         }));
                     }
                 }
@@ -709,6 +729,8 @@ namespace KillerPDF.Controls
             var continuousMonitor = !invert
                 && PdfDisplayPresentationPolicy.Resolve(continuousDisplay).TransformOwner == PdfMonitorTransformOwner.Application
                 ? _sdrDisplayConverter : null;
+            // Pages converted for a monitor are cached under its profile's identity; with none established they are not cached.
+            bool continuousCacheable = TryMonitorCacheIdentity(continuousMonitor, continuousDisplay, out string? continuousMonitorIdentity);
             var renderToken = cts.Token;
             bool Current() => !renderToken.IsCancellationRequested && mode == _viewMode && _viewMode.IsContinuous()
                 && ReferenceEquals(_active, session) && ReferenceEquals(_nativeDoc, nativeOwner)
@@ -726,8 +748,8 @@ namespace KillerPDF.Controls
                         int rot = rotations.TryGetValue(i, out int rr) ? rr : 0;
 
                         // Cache hit: attach the cached bitmap to its slot.
-                        var cb = continuousMonitor is null ? TryGetCachedRender(session, i, renderW, rot,
-                            continuous: true, proofStamp: proof?.Stamp) : null;
+                        var cb = continuousCacheable ? TryGetCachedRender(session, i, renderW, rot,
+                            continuous: true, proofStamp: proof?.Stamp, monitorIdentity: continuousMonitorIdentity) : null;
                         if (cb != null)
                         {
                             int fic = i;
@@ -839,8 +861,8 @@ namespace KillerPDF.Controls
                                 });
                             }
                             _continuousDrawnWidths[fi] = renderW;
-                            if (continuousMonitor is null) CacheRender(session, fi, renderW, prot, bmp,
-                                continuous: true, proofStamp: proof?.Stamp);
+                            if (continuousCacheable) CacheRender(session, fi, renderW, prot, bmp,
+                                continuous: true, proofStamp: proof?.Stamp, monitorIdentity: continuousMonitorIdentity);
                             SetContinuousSlot(fi, bmp);
                         });
                     }
@@ -1111,8 +1133,13 @@ namespace KillerPDF.Controls
                 int width, height;
                 System.Windows.Media.Imaging.BitmapSource bitmap;
                 PdfRenderedFrame? primaryFrame = null;
-                var cached = linear || primaryMonitor is not null ? null
-                    : TryGetCachedRender(_active, pageIndex, scaledMax, pgRot, proofStamp: primaryProof?.Stamp);
+                // A page drawn under a monitor profile is cached under that profile's identity. Only the float frame the
+                // linear path hands to the compositor (linear without a monitor conversion) has no bitmap to cache; one
+                // whose monitor identity cannot be established is left uncached, as before.
+                bool primaryCacheable = TryMonitorCacheIdentity(primaryMonitor, primaryDisplay, out string? primaryMonitorIdentity);
+                bool primaryUsesCache = primaryCacheable && !(linear && primaryMonitor is null);
+                var cached = !primaryUsesCache ? null
+                    : TryGetCachedRender(_active, pageIndex, scaledMax, pgRot, proofStamp: primaryProof?.Stamp, monitorIdentity: primaryMonitorIdentity);
                 if (cached != null)
                 {
                     LastPrimaryRenderMeasurement = null;
@@ -1168,8 +1195,8 @@ namespace KillerPDF.Controls
                     primaryFrame = preparedFrame;
                     width = bitmap.PixelWidth;
                     height = bitmap.PixelHeight;
-                    if (primaryFrame is null && !linear && primaryMonitor is null) CacheRender(primarySession, pageIndex, scaledMax, pgRot, bitmap,
-                        proofStamp: primaryProof?.Stamp);
+                    if (primaryFrame is null && primaryUsesCache) CacheRender(primarySession, pageIndex, scaledMax, pgRot, bitmap,
+                        proofStamp: primaryProof?.Stamp, monitorIdentity: primaryMonitorIdentity);
                 }
 
                 // Canonical render-dim space: longest side -> 2048 DIP, identical to the continuous and
@@ -1233,7 +1260,7 @@ namespace KillerPDF.Controls
                 // Fire background renders for the pages the user is most likely to reach next.
                 // Cached bitmaps land in the same per-tab render cache TryGetCachedRender reads,
                 // so the next PageDown/Left/Right skips the engine entirely.
-                KickOffAdjacentPrefetch(pageIndex, scaledMax, pgRot, !(linear || primaryMonitor is not null));
+                KickOffAdjacentPrefetch(pageIndex, scaledMax, pgRot, primaryUsesCache, primaryMonitor, primaryMonitorIdentity);
                 // Navigation can supersede bootstrap while a remembered zoom is still waiting
                 // for dimensions. The current owning render must finish that conversion too.
                 if (Current() && _active?.PendingZoom != null)
@@ -1493,6 +1520,7 @@ namespace KillerPDF.Controls
                 var secondaryMonitor = !invert
                     && PdfDisplayPresentationPolicy.Resolve(secondaryDisplay).TransformOwner == PdfMonitorTransformOwner.Application
                     ? _sdrDisplayConverter : null;
+                bool secondaryCacheable = TryMonitorCacheIdentity(secondaryMonitor, secondaryDisplay, out string? secondaryMonitorIdentity);
                 bool Current() => !cts.IsCancellationRequested && HasReadDocument
                     && ReferenceEquals(nativeOwner, _nativeDoc)
                     && ReferenceEquals(secondaryDisplay, _presentationDisplay)
@@ -1520,8 +1548,9 @@ namespace KillerPDF.Controls
                             int rot = secRotations.TryGetValue(i, out int rr) ? rr : 0;
 
                             // Cache hit: skip pdfium entirely, just attach the cached tile bitmap.
-                            var cachedTile = secondaryMonitor is null
-                                ? TryGetCachedRender(session, i, tileBucket, rot, proofStamp: proof?.Stamp) : null;
+                            var cachedTile = secondaryCacheable
+                                ? TryGetCachedRender(session, i, tileBucket, rot, proofStamp: proof?.Stamp,
+                                    monitorIdentity: secondaryMonitorIdentity) : null;
                             // The cache key has no width: a tile built beside a primary page of
                             // another width (book layout pairs pages differently, Grid anchors at
                             // page 0) would show at the wrong size, so render it again instead.
@@ -1573,8 +1602,9 @@ namespace KillerPDF.Controls
                                     {
                                         if (!Current()) return;
                                         if (_viewMode is not (ViewMode.Grid or ViewMode.TwoPage)) return;
-                                        if (secondaryMonitor is null)
-                                            CacheRender(session, nativePage, tileBucket, rot, bitmap, proofStamp: proof?.Stamp);
+                                        if (secondaryCacheable)
+                                            CacheRender(session, nativePage, tileBucket, rot, bitmap, proofStamp: proof?.Stamp,
+                                                monitorIdentity: secondaryMonitorIdentity);
                                         AddSecondaryTile(nativePage, bitmap, primaryDipW);
                                     });
                                     continue;
@@ -1609,8 +1639,9 @@ namespace KillerPDF.Controls
                                     int ddh = Math.Max(1, (int)Math.Round(primaryDipW * ph / pw));
                                     var bmp = BitmapHelpers.BuildScaledBitmap(pw, ph, bytes, ddw, ddh);
                                     RememberRenderWarning(bmp, rendered);
-                                    if (secondaryMonitor is null)
-                                        CacheRender(session, pi, tileBucket, prot, bmp, proofStamp: proof?.Stamp);
+                                    if (secondaryCacheable)
+                                        CacheRender(session, pi, tileBucket, prot, bmp, proofStamp: proof?.Stamp,
+                                            monitorIdentity: secondaryMonitorIdentity);
                                     AddSecondaryTile(pi, bmp, primaryDipW);
                                 });
                             }

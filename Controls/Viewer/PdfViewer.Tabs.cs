@@ -87,13 +87,16 @@ namespace KillerPDF.Controls
             // switch back to a recent tab reuse the bitmaps instead of re-running pdfium. Concurrent because
             // the continuous/secondary streamers read it from a background thread. Cleared on edits that change
             // a page's pixels or page order, and dropped entirely when the tab falls out of the LRU window.
-            // workingCmyk is the working CMYK choice generation the bitmap was drawn with.
-            public readonly System.Collections.Concurrent.ConcurrentDictionary<(int page, int bucket, int rot, bool continuous, KillerPdf.Engine.ColorManagement.PdfDocumentProofViewStamp? proofStamp, long workingCmyk), System.Windows.Media.Imaging.BitmapSource> RenderCache = new();
+            // workingCmyk is the working CMYK choice generation the bitmap was drawn with. monitor names the application
+            // monitor conversion baked into its pixels (the profile's content hash and the transform owner), or is null
+            // for pixels drawn without one; a replaced profile has another hash, a second monitor with the same profile
+            // has the same one.
+            public readonly System.Collections.Concurrent.ConcurrentDictionary<(int page, int bucket, int rot, bool continuous, KillerPdf.Engine.ColorManagement.PdfDocumentProofViewStamp? proofStamp, long workingCmyk, string? monitor), System.Windows.Media.Imaging.BitmapSource> RenderCache = new();
             // #189: each entry's byte size, recorded by the INSERTING thread. The budget must
             // never be computed by reading PixelWidth/Height off the cached bitmaps - an entry
             // that could not freeze throws cross-thread from whatever renderer is evicting,
             // which killed the background render tasks (vanishing thumbnails after invert).
-            public readonly System.Collections.Concurrent.ConcurrentDictionary<(int page, int bucket, int rot, bool continuous, KillerPdf.Engine.ColorManagement.PdfDocumentProofViewStamp? proofStamp, long workingCmyk), long> RenderCacheSize = new();
+            public readonly System.Collections.Concurrent.ConcurrentDictionary<(int page, int bucket, int rot, bool continuous, KillerPdf.Engine.ColorManagement.PdfDocumentProofViewStamp? proofStamp, long workingCmyk, string? monitor), long> RenderCacheSize = new();
             public long RenderRevision;
             public Dictionary<int, int> PageRotations = [];
             public Dictionary<string, string> FormTextValues = [];
@@ -418,9 +421,42 @@ namespace KillerPDF.Controls
 
         // Background-thread safe: a cached frozen bitmap for this render, or null (the caller must rasterize).
         internal static System.Windows.Media.Imaging.BitmapSource? TryGetCachedRender(DocumentSession? s, int page, int bucket, int rot, bool continuous = false,
-            KillerPdf.Engine.ColorManagement.PdfDocumentProofViewStamp? proofStamp = null)
+            KillerPdf.Engine.ColorManagement.PdfDocumentProofViewStamp? proofStamp = null, string? monitorIdentity = null)
             => (s != null && s.RenderCache.TryGetValue((page, bucket, rot, continuous, proofStamp,
-                KillerPDF.Services.WorkingCmykProfiles.Generation), out var b)) ? b : null;
+                KillerPDF.Services.WorkingCmykProfiles.Generation, monitorIdentity), out var b)) ? b : null;
+
+        private static readonly KillerPdf.Engine.Rendering.PdfRenderedFrame MonitorIdentityProbe =
+            new(1, 1, [0f, 0f, 0f, 1f], KillerPdf.Engine.Rendering.PdfFrameColorEncoding.SrgbD65);
+        private (KillerPdf.Engine.Rendering.PdfDisplayDiscoverySnapshot Display, string Identity)? _monitorIdentityMemo;
+
+        /// <summary>The identity of the monitor conversion that pixels drawn for <paramref name="display"/> carry, for the
+        /// render cache key. Null with no application conversion (the pixels are plain, as before). Under one it is the
+        /// monitor profile's content hash and the transform owner, never the display generation, so a display change that
+        /// leaves the profile alone keeps the cache and a replaced profile does not. The hash comes from converting one
+        /// pixel, which reads the profile once per display observation exactly as the first page conversion would have;
+        /// UI thread only. False when the identity cannot be established (the profile will not convert), and the page is
+        /// then neither read from nor stored in the cache, as it was for every monitor profile before.</summary>
+        internal bool TryMonitorCacheIdentity(KillerPDF.Presentation.PdfSdrDisplayConverter? monitor,
+            KillerPdf.Engine.Rendering.PdfDisplayDiscoverySnapshot display, out string? identity)
+        {
+            identity = null;
+            if (monitor is null) return true;
+            if (_monitorIdentityMemo is { } memo && ReferenceEquals(memo.Display, display))
+            {
+                identity = memo.Identity;
+                return true;
+            }
+            KillerPDF.Presentation.PdfSdrDisplayConversion probe;
+            try { probe = monitor.Convert(MonitorIdentityProbe); }
+            catch (Exception error) when (error is not OutOfMemoryException) { return false; }
+            // A probe answered for another observation than the one asked about would name the wrong profile.
+            if (probe.Outcome != KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
+                || probe.ProfileContentSha256 is not { } sha || probe.DisplayGeneration != display.Generation) return false;
+            string known = KillerPdf.Engine.Rendering.PdfMonitorTransformOwner.Application + ":" + sha;
+            _monitorIdentityMemo = (display, known);
+            identity = known;
+            return true;
+        }
 
         // #122: cap the number of cached page bitmaps per tab. The cache used to grow without
         // bound (one bitmap per page ever rendered, several MB each), so scrolling a large
@@ -441,14 +477,14 @@ namespace KillerPDF.Controls
         }
 
         internal static void CacheRender(DocumentSession? s, int page, int bucket, int rot, System.Windows.Media.Imaging.BitmapSource bmp, bool continuous = false,
-            KillerPdf.Engine.ColorManagement.PdfDocumentProofViewStamp? proofStamp = null)
+            KillerPdf.Engine.ColorManagement.PdfDocumentProofViewStamp? proofStamp = null, string? monitorIdentity = null)
         {
             if (s == null) return;
             if (bmp.CanFreeze && !bmp.IsFrozen) bmp.Freeze();
             // Measured HERE, on the thread that made the bitmap - see RenderCacheSize.
             long workingCmyk = KillerPDF.Services.WorkingCmykProfiles.Generation;
-            s.RenderCacheSize[(page, bucket, rot, continuous, proofStamp, workingCmyk)] = 4L * bmp.PixelWidth * bmp.PixelHeight;
-            s.RenderCache[(page, bucket, rot, continuous, proofStamp, workingCmyk)] = bmp;
+            s.RenderCacheSize[(page, bucket, rot, continuous, proofStamp, workingCmyk, monitorIdentity)] = 4L * bmp.PixelWidth * bmp.PixelHeight;
+            s.RenderCache[(page, bucket, rot, continuous, proofStamp, workingCmyk, monitorIdentity)] = bmp;
             // Evict the entries farthest from the page just cached: renders arrive around the
             // viewport, so this keeps a moving window of nearby pages hot and stays safe to run
             // from any thread (no UI state needed).
@@ -458,12 +494,12 @@ namespace KillerPDF.Controls
                 bool overCount = count > RenderCachePageCap;
                 bool overBytes = count > 1 && RenderCacheBytes(s) > RenderCacheByteBudget;
                 if (!overCount && !overBytes) break;
-                var farthest = default((int page, int bucket, int rot, bool continuous, KillerPdf.Engine.ColorManagement.PdfDocumentProofViewStamp? proofStamp, long workingCmyk));
+                var farthest = default((int page, int bucket, int rot, bool continuous, KillerPdf.Engine.ColorManagement.PdfDocumentProofViewStamp? proofStamp, long workingCmyk, string? monitor));
                 int bestDist = -1;
                 foreach (var key in s.RenderCache.Keys)
                 {
                     int d = Math.Abs(key.page - page);
-                    if (key.page == page && key != (page, bucket, rot, continuous, proofStamp, workingCmyk)) d = 1;
+                    if (key.page == page && key != (page, bucket, rot, continuous, proofStamp, workingCmyk, monitorIdentity)) d = 1;
                     if (d > bestDist) { bestDist = d; farthest = key; }
                 }
                 if (bestDist <= 0) break;   // only current-page entries left; nothing sane to evict
