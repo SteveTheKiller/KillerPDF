@@ -70,4 +70,38 @@ public sealed class PicturesSkippedNoteTests
         // Also cleared before each save decides whether to burn, so a save that burns nothing starts from none.
         Assert.Equal(5, Count(files, "_lastSaveSkippedPictures = 0;"));   // two starts, two failures, ReportSaved
     }
+
+    // Print burns on a worker and SkippedPictures is thread-static, so the count is read inside the burn delegate and
+    // appended to the status after the await.
+    [Fact]
+    public void PrintReadsTheCountOnTheWorkerAndAppendsTheNote()
+    {
+        string file = File.ReadAllText(Path.Combine(ShellFolder(), "FileOperations.cs"));
+        string print = file[file.IndexOf("private async void RunPrintFlow", StringComparison.Ordinal)..];
+        int burn = print.IndexOf("PdfEngineBurn.Burn(path, annotsSnap", StringComparison.Ordinal);
+        int read = print.IndexOf("printSkipped = PdfEngineBurn.SkippedPictures;", StringComparison.Ordinal);
+        int ready = print.IndexOf("PrintCopy.Ready(printPath, burn", StringComparison.Ordinal);
+        Assert.True(burn > 0 && read > burn && read < ready, "the count is read inside the burn delegate");
+        Assert.Contains("Services.PicturesSkippedNote.Append(", print);
+        Assert.Contains("printSkipped, Loc(\"Str_Save_PicturesSkipped\")", print);
+    }
+
+    [Fact]
+    public void TheNoteSummaryListsTheOutputsExactly()
+    {
+        string summary = File.ReadAllText(Path.Combine(ShellFolder(), "..", "Services", "PicturesSkippedNote.cs"));
+        summary = summary[..summary.IndexOf("internal static class PicturesSkippedNote", StringComparison.Ordinal)];
+        foreach (string word in new[] { "Print", "OCR", "Save As", "exports", "macros", "recovery dialog" })
+            Assert.Contains(word, summary);
+        Assert.DoesNotContain("only read the page", summary);
+        Assert.DoesNotContain("reports it to the log", summary);
+    }
+
+    private static string ShellFolder()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "KillerPDF.csproj")))
+            directory = directory.Parent;
+        return Path.Combine(directory!.FullName, "Shell");
+    }
 }

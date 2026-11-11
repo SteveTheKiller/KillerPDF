@@ -2421,6 +2421,8 @@ namespace KillerPDF.Shell
             string printPath = App.MakeTempFile("print");
             int pageCount;
             double[] pageDipW, pageDipH;
+            // The burn runs on a worker and its count is thread-static, so the worker hands it back here.
+            int printSkipped = 0;
             try
             {
                 CommitActiveTextBox();
@@ -2449,8 +2451,12 @@ namespace KillerPDF.Shell
                 WriteRedactionMarksToDocument(tempClean);
                 WriteMeasurementsToDocument(tempClean);
                 Action<string>? burn = annotsSnap.Values.Any(list => list.Count > 0) || stampSnap is not null
-                    ? path => PdfEngineBurn.Burn(path, annotsSnap, dimsSnap, stampSnap, null,
-                        visualRotations, forRasterization: true, measurementsAsAnnotations: true)
+                    ? path =>
+                    {
+                        PdfEngineBurn.Burn(path, annotsSnap, dimsSnap, stampSnap, null,
+                            visualRotations, forRasterization: true, measurementsAsAnnotations: true);
+                        printSkipped = PdfEngineBurn.SkippedPictures;
+                    }
                     : null;
                 await Task.Run(() =>
                 {
@@ -2529,7 +2535,9 @@ namespace KillerPDF.Shell
             try
             {
                 if (preview.ShowDialog() == true)
-                    SetStatus(string.Format(Loc("Str_Printed"), preview.PrintedPageCount));
+                    SetStatus(Services.PicturesSkippedNote.Append(
+                        string.Format(Loc("Str_Printed"), preview.PrintedPageCount),
+                        printSkipped, Loc("Str_Save_PicturesSkipped")));
             }
             catch (Exception ex)
             {

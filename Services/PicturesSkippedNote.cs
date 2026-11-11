@@ -1,10 +1,10 @@
 namespace KillerPDF.Services;
 
 /// <summary>The status note that says how many pictures a written file left out because they could not be read.
-/// Every output that burns pictures, a saved copy written to a temporary file included, hands its count to the caller
-/// through its result (<see cref="SavedCopy"/>), and the caller appends this note to its own success status. The
-/// previews, the OCR source and the crash-recovery copy are not outputs a status can describe: the preview and OCR
-/// source only read the page, and the recovery copy reports it to the log.</summary>
+/// Save, Save As, the exports, the macros, OCR (Make Searchable PDF and Convert Scan to Text) and Print append it to
+/// their success status; each takes the count from its result (<see cref="SavedCopy"/>) or, for Print, from the burn
+/// on the worker thread that ran it. The page-bake tools (Transform and Straighten) append it too. The previews append
+/// nothing, because a preview is not an output. The crash-recovery copy shows it per document in the recovery dialog.</summary>
 internal static class PicturesSkippedNote
 {
     /// <summary>The status with the note after it, or the status unchanged when nothing was skipped. The format is
@@ -19,4 +19,4 @@ internal readonly record struct SavedCopy(string Path, int SkippedPictures)
 {
     /// <summary>The status with the skipped-picture note after it when this copy left pictures out.</summary>
     internal string Note(string status, string format) => PicturesSkippedNote.Append(status, SkippedPictures, format);
-}
+}
