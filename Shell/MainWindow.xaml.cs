@@ -628,6 +628,15 @@ namespace KillerPDF.Shell
         // that hands every message to FrameWndProc and attaches snap layouts after it.
         private void ChromeExtras_SourceInitialized(object? sender, EventArgs e)
         {
+            // The kit's fit, just before this, keeps a 10 percent margin on a window that opens centered. A size
+            // the user saved is theirs to keep whole, so it is put back and fitted again without the margin.
+            if (_restoredWindowSize is { } restored && WindowStartupLocation != WindowStartupLocation.Manual
+                && WindowState == WindowState.Normal)
+            {
+                Width = restored.Width;
+                Height = restored.Height;
+                WorkAreaFit.Fit(this, keepMargin: false);
+            }
             var hwnd = new WindowInteropHelper(this).Handle;
             InitializeTaskbarIcons(hwnd);
             AppTheme.ApplyDwm(hwnd);
@@ -841,6 +850,9 @@ namespace KillerPDF.Shell
         // window had already opened CenterScreen on the monitor under the pointer and been fitted
         // to it, so opening a PDF from a file manager on another screen dragged the app there.
         // WorkAreaFit then runs from SourceInitialized against the restored rect.
+        // The size a saved window opens at, kept whole by the fit when no saved position places the window.
+        private Size? _restoredWindowSize;
+
         private void RestoreWindowBounds()
         {
             try
@@ -856,6 +868,7 @@ namespace KillerPDF.Shell
                 {
                     Width  = width;
                     Height = height;
+                    _restoredWindowSize = new Size(width, height);
                 }
                 if (placement.Left is { } left && placement.Top is { } top)
                 {
