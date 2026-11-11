@@ -321,6 +321,12 @@ namespace KillerPDF.Features
                 _resultNativeRevisionId = found.NativeRevisionId;
                 ShowResults(query, matchCase, wholeWord, found, source.NativeRevision);
             }
+            catch (SearchLimitException)
+            {
+                // More matches than the search can list: say so, rather than reading as a failure.
+                ClearResults(query, matchCase, wholeWord);
+                _host.SetResultNote(_host.Loc("Str_Search_TooMany"), _host.Loc("Str_Search_TooManyTT"));
+            }
             catch
             {
                 ClearResults(query, matchCase, wholeWord);

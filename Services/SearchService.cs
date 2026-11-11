@@ -51,6 +51,10 @@ namespace KillerPDF.Services
                 > bounds.Width * bounds.Height * .5);
     }
 
+    /// <summary>A native search that found more than it can list or highlight. The search bar says so, where any other
+    /// failure reads as a search error.</summary>
+    internal sealed class SearchLimitException(string message) : Exception(message);
+
     internal sealed class SearchResult
     {
         internal Guid? NativeRevisionId { get; init; }
@@ -252,7 +256,7 @@ namespace KillerPDF.Services
                     if (region.Start < span.Start + span.Length && region.Start + region.Length > span.Start)
                     {
                         if (highlightAreas == MaximumNativeHighlightAreas)
-                            throw new System.IO.InvalidDataException("Native search exceeded the highlight area limit.");
+                            throw new SearchLimitException("Native search exceeded the highlight area limit.");
                         areas.Add(region.Bounds);
                         highlightAreas++;
                     }
@@ -308,7 +312,7 @@ namespace KillerPDF.Services
                 if (spans.Count == 0) continue;
                 matches += spans.Count;
                 if (matches > maximumMatches)
-                    throw new System.IO.InvalidDataException("Native search exceeded the match limit.");
+                    throw new SearchLimitException("Native search exceeded the match limit.");
                 matchedPages.Add(pageIndex);
                 pageSpans[pageIndex] = [.. spans.Select(span => (span.Start, span.Length))];
                 if (lazy) pageTexts[pageIndex] = text;

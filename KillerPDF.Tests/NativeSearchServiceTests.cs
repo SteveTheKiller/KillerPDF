@@ -246,7 +246,7 @@ public sealed class NativeSearchServiceTests
     public void NativeSearchRejectsExcessiveUnlocatedMatchesWithoutReturningPartialResults()
     {
         using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page(new string('A', 100_001))));
-        var error = Assert.Throws<InvalidDataException>(() => SearchService.Search(
+        var error = Assert.Throws<SearchLimitException>(() => SearchService.Search(
             new CurrentSearchSnapshot([], []) { NativeRevision = revision }, "A", true, false, CancellationToken.None));
         Assert.Contains("match limit", error.Message, StringComparison.Ordinal);
     }
@@ -256,7 +256,7 @@ public sealed class NativeSearchServiceTests
     {
         byte[][] zones = Enumerable.Range(0, 4096).Select(index => Zone(index % 100, index / 100, 1, 1, 0, 64)).ToArray();
         using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page(new string('A', 64), zones)));
-        var error = Assert.Throws<InvalidDataException>(() => SearchService.Search(
+        var error = Assert.Throws<SearchLimitException>(() => SearchService.Search(
             new CurrentSearchSnapshot([], []) { NativeRevision = revision }, "A", true, false, CancellationToken.None));
         Assert.Contains("area limit", error.Message, StringComparison.Ordinal);
     }
@@ -755,7 +755,7 @@ public sealed class NativeSearchServiceTests
         return [.. "AT&T"u8, .. Chunk("FORM", [.. "DJVM"u8, .. Chunk("DIRM", directory), .. first, .. second])];
     }
 
-    private static byte[] Page(string text, params byte[][] zones)
+    internal static byte[] Page(string text, params byte[][] zones)
     {
         byte[] bytes = Encoding.UTF8.GetBytes(text);
         return [.. "AT&T"u8, .. Chunk("FORM", [.. "DJVU"u8,
@@ -764,7 +764,7 @@ public sealed class NativeSearchServiceTests
                 .. bytes, 1, .. zones.SelectMany(zone => zone)])])];
     }
 
-    private static byte[] Zone(int left, int bottom, int width, int height, int start, int length)
+    internal static byte[] Zone(int left, int bottom, int width, int height, int start, int length)
     {
         var result = new byte[17];
         result[0] = 6;
