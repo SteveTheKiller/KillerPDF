@@ -79,7 +79,8 @@ public static class PdfOverlayAnnotations
 
     /// <summary>Whether one page's markup fits an editing batch: at most 10,000 items, at most 300,000 JSON values,
     /// valid models and a payload under the limit. A page that does not fit is drawn as page content by the caller.
-    /// Large pages are measured by serializing; small ones by a conservative estimate that avoids the cost.</summary>
+    /// The JSON values are counted exactly for every item without copying picture text; the payload size is estimated
+    /// first and measured by serializing only when the estimate comes near the limit.</summary>
     internal static bool BatchFits(IReadOnlyList<PageAnnotation> annotations)
     {
         if (annotations.Count is 0 or > MaximumRecords) return false;
@@ -99,8 +100,7 @@ public static class PdfOverlayAnnotations
                 // The values ValidateJson will count for this item: the model as it serializes plus the batch
                 // item's own object, Kind and HistoryId. Counting them rather than assuming a number per item keeps
                 // this an exact match for the writer's limit, whatever fields a model gains.
-                nodes += ItemJsonValues + CountJsonValues(JsonSerializer.SerializeToElement(
-                    annotation, ModelType(Kind(annotation)), Json));
+                nodes += ItemJsonValues + JsonValuesOf(annotation);
                 if (nodes > MaximumJsonValues) return false;
                 estimate += 1024 + points * 64 + annotation switch
                 {
@@ -124,6 +124,35 @@ public static class PdfOverlayAnnotations
     // item array) that surround the models.
     private const int ItemJsonValues = 3;
     private const int EnvelopeJsonValues = 11;
+
+    // A string is one JSON value however long it is, so a picture's base-64 text is counted from the model with a
+    // one-character stand-in for it. Serializing the real text would copy megabytes just to count it as one.
+    private static long JsonValuesOf(PageAnnotation annotation)
+    {
+        const int Long = 4096;
+        switch (annotation)
+        {
+            case ImageAnnotation { ImageData.Length: > Long } image:
+            {
+                string data = image.ImageData;
+                image.ImageData = "A";
+                try { return CountOf(annotation); }
+                finally { image.ImageData = data; }
+            }
+            case SignatureAnnotation { ImageData.Length: > Long } signature:
+            {
+                string data = signature.ImageData;
+                signature.ImageData = "A";
+                try { return CountOf(annotation); }
+                finally { signature.ImageData = data; }
+            }
+            default:
+                return CountOf(annotation);
+        }
+    }
+
+    private static long CountOf(PageAnnotation annotation) =>
+        CountJsonValues(JsonSerializer.SerializeToElement(annotation, ModelType(Kind(annotation)), Json));
 
     private static long CountJsonValues(JsonElement element)
     {

@@ -37,6 +37,30 @@ public sealed class OverlayBatchFitTests
             PdfOverlayAnnotations.AppendPageBatch(blank, 0, 600, 600, 0, items, new PdfContentStreamBuilder(), null));
     }
 
+    // Measuring a page serialized every picture's base-64 text once more on the UI thread just to count it as one
+    // JSON value. The page below holds three 1 MB pictures; counting them must not copy their text.
+    [Fact]
+    public void MeasuringAPageDoesNotCopyThePictureData()
+    {
+        var items = new List<PageAnnotation>();
+        for (int index = 0; index < 3; index++)
+            items.Add(new ImageAnnotation
+            {
+                PageIndex = 0, Position = new Point(index * 10, 0), Scale = 1, SourceWidth = 10, SourceHeight = 10,
+                ImageData = new string('A', 1024 * 1024)
+            });
+        Assert.True(PdfOverlayAnnotations.BatchFits(items));   // warm up: types, serializer metadata
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        bool fits = PdfOverlayAnnotations.BatchFits(items);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(fits);
+        // Validation decodes each picture once (about 0.75 MB each); counting its JSON values adds nothing to that.
+        Assert.True(allocated < 3 * 1024 * 1024, $"BatchFits allocated {allocated:N0} bytes for 3 MB of picture data");
+        Assert.All(items.Cast<ImageAnnotation>(), image => Assert.Equal(1024 * 1024, image.ImageData.Length));
+    }
+
     [Fact]
     public void ATextPageTooBigForOneBatchIsReportedAsNotFitting()
     {
