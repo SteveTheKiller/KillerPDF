@@ -162,7 +162,8 @@ public sealed partial class EpubDocument
                     WithdrawChapter();
                     string href = Spine[spineIndex].Item.Href;
                     chapterDiagnostics.Add(new(spineIndex, href, error.Message) { Reason = OmissionReason(error) });
-                    pages.Add(ChapterDiagnosisPage(spineIndex, options, reader, href, error.Message, token));
+                    pages.Add(ChapterDiagnosisPage(spineIndex, options, reader, href, error.Message,
+                        () => ResolveFamily(null, 400, EpubFontStyle.Normal), token));
                 }
                 if (laidOut)
                     EpubLayoutDocument.RecordAnchorDestinations(pages, pageMark, spineIndex,
@@ -182,7 +183,19 @@ public sealed partial class EpubDocument
                 throw;
             }
             // From here on nothing checks for cancellation: the chapter is committed.
-            for (int pageIndex = pageMark; pageIndex < pages.Count; pageIndex++) residentPage?.Invoke(pages[pageIndex], pageIndex);
+            for (int pageIndex = pageMark; pageIndex < pages.Count; pageIndex++)
+            {
+                if (residentPage is null) break;
+                if (laidOut) { residentPage(pages[pageIndex], pageIndex); continue; }
+                // A notice page the host cannot write becomes a plain page with the same text, so one unwritable
+                // notice never ends the conversion of the book.
+                try { residentPage(pages[pageIndex], pageIndex); }
+                catch (Exception error) when (error is not (OperationCanceledException or OutOfMemoryException))
+                {
+                    pages[pageIndex] = new EpubLayoutPage(pages[pageIndex].Text, 0, spineIndex, [], []);
+                    residentPage(pages[pageIndex], pageIndex);
+                }
+            }
             // A laid-out chapter keeps only its index entries; a diagnosis page is small and stays whole.
             if (laidOut)
             {
@@ -339,9 +352,13 @@ public sealed partial class EpubDocument
         }
     }
 
-    /// <summary>Draws the caller's label, the chapter path and the diagnosis with the fallback font.</summary>
+    /// <summary>
+    /// Draws the caller's label, the chapter path and the diagnosis. Each character uses the fallback font when it maps the
+    /// character, then the host's default face, and otherwise shows the fallback font's missing-glyph box.
+    /// </summary>
     private static EpubLayoutPage ChapterDiagnosisPage(int spineIndex, EpubLayoutOptions options,
-        TrueTypeOutlineReader reader, string href, string message, CancellationToken cancellationToken)
+        TrueTypeOutlineReader reader, string href, string message, Func<TrueTypeFont?> resolveHostFace,
+        CancellationToken cancellationToken)
     {
         var font = options.DefaultFont;
         double size = options.FontSize, lineHeight = size * 1.2;
@@ -350,8 +367,11 @@ public sealed partial class EpubDocument
         var text = new StringBuilder();
         var placements = new List<EpubTextPlacement>();
         var glyphs = new List<NativePagePaint>();
-        // One unsubstituted cluster per drawn line lets PDF conversion emit the diagnosis as selectable text.
+        // One unsubstituted cluster per drawn run lets PDF conversion emit the diagnosis as selectable text.
         var clusters = new List<EpubGlyphCluster>();
+        var readers = new Dictionary<TrueTypeFont, TrueTypeOutlineReader> { [font] = reader };
+        TrueTypeFont? hostFace = null;
+        bool hostFaceAsked = false;
         double top = options.Margin;
         foreach (string paragraph in new[] { options.UnavailableChapterLabel ?? "", href, message })
         {
@@ -375,11 +395,30 @@ public sealed partial class EpubDocument
         // The full diagnosis stays readable for search, copy and assistive technology even when the page clips it.
         return new EpubLayoutPage(text.ToString().TrimEnd('\n'), 0, spineIndex, placements, glyphs, clusters: clusters);
 
+        // The font and glyph that draw a character; glyph 0 in the fallback font means no font maps it.
+        (TrueTypeFont Font, ushort Glyph) Choose(int scalar)
+        {
+            ushort glyph = font.GetGlyphId(scalar);
+            if (glyph != 0) return (font, glyph);
+            if (!hostFaceAsked)
+            {
+                hostFaceAsked = true;
+                try { hostFace = resolveHostFace(); }
+                catch (Exception error) when (error is not (OperationCanceledException or OutOfMemoryException)) { hostFace = null; }
+                if (hostFace is { HasCffOutlines: true }) hostFace = null;
+            }
+            if (hostFace is not null && hostFace.GetGlyphId(scalar) is var hostGlyph and not 0) return (hostFace, hostGlyph);
+            return (font, 0);
+        }
+
         double Measure(string value)
         {
             double total = 0;
             foreach (var rune in value.EnumerateRunes())
-                total += font.GetPdfAdvanceWidth(font.GetGlyphId(rune.Value)) * size / 1000;
+            {
+                var (face, glyph) = Choose(rune.Value);
+                total += face.GetPdfAdvanceWidth(glyph) * size / 1000;
+            }
             return total;
         }
 
@@ -391,17 +430,39 @@ public sealed partial class EpubDocument
                 return;
             }
             double x = left, baseline = top + size;
-            var lineGlyphs = new List<EpubClusterGlyph>();
-            foreach (var rune in value.EnumerateRunes())
+            int at = 0;
+            while (at < value.Length)
             {
-                ushort glyph = font.GetGlyphId(rune.Value);
-                if (glyph != 0 && reader.Outline(glyph) is { } outline)
-                    glyphs.Add(new NativeGlyphPaint(outline, x, baseline, size / 1000, options.TextColor) { SourceOffset = text.Length });
-                lineGlyphs.Add(new(glyph, font.GetAdvanceWidth(glyph) / (double)font.UnitsPerEm, 0, 0));
-                x += font.GetPdfAdvanceWidth(glyph) * size / 1000;
+                // A run is consecutive characters drawn by one font; a character no font maps is a run of its own.
+                var first = Choose(Rune.GetRuneAt(value, at).Value);
+                bool missing = first.Glyph == 0;
+                int end = at;
+                var runGlyphs = new List<EpubClusterGlyph>();
+                double runLeft = x;
+                int runStart = text.Length + at;
+                while (end < value.Length)
+                {
+                    var rune = Rune.GetRuneAt(value, end);
+                    var (face, glyph) = Choose(rune.Value);
+                    if (!ReferenceEquals(face, first.Font) || (glyph == 0) != missing || (missing && end > at)) break;
+                    if (!missing)
+                    {
+                        if (!readers.TryGetValue(face, out var faceReader)) readers.Add(face, faceReader = new TrueTypeOutlineReader(face));
+                        if (faceReader.Outline(glyph) is { } outline)
+                            glyphs.Add(new NativeGlyphPaint(outline, x, baseline, size / 1000, options.TextColor) { SourceOffset = runStart });
+                    }
+                    else if (missing && !char.IsWhiteSpace(value, end) && !char.IsControl(value, end)
+                        && reader.Outline(0) is { } box)
+                        glyphs.Add(new NativeGlyphPaint(box, x, baseline, size / 1000, options.TextColor) { SourceOffset = runStart });
+                    runGlyphs.Add(new(glyph, face.GetAdvanceWidth(glyph) / (double)face.UnitsPerEm, 0, 0));
+                    x += face.GetPdfAdvanceWidth(glyph) * size / 1000;
+                    end += rune.Utf16SequenceLength;
+                }
+                clusters.Add(new(runStart, end - at, first.Font, runGlyphs) { Missing = missing });
+                placements.Add(new(spineIndex, runStart, end - at, runLeft, top, x - runLeft, lineHeight));
+                at = end;
             }
-            if (value.Length > 0) clusters.Add(new(text.Length, value.Length, font, lineGlyphs));
-            placements.Add(new(spineIndex, text.Length, value.Length, left, top, x - left, lineHeight));
+            if (value.Length == 0) placements.Add(new(spineIndex, text.Length, 0, left, top, 0, lineHeight));
             text.Append(value).Append(separator);
             top += lineHeight;
         }
