@@ -18,16 +18,7 @@ namespace KillerPDF
     internal sealed class PageThumbnailVm(int pageIndex, string filePath, Services.OpenedProtection? protection,
         int rotation = 0, PdfDocumentProofViewSnapshot? proof = null) : INotifyPropertyChanged
     {
-        // Concurrency cap for sidebar thumbnail loads. The prior limit of two came from
-        // pdfium doc-reader contention, which no longer applies now that the engine is
-        // pure managed. Use ProcessorCount workers so a wide sidebar of a long PDF
-        // populates in parallel across cores. Each load still opens its own session.
-        private static readonly SemaphoreSlim _loadSem =
-            new(System.Math.Max(2, System.Environment.ProcessorCount),
-                System.Math.Max(2, System.Environment.ProcessorCount));
-
         private BitmapSource? _thumb;
-        private bool         _loadRequested;
 
         public int    PageIndex { get; } = pageIndex;
         public string Label     => string.Format(
@@ -65,14 +56,6 @@ namespace KillerPDF
         private bool _stale;
 
         public event PropertyChangedEventHandler? PropertyChanged;
-
-        /// <summary>Called when the ListBox item becomes visible (via binding getter trigger).</summary>
-        public void RequestLoad()
-        {
-            if (_loadRequested) return;
-            _loadRequested = true;
-            System.Threading.Tasks.Task.Run(LoadAsync);
-        }
 
         /// <summary>
         /// Seed the thumbnail before ItemsSource is set - no dispatch needed because
@@ -128,20 +111,6 @@ namespace KillerPDF
                 _thumb = null;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumbnail)));
             }));
-        }
-
-        private async System.Threading.Tasks.Task LoadAsync()
-        {
-            await _loadSem.WaitAsync().ConfigureAwait(false);
-            try
-            {
-                var src = _nativeRevision is not null
-                    ? BuildNativeThumb(_nativeRevision, PageIndex, _rotation, 288, 576, CancellationToken.None, _proof?.Settings)
-                    : BuildThumb(_filePath, _protection, PageIndex, _rotation, _proof?.Settings);
-                if (src != null) SetThumbnail(src);
-            }
-            catch { /* thumbnail not critical */ }
-            finally { _loadSem.Release(); }
         }
 
         internal static BitmapSource? BuildNativeThumb(PdfCapturedReadRevision revision, int pageIndex,
