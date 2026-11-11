@@ -845,36 +845,25 @@ namespace KillerPDF.Shell
         {
             try
             {
-                if (int.TryParse(App.GetSetting("WindowWidth"),  out int w) &&
-                    int.TryParse(App.GetSetting("WindowHeight"), out int h) && w > 200 && h > 200)
+                // The saved position is used only while it is still on the virtual desktop (all
+                // monitors); otherwise the window keeps CenterScreen, the XAML default. A torn-out
+                // window takes nothing: the window it came from sizes and places it.
+                var placement = Services.StartupWindowPlacement.Decide(App.GetSetting, Width, Height,
+                    SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop,
+                    SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight,
+                    tornOut: _startupTearOutSession is not null);
+                if (placement.Width is { } width && placement.Height is { } height)
                 {
-                    Width  = w;
-                    Height = h;
+                    Width  = width;
+                    Height = height;
                 }
-                if (int.TryParse(App.GetSetting("WindowTop"),  out int savedTop) &&
-                    int.TryParse(App.GetSetting("WindowLeft"), out int savedLeft))
+                if (placement.Left is { } left && placement.Top is { } top)
                 {
-                    // Verify the saved position is visible on the virtual desktop
-                    // (covers all monitors). Falls back to CenterScreen (XAML default)
-                    // if the monitor it was on is no longer connected.
-                    double vLeft   = SystemParameters.VirtualScreenLeft;
-                    double vTop    = SystemParameters.VirtualScreenTop;
-                    double vRight  = vLeft + SystemParameters.VirtualScreenWidth;
-                    double vBottom = vTop  + SystemParameters.VirtualScreenHeight;
-                    bool onScreen  = savedLeft + 100 < vRight  && savedLeft + Width  > vLeft
-                                  && savedTop  + 50  < vBottom && savedTop  + Height > vTop;
-                    if (onScreen)
-                    {
-                        WindowStartupLocation = WindowStartupLocation.Manual;
-                        Left = savedLeft;
-                        Top  = savedTop;
-                    }
+                    WindowStartupLocation = WindowStartupLocation.Manual;
+                    Left = left;
+                    Top  = top;
                 }
-                if (Enum.TryParse<WindowState>(App.GetSetting("WindowState"), out var ws) &&
-                    ws == WindowState.Maximized)
-                {
-                    WindowState = WindowState.Maximized;
-                }
+                if (placement.Maximized) WindowState = WindowState.Maximized;
             }
             catch { /* best-effort */ }
         }
