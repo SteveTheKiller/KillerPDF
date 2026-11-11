@@ -107,24 +107,37 @@ public static class PdfPartialRasterization
                         throw new ArgumentException(
                             "Raster replacement regions cannot overlap.", nameof(replacements));
             }
+            // The page content is in the page's own coordinates, so a crop box that does not start
+            // at the origin shifts every region the way it shifts the page content.
+            PdfContentBounds box = PdfPageInformation.EffectiveBox(document,
+                PdfPageTree.Read(document, allowCycleRecovery: true).Pages[pageGroup.Key]);
             var retained = new List<PdfContentInstruction>(
                 page.Instructions.Count + pageReplacements.Length + 6)
             {
                 new("q", 0, []),
-                Rectangle(0, 0, page.Width, page.Height)
+                Rectangle(box.Left, box.Bottom, page.Width, page.Height)
             };
             foreach (PdfPartialRasterizationReplacement replacement in pageReplacements)
-                retained.Add(Rectangle(replacement.Plan.Region.Left,
-                    replacement.Plan.Region.Bottom, replacement.Plan.Region.Width,
+                retained.Add(Rectangle(box.Left + replacement.Plan.Region.Left,
+                    box.Bottom + replacement.Plan.Region.Bottom, replacement.Plan.Region.Width,
                     replacement.Plan.Region.Height));
             retained.Add(new PdfContentInstruction("W*", 0, []));
             retained.Add(new PdfContentInstruction("n", 0, []));
             // Keep form-local resources inside their original Do calls.
-            retained.AddRange(reader.ReadInstructions(pageGroup.Key, cancellationToken));
+            IReadOnlyList<PdfContentInstruction> original =
+                reader.ReadInstructions(pageGroup.Key, cancellationToken);
+            retained.AddRange(original);
+            // A page that leaves a q open would otherwise swallow the closing Q and keep the clip.
+            int open = 0;
+            foreach (PdfContentInstruction instruction in original)
+                if (instruction.Operator == "q") open++;
+                else if (instruction.Operator == "Q" && open > 0) open--;
+            for (; open > 0; open--) retained.Add(new PdfContentInstruction("Q", 0, []));
             retained.Add(new PdfContentInstruction("Q", 0, []));
             editor.SetPageContent(pageGroup.Key, retained);
             foreach (PdfPartialRasterizationReplacement replacement in pageReplacements)
-                editor.AppendPageContent(pageGroup.Key, page.Width, page.Height,
+                editor.AppendPageContent(pageGroup.Key,
+                    new PdfContentBounds(box.Left, box.Bottom, box.Left + page.Width, box.Bottom + page.Height),
                     // The clipped content keeps its tags and text, so the image repeats it as an artifact.
                     new PdfContentStreamBuilder().BeginArtifact().DrawImage(replacement.Raster,
                         replacement.Plan.Region.Left, replacement.Plan.Region.Bottom,

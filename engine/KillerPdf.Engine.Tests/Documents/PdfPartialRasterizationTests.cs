@@ -1,6 +1,7 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Parsing;
+using KillerPdf.Engine.Rendering;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -149,6 +150,97 @@ public sealed class PdfPartialRasterizationTests
         Assert.True(changed.AsSpan(0, source.Length).SequenceEqual(source));
         Assert.Equal([first.Region, second.Region],
             result.Images.Select(image => image.BoundingBox));
+    }
+
+    [Fact]
+    public void ApplyLandsTheRasterInsideTheCropBoxWhenTheBoxDoesNotStartAtTheOrigin()
+    {
+        byte[] source = RawPdf("/MediaBox [0 0 612 792] /CropBox [36 36 576 756]",
+            "0 1 0 rg 36 36 540 720 re f");
+        PdfDocument document = PdfDocument.Open(source);
+        PdfPageContent page = new PdfPageContentReader(document).Read(0);
+        PdfPartialRasterizationPlan plan = PdfPartialRasterization.Plan(
+            page, new PdfContentBounds(0, 0, 20, 20), 72);
+        PdfImage red = SolidRaster(plan.PixelWidth, plan.PixelHeight, 255, 0, 0);
+
+        byte[] changed = PdfPartialRasterization.Apply(document, 0, plan, red);
+        PdfRenderedPage shown = new PdfPageRenderer(PdfDocument.Open(changed))
+            .Render(0, new PdfRenderOptions(540, 720));
+
+        // The region is the crop box's lower left corner, so it is the bottom left of the image.
+        Assert.Equal((255, 0, 0), Pixel(shown, 10, 710));
+        Assert.Equal((0, 255, 0), Pixel(shown, 530, 710));
+        Assert.Equal((0, 255, 0), Pixel(shown, 10, 10));
+        Assert.Equal((0, 255, 0), Pixel(shown, 30, 690));
+    }
+
+    [Fact]
+    public void ApplyShowsTheRasterWhenThePageContentLeavesAGraphicsStateOpen()
+    {
+        byte[] source = RawPdf("/MediaBox [0 0 100 100]", "q 0 0 1 rg 0 0 100 100 re f");
+        PdfDocument document = PdfDocument.Open(source);
+        PdfPageContent page = new PdfPageContentReader(document).Read(0);
+        PdfPartialRasterizationPlan plan = PdfPartialRasterization.Plan(
+            page, new PdfContentBounds(40, 40, 60, 60), 72);
+
+        byte[] changed = PdfPartialRasterization.Apply(document, 0, plan,
+            SolidRaster(plan.PixelWidth, plan.PixelHeight, 255, 0, 0));
+        PdfRenderedPage shown = new PdfPageRenderer(PdfDocument.Open(changed))
+            .Render(0, new PdfRenderOptions(100, 100));
+
+        Assert.Equal((255, 0, 0), Pixel(shown, 50, 50));
+        Assert.Equal((0, 0, 255), Pixel(shown, 10, 10));
+        // The fix must leave the saved page content balanced.
+        int depth = 0, lowest = 0;
+        foreach (PdfContentInstruction instruction in new PdfPageContentReader(PdfDocument.Open(changed)).ReadInstructions(0))
+        {
+            if (instruction.Operator == "q") depth++;
+            else if (instruction.Operator == "Q") lowest = Math.Min(lowest, --depth);
+        }
+        Assert.Equal(0, depth);
+        Assert.Equal(0, lowest);
+    }
+
+    private static PdfImage SolidRaster(int width, int height, byte red, byte green, byte blue)
+    {
+        byte[] rgb = new byte[width * height * 3];
+        for (int index = 0; index < rgb.Length; index += 3)
+        {
+            rgb[index] = red;
+            rgb[index + 1] = green;
+            rgb[index + 2] = blue;
+        }
+        return PdfImage.FromRgb(width, height, rgb);
+    }
+
+    private static (byte Red, byte Green, byte Blue) Pixel(PdfRenderedPage page, int x, int y)
+    {
+        int offset = (y * page.Width + x) * 4;
+        ReadOnlySpan<byte> pixels = page.Pixels.Span;
+        return (pixels[offset + 2], pixels[offset + 1], pixels[offset]);
+    }
+
+    private static byte[] RawPdf(string pageEntries, string content)
+    {
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            $"<< /Type /Page /Parent 2 0 R {pageEntries} /Contents 4 0 R >>",
+            $"<< /Length {content.Length} >>\nstream\n{content}\nendstream"
+        ];
+        var pdf = new System.Text.StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = pdf.Length;
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return System.Text.Encoding.Latin1.GetBytes(pdf.ToString());
     }
 
     [Fact]
