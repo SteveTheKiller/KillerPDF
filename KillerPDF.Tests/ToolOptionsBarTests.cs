@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using KillerPDF.Controls;
 using Xunit;
@@ -8,6 +9,40 @@ namespace KillerPDF.Tests;
 // The docked tool options bar (1.9.3 redesign, section 3).
 public sealed class ToolOptionsBarTests
 {
+    // UI2-005: focus inside the color chip's popup (or the "..." menu) is not in the bar's visual tree, and
+    // the popup goes with the old bar. The rebuilt bar refocuses the button the popup opens from.
+    [Theory]
+    [InlineData("Color")]
+    [InlineData("ToolOptionsMore")]
+    public void FocusInAPopupReturnsToTheButtonThatOpensIt(string openerId)
+    {
+        RunSta(() =>
+        {
+            var opener = new Button();
+            AutomationProperties.SetAutomationId(opener, openerId);
+            var swatch = new Button();
+            AutomationProperties.SetAutomationId(swatch, "Red");
+            var popup = new System.Windows.Controls.Primitives.Popup { PlacementTarget = opener, Child = new Border { Child = swatch } };
+            var bar = new Grid();
+            bar.Children.Add(opener);
+            bar.Children.Add(popup);
+
+            Assert.Equal(openerId, ToolOptionsDock.FocusIdFor(swatch));
+        });
+    }
+
+    [Fact]
+    public void FocusOutsideAPopupKeepsItsOwnId()
+    {
+        RunSta(() =>
+        {
+            var mode = new Button();
+            AutomationProperties.SetAutomationId(mode, "Highlight");
+
+            Assert.Equal("Highlight", ToolOptionsDock.FocusIdFor(mode));
+        });
+    }
+
     // A language or theme change rebuilds the open bars from this catalog. The Measure bar is the
     // draw bar with the Measure controls in front, so it has to be rebuilt with them; it used to be
     // left out and kept the old language and accent until the tool was chosen again.

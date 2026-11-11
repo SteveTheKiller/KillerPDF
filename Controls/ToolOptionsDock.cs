@@ -40,12 +40,12 @@ namespace KillerPDF.Controls
                 string? focusedId = _bar is not null && _bar.IsKeyboardFocusWithin
                     && InputManager.Current.MostRecentInputDevice is KeyboardDevice
                     && Keyboard.FocusedElement is DependencyObject focused
-                    ? AutomationProperties.GetAutomationId(focused) : null;
+                    ? FocusIdFor(focused) : null;
                 Swap(ref _bar, value);
                 if (value is not null) value.Opacity = _dimmed ? InactiveOpacity : 1;
                 if (!string.IsNullOrEmpty(focusedId) && value is FrameworkElement bar)
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
-                        new Action(() => FindById(bar, focusedId!)?.Focus()));
+                        new Action(() => (FindById(bar, focusedId!) ?? FindById(bar, OverflowId))?.Focus()));
             }
         }
 
@@ -58,6 +58,21 @@ namespace KillerPDF.Controls
                 _dimmed = value;
                 if (_bar is not null) _bar.Opacity = value ? InactiveOpacity : 1;
             }
+        }
+
+        // The automation id of the "..." button of an options bar.
+        private const string OverflowId = "ToolOptionsMore";
+
+        /// <summary>The automation id to focus in a rebuilt bar. A control inside the color chip's or
+        /// the "..." menu's popup is not in the bar's visual tree and the popup closes with the old
+        /// bar, so the id is the one of the button the popup opens from.</summary>
+        internal static string? FocusIdFor(DependencyObject focused)
+        {
+            for (DependencyObject? d = focused; d is not null;
+                 d = (d is Visual ? VisualTreeHelper.GetParent(d) : null) ?? LogicalTreeHelper.GetParent(d))
+                if (d is System.Windows.Controls.Primitives.Popup { PlacementTarget: { } target })
+                    return AutomationProperties.GetAutomationId(target);
+            return AutomationProperties.GetAutomationId(focused);
         }
 
         private static UIElement? FindById(DependencyObject root, string id)
