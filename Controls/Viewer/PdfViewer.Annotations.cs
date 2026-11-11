@@ -22,6 +22,18 @@ namespace KillerPDF.Controls
     {
         private UndoEntry? _annotationDragUndo;
 
+        // Where on the screen a press on an annotation began, until the pointer has travelled the system drag
+        // distance. A release before that is a click: nothing moves, nothing is marked changed (DragStartGate).
+        private Point? _annotDragPressScreen;
+
+        private static bool AnnotDragStillAClick(UIElement relativeTo, Point onScreenPress, Point pageNow)
+        {
+            DpiScale dpi = VisualTreeHelper.GetDpi(relativeTo);
+            return !DragStartGate.HasTravelled(onScreenPress, relativeTo.PointToScreen(pageNow),
+                SystemParameters.MinimumHorizontalDragDistance * dpi.DpiScaleX,
+                SystemParameters.MinimumVerticalDragDistance * dpi.DpiScaleY);
+        }
+
         private void CaptureAnnotationDragUndo(int page)
         {
             _annotationDragUndo ??= new UndoEntry(UndoKind.PageSnapshot, WasDirty: _isDirty,
@@ -411,6 +423,7 @@ namespace KillerPDF.Controls
             _resizeInkAnnot = null;
             _resizeInkOrigPoints = null;
             _isDraggingAnnot = false;
+            _annotDragPressScreen = null;
             _dragAnnot = null;
             _dragGroupOrig.Clear();
             _selectedAnnotation = null;
@@ -1409,6 +1422,7 @@ namespace KillerPDF.Controls
                                         _dragGroupOrig.Select(member => member.a))))
                                     {
                                         _annotationDragUndo = null;
+                                        _annotDragPressScreen = _activeCanvas.PointToScreen(pos);
                                         _isDraggingAnnot = true;
                                         _dragAnnotStart = pos;
                                         _dragAnnotOrigPos = AnnotGetPos(pa);
@@ -1905,6 +1919,13 @@ namespace KillerPDF.Controls
             // Annotation drag-to-move
             if (_isDraggingAnnot && _dragAnnot is not null)
             {
+                // Measured on the screen: the text bar opening under a held press re-fits the page and moves every
+                // canvas coordinate while the pointer stands still.
+                if (_annotDragPressScreen is { } pressOnScreen)
+                {
+                    if (AnnotDragStillAClick(gc, pressOnScreen, e.GetPosition(gc))) return;
+                    _annotDragPressScreen = null;
+                }
                 double dx = pos.X - _dragAnnotStart.X;
                 double dy = pos.Y - _dragAnnotStart.Y;
                 if (dx != 0 || dy != 0) CaptureAnnotationDragUndo(_dragAnnot.PageIndex);
@@ -2130,6 +2151,16 @@ namespace KillerPDF.Controls
             {
                 _isDraggingAnnot = false;
                 _activeCanvas?.ReleaseMouseCapture();
+                if (_annotDragPressScreen is not null)
+                {
+                    // The pointer never travelled the drag distance: a click that selected the annotation. It stays
+                    // selected from the press; no move, no undo step and no changed mark.
+                    _annotDragPressScreen = null;
+                    _dragAnnot = null;
+                    _annotationDragUndo = null;
+                    _dragGroupOrig.Clear();
+                    return;
+                }
                 if (_dragAnnot is not null)
                 {
                     var da = _dragAnnot;
@@ -2820,6 +2851,7 @@ namespace KillerPDF.Controls
             CommitAnnotationDragUndo();
 
             _isDraggingAnnot = false;
+            _annotDragPressScreen = null;
             _isResizingSig = false;
             _dragAnnot = null;
             _resizeTextAnnot = null;
