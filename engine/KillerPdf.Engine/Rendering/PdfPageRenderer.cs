@@ -306,7 +306,8 @@ public sealed partial class PdfPageRenderer
         CancellationToken cancellationToken, byte[]? destination = null,
         (int Left, int Top, int Right, int Bottom)? region = null, float[]? preciseRgb = null,
         PreciseCmykWorkingSpace? preciseCmyk = null, float[]? preciseProcess = null,
-        PreciseProcessPlan? preciseProcessPlan = null, float[]? composedInk = null)
+        PreciseProcessPlan? preciseProcessPlan = null, float[]? composedInk = null,
+        long composedSpotPlateBudget = long.MaxValue)
     {
         // composedInk receives the composed ink of a byte render in encoded sRGB floats; the caller proofs it.
         if (preciseRgb is null && composedInk is null && options.Proof is { Enabled: true })
@@ -402,6 +403,7 @@ public sealed partial class PdfPageRenderer
             pixels.EnableInk(Color.White, profile: outputProfile
                 ?? (CmykGroup(_tree.Pages[pageIndex].Dictionary, pageResources, false) ? pageProfile : null));
             pixels.TrackSpotUnits = options.SeparationPlate is not null;
+            pixels.SpotPlateBudget = composedSpotPlateBudget;
         }
         else if (outputProfile is not null)
         {

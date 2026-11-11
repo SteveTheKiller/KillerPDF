@@ -124,7 +124,8 @@ public sealed partial class PdfPageRenderer
         if (pixelCount > options.PixelByteLimit / pixelStorage)
             throw new ArgumentException("The high-precision render exceeds its combined pixel storage limit.", nameof(options));
         var page = _tree.Pages[pageIndex].Dictionary;
-        if (composeInk) return RenderComposedInkFrame(pageIndex, options, region, width, height, cancellationToken);
+        if (composeInk) return RenderComposedInkFrame(pageIndex, options, region, width, height,
+            options.PixelByteLimit - pixelCount * pixelStorage, cancellationToken);
         if (page.TryGetValue(Name("Group"), out PdfObject? groupValue)
             && (Resolve(groupValue) is not PdfDictionary group
                 || !IsName(group, "S", "Transparency") || !IsName(group, "CS", "DeviceRGB")
@@ -144,12 +145,14 @@ public sealed partial class PdfPageRenderer
     // The byte renderer composes the page in its native ink surface, spot plates included, exactly as a
     // separation preview does. Only the composed ink, eight bits a plate, is converted precisely.
     private PdfRenderedFrame RenderComposedInkFrame(int pageIndex, PdfRenderOptions options,
-        (int Left, int Top, int Right, int Bottom)? region, int width, int height, CancellationToken cancellationToken)
+        (int Left, int Top, int Right, int Bottom)? region, int width, int height, long spotPlateBudget,
+        CancellationToken cancellationToken)
     {
         var pixels = new float[checked(width * height * 4)];
         var workingCmyk = new PreciseCmykWorkingSpace(options.WorkingCmykProfile);
+        // Each named colorant the page paints adds a plate beyond the one the frame's charge counts.
         PdfRenderedPage compatibility = RenderUncached(pageIndex, options, cancellationToken,
-            region: region, preciseCmyk: workingCmyk, composedInk: pixels);
+            region: region, preciseCmyk: workingCmyk, composedInk: pixels, composedSpotPlateBudget: spotPlateBudget);
         return FinishPreciseFrame(pageIndex, options, compatibility, workingCmyk, pixels, width, height, cancellationToken);
     }
 

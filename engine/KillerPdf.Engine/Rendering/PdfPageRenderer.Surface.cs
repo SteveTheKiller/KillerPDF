@@ -50,6 +50,20 @@ public sealed partial class PdfPageRenderer
         private byte[]? _rgbSpotValid;
         private bool _rgbSpotShadow;
         internal bool HasSpotPlates => _spotPlates is { Count: > 0 };
+        // Bytes the named-colorant plates of this surface may hold in all. Each new plate is charged
+        // before it is rented, so a page cannot allocate past the render's storage limit.
+        internal long SpotPlateBudget { get; set; } = long.MaxValue;
+        private long _spotPlateBytes;
+        private byte[] RentSpotPlate()
+        {
+            long bytes = checked(_spotPlateBytes + Length);
+            if (bytes > SpotPlateBudget)
+                throw new ArgumentException("The high-precision render exceeds its combined pixel storage limit.", "options");
+            _spotPlateBytes = bytes;
+            byte[] plate = RasterBuffers.Rent(Length);
+            Array.Clear(plate, 0, Length);
+            return plate;
+        }
         internal bool HasRgbSpotShadow => _rgbSpotShadow;
         private byte[]? _inkAlpha;
         internal byte[]? InkAlpha
@@ -562,8 +576,7 @@ public sealed partial class PdfPageRenderer
                 {
                     if (!_spotPlates!.TryGetValue(plateName, out byte[]? plate))
                     {
-                        plate = RasterBuffers.Rent(Length);
-                        Array.Clear(plate, 0, Length);
+                        plate = RentSpotPlate();
                         _spotPlates.Add(plateName, plate);
                         _spotPlateValues = [.. _spotPlates.Values];
                     }
@@ -632,8 +645,7 @@ public sealed partial class PdfPageRenderer
                 }
                 if (!_spotPlates!.TryGetValue(color.SpotName!, out byte[]? plate))
                 {
-                    plate = RasterBuffers.Rent(Length);
-                    Array.Clear(plate, 0, Length);
+                    plate = RentSpotPlate();
                     _spotPlates.Add(color.SpotName!, plate);
                     _spotPlateValues = [.. _spotPlates.Values];
                 }
@@ -642,8 +654,7 @@ public sealed partial class PdfPageRenderer
                 {
                     if (!_spotPlates.TryGetValue(additional.Name, out byte[]? otherPlate))
                     {
-                        otherPlate = RasterBuffers.Rent(Length);
-                        Array.Clear(otherPlate, 0, Length);
+                        otherPlate = RentSpotPlate();
                         _spotPlates.Add(additional.Name, otherPlate);
                         _spotPlateValues = [.. _spotPlates.Values];
                     }
@@ -666,8 +677,7 @@ public sealed partial class PdfPageRenderer
                 }
                 if (!_spotPlates!.TryGetValue(color.SpotName!, out byte[]? plate))
                 {
-                    plate = RasterBuffers.Rent(Length);
-                    Array.Clear(plate, 0, Length);
+                    plate = RentSpotPlate();
                     _spotPlates.Add(color.SpotName!, plate);
                     _spotPlateValues = [.. _spotPlates.Values];
                 }
@@ -675,8 +685,7 @@ public sealed partial class PdfPageRenderer
                 if (color.AdditionalSpot is { } additional
                     && !_spotPlates.TryGetValue(additional.Name, out additionalPlate))
                 {
-                    additionalPlate = RasterBuffers.Rent(Length);
-                    Array.Clear(additionalPlate, 0, Length);
+                    additionalPlate = RentSpotPlate();
                     _spotPlates.Add(additional.Name, additionalPlate);
                     _spotPlateValues = [.. _spotPlates.Values];
                 }
@@ -735,8 +744,7 @@ public sealed partial class PdfPageRenderer
                 }
                 if (!_spotPlates!.TryGetValue(color.SpotName!, out byte[]? plate))
                 {
-                    plate = RasterBuffers.Rent(Length);
-                    Array.Clear(plate, 0, Length);
+                    plate = RentSpotPlate();
                     _spotPlates.Add(color.SpotName!, plate);
                     _spotPlateValues = [.. _spotPlates.Values];
                 }
@@ -744,8 +752,7 @@ public sealed partial class PdfPageRenderer
                 if (color.AdditionalSpot is { } additional
                     && !_spotPlates.TryGetValue(additional.Name, out additionalPlate))
                 {
-                    additionalPlate = RasterBuffers.Rent(Length);
-                    Array.Clear(additionalPlate, 0, Length);
+                    additionalPlate = RentSpotPlate();
                     _spotPlates.Add(additional.Name, additionalPlate);
                     _spotPlateValues = [.. _spotPlates.Values];
                 }
