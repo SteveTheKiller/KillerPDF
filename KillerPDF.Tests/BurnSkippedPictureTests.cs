@@ -4,6 +4,7 @@ using System.Windows;
 using KillerPDF.Services;
 using KillerPdf.Engine.Authoring;
 using Xunit;
+using static KillerPDF.Tests.ViewerSourcePin;
 
 namespace KillerPDF.Tests;
 
@@ -61,6 +62,18 @@ public sealed class BurnSkippedPictureTests
         byte[] huge = new byte[6 * 1024 * 1024];
         Encoding.ASCII.GetBytes("%PDF-1.7 ").CopyTo(huge, 0);
         Assert.Equal(1, BurnPictureAndCountSkipped(huge));
+    }
+
+    // SOURCE PIN: the only seam for a branch that can never change an output. RenderPdf starts by running
+    // ReadPdfAsset on the same bytes, so a picture the asset reader refused is refused again; the retry only
+    // parsed the file a second time. A refused PDF picture goes straight to the skipped count.
+    [Fact]
+    public void ARefusedPdfPictureIsNotReadAgainBeforeItIsCounted()
+    {
+        string burn = Source("Services", "PdfEngineBurn.cs");
+        string draw = Between(burn, "private static void DrawImage(PdfContentStreamBuilder content, string data,", "private static void DrawNumber(");
+        Assert.DoesNotContain("RenderPdf", draw);
+        Assert.Equal(1, Count(draw, "ReadPdfAsset(bytes)"));
     }
 
     // GDI+ cannot read JPEG XR, but the overlay decodes it through WIC, so the burn falls back to WIC and draws it.

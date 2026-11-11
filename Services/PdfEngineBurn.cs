@@ -811,20 +811,9 @@ internal static class PdfEngineBurn
                 // running out of memory and cancellation are let through.
                 try
                 {
-                    try
-                    {
-                        var asset = PdfAnnotationImageSource.ReadPdfAsset(bytes);
-                        content.DrawImage(asset, position.X * sx, position.Y * sy + height * sy,
-                            width * sx, -height * sy);
-                    }
-                    catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException))
-                    {
-                        // The overlay draws a PDF picture by rendering it, so a picture the asset reader refuses
-                        // is rendered here the same way, at the placed size times the output scale.
-                        var rendered = PdfAnnotationImageSource.RenderPdf(bytes, width * sx, height * sy);
-                        content.DrawImage(ToEngineImage(rendered, 1), position.X * sx,
-                            position.Y * sy + height * sy, width * sx, -height * sy);
-                    }
+                    var asset = PdfAnnotationImageSource.ReadPdfAsset(bytes);
+                    content.DrawImage(asset, position.X * sx, position.Y * sy + height * sy,
+                        width * sx, -height * sy);
                 }
                 catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException))
                 {
