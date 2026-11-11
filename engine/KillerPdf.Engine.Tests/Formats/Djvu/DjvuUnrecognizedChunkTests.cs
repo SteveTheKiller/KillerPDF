@@ -53,6 +53,28 @@ public sealed class DjvuUnrecognizedChunkTests
         Assert.DoesNotContain(converted, d => d.Code == "PageNotConverted");
     }
 
+    // A chunk inside a thumbnail component belongs to no page, so its notice must not claim a page was drawn without it.
+    [Fact]
+    public void AnUnrecognizedChunkInAThumbnailComponentDoesNotClaimAPageWasDrawnWithoutIt()
+    {
+        var bundle = DjvuTestStreams.Bundle(("page.djvu", 1, Jb2Page()[4..]),
+            ("thumb.djvu", 2, DjvuTestStreams.Form("THUM", DjvuTestStreams.Chunk("XXXX", Producer))));
+
+        var notice = Assert.Single(DjvuDocument.Open(bundle).Diagnostics, d => d.Code == "UnrecognizedChunkSkipped");
+
+        Assert.Contains("'XXXX'", notice.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("page was drawn", notice.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnUnrecognizedChunkInAPageStillSaysThePageWasDrawnWithoutIt()
+    {
+        var notice = Assert.Single(DjvuDocument.Open(WithExtraChunk(Jb2Page(), "XXXX", Producer)).Diagnostics,
+            d => d.Code == "UnrecognizedChunkSkipped");
+
+        Assert.Contains("the page was drawn without it", notice.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void EachUnrecognizedNameGetsOneNoticeAndTheNoticesAreBounded()
     {

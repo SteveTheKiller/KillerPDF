@@ -68,7 +68,7 @@ public sealed partial class DjvuDocument
         Dictionary<string, Chunk> includes = new(StringComparer.Ordinal);
         var chunkBudget = 65_535;
         var chunks = ReadChunks(span, 16, rootEnd, cancellationToken, ref chunkBudget);
-        DiagnoseFeatures(chunks, diagnostics);
+        DiagnoseFeatures(chunks, diagnostics, pageChunks: span[12..16].SequenceEqual("DJVU"u8));
         // INCL chunks name components a bundle carries; a single page or an unknown name has nothing to resolve.
         List<string> included = [];
         const string unresolved = "Included components are resolved only inside a bundled document. External files and URLs are never fetched.";
@@ -131,7 +131,7 @@ public sealed partial class DjvuDocument
                 if (children.Any(c => c.Id == 0x464f524d)) throw new InvalidDataException("Nested FORM is not allowed inside a component.");
                 if (componentType != 0x444a5655 && children.Any(c => c.Id == 0x494e464f))
                     throw new InvalidDataException("INFO is only allowed inside a page.");
-                DiagnoseFeatures(children, diagnostics);
+                DiagnoseFeatures(children, diagnostics, pageChunks: componentType == 0x444a5655);
                 foreach (var include in children.Where(c => c.Id == 0x494e434c))
                     included.Add(System.Text.Encoding.UTF8.GetString(span.Slice(include.Offset, include.Length)).TrimEnd('\0', ' ', '\n', '\r', '\t'));
                 if (componentType == 0x444a5649 && metadata is not null)
@@ -176,7 +176,9 @@ public sealed partial class DjvuDocument
         return new string(name);
     }
 
-    private static void DiagnoseFeatures(List<Chunk> chunks, List<DjvuDiagnostic> diagnostics)
+    // pageChunks is true when the chunks belong to a page (a single-page file or a page component) and false for a
+    // bundle's root, shared includes or thumbnails, so a notice never claims a page was drawn without a chunk it lacks.
+    private static void DiagnoseFeatures(List<Chunk> chunks, List<DjvuDiagnostic> diagnostics, bool pageChunks)
     {
         foreach (var chunk in chunks)
         {
@@ -190,7 +192,7 @@ public sealed partial class DjvuDocument
                 _ when KnownChunks.Contains(chunk.Id) => null,
                 // A chunk this reader does not know is skipped, as the reference viewer skips it; one notice per name.
                 _ => new("UnrecognizedChunkSkipped", $"The chunk '{ChunkName(chunk.Id)}' is not one this reader knows. " +
-                    "It was skipped, and the page was drawn without it.")
+                    (pageChunks ? "It was skipped, and the page was drawn without it." : "It was skipped."))
             };
             if (diagnostic is null) continue;
             // The other notices are one each; unrecognized chunks one per name, up to a bounded number.
