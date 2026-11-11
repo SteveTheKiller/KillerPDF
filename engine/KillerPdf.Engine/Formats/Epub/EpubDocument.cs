@@ -203,7 +203,8 @@ public sealed partial class EpubDocument
         if (damagedResources.Contains("META-INF/encryption.xml"))
             throw new InvalidDataException("EPUB resource could not be read: META-INF/encryption.xml.");
         if (oversizedResources.Contains("META-INF/encryption.xml")) throw OversizedResource("META-INF/encryption.xml");
-        if (damagedResources.Contains("META-INF/container.xml")) throw new InvalidDataException("Missing EPUB container document.");
+        if (damagedResources.Contains("META-INF/container.xml"))
+            throw new InvalidDataException("EPUB resource could not be read: META-INF/container.xml.");
         if (!resources.TryGetValue("mimetype", out var mimetype) || !mimetype.AsSpan().SequenceEqual("application/epub+zip"u8))
             throw new InvalidDataException("Invalid EPUB mimetype.");
         if (oversizedResources.Contains("META-INF/container.xml")) throw OversizedResource("META-INF/container.xml");
@@ -217,7 +218,7 @@ public sealed partial class EpubDocument
             .FirstOrDefault(x => (string?)x.Attribute("media-type") == "application/oebps-package+xml")
             ?? throw new InvalidDataException("Missing EPUB package reference.");
         var path = ResolvePath("", Required(rootfile, "full-path"));
-        if (damagedResources.Contains(path)) throw new InvalidDataException("Missing EPUB package document.");
+        if (damagedResources.Contains(path)) throw new InvalidDataException("EPUB resource could not be read: " + path + ".");
         if (oversizedResources.Contains(path)) throw OversizedResource(path);
         if (!resources.TryGetValue(path, out var packageData))
             throw new InvalidDataException("Missing EPUB package document.");

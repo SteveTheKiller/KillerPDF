@@ -178,6 +178,19 @@ public sealed class EpubPackageDegradeTests
         Assert.Equal("B", layout.Pages[1].Text.Trim());
     }
 
+    // A required document the ZIP holds but cannot be read is reported as unreadable, not as missing.
+    [Theory]
+    [InlineData("META-INF/container.xml")]
+    [InlineData("OEBPS/content.opf")]
+    public void ACorruptRequiredPackageDocumentIsReportedAsUnreadableNotMissing(string path)
+    {
+        byte[] source = new Book { Chapters = { Chapter("<p>A</p>") } }.Build();
+
+        var error = Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Damage(source, path, false)));
+
+        Assert.Equal("EPUB resource could not be read: " + path + ".", error.Message);
+    }
+
     [Theory]
     [InlineData("META-INF/container.xml")]
     [InlineData("OEBPS/content.opf")]
