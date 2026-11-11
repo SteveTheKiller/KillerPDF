@@ -38,6 +38,23 @@ public sealed class ViewerPresentationPinTests
         Assert.DoesNotContain("else RenderPage(_currentPage);", rerender);
     }
 
+    // VIEW-003: the primary render looks its bitmap up under the page's proof stamp. The background neighbour render
+    // stored under no stamp, so Page Down and Page Up never found it. The neighbour render draws without proofing or
+    // monitor conversion, so it only runs when the primary will read the cache and proofing is off.
+    [Fact]
+    public void NeighbourPrefetchIsStoredUnderTheKeyThePrimaryRenderReads()
+    {
+        string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+        string prefetch = Between(viewport, "private void KickOffAdjacentPrefetch(", "/// <summary>The page's image boxes");
+
+        Assert.Contains("int pgRot, bool primaryReadsCache)", prefetch);
+        Assert.Contains("var proof = session?.ProofView.CaptureProof();", prefetch);
+        Assert.Contains("if (!primaryReadsCache || proof is null || proof.Settings.Enabled) return;", prefetch);
+        Assert.Contains("TryGetCachedRender(session, target, scaledMax, rot, proofStamp: proof.Stamp)", prefetch);
+        Assert.Contains("CacheRender(session, localTarget, scaledMax, localRot, wb, proofStamp: proof.Stamp)", prefetch);
+        Assert.Contains("KickOffAdjacentPrefetch(pageIndex, scaledMax, pgRot, !(linear || primaryMonitor is not null));", viewport);
+    }
+
     private static int Count(string source, string text)
     {
         int count = 0;

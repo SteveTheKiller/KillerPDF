@@ -54,15 +54,19 @@ namespace KillerPDF.Controls
             if (cts is null) return;
             try { cts.Cancel(); } catch { }
         }
-        private void KickOffAdjacentPrefetch(int pageIndex, int scaledMax, int pgRot)
+        private void KickOffAdjacentPrefetch(int pageIndex, int scaledMax, int pgRot, bool primaryReadsCache)
         {
             if (_viewMode != ViewMode.Single && _viewMode != ViewMode.TwoPage) return;
             if (_currentFile is null || _doc is null) return;
             CancelAdjacentPrefetch();
+            var session = _active;
+            // The primary render looks pages up under the proof stamp. These renders carry no proofing and no monitor
+            // conversion, so they are only worth drawing when proofing is off and the primary reads the cache.
+            var proof = session?.ProofView.CaptureProof();
+            if (!primaryReadsCache || proof is null || proof.Settings.Enabled) return;
             var cts = new CancellationTokenSource();
             CancellationToken cancellationToken = cts.Token;
             _prefetchCts = cts;
-            var session = _active;
             string currentFile = _currentFile;
             bool invert = DocInvert;
             long revision = session?.RenderRevision ?? 0;
@@ -84,7 +88,7 @@ namespace KillerPDF.Controls
                         if (cancellationToken.IsCancellationRequested) return;
                         if (target < 0 || target >= total) continue;
                         int rot = rotations.TryGetValue(target, out int r) ? r : pgRot;
-                        var cached = TryGetCachedRender(session, target, scaledMax, rot);
+                        var cached = TryGetCachedRender(session, target, scaledMax, rot, proofStamp: proof.Stamp);
                         if (cached is not null) continue;
                         PdfRenderedPage rendered = await _viewportRenderQueue.Enqueue(
                             (renderRequest, "prefetch", target), 1000, 8L * scaledMax * scaledMax, token =>
@@ -113,7 +117,7 @@ namespace KillerPDF.Controls
                         _ = Dispatcher.BeginInvoke(new Action(() =>
                         {
                             if (cancellationToken.IsCancellationRequested) return;
-                            CacheRender(session, localTarget, scaledMax, localRot, wb);
+                            CacheRender(session, localTarget, scaledMax, localRot, wb, proofStamp: proof.Stamp);
                         }));
                     }
                 }
@@ -1230,7 +1234,7 @@ namespace KillerPDF.Controls
                 // Fire background renders for the pages the user is most likely to reach next.
                 // Cached bitmaps land in the same per-tab render cache TryGetCachedRender reads,
                 // so the next PageDown/Left/Right skips the engine entirely.
-                KickOffAdjacentPrefetch(pageIndex, scaledMax, pgRot);
+                KickOffAdjacentPrefetch(pageIndex, scaledMax, pgRot, !(linear || primaryMonitor is not null));
                 // Navigation can supersede bootstrap while a remembered zoom is still waiting
                 // for dimensions. The current owning render must finish that conversion too.
                 if (Current() && _active?.PendingZoom != null)
