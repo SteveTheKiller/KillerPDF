@@ -308,6 +308,77 @@ public sealed class ThumbnailWindowTests
         Assert.Equal(4, Volatile.Read(ref calls3));
     }
 
+    // Pages that were settled as failed by throwing twice (a briefly locked file) get one more try once another page
+    // draws, because the renderer is plainly working again.
+    [Fact]
+    public void PagesSettledByThrowingGetOneRetryOnceAnotherPageDraws()
+    {
+        var calls = new ConcurrentDictionary<int, int>();
+        using var drained = new SemaphoreSlim(0);
+        var shown = new ConcurrentDictionary<int, string>();
+        using var window = new ThumbnailWindow<string>(100, (page, _) =>
+        {
+            int call = calls.AddOrUpdate(page, 1, (_, n) => n + 1);
+            if (page is 0 or 1 && call <= 2) throw new IOException("briefly locked");
+            return $"thumb {page}";
+        }, (page, image) => { if (image is null) shown.TryRemove(page, out _); else shown[page] = image; },
+            retain: 8, drained: () => drained.Release());
+
+        foreach (int page in new[] { 0, 1 })
+            for (int attempt = 0; attempt < 2; attempt++)
+            {
+                window.Request(page);
+                Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+            }
+        window.Request(0);                                   // settled as failed: no draw yet
+        Thread.Sleep(200);
+        Assert.False(shown.ContainsKey(0));
+
+        window.Request(2);                                   // draws, so the renderer works again
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(2), TimeSpan.FromSeconds(10)));
+        window.Request(0);
+
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(0), TimeSpan.FromSeconds(10)),
+            "A page settled by throwing was never given its retry after another page drew.");
+        window.Request(1);
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(1), TimeSpan.FromSeconds(10)),
+            "The second page settled by throwing was never given its retry.");
+    }
+
+    // The retry is given once: a page that always throws must not reopen the file after every later success.
+    [Fact]
+    public void APageThatAlwaysThrowsIsRetriedOnlyOnceMoreAfterASuccess()
+    {
+        int attempts0 = 0;
+        using var drained = new SemaphoreSlim(0);
+        var shown = new ConcurrentDictionary<int, string>();
+        using var window = new ThumbnailWindow<string>(100, (page, _) =>
+        {
+            if (page == 0) { Interlocked.Increment(ref attempts0); throw new IOException("always"); }
+            return $"thumb {page}";
+        }, (page, image) => { if (image is null) shown.TryRemove(page, out _); else shown[page] = image; },
+            retain: 8, drained: () => drained.Release());
+
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            window.Request(0);
+            Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        }
+        Assert.Equal(2, Volatile.Read(ref attempts0));
+
+        window.Request(2);                                   // a success re-arms page 0 once
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(2), TimeSpan.FromSeconds(10)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        window.Request(0);                                   // its one more try, which throws again
+        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts0) == 3, TimeSpan.FromSeconds(10)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+
+        window.Request(3);                                   // another success must not re-arm it again
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(10)));
+        window.Request(0);
+        Thread.Sleep(300);
+        Assert.Equal(3, Volatile.Read(ref attempts0));
+    }
     // A page the renderer refuses by throwing is tried once more, then settled, so a broken page does not reopen and
     // parse the file on every later pass.
     [Fact]

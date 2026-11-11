@@ -27,6 +27,10 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
     // How many times each page's draw has thrown in this window. A second throw settles the page as failed, so a
     // page the engine can never draw does not reopen and parse the file after every pass.
     private readonly Dictionary<int, int> _throwCounts = [];
+    // Pages that were settled as failed by throwing, and pages already given the one retry they get once another page
+    // draws. The retry is bounded so a page that always throws does not reparse the file after every later success.
+    private readonly HashSet<int> _threwFailed = [];
+    private readonly HashSet<int> _rearmed = [];
     private readonly LinkedList<int> _held = [];          // oldest first
     private readonly Dictionary<int, LinkedListNode<int>> _heldNodes = [];
     private bool _running;
@@ -103,7 +107,11 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
                         _throwCounts[page] = 1;
                         _threw.Add(page);
                     }
-                    else _failed.Add(page);
+                    else
+                    {
+                        _failed.Add(page);
+                        if (threw) _threwFailed.Add(page);
+                    }
                 }
                 if (token.IsCancellationRequested) { _running = false; return; }
                 // A failed draw holds nothing, but it is still published (as null) so a row showing a carried-over
@@ -113,6 +121,10 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
                     _heldNodes[page] = _held.AddLast(page);
                     // A page that has drawn can be drawn, so an earlier throw no longer counts against it.
                     _throwCounts.Remove(page);
+                    // The renderer is working again: pages that gave up by throwing get one more try each.
+                    foreach (int thrown in _threwFailed)
+                        if (_rearmed.Add(thrown)) _failed.Remove(thrown);
+                    _threwFailed.Clear();
                 }
                 while (_held.Count > _retain && _held.First is { } oldest)
                 {
