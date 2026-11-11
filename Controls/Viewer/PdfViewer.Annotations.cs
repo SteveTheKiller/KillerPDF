@@ -385,6 +385,9 @@ namespace KillerPDF.Controls
 
         internal void ClearSelection()
         {
+            // A page render can land mid-resize and clear the selection before the mouse-up. Finish the
+            // gesture first so the size change keeps its undo step and its dirty mark.
+            if (_resizeUndoAnnot is { } resizing) FinishResizeUndo(resizing);
             CancelSourceImageDrag();
             _sourceImageSelection = null;
             if (_selectionBorder is not null)
