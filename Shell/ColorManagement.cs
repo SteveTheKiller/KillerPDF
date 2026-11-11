@@ -19,6 +19,7 @@ public partial class MainWindow
             // Every render reads the new choice once; pages drawn with the old one are dropped
             // and in-flight renders are cancelled by the re-render below.
             KillerPDF.Services.PdfPageRenderSession.InvalidateWorkingCmyk();
+            KillerPDF.Services.WorkingCmykProfiles.WarmDisplayTableInBackground();
             viewer.FlushAllRenderCachesExt();
         }
         if (proof.Stamp.IsComparison) view.ComparisonOverride = settings;

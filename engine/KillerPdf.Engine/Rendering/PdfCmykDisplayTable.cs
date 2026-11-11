@@ -29,6 +29,7 @@ internal sealed class PdfCmykDisplayTable
     private readonly long[] _cache = new long[1 << CacheBits];
     private readonly Lazy<int[]> _grid;
     private readonly Lazy<byte[]> _inverse;
+    private long _fitIterations;
 
     private PdfCmykDisplayTable(PdfColorProfile profile)
     {
@@ -164,6 +165,12 @@ internal sealed class PdfCmykDisplayTable
 
     /// <summary>Gets the SHA256 content identity of the profile this table was built from.</summary>
     internal string ProfileSha256 { get; }
+
+    /// <summary>Gets how many Gauss-Newton steps the RGB to ink fit has run for this table, across all of its grid points.</summary>
+    internal long FitIterations => Interlocked.Read(ref _fitIterations);
+
+    /// <summary>Runs the RGB to ink fit now if it has not run, so the first RGB paint into ink finds it done.</summary>
+    internal void PrepareRgbInverse() => _ = _inverse.Value;
 
     /// <summary>Gets the table for the render in progress, or the built-in profile's table.</summary>
     internal static PdfCmykDisplayTable Current => Active.Value ?? BuiltIn.Value;
@@ -338,6 +345,7 @@ internal sealed class PdfCmykDisplayTable
             }
             for (int iteration = 0; iteration < 80; iteration++)
             {
+                Interlocked.Increment(ref _fitIterations);
                 Forward(x, actual);
                 for (int component = 0; component < 4; component++)
                 {

@@ -431,6 +431,25 @@ internal static class WorkingCmykProfiles
         return profile;
     }
 
+    /// <summary>
+    /// Builds the chosen profile's RGB to ink table on a background thread at low priority, so the first RGB paint
+    /// into a CMYK surface finds it ready. Called once after startup and again when the choice changes.
+    /// </summary>
+    internal static void WarmDisplayTableInBackground()
+    {
+        var thread = new Thread(() =>
+        {
+            try { KillerPdf.Engine.Rendering.PdfCmykWarmUp.Prepare(Current()); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or FormatException
+                or NotSupportedException or ArgumentException or InvalidOperationException)
+            {
+                // The first paint builds the table itself and reports any real problem then.
+            }
+        })
+        { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = "Working CMYK warm-up" };
+        thread.Start();
+    }
+
     /// <summary>Gives render options the chosen working CMYK profile; never sets null.</summary>
     internal static KillerPdf.Engine.Rendering.PdfRenderOptions Apply(KillerPdf.Engine.Rendering.PdfRenderOptions options) =>
         Current() is { } working ? options with { WorkingCmykProfile = working } : options;

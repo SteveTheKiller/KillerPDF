@@ -460,6 +460,9 @@ namespace KillerPDF.Shell
                 // Warm the installed-font catalog off the UI and render threads so the first page
                 // that needs a non-standard face does not pay for the scan.
                 _ = System.Threading.Tasks.Task.Run(Services.InstalledFontCatalog.Warm);
+                // The first RGB paint into a CMYK surface fits a table for the working profile (about a second);
+                // build it now on a low-priority thread instead.
+                Services.WorkingCmykProfiles.WarmDisplayTableInBackground();
                 Services.AppTheme.RefreshIcons();
                 // Startup can restore pane B, process a relaunch/open-file handoff, and change
                 // ActiveViewer several times before the first frame. Each transition is valid on
