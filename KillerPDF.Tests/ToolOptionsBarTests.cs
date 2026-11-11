@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 using KillerPDF.Controls;
 using Xunit;
 
@@ -40,6 +42,34 @@ public sealed class ToolOptionsBarTests
             AutomationProperties.SetAutomationId(mode, "Highlight");
 
             Assert.Equal("Highlight", ToolOptionsDock.FocusIdFor(mode));
+        });
+    }
+
+    // ui BF-003: the control edges came from a fixed gray, so they stayed gray in every theme. They take the
+    // family's card border, which is what the Print window's checkboxes use.
+    [Fact]
+    public void OptionControlEdgesFollowTheThemeBorderBrush()
+    {
+        RunSta(() =>
+        {
+            var edge = new SolidColorBrush(Colors.HotPink);
+            var host = new StackPanel();
+            host.Resources["CardBorderBrush"] = edge;
+            var swatch = (ToggleButton)ToolOptionsControls.Swatch(Colors.Red, false, "Red", () => { });
+            var step = (Button)ToolOptionsControls.Step("+", "More", () => { });
+            var icon = (ToggleButton)ToolOptionsControls.IconToggle(new Border(), false, "Bold", () => { });
+            var check = (CheckBox)ToolOptionsControls.Check("Level", false, "Level", _ => { });
+            foreach (var c in new Control[] { swatch, step, icon, check }) host.Children.Add(c);
+
+            var chip = (Border)swatch.Content;
+            step.ApplyTemplate();
+            icon.ApplyTemplate();
+            check.ApplyTemplate();
+
+            Assert.Same(edge, chip.BorderBrush);
+            Assert.Same(edge, ((Border)step.Template.FindName("face", step)).BorderBrush);
+            Assert.Same(edge, ((Border)icon.Template.FindName("face", icon)).BorderBrush);
+            Assert.Same(edge, ((Border)check.Template.FindName("box", check)).BorderBrush);
         });
     }
 

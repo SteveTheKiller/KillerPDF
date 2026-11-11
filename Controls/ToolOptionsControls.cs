@@ -18,8 +18,6 @@ namespace KillerPDF.Controls
         /// <summary>The height of every control in the row.</summary>
         public const double ControlHeight = 24;
 
-        private static readonly SolidColorBrush DimEdge = Frozen(Color.FromRgb(0x44, 0x44, 0x44));
-
         private static SolidColorBrush Frozen(Color color)
         {
             var brush = new SolidColorBrush(color);
@@ -139,9 +137,9 @@ namespace KillerPDF.Controls
             var chip = new Border
             {
                 Width = 18, Height = 18, CornerRadius = new CornerRadius(3), Background = fill,
-                BorderThickness = new Thickness(selected ? 2 : 1), BorderBrush = DimEdge
+                BorderThickness = new Thickness(selected ? 2 : 1)
             };
-            if (selected) chip.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush");
+            chip.SetResourceReference(Border.BorderBrushProperty, selected ? "PrimaryBrush" : "CardBorderBrush");
             return chip;
         }
 
@@ -184,7 +182,7 @@ namespace KillerPDF.Controls
             face.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
             face.SetValue(Border.BackgroundProperty, Brushes.Transparent);
             face.SetValue(Border.BorderThicknessProperty, new Thickness(checkedEdge || outlined ? 1 : 0));
-            face.SetValue(Border.BorderBrushProperty, DimEdge);
+            face.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
             var wash = new FrameworkElementFactory(typeof(Border)) { Name = "wash" };
             wash.SetValue(Border.CornerRadiusProperty, new CornerRadius(2));
             wash.SetValue(UIElement.OpacityProperty, 0.0);
@@ -227,7 +225,7 @@ namespace KillerPDF.Controls
             box.SetValue(FrameworkElement.HeightProperty, 15.0);
             box.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
             box.SetValue(Border.BorderThicknessProperty, new Thickness(1));
-            box.SetValue(Border.BorderBrushProperty, DimEdge);
+            box.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
             box.SetValue(Border.BackgroundProperty, Brushes.Transparent);
             box.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
             box.SetValue(FrameworkElement.MarginProperty, new Thickness(0, 0, 5, 0));
