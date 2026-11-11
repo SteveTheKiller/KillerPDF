@@ -330,19 +330,15 @@ internal static class PdfEngineBurn
         return PdfOverlayAnnotations.AttachAll(savedBytes, records);
     }
 
-    // A malformed annotation array on a page the save does not touch must not stop the save, so that case keeps
-    // reading only the pages asked about.
+    // A malformed annotation array on a page the save does not touch must not stop the save. One page-tree read
+    // counts every page; only a page whose own array is unreadable reports it, so its markup becomes page content.
     private static Func<int, int> AnnotationCounts(PdfDocument document)
     {
-        try
-        {
-            IReadOnlyList<int> counts = PdfCommentReader.ReadPageAnnotationCounts(document);
-            return pageIndex => counts[pageIndex];
-        }
-        catch (InvalidOperationException)
-        {
-            return pageIndex => PdfCommentReader.ReadPageAnnotationCount(document, pageIndex);
-        }
+        var unreadable = new HashSet<int>();
+        IReadOnlyList<int> counts = PdfCommentReader.ReadPageAnnotationCounts(document, unreadable);
+        return pageIndex => unreadable.Contains(pageIndex)
+            ? throw new InvalidOperationException($"Page {pageIndex + 1} /Annots value is not an array.")
+            : counts[pageIndex];
     }
 
     // The page's annotation count, or null when its annotation list cannot be read.

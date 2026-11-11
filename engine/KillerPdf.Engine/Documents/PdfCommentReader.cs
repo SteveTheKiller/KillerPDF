@@ -125,6 +125,28 @@ public static partial class PdfCommentReader
     }
 
     /// <summary>
+    /// Counts as <see cref="ReadPageAnnotationCounts(PdfDocument)"/> does from one page-tree read, except that a
+    /// page whose /Annots value is not an array counts 0 and is recorded in <paramref name="unreadablePages"/>.
+    /// </summary>
+    public static IReadOnlyList<int> ReadPageAnnotationCounts(PdfDocument document, ICollection<int>? unreadablePages)
+    {
+        if (unreadablePages is null) return ReadPageAnnotationCounts(document);
+        ArgumentNullException.ThrowIfNull(document);
+        if (!document.IsDecrypted)
+            throw new InvalidOperationException(
+                "Authenticate the document before reading annotations.");
+        IReadOnlyList<PdfPageTreeEntry> pages = PdfPageTree.Read(document).Pages;
+        var counts = new int[pages.Count];
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++)
+        {
+            if (!pages[pageIndex].Dictionary.TryGetValue(Name("Annots"), out PdfObject? value)) continue;
+            if (Resolve(document, value) is PdfArray annotations) counts[pageIndex] = annotations.Count;
+            else unreadablePages.Add(pageIndex);
+        }
+        return Array.AsReadOnly(counts);
+    }
+
+    /// <summary>
     /// Returns every page's raw annotation-array count from one page-tree read, as
     /// <see cref="ReadPageAnnotationCount"/> counts a single page. A malformed array is rejected.
     /// </summary>
