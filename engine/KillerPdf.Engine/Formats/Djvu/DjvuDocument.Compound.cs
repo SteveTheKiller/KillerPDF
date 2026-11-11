@@ -281,7 +281,7 @@ public sealed partial class DjvuDocument
     // What a kept dictionary holds: each shape's bits, plus 64 bytes for its object (16 header, 24 fields) and its
     // bit array header (24).
     private static long DictionaryBytes(DjvuJb2Dictionary dictionary)
-        => dictionary.Symbols.Sum(symbol => (long)symbol.Bits.Length + 64);
+        => dictionary.Symbols.Sum(symbol => (long)symbol.Bits.Length + DjvuJb2Decoder.SymbolOverhead);
 
     private DjvuJb2Dictionary CachedDictionary(Chunk djbz, List<Chunk> chunks, DjvuJb2Budget budget,
         IncludeSearch visiting, CancellationToken token)
