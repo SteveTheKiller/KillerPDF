@@ -82,4 +82,92 @@ public sealed class ThumbnailWindowTests
         Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref drained) > afterFirst, TimeSpan.FromSeconds(10)),
             "The renderer was not let go after a later row was drawn.");
     }
+
+    // A fast scroll realizes far more rows than the window retains. Drawing every one of them would release most
+    // as soon as it was held, so only the newest retained number of waiting requests are kept.
+    [Fact]
+    public void AFastScrollDrawsNoMoreRowsThanTheWindowRetains()
+    {
+        int draws = 0;
+        using var entered = new ManualResetEventSlim();
+        using var gate = new ManualResetEventSlim();
+        var shown = new ConcurrentDictionary<int, string>();
+        using var window = new ThumbnailWindow<string>(1_000, (page, _) =>
+        {
+            Interlocked.Increment(ref draws);
+            entered.Set();
+            gate.Wait(TimeSpan.FromSeconds(10));
+            return $"thumb {page}";
+        }, (page, image) => { if (image is null) shown.TryRemove(page, out _); else shown[page] = image; }, retain: 4);
+
+        window.Request(0);
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(10)), "The first row did not start drawing.");
+        for (int page = 1; page < 100; page++) window.Request(page);
+        gate.Set();
+
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(99) && shown.ContainsKey(96), TimeSpan.FromSeconds(10)),
+            "The newest rows were not drawn.");
+        Thread.Sleep(300);
+        // The row in flight plus the newest four waiting rows.
+        Assert.Equal(5, Volatile.Read(ref draws));
+    }
+
+    // A row dropped from the queue is not left marked as waiting, so asking for it again draws it.
+    [Fact]
+    public void ARowDroppedFromTheQueueCanBeAskedForAgain()
+    {
+        var drawn = new ConcurrentBag<int>();
+        using var entered = new ManualResetEventSlim();
+        using var gate = new ManualResetEventSlim();
+        var shown = new ConcurrentDictionary<int, string>();
+        using var window = new ThumbnailWindow<string>(1_000, (page, _) =>
+        {
+            drawn.Add(page);
+            if (page == 0) { entered.Set(); gate.Wait(TimeSpan.FromSeconds(10)); }
+            return $"thumb {page}";
+        }, (page, image) => { if (image is null) shown.TryRemove(page, out _); else shown[page] = image; }, retain: 2);
+
+        window.Request(0);
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(10)));
+        for (int page = 1; page <= 5; page++) window.Request(page);   // 1, 2 and 3 are dropped
+        gate.Set();
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(5) && shown.ContainsKey(4), TimeSpan.FromSeconds(10)));
+        Thread.Sleep(200);
+        window.Request(1);
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(1), TimeSpan.FromSeconds(10)), "The dropped row was never drawn when asked for again.");
+    }
+
+    // An out-of-memory error while drawing one row must not leave the window believing a pass is still running or the
+    // row still waiting, or that row and every later request would never be drawn.
+    [Fact]
+    public void ARowThatRanOutOfMemoryCanBeDrawnWhenAskedForAgain()
+    {
+        int attempts = 0;
+        var shown = new ConcurrentDictionary<int, string>();
+        using var window = new ThumbnailWindow<string>(100, (page, _) =>
+        {
+            if (Interlocked.Increment(ref attempts) == 1) throw new OutOfMemoryException();
+            return $"thumb {page}";
+        }, (page, image) => { if (image is null) shown.TryRemove(page, out _); else shown[page] = image; }, retain: 8);
+
+        window.Request(3);
+        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts) >= 1, TimeSpan.FromSeconds(10)));
+        Thread.Sleep(300);
+        window.Request(3);
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(10)), "The row was stuck after the failure.");
+    }
+
+    // A row that keeps a carried-over picture from the list it replaced must be told when its own draw fails, or it
+    // shows the stale picture for good.
+    [Fact]
+    public void AFailedDrawIsPublishedSoTheRowDropsItsStalePicture()
+    {
+        var failed = new ConcurrentBag<int>();
+        using var window = new ThumbnailWindow<string>(100, (page, _) => null,
+            (page, image) => { if (image is null) failed.Add(page); }, retain: 8);
+
+        window.Request(5);
+
+        Assert.True(SpinWait.SpinUntil(() => failed.Contains(5), TimeSpan.FromSeconds(10)), "The failed draw was not published.");
+    }
 }

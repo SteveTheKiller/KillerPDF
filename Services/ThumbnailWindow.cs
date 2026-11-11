@@ -44,6 +44,13 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
             if (_heldNodes.ContainsKey(page)) return;
             if (!_pending.Add(page)) _requests.Remove(page);   // asked again: move it to the front of the queue
             _requests.Add(page);
+            // A fast scroll can realize far more rows than are retained, and drawing the oldest of them would only
+            // release them again. The oldest waiting requests are dropped, and their rows ask again when read.
+            while (_requests.Count > _retain)
+            {
+                _pending.Remove(_requests[0]);
+                _requests.RemoveAt(0);
+            }
             if (_running) return;
             _running = true;
         }
@@ -70,14 +77,17 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
             }
             TImage? image = null;
             try { image = _render(page, token); }
-            catch (Exception error) when (error is not OutOfMemoryException) { /* the row keeps its label */ }
+            // An out-of-memory error counts as a failed draw like any other: the pass goes on, and the row is no
+            // longer marked as waiting, so asking for it again draws it.
+            catch (Exception) { /* the row has no picture of its own */ }
             var released = new List<int>();
             lock (_sync)
             {
                 _pending.Remove(page);
                 if (token.IsCancellationRequested) { _running = false; return; }
-                if (image is null) continue;
-                _heldNodes[page] = _held.AddLast(page);
+                // A failed draw holds nothing, but it is still published (as null) so a row showing a carried-over
+                // picture from the list it replaced drops it.
+                if (image is not null) _heldNodes[page] = _held.AddLast(page);
                 while (_held.Count > _retain && _held.First is { } oldest)
                 {
                     _held.RemoveFirst();
