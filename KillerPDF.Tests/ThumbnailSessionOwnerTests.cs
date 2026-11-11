@@ -14,13 +14,15 @@ public sealed class ThumbnailSessionOwnerTests
         var renderer = new Renderer();
         using var drawing = new ManualResetEventSlim();
         using var finish = new ManualResetEventSlim();
-        var draw = Task.Run(() => owner.Use(() => renderer, _ =>
+        // The draw runs on its own thread, so a busy thread pool cannot hold back its start; the timeout only ends
+        // the wait if the draw never starts.
+        var draw = Task.Factory.StartNew(() => owner.Use(() => renderer, _ =>
         {
             drawing.Set();
             finish.Wait();
             return "thumbnail";
-        }, CancellationToken.None));
-        Assert.True(drawing.Wait(TimeSpan.FromSeconds(5)));
+        }, CancellationToken.None), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        Assert.True(drawing.Wait(TimeSpan.FromSeconds(30)));
 
         // The draw is held open until Release returns, so Release can only return by not waiting for the draw: there
         // is no race against a clock. The timeout only ends the wait if Release is stuck behind the draw for good.
