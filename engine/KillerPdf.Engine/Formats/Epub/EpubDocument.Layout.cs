@@ -410,6 +410,13 @@ public sealed partial class EpubDocument
         // The full diagnosis stays readable for search, copy and assistive technology even when the page clips it.
         return new EpubLayoutPage(text.ToString().TrimEnd('\n'), 0, spineIndex, placements, glyphs, clusters: clusters);
 
+        // The scalar at an index; a lone surrogate reads as U+FFFD, as it does when measuring.
+        static Rune RuneAt(string value, int index)
+        {
+            Rune.DecodeFromUtf16(value.AsSpan(index), out var rune, out _);
+            return rune;
+        }
+
         // The font and glyph that draw a character; glyph 0 in the fallback font means no font maps it.
         (TrueTypeFont Font, ushort Glyph) Choose(int scalar)
         {
@@ -452,11 +459,11 @@ public sealed partial class EpubDocument
             while (at < value.Length)
             {
                 // A run is consecutive characters drawn by one font; a character no font maps is a run of its own.
-                var first = Choose(Rune.GetRuneAt(value, at).Value);
+                var first = Choose(RuneAt(value, at).Value);
                 bool missing = first.Glyph == 0;
                 if (plain && missing)
                 {
-                    at += Rune.GetRuneAt(value, at).Utf16SequenceLength;
+                    at += RuneAt(value, at).Utf16SequenceLength;
                     continue;
                 }
                 int end = at;
@@ -465,7 +472,7 @@ public sealed partial class EpubDocument
                 int runStart = text.Length + at;
                 while (end < value.Length)
                 {
-                    var rune = Rune.GetRuneAt(value, end);
+                    var rune = RuneAt(value, end);
                     var (face, glyph) = Choose(rune.Value);
                     if (!ReferenceEquals(face, first.Font) || (glyph == 0) != missing || (missing && end > at)) break;
                     if (!missing)

@@ -150,6 +150,21 @@ public sealed class EpubConversionIsolationTests
         }
     }
 
+    // Measuring reads a lone surrogate as U+FFFD, so drawing must too; a caller's label can hold any string.
+    [Fact]
+    public void ANoticeLabelWithALoneSurrogateDoesNotEndPagination()
+    {
+        var book = new Book { Chapters = { Chapter(Unscripted), Chapter("<p>B</p>") } };
+        var options = new EpubLayoutOptions(400, 600, Liberation()) { FontSize = 10, Margin = 2, IsolateChapterFailures = true,
+            UnavailableChapterLabel = "Chapter " + '\uD800' + " unavailable" };
+
+        var layout = EpubDocument.Open(book.Build()).CreateLayout(options);
+
+        Assert.Equal(2, layout.Pages.Count);
+        Assert.Equal("B", layout.Pages[1].Text.Trim());
+        Assert.Single(layout.ChapterDiagnostics);
+    }
+
     [Fact]
     public void ANoticeLabelThatNoFontCanDrawShowsAMissingGlyphBoxPerCharacter()
     {
