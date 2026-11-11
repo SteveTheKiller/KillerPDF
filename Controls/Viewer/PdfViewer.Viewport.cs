@@ -892,12 +892,10 @@ namespace KillerPDF.Controls
             }
             // A page's links, read once the page itself is drawn, so they're clickable in continuous view (resolved by
             // the bounds-check in Canvas_MouseLeftButtonDown). A PDF page records only their areas, as it did when they
-            // were read at setup; a book page also gets its keyboard link overlays.
-            if (!_continuousLinks.ContainsKey(fi))
-            {
-                if (_nativeDoc is null) _continuousLinks[fi] = GetPageLinks(fi, rdW, rdH);
-                else AddSecondaryPageLinks(fi, rdW, rdH);
-            }
+            // were read at setup. A book page records its links, and gets its keyboard link overlays, once its
+            // annotations are drawn below.
+            if (_nativeDoc is null && !_continuousLinks.ContainsKey(fi))
+                _continuousLinks[fi] = GetPageLinks(fi, rdW, rdH);
 
             // Slot heights are now exact; recompute scroll offsets from them. The offsets depend only on the heights, so
             // a page whose slot kept its height leaves them as they are.

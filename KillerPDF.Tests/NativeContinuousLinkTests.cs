@@ -18,9 +18,21 @@ public sealed class NativeContinuousLinkTests
         string slot = Between(viewport, "private void SetContinuousSlot(", "LayoutContinuousSlots();");
 
         Assert.DoesNotContain("AddSecondaryPageLinks(", setup);
-        Assert.Contains("if (!_continuousLinks.ContainsKey(fi))", slot);
-        Assert.Contains("if (_nativeDoc is null) _continuousLinks[fi] = GetPageLinks(fi, rdW, rdH);", slot);
-        Assert.Contains("else AddSecondaryPageLinks(fi, rdW, rdH);", slot);
+        Assert.Contains("if (_nativeDoc is null && !_continuousLinks.ContainsKey(fi))", slot);
+        Assert.Contains("_continuousLinks[fi] = GetPageLinks(fi, rdW, rdH);", slot);
+        // A book's links, and their keyboard overlays, are added once, after the page's annotations are drawn (drawing
+        // them clears the canvas), so the first-draw step does not add them a second time.
+        Assert.DoesNotContain("AddSecondaryPageLinks(", slot);
+    }
+
+    [Fact]
+    public void ABooksLinksAreAddedOnceAfterItsAnnotationsAreDrawn()
+    {
+        string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+        string slot = Between(viewport, "private void SetContinuousSlot(", "/// <summary>True when part of the page is in the document viewport now.");
+
+        Assert.Equal(1, System.Text.RegularExpressions.Regex.Matches(slot, @"AddSecondaryPageLinks\(").Count);
+        Assert.Matches(@"RenderAllAnnotations\(fi\);\s*if \(_nativeDoc is not null\) AddSecondaryPageLinks\(fi, rdW, rdH\);", slot);
     }
 
     // A Grid rebuilt at another zoom changes which pages are on screen without scrolling. An EPUB search reads a page's
