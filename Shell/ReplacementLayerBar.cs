@@ -35,7 +35,8 @@ public partial class MainWindow
         void AddRow(ReplacementLayer layer, string labelKey, int row, bool visible, bool movable)
         {
             string prefix = "ReplacementLayer" + layer;
-            Button label = UiKit.Make(Loc(labelKey), false);
+            string rowLabel = Loc(labelKey);
+            Button label = UiKit.Make(rowLabel, false);
             label.Name = prefix + "Select";
             label.MinHeight = 24;
             label.Padding = new Thickness(5, 0, 5, 0);
@@ -46,13 +47,13 @@ public partial class MainWindow
             Place(label, row, 0);
             Toggle(prefix + "Visible", "Str_Panel_LayerToggle", visible,
                 "M1,8 C4,2 12,2 15,8 C12,14 4,14 1,8 Z M10,8 A2,2 0 1 1 6,8 A2,2 0 1 1 10,8",
-                value => ReplacementLayers.SetVisibility(pair, layer, value), row, 1);
+                value => ReplacementLayers.SetVisibility(pair, layer, value), rowLabel, row, 1);
             Toggle(prefix + "Movable", "Str_Replacement_LayerMove", movable,
                 "M5,8 L5,3 C5,1 7,1 7,3 L7,7 L7,2 C7,0 9,0 9,2 L9,7 L9,3 C9,1 11,1 11,3 L11,8 L11,5 C11,3 13,3 13,5 L13,10 C13,14 10,16 7,16 L5,16 L1,10 C0,8 2,7 3,8 L5,10 Z",
-                value => ReplacementLayers.SetMovementAllowed(pair, layer, value), row, 2);
+                value => ReplacementLayers.SetMovementAllowed(pair, layer, value), rowLabel, row, 2);
             Toggle(prefix + "Linked", "Str_Replacement_Link", pair.Text.PairLinked && pair.Cover.PairLinked,
                 "M6,5 L4,5 A3,3 0 0 0 4,11 L7,11 M10,5 L12,5 A3,3 0 0 1 12,11 L9,11 M5,8 L11,8",
-                value => ReplacementLayers.SetLinked(pair, value), row, 3);
+                value => ReplacementLayers.SetLinked(pair, value), rowLabel, row, 3);
         }
 
         void Place(UIElement element, int row, int column)
@@ -63,7 +64,7 @@ public partial class MainWindow
         }
 
         void Toggle(string name, string tooltip, bool state, string geometry,
-            Action<bool> change, int row, int column)
+            Action<bool> change, string rowLabel, int row, int column)
         {
             var button = new ToggleButton
             {
@@ -71,7 +72,8 @@ public partial class MainWindow
                 Margin = new Thickness(1), IsChecked = state, ToolTip = Loc(tooltip)
             };
             button.SetResourceReference(FrameworkElement.StyleProperty, "ToolbarToggleButton");
-            AutomationProperties.SetName(button, Loc(tooltip));
+            // Each row has the same three buttons, so the name says which row it belongs to: "Text cover: ...".
+            AutomationProperties.SetName(button, string.Format(Loc("Str_Bar_SwatchName"), rowLabel, Loc(tooltip)));
             AutomationProperties.SetAutomationId(button, name);
             var icon = new ShapePath
             {
