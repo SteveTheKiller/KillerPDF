@@ -64,8 +64,10 @@ public sealed class EpubPdfConversionMemoryTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(true, 12, "25FEFD208A8FCD05EEC20CF1B81042696A50A14CECD535458864E1050F72CE22")]
-    [InlineData(false, 12, "8B5642AAD711F071A316D177D996047A6BBE59598A654D432EDFD976BF124A2E")]
+    // Re-pinned once when converted page content became Flate-compressed (EpubPdfContentCompressionTests
+    // checks the content and text); any other change to these bytes is unintended.
+    [InlineData(true, 12, "9C8DF97B821EC1A38E586763C6A762CFDC36A82BC166DCEC88123F058B2581CC")]
+    [InlineData(false, 12, "9BF861E565CB9296E30BB53D552239668758818BB15307F3A4016EB309F482B3")]
     public void ConversionOfAMultiChapterBookKeepsItsExactBytes(bool pictures, int chapters, string expected)
     {
         // Pinned from the conversion before the memory work: same pages, text, pictures and bookmarks, byte for byte.

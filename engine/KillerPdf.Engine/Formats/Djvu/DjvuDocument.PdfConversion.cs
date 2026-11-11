@@ -31,7 +31,7 @@ public sealed partial class DjvuDocument
         }
         if (Pages.Count == 0)
             throw new NotSupportedException("DjVu PDF conversion requires supported native pages.");
-        var builder = new PdfDocumentBuilder();
+        var builder = new PdfDocumentBuilder { CompressPageContent = true };
         for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++)
         {
             try

@@ -41,6 +41,25 @@ public sealed partial class PdfDocumentBuilder
     private OpenActionDefinition? _openAction;
     private readonly List<TextNoteDefinition> _textNotes = [];
     private readonly List<TextMarkupDefinition> _textMarkups = [];
+    // Page content compressed as it was added, identified by array identity; written with /FlateDecode.
+    private readonly HashSet<byte[]> _flatePageContent = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>
+    /// When set, the content of pages added from then on is stored Flate-compressed. Book conversions set it:
+    /// their pages are mostly text operators, which compress many times over.
+    /// </summary>
+    internal bool CompressPageContent { get; set; }
+
+    private byte[] PageContent(byte[] content)
+    {
+        if (!CompressPageContent || content.Length == 0) return content;
+        using var compressed = new MemoryStream(content.Length / 4 + 64);
+        using (var zlib = new System.IO.Compression.ZLibStream(compressed, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true))
+            zlib.Write(content);
+        byte[] stored = compressed.ToArray();
+        _flatePageContent.Add(stored);
+        return stored;
+    }
 
     /// <summary>Initializes a document using PDF 2.0 or the specified defined PDF version.</summary>
     public PdfDocumentBuilder(PdfVersion? version = null)
@@ -182,7 +201,7 @@ public sealed partial class PdfDocumentBuilder
         ValidateDimension(width, nameof(width));
         ValidateDimension(height, nameof(height));
         EnsurePageCapacity();
-        _pages.Add(new PageDefinition(width, height, content.ToArray(),
+        _pages.Add(new PageDefinition(width, height, PageContent(content.ToArray()),
             new Dictionary<PdfStandardFont, PdfName>(), [],
             new Dictionary<PdfImage, PdfName>(),
             new Dictionary<PdfImageAsset, PdfName>(),
@@ -210,7 +229,7 @@ public sealed partial class PdfDocumentBuilder
         _pages.Add(new PageDefinition(
             width,
             height,
-            content.Build(),
+            PageContent(content.Build()),
             content.FontResources.ToDictionary(entry => entry.Key, entry => entry.Value),
             [.. content.EmbeddedFontResources],
             content.ImageResources.ToDictionary(entry => entry.Key, entry => entry.Value),
@@ -2951,7 +2970,8 @@ public sealed partial class PdfDocumentBuilder
                 objects.Add(new PdfIndirectObject(
                     allocatedPage.ContentNumber.Value,
                     0,
-                    PdfStream.FromOwnedData(Dictionary(), allocatedPage.Definition.Content),
+                    PdfStream.FromOwnedData(_flatePageContent.Contains(allocatedPage.Definition.Content)
+                        ? Dictionary(("Filter", Name("FlateDecode"))) : Dictionary(), allocatedPage.Definition.Content),
                     0));
             }
             for (int index = 0; index < allocatedPage.Definition.Links.Count; index++)

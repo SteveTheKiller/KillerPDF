@@ -33,7 +33,7 @@ public sealed partial class EpubDocument
         CancellationToken cancellationToken)
     {
         const double pointsPerCssPixel = 72d / 96d;
-        var builder = new PdfDocumentBuilder();
+        var builder = new PdfDocumentBuilder { CompressPageContent = true };
         // Each page is written while its chapter's layout is in memory, so the book is laid out only once;
         // its links are kept until every page exists, since a link may lead to a later page.
         var linkRuns = new List<(int PageIndex, EpubTextPlacement Placement)>();
