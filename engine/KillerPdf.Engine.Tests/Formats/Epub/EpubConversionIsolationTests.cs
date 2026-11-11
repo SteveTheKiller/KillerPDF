@@ -93,6 +93,24 @@ public sealed class EpubConversionIsolationTests
         Assert.Contains("OEBPS/text/c0.xhtml", letters);
     }
 
+    // PDF conversion sets each run's font size from its placement height, and body text records the font size as that
+    // height, so a notice run does the same; the line pitch (1.2 times the size) only spaces the lines.
+    [Fact]
+    public void ANoticeRunIsRecordedAtTheFontSizeNotTheLineHeight()
+    {
+        var book = new Book { Chapters = { Chapter(Unscripted) } };
+        var options = new EpubLayoutOptions(400, 600, Liberation()) { FontSize = 16, Margin = 2, IsolateChapterFailures = true,
+            UnavailableChapterLabel = "Chapter unavailable" };
+
+        var page = Assert.Single(EpubDocument.Open(book.Build()).CreateLayout(options).Pages);
+
+        Assert.NotEmpty(page.TextPlacements);
+        Assert.All(page.TextPlacements.Where(run => run.Length > 0), run => Assert.Equal(16, run.Height));
+        // Lines still advance by 1.2 times the size.
+        double[] tops = [.. page.TextPlacements.Select(run => run.Top).Distinct()];
+        Assert.Equal(16 * 1.2, tops[1] - tops[0], 6);
+    }
+
     [Fact]
     public void ANoticeLabelThatNoFontCanDrawShowsAMissingGlyphBoxPerCharacter()
     {

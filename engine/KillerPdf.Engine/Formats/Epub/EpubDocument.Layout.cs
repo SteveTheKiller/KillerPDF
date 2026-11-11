@@ -461,10 +461,11 @@ public sealed partial class EpubDocument
                     end += rune.Utf16SequenceLength;
                 }
                 clusters.Add(new(runStart, end - at, first.Font, runGlyphs) { Missing = missing });
-                placements.Add(new(spineIndex, runStart, end - at, runLeft, top, x - runLeft, lineHeight));
+                // Body text records its font size as the run height; lineHeight only advances top.
+                placements.Add(new(spineIndex, runStart, end - at, runLeft, top, x - runLeft, size));
                 at = end;
             }
-            if (value.Length == 0) placements.Add(new(spineIndex, text.Length, 0, left, top, 0, lineHeight));
+            if (value.Length == 0) placements.Add(new(spineIndex, text.Length, 0, left, top, 0, size));
             text.Append(value).Append(separator);
             top += lineHeight;
         }
