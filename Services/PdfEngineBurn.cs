@@ -89,25 +89,13 @@ internal static class PdfEngineBurn
     /// that the saved file is missing them.</summary>
     [ThreadStatic] internal static int SkippedPictures;
 
-    /// <summary>The picture and signature-image records the last <see cref="Burn"/> on this thread left out, so a caller that
-    /// replaces the page can keep exactly those records as overlays.</summary>
-    [ThreadStatic] internal static List<PageAnnotation>? SkippedPictureRecords;
-
-    /// <summary>Applies a page bake to the annotation lists: the burned pages lose their records, except the picture
-    /// records at the given positions (the ones the burn could not draw), which stay so the picture is not lost.</summary>
-    internal static void RemapAfterBake(Dictionary<int, List<PageAnnotation>> annotations,
-        IEnumerable<int> bakedPages, IReadOnlyDictionary<int, IReadOnlySet<int>> unburnedByPage)
+    /// <summary>Applies a page bake to the annotation lists: a baked page's records are all in the page now, or were
+    /// left out of it (and the caller says so), and a record cannot follow a page that was rotated, flipped or warped,
+    /// so every baked page loses all of its records. Undo restores them.</summary>
+    internal static void RemapAfterBake(Dictionary<int, List<PageAnnotation>> annotations, IEnumerable<int> bakedPages)
     {
         foreach (int page in bakedPages)
-        {
-            if (!annotations.TryGetValue(page, out var list)) continue;
-            if (!unburnedByPage.TryGetValue(page, out var keep) || keep.Count == 0) { list.Clear(); continue; }
-            var kept = new List<PageAnnotation>();
-            for (int index = 0; index < list.Count; index++)
-                if (keep.Contains(index)) kept.Add(list[index]);
-            list.Clear();
-            list.AddRange(kept);
-        }
+            if (annotations.TryGetValue(page, out var list)) list.Clear();
     }
 
     internal static void Burn(
@@ -127,7 +115,6 @@ internal static class PdfEngineBurn
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         SkippedPictures = 0;
-        SkippedPictureRecords = null;
         if (annotations.Values.Any(items => items.Count > 0))
             PdfEngineIntegration.StripLinkAppearances(path);
         var document = PdfDocument.Open(File.ReadAllBytes(path));
@@ -443,12 +430,7 @@ internal static class PdfEngineBurn
         double sx, double sy, Dictionary<string, TrueTypeFont> fonts)
     {
         if (!ReplacementLayers.IsVisible(annotation)) return;
-        int skippedBefore = SkippedPictures;
-        try { DrawVisibleAnnotation(content, annotation, sx, sy, fonts); }
-        finally
-        {
-            if (SkippedPictures > skippedBefore) (SkippedPictureRecords ??= []).Add(annotation);
-        }
+        DrawVisibleAnnotation(content, annotation, sx, sy, fonts);
     }
 
     private static void DrawVisibleAnnotation(PdfContentStreamBuilder content, PageAnnotation annotation,
@@ -829,9 +811,20 @@ internal static class PdfEngineBurn
                 // running out of memory and cancellation are let through.
                 try
                 {
-                    var asset = PdfAnnotationImageSource.ReadPdfAsset(bytes);
-                    content.DrawImage(asset, position.X * sx, position.Y * sy + height * sy,
-                        width * sx, -height * sy);
+                    try
+                    {
+                        var asset = PdfAnnotationImageSource.ReadPdfAsset(bytes);
+                        content.DrawImage(asset, position.X * sx, position.Y * sy + height * sy,
+                            width * sx, -height * sy);
+                    }
+                    catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException))
+                    {
+                        // The overlay draws a PDF picture by rendering it, so a picture the asset reader refuses
+                        // is rendered here the same way, at the placed size times the output scale.
+                        var rendered = PdfAnnotationImageSource.RenderPdf(bytes, width * sx, height * sy);
+                        content.DrawImage(ToEngineImage(rendered, 1), position.X * sx,
+                            position.Y * sy + height * sy, width * sx, -height * sy);
+                    }
                 }
                 catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException))
                 {
@@ -1034,6 +1027,48 @@ internal static class PdfEngineBurn
         => (flags & (int)ImageFlags.HasRealDpi) != 0 ? (horizontal, vertical) : (0, 0);
 
     private static EngineImage? LoadImage(byte[] bytes, double opacity = 1)
+    {
+        // GDI+ reads fewer formats than the overlay's decoder (JPEG XR, for one), so a picture it refuses is read
+        // through the in-box WIC decoder before it counts as unreadable.
+        try { return LoadImageGdi(bytes, opacity); }
+        catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException))
+        {
+            return LoadImageWic(bytes, opacity);
+        }
+    }
+
+    /// <summary>Decodes with WIC. It freezes everything it builds and needs no dispatcher, so it runs on a print
+    /// worker thread as well as the UI thread.</summary>
+    private static EngineImage LoadImageWic(byte[] bytes, double opacity)
+    {
+        using var stream = new MemoryStream(bytes);
+        var decoder = System.Windows.Media.Imaging.BitmapDecoder.Create(stream,
+            System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat,
+            System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+        var frame = decoder.Frames[0];
+        frame.Freeze();
+        return ToEngineImage(frame, opacity);
+    }
+
+    private static EngineImage ToEngineImage(System.Windows.Media.Imaging.BitmapSource source, double opacity)
+    {
+        var converted = new System.Windows.Media.Imaging.FormatConvertedBitmap(source,
+            System.Windows.Media.PixelFormats.Bgra32, null, 0);
+        converted.Freeze();
+        int width = converted.PixelWidth, height = converted.PixelHeight;
+        byte[] bgra = new byte[checked(width * height * 4)];
+        converted.CopyPixels(bgra, width * 4, 0);
+        byte[] rgba = new byte[bgra.Length];
+        double alpha = Math.Clamp(opacity, 0, 1);
+        for (int offset = 0; offset < bgra.Length; offset += 4)
+        {
+            rgba[offset] = bgra[offset + 2]; rgba[offset + 1] = bgra[offset + 1]; rgba[offset + 2] = bgra[offset];
+            rgba[offset + 3] = (byte)(bgra[offset + 3] * alpha);
+        }
+        return EngineImage.FromRgba(width, height, rgba);
+    }
+
+    private static EngineImage? LoadImageGdi(byte[] bytes, double opacity)
     {
         using var stream = new MemoryStream(bytes);
         using var source = Image.FromStream(stream);

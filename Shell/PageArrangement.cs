@@ -246,7 +246,6 @@ namespace KillerPDF.Shell
                 PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
                 var replacements = new Dictionary<int, string>();
                 var bakedAnnotationPages = new List<int>();
-                var unburnedByPage = new Dictionary<int, IReadOnlySet<int>>();
                 int skippedPictures = 0;
                 int done = 0;
                 foreach (var (page, tilt) in tilts.OrderBy(pair => pair.Key))
@@ -265,7 +264,6 @@ namespace KillerPDF.Shell
                     {
                         bakedAnnotationPages.Add(page);
                         skippedPictures += bake.Skipped;
-                        if (bake.Unburned.Count > 0) unburnedByPage[page] = bake.Unburned;
                     }
                     var (pageWidth, pageHeight) = engineSession.VisualPageSize(page, _pageRotations);
                     int budget = Math.Clamp((int)Math.Ceiling(Math.Max(pageWidth, pageHeight) * 300 / 72.0), 1000, 6000);
@@ -282,7 +280,7 @@ namespace KillerPDF.Shell
                 SaveTempAndReload(
                     keepAnnotations: true,
                     remapAnnotations: annotations =>
-                        PdfEngineBurn.RemapAfterBake(annotations, bakedAnnotationPages, unburnedByPage),
+                        PdfEngineBurn.RemapAfterBake(annotations, bakedAnnotationPages),
                     finalizeSavedFile: path =>
                     {
                         if (changed.Length == engineSession.PageCount)

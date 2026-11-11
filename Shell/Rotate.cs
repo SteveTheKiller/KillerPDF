@@ -131,7 +131,6 @@ namespace KillerPDF.Shell
                 // when the replacement document succeeds.
                 var replacements = new Dictionary<int, string>();
                 var bakedAnnotationPages = new List<int>();
-                var unburnedByPage = new Dictionary<int, IReadOnlySet<int>>();
                 int skippedPictures = 0;
                 for (int i = 0; i < pages.Length; i++)
                 {
@@ -153,7 +152,6 @@ namespace KillerPDF.Shell
                     {
                         bakedAnnotationPages.Add(pageIdx);
                         skippedPictures += bake.Skipped;
-                        if (bake.Unburned.Count > 0) unburnedByPage[pageIdx] = bake.Unburned;
                     }
                     var (epw, eph) = engineSession.PhysicalPageSize(pageIdx, _pageRotations);
                     int renderBudget = outputDpi > 0
@@ -192,9 +190,9 @@ namespace KillerPDF.Shell
                 }
                 SaveTempAndReload(
                     keepAnnotations: true,
-                    // A picture the burn could not draw is in no page, so its record stays as an overlay.
+                    // Every baked page loses its records: they are in the page, or the burn left them out and said so.
                     remapAnnotations: annotations =>
-                        PdfEngineBurn.RemapAfterBake(annotations, bakedAnnotationPages, unburnedByPage),
+                        PdfEngineBurn.RemapAfterBake(annotations, bakedAnnotationPages),
                     finalizeSavedFile: path =>
                     {
                         if (pages.Length == engineSession.PageCount)
@@ -238,9 +236,8 @@ namespace KillerPDF.Shell
         // (null if the page has no annotations - the caller then renders the normal source). Non-destructive:
         // _doc is restored to its pre-burn state by reopening from a clean snapshot, mirroring the proven
         // Save-Flattened pattern, so this is safe for the preview as well as Apply.
-        // The result carries how many pictures the burn left out and their positions in the page's list, so the
-        // caller can say so and keep those records.
-        private readonly record struct PageBake(string? Path, int Skipped, IReadOnlySet<int> Unburned);
+        // The result carries how many pictures the burn left out, so the caller can say so.
+        private readonly record struct PageBake(string? Path, int Skipped);
 
         private PageBake BurnPageAnnotationsToTemp(int pageIdx)
         {
@@ -255,18 +252,12 @@ namespace KillerPDF.Shell
             // restore below and render without the annotation layer instead.
             bool burnOk = true;
             int skipped = 0;
-            var unburned = new HashSet<int>();
             try
             {
                 System.IO.File.Copy(tempClean, tempBurned, true);
                 PdfEngineBurn.Burn(tempBurned, _annotations, _renderDims,
                     null, pageIdx, _pageRotations);
                 skipped = PdfEngineBurn.SkippedPictures;
-                foreach (PageAnnotation left in PdfEngineBurn.SkippedPictureRecords ?? [])
-                {
-                    int position = pa.FindIndex(item => ReferenceEquals(item, left));
-                    if (position >= 0) unburned.Add(position);
-                }
             }
             catch { burnOk = false; }
             _doc.Close();
@@ -284,7 +275,7 @@ namespace KillerPDF.Shell
                 _doc = PdfWorkingDocument.Open(tempClean, null);
             }
             _currentFile = tempClean;
-            return burnOk ? new PageBake(tempBurned, skipped, unburned) : default;
+            return burnOk ? new PageBake(tempBurned, skipped) : default;
         }
 
         // Renders a page to a white-backed bitmap (transparent page backgrounds show white, not the dark
