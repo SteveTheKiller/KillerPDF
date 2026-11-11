@@ -128,12 +128,16 @@ public static class PdfDocumentSplitter
         return Array.AsReadOnly(outputs.ToArray());
     }
 
+    // Counts extractions on the calling thread, so tests can bound the work a size split does.
+    [ThreadStatic] internal static int ExtractionCount;
+
     /// <summary>Builds one document holding the selected source pages in the requested order, without duplicates.</summary>
     public static byte[] Extract(PdfDocument document, IReadOnlyList<int> sourcePageIndices,
         bool compact = true)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(sourcePageIndices);
+        ExtractionCount++;
         int pageCount = PdfPageInformation.Read(document).Count;
         var kept = new HashSet<int>();
         foreach (int index in sourcePageIndices)

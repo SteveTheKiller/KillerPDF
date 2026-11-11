@@ -176,22 +176,18 @@ public sealed class PdfDocumentSplitterTests
         PdfDocument document = Pages(240);
         int[] firstForty = [.. Enumerable.Range(0, 40)];
         long budget = PdfDocumentSplitter.Extract(document, firstForty).LongLength;
-        // A greedy split that extracts every candidate part takes about one extraction per page.
-        var timer = System.Diagnostics.Stopwatch.StartNew();
-        for (int repeat = 0; repeat < 3; repeat++) PdfDocumentSplitter.Extract(document, firstForty);
-        double perExtraction = timer.Elapsed.TotalMilliseconds / 3;
-
-        timer.Restart();
+        // A greedy split that extracts every candidate part takes about one extraction per page,
+        // 240 here. Counting extractions keeps the bound independent of machine load.
+        PdfDocumentSplitter.ExtractionCount = 0;
         IReadOnlyList<PdfSplitOutput> outputs = PdfDocumentSplitter.Split(document,
             new PdfSplitOptions { Mode = PdfSplitMode.MaximumBytes, MaximumBytes = budget }, "big");
-        double elapsed = timer.Elapsed.TotalMilliseconds;
+        int extractions = PdfDocumentSplitter.ExtractionCount;
 
         Assert.Equal(Enumerable.Range(0, 240), outputs.SelectMany(output => output.SourcePageIndices));
         Assert.All(outputs, output => Assert.True(
             output.Document.Length <= budget || output.SourcePageIndices.Count == 1));
         Assert.True(outputs.Count is >= 5 and <= 7, $"{outputs.Count} parts");
-        Assert.True(elapsed < perExtraction * 60,
-            $"Split took {elapsed:0} ms against {perExtraction:0} ms for one extraction.");
+        Assert.True(extractions < 60, $"Split extracted {extractions} candidate parts for 240 pages.");
     }
 
     [Fact]
