@@ -129,6 +129,34 @@ namespace KillerPDF.Shell
             if (dlg.Accepted) apply(dlg.SelectedColor);
         }
 
+        // One slider gesture, a drag or a run of key presses, is one undo step, so a slider on the options bar
+        // takes its snapshot at the first change only. A swatch pick, a toggle or a stepper has no gesture and
+        // is one step by itself. The slider is found from where the input is: the control holding the mouse, or
+        // the focused slider while an arrow, Home, End or Page key is down.
+        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Slider, Controls.SliderGesture> _styleGestures = [];
+
+        private Controls.SliderGesture? ActiveSliderGesture()
+        {
+            DependencyObject? at = Mouse.Captured as DependencyObject;
+            if (at is null && (Keyboard.IsKeyDown(Key.Left) || Keyboard.IsKeyDown(Key.Right) || Keyboard.IsKeyDown(Key.Up)
+                || Keyboard.IsKeyDown(Key.Down) || Keyboard.IsKeyDown(Key.Home) || Keyboard.IsKeyDown(Key.End)
+                || Keyboard.IsKeyDown(Key.PageUp) || Keyboard.IsKeyDown(Key.PageDown)))
+                at = Keyboard.FocusedElement as DependencyObject;
+            while (at is not null and not Slider)
+                at = at is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D
+                    ? System.Windows.Media.VisualTreeHelper.GetParent(at) : LogicalTreeHelper.GetParent(at);
+            return at is Slider slider ? _styleGestures.GetValue(slider, static s => new Controls.SliderGesture(s)) : null;
+        }
+
+        // Ctrl+Z puts back how the selected annotations looked before the change. Called before the first change
+        // of a gesture; the rest of a slider gesture adds no step.
+        private void PushStyleUndo(IEnumerable<PageAnnotation> annotations)
+        {
+            if (ActiveSliderGesture() is { } gesture && !gesture.Starts()) return;
+            foreach (int page in annotations.Select(a => a.PageIndex).Distinct())
+                ActiveViewer.PushPageSnapshotUndoExt(page);
+        }
+
         private void ApplyTextStyleToSelection()
         {
             if (_activeTextBox is not null)
@@ -154,9 +182,13 @@ namespace KillerPDF.Shell
                 if (sy > 0 && _textFontSize > 0) ta.FontSize = _textFontSize / sy;
                 touched.Add(ta.PageIndex);
             }
-            if (_selectedAnnotation is TextAnnotation primary) Apply(primary);
+            var targets = new List<TextAnnotation>();
+            if (_selectedAnnotation is TextAnnotation primary) targets.Add(primary);
             foreach (var a in _selectedSet)
-                if (a is TextAnnotation ta && !ReferenceEquals(ta, _selectedAnnotation)) Apply(ta);
+                if (a is TextAnnotation ta && !ReferenceEquals(ta, _selectedAnnotation)) targets.Add(ta);
+            if (targets.Count == 0) return;
+            PushStyleUndo(targets);
+            foreach (var target in targets) Apply(target);
             if (touched.Count == 0) return;
 
             MarkDirty();
@@ -197,9 +229,13 @@ namespace KillerPDF.Shell
                     touched.Add(ma.PageIndex);
                 }
             }
-            if (_selectedAnnotation is not null) Apply(_selectedAnnotation);
+            var targets = new List<PageAnnotation>();
+            if (_selectedAnnotation is not null) targets.Add(_selectedAnnotation);
             foreach (var a in _selectedSet)
-                if (!ReferenceEquals(a, _selectedAnnotation)) Apply(a);
+                if (!ReferenceEquals(a, _selectedAnnotation)) targets.Add(a);
+            if (targets.Any(a => a is HighlightAnnotation or InkAnnotation or MeasurementAnnotation))
+                PushStyleUndo(targets.Where(a => a is HighlightAnnotation or InkAnnotation or MeasurementAnnotation));
+            foreach (var target in targets) Apply(target);
             if (touched.Count == 0) return;
 
             MarkDirty();
