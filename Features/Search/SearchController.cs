@@ -148,6 +148,9 @@ namespace KillerPDF.Features
 
         private void Locate(int page)
         {
+            // While a newer search runs these results are about to be replaced; reading their pages again would only
+            // slow it down. If that search is dropped instead, showing the page again reads it then.
+            if (_runner.IsRunning) return;
             if (_locator is not { } revision || !_unlocatedPages.Contains(page) || !_locating.Add(page)) return;
             _locateCancellation ??= new CancellationTokenSource();
             _ = LocateAsync(revision, page, [.. HitsOn(page)], _locateGeneration, _locateCancellation.Token);

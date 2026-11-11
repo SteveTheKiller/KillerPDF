@@ -67,13 +67,62 @@ public sealed class SearchControllerStateTests
         await host.NextText.Task.WaitAsync(Patience);
     }
 
+    // While a newer search runs, scrolling an old result's page onto the screen must not start reading that page's
+    // highlight areas again: the results are about to be replaced, and the reading would only slow the new search.
+    [Fact]
+    public async Task ScrollingOldResultsOntoTheScreenDuringANewSearchDoesNotRestartTheirHighlightReading()
+    {
+        using var owner = NativeWorkingDocument.OpenEpub(NativeProgressiveOpenTests.Book(), NativeOpenTests.Options());
+        var host = new Host(new CurrentSearchSnapshot([], []) { NativeRevision = owner.CaptureReadRevision() });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("AAAAA");
+        Assert.StartsWith("1 / ", await host.NextText.Task.WaitAsync(Patience));
+        using var deadline = new CancellationTokenSource(Patience);
+        while (!controller.LocationToken.CanBeCanceled) await Task.Delay(1, deadline.Token);
+
+        // Hold the second search just before its results land, while it is still running.
+        using var held = new ManualResetEventSlim();
+        using var reached = new ManualResetEventSlim();
+        host.Hold(held, reached, Environment.CurrentManagedThreadId);
+        host.NextText = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        controller.Run("AAAAA");
+        Assert.True(reached.Wait(Patience));
+        Assert.True(controller.IsSearching);
+        Assert.False(controller.LocationToken.CanBeCanceled);
+
+        foreach (int page in controller.PagesWithResults.ToArray()) controller.TryGetPageRects(page, out _);
+
+        bool restarted = controller.LocationToken.CanBeCanceled;
+        held.Set();
+        await host.NextText.Task.WaitAsync(Patience);
+        Assert.False(restarted, "Showing an old result's page started reading its highlight areas again.");
+    }
+
     internal sealed class Host(CurrentSearchSnapshot source) : KillerPDF.Features.ISearchHost
     {
         public TaskCompletionSource<string> NextText { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public string? Tooltip { get; private set; }
         public Guid? NativeSearchRevisionId => source.NativeRevision?.Id;
         public System.Windows.Window Window => throw new NotSupportedException();
-        public string? CurrentFile => "search-controller-state.djvu";
+        private ManualResetEventSlim? _held, _reached;
+        private int _owner;
+        // From now on a read of CurrentFile off the given thread signals reached and waits for held.
+        public void Hold(ManualResetEventSlim held, ManualResetEventSlim reached, int ownerThread)
+        {
+            _held = held; _reached = reached; _owner = ownerThread;
+        }
+        public string? CurrentFile
+        {
+            get
+            {
+                if (_held is { } held && Environment.CurrentManagedThreadId != _owner)
+                {
+                    _reached!.Set();
+                    held.Wait(Patience);
+                }
+                return "search-controller-state.djvu";
+            }
+        }
         public long SearchRevision => 0;
         public int CurrentPageIndex => 0;
         public CurrentSearchSnapshot CaptureSearchSnapshot() => source;
