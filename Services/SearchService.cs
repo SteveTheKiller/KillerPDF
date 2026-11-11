@@ -488,7 +488,8 @@ namespace KillerPDF.Services
             if (owned.Count > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var comments = KillerPdf.Engine.Documents.PdfCommentReader.Read(saved, true)
+                // The tolerant read: one malformed annotation anywhere skips that annotation, not the whole search.
+                var comments = KillerPdf.Engine.Documents.PdfCommentReader.Read(saved, true, new List<int>())
                     .ToDictionary(comment => (comment.PageIndex, comment.AnnotationIndex));
                 var pages = KillerPdf.Engine.Documents.PdfPageInformation.Read(saved);
                 foreach (OverlayRecord record in owned)
