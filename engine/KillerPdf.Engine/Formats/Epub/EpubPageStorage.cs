@@ -159,6 +159,12 @@ internal sealed class EpubPageStorage
     internal int PaintCount => _paints.Length;
     internal IReadOnlyDictionary<int, EpubGlyphCluster> Clusters => new ClusterView(this);
 
+    // The key that produced each image paint rebuilt by Paints, so a conversion can store one picture once.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<NativeImagePaint, EpubImageKey> PaintKeys = new();
+
+    /// <summary>The key a rebuilt image paint was decoded for, or null for any other paint.</summary>
+    internal static EpubImageKey? KeyOf(NativeImagePaint paint) => PaintKeys.TryGetValue(paint, out var key) ? key : null;
+
     /// <summary>Rebuilds the paint list, decoding deferred images through the book's image store.</summary>
     internal IReadOnlyList<NativePagePaint> Paints(bool decodeImages = true)
     {
@@ -175,8 +181,10 @@ internal sealed class EpubPageStorage
             if (item is EpubDeferredImagePaint deferred && decodeImages)
             {
                 if (_images is null) continue;
-                result.Add(new NativeImagePaint(_images.Get(deferred.Key), deferred.Left, deferred.Top)
-                { Width = deferred.Width, Height = deferred.Height });
+                var decoded = new NativeImagePaint(_images.Get(deferred.Key), deferred.Left, deferred.Top)
+                { Width = deferred.Width, Height = deferred.Height };
+                PaintKeys.AddOrUpdate(decoded, deferred.Key);
+                result.Add(decoded);
             }
             else result.Add(item);
         }

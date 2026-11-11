@@ -20,6 +20,7 @@ public sealed partial class EpubDocument
         // Each page is written while its chapter's layout is in memory, so the book is laid out only once;
         // its links are kept until every page exists, since a link may lead to a later page.
         var linkRuns = new List<(int PageIndex, EpubTextPlacement Placement)>();
+        var pdfImages = new Dictionary<EpubImageKey, PdfImage>();
         var layout = CreateLayout(new EpubLayoutOptions(
             options.PageWidthPoints / pointsPerCssPixel,
             options.PageHeightPoints / pointsPerCssPixel, options.DefaultFont)
@@ -142,8 +143,11 @@ public sealed partial class EpubDocument
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var image = paint.Image;
-                PdfImage pdfImage;
-                if (image.Alpha is { } alpha)
+                // One image object per distinct picture and decoded size, shared by every page that shows it.
+                var key = EpubPageStorage.KeyOf(paint);
+                PdfImage? pdfImage = null;
+                if (key is not null && pdfImages.TryGetValue(key, out var shared)) pdfImage = shared;
+                else if (image.Alpha is { } alpha)
                 {
                     byte[] rgba = new byte[checked(alpha.Length * 4)];
                     for (int pixel = 0; pixel < alpha.Length; pixel++)
@@ -156,6 +160,7 @@ public sealed partial class EpubDocument
                 }
                 else
                     pdfImage = PdfImage.FromRgb(image.Width, image.Height, image.Samples);
+                if (key is not null) pdfImages.TryAdd(key, pdfImage);
                 content.DrawImage(pdfImage,
                     paint.Left * pointsPerCssPixel,
                     options.PageHeightPoints - (paint.Top + paint.Height) * pointsPerCssPixel,
