@@ -1,3 +1,4 @@
+using System.IO;
 using KillerPDF.Services;
 using System.Runtime.ExceptionServices;
 using System.Windows.Threading;
@@ -79,4 +80,45 @@ public sealed class NativePaginationFollowerTests
         Assert.Equal(book.PageCount, book.ShownPageCount);
         Assert.Equal((book.PageCount, true), (shown[^1].After, shown[^1].Finished));
     }
+
+    // When pagination stops the reader sees a friendly sentence; the cause goes to the app log for support.
+    [Fact]
+    public async Task APaginationFailureReachesTheLogWithItsCause()
+    {
+        using var gate = new ManualResetEventSlim();
+        using var book = NativeWorkingDocument.OpenEpub(NativeProgressiveOpenTests.Book(),
+            NativeOpenTests.Options() with
+            {
+                FontFaceResolver = request =>
+                {
+                    if (request.Family?.Name == "Later")
+                    {
+                        Assert.True(gate.Wait(Patience), "The test never opened the gate.");
+                        throw new InvalidOperationException("pagination fixture failure");
+                    }
+                    return null;
+                }
+            }, inBackground: true);
+        gate.Set();
+        await Record.ExceptionAsync(() => book.Pagination.WaitAsync(Patience));
+        Assert.True(book.Pagination.IsFaulted, "The fixture did not fault the pagination.");
+
+        var logged = new List<(Exception Error, string Context)>();
+        NativePaginationFollower.LogStopped(book, "book.epub", (error, context) => { logged.Add((error, context)); return ""; });
+
+        var entry = Assert.Single(logged);
+        Assert.Contains("pagination fixture failure", entry.Error.Message);
+        Assert.Contains("book.epub", entry.Context);
+    }
+
+    // The window's wiring has no headless seam (it shows a dialog), so this pins that the stop notice also logs the cause.
+    [Fact]
+    public void TheWindowLogsThePaginationCauseWhereItShowsTheStopNotice()
+    {
+        string root = Path.GetDirectoryName(Path.GetDirectoryName(SourcePath()))!;
+        string window = File.ReadAllText(Path.Combine(root, "Shell", "NativePagination.cs"));
+        Assert.Contains("NativePaginationFollower.LogStopped(book, fileName, CrashReporter.Capture);", window);
+    }
+
+    private static string SourcePath([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 }

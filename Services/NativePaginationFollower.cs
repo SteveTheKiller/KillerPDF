@@ -22,6 +22,16 @@ internal static class NativePaginationFollower
         Show(book, showViews, shown, finished: true);
     }
 
+    /// <summary>Hands the cause of a stopped pagination to <paramref name="log"/> (the app log, given the base exception
+    /// and a context line), so support can find out why a long book stopped paginating. The reader sees only a friendly
+    /// sentence.</summary>
+    internal static void LogStopped(NativeWorkingDocument book, string fileName, Func<Exception, string, string> log)
+    {
+        if (book.Pagination.Exception?.GetBaseException() is not { } cause) return;
+        try { log(cause, "EPUB pagination stopped: " + fileName); }
+        catch (Exception error) when (error is not OutOfMemoryException) { /* logging is best effort */ }
+    }
+
     private static int Show(NativeWorkingDocument book, Action<int, int, bool> showViews, int before, bool finished)
     {
         var (_, after) = book.ShowPaginatedPages();

@@ -22,8 +22,12 @@ public partial class MainWindow
             if (_windowResourcesReleased || Dispatcher.HasShutdownStarted) return;
             // Closing the book cancels pagination; that needs no word. A failure keeps the pages already shown.
             if (book.Pagination.IsFaulted && !book.IsClosed && IsShowing(book))
+            {
+                // The dialog stays friendly; the cause goes to the app log for support.
+                NativePaginationFollower.LogStopped(book, fileName, CrashReporter.Capture);
                 KillerDialog.Show(this, Loc("Str_Native_PaginationStopped"),
                     Loc("Str_Dlg_AppTitle"), System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            }
             else if (book.Pagination.IsCompletedSuccessfully && IsShowing(book)
                 && _paginatingOpenStatus.Book == book && StatusText.Text == _paginatingOpenStatus.Text)
                 SetStatus(OpenedStatus(fileName, book));
