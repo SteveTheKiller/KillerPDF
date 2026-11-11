@@ -1006,6 +1006,49 @@ public sealed partial class PdfPageRenderer
             _constantAlpha = 0;
         }
 
+        /// <summary>
+        /// Writes the composed ink as encoded sRGB floats with straight alpha, converted precisely through
+        /// the surface's ink profile, or the render's working CMYK profile for untagged ink, then releases the ink.
+        /// </summary>
+        internal void ConvertInkToPrecise(float[] destination, PreciseCmykWorkingSpace working,
+            CancellationToken cancellationToken = default)
+        {
+            if (Ink is null) throw new InvalidOperationException("Only an ink surface has composed ink to convert.");
+            byte[] inkData = Ink;
+            PdfColorTransform? profile = InkProfile;
+            // Composed pages hold few distinct inks; the cache is cleared rather than grown without bound.
+            var converted = new Dictionary<uint, (float Red, float Green, float Blue)>();
+            Span<double> device = stackalloc double[4];
+            Span<double> xyz = stackalloc double[3];
+            for (int offset = 0; offset < Length; offset += 4)
+            {
+                if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                uint ink = ReadInk(inkData, offset);
+                if (!converted.TryGetValue(ink, out var rgb))
+                {
+                    for (int channel = 0; channel < 4; channel++) device[channel] = (byte)(ink >> (channel * 8)) / 255d;
+                    (double X, double Y, double Z) connection;
+                    if (profile is not null)
+                    {
+                        profile.ToXyz(device, xyz);
+                        connection = (xyz[0], xyz[1], xyz[2]);
+                    }
+                    else connection = working.Convert(device[0], device[1], device[2], device[3]).Connection
+                        ?? throw new NotSupportedException("The working CMYK profile did not retain its connection values.");
+                    var color = PreciseConnectionToRgb(connection.X, connection.Y, connection.Z);
+                    rgb = ((float)color.Red, (float)color.Green, (float)color.Blue);
+                    if (converted.Count >= 65536) converted.Clear();
+                    converted[ink] = rgb;
+                }
+                destination[offset] = rgb.Red;
+                destination[offset + 1] = rgb.Green;
+                destination[offset + 2] = rgb.Blue;
+                destination[offset + 3] = Alpha(offset) / 255f;
+            }
+            ReleaseSpotPlates();
+            Ink = null;
+        }
+
         internal void ConvertToBgra(CancellationToken cancellationToken = default)
         {
             if (Ink is null)

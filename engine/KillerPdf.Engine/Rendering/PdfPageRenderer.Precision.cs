@@ -113,15 +113,18 @@ public sealed partial class PdfPageRenderer
         int width = region is { } bounds ? bounds.Right - bounds.Left : options.Width;
         int height = region is { } verticalBounds ? verticalBounds.Bottom - verticalBounds.Top : options.Height;
         long pixelCount = (long)width * height;
-        PreciseProcessPlan? processPlan = PreparePreciseProcessPlan(pageIndex, options, cancellationToken);
+        if (options.SeparationPlate is not null)
+            throw new NotSupportedException("High-precision profile and group rendering is not implemented.");
+        PreciseProcessPlan? processPlan = PreparePreciseProcessPlan(pageIndex, options, cancellationToken, out bool composeInk);
         bool processPlates = processPlan is not null;
-        int pixelStorage = 4 + 2 * 4 * sizeof(float) + (processPlates ? 16 : 0)
-            + (options.Proof is { Enabled: true, GamutWarnings: true } ? 2 : 0);
+        // A composed-ink proof holds the byte ink surface with its alpha and spot base plate beside the float frame.
+        int pixelStorage = composeInk ? 4 + 4 + 4 + 2 * 4 * sizeof(float)
+            : 4 + 2 * 4 * sizeof(float) + (processPlates ? 16 : 0);
+        pixelStorage += options.Proof is { Enabled: true, GamutWarnings: true } ? 2 : 0;
         if (pixelCount > options.PixelByteLimit / pixelStorage)
             throw new ArgumentException("The high-precision render exceeds its combined pixel storage limit.", nameof(options));
         var page = _tree.Pages[pageIndex].Dictionary;
-        if (options.SeparationPlate is not null)
-            throw new NotSupportedException("High-precision profile and group rendering is not implemented.");
+        if (composeInk) return RenderComposedInkFrame(pageIndex, options, region, width, height, cancellationToken);
         if (page.TryGetValue(Name("Group"), out PdfObject? groupValue)
             && (Resolve(groupValue) is not PdfDictionary group
                 || !IsName(group, "S", "Transparency") || !IsName(group, "CS", "DeviceRGB")
@@ -135,6 +138,24 @@ public sealed partial class PdfPageRenderer
         PdfRenderedPage compatibility = RenderUncached(pageIndex, options, cancellationToken,
             region: region, preciseRgb: pixels, preciseCmyk: workingCmyk, preciseProcess: nativeProcess,
             preciseProcessPlan: processPlan);
+        return FinishPreciseFrame(pageIndex, options, compatibility, workingCmyk, pixels, width, height, cancellationToken);
+    }
+
+    // The byte renderer composes the page in its native ink surface, spot plates included, exactly as a
+    // separation preview does. Only the composed ink, eight bits a plate, is converted precisely.
+    private PdfRenderedFrame RenderComposedInkFrame(int pageIndex, PdfRenderOptions options,
+        (int Left, int Top, int Right, int Bottom)? region, int width, int height, CancellationToken cancellationToken)
+    {
+        var pixels = new float[checked(width * height * 4)];
+        var workingCmyk = new PreciseCmykWorkingSpace(options.WorkingCmykProfile);
+        PdfRenderedPage compatibility = RenderUncached(pageIndex, options, cancellationToken,
+            region: region, preciseCmyk: workingCmyk, composedInk: pixels);
+        return FinishPreciseFrame(pageIndex, options, compatibility, workingCmyk, pixels, width, height, cancellationToken);
+    }
+
+    private PdfRenderedFrame FinishPreciseFrame(int pageIndex, PdfRenderOptions options, PdfRenderedPage compatibility,
+        PreciseCmykWorkingSpace workingCmyk, float[] pixels, int width, int height, CancellationToken cancellationToken)
+    {
         HashSet<string> recovery = DocumentRecoveryDiagnostics(pageIndex);
         var frameDiagnostics = new List<string>();
         foreach (string diagnostic in compatibility.Diagnostics)

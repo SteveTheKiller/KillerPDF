@@ -76,9 +76,14 @@ public sealed partial class PdfPageRenderer
 
     // Qualification reads the whole page before allocating or clipping a backdrop. Until an
     // inverse transform is supported, RGB paint cannot supply native process plates.
+    // A proof of an overprint page the native plates cannot carry (spot inks, images, shadings, text,
+    // forms, groups, annotations or mixed sources) composes its inks in the byte renderer's ink surface,
+    // the model a separation preview uses, and converts the composed ink precisely; composeInk is set.
     private PreciseProcessPlan? PreparePreciseProcessPlan(int pageIndex, PdfRenderOptions options,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, out bool composeInk)
     {
+        composeInk = false;
+        bool proofing = options.Proof is { Enabled: true };
         var diagnostics = new HashSet<string>();
         PdfDictionary resources = _pageResources[pageIndex];
         var state = new PreciseProcessState(SupportedNormal: true, NormalBlend: true);
@@ -177,8 +182,13 @@ public sealed partial class PdfPageRenderer
                 case "n": rectangle = false; break;
             }
         }
-        if (!actualOverprint) return null;
         var page = _tree.Pages[pageIndex].Dictionary;
+        if (!actualOverprint)
+        {
+            // Overprint set inside forms, patterns, Type 3 glyphs or annotation appearances.
+            composeInk = proofing && ResourcesSetOverprint(page, resources, cancellationToken);
+            return null;
+        }
         PreciseProcessPlan? plan = null;
         for (int intent = 0; intent < 4; intent++)
         {
@@ -188,8 +198,63 @@ public sealed partial class PdfPageRenderer
             else plan ??= candidate;
         }
         if (unsupported || plan is null || page.ContainsKey(Name("Group")) || page.ContainsKey(Name("Annots")))
+        {
+            composeInk = proofing;
+            if (proofing) return null;
             throw new NotSupportedException("This high-precision graphics state requires Normal CMYK path paints with one supported source profile and intent, without groups or other paint sources.");
+        }
         return plan;
+    }
+
+    // Whether any graphics state the page can reach turns overprint on: page resources, nested form,
+    // pattern and Type 3 glyph resources, and annotation appearance streams. Each object is visited once.
+    private bool ResourcesSetOverprint(PdfDictionary page, PdfDictionary resources, CancellationToken cancellationToken)
+    {
+        var visited = new HashSet<PdfObject>(ReferenceEqualityComparer.Instance);
+        var pending = new Stack<PdfDictionary>();
+        pending.Push(resources);
+        if (page.TryGetValue(Name("Annots"), out var annotsValue) && Resolve(annotsValue) is PdfArray annots)
+            foreach (PdfObject item in annots)
+                if (Resolve(item) is PdfDictionary annotation
+                    && annotation.TryGetValue(Name("AP"), out var apValue) && Resolve(apValue) is PdfDictionary ap)
+                    foreach (var entry in ap)
+                        PushAppearance(Resolve(entry.Value));
+        while (pending.TryPop(out PdfDictionary? current))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!visited.Add(current)) continue;
+            // The page's own states were already followed through its content, so only states reached
+            // through forms, patterns, glyphs and appearances are judged by their definitions here.
+            if (!ReferenceEquals(current, resources)
+                && current.TryGetValue(Name("ExtGState"), out var statesValue) && Resolve(statesValue) is PdfDictionary states)
+                foreach (var entry in states)
+                    if (Resolve(entry.Value) is PdfDictionary settings
+                        && (IsTrue(settings, "op") || IsTrue(settings, "OP"))) return true;
+            foreach (string category in (string[])["XObject", "Pattern", "Font"])
+                if (current.TryGetValue(Name(category), out var groupValue) && Resolve(groupValue) is PdfDictionary group)
+                    foreach (var entry in group)
+                    {
+                        PdfObject resolved = Resolve(entry.Value);
+                        PdfDictionary? owner = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
+                        if (owner is not null && owner.TryGetValue(Name("Resources"), out var nested)
+                            && Resolve(nested) is PdfDictionary nestedResources) pending.Push(nestedResources);
+                    }
+        }
+        return false;
+
+        void PushAppearance(PdfObject value)
+        {
+            if (value is PdfStream stream)
+            {
+                if (stream.Dictionary.TryGetValue(Name("Resources"), out var nested) && Resolve(nested) is PdfDictionary r)
+                    pending.Push(r);
+            }
+            else if (value is PdfDictionary states)
+                foreach (var entry in states) if (Resolve(entry.Value) is PdfStream state) PushAppearance(state);
+        }
+
+        bool IsTrue(PdfDictionary settings, string key) =>
+            settings.TryGetValue(Name(key), out var value) && Resolve(value) is PdfBoolean { Value: true };
     }
 
     private static void PaintPreciseProcessPixel(RasterSurface surface, int offset,

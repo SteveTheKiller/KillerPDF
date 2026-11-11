@@ -116,14 +116,17 @@ public sealed class PdfPrecisionOverprintProofTests
     }
 
     [Fact]
-    public void OrdinaryCmykWithoutOverprintAndMixedRgbSourcesRemainRefusedForProof()
+    public void OrdinaryCmykWithoutOverprintRemainsRefusedForProofWhileMixedOverprintSourcesCompose()
     {
         var options = new PdfRenderOptions(2, 1) { Proof = new PdfDocumentProofSettings(true, AllIntentPrinter) };
         var ordinary = new PdfPageRenderer(PdfDocument.Open(Page(".2 .3 .4 .5 k 0 0 2 1 re f")));
         Assert.Throws<NotSupportedException>(() => ordinary.RenderFrame(0, options));
+        // RGB paint beside overprinted process ink cannot supply native plates, so the proof composes inks.
         var mixed = new PdfPageRenderer(PdfDocument.Open(Page("1 0 0 rg 1 0 1 1 re f /Over gs 1 0 0 0 k 0 0 1 1 re f")));
-        Assert.Throws<NotSupportedException>(() => mixed.RenderFrame(0, options));
-        Assert.Throws<NotSupportedException>(() => mixed.RenderFrameRegion(0, options, 0, 0, 1, 1));
+        PdfRenderedFrame frame = mixed.RenderFrame(0, options);
+        PdfRenderedFrame left = mixed.RenderFrameRegion(0, options, 0, 0, 1, 1);
+        Assert.Equal(frame.Pixels.Slice(0, 4).ToArray(), left.Pixels.ToArray());
+        Assert.NotEqual(frame.Pixels.Slice(0, 3).ToArray(), frame.Pixels.Slice(4, 3).ToArray());
     }
 
     [Fact]

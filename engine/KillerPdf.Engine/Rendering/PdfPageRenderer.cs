@@ -306,9 +306,10 @@ public sealed partial class PdfPageRenderer
         CancellationToken cancellationToken, byte[]? destination = null,
         (int Left, int Top, int Right, int Bottom)? region = null, float[]? preciseRgb = null,
         PreciseCmykWorkingSpace? preciseCmyk = null, float[]? preciseProcess = null,
-        PreciseProcessPlan? preciseProcessPlan = null)
+        PreciseProcessPlan? preciseProcessPlan = null, float[]? composedInk = null)
     {
-        if (preciseRgb is null && options.Proof is { Enabled: true })
+        // composedInk receives the composed ink of a byte render in encoded sRGB floats; the caller proofs it.
+        if (preciseRgb is null && composedInk is null && options.Proof is { Enabled: true })
             throw new NotSupportedException("Printer proof output is not implemented for byte rendering.");
         using PageGlyphMaskScope pageGlyphMasks = EnterPageGlyphMasks();
         // Untagged process inks display through this render's working CMYK profile, including
@@ -394,13 +395,13 @@ public sealed partial class PdfPageRenderer
         PdfColorTransform? outputProfile = pageHasGroup ? null : OutputProfile(null);
         PdfColorTransform? pageProfile = ReadGroupProfile(_tree.Pages[pageIndex].Dictionary, pageResources, diagnostics);
         bool considerRgbSpotShadow = false;
-        if (options.SeparationPlate is not null)
+        if (options.SeparationPlate is not null || composedInk is not null)
         {
             // A plate preview draws everything as ink so each process channel and named
-            // colorant can be read back on its own.
+            // colorant can be read back on its own. An overprint proof composes the same inks.
             pixels.EnableInk(Color.White, profile: outputProfile
                 ?? (CmykGroup(_tree.Pages[pageIndex].Dictionary, pageResources, false) ? pageProfile : null));
-            pixels.TrackSpotUnits = true;
+            pixels.TrackSpotUnits = options.SeparationPlate is not null;
         }
         else if (outputProfile is not null)
         {
@@ -437,19 +438,21 @@ public sealed partial class PdfPageRenderer
                 pageResources, initialState, 0);
             RenderAppearances();
             if (options.SeparationPlate is string plate) pixels.ExtractPlate(plate, cancellationToken);
+            else if (composedInk is not null) pixels.ConvertInkToPrecise(composedInk, preciseCmyk!, cancellationToken);
             else pixels.ConvertToBgra(cancellationToken);
+            float[]? imposedPrecise = preciseRgb ?? composedInk;
             if (isolatePageGroup && !options.TransparentBackground)
             {
                 // The completed page group is imposed on the medium with Normal blending.
                 for (int offset = 0; offset < pixels.Length; offset += 4)
                 {
                     if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-                    if (preciseRgb is not null)
+                    if (imposedPrecise is not null)
                     {
-                        float preciseAlpha = preciseRgb[offset + 3];
+                        float preciseAlpha = imposedPrecise[offset + 3];
                         for (int channel = 0; channel < 3; channel++)
-                            preciseRgb[offset + channel] = preciseRgb[offset + channel] * preciseAlpha + (1 - preciseAlpha);
-                        preciseRgb[offset + 3] = 1;
+                            imposedPrecise[offset + channel] = imposedPrecise[offset + channel] * preciseAlpha + (1 - preciseAlpha);
+                        imposedPrecise[offset + 3] = 1;
                     }
                     int alpha = pixels.Data[offset + 3];
                     for (int channel = 0; channel < 3; channel++)
