@@ -1044,8 +1044,9 @@ internal static class PdfEngineBurn
         }
     }
 
-    /// <summary>Decodes with WIC. It freezes everything it builds and needs no dispatcher, so it runs on a print
-    /// worker thread as well as the UI thread.</summary>
+    /// <summary>Decodes with WIC. Everything it builds is frozen, so it can be used from a print worker thread as
+    /// well as the UI thread. WPF imaging objects create a Dispatcher on the calling thread the first time one is
+    /// built there, so a worker thread that decodes gains an idle Dispatcher.</summary>
     private static EngineImage LoadImageWic(byte[] bytes, double opacity)
     {
         using var stream = new MemoryStream(bytes);

@@ -76,6 +76,18 @@ public sealed class BurnSkippedPictureTests
         Assert.Equal(1, Count(draw, "ReadPdfAsset(bytes)"));
     }
 
+    // SOURCE PIN for a comment: WPF imaging objects are DispatcherObjects, and building one on a thread that has no
+    // Dispatcher creates an idle one, so the WIC decoder's summary must not claim it needs none.
+    [Fact]
+    public void TheWicDecoderCommentSaysWpfAttachesADispatcherToTheCallingThread()
+    {
+        string burn = Source("Services", "PdfEngineBurn.cs");
+        string summary = Between(burn, "/// <summary>Decodes with WIC.", "private static EngineImage LoadImageWic(");
+        Assert.DoesNotContain("needs no dispatcher", summary);
+        Assert.Contains("Dispatcher", summary);
+        Assert.Contains("frozen", summary);
+    }
+
     // GDI+ cannot read JPEG XR, but the overlay decodes it through WIC, so the burn falls back to WIC and draws it.
     private static byte[] JpegXrPicture()
     {
