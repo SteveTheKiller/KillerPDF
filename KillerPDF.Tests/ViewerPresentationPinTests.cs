@@ -80,6 +80,22 @@ public sealed class ViewerPresentationPinTests
         Assert.DoesNotContain("ReadPageCount}", span);
     }
 
+    // viewer BF-005: a book has no working PDF (_doc), so the zoom status line kept its old text when zoom changed.
+    [Fact]
+    public void TheZoomStatusLineIsWrittenForBooksToo()
+    {
+        string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+        string setZoom = Between(viewport, "internal void SetZoom(double level)", "internal void SetTrueZoom(");
+        string preset = Between(viewport, "SetTrueZoom(z);", "// A secondary tile shares the primary's displayed width.");
+
+        Assert.Contains("if (HasReadDocument && _currentPage >= 0)", setZoom);
+        Assert.Contains("_currentPage + 1, ReadPageTotal) + $\" - {DisplayZoomPct():F0}%\"", setZoom);
+        Assert.DoesNotContain("_doc", setZoom);
+        Assert.Contains("if (_currentPage >= 0 && HasReadDocument)", preset);
+        Assert.Contains("_currentPage + 1, ReadPageTotal) + $\" - {DisplayZoomPct():F0}%\"", preset);
+        Assert.DoesNotContain("_doc", preset);
+    }
+
     private static int Count(string source, string text)
     {
         int count = 0;

@@ -2423,8 +2423,8 @@ namespace KillerPDF.Controls
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, level));
             ApplyZoom();
             SyncZoomBox();
-            if (_doc != null && _currentPage >= 0)
-                SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, _doc.PageCount) + $" - {DisplayZoomPct():F0}%");
+            if (HasReadDocument && _currentPage >= 0)
+                SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, ReadPageTotal) + $" - {DisplayZoomPct():F0}%");
         }
 
         /// <summary>
@@ -2516,8 +2516,8 @@ namespace KillerPDF.Controls
                 System.Globalization.CultureInfo.InvariantCulture, out double z))
             {
                 SetTrueZoom(z);
-                if (_currentPage >= 0 && _doc != null)
-                    SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, _doc.PageCount) + $" - {DisplayZoomPct():F0}%");
+                if (_currentPage >= 0 && HasReadDocument)
+                    SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, ReadPageTotal) + $" - {DisplayZoomPct():F0}%");
             }
         }
 
