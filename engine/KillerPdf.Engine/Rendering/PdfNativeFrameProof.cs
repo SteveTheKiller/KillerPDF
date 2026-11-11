@@ -10,12 +10,12 @@ internal static class PdfNativeFrameProof
     internal static void Preflight(PdfRenderOptions options, long retainedBytes = 0, long? outputPixels = null)
     {
         if (options.Proof is not { Enabled: true } proof) return;
+        PdfProofGate.Validate(proof, options.ForPrinting);
         long count = outputPixels ?? (long)options.Width * options.Height;
         // Source frame, mutable proof pixels and owned returned copy coexist.
         long bytes = checked(retainedBytes + count * (48 + (proof.GamutWarnings ? 2 : 0)));
         if (bytes > options.PixelByteLimit)
-            throw new ArgumentException("Native proof rendering exceeds the combined pixel storage limit.", nameof(options));
-        PdfProofGate.Validate(proof, options.ForPrinting);
+            throw new NotSupportedException("Native proof rendering exceeds the combined pixel storage limit.");
     }
 
     internal static PdfRenderedFrame Apply(PdfRenderedFrame source, PdfRenderOptions render, CancellationToken token)
@@ -26,14 +26,7 @@ internal static class PdfNativeFrameProof
             throw new NotSupportedException("Native printer proof requires linear sRGB D65 channels.");
         var printer = proof.PrinterProfile!;
         var options = proof.Options;
-        Span<double> paperBlack = stackalloc double[3];
-        Span<double> paperScale = stackalloc double[3];
-        PdfProofGate.PreparePaper(printer, options, paperBlack, paperScale);
-        PdfBlackPointCompensation sourceCompensation = options.BlackPointCompensation
-            && options.RenderingIntent != PdfRenderingIntent.AbsoluteColorimetric
-            ? printer.ReferenceBlackToDeviceCompensation(options.RenderingIntent) : new(1);
-        PdfBlackPointCompensation viewingCompensation = options.SimulateBlack || options.SimulatePaper ? new(1)
-            : printer.DeviceToReferenceBlackCompensation(PdfRenderingIntent.RelativeColorimetric);
+        var chain = new PdfProofPixelChain(printer, options);
         // Warnings follow the proof's own black-point compensation.
         var gamut = proof.GamutWarnings ? PdfPrinterGamutCheck.For(printer, options.BlackPointCompensation
             && options.RenderingIntent != PdfRenderingIntent.AbsoluteColorimetric) : null;
@@ -65,14 +58,7 @@ internal static class PdfNativeFrameProof
                 }
                 classifications![offset / 4] = lastClassification;
             }
-            sourceCompensation.Apply(xyz);
-            printer.FromXyz(xyz, device, options.RenderingIntent);
-            printer.ToXyz(device, xyz, options.SimulatePaper
-                ? PdfRenderingIntent.AbsoluteColorimetric : PdfRenderingIntent.RelativeColorimetric);
-            if (options.SimulatePaper && !options.SimulateBlack)
-                for (int channel = 0; channel < 3; channel++)
-                    xyz[channel] = (xyz[channel] - paperBlack[channel]) * paperScale[channel];
-            viewingCompensation.Apply(xyz);
+            chain.Apply(xyz, PdfPageRenderer.EncodeSrgb(Math.Min(r, Math.Min(g, b))), device);
             ToLinearRgb(xyz, pixels.AsSpan(offset, 3));
         }
         token.ThrowIfCancellationRequested();

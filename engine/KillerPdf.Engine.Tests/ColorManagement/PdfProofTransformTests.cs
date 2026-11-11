@@ -9,6 +9,90 @@ namespace KillerPdf.Engine.Tests.ColorManagement;
 public sealed class PdfProofTransformTests
 {
     [Fact]
+    public void RelativeProofPreservesUnprintedWhiteLikeTheRenderedProof()
+    {
+        var xyzDisplay = Profile(gray: false);
+        var printer = Rendering.PdfProofPaperWhiteTests.MisalignedPrinter(alignedForwardWhite: false);
+        var proof = new PdfProofTransform(xyzDisplay, printer, xyzDisplay,
+            new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true });
+        double[] white = [.9642, 1, .8249];
+        double[] result = new double[3];
+
+        proof.Convert(white, result);
+
+        for (int channel = 0; channel < 3; channel++)
+            Assert.Equal(white[channel], result[channel], 6);
+    }
+
+    [Fact]
+    public void AbsoluteProofKeepsTheUncorrectedColorimetricChain()
+    {
+        var source = D50WhiteGray();
+        var display = Profile(gray: false);
+        var printer = Rendering.PdfProofPaperWhiteTests.MisalignedPrinter(alignedForwardWhite: false);
+        var proof = new PdfProofTransform(source, printer, display,
+            new PdfProofOptions
+            {
+                RenderingIntent = PdfRenderingIntent.AbsoluteColorimetric,
+                BlackPointCompensation = false, SimulateBlack = true
+            });
+        double[] inks = new double[4], expected = new double[3], actual = new double[3];
+        source.ConvertTo(printer, [1], inks, PdfRenderingIntent.AbsoluteColorimetric);
+        printer.ConvertTo(display, inks, expected, PdfRenderingIntent.RelativeColorimetric);
+
+        proof.Convert([1], actual);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(0.96875)]
+    [InlineData(0.9375)]
+    public void ColorsAtAndBeyondTheWhiteCorrectionReachKeepTheProfileMapping(double encodedGray)
+    {
+        var source = D50WhiteGray();
+        var display = Profile(gray: false);
+        var printer = Rendering.PdfProofPaperWhiteTests.MisalignedPrinter(alignedForwardWhite: false);
+        var proof = new PdfProofTransform(source, printer, display,
+            new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true });
+        double gray = Math.Pow((encodedGray + .055) / 1.055, 2.4);
+        double[] inks = new double[4], expected = new double[3], actual = new double[3];
+        source.ConvertTo(printer, [gray], inks);
+        printer.ConvertTo(display, inks, expected);
+
+        proof.Convert([gray], actual);
+
+        for (int channel = 0; channel < 3; channel++) Assert.Equal(expected[channel], actual[channel], 6);
+    }
+
+    [Fact]
+    public void TheRelativeWhiteCorrectionFadesMonotonicallyToUnprintedWhite()
+    {
+        var source = D50WhiteGray();
+        var display = Profile(gray: false);
+        var printer = Rendering.PdfProofPaperWhiteTests.MisalignedPrinter(alignedForwardWhite: false);
+        var proof = new PdfProofTransform(source, printer, display,
+            new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true });
+        double[] previous = new double[3], current = new double[3];
+        for (int step = 0; step <= 32; step++)
+        {
+            double encoded = .96875 + step / 1024d;
+            double gray = Math.Pow((encoded + .055) / 1.055, 2.4);
+            proof.Convert([gray], current);
+            for (int channel = 0; channel < 3; channel++)
+            {
+                Assert.True(current[channel] >= previous[channel] - 1e-6,
+                    $"Channel {channel} decreased at fade step {step}.");
+                previous[channel] = current[channel];
+            }
+        }
+        Assert.Equal(.9642, current[0], 5);
+        Assert.Equal(1, current[1], 5);
+        Assert.Equal(.8249, current[2], 5);
+    }
+
+
+    [Fact]
     public void DefaultProofConvertsThroughPrinterComponentsAndPreservesSource()
     {
         var proof = new PdfProofTransform(Profile(gray: false), Profile(gray: true), Profile(gray: false));

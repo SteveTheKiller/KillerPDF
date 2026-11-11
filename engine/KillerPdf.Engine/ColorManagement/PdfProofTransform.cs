@@ -15,6 +15,7 @@ public sealed class PdfProofTransform
     private readonly double[]? _printerBlack;
     private readonly double[]? _displayBlack;
     private readonly double[]? _paperScale;
+    private Rendering.PdfProofPixelChain? _whiteCorrection;
 
     /// <summary>Creates a proof with paper and black simulation disabled.</summary>
     /// <exception cref="NotSupportedException">A profile lacks an actual table for a required intent and direction.</exception>
@@ -117,18 +118,34 @@ public sealed class PdfProofTransform
         Span<double> printer = stackalloc double[_printer.ComponentCount];
         _source.ConvertTo(_printer, source, printer,
             _intent, _blackPointCompensation);
+        var correction = _whiteCorrection ??= new Rendering.PdfProofPixelChain(_printer, new PdfProofOptions
+        {
+            RenderingIntent = _intent, BlackPointCompensation = false,
+            SimulateBlack = true, SimulatePaper = _simulatePaper
+        });
+        Span<double> xyz = stackalloc double[3];
+        _source.ToXyz(source, xyz, _intent);
+        var sourceRgb = Rendering.PdfPageRenderer.PreciseConnectionToRgb(xyz[0], xyz[1], xyz[2]);
+        correction.CorrectDeviceWhite(printer, Math.Min(sourceRgb.Red, Math.Min(sourceRgb.Green, sourceRgb.Blue)));
+        var viewing = _simulatePaper ? PdfRenderingIntent.AbsoluteColorimetric : PdfRenderingIntent.RelativeColorimetric;
+        _printer.ToXyz(printer, xyz, viewing);
+        correction.CorrectConnectionWhite(xyz, printer);
         if (_paperScale is not null)
         {
-            Span<double> xyz = stackalloc double[3];
-            _printer.ToXyz(printer, xyz, PdfRenderingIntent.AbsoluteColorimetric);
             for (int channel = 0; channel < 3; channel++)
                 xyz[channel] = _displayBlack![channel]
                     + (xyz[channel] - _printerBlack![channel]) * _paperScale[channel];
             _display.FromXyz(xyz, result, PdfRenderingIntent.AbsoluteColorimetric);
             return;
         }
-        _printer.ConvertTo(_display, printer, result,
-            _simulatePaper ? PdfRenderingIntent.AbsoluteColorimetric : PdfRenderingIntent.RelativeColorimetric,
-            blackPointCompensation: !_simulateBlack);
+        if (!_simulateBlack)
+        {
+            int intentIndex = viewing == PdfRenderingIntent.AbsoluteColorimetric ? 3 : 1;
+            if (!Rendering.PdfBlackPointCompensation.TryCreate(_printer.ForwardTransform(viewing),
+                _display.ForwardTransform(viewing), intentIndex, out var compensation))
+                throw new NotSupportedException("Black-point compensation is unavailable for this profile pair and intent.");
+            compensation.Apply(xyz);
+        }
+        _display.FromXyz(xyz, result, viewing);
     }
 }

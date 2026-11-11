@@ -154,14 +154,7 @@ public sealed partial class PdfPageRenderer
     private static PdfGamutWarningMask? ApplyPreciseProof(float[] pixels, int width, int height,
         PdfColorProfile printer, PdfProofOptions options, bool gamutWarnings, CancellationToken cancellationToken)
     {
-        Span<double> paperBlack = stackalloc double[3];
-        Span<double> paperScale = stackalloc double[3];
-        PdfProofGate.PreparePaper(printer, options, paperBlack, paperScale);
-        PdfBlackPointCompensation sourceCompensation = options.BlackPointCompensation
-            && options.RenderingIntent != Authoring.PdfRenderingIntent.AbsoluteColorimetric
-            ? printer.ReferenceBlackToDeviceCompensation(options.RenderingIntent) : new(1);
-        PdfBlackPointCompensation viewingCompensation = options.SimulateBlack || options.SimulatePaper ? new(1)
-            : printer.DeviceToReferenceBlackCompensation(Authoring.PdfRenderingIntent.RelativeColorimetric);
+        var chain = new PdfProofPixelChain(printer, options);
         Span<double> xyz = stackalloc double[3];
         Span<double> device = stackalloc double[printer.ComponentCount];
         // Warnings follow the proof's own black-point compensation.
@@ -193,14 +186,7 @@ public sealed partial class PdfPageRenderer
                 }
                 classifications![offset / 4] = lastClassification;
             }
-            sourceCompensation.Apply(xyz);
-            printer.FromXyz(xyz, device, options.RenderingIntent);
-            printer.ToXyz(device, xyz, options.SimulatePaper
-                ? Authoring.PdfRenderingIntent.AbsoluteColorimetric : Authoring.PdfRenderingIntent.RelativeColorimetric);
-            if (options.SimulatePaper && !options.SimulateBlack)
-                for (int channel = 0; channel < 3; channel++)
-                    xyz[channel] = (xyz[channel] - paperBlack[channel]) * paperScale[channel];
-            viewingCompensation.Apply(xyz);
+            chain.Apply(xyz, Math.Min(pixels[offset], Math.Min(pixels[offset + 1], pixels[offset + 2])), device);
             var color = PreciseConnectionToRgb(xyz[0], xyz[1], xyz[2]);
             pixels[offset] = (float)color.Red;
             pixels[offset + 1] = (float)color.Green;

@@ -81,8 +81,8 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
         deviceWhite.Fill(Components == 4 ? 0 : 1);
         absolute.ToXyz(deviceWhite, xyz);
         ReadOnlySpan<double> reference = [0.9642, 1, 0.8249];
-        // Conservative endpoint reliability policy, allowing small LUT and tag
-        // encoding differences up to 0.001 PCS XYZ units per channel.
+        // Paper simulation uses the measured absolute endpoint. A relative proof's white correction
+        // must not replace that endpoint or relax the profile's reliability check.
         const double whiteEndpointTolerance = 0.001;
         for (int channel = 0; channel < 3; channel++)
             if (!double.IsFinite(xyz[channel])

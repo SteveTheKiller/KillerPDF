@@ -24,6 +24,7 @@ public readonly record struct PdfGamutCheckResult(double DeltaE76, PdfGamutClass
 public sealed class PdfPrinterGamutCheck
 {
     private readonly PdfColorProfile _printer;
+    private readonly Rendering.PdfProofPixelChain _roundTrip;
 
     /// <summary>Gets the warning threshold in CIE1976 Lab units where the printer's tables round-trip precisely.</summary>
     /// <remarks>About one just-noticeable difference: a color the printer moves further than this is warned.</remarks>
@@ -57,6 +58,8 @@ public sealed class PdfPrinterGamutCheck
             || !reverse.IsAvailable || reverse.UsesIntentFallback)
             throw new NotSupportedException("Printer gamut checking requires actual relative-colorimetric output transforms in both directions.");
         _printer = printer;
+        _roundTrip = new Rendering.PdfProofPixelChain(printer,
+            new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true });
         _grid = new Lazy<float[]>(BuildGrid, LazyThreadSafetyMode.ExecutionAndPublication);
         if (blackPointCompensation)
             try { _compensation = printer.ReferenceBlackToDeviceCompensation(Authoring.PdfRenderingIntent.RelativeColorimetric); }
@@ -198,8 +201,11 @@ public sealed class PdfPrinterGamutCheck
 
     private void RoundTrip(ReadOnlySpan<double> xyz, Span<double> device, Span<double> returned)
     {
-        _printer.FromXyz(xyz, device, Authoring.PdfRenderingIntent.RelativeColorimetric);
-        _printer.ToXyz(device, returned, Authoring.PdfRenderingIntent.RelativeColorimetric);
+        // Relative proofing corrects small printer-table white errors. Classifying the same corrected
+        // round trip keeps an unprinted area inside the gamut the proof actually shows.
+        xyz.CopyTo(returned);
+        var rgb = Rendering.PdfPageRenderer.PreciseConnectionToRgb(xyz[0], xyz[1], xyz[2]);
+        _roundTrip.Apply(returned, Math.Min(rgb.Red, Math.Min(rgb.Green, rgb.Blue)), device);
     }
 
     private static double Difference(ReadOnlySpan<double> first, ReadOnlySpan<double> second)

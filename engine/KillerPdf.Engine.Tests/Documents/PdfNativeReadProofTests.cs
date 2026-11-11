@@ -115,7 +115,7 @@ public sealed class PdfNativeReadProofTests
             options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true });
         PdfRenderOptions Request(long budget) => new(width, height, maximumPixelBytes: budget) { Proof = proof };
 
-        Assert.Throws<ArgumentException>(() => snapshot.RenderPage(0, Request(exactBytes - 1)));
+        Assert.Throws<NotSupportedException>(() => snapshot.RenderPage(0, Request(exactBytes - 1)));
         var frame = snapshot.RenderPage(0, Request(exactBytes));
         var mask = Assert.IsType<PdfGamutWarningMask>(frame.PrinterGamutWarnings);
         Assert.Equal(width, mask.Width);
