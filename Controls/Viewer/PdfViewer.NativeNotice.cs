@@ -148,7 +148,7 @@ namespace KillerPDF.Controls
             close.SetResourceReference(FrameworkElement.StyleProperty, "OverlayCloseButton");
             close.SetResourceReference(ContentControl.ContentProperty, "AboutCloseGlyph");
             close.SetResourceReference(FrameworkElement.ToolTipProperty, "Str_Restricted_Dismiss");
-            AutomationProperties.SetName(close, host.Loc("Str_Restricted_Dismiss"));
+            close.SetResourceReference(AutomationProperties.NameProperty, "Str_Restricted_Dismiss");
             close.Click += (_, _) => dismiss();
 
             var row = new DockPanel { LastChildFill = true, Margin = new Thickness(6, 2, 2, 2) };
