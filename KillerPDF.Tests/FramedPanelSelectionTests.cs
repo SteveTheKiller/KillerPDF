@@ -147,4 +147,55 @@ public sealed class FramedPanelSelectionTests
             Assert.True(TextRunService.PanelWork <= 200_000, $"panel detection did {TextRunService.PanelWork} tests");
         }
         finally { File.Delete(path); }
-    }}
+    }
+
+    // Many words stacked on one spot, so every word's box covers the whole word grid, plus one framing rectangle.
+    // Each word used to be added to every cell, so building the grid cost words x cells list inserts, which the
+    // panel budget never saw, on the thread that handles a Select-tool hover.
+    [Fact]
+    public void WordsStackedOnOneSpotDoNotMakeTheWordGridDoUnboundedWork()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"kp-panels-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            var body = new StringBuilder("0.1 w 5 5 290 290 re S\n");
+            for (int word = 0; word < 6000; word++)
+                body.Append(FormattableString.Invariant($"BT /F1 80 Tf 1 0 0 1 {20 + word % 40 * 0.5} {80 + word / 40 * 0.5} Tm (w ) Tj ET\n"));
+            File.WriteAllBytes(path, Encoding.ASCII.GetBytes(OnePage(body.ToString(), 300)));
+            TextRunService.PanelWork = 0;
+            TextRunService.GridInsertions = 0;
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
+            Assert.True(runs.Chars.Count >= 6000);
+            // 6,000 words on a 77 x 77 grid, most boxes covering most cells, is about 10 million inserts; the budget is 5 million.
+            Assert.True(TextRunService.GridInsertions <= TextRunService.PanelWorkBudget,
+                $"the word grid made {TextRunService.GridInsertions} inserts");
+            Assert.True(TextRunService.PanelWork <= TextRunService.PanelWorkBudget,
+                $"panel detection counted {TextRunService.PanelWork} tests");
+        }
+        finally { File.Delete(path); }
+    }
+
+    private static string OnePage(string body, int size)
+    {
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {size} {size}] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            $"<< /Length {body.Length} >>\nstream\n{body}\nendstream"
+        ];
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = pdf.Length;
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return pdf.ToString();
+    }
+}

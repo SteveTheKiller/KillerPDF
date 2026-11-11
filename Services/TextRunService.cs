@@ -269,6 +269,10 @@ namespace KillerPDF.Services
         // hover on it never waits for the pass.
         internal const long PanelWorkBudget = 5_000_000;
 
+        /// <summary>Word-to-cell list inserts made building the word grid on this thread. Tests read it to bound the
+        /// work; it has no other use.</summary>
+        [ThreadStatic] internal static long GridInsertions;
+
         // Words bucketed by position once, so a rectangle is tested only against the words in the buckets it covers.
         private sealed class WordGrid
         {
@@ -279,7 +283,14 @@ namespace KillerPDF.Services
             private readonly int[] _stamp;
             private int _query;
 
-            public WordGrid(IReadOnlyList<Engine.PdfExtractedWord> words)
+            /// <summary>True when the words would need more cell inserts than the budget allows (words with huge
+            /// boxes stacked on one region each land in most cells); no cells are built and Near must not be used.</summary>
+            public bool OverBudget { get; }
+
+            /// <summary>Cells and bucket entries the queries have walked so far.</summary>
+            public long QueryWork { get; private set; }
+
+            public WordGrid(IReadOnlyList<Engine.PdfExtractedWord> words, long insertBudget)
             {
                 _bounds = new Engine.PdfContentBounds[words.Count];
                 double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
@@ -296,6 +307,14 @@ namespace KillerPDF.Services
                 _minY = minY;
                 _cellWidth = Math.Max((maxX - minX) / _size, 1e-9);
                 _cellHeight = Math.Max((maxY - minY) / _size, 1e-9);
+                long inserts = 0;
+                for (int index = 0; index < words.Count && inserts <= insertBudget; index++)
+                {
+                    if (!IsFinite(_bounds[index])) continue;
+                    var (x0, x1, y0, y1) = Span(_bounds[index]);
+                    inserts += (long)(x1 - x0 + 1) * (y1 - y0 + 1);
+                }
+                if (inserts > insertBudget) { OverBudget = true; _cells = []; _stamp = []; return; }
                 _cells = new List<int>?[_size * _size];
                 _stamp = new int[words.Count];
                 for (int index = 0; index < words.Count; index++)
@@ -304,7 +323,7 @@ namespace KillerPDF.Services
                     var (x0, x1, y0, y1) = Span(_bounds[index]);
                     for (int y = y0; y <= y1; y++)
                         for (int x = x0; x <= x1; x++)
-                            (_cells[y * _size + x] ??= []).Add(index);
+                        { (_cells[y * _size + x] ??= []).Add(index); GridInsertions++; }
                 }
             }
 
@@ -330,9 +349,15 @@ namespace KillerPDF.Services
                 var (x0, x1, y0, y1) = Span(rectangle);
                 for (int y = y0; y <= y1; y++)
                     for (int x = x0; x <= x1; x++)
+                    {
+                        QueryWork++;
                         if (_cells[y * _size + x] is { } cell)
+                        {
+                            QueryWork += cell.Count;
                             foreach (int index in cell)
                                 if (_stamp[index] != query) { _stamp[index] = query; found.Add(index); }
+                        }
+                    }
                 found.Sort();
                 return found;
             }
@@ -372,13 +397,16 @@ namespace KillerPDF.Services
             static void AssignPanels(IReadOnlyList<Engine.PdfExtractedWord> words,
                 List<(Engine.PdfContentBounds Bounds, string Operator)> candidates, int[] membership)
             {
-                var grid = new WordGrid(words);
+                var grid = new WordGrid(words, PanelWorkBudget);
+                if (grid.OverBudget) return;
                 var frames = new List<Engine.PdfContentBounds>();
                 var held = new Dictionary<Engine.PdfContentBounds, List<int>>();
                 foreach (var (bounds, paint) in candidates)
                 {
+                    long before = grid.QueryWork;
                     var near = grid.Near(bounds);
-                    PanelWork += near.Count;
+                    PanelWork += grid.QueryWork - before;
+                    if (grid.QueryWork > PanelWorkBudget) return;
                     var inside = new List<int>();
                     bool straddles = false;
                     foreach (int index in near)
