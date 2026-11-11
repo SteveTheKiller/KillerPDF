@@ -46,6 +46,81 @@ public sealed class PdfEditablePageOverlayTests
     }
 
     [Fact]
+    public void Read_HashesOneSharedFormOnceNoMatterHowManyUnitsNameIt()
+    {
+        const int Units = 512;
+        var content = new PdfContentStreamBuilder();
+        for (int index = 0; index < 300_000; index++) content.Rectangle(index % 90, index % 90, 1, 1);
+        content.Fill();
+        PdfDocument single = PdfDocument.Open(PdfEditablePageOverlayEditor.Append(
+            PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(100, 100).Build()),
+            0, 100, 100, content, new byte[] { 1 }, null));
+        PdfEditablePageOverlay original = Assert.Single(PdfEditablePageOverlayEditor.Read(single));
+        PdfPageTreeEntry page = PdfPageTree.Read(single).Pages[0];
+        var contents = Assert.IsType<PdfArray>(page.Dictionary[new PdfName("Contents"u8)]);
+        var prefixSource = Assert.IsType<PdfStream>(single.Resolve((PdfIndirectReference)contents[0]));
+        var invocationSource = Assert.IsType<PdfStream>(single.Resolve((PdfIndirectReference)contents[^1]));
+        var metadataName = new PdfName("KillerPDFEditableOverlay"u8);
+        var sourceMetadata = Assert.IsType<PdfDictionary>(invocationSource.Dictionary[metadataName]);
+
+        // Craft many owned units that all name the one Form, each with its own prefix and invocation.
+        // The prefix graph includes the prefix's own reference, so the prefixes are added first.
+        var addPrefixes = new PdfIncrementalUpdateBuilder(single);
+        var prefixes = new List<PdfIndirectReference>();
+        for (int unit = 0; unit < Units; unit++)
+            prefixes.Add(addPrefixes.AddObject(
+                new PdfStream(new PdfDictionary(prefixSource.Dictionary), prefixSource.EncodedData.Span)));
+        PdfDocument withPrefixes = PdfDocument.Open(addPrefixes.Build());
+        var graph = typeof(PdfEditablePageOverlayEditor).GetMethod("Graph",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        var update = new PdfIncrementalUpdateBuilder(withPrefixes);
+        var kept = contents.Skip(1).Take(contents.Count - 2).ToList();
+        var invocations = new List<PdfObject>();
+        for (int unit = 0; unit < Units; unit++)
+        {
+            PdfIndirectReference invocation = update.ReserveObject();
+            var metadata = sourceMetadata.Where(pair => !pair.Key.Equals(new PdfName("UnitHash"u8)))
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+            metadata[new PdfName("Prefix"u8)] = prefixes[unit];
+            metadata[new PdfName("Contents"u8)] = invocation;
+            metadata[new PdfName("PrefixGraph"u8)] = new PdfString(
+                (byte[])graph.Invoke(null, [withPrefixes, prefixes[unit]])!, PdfStringForm.Hexadecimal);
+            byte[] hash = System.Security.Cryptography.SHA256.HashData(
+                PdfObjectWriter.Write(new PdfDictionary(
+                    metadata.OrderBy(pair => pair.Key.ValueAsLatin1(), StringComparer.Ordinal))));
+            metadata[new PdfName("UnitHash"u8)] = new PdfString(hash, PdfStringForm.Hexadecimal);
+            var entries = invocationSource.Dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
+            entries[metadataName] = new PdfDictionary(metadata);
+            update.SetObject(invocation,
+                new PdfStream(new PdfDictionary(entries), invocationSource.EncodedData.Span));
+            invocations.Add(invocation);
+        }
+        var pageEntries = page.Dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
+        pageEntries[new PdfName("Contents"u8)] = new PdfArray([.. kept, .. prefixes, .. invocations]);
+        update.ReplaceObject(page.Reference.ObjectNumber, new PdfDictionary(pageEntries));
+        PdfDocument crafted = PdfDocument.Open(update.Build());
+
+        PdfEditablePageOverlayEditor.FormGraphHashes = 0;
+        IReadOnlyList<PdfEditablePageOverlay> units = PdfEditablePageOverlayEditor.Read(crafted);
+
+        Assert.Equal(Units, units.Count);
+        Assert.All(units, unit => Assert.Equal(original.FormObjectNumber, unit.FormObjectNumber));
+        Assert.Equal(1, PdfEditablePageOverlayEditor.FormGraphHashes);
+    }
+
+    [Fact]
+    public void Read_StopsWhenItsCancellationTokenIsCancelled()
+    {
+        PdfDocument saved = PdfDocument.Open(PdfEditablePageOverlayEditor.Append(
+            PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(100, 100).Build()),
+            0, 100, 100, new PdfContentStreamBuilder().Rectangle(1, 1, 5, 5).Fill(), new byte[] { 1 }, null));
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => PdfEditablePageOverlayEditor.Read(saved, cancelled.Token));
+    }
+
+    [Fact]
     public void Lifecycle_ExistingNonzeroPageGenerationPreservesEditableData()
     {
         string[] objects = [

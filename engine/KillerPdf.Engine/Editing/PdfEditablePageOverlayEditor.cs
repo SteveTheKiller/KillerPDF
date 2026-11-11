@@ -45,6 +45,8 @@ public static class PdfEditablePageOverlayEditor
 {
     private const int MaximumData = 8 * 1024 * 1024;
     private const int MaximumGraph = 32 * 1024 * 1024;
+    // Counts the Form graphs Read hashes on the current thread, so a test can check that a shared Form is hashed once.
+    [ThreadStatic] internal static int FormGraphHashes;
     private static PdfName N(string name) => new(Encoding.ASCII.GetBytes(name));
     private static readonly PdfName Metadata = N("KillerPDFEditableOverlay");
 
@@ -128,9 +130,21 @@ public static class PdfEditablePageOverlayEditor
         update.ReplaceObject(invocation.ObjectNumber, new PdfStream(new PdfDictionary(dictionary), stream.EncodedData.Span));
     }
     /// <summary>Reads intact owned tail units.</summary>
-    public static IReadOnlyList<PdfEditablePageOverlay> Read(PdfDocument document)
+    public static IReadOnlyList<PdfEditablePageOverlay> Read(PdfDocument document,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
+        // Units that name one shared Form would otherwise hash that Form's whole graph once per unit.
+        var formGraphs = new Dictionary<int, byte[]>();
+        byte[] FormGraph(PdfIndirectReference form)
+        {
+            if (!formGraphs.TryGetValue(form.ObjectNumber, out byte[]? graph))
+            {
+                FormGraphHashes++;
+                formGraphs.Add(form.ObjectNumber, graph = Graph(document, form));
+            }
+            return graph;
+        }
         if (!document.IsDecrypted || document.PasswordAuthenticationRole == PdfPasswordAuthenticationRole.User
             && (document.DeclaredPermissions is not PdfDocumentPermissions permissions || !permissions.AllowContentCopying))
             throw new InvalidOperationException("The authenticated PDF must permit copying editable page content.");
@@ -138,6 +152,7 @@ public static class PdfEditablePageOverlayEditor
         var lookup = new DocumentLookup(document);
         foreach (PdfPageTreeEntry page in lookup.Tree.Pages)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 int pageStart = result.Count;
@@ -145,6 +160,7 @@ public static class PdfEditablePageOverlayEditor
                 var seen = new HashSet<int>();
                 for (int index = contents.Count - 1; index >= 0; index--)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (contents[index] is not PdfIndirectReference invocation || invocation.Generation != 0
                         || !seen.Add(invocation.ObjectNumber)) break;
                     PdfStream stream = Stream(document, invocation);
@@ -169,7 +185,7 @@ public static class PdfEditablePageOverlayEditor
                     var data = metadata[N("Data")] as PdfString ?? throw Invalid();
                     if (data.Bytes.Length > MaximumData
                         || !StringBytes(metadata[N("Frame")]).SequenceEqual(Frame(document, page, null, lookup))
-                        || !StringBytes(metadata[N("Graph")]).SequenceEqual(Graph(document, form))) throw Invalid();
+                        || !StringBytes(metadata[N("Graph")]).SequenceEqual(FormGraph(form))) throw Invalid();
                     if (!PdfObjectWriter.Write(metadata[N("Structure")]).AsSpan()
                         .SequenceEqual(PdfObjectWriter.Write(CaptureStructure(document, page, form, lookup)))) throw Invalid();
                     result.Add(new PdfEditablePageOverlay(page.Index, invocation.ObjectNumber, form.ObjectNumber,
