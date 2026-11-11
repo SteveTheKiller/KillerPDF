@@ -182,9 +182,9 @@ public sealed class BurnSkippedPictureTests
     }
 
     [Fact]
-    public void AJpegXrPictureIsBurnedOnAWorkerThreadToo()
+    public async System.Threading.Tasks.Task AJpegXrPictureIsBurnedOnAWorkerThreadToo()
     {
-        var (skipped, output) = System.Threading.Tasks.Task.Run(() => BurnPictureAndRead(JpegXrPicture())).GetAwaiter().GetResult();
+        var (skipped, output) = await System.Threading.Tasks.Task.Run(() => BurnPictureAndRead(JpegXrPicture()));
         Assert.Equal(0, skipped);
         Assert.Contains("/Image", Encoding.Latin1.GetString(output));
     }
