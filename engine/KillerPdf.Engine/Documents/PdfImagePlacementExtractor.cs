@@ -225,7 +225,8 @@ public static class PdfImagePlacementExtractor
         cancellationToken.ThrowIfCancellationRequested();
         if (result.Length > MaximumAssetBytes)
             throw new NotSupportedException("The detached image asset exceeds its size limit.");
-        return new PdfImageAsset(width, height, result);
+        return new PdfImageAsset(width, height, result,
+            mirrored: selection.Placement is { A: < 0 }, flipped: selection.Placement is { D: < 0 });
 
         PdfName EffectiveIntent()
         {

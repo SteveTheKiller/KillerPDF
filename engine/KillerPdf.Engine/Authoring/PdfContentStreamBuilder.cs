@@ -710,6 +710,9 @@ public sealed class PdfContentStreamBuilder
             resource = new PdfName(Encoding.ASCII.GetBytes($"Ia{_assets.Count + 1}"));
             _assets.Add(asset, resource);
         }
+        // A mirrored source lands in the same rectangle, drawn backwards.
+        if (asset.Mirrored) { x += width; width = -width; }
+        if (asset.Flipped) { y += height; height = -height; }
         RecordPaintedContent();
         WriteOperator("q"u8);
         Operator("cm"u8, width, 0, 0, height, x, y);

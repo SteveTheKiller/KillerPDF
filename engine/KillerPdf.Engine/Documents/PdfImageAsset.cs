@@ -5,8 +5,10 @@ public sealed class PdfImageAsset
 {
     private readonly byte[] _pdf;
 
-    internal PdfImageAsset(int width, int height, byte[] pdf)
+    internal PdfImageAsset(int width, int height, byte[] pdf, bool mirrored = false, bool flipped = false)
     {
+        Mirrored = mirrored;
+        Flipped = flipped;
         Width = width;
         Height = height;
         _pdf = pdf.ToArray();
@@ -16,6 +18,10 @@ public sealed class PdfImageAsset
     public int Width { get; }
     /// <summary>Gets the original image height in pixels.</summary>
     public int Height { get; }
+
+    // The page showed the source picture mirrored left to right or upside down; the encoded bytes are untouched.
+    internal bool Mirrored { get; }
+    internal bool Flipped { get; }
 
     internal PdfDocument OpenClosedDocument(CancellationToken cancellationToken)
     {

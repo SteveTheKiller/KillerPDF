@@ -135,6 +135,76 @@ public sealed class PdfImagePlacementExtractionTests
             new PdfPageRenderer(PdfDocument.Open(asset.ToPdfBytes())).Render(0, new PdfRenderOptions(2, 1)).Pixels.ToArray());
     }
 
+    [Theory]
+    [InlineData("-100 0 0 50 150 100", 2, 1, new byte[] { 255, 0, 0, 0, 0, 255 }, 75, 75, 125, 75)]
+    [InlineData("100 0 0 -50 50 150", 1, 2, new byte[] { 255, 0, 0, 0, 0, 255 }, 100, 60, 100, 90)]
+    public void ExtractingAFlippedPictureKeepsItFlippedWhenTheAssetIsDrawnAgain(
+        string matrix, int width, int height, byte[] samples, int x1, int y1, int x2, int y2)
+    {
+        byte[] source = FlippedFixture(matrix, width, height, Compress(samples));
+        var document = PdfDocument.Open(source);
+        var selection = Assert.Single(new PdfPageContentReader(document).ReadImagePlacements(0));
+        PdfImageAsset asset = PdfImagePlacementExtractor.Extract(document, selection);
+        var target = PdfDocument.Open(new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
+            .AddPage(200, 200, new KillerPdf.Engine.Authoring.PdfContentStreamBuilder()
+                .DrawImage(asset, 50, 100, 100, 50)).Build());
+
+        var shown = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(200, 200));
+        var pasted = new PdfPageRenderer(target).Render(0, new PdfRenderOptions(200, 200));
+
+        foreach ((int px, int py) in new[] { (x1, y1), (x2, y2) })
+        {
+            Assert.Equal(PixelAt(shown, px, py), PixelAt(pasted, px, py));
+        }
+        Assert.NotEqual(PixelAt(shown, x1, y1), PixelAt(shown, x2, y2));
+    }
+
+    [Fact]
+    public void AnUnmirroredAssetDrawsWithTheCallersMatrixUnchanged()
+    {
+        var document = PdfDocument.Open(FlateFixture(Compress([255, 0, 0, 0, 255, 0])));
+        PdfImageAsset asset = PdfImagePlacementExtractor.Extract(document,
+            new PdfPageContentReader(document).ReadImagePlacements(0)[1]);
+
+        string plain = Encoding.ASCII.GetString(new KillerPdf.Engine.Authoring.PdfContentStreamBuilder()
+            .DrawImage(asset, 50, 100, 100, 50).Build());
+
+        Assert.Equal("q\n100 0 0 50 50 100 cm\n/Ia1 Do\nQ\n", plain);
+    }
+
+    private static (byte, byte, byte) PixelAt(PdfRenderedPage page, int x, int y)
+    {
+        int offset = (y * page.Width + x) * 4;
+        var pixels = page.Pixels.Span;
+        return (pixels[offset + 2], pixels[offset + 1], pixels[offset]);
+    }
+
+    private static byte[] FlippedFixture(string matrix, int width, int height, byte[] payload)
+    {
+        string content = $"q {matrix} cm /Im Do Q";
+        using var pdf = new MemoryStream();
+        var offsets = new List<long>();
+        void Write(string text) => pdf.Write(Encoding.Latin1.GetBytes(text));
+        void Object(string head, byte[]? body = null, string tail = "")
+        {
+            offsets.Add(pdf.Length);
+            Write($"{offsets.Count} 0 obj\n{head}");
+            if (body is not null) { Write("\nstream\n"); pdf.Write(body); Write("\nendstream"); }
+            Write(tail + "\nendobj\n");
+        }
+        Write("%PDF-1.7\n");
+        Object("<< /Type /Catalog /Pages 2 0 R >>");
+        Object("<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+        Object("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Im 5 0 R >> >> /Contents 4 0 R >>");
+        Object($"<< /Length {content.Length} >>", Encoding.Latin1.GetBytes(content));
+        Object($"<< /Type /XObject /Subtype /Image /Width {width} /Height {height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length {payload.Length} >>", payload);
+        long xref = pdf.Length;
+        Write($"xref\n0 {offsets.Count + 1}\n0000000000 65535 f \n");
+        foreach (long offset in offsets) Write($"{offset:0000000000} 00000 n \n");
+        Write($"trailer\n<< /Size {offsets.Count + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return pdf.ToArray();
+    }
+
     private static byte[] Compress(byte[] samples)
     {
         using var output = new MemoryStream();
