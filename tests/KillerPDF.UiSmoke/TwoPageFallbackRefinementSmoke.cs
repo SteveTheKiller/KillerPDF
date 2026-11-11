@@ -26,6 +26,7 @@ internal static class TwoPageFallbackRefinementSmoke
     {
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Refinement acceptance requires an exclusively owned VM.");
+        if (NativePresenterGate.Disabled(owner)) return NativePresenterGate.Skip(owner, folder, "verify-two-page-fallback-refinement");
         Directory.CreateDirectory(folder);
         byte[] original = Fixture();
         if (Hash(original) != "D5349CF41C345372CD2B28383DFACB1C78E97DA26182C2C56CE7E35C17299BFD")

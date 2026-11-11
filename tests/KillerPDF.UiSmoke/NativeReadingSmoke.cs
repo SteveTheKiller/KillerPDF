@@ -585,6 +585,10 @@ internal static class NativeReadingSmoke
                         throw new InvalidOperationException("Disabling native proof retained its unavailable diagnostic.");
                     events.Add(new { stage, restoredWhiteSource = true, restoredWhiteScreen = true });
                     stage = "document-proof-stamp-setup";
+                    if (NativePresenterGate.Disabled(owner))
+                        events.Add(new { stage, skipped = true, reason = NativePresenterGate.Reason });
+                    else
+                    {
                     proofWindow = (Window)Activator.CreateInstance(owner.GetType())!;
                     proofWindow.Width = owner.Width;
                     proofWindow.Height = owner.Height;
@@ -636,6 +640,7 @@ internal static class NativeReadingSmoke
                         adapterViewer.GetType().GetMethod("RenderActiveSessionExt", instance)!.Invoke(adapterViewer, null);
                         Wait(() => (Task)adapterViewer.GetType().GetProperty("PrimaryRenderTask", instance)!.GetValue(adapterViewer)!
                             is { IsCompletedSuccessfully: true } && submittedStamps.Count > previousCount);
+                    }
                     }
 
                     void RefreshProofPage()

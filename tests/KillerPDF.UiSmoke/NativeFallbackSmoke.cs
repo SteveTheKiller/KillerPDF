@@ -23,6 +23,7 @@ internal static class NativeFallbackSmoke
     {
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Native fallback acceptance requires an owned VM.");
+        if (NativePresenterGate.Disabled(owner)) return NativePresenterGate.Skip(owner, folder, "verify-native-fallback");
         Directory.CreateDirectory(folder);
         byte[] original = new PdfDocumentBuilder().AddPage(300, 600, Paint(300, 600))
             .AddPage(600, 300, Paint(600, 300)).Build();

@@ -26,6 +26,7 @@ internal static class NativeFallbackRefinementSmoke
     {
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Refinement acceptance requires an exclusively owned VM.");
+        if (NativePresenterGate.Disabled(owner)) return NativePresenterGate.Skip(owner, folder, "verify-native-fallback-refinement");
         Directory.CreateDirectory(folder);
         byte[] original = Fixture();
         string path = Path.Combine(folder, "vertical-stripes.pdf");

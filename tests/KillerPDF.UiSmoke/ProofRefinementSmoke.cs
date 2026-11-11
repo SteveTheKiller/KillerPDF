@@ -21,6 +21,7 @@ internal static class ProofRefinementSmoke
     {
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Proof refinement requires an owned VM.");
+        if (nativePresenter && NativePresenterGate.Disabled(owner)) return NativePresenterGate.Skip(owner, folder, "verify-proof-presenter-refinement");
         Directory.CreateDirectory(folder);
         SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocumentBuilder).Assembly, appPath);
         var paint = new StringBuilder("1 1 1 rg 0 0 600 1200 re f 0 0 0 rg ");
