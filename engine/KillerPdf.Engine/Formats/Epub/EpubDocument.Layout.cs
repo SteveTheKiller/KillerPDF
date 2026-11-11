@@ -49,6 +49,7 @@ public sealed partial class EpubDocument
         var pages = new List<EpubLayoutPage>();
         var anchors = new List<(int SpineIndex, string Id, int Offset)>();
         var cellAnchors = new Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination>();
+        var anchorLimitedChapters = new HashSet<int>();
         var reader = new TrueTypeOutlineReader(options.DefaultFont);
         var familyFonts = new Dictionary<EpubFontFamily, TrueTypeFont?>();
         var faceFonts = new Dictionary<EpubFontFaceRequest, EpubFontFaceResult?>();
@@ -150,7 +151,7 @@ public sealed partial class EpubDocument
                     int ignored = AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors, cellAnchors,
                         ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences,
                         imageBoxes, images, bookReaders, ResolveFamily, contentDiagnostics, chargedStylesheets, token,
-                        resumePoints: points);
+                        resumePoints: points, anchorLimitedChapters: anchorLimitedChapters);
                     if (ignored > 0) ignoredDeclarations.Add(new(spineIndex, Spine[spineIndex].Item.Href, ignored));
                     laidOut = true;
                 }
@@ -211,7 +212,8 @@ public sealed partial class EpubDocument
             document.Publish(spineIndex, pages.GetRange(pageMark, pages.Count - pageMark), anchors.Skip(anchorMark),
                 cellAnchors.Where(item => item.Key.SpineIndex == spineIndex), destinations,
                 chapterDiagnostics.Skip(chapterMark), contentDiagnostics.Skip(contentMark),
-                ignoredDeclarations.Count > ignoredMark ? ignoredDeclarations[^1] : null);
+                ignoredDeclarations.Count > ignoredMark ? ignoredDeclarations[^1] : null,
+                anchorLimitedChapters.Contains(spineIndex));
             completed++;
 
             void WithdrawChapter()
@@ -480,7 +482,7 @@ public sealed partial class EpubDocument
         Func<EpubFontFamily?, double, EpubFontStyle, TrueTypeFont?> resolveFamily,
         List<EpubChapterDiagnostic> contentDiagnostics, HashSet<string> chargedStylesheets, CancellationToken cancellationToken,
         int stopAfterPages = int.MaxValue, EpubResumePoint? resume = null, List<EpubResumePoint?>? resumePoints = null,
-        int stopAtOffset = int.MaxValue)
+        int stopAtOffset = int.MaxValue, HashSet<int>? anchorLimitedChapters = null)
     {
         // Itemref properties (page-spread-*, rendition:*) only affect synthetic spreads and fixed layout; they are ignored.
         var resource = Spine[spineIndex].Item;
@@ -536,6 +538,8 @@ public sealed partial class EpubDocument
                 if (!reportedAnchorLimit)
                 {
                     reportedAnchorLimit = true;
+                    // A link to an id left out here must go to the chapter, as the notice says.
+                    anchorLimitedChapters?.Add(spineIndex);
                     contentDiagnostics.Add(new(spineIndex, resource.Href,
                         "The book has more than 100,000 link destinations, so links to some ids in this chapter go to the chapter instead.")
                     { Reason = EpubOmissionReason.LimitExceeded });

@@ -249,6 +249,8 @@ public sealed class EpubLayoutDocument
     private readonly HashSet<(int SpineIndex, string Id)> _ambiguousAnchors = new();
     private readonly Dictionary<int, int> _firstPages = new();
     private readonly HashSet<int> _diagnosedChapters = new();
+    // Chapters that lost link destinations to the book's limit; a link to a missing id in one opens the chapter.
+    private readonly HashSet<int> _anchorLimitedChapters = new();
     private readonly Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> _cellAnchors = new();
     private readonly Dictionary<(int SpineIndex, int Offset), EpubNavigationDestination> _anchorDestinations = new();
     private readonly HashSet<int> _paginatedChapters = new();
@@ -273,11 +275,12 @@ public sealed class EpubLayoutDocument
         IEnumerable<KeyValuePair<(int SpineIndex, string Id, int Offset), EpubNavigationDestination>> cellAnchors,
         IEnumerable<KeyValuePair<(int SpineIndex, int Offset), EpubNavigationDestination>> anchorDestinations,
         IEnumerable<EpubChapterDiagnostic> chapterDiagnostics, IEnumerable<EpubChapterDiagnostic> contentDiagnostics,
-        EpubIgnoredDeclarations? ignored)
+        EpubIgnoredDeclarations? ignored, bool anchorLimited = false)
     {
         TaskCompletionSource woken;
         lock (_published)
         {
+            if (anchorLimited) _anchorLimitedChapters.Add(spineIndex);
             foreach (var anchor in anchors)
                 if (!_anchors.TryAdd((anchor.SpineIndex, anchor.Id), anchor.Offset))
                     _ambiguousAnchors.Add((anchor.SpineIndex, anchor.Id));
@@ -462,6 +465,8 @@ public sealed class EpubLayoutDocument
                 if (_anchorDestinations.TryGetValue((spineIndex, offset), out var destination))
                     return destination;
             }
+            if (_anchorLimitedChapters.Contains(spineIndex) && _firstPages.TryGetValue(spineIndex, out int limitedPage))
+                return new EpubNavigationDestination(limitedPage, spineIndex, 0, _options.Margin, _options.Margin);
             throw new ArgumentException("The EPUB navigation anchor is not in the native chapter.", nameof(target));
         }
         if (_firstPages.TryGetValue(spineIndex, out int firstPage))

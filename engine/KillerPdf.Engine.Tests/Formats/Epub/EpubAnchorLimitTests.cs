@@ -24,4 +24,21 @@ public sealed class EpubAnchorLimitTests
         Assert.All(limited, item => Assert.Contains("100,000", item.Message));
         Assert.Equal(0, layout.ResolveNavigationTarget("OEBPS/text/c0.xhtml#a99999").PageIndex);
     }
+
+    // The notice promises that a link to an id left out of the destination table goes to its chapter, so following one
+    // lands on the chapter's first page instead of failing.
+    [Fact]
+    public void ALinkToAnIdPastTheDestinationLimitGoesToItsChapter()
+    {
+        string ids = string.Concat(Enumerable.Range(0, 100_000).Select(index => $"<span id='a{index}'/>"));
+        var book = new Book { Chapters = { Chapter("<p>A</p>" + ids), Chapter("<p id='z1'>A</p>") } };
+
+        var layout = Layout(book);
+
+        Assert.Contains(layout.ContentDiagnostics, item => item.SpineIndex == 1 && item.Reason == EpubOmissionReason.LimitExceeded);
+        var chapter = layout.ResolveNavigationTarget("OEBPS/text/c1.xhtml");
+        var link = layout.ResolveNavigationTarget("OEBPS/text/c1.xhtml#z1");
+        Assert.Equal(chapter.PageIndex, link.PageIndex);
+        Assert.Equal(1, link.PageIndex);
+    }
 }
