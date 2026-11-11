@@ -5,15 +5,78 @@ namespace KillerPdf.Engine.Rendering;
 public sealed partial class PdfPageRenderer
 {
     private sealed record PreciseProcessPaint(double Cyan, double Magenta, double Yellow, double Black,
-        byte ExactZeros, byte Preserve = 0);
+        byte ExactZeros, PreciseProcessPlan Binding, byte Preserve = 0);
+
+    private enum PreciseProcessSourceKind { Working, Catalog, Default }
+
+    // One immutable source definition owns the interpretation of every accumulated plate.
+    private sealed record PreciseProcessPlan(PreciseProcessSourceKind Kind, PdfIccProfileTransform? Transform,
+        string ContentSha256, int Intent)
+    {
+        internal bool OpmOneEligible => Kind != PreciseProcessSourceKind.Default;
+
+        internal bool Matches(ImageColorSpace source)
+        {
+            if (source.Components != 4 || source.ComponentRange is not null || source.Palette is not null
+                || source.MultiConverter is not null || source.HasSpotColorants || source.BlackPointCompensationEnabled)
+                return false;
+            if (Kind == PreciseProcessSourceKind.Working)
+                return source.IsDeviceCmyk && source.Profile is null && !source.HasIccSource && !source.IsDefault;
+            return source.Intent == Intent && source.Profile is PdfIccProfileTransform profile
+                && Transform!.HasSameIdentity(profile) && source.HasIccSource
+                && (Kind == PreciseProcessSourceKind.Default ? source.IsDefault && source.IsIccBased
+                    : source.IsDeviceCmyk && !source.IsDefault);
+        }
+
+        internal bool SameBinding(PreciseProcessPlan other) => Kind == other.Kind && Intent == other.Intent
+            && ContentSha256 == other.ContentSha256;
+
+        internal Color Convert(PreciseCmykWorkingSpace working, ReadOnlySpan<double> ink)
+        {
+            if (Transform is null) return working.Convert(ink[0], ink[1], ink[2], ink[3]);
+            Span<double> xyz = stackalloc double[3];
+            Transform.ToXyz(ink, xyz);
+            return IccXyzToDisplay(xyz[0], xyz[1], xyz[2]) with { Connection = (xyz[0], xyz[1], xyz[2]) };
+        }
+    }
+
+    private PreciseProcessPlan? ReadPreciseProcessSource(PdfDictionary resources, int intent, PdfRenderOptions options)
+    {
+        ImageColorSpace source = ReadColorSpace(Name("DeviceCMYK"), resources, 0, intent: intent);
+        bool declaredDefault = resources.TryGetValue(Name("ColorSpace"), out var spacesValue)
+            && Resolve(spacesValue) is PdfDictionary spaces && spaces.ContainsKey(Name("DefaultCMYK"));
+        if (declaredDefault && !source.IsDefault) return null;
+        if (source.ComponentRange is not null || source.Components != 4 || source.Palette is not null
+            || source.MultiConverter is not null || source.BlackPointCompensationEnabled) return null;
+        if (source is { IsDeviceCmyk: true, Profile: null, HasIccSource: false, IsDefault: false })
+            return new(PreciseProcessSourceKind.Working, null, options.WorkingCmykProfile.ContentSha256,
+                (int)options.WorkingCmykProfile.WorkingCmykForwardIntent!.Value);
+        if (intent != 1 || source.Profile is not PdfIccProfileTransform
+            { Components: 4, IsLabInput: false, RenderingIntent: 1, ForwardTableSignature: "A2B1" } profile)
+            return null;
+        if (source.IsDefault && source.IsIccBased)
+            return new(PreciseProcessSourceKind.Default, profile, profile.ContentSha256, 1);
+        return source.IsDeviceCmyk && !source.IsDefault
+            ? new(PreciseProcessSourceKind.Catalog, profile, profile.ContentSha256, 1) : null;
+    }
+
+    private static void ValidatePreciseProcessSource(RasterSurface surface, ImageColorSpace? source,
+        int intent, bool blackPointCompensation)
+    {
+        if (surface.PreciseProcessPlan is not { } plan) return;
+        if (source is null || !plan.Matches(source) || blackPointCompensation
+            || plan.Kind != PreciseProcessSourceKind.Working && intent != plan.Intent
+            || !ReferenceEquals(source.PreciseProcessBinding, plan))
+            throw new NotSupportedException("The native process paint does not match the render's fixed source profile and intent.");
+    }
 
     private readonly record struct PreciseProcessState(bool FillOverprint = false, bool StrokeOverprint = false,
         bool FillDeviceCmyk = false, bool StrokeDeviceCmyk = false,
-        bool SupportedNormal = true, bool NormalBlend = true);
+        bool SupportedNormal = true, bool NormalBlend = true, int RenderingIntent = 1);
 
     // Qualification reads the whole page before allocating or clipping a backdrop. Until an
     // inverse transform is supported, RGB paint cannot supply native process plates.
-    private bool RequiresPreciseProcessPlates(int pageIndex, PdfRenderOptions options,
+    private PreciseProcessPlan? PreparePreciseProcessPlan(int pageIndex, PdfRenderOptions options,
         CancellationToken cancellationToken)
     {
         var diagnostics = new HashSet<string>();
@@ -24,6 +87,7 @@ public sealed partial class PdfPageRenderer
         bool visible = true;
         var hiddenGroups = options.ForPrinting ? _printHiddenOptionalContentGroups : _hiddenOptionalContentGroups;
         bool actualOverprint = false, unsupported = false, rectangle = false;
+        int paintedIntents = 0;
         foreach (var instruction in ReadInstructions(pageIndex, diagnostics, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -45,6 +109,11 @@ public sealed partial class PdfPageRenderer
             {
                 case "q": saved.Push(state); break;
                 case "Q": if (saved.TryPop(out var previous)) state = previous; else unsupported = true; break;
+                case "ri":
+                    if (operands.Count == 1 && Resolve(operands[0]) is PdfName intent)
+                        state = state with { RenderingIntent = ReadRenderingIntent(intent) };
+                    else unsupported = true;
+                    break;
                 case "k":
                     state = state with { FillDeviceCmyk = operands.Count == 4
                         && operands.All(value => Number(Resolve(value)) is >= 0 and <= 1) };
@@ -84,16 +153,19 @@ public sealed partial class PdfPageRenderer
                 case "m": case "l": case "c": case "v": case "y": rectangle = false; break;
                 case "W": case "W*": unsupported |= !rectangle; break;
                 case "f": case "F": case "f*":
+                    paintedIntents |= 1 << state.RenderingIntent;
                     actualOverprint |= state.FillOverprint;
                     unsupported |= !state.FillDeviceCmyk || !state.SupportedNormal || !state.NormalBlend;
                     rectangle = false;
                     break;
                 case "S": case "s":
+                    paintedIntents |= 1 << state.RenderingIntent;
                     actualOverprint |= state.StrokeOverprint;
                     unsupported |= !state.StrokeDeviceCmyk || !state.SupportedNormal || !state.NormalBlend;
                     rectangle = false;
                     break;
                 case "B": case "B*": case "b": case "b*":
+                    paintedIntents |= 1 << state.RenderingIntent;
                     actualOverprint |= state.FillOverprint || state.StrokeOverprint;
                     unsupported |= !state.FillDeviceCmyk || !state.StrokeDeviceCmyk
                         || !state.SupportedNormal || !state.NormalBlend;
@@ -105,19 +177,26 @@ public sealed partial class PdfPageRenderer
                 case "n": rectangle = false; break;
             }
         }
-        if (!actualOverprint) return false;
+        if (!actualOverprint) return null;
         var page = _tree.Pages[pageIndex].Dictionary;
-        ImageColorSpace source = ReadColorSpace(Name("DeviceCMYK"), resources, 0);
-        if (unsupported || page.ContainsKey(Name("Group")) || page.ContainsKey(Name("Annots"))
-            || source.IsDefault || source.HasIccSource || source.Profile is not null
-            || OutputProfile(null) is not null)
-            throw new NotSupportedException("This high-precision graphics state requires an unprofiled page of Normal DeviceCMYK path paints without groups or other paint sources.");
-        return true;
+        PreciseProcessPlan? plan = null;
+        for (int intent = 0; intent < 4; intent++)
+        {
+            if ((paintedIntents & (1 << intent)) == 0) continue;
+            var candidate = ReadPreciseProcessSource(resources, intent, options);
+            if (candidate is null || plan is not null && !plan.SameBinding(candidate)) unsupported = true;
+            else plan ??= candidate;
+        }
+        if (unsupported || plan is null || page.ContainsKey(Name("Group")) || page.ContainsKey(Name("Annots")))
+            throw new NotSupportedException("This high-precision graphics state requires Normal CMYK path paints with one supported source profile and intent, without groups or other paint sources.");
+        return plan;
     }
 
     private static void PaintPreciseProcessPixel(RasterSurface surface, int offset,
         PreciseProcessPaint source, double opacity)
     {
+        if (!ReferenceEquals(surface.PreciseProcessPlan, source.Binding))
+            throw new NotSupportedException("The native process paint has a different source binding.");
         double sourceAlpha = Math.Clamp(opacity, 0, 1);
         if (sourceAlpha == 0) return;
         float[] rgb = surface.PreciseRgb!, plates = surface.PreciseProcess!;
@@ -134,7 +213,7 @@ public sealed partial class PdfPageRenderer
                 + sourceAlpha * backdropAlpha * blend) / alpha;
             plates[offset + component] = (float)ink[component];
         }
-        Color appearance = surface.PreciseCmyk!.Convert(ink[0], ink[1], ink[2], ink[3]);
+        Color appearance = surface.PreciseProcessPlan!.Convert(surface.PreciseCmyk!, ink);
         var color = appearance.Connection is { } xyz ? PreciseConnectionToRgb(xyz.X, xyz.Y, xyz.Z)
             : throw new NotSupportedException("The process source profile did not retain its connection values.");
         rgb[offset] = (float)color.Red;

@@ -305,7 +305,8 @@ public sealed partial class PdfPageRenderer
     private PdfRenderedPage RenderUncached(int pageIndex, PdfRenderOptions options,
         CancellationToken cancellationToken, byte[]? destination = null,
         (int Left, int Top, int Right, int Bottom)? region = null, float[]? preciseRgb = null,
-        PreciseCmykWorkingSpace? preciseCmyk = null, float[]? preciseProcess = null)
+        PreciseCmykWorkingSpace? preciseCmyk = null, float[]? preciseProcess = null,
+        PreciseProcessPlan? preciseProcessPlan = null)
     {
         if (preciseRgb is null && options.Proof is { Enabled: true })
             throw new NotSupportedException("Printer proof output is not implemented for byte rendering.");
@@ -332,7 +333,7 @@ public sealed partial class PdfPageRenderer
         var pixels = new RasterSurface(destination ?? GC.AllocateUninitializedArray<byte>(
             checked(rasterWidth * rasterHeight * 4)), Left, Top, rasterWidth, rasterHeight,
             _pdf20BlendEndpoints) { PreciseRgb = preciseRgb, PreciseCmyk = preciseRgb is null ? null : preciseCmyk,
-                PreciseProcess = preciseProcess };
+                PreciseProcess = preciseProcess, PreciseProcessPlan = preciseProcessPlan };
         cancellationToken.ThrowIfCancellationRequested();
         System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
             pixels.Data.AsSpan(0, pixels.Length))
@@ -1201,6 +1202,7 @@ public sealed partial class PdfPageRenderer
 
             void PaintFill(IReadOnlyList<List<Point>> fillPath, bool evenOdd, bool combineOpaque = false)
             {
+                ValidatePreciseProcessSource(pixels, state.FillColorSpace, state.RenderingIntent, state.BlackPointCompensation);
                 if (combineOpaque && opaqueFills.TryPaint(fillPath, evenOdd, state)) return;
                 opaqueFills.Flush();
                 if (state.FillPattern is null)
@@ -1262,6 +1264,7 @@ public sealed partial class PdfPageRenderer
 
             void PaintStroke(IReadOnlyList<List<Point>> strokePath)
             {
+                ValidatePreciseProcessSource(pixels, state.StrokeColorSpace, state.RenderingIntent, state.BlackPointCompensation);
                 double lineWidth = state.LineWidth * state.Transform.StrokeScale;
                 IReadOnlyList<List<Point>>? paintedPath = state.DashPattern.Count == 0
                     ? strokePath : CreateDashedPaths(strokePath, state.Transform,
@@ -8782,13 +8785,13 @@ public sealed partial class PdfPageRenderer
         out double[]? sourceComponents)
     {
         sourceComponents = null;
-        if (space.PreciseProcessSource)
+        if (space.PreciseProcessBinding is { } binding)
         {
             double cyan = Number(Resolve(operands[0])), magenta = Number(Resolve(operands[1]));
             double yellow = Number(Resolve(operands[2])), black = Number(Resolve(operands[3]));
             byte zeros = (byte)((cyan == 0 ? 1 : 0) | (magenta == 0 ? 2 : 0)
                 | (yellow == 0 ? 4 : 0) | (black == 0 ? 8 : 0));
-            var native = new PreciseProcessPaint(cyan, magenta, yellow, black, zeros);
+            var native = new PreciseProcessPaint(cyan, magenta, yellow, black, zeros, binding);
             return space.Convert(cyan, magenta, yellow, black) with { PreciseProcess = native };
         }
         if (space.HasProcessColorants || space.MultiConverter is not null)
@@ -9420,7 +9423,7 @@ public sealed partial class PdfPageRenderer
         PdfObject? Definition = null, PdfDictionary? SourceResources = null, int Intent = 1,
         bool IsDeviceCmyk = false, BlackPointBinding? BlackPointControl = null,
         ImageColorSpace? BlackPointAlternate = null, bool IsZeroBlackCalGray = false,
-        bool PreciseProcessSource = false)
+        PreciseProcessPlan? PreciseProcessBinding = null)
     {
         internal bool BlackPointCompensationEnabled => BlackPointControl is not null;
         internal ImageColorSpace? BlackPointSource => BlackPointControl?.Source;
@@ -9456,8 +9459,9 @@ public sealed partial class PdfPageRenderer
             if (destination.PreciseRgb is not null && destination.PreciseCmyk is { } working
                 && source is { Components: 4, IsDeviceCmyk: true,
                 Profile: null, HasIccSource: false, IsDefault: false, Converter: null, MultiConverter: null })
-                source = source with { Converter = working.Convert,
-                    PreciseProcessSource = destination.PreciseProcess is not null };
+                source = source with { Converter = working.Convert };
+            if (destination.PreciseProcessPlan is { } process && process.Matches(source))
+                source = source with { PreciseProcessBinding = process };
             ImageColorSpace bound = source.ForNativeDestination(destination);
             return enabled ? BindBlackPointCompensation(source, bound, destination, diagnostics) : bound;
         }

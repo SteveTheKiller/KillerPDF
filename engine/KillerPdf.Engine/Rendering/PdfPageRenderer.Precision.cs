@@ -113,7 +113,8 @@ public sealed partial class PdfPageRenderer
         int width = region is { } bounds ? bounds.Right - bounds.Left : options.Width;
         int height = region is { } verticalBounds ? verticalBounds.Bottom - verticalBounds.Top : options.Height;
         long pixelCount = (long)width * height;
-        bool processPlates = RequiresPreciseProcessPlates(pageIndex, options, cancellationToken);
+        PreciseProcessPlan? processPlan = PreparePreciseProcessPlan(pageIndex, options, cancellationToken);
+        bool processPlates = processPlan is not null;
         int pixelStorage = 4 + 2 * 4 * sizeof(float) + (processPlates ? 16 : 0)
             + (options.Proof is { Enabled: true, GamutWarnings: true } ? 2 : 0);
         if (pixelCount > options.PixelByteLimit / pixelStorage)
@@ -132,7 +133,8 @@ public sealed partial class PdfPageRenderer
         float[]? nativeProcess = processPlates ? new float[pixels.Length] : null;
         var workingCmyk = new PreciseCmykWorkingSpace(options.WorkingCmykProfile);
         PdfRenderedPage compatibility = RenderUncached(pageIndex, options, cancellationToken,
-            region: region, preciseRgb: pixels, preciseCmyk: workingCmyk, preciseProcess: nativeProcess);
+            region: region, preciseRgb: pixels, preciseCmyk: workingCmyk, preciseProcess: nativeProcess,
+            preciseProcessPlan: processPlan);
         HashSet<string> recovery = DocumentRecoveryDiagnostics(pageIndex);
         var frameDiagnostics = new List<string>();
         foreach (string diagnostic in compatibility.Diagnostics)

@@ -41,7 +41,7 @@ public sealed class PdfPrecisionOverprintTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void DefaultAndOutputIntentSourcesAreRefusedUntilTheirPlateProfileIsSupported(bool outputIntent)
+    public void DefaultAndOutputIntentSourcesUseTheirExplicitBinding(bool outputIntent)
     {
         // Existing synthetic affine XYZ CMYK source fixture with a colorimetric forward table.
         byte[] profile = Convert.FromBase64String("AAABQAAAAAAEAAAAcHJ0ckNNWUtYWVogAAAAAAAAAAAAAAAAYWNzcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQTJCMQAAAJAAAACwbWZ0MgAAAAAEAwIAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAIAAgAA//8AAP//AAD//wAA//9AAEAAQAAgACAAIABAAEAAIAAgACAAAABAACAAQAAgAAAAIABAACAAIAAgAAAAAAAgAEAAQAAAACAAIAAgAEAAIAAAACAAAAAgACAAQAAAAAAAIAAgACAAIAAAAAAAAAAAAP//AAD//wAA//8=");
@@ -49,7 +49,10 @@ public sealed class PdfPrecisionOverprintTests
         string catalog = outputIntent ? "/OutputIntents [<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier (Synthetic) /DestOutputProfile 8 0 R >>]" : "";
         var renderer = new PdfPageRenderer(PdfDocument.Open(Page("/Over gs 1 0 0 0 k 0 0 1 1 re f", true, 1,
             resources: resources, extraObject: TestIccProfiles.Stream("/N 4", profile), catalogEntries: catalog)));
-        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0, new PdfRenderOptions(2, 1)));
+        var options = new PdfRenderOptions(2, 1);
+        var frame = renderer.RenderFrame(0, options);
+        Assert.Null(frame.AssumedCmykProfileSha256);
+        Assert.Equal(frame.Pixels.Slice(0, 4).ToArray(), renderer.RenderFrameRegion(0, options, 0, 0, 1, 1).Pixels.ToArray());
     }
 
     [Fact]
