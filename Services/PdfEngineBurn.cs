@@ -95,7 +95,8 @@ internal static class PdfEngineBurn
         bool forRasterization = false,
         bool measurementsAsAnnotations = false,
         CancellationToken cancellationToken = default,
-        bool flattenEditing = false)
+        bool flattenEditing = false,
+        bool allowNativeText = true)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -137,9 +138,9 @@ internal static class PdfEngineBurn
                 ? NormalizeRotation(overrideRotation) : page.Rotation;
             double visualWidth = rotation is 90 or 270 ? page.Height : page.Width;
             double visualHeight = rotation is 90 or 270 ? page.Width : page.Height;
-            HashSet<PageAnnotation> nativeTail = hasAnnotations && !forRasterization && !flattenEditing
-                ? NativeTextTail(pageAnnotations!,
-                    (annotationCounts ??= AnnotationCounts(document))(pageIndex) > 0).ToHashSet() : [];
+            HashSet<PageAnnotation> nativeTail = hasAnnotations && !forRasterization && !flattenEditing && allowNativeText
+                && TryAnnotationCount(ref annotationCounts, document, pageIndex) is { } existing
+                ? NativeTextTail(pageAnnotations!, existing > 0).ToHashSet() : [];
             var pageModels = hasAnnotations ? pageAnnotations!.Where(annotation => !nativeTail.Contains(annotation)
                 && !(measurementsAsAnnotations && annotation is MeasurementAnnotation)).ToList() : [];
             bool editableBatch = !forRasterization && !flattenEditing
@@ -211,8 +212,18 @@ internal static class PdfEngineBurn
         // hundred pages.
         if (pageBatches.Count > 0)
             result = PdfOverlayAnnotations.AppendPageBatches(PdfDocument.Open(result), pageBatches);
-        if (!forRasterization && !flattenEditing)
-            result = SaveTextAnnotations(result, annotations, renderDims, onlyPage, rotations, fonts, cancellationToken);
+        if (!forRasterization && !flattenEditing && allowNativeText)
+        {
+            try { result = SaveTextAnnotations(result, annotations, renderDims, onlyPage, rotations, fonts, cancellationToken); }
+            catch (InvalidOperationException)
+            {
+                // A page whose own annotation list cannot take a new entry: draw the text boxes and pictures as page
+                // content, as 1.9.2 did, instead of failing the save.
+                Burn(path, annotations, renderDims, stamps, onlyPage, rotations, forRasterization,
+                    measurementsAsAnnotations, cancellationToken, flattenEditing, allowNativeText: false);
+                return;
+            }
+        }
         cancellationToken.ThrowIfCancellationRequested();
         Replace(path, result);
     }
@@ -227,7 +238,7 @@ internal static class PdfEngineBurn
         var pages = PdfPageInformation.Read(document);
         var editor = new PdfIncrementalAnnotationEditor(document);
         var pending = new List<(PageAnnotation Annotation, int Width, int Height, int Rotation, int Index)>();
-        Func<int, int> annotationCounts = AnnotationCounts(document);
+        Func<int, int>? annotationCountReader = null;
         foreach ((int pageIndex, List<PageAnnotation> items) in annotations)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -237,7 +248,8 @@ internal static class PdfEngineBurn
             double visualWidth = rotation is 90 or 270 ? page.Height : page.Width;
             double visualHeight = rotation is 90 or 270 ? page.Width : page.Height;
             var (renderWidth, renderHeight) = AnnotationSpace(renderDims, pageIndex, visualWidth, visualHeight);
-            int annotationIndex = annotationCounts(pageIndex);
+            // Burn drew this page's text boxes and pictures as content when its annotation list cannot be counted.
+            if (TryAnnotationCount(ref annotationCountReader, document, pageIndex) is not { } annotationIndex) continue;
             foreach (PageAnnotation annotation in NativeTextTail(items, annotationIndex > 0))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -277,8 +289,18 @@ internal static class PdfEngineBurn
         if (pending.Count == 0) return bytes;
         byte[] savedBytes = editor.Build();
         var comments = new Dictionary<(int Page, int Index), PdfCommentInfo>();
-        foreach (PdfCommentInfo comment in PdfCommentReader.Read(PdfDocument.Open(savedBytes), true))
-            comments.TryAdd((comment.PageIndex, comment.AnnotationIndex), comment);
+        try
+        {
+            // Malformed entries elsewhere are skipped, so the new annotations keep their editing representation.
+            foreach (PdfCommentInfo comment in PdfCommentReader.Read(PdfDocument.Open(savedBytes), true, new List<int>()))
+                comments.TryAdd((comment.PageIndex, comment.AnnotationIndex), comment);
+        }
+        catch (Exception error) when (error is InvalidOperationException or FormatException)
+        {
+            // A malformed annotation entry on any page makes the document-wide comment read fail. The new
+            // annotations are already saved as plain native ones, so only their editing representation is skipped.
+            return savedBytes;
+        }
         var records = pending.Select(item => new OverlayWriteRecord(item.Annotation, item.Width, item.Height, item.Rotation,
             item.Index, comments[(item.Annotation.PageIndex, item.Index)].ObjectNumber!.Value)).ToArray();
         return PdfOverlayAnnotations.AttachAll(savedBytes, records);
@@ -297,6 +319,14 @@ internal static class PdfEngineBurn
         {
             return pageIndex => PdfCommentReader.ReadPageAnnotationCount(document, pageIndex);
         }
+    }
+
+    // The page's annotation count, or null when its annotation list cannot be read.
+    private static int? TryAnnotationCount(ref Func<int, int>? counts, PdfDocument document, int pageIndex)
+    {
+        counts ??= AnnotationCounts(document);
+        try { return counts(pageIndex); }
+        catch (InvalidOperationException) { return null; }
     }
 
     private static IEnumerable<PageAnnotation> NativeTextTail(List<PageAnnotation> annotations, bool hasNativeAnnotations)

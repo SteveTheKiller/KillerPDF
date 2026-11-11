@@ -163,7 +163,7 @@ public static partial class PdfCommentReader
     /// <paramref name="unreadablePages"/> is given, a malformed annotation is skipped and its page
     /// recorded there instead of failing the whole read.
     /// </summary>
-    internal static IReadOnlyList<PdfCommentInfo> Read(PdfDocument document, bool includeMarkupWithoutText,
+    public static IReadOnlyList<PdfCommentInfo> Read(PdfDocument document, bool includeMarkupWithoutText,
         ICollection<int>? unreadablePages)
     {
         ArgumentNullException.ThrowIfNull(document);

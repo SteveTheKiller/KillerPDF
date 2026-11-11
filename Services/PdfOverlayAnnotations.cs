@@ -177,8 +177,17 @@ public static class PdfOverlayAnnotations
     {
         // One lookup serves every record; matching each against every comment made many notes quadratic.
         var comments = new Dictionary<(int Page, int Index), PdfCommentInfo>();
-        foreach (PdfCommentInfo comment in PdfCommentReader.Read(document, true))
-            comments.TryAdd((comment.PageIndex, comment.AnnotationIndex), comment);
+        try
+        {
+            foreach (PdfCommentInfo comment in PdfCommentReader.Read(document, true, new List<int>()))
+                comments.TryAdd((comment.PageIndex, comment.AnnotationIndex), comment);
+        }
+        catch (Exception error) when (skipUneditable && error is InvalidOperationException or FormatException)
+        {
+            // A malformed annotation entry on any page fails the document-wide read. The annotations stay as the
+            // plain native ones they already are.
+            return null;
+        }
         var pages = PdfPageInformation.Read(document);
         var update = new PdfIncrementalUpdateBuilder(document);
         var seen = new HashSet<int>();
@@ -229,7 +238,7 @@ public static class PdfOverlayAnnotations
         try
         {
             var pages = PdfPageInformation.Read(document);
-            foreach (PdfCommentInfo comment in PdfCommentReader.Read(document, true))
+            foreach (PdfCommentInfo comment in PdfCommentReader.Read(document, true, new List<int>()))
                 if (TryRead(document, comment, pages[comment.PageIndex]) is { } record) result.Add(record);
             foreach (PageBatch batch in ReadPageBatches(document)) result.AddRange(batch.Records);
         }
@@ -266,7 +275,7 @@ public static class PdfOverlayAnnotations
             // Page geometry and annotation counts are read only when a page has a comment carrying overlay metadata:
             // a long PDF without KillerPDF overlays read every page's geometry for nothing.
             IReadOnlyList<PdfPageInformation>? pages = null;
-            var comments = PdfCommentReader.Read(document, true).ToLookup(comment => comment.PageIndex);
+            var comments = PdfCommentReader.Read(document, true, new List<int>()).ToLookup(comment => comment.PageIndex);
             var extracted = new List<OverlayRecord>();
             var editor = new PdfIncrementalAnnotationEditor(document);
             // A tail starts at a page's topmost annotation and holds only annotations that carry overlay metadata,
