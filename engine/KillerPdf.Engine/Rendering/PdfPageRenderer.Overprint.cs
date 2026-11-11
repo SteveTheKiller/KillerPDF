@@ -66,7 +66,9 @@ public sealed partial class PdfPageRenderer
     }
 
     private static Color OverprintColor(in Color color, ImageColorSpace? space, bool enabled, int mode) =>
-        space?.DoesNotPaint == true ? Color.NonPainting
+        color.PreciseProcess is { } native && space is { IsDeviceCmyk: true, IsDefault: false, HasIccSource: false }
+            ? color with { PreciseProcess = native with { Preserve = enabled && mode == 1 ? native.ExactZeros : (byte)0 } }
+        : space?.DoesNotPaint == true ? Color.NonPainting
         : space?.RegistrationColor == true || space?.PaletteBase?.RegistrationColor == true
             ? color with { OverprintComponents = 0 }
         : enabled && space?.NativeProcessMask is byte mask

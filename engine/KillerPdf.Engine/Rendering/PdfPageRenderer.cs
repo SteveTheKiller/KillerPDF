@@ -305,7 +305,7 @@ public sealed partial class PdfPageRenderer
     private PdfRenderedPage RenderUncached(int pageIndex, PdfRenderOptions options,
         CancellationToken cancellationToken, byte[]? destination = null,
         (int Left, int Top, int Right, int Bottom)? region = null, float[]? preciseRgb = null,
-        PreciseCmykWorkingSpace? preciseCmyk = null)
+        PreciseCmykWorkingSpace? preciseCmyk = null, float[]? preciseProcess = null)
     {
         if (preciseRgb is null && options.Proof is { Enabled: true })
             throw new NotSupportedException("Printer proof output is not implemented for byte rendering.");
@@ -331,7 +331,8 @@ public sealed partial class PdfPageRenderer
         int rasterWidth = Right - Left, rasterHeight = Bottom - Top;
         var pixels = new RasterSurface(destination ?? GC.AllocateUninitializedArray<byte>(
             checked(rasterWidth * rasterHeight * 4)), Left, Top, rasterWidth, rasterHeight,
-            _pdf20BlendEndpoints) { PreciseRgb = preciseRgb, PreciseCmyk = preciseRgb is null ? null : preciseCmyk };
+            _pdf20BlendEndpoints) { PreciseRgb = preciseRgb, PreciseCmyk = preciseRgb is null ? null : preciseCmyk,
+                PreciseProcess = preciseProcess };
         cancellationToken.ThrowIfCancellationRequested();
         System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
             pixels.Data.AsSpan(0, pixels.Length))
@@ -375,7 +376,7 @@ public sealed partial class PdfPageRenderer
         // depends on its content, not on the caller's request, so a page whose masks or groups do
         // not fit is refused like any other page the float path cannot draw, and callers fall back
         // to the byte render as they do for unsupported content.
-        long preciseRootStorage = checked((long)rasterWidth * rasterHeight * 36);
+        long preciseRootStorage = checked((long)rasterWidth * rasterHeight * (preciseProcess is null ? 36 : 52));
         long preciseMaskStorage = 0;
         Action<long>? chargePreciseMask = preciseRgb is null ? null : bytes =>
         {
@@ -417,7 +418,7 @@ public sealed partial class PdfPageRenderer
         _jpeg2000PaintParallelism = Math.Max(1, options.Jpeg2000PaintParallelism);
         try
         {
-            if (considerRgbSpotShadow && RequiresRgbSpotShadow(pageIndex, pageResources,
+            if (preciseRgb is null && considerRgbSpotShadow && RequiresRgbSpotShadow(pageIndex, pageResources,
                 _tree.Pages[pageIndex].Dictionary, diagnostics, cancellationToken))
                 pixels.EnableRgbSpotShadow();
             ImageColorSpace initialGray = ReadColorSpace(Name("DeviceGray"), pageResources, 0, diagnostics: diagnostics).ForDestination(pixels);
@@ -524,7 +525,8 @@ public sealed partial class PdfPageRenderer
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (pixels.PreciseRgb is not null && options.Proof is { Enabled: true }
-                    && !PreciseProofOperationSupported(instruction.Operator))
+                    && !PreciseProofOperationSupported(instruction.Operator)
+                    && !(pixels.PreciseProcess is not null && instruction.Operator == "k"))
                     throw new NotSupportedException($"Printer proof operator {instruction.Operator} is not implemented.");
                 if (pixels.PreciseRgb is not null && !PreciseOperationSupported(instruction.Operator))
                     throw new NotSupportedException($"High-precision operator {instruction.Operator} is not implemented.");
@@ -536,7 +538,7 @@ public sealed partial class PdfPageRenderer
                 {
                     visibilityStack.Push(contentVisible);
                     if (instruction.Operator == "BDC")
-                        contentVisible &= OptionalContentVisible(values, resources);
+                        contentVisible &= OptionalContentVisible(values, resources, hiddenOptionalContentGroups);
                     continue;
                 }
                 if (instruction.Operator == "EMC")
@@ -848,7 +850,8 @@ public sealed partial class PdfPageRenderer
                         out bool unsupportedBlend, out PdfObject? softMaskValue,
                         out PdfObject? graphicsFontValue, out PdfDictionary? strokeSettings))
                     {
-                        if (pixels.PreciseRgb is not null && !PreciseGraphicsStateSupported(strokeSettings!))
+                        if (pixels.PreciseRgb is not null && !PreciseGraphicsStateSupported(strokeSettings!,
+                            allowProcessOverprint: pixels.PreciseProcess is not null))
                             throw new NotSupportedException("This high-precision graphics state is not implemented.");
                         if (softMaskValue is not null) opaqueFills.Flush();
                         state = ApplyGraphicsStrokeSettings(state, strokeSettings!, diagnostics);
@@ -1194,23 +1197,6 @@ public sealed partial class PdfPageRenderer
                 }
                 path.Clear();
                 subpath = null;
-            }
-
-            bool OptionalContentVisible(
-                IReadOnlyList<PdfObject> operands, PdfDictionary currentResources)
-            {
-                if (operands.Count != 2 || operands[0] is not PdfName tag
-                    || tag.ValueAsLatin1() != "OC") return true;
-                PdfObject property = operands[1];
-                if (property is PdfName propertyName)
-                {
-                    if (!currentResources.TryGetValue(Name("Properties"),
-                        out PdfObject? propertiesValue)
-                        || Resolve(propertiesValue) is not PdfDictionary properties
-                        || !properties.TryGetValue(propertyName, out property))
-                        return true;
-                }
-                return EvaluateOptionalContent(property, hiddenOptionalContentGroups, 0);
             }
 
             void PaintFill(IReadOnlyList<List<Point>> fillPath, bool evenOdd, bool combineOpaque = false)
@@ -3167,6 +3153,21 @@ public sealed partial class PdfPageRenderer
                 cancellationToken: cancellationToken,
                 compatibilityRecovery: _document.UsesCompatibilityRecovery), bytes.Length);
         }).Instructions;
+
+    private bool OptionalContentVisible(IReadOnlyList<PdfObject> operands, PdfDictionary currentResources,
+        IReadOnlySet<int> hiddenOptionalContentGroups)
+    {
+        if (operands.Count != 2 || operands[0] is not PdfName tag
+            || tag.ValueAsLatin1() != "OC") return true;
+        PdfObject property = operands[1];
+        if (property is PdfName propertyName)
+        {
+            if (!currentResources.TryGetValue(Name("Properties"), out PdfObject? propertiesValue)
+                || Resolve(propertiesValue) is not PdfDictionary properties
+                || !properties.TryGetValue(propertyName, out property)) return true;
+        }
+        return EvaluateOptionalContent(property, hiddenOptionalContentGroups, 0);
+    }
 
     private bool EvaluateOptionalContent(PdfObject value,
         IReadOnlySet<int> hiddenOptionalContentGroups, int expressionDepth,
@@ -8781,6 +8782,15 @@ public sealed partial class PdfPageRenderer
         out double[]? sourceComponents)
     {
         sourceComponents = null;
+        if (space.PreciseProcessSource)
+        {
+            double cyan = Number(Resolve(operands[0])), magenta = Number(Resolve(operands[1]));
+            double yellow = Number(Resolve(operands[2])), black = Number(Resolve(operands[3]));
+            byte zeros = (byte)((cyan == 0 ? 1 : 0) | (magenta == 0 ? 2 : 0)
+                | (yellow == 0 ? 4 : 0) | (black == 0 ? 8 : 0));
+            var native = new PreciseProcessPaint(cyan, magenta, yellow, black, zeros);
+            return space.Convert(cyan, magenta, yellow, black) with { PreciseProcess = native };
+        }
         if (space.HasProcessColorants || space.MultiConverter is not null)
         {
             var values = new double[space.Components];
@@ -9409,7 +9419,8 @@ public sealed partial class PdfPageRenderer
         bool IsLab = false, bool IsDefault = false, bool HasIccSource = false, bool HasSpotColorants = false,
         PdfObject? Definition = null, PdfDictionary? SourceResources = null, int Intent = 1,
         bool IsDeviceCmyk = false, BlackPointBinding? BlackPointControl = null,
-        ImageColorSpace? BlackPointAlternate = null, bool IsZeroBlackCalGray = false)
+        ImageColorSpace? BlackPointAlternate = null, bool IsZeroBlackCalGray = false,
+        bool PreciseProcessSource = false)
     {
         internal bool BlackPointCompensationEnabled => BlackPointControl is not null;
         internal ImageColorSpace? BlackPointSource => BlackPointControl?.Source;
@@ -9445,7 +9456,8 @@ public sealed partial class PdfPageRenderer
             if (destination.PreciseRgb is not null && destination.PreciseCmyk is { } working
                 && source is { Components: 4, IsDeviceCmyk: true,
                 Profile: null, HasIccSource: false, IsDefault: false, Converter: null, MultiConverter: null })
-                source = source with { Converter = working.Convert };
+                source = source with { Converter = working.Convert,
+                    PreciseProcessSource = destination.PreciseProcess is not null };
             ImageColorSpace bound = source.ForNativeDestination(destination);
             return enabled ? BindBlackPointCompensation(source, bound, destination, diagnostics) : bound;
         }
@@ -9796,6 +9808,7 @@ public sealed partial class PdfPageRenderer
             init { _connection = value; _connectionIsRgb = true; }
         }
         internal byte OverprintComponents { get; init; }
+        internal PreciseProcessPaint? PreciseProcess { get; init; }
         internal bool DoesNotPaint => (OverprintComponents & 32) != 0;
         internal static Color NonPainting => new(0, 0, 0) { OverprintComponents = 32 };
         internal uint? Ink { get; init; }

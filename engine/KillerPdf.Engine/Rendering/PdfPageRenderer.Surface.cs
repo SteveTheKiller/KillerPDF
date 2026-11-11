@@ -12,6 +12,7 @@ public sealed partial class PdfPageRenderer
         internal byte[] Data { get; } = data;
         // Precision-aware paints never read the compatibility byte storage.
         internal float[]? PreciseRgb { get; set; }
+        internal float[]? PreciseProcess { get; set; }
         // The working CMYK profile this float render assumes for untagged DeviceCMYK.
         internal PreciseCmykWorkingSpace? PreciseCmyk { get; set; }
         // Display colors of untagged process inks, captured inside the render's working CMYK scope.

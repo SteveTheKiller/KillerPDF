@@ -62,7 +62,10 @@ public sealed partial class PdfPageRenderer
     /// Explicit neutral graphics-state defaults, including a None soft-mask reset, retain precision.
     /// Line cap, join and miter operators and parameters, stroke adjustment, flatness, marked points,
     /// an overprint mode while overprint is off, device-dependent parameters and unknown
-    /// graphics-state keys draw as byte rendering does. Overprint, alpha as shape, text knockout off,
+    /// graphics-state keys draw as byte rendering does. A qualified page of unprofiled DeviceCMYK Normal
+    /// fills also retains native process plates for OPM0/1 overprint, opacity and printer proofing.
+    /// Mixed sources, profiles, groups and other overprinted paints remain unsupported.
+    /// Other overprint, alpha as shape, text knockout off,
     /// transfer functions, black-point compensation and graphics-state rendering intents are refused.
     /// Graphics-state alpha and luminosity soft masks, with backdrop and transfer function, take
     /// eight-bit mask values from the same mask group render as byte rendering; the masked paint,
@@ -89,7 +92,8 @@ public sealed partial class PdfPageRenderer
     /// It uses actual colorimetric printer transforms and preserves extended reference RGB output.
     /// Transparent output retains straight color and alpha; zero-alpha pixels are not gamut-evaluated.
     /// Intent fallback is diagnosed, and absolute source conversion requires explicit valid media white.
-    /// Other proof requests are diagnosed; original device ink preservation requires a source-aware path.
+    /// Qualified process-only overprint pages retain their original inks until the composed source appearance
+    /// is converted for proofing. Other proof requests are diagnosed.
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
     public PdfRenderedFrame RenderFrame(int pageIndex, PdfRenderOptions options,
@@ -109,7 +113,8 @@ public sealed partial class PdfPageRenderer
         int width = region is { } bounds ? bounds.Right - bounds.Left : options.Width;
         int height = region is { } verticalBounds ? verticalBounds.Bottom - verticalBounds.Top : options.Height;
         long pixelCount = (long)width * height;
-        int pixelStorage = 4 + 2 * 4 * sizeof(float)
+        bool processPlates = RequiresPreciseProcessPlates(pageIndex, options, cancellationToken);
+        int pixelStorage = 4 + 2 * 4 * sizeof(float) + (processPlates ? 16 : 0)
             + (options.Proof is { Enabled: true, GamutWarnings: true } ? 2 : 0);
         if (pixelCount > options.PixelByteLimit / pixelStorage)
             throw new ArgumentException("The high-precision render exceeds its combined pixel storage limit.", nameof(options));
@@ -124,9 +129,10 @@ public sealed partial class PdfPageRenderer
                     && Resolve(knockoutValue) is PdfBoolean { Value: true }))
             throw new NotSupportedException("This high-precision page group is not implemented.");
         var pixels = new float[checked((int)pixelCount * 4)];
+        float[]? nativeProcess = processPlates ? new float[pixels.Length] : null;
         var workingCmyk = new PreciseCmykWorkingSpace(options.WorkingCmykProfile);
         PdfRenderedPage compatibility = RenderUncached(pageIndex, options, cancellationToken,
-            region: region, preciseRgb: pixels, preciseCmyk: workingCmyk);
+            region: region, preciseRgb: pixels, preciseCmyk: workingCmyk, preciseProcess: nativeProcess);
         HashSet<string> recovery = DocumentRecoveryDiagnostics(pageIndex);
         var frameDiagnostics = new List<string>();
         foreach (string diagnostic in compatibility.Diagnostics)
@@ -274,7 +280,7 @@ public sealed partial class PdfPageRenderer
     // and stroke adjustment shape the stroke both renderers rasterize; overprint mode matters only
     // while overprint is on; smoothness, flatness, halftones, black generation, undercolor removal
     // and keys the renderer does not know change nothing either renderer draws.
-    private bool PreciseGraphicsStateSupported(PdfDictionary settings)
+    private bool PreciseGraphicsStateSupported(PdfDictionary settings, bool allowProcessOverprint = false)
     {
         foreach (var entry in settings)
         {
@@ -284,7 +290,8 @@ public sealed partial class PdfPageRenderer
             PdfObject value = Resolve(entry.Value);
             bool neutral = name switch
             {
-                "op" or "OP" or "AIS" => value is PdfBoolean { Value: false },
+                "op" or "OP" => value is PdfBoolean boolean && (!boolean.Value || allowProcessOverprint),
+                "AIS" => value is PdfBoolean { Value: false },
                 "UseBlackPtComp" => value is PdfName policy && policy.ValueAsLatin1() is "OFF" or "Default",
                 "TK" => value is PdfBoolean { Value: true },
                 // The byte path applies transfer functions as eight-bit tables.
@@ -360,6 +367,15 @@ public sealed partial class PdfPageRenderer
     private static void PaintPrecisePixel(RasterSurface surface, int offset, in Color color,
         double opacity, RendererBlendMode blendMode, KnockoutState? knockout)
     {
+        if (surface.PreciseProcess is not null)
+        {
+            if (color.PreciseProcess is null || blendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible)
+                || knockout is not null || surface.HasProfile || surface.PreciseGroupAlpha is not null
+                || surface.GroupAlpha is not null || surface.GroupShape is not null)
+                throw new NotSupportedException("This paint cannot supply precise native process plates.");
+            PaintPreciseProcessPixel(surface, offset, color.PreciseProcess, opacity);
+            return;
+        }
         if (blendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible or RendererBlendMode.Multiply or RendererBlendMode.Screen)
             || knockout is not null || surface.HasProfile
             || surface.GroupAlpha is not null || surface.GroupShape is not null
