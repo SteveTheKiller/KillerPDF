@@ -58,12 +58,19 @@ internal sealed class PdfWorkingDocument : IDisposable
     /// parse (or its refusal) serves every click on this document instead of parsing it again each time.</summary>
     internal PdfDocument? OpenStrictForContentCopy()
     {
+        bool droppedOverdue = false;
+        PdfDocument? result;
+        System.Runtime.ExceptionServices.ExceptionDispatchInfo? failure;
         // Its own lock: a first strict parse of a large file never holds up render revisions.
         lock (_contentCopySync)
         {
             ObjectDisposedException.ThrowIf(Volatile.Read(ref _closed), this);
             // The timer normally drops an idle copy; this covers one that is overdue by the time it is asked for.
-            if (_contentCopy is { Document: not null } && IdleFor() >= ContentCopyIdleLimit) _contentCopy = null;
+            if (_contentCopy is { Document: not null } && IdleFor() >= ContentCopyIdleLimit)
+            {
+                _contentCopy = null;
+                droppedOverdue = true;
+            }
             if (_contentCopy is null)
             {
                 try
@@ -85,8 +92,23 @@ internal sealed class PdfWorkingDocument : IDisposable
                 }
             }
             _contentCopyUsedAt = ContentCopyClock.GetTimestamp();
-            _contentCopy.Value.Failure?.Throw();
-            return _contentCopy.Value.Document;
+            failure = _contentCopy.Value.Failure;
+            result = _contentCopy.Value.Document;
+        }
+        // Outside the lock, like the timer's drop: whatever was read from the overdue parse goes with it.
+        if (droppedOverdue) ContentCopyDropped?.Invoke();
+        failure?.Throw();
+        return result;
+    }
+
+    /// <summary>Counts a cached read of what the strict parse produced as a use of that parse, so the idle drop
+    /// does not discard a parse the user is still working from. Does nothing when no parse is held.</summary>
+    internal void TouchContentCopy()
+    {
+        lock (_contentCopySync)
+        {
+            if (_contentCopy is { Document: not null } && !Volatile.Read(ref _closed))
+                _contentCopyUsedAt = ContentCopyClock.GetTimestamp();
         }
     }
 

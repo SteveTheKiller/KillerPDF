@@ -3,8 +3,9 @@ using KillerPdf.Engine.Documents;
 namespace KillerPDF.Services;
 
 /// <summary>The picture placements read for one document's pages, and the pictures extracted from them. A placement
-/// belongs to the strict parse it was read from, so the cache lives and dies with that parse: when the document
-/// lets its idle parse go, everything read from it goes too and nothing here keeps the parse reachable.</summary>
+/// belongs to the strict parse it was read from, so the cache lives and dies with that parse. The cached placements
+/// and the reader keep the parse reachable until the document lets it go (or the cache is released), and then
+/// everything read from it is dropped together.</summary>
 internal sealed class PlacementReadCache
 {
     internal const int MaximumPages = 8;
@@ -14,10 +15,13 @@ internal sealed class PlacementReadCache
     private PdfWorkingDocument? _subscribed;
     private WeakReference<PdfWorkingDocument>? _owner;
     private WeakReference<PdfDocument>? _parse;
-    private WeakReference<PdfPageContentReader>? _reader;
+    private PdfPageContentReader? _reader;
     private readonly Dictionary<int, IReadOnlyList<PdfImagePlacementSelection>?> _pages = [];
     // A refused picture is remembered as null, so a repeat press does not extract it again.
     private readonly Dictionary<(int Page, int Ordinal), PdfImageAsset?> _assets = [];
+
+    /// <summary>How many extraction results are remembered, for tests.</summary>
+    internal int AssetsRemembered { get { lock (_sync) return _assets.Count; } }
 
     internal IReadOnlyList<PdfImagePlacementSelection>? PlacementsForPage(PdfWorkingDocument doc, int page)
     {
@@ -27,7 +31,11 @@ internal sealed class PlacementReadCache
             IReadOnlyList<PdfImagePlacementSelection>? read;
             try
             {
-                if (_pages.TryGetValue(page, out var cached) && HoldsParse(doc)) return cached;
+                if (_pages.TryGetValue(page, out var cached) && HoldsParse(doc))
+                {
+                    doc.TouchContentCopy();
+                    return cached;
+                }
                 var source = doc.OpenStrictForContentCopy();
                 if (source is null) return null;
                 if (!IsCurrentParse(source)) ClearReads(source);
@@ -52,13 +60,20 @@ internal sealed class PlacementReadCache
     {
         lock (_sync)
         {
-            if (_assets.TryGetValue((page, ordinal), out var known)) return known;
+            if (_assets.TryGetValue((page, ordinal), out var known))
+            {
+                doc.TouchContentCopy();
+                return known;
+            }
+            // The parse is gone (the document let it go between the page read and now): this is not a refusal, so
+            // nothing is remembered and the next page read starts again.
+            if (_parse is null || !_parse.TryGetTarget(out var source)) return null;
+            doc.TouchContentCopy();
             PdfImageAsset? asset;
             try
             {
                 // The placement was read from the parse the cache still follows; extract against that same parse.
-                asset = _parse is not null && _parse.TryGetTarget(out var source)
-                    ? PdfImagePlacementExtractor.Extract(source, image) : null;
+                asset = PdfImagePlacementExtractor.Extract(source, image);
             }
             catch (Exception error) when (error is NotSupportedException or InvalidOperationException or FormatException
                 or ArgumentException or KillerPdf.Engine.Filters.PdfFilterException)
@@ -123,9 +138,10 @@ internal sealed class PlacementReadCache
 
     private PdfPageContentReader ReaderFor(PdfDocument source)
     {
-        if (_reader is not null && _reader.TryGetTarget(out var reader)) return reader;
-        reader = new PdfPageContentReader(source);
-        _reader = new WeakReference<PdfPageContentReader>(reader);
+        // Held for exactly the cache's lifetime: ClearReads and ClearAll drop it with the placements read through it.
+        if (_reader is not null) return _reader;
+        var reader = new PdfPageContentReader(source);
+        _reader = reader;
         return reader;
     }
 }

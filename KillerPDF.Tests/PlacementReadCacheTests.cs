@@ -67,6 +67,72 @@ public sealed class PlacementReadCacheTests
         Assert.False(weak.TryGetTarget(out _));
     }
 
+    [Fact]
+    public void CachedReadsKeepTheParseAliveThroughTheIdleCheck()
+    {
+        using var scope = new Scope();
+        var cache = new PlacementReadCache();
+        var parse = scope.Document.OpenStrictForContentCopy();
+        var first = cache.PlacementsForPage(scope.Document, 0);
+        Assert.NotNull(first);
+
+        scope.Clock.Advance(TimeSpan.FromSeconds(90));
+        Assert.Same(first, cache.PlacementsForPage(scope.Document, 0));
+        scope.Clock.Advance(TimeSpan.FromSeconds(90));
+
+        // 180 s after the one real parse, but only 90 s after the last cached read.
+        Assert.True(scope.Document.HoldsContentCopy);
+        Assert.Same(parse, scope.Document.OpenStrictForContentCopy());
+        Assert.Same(first, cache.PlacementsForPage(scope.Document, 0));
+    }
+
+    [Fact]
+    public void CachedAssetReadsKeepTheParseAliveThroughTheIdleCheck()
+    {
+        using var scope = new Scope();
+        var cache = new PlacementReadCache();
+        var picture = Assert.Single(cache.PlacementsForPage(scope.Document, 0)!);
+        Assert.NotNull(cache.AssetForPlacement(scope.Document, 0, 0, picture));
+
+        scope.Clock.Advance(TimeSpan.FromSeconds(90));
+        Assert.NotNull(cache.AssetForPlacement(scope.Document, 0, 0, picture));
+        scope.Clock.Advance(TimeSpan.FromSeconds(90));
+
+        Assert.True(scope.Document.HoldsContentCopy);
+    }
+
+    [Fact]
+    public void AnAssetAskedForAfterTheParseWasDroppedIsNotRememberedAsRefused()
+    {
+        using var scope = new Scope();
+        var cache = new PlacementReadCache();
+        var picture = Assert.Single(cache.PlacementsForPage(scope.Document, 0)!);
+        scope.Clock.Advance(PdfWorkingDocument.ContentCopyIdleLimit);
+        Assert.False(scope.Document.HoldsContentCopy);
+
+        Assert.Null(cache.AssetForPlacement(scope.Document, 0, 0, picture));
+        Assert.Equal(0, cache.AssetsRemembered);
+
+        var again = Assert.Single(cache.PlacementsForPage(scope.Document, 0)!);
+        Assert.NotNull(cache.AssetForPlacement(scope.Document, 0, 0, again));
+    }
+
+    [Fact]
+    public void AnOverdueParseReplacedInlineRaisesTheDropEvent()
+    {
+        using var scope = new Scope();
+        var old = scope.Document.OpenStrictForContentCopy();
+        int dropped = 0;
+        scope.Document.ContentCopyDropped += () => dropped++;
+
+        scope.Clock.Skip(PdfWorkingDocument.ContentCopyIdleLimit);
+        var replacement = scope.Document.OpenStrictForContentCopy();
+
+        Assert.Equal(1, dropped);
+        Assert.NotNull(replacement);
+        Assert.NotSame(old, replacement);
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference<PdfDocument> ReadFirstPage(PlacementReadCache cache, PdfWorkingDocument document)
     {
@@ -122,6 +188,9 @@ public sealed class PlacementReadCacheTests
             _timers.Add(timer);
             return timer;
         }
+
+        // Moves time without running any timer, as when the timer thread has not been scheduled yet.
+        public void Skip(TimeSpan by) => _now += by.Ticks;
 
         public void Advance(TimeSpan by)
         {
