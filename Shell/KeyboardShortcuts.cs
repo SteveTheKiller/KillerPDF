@@ -609,6 +609,7 @@ namespace KillerPDF.Shell
             else if (key == Key.Home && mods == ModifierKeys.None && HasReadingDocument)
             {
                 // First / last page (the Acrobat / Sumatra convention).
+                ActiveViewer.CancelPaginationWaitExt();   // an End still waiting for a book's last page is called off
                 RecordNavJump();
                 PageList.SelectedIndex = 0;
                 e.Handled = true;

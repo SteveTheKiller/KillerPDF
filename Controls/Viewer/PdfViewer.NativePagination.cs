@@ -59,12 +59,15 @@ public partial class PdfViewer
         if (_nativeDoc is not { IsPaginating: true } book || !last && pageIndex < ReadPageCount) return false;
         long request = ++_paginationWait;
         var session = _active;
+        int startPage = _currentPage;
         _ = Wait();
         return true;
 
         async Task Wait()
         {
-            while (request == _paginationWait && ReferenceEquals(_nativeDoc, book) && ReferenceEquals(_active, session))
+            // A reader who moves to another page meanwhile has changed their mind: the wait is over.
+            while (request == _paginationWait && ReferenceEquals(_nativeDoc, book) && ReferenceEquals(_active, session)
+                && _currentPage == startPage)
             {
                 // Every page is shown once pagination ended and the window took in the last of them.
                 bool complete = !book.IsPaginating && book.ShownPageCount == book.PageCount;
@@ -78,6 +81,10 @@ public partial class PdfViewer
             }
         }
     }
+
+    /// <summary>Ends a page wait still pending, for a reader who goes elsewhere by a means that leaves the current
+    /// page as it is, such as Home on the first page.</summary>
+    internal void CancelPaginationWaitExt() => _paginationWait++;
 
     /// <summary>
     /// Follows a native navigation target. In a book still being paginated, a target whose chapter has no page numbers
