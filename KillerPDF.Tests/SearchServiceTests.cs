@@ -276,6 +276,16 @@ namespace KillerPDF.Tests
             System.IO.File.ReadAllText(System.IO.Path.Combine(
                 System.IO.Path.GetDirectoryName(System.IO.Path.GetDirectoryName(testFile))!, relativePath));
 
+        // The overlay pass re-parses the whole file after the page loop, so a search that was cancelled by then stops
+        // before that parse rather than after it.
+        [Fact]
+        public void TheOverlayPassAfterThePageLoopStopsWhenTheSearchIsCancelled()
+        {
+            byte[] pdf = BuildPdf(["BT /F1 12 Tf 10 10 Td (hello) Tj ET"]);
+            Assert.ThrowsAny<OperationCanceledException>(() => SearchService.AddOverlayHits(
+                new SearchResult(), pdf, null, "hello", false, false, new CancellationToken(true)));
+        }
+
         private static void WithPdf(string[] pageContents, Action<string> check)
         {
             string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".pdf");

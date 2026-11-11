@@ -447,10 +447,21 @@ namespace KillerPDF.Services
             }
 
             failures.RequireAReadablePage(doc.NumberOfPages);
+            AddOverlayHits(result, source, protection, query, matchCase, wholeWord, cancellationToken);
+            return result;
+        }
+
+        // The text this app drew over the page (replacement text boxes), searched from the saved bytes.
+        internal static void AddOverlayHits(SearchResult result, byte[] source, OpenedProtection? protection, string query,
+            bool matchCase, bool wholeWord, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             var saved = PdfEngineIntegration.OpenForReading(source, protection);
+            cancellationToken.ThrowIfCancellationRequested();
             var owned = PdfOverlayAnnotations.Read(saved);
             if (owned.Count > 0)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var comments = KillerPdf.Engine.Documents.PdfCommentReader.Read(saved, true)
                     .ToDictionary(comment => (comment.PageIndex, comment.AnnotationIndex));
                 var pages = KillerPdf.Engine.Documents.PdfPageInformation.Read(saved);
@@ -476,7 +487,6 @@ namespace KillerPDF.Services
                     }
                 }
             }
-            return result;
         }
 
         // A page the reader refuses is skipped; running out of memory or being cancelled is not that.
