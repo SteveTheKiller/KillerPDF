@@ -855,10 +855,13 @@ public sealed partial class EpubDocument
             return image;
         }
 
-        (IReadOnlyList<EpubLayoutPage> Pages, double Bottom) LayoutFlow(
+        (IReadOnlyList<EpubLayoutPage> Pages, double Bottom, List<(string Id, int Offset, double Left, double Top)> Anchors) LayoutFlow(
             EpubFormattingTree.Block flowRoot, double contentLeft, double contentRight, double top)
         {
             int existingPageCount = destinationPages.Count;
+            // Cell anchors of a flow that is not the chapter's own (a measured cell) wait here, in the flow's own
+            // coordinates, until the row that holds the cell is placed; only then are its page and height known.
+            var flowAnchors = new List<(string Id, int Offset, double Left, double Top)>();
             bool chapterRoot = ReferenceEquals(flowRoot, formatting.Root);
             int flowStart = chapterRoot ? 0 : Math.Min(flowRoot.Source.Offset, text.Length);
             int flowEnd = chapterRoot ? text.Length : Math.Min(flowRoot.Source.EndOffset, text.Length);
@@ -914,8 +917,8 @@ public sealed partial class EpubDocument
                     throw new NotSupportedException("Native EPUB terminal body padding overflow is not implemented.");
                 FinishPage(flowEnd);
             }
-            catch (EpubCellFlowOverflow) { return ([], top); }
-            return (pages, top);
+            catch (EpubCellFlowOverflow) { return ([], top, []); }
+            return (pages, top, flowAnchors);
 
             void LayoutBlock(EpubFormattingTree.Block block)
             {
@@ -1400,7 +1403,8 @@ public sealed partial class EpubDocument
                     if (row.Children.Count == 0 || row.Children.Any(child => child is not EpubFormattingTree.Cell))
                         throw new NotSupportedException("Native EPUB rows require direct cells.");
                     int columnIndex = 0;
-                    var cells = new List<(EpubNativeContent.Element Source, EpubLayoutPage Page, double Left)>();
+                    var cells = new List<(EpubNativeContent.Element Source, EpubLayoutPage Page, double Left,
+                        List<(string Id, int Offset, double Left, double Top)> Anchors)>();
                     var widths = new List<double>();
                     int rowPaintCount = 0;
                     double rowLeft = contentLeft, rowHeight = 0;
@@ -1442,7 +1446,7 @@ public sealed partial class EpubDocument
                         rowPaintCount += measured.Pages[0].PaintCount;
                         if (rowPaintCount > 100_000)
                             throw new InvalidDataException("The native page exceeds its paint limit.");
-                        cells.Add((cell.Source, measured.Pages[0], rowLeft));
+                        cells.Add((cell.Source, measured.Pages[0], rowLeft, measured.Anchors));
                         rowHeight = Math.Max(rowHeight, measured.Bottom - options.Margin);
                         rowLeft += cellWidth;
                     }
@@ -1470,8 +1474,10 @@ public sealed partial class EpubDocument
                     double firstBaseline = cells.SelectMany(cell => cell.Page.Glyphs).OfType<NativeGlyphPaint>()
                         .FirstOrDefault()?.Baseline + shift ?? top + options.FontSize;
                     PaintListMarker(table, firstBaseline);
-                    foreach (var (source, cell, cellLeft) in cells)
+                    foreach (var (source, cell, cellLeft, nestedAnchors) in cells)
                     {
+                        foreach (var nested in nestedAnchors)
+                            RecordCellAnchor(nested.Id, nested.Offset, nested.Left, nested.Top + shift);
                         if (anchorsByCell.TryGetValue(source, out var ownedAnchors))
                         {
                             int navigationIndex = 0;
@@ -1497,8 +1503,7 @@ public sealed partial class EpubDocument
                                     anchorLeft = previous.Left + previous.Width;
                                     anchorTop = previous.Top;
                                 }
-                                cellAnchors[(spineIndex, anchor.Id, anchor.Offset)] = new(
-                                    existingPageCount + pages.Count, spineIndex, anchor.Offset, anchorLeft, anchorTop + shift);
+                                RecordCellAnchor(anchor.Id, anchor.Offset, anchorLeft, anchorTop + shift);
                             }
                         }
                         foreach (var placement in cell.TextPlacements)
@@ -1530,6 +1535,13 @@ public sealed partial class EpubDocument
 
                 // A row that cannot fit one page keeps all of its content: its cells flow down the table's
                 // content box one after another and paginate like any block, instead of refusing the chapter.
+                void RecordCellAnchor(string id, int offset, double anchorLeft, double anchorTop)
+                {
+                    if (chapterRoot)
+                        cellAnchors[(spineIndex, id, offset)] = new(existingPageCount + pages.Count, spineIndex, offset, anchorLeft, anchorTop);
+                    else flowAnchors.Add((id, offset, anchorLeft, anchorTop));
+                }
+
                 void LayoutRowAsBlocks(EpubFormattingTree.Row row)
                 {
                     var added = new List<EpubFormattingTree.Block>();
