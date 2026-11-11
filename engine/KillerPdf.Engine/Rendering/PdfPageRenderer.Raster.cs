@@ -345,12 +345,13 @@ public sealed partial class PdfPageRenderer
         }
         catch (AggregateException)
         {
-            // Rows fail the way the serial path does: cancellation stays cancellation, and a refused paint
-            // stays the expected exception its first failing row threw, which callers fall back on, whatever
-            // other row ranges threw. Only failures that are none of these stay an aggregate.
+            // Rows fail the way the serial path does: cancellation stays cancellation, and otherwise the first
+            // failing row range's exception surfaces when it is an expected type, which callers fall back on,
+            // whatever later row ranges threw. A first failure of any other type stays an aggregate, so an
+            // engine bug is not hidden behind a later range's refusal.
             Exception[] ordered = [.. failures.OrderBy(failure => failure.Chunk).Select(failure => failure.Error)];
             Exception? chosen = ordered.FirstOrDefault(error => error is OperationCanceledException)
-                ?? ordered.FirstOrDefault(error => error is NotSupportedException or InvalidDataException or ArgumentException);
+                ?? ordered.Take(1).FirstOrDefault(error => error is NotSupportedException or InvalidDataException or ArgumentException);
             if (chosen is not null)
                 System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(chosen).Throw();
             throw;

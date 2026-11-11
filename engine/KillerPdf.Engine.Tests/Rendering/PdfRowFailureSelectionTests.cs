@@ -38,6 +38,19 @@ public sealed class PdfRowFailureSelectionTests
         Assert.IsType<NotSupportedException>(error);
     }
 
+    // The serial loop raises the first failing row's exception whatever its type, so an engine bug in a lower
+    // row range is not hidden behind a later range's refusal that callers treat as a fallback.
+    [Fact]
+    public void AnUnexpectedFailureInALowerRowRangeIsNotMaskedByALaterExpectedOne()
+    {
+        var error = Assert.ThrowsAny<Exception>(() => ForRanges(
+            () => new NullReferenceException("first"), () => new NotSupportedException("second")));
+
+        Assert.IsNotType<NotSupportedException>(error);
+        Assert.Contains(error is AggregateException aggregate ? aggregate.InnerExceptions : [error],
+            inner => inner is NullReferenceException);
+    }
+
     [Fact]
     public void CancellationInAnyRowRangeSurfacesAsCancellation()
     {
