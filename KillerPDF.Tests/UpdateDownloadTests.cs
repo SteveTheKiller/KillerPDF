@@ -142,6 +142,50 @@ public sealed class UpdateDownloadTests
         finally { Directory.Delete(folder, recursive: true); }
     }
 
+    [Theory]
+    [InlineData(true, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    public void ARunAsAdministratorPortableUpdateUsesTheElevatedHelperSettings(bool appElevated, bool folderNeedsAdmin, bool expectUnelevated)
+    {
+        string folder = NewFolder();
+        try
+        {
+            string download = Path.Combine(folder, "KillerPDF_update_x.exe");
+            var target = new UpdateService.UpdateTarget { Replace = @"C:\Tools\KillerPDF.exe" };
+            UpdateImagePublication.RememberVerified(download, new string('a', 64), new string('b', 40));
+            var platform = new UpdateService.Platform { IsElevated = () => appElevated, CanWrite = _ => !folderNeedsAdmin };
+            var start = UpdateService.PackageStart(download, @"C:\Tools\KillerPDF.exe", 4242, 1, target, platform);
+            string script = Decode(start.Arguments);
+            // Admin rights come from runas only when the folder needs them; an elevated app's helper inherits them.
+            Assert.Equal(folderNeedsAdmin ? "runas" : "", start.Verb ?? "");
+            if (expectUnelevated)
+            {
+                Assert.Contains("Elevated = $false", script, StringComparison.Ordinal);
+                Assert.Contains("ShowReport = $true", script, StringComparison.Ordinal);
+            }
+            else
+            {
+                Assert.Contains("Elevated = $true", script, StringComparison.Ordinal);
+                Assert.Contains("ShowReport = $false", script, StringComparison.Ordinal);
+                Assert.DoesNotContain("did not close within a minute", script, StringComparison.Ordinal);
+            }
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    private static string Decode(string arguments)
+    {
+        const string prefix = "-NoLogo -NoProfile -NonInteractive -Command \"";
+        string bootstrap = arguments.Substring(prefix.Length, arguments.Length - prefix.Length - 1);
+        var payload = System.Text.RegularExpressions.Regex.Match(bootstrap, @"FromBase64String\('([A-Za-z0-9+/=]+)'\)");
+        Assert.True(payload.Success, "The bootstrap carries no compressed script.");
+        using var compressed = new MemoryStream(Convert.FromBase64String(payload.Groups[1].Value));
+        using var gzip = new System.IO.Compression.GZipStream(compressed, System.IO.Compression.CompressionMode.Decompress);
+        using var reader = new StreamReader(gzip, System.Text.Encoding.UTF8);
+        return reader.ReadToEnd();
+    }
+
     [Fact]
     public void AboutReportsARefusedUpdateAndKeepsTheBrowserFallbackForNetworkFailures()
     {

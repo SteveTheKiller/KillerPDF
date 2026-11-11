@@ -422,13 +422,24 @@ namespace KillerPDF.Services
         /// elevated, with its whole script in the consented command line.</summary>
         private static void StartPackage(string download, string curExe, Process self, UpdateTarget target, Platform platform)
         {
-            string replaced = target.Replace ?? curExe;
-            bool elevate = target.Machine || !platform.CanWrite(Path.GetDirectoryName(replaced)!);
-            string script = PackageHelperScript(download, replaced, target, elevate, self.Id, self.StartTime.ToUniversalTime().Ticks);
-            var start = HelperStart(script);
-            if (elevate) start.Verb = "runas";
+            var start = PackageStart(download, curExe, self.Id, self.StartTime.ToUniversalTime().Ticks, target, platform);
             if (platform.Start(start) is null)
                 throw new IOException("The update helper did not start. Download retained at: " + download);
+        }
+
+        /// <summary>The installer and launcher helper's start info. A helper that "runas" elevates, and the
+        /// helper of a copy already running as administrator (which inherits those rights), both take the
+        /// elevated settings: no report window, and the app reopens through the de-elevated path. Only
+        /// the helper that needs the prompt gets the "runas" verb.</summary>
+        internal static ProcessStartInfo PackageStart(string download, string curExe, int processId, long processStartTicks,
+            UpdateTarget target, Platform platform)
+        {
+            string replaced = target.Replace ?? curExe;
+            bool elevate = target.Machine || !platform.CanWrite(Path.GetDirectoryName(replaced)!);
+            string script = PackageHelperScript(download, replaced, target, elevate || platform.IsElevated(), processId, processStartTicks);
+            var start = HelperStart(script);
+            if (elevate) start.Verb = "runas";
+            return start;
         }
 
         /// <summary>The installer and launcher helper's script. An unelevated helper that times out
