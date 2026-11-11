@@ -2497,9 +2497,12 @@ namespace KillerPDF.Controls
                         _cropPageIndex = _cropPrevPageIndex;   // the box did not move, so neither does its page
                         if (_cropPreviewRect is not null)
                         {
+                            // Its canvas does not move either: the handles, handle drags and a locale rebuild all
+                            // measure against the active canvas, which the click left on the clicked page.
+                            if (_cropPreviewRect.Parent is Canvas boxCanvas) _activeCanvas = _gestureCanvas = boxCanvas;
                             _cropCanvasRect = new Rect(Canvas.GetLeft(_cropPreviewRect), Canvas.GetTop(_cropPreviewRect),
                                                        _cropPreviewRect.Width, _cropPreviewRect.Height);
-                            SyncCropBoxInputs();
+                            UpdateCropRectVisuals();
                         }
                     }
                     break;
