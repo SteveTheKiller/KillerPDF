@@ -6,6 +6,17 @@ namespace KillerPDF.Services;
 
 internal static class NativePdfConversion
 {
+    internal static bool IsDestinationOpen(string path, IEnumerable<string?> openPaths)
+    {
+        string full = Path.GetFullPath(path);
+        return openPaths.Any(other =>
+        {
+            if (string.IsNullOrEmpty(other)) return false;
+            try { return string.Equals(Path.GetFullPath(other), full, StringComparison.OrdinalIgnoreCase); }
+            catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) { return false; }
+        });
+    }
+
     private const double CssPixelsPerMillimeter = 96 / 25.4;
     private const double PointsPerMillimeter = 72 / 25.4;
     // EpubPdfConversionOptions.FontSizePoints (12 pt) in CSS pixels.

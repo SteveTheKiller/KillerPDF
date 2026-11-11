@@ -112,14 +112,10 @@ public partial class MainWindow
 
     private bool IsPathOpenInAnyTab(string path)
     {
-        string full = Path.GetFullPath(path);
-        bool Same(string? other)
-        {
-            if (string.IsNullOrEmpty(other)) return false;
-            try { return string.Equals(Path.GetFullPath(other), full, StringComparison.OrdinalIgnoreCase); }
-            catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) { return false; }
-        }
-        return Same(_originalFile) || new[] { Viewer, ViewerB }.Any(pane =>
-            pane.SessionsRef.Any(session => Same(session.OriginalFile) || Same(session.DeferredPath)));
+        var windows = Application.Current.Windows.OfType<MainWindow>().ToArray();
+        return NativePdfConversion.IsDestinationOpen(path, windows.SelectMany(window =>
+            new[] { window._originalFile, window.Viewer.CurrentFilePathExt, window.ViewerB.CurrentFilePathExt }
+                .Concat(new[] { window.Viewer, window.ViewerB }.SelectMany(pane =>
+                    pane.SessionsRef.SelectMany(session => new[] { session.OriginalFile, session.DeferredPath })))));
     }
 }

@@ -14,11 +14,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Color-managed viewing and proofing support process-only CMYK overprint pages, more scaled scans and image masks. (#264)
 - Paragraph edits keep supported colored highlights and still refuse opaque covers. (#413)
 - Detached EPUB windows continue pagination after the original window closes. Installed font families beyond the lookup limit fall back without stopping the chapter. (#472)
+- Pending End respects pane focus, and book conversion checks destinations open in every window. (#472)
 - The first text highlight on a page can be undone and redone. (#485)
 - A per-user or portable update that fails now reopens KillerPDF instead of leaving it closed, including when antivirus or a locked-down PowerShell stops the update helper from loading, and a published copy that fails its final check is swapped back for the previous version and never started.
 - Searchable PDFs made with OCR, and other saves that add text, open in Adobe Reader again. Added fonts carry their complete encoding details, and saves keep the original file's cross-reference format.
 - An update started from an administrator's copy reopens KillerPDF at normal rights. An update that is applied but cannot record its version in the registry now finishes and reopens instead of reporting failure, and putting the previous copy back after a failed update retries a busy file and survives a leftover from an earlier attempt.
 - Updating KillerPDF no longer removes a relaunch another Killer app scheduled for its own update.
+- Updates show requested recovery reports, avoid recreating them after success, and remove inactive relaunch tasks.
 - Text fields with automatic font sizing save correctly and keep their original border and background styling. Untagged fields can be deleted from tagged PDFs without changing the page's existing tags. (#477)
 - Independent fields keep their own values and form settings. Added text saves above existing comments and reopens as one editable multiline box. (#466)
 - Merge accepts more PDFs with optional popup links, saved appearances and resource metadata, and preserves nested form fonts and alignment. (#455)
