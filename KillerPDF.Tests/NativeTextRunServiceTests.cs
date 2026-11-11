@@ -35,6 +35,16 @@ public sealed class NativeTextRunServiceTests
     }
 
     [Fact]
+    public void ANativePageIsReadOnceAndServedFromTheCacheAfterThat()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("fi B",
+            Zone(10, 20, 30, 40, 0, 2), Zone(50, 80, 30, 40, 3, 1))));
+        var service = new TextRunService();
+        var first = service.GetPage(revision, 0)!;
+        Assert.Same(first, service.GetPage(revision, 0));
+    }
+
+    [Fact]
     public void NativeVisibleRangesUseAtomicSourceAreasAndExcludeUnlocatedSeparators()
     {
         using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("fi B",

@@ -79,4 +79,72 @@ public sealed class FramedPanelSelectionTests
         }
         finally { File.Delete(path); }
     }
-}
+
+    // A dense grid of rectangles that each hold one short word. The panel pass used to test every rectangle
+    // against every word, which froze the first Select-tool hover on such a page.
+    private static string GridPage(int cells, string paint)
+    {
+        var content = new StringBuilder();
+        for (int row = 0; row < cells; row++)
+            for (int column = 0; column < cells; column++)
+            {
+                int x = column * 12 + 2, y = row * 12 + 2;
+                content.Append($"{x} {y} 10 10 re {paint} BT /F1 4 Tf 1 0 0 1 {x + 1} {y + 3} Tm (w) Tj ET\n");
+            }
+        string body = content.ToString();
+        int size = cells * 12 + 4;
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {size} {size}] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            $"<< /Length {body.Length} >>\nstream\n{body}\nendstream"
+        ];
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = pdf.Length;
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return pdf.ToString();
+    }
+
+    [Fact]
+    public void AGridTooLargeForPanelDetectionIsReadAsOnePanelWithoutPairwiseWork()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"kp-panels-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, Encoding.ASCII.GetBytes(GridPage(150, "f")));
+            TextRunService.PanelWork = 0;
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
+            Assert.Equal(150, runs.Lines.Count);
+            Assert.Equal(150 * 150, runs.Chars.Count);
+            // 22,500 rectangles over 22,500 words is 506 million pairs when each is tested; the budget is 5 million.
+            Assert.True(TextRunService.PanelWork <= 5_000_000, $"panel detection did {TextRunService.PanelWork} tests");
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void ABudgetSizedGridOfFramedWordsFindsEachPanelByLookingOnlyNearEachRectangle()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"kp-panels-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, Encoding.ASCII.GetBytes(GridPage(40, "S")));
+            TextRunService.PanelWork = 0;
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
+            // Each stroked cell is its own framed panel, so no two cells share a line: 1,600 words, 1,600 lines.
+            Assert.Equal(1600, runs.Lines.Count);
+            // Testing every rectangle against every word is 2.56 million pairs; a nearby lookup is a few per rectangle.
+            Assert.True(TextRunService.PanelWork <= 200_000, $"panel detection did {TextRunService.PanelWork} tests");
+        }
+        finally { File.Delete(path); }
+    }}

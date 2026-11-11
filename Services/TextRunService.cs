@@ -72,14 +72,35 @@ namespace KillerPDF.Services
         // Like the PDF overload, a page whose text cannot be read (a damaged DjVu text layer) has no runs; the Select
         // tool asks on every mouse move, so throwing would raise the crash dialog each time. Cancellation and a
         // retired revision still throw, as their callers expect.
+        // A native page is read once per revision: the pages a captured revision already has never change, and each
+        // read re-parses the page. A revision that is closed or a caller that is cancelled still throws, as before.
+        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfCapturedReadRevision,
+            Dictionary<int, PageTextRuns?>> _nativeCache = new();
+
         public PageTextRuns? GetPage(PdfCapturedReadRevision revision, int pageIdx,
             CancellationToken cancellationToken = default)
         {
-            try { return ReadNativePage(revision, pageIdx, cancellationToken); }
+            var pages = _nativeCache.GetValue(revision, _ => []);
+            lock (pages)
+            {
+                if (pages.TryGetValue(pageIdx, out var hit) && !revision.IsClosed)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return hit;
+                }
+            }
+            PageTextRuns? runs;
+            try { runs = ReadNativePage(revision, pageIdx, cancellationToken); }
             catch (Exception error) when (error is InvalidDataException or NotSupportedException or FormatException)
             {
-                return null;
+                runs = null;
             }
+            lock (pages)
+            {
+                if (pages.Count > 512) pages.Clear();
+                pages[pageIdx] = runs;
+            }
+            return runs;
         }
 
         private static PageTextRuns ReadNativePage(PdfCapturedReadRevision revision, int pageIdx,
@@ -239,13 +260,93 @@ namespace KillerPDF.Services
             return [.. sections.OrderByDescending(section => section.Top).Select(section => section.Lines)];
         }
 
+        /// <summary>Rectangle-word and rectangle-rectangle tests made by panel detection on this thread. Tests read it
+        /// to bound the work; it has no other use.</summary>
+        [ThreadStatic] internal static long PanelWork;
+
+        // Panel detection tests each framing rectangle against the words near it. A page whose rectangle count times
+        // word count passes this budget (dense grids, gradients drawn as strips) is read as one panel, so the first
+        // hover on it never waits for the pass.
+        internal const long PanelWorkBudget = 5_000_000;
+
+        // Words bucketed by position once, so a rectangle is tested only against the words in the buckets it covers.
+        private sealed class WordGrid
+        {
+            private readonly Engine.PdfContentBounds[] _bounds;
+            private readonly int _size;
+            private readonly double _minX, _minY, _cellWidth, _cellHeight;
+            private readonly List<int>?[] _cells;
+            private readonly int[] _stamp;
+            private int _query;
+
+            public WordGrid(IReadOnlyList<Engine.PdfExtractedWord> words)
+            {
+                _bounds = new Engine.PdfContentBounds[words.Count];
+                double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+                for (int index = 0; index < words.Count; index++)
+                {
+                    var box = _bounds[index] = words[index].BoundingBox;
+                    if (!IsFinite(box)) continue;
+                    minX = Math.Min(minX, box.Left); maxX = Math.Max(maxX, box.Right);
+                    minY = Math.Min(minY, box.Bottom); maxY = Math.Max(maxY, box.Top);
+                }
+                if (minX > maxX) { minX = minY = 0; maxX = maxY = 1; }
+                _size = Math.Clamp((int)Math.Sqrt(words.Count), 1, 256);
+                _minX = minX;
+                _minY = minY;
+                _cellWidth = Math.Max((maxX - minX) / _size, 1e-9);
+                _cellHeight = Math.Max((maxY - minY) / _size, 1e-9);
+                _cells = new List<int>?[_size * _size];
+                _stamp = new int[words.Count];
+                for (int index = 0; index < words.Count; index++)
+                {
+                    if (!IsFinite(_bounds[index])) continue;
+                    var (x0, x1, y0, y1) = Span(_bounds[index]);
+                    for (int y = y0; y <= y1; y++)
+                        for (int x = x0; x <= x1; x++)
+                            (_cells[y * _size + x] ??= []).Add(index);
+                }
+            }
+
+            private static bool IsFinite(Engine.PdfContentBounds box) =>
+                double.IsFinite(box.Left) && double.IsFinite(box.Right)
+                && double.IsFinite(box.Bottom) && double.IsFinite(box.Top);
+
+            private int Cell(double value, double origin, double size)
+            {
+                double at = Math.Floor((value - origin) / size);
+                return double.IsNaN(at) ? 0 : (int)Math.Clamp(at, 0, _size - 1);
+            }
+
+            private (int X0, int X1, int Y0, int Y1) Span(Engine.PdfContentBounds box) =>
+                (Cell(box.Left, _minX, _cellWidth), Cell(box.Right, _minX, _cellWidth),
+                    Cell(box.Bottom, _minY, _cellHeight), Cell(box.Top, _minY, _cellHeight));
+
+            /// <summary>The words whose buckets the rectangle covers, each once, in word order.</summary>
+            public List<int> Near(Engine.PdfContentBounds rectangle)
+            {
+                var found = new List<int>();
+                int query = ++_query;
+                var (x0, x1, y0, y1) = Span(rectangle);
+                for (int y = y0; y <= y1; y++)
+                    for (int x = x0; x <= x1; x++)
+                        if (_cells[y * _size + x] is { } cell)
+                            foreach (int index in cell)
+                                if (_stamp[index] != query) { _stamp[index] = query; found.Add(index); }
+                found.Sort();
+                return found;
+            }
+
+            public Engine.PdfContentBounds this[int index] => _bounds[index];
+        }
+
         private static Dictionary<Engine.PdfExtractedWord, int> PanelMembership(
             Engine.PdfPageContent page, IReadOnlyList<Engine.PdfExtractedWord> words)
         {
             static bool Contains(Engine.PdfContentBounds outer, Engine.PdfContentBounds inner) =>
                 inner.Left >= outer.Left && inner.Right <= outer.Right
                 && inner.Bottom >= outer.Bottom && inner.Top <= outer.Top;
-            var frames = new List<Engine.PdfContentBounds>();
+            var candidates = new List<(Engine.PdfContentBounds Bounds, string Operator)>();
             foreach (var path in page.Paths)
             {
                 if (path.IsClippingPath || path.PaintOperator is not ("S" or "s" or "f" or "F" or "f*" or "B" or "B*" or "b" or "b*")
@@ -258,44 +359,77 @@ namespace KillerPDF.Services
                 if (Enumerable.Range(0, 4).Any(index =>
                     Math.Abs(points[index].X - points[(index + 1) % 4].X) > .000001
                     && Math.Abs(points[index].Y - points[(index + 1) % 4].Y) > .000001)) continue;
-                if (words.Any(word => word.BoundingBox.Left < bounds.Right
-                    && word.BoundingBox.Right > bounds.Left && word.BoundingBox.Bottom < bounds.Top
-                    && word.BoundingBox.Top > bounds.Bottom && !Contains(bounds, word.BoundingBox))) continue;
-                var inside = words.Where(word => Contains(bounds, word.BoundingBox)).ToArray();
-                if (inside.Length == 0) continue;
-                if (path.PaintOperator is "f" or "F" or "f*")
-                {
-                    var first = inside[0];
-                    bool vertical = IsVertical(first.Letters[0].WritingDirection);
-                    double baseline = vertical ? first.Letters[0].StartBaseLine.X : first.Letters[0].StartBaseLine.Y;
-                    bool multipleLines = inside.Skip(1).Any(word =>
-                        word.Letters[0].WritingDirection == first.Letters[0].WritingDirection
-                        && Math.Abs((vertical ? word.Letters[0].StartBaseLine.X : word.Letters[0].StartBaseLine.Y) - baseline)
-                            > Math.Max(vertical ? first.BoundingBox.Width : first.BoundingBox.Height,
-                                vertical ? word.BoundingBox.Width : word.BoundingBox.Height) * .5);
-                    if (!multipleLines) continue;
-                }
-                frames.Add(bounds);
+                candidates.Add((bounds, path.PaintOperator));
             }
-            frames = frames.Distinct().OrderBy(frame => frame.Width * frame.Height).ToList();
-            var ambiguous = new HashSet<Engine.PdfContentBounds>();
-            for (int first = 0; first < frames.Count; first++)
-                for (int second = first + 1; second < frames.Count; second++)
-                {
-                    var a = frames[first];
-                    var b = frames[second];
-                    if (a.Left < b.Right && a.Right > b.Left && a.Bottom < b.Top && a.Top > b.Bottom
-                        && !Contains(a, b) && !Contains(b, a))
-                    {
-                        ambiguous.Add(a);
-                        ambiguous.Add(b);
-                    }
-                }
-            frames.RemoveAll(ambiguous.Contains);
-            return words.ToDictionary(word => word,
-                word => frames.FindIndex(frame => Contains(frame, word.BoundingBox)));
-        }
+            var membership = new int[words.Count];
+            Array.Fill(membership, -1);
+            if (candidates.Count > 0 && (long)candidates.Count * words.Count <= PanelWorkBudget)
+                AssignPanels(words, candidates, membership);
+            var result = new Dictionary<Engine.PdfExtractedWord, int>(words.Count);
+            for (int index = 0; index < words.Count; index++) result.Add(words[index], membership[index]);
+            return result;
 
+            static void AssignPanels(IReadOnlyList<Engine.PdfExtractedWord> words,
+                List<(Engine.PdfContentBounds Bounds, string Operator)> candidates, int[] membership)
+            {
+                var grid = new WordGrid(words);
+                var frames = new List<Engine.PdfContentBounds>();
+                var held = new Dictionary<Engine.PdfContentBounds, List<int>>();
+                foreach (var (bounds, paint) in candidates)
+                {
+                    var near = grid.Near(bounds);
+                    PanelWork += near.Count;
+                    var inside = new List<int>();
+                    bool straddles = false;
+                    foreach (int index in near)
+                    {
+                        var box = grid[index];
+                        if (Contains(bounds, box)) inside.Add(index);
+                        else if (box.Left < bounds.Right && box.Right > bounds.Left
+                            && box.Bottom < bounds.Top && box.Top > bounds.Bottom) { straddles = true; break; }
+                    }
+                    if (straddles || inside.Count == 0) continue;
+                    if (paint is "f" or "F" or "f*")
+                    {
+                        var first = words[inside[0]];
+                        bool vertical = IsVertical(first.Letters[0].WritingDirection);
+                        double baseline = vertical ? first.Letters[0].StartBaseLine.X : first.Letters[0].StartBaseLine.Y;
+                        bool multipleLines = inside.Skip(1).Select(index => words[index]).Any(word =>
+                            word.Letters[0].WritingDirection == first.Letters[0].WritingDirection
+                            && Math.Abs((vertical ? word.Letters[0].StartBaseLine.X : word.Letters[0].StartBaseLine.Y) - baseline)
+                                > Math.Max(vertical ? first.BoundingBox.Width : first.BoundingBox.Height,
+                                    vertical ? word.BoundingBox.Width : word.BoundingBox.Height) * .5);
+                        if (!multipleLines) continue;
+                    }
+                    frames.Add(bounds);
+                    held.TryAdd(bounds, inside);
+                }
+                frames = frames.Distinct().OrderBy(frame => frame.Width * frame.Height).ToList();
+                // Framed panels that cross each other are ambiguous and dropped. Sweeping the frames by left edge
+                // tests only the pairs that share a horizontal span.
+                var ambiguous = new HashSet<Engine.PdfContentBounds>();
+                if ((long)frames.Count * frames.Count > 4 * PanelWorkBudget) return;
+                var byLeft = frames.OrderBy(frame => frame.Left).ToArray();
+                for (int first = 0; first < byLeft.Length; first++)
+                    for (int second = first + 1; second < byLeft.Length && byLeft[second].Left < byLeft[first].Right; second++)
+                    {
+                        PanelWork++;
+                        var a = byLeft[first];
+                        var b = byLeft[second];
+                        if (a.Left < b.Right && a.Right > b.Left && a.Bottom < b.Top && a.Top > b.Bottom
+                            && !Contains(a, b) && !Contains(b, a))
+                        {
+                            ambiguous.Add(a);
+                            ambiguous.Add(b);
+                        }
+                    }
+                frames.RemoveAll(ambiguous.Contains);
+                // The first frame, smallest first, that holds a word is its panel.
+                for (int frame = 0; frame < frames.Count; frame++)
+                    foreach (int index in held[frames[frame]])
+                        if (membership[index] < 0) membership[index] = frame;
+            }
+        }
         private static PageTextRuns Build(KillerPdf.Engine.Documents.PdfPageContent page)
         {
             var result = new PageTextRuns { PdfWidth = page.Width, PdfHeight = page.Height };
