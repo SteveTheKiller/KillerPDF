@@ -346,15 +346,17 @@ namespace KillerPDF.Shell
             Keyboard.Focus(_searchBox);
         }
 
-        // Sizes the search text box to whatever width is left after the icon, status, and nav
-        // buttons, capped at a comfortable 200px, so the full bar always fits the preview area.
+        // Sizes the search text box to whatever width is left after the bar's other controls, capped at a comfortable
+        // 200px, so the full bar fits the preview area.
         private void FitSearchBox()
         {
             if (_searchBar is null || _searchBox is null) return;
             double avail = (PagePreviewPanel.Parent as Grid)?.ActualWidth ?? 0;
-            const double reserved = 314;   // grip + chevron + icon + 2 options + status + 3 buttons + paddings/margins
-            _searchBox.Width = Math.Max(60, Math.Min(200, avail - reserved));
-            _replaceBox?.Width = _searchBox.Width;
+            // Not laid out yet: there is no room to measure against, and the bar is fitted again once there is.
+            if (avail <= 0) return;
+            // The bar measures its own other controls, so nothing here goes stale when one of them changes. A pane
+            // too narrow for it narrows the status text before the boxes (Features/Search/SearchController.cs).
+            SearchBarFit.Fit(_searchBar, _replaceBox is null ? [_searchBox] : [_searchBox, _replaceBox], _searchStatus, avail);
         }
 
         private void CloseSearchBar()

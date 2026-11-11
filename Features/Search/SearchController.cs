@@ -485,3 +485,48 @@ namespace KillerPDF.Features
             string.Format(_host.Loc("Str_Search_PagesSkipped"), SearchService.SkippedPagesText(pages));
     }
 }
+
+namespace KillerPDF.Features
+{
+    /// <summary>
+    /// Sizes the find bar's text boxes to the room the bar has. The bar measures its other controls itself, so the
+    /// box takes whatever the pane leaves instead of a fixed allowance that drifts when a control changes. A pane too
+    /// narrow for the bar with a minimum box narrows the status text before the boxes go below their minimum.
+    /// </summary>
+    internal static class SearchBarFit
+    {
+        internal const double MinimumBox = 60, MaximumBox = 200;
+        internal const double StatusWidth = 96, MinimumStatus = 48;
+
+        /// <summary>Sets the width of every box (and the status text) and returns the box width. <paramref name="available"/>
+        /// is the width of the pane the bar floats in, in the bar's own layout units.</summary>
+        internal static double Fit(System.Windows.Controls.Border bar, IReadOnlyList<System.Windows.Controls.TextBox> boxes,
+            System.Windows.Controls.TextBlock? status, double available)
+        {
+            // Measured with every box at its minimum and the status text at full width, the bar is the other controls
+            // plus one minimum box (the replace row's box shares the find box's column).
+            void Apply(double box, double statusWidth)
+            {
+                foreach (var field in boxes) field.Width = box;
+                status?.Width = statusWidth;
+            }
+            Apply(MinimumBox, StatusWidth);
+            if (bar.Child is not System.Windows.UIElement content) return MinimumBox;
+            content.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+            var edge = bar.BorderThickness;
+            var padding = bar.Padding;
+            double others = content.DesiredSize.Width + edge.Left + edge.Right + padding.Left + padding.Right - MinimumBox;
+            double room = available - others;
+            double statusWidth = StatusWidth;
+            if (status is not null && room < MinimumBox)
+            {
+                // Too narrow for a minimum box: the status text gives up what it can before the box goes below it.
+                statusWidth = Math.Max(MinimumStatus, StatusWidth - (MinimumBox - room));
+                room += StatusWidth - statusWidth;
+            }
+            double width = Math.Clamp(room, MinimumBox, MaximumBox);
+            Apply(width, statusWidth);
+            return width;
+        }
+    }
+}
