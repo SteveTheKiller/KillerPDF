@@ -24,7 +24,7 @@ public partial class MainWindow
                 var options = new NativePdfConversionDialog(this);
                 if (options.ShowDialog() != true) return;
                 var face = PdfEngineIntegration.LoadTextFont("Segoe UI", "A", bold: false, italic: false)
-                    ?? throw new NotSupportedException("The EPUB conversion font is unavailable.");
+                    ?? throw new NotSupportedException(Loc("Str_Convert_FontUnavailable"));
                 epubOptions = NativePdfConversion.EpubOptions(face.Font,
                     PdfEngineIntegration.EpubFontFaceResolver(face.Family), options.WidthPoints,
                     options.HeightPoints, options.MarginPoints, Loc("Str_Epub_ChapterUnavailable"));
@@ -44,7 +44,7 @@ public partial class MainWindow
             if (!ReferenceEquals(viewer.NativeDocumentRef, source)) return;
             string destination = picker.FileName;
             if (App.IsCleanupOwnedPath(destination))
-                throw new InvalidOperationException("The converted PDF requires a permanent destination.");
+                throw new InvalidOperationException(Loc("Str_Convert_DestinationNotPermanent"));
             bool replaceExisting = File.Exists(destination);
             // A destination that is open in a tab would be replaced under it, and reopening would only
             // switch to the stale tab, so that file must be closed first.

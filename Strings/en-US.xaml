@@ -2104,6 +2104,10 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_NativePdf_KeepOriginal">The PDF opens in a new tab. Your original file stays unchanged.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Enter a valid paper size and margins that leave room for the content.</sys:String>
     <sys:String x:Key="Str_NativePdf_DestinationOpen">That PDF is open in a tab. Close it first, or choose another name.</sys:String>
+    <sys:String x:Key="Str_Convert_FontUnavailable">The font needed to convert this book is not available on this computer.</sys:String>
+    <sys:String x:Key="Str_Convert_DestinationNotPermanent">The converted PDF must be saved in a permanent folder, not a temporary one.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPageUnavailable">The page this link points to could not be shown.</sys:String>
+    <sys:String x:Key="Str_Native_NavigationPositionInvalid">The position this link points to is not valid.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextLeftOut">The text of pages {0} could not be kept, so those pages were converted as images only.</sys:String>
     <sys:String x:Key="Str_NativePdf_TextReplaced">Some characters in the text of pages {0} could not be read and were replaced with a placeholder.</sys:String>
     <sys:String x:Key="Str_CM_Title">Color Management</sys:String>

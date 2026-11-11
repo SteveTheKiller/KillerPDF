@@ -59,7 +59,7 @@ public partial class PdfViewer
                 canvas = VisibleCanvasForPage(destination.PageIndex);
                 if (canvas is { IsVisible: true, ActualWidth: > 0, ActualHeight: > 0 }) break;
                 if (deadline.Elapsed > TimeSpan.FromSeconds(3))
-                    throw new InvalidOperationException("The native navigation page did not become available.");
+                    throw new InvalidOperationException(Loc("Str_Native_NavigationPageUnavailable"));
                 await Task.Delay(25);
             }
             if (!Current() || canvas is null) return;
@@ -67,7 +67,7 @@ public partial class PdfViewer
             double width = geometry.Width, height = geometry.Height;
             if (geometry.IntrinsicRotation is 90 or 270) (width, height) = (height, width);
             if (!double.IsFinite(destination.Left) || !double.IsFinite(destination.Top))
-                throw new InvalidOperationException("The native navigation position is invalid.");
+                throw new InvalidOperationException(Loc("Str_Native_NavigationPositionInvalid"));
             var local = new Point(Math.Clamp(destination.Left, 0, width) * canvas.ActualWidth / width,
                 Math.Clamp(destination.Top, 0, height) * canvas.ActualHeight / height);
             Point visible = PagePreviewPanel.PointFromScreen(canvas.PointToScreen(local));
