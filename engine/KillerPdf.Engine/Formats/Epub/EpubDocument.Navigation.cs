@@ -9,7 +9,7 @@ public sealed partial class EpubDocument
     public IReadOnlyList<EpubNavigationEntry> ReadNavigation(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (Version == "2.0") return ReadNcx(cancellationToken);
+        if (Version.StartsWith("2.", StringComparison.Ordinal)) return ReadNcx(cancellationToken);
         // EPUB 3 books usually carry an NCX for older readers; it stands in when the navigation document cannot be read.
         try { return ReadNavigationDocument(cancellationToken); }
         catch (InvalidDataException) when (_navigationTocId is not null)

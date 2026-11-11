@@ -30,7 +30,7 @@ public sealed partial class EpubDocument
             throw new InvalidDataException("Invalid EPUB package namespace.");
         PackagePath = packagePath;
         Version = (string?)root.Attribute("version") ?? "";
-        if (Version is not ("2.0" or "3.0"))
+        if (!Version.StartsWith("2.", StringComparison.Ordinal) && !Version.StartsWith("3.", StringComparison.Ordinal))
             throw new InvalidDataException("Unsupported EPUB package version.");
         var metadata = root.Element(Opf + "metadata");
         var identifierId = Required(root, "unique-identifier");

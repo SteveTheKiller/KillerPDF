@@ -243,6 +243,47 @@ public sealed partial class EpubDocumentTests
 
     private static string Ncx(string points) => "<ncx xmlns='http://www.daisy.org/z3986/2005/ncx/'><navMap>" + points + "</navMap></ncx>";
 
+    // EPUB 3.1 packages declare version 3.1 and are the same model as EPUB 3; "2.x" is read as EPUB 2.
+    [Theory]
+    [InlineData("3.1")]
+    [InlineData("3.2")]
+    public void AnEpub3MinorVersionOpensAndReadsItsNavigationDocument(string version)
+    {
+        var package = Package.Replace("version=\"3.0\"", "version=\"" + version + "\"")
+            .Replace("</manifest>", "<item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/></manifest>");
+
+        var book = EpubDocument.Open(Book(package, ("EPUB/nav.xhtml", Navigation)));
+
+        Assert.Equal(new[] { "First chapter", "Second chapter" }, book.ReadNavigation().Select(x => x.Label));
+    }
+
+    [Fact]
+    public void AnEpub2MinorVersionReadsItsNcx()
+    {
+        const string ncx = """
+            <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><navMap>
+              <navPoint id="c" playOrder="1"><navLabel><text>Second chapter</text></navLabel><content src="two.xhtml"/></navPoint>
+            </navMap></ncx>
+            """;
+        var package = Package.Replace("version=\"3.0\"", "version=\"2.1\"")
+            .Replace("</manifest>", "<item id=\"toc\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\"/></manifest>")
+            .Replace("<spine ", "<spine toc=\"toc\" ");
+
+        var book = EpubDocument.Open(Book(package, ("EPUB/toc.ncx", ncx)));
+
+        Assert.Equal("Second chapter", Assert.Single(book.ReadNavigation()).Label);
+    }
+
+    [Theory]
+    [InlineData("4.0")]
+    [InlineData("3")]
+    [InlineData("")]
+    public void OtherPackageVersionsAreStillRefused(string version)
+    {
+        var package = Package.Replace("version=\"3.0\"", "version=\"" + version + "\"");
+        Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Book(package)));
+    }
+
     private static EpubDocument NcxBook(string navigation, string toc = "toc")
     {
         var package = Package.Replace("version=\"3.0\"", "version=\"2.0\"")
