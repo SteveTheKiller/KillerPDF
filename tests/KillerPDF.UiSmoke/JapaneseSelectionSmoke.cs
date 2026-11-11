@@ -65,7 +65,9 @@ internal static class JapaneseSelectionSmoke
             if (!rangeText) throw new InvalidOperationException("The public reading range does not contain the exact expected phrase.");
             range.ScrollIntoView(true);
             Pump();
-            double[] rectangles = range.GetBoundingRectangles();
+            double[] rectangles = [];
+            stage = "public UIA phrase rectangles after the asynchronous scroll";
+            Wait(() => (rectangles = range.GetBoundingRectangles()).Length != 0, stage);
             if (rectangles.Length == 0 || rectangles.Length % 4 != 0
                 || rectangles.Any(value => !double.IsFinite(value)))
                 throw new InvalidOperationException("The Japanese reading range has no valid screen rectangles.");
