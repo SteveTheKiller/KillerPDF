@@ -26,6 +26,18 @@ public sealed class ViewerPresentationPinTests
         Assert.Equal(1, Count(viewport, "await PresentPrimaryFrameAsync("));
     }
 
+    // VIEW-002: Grid draws page 0 as its primary tile and the rest as neighbours. A display color change redrew the
+    // current page as the primary, which collapsed the grid to one tile showing the wrong page.
+    [Fact]
+    public void ADisplayChangeRedrawsTheGridFromItsFirstPageLikeEveryOtherCaller()
+    {
+        string presentation = Source("Controls", "Viewer", "PdfViewer.Presentation.cs");
+        string rerender = Between(presentation, "private void RerenderForDisplayChange()", "private PdfDisplayDiscoverySnapshot ObservePresentationDisplay(");
+
+        Assert.Contains("else RenderPage(_viewMode == ViewMode.Grid ? 0 : _currentPage);", rerender);
+        Assert.DoesNotContain("else RenderPage(_currentPage);", rerender);
+    }
+
     private static int Count(string source, string text)
     {
         int count = 0;

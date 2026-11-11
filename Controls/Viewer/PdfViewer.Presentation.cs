@@ -114,7 +114,7 @@ public partial class PdfViewer
             _ = RenderContinuousPages(State.CurrentPage);
             StartRerenderTimer();
         }
-        else RenderPage(_currentPage);
+        else RenderPage(_viewMode == ViewMode.Grid ? 0 : _currentPage);
     }
 
     private PdfDisplayDiscoverySnapshot ObservePresentationDisplay(PdfDisplayDiscoverySnapshot display)
