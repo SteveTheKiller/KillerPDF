@@ -65,8 +65,12 @@ internal static class NativeGlyphPainter
         // multiple of the page size still bounds hostile input (at most 32 full overdraws, 16M pixels at the least).
         // The limit and the charge follow the whole page, not the region, so a page is accepted or refused the same
         // way whole or in tiles.
+        // Image and marker work follow the same rule on the same page-clamped geometry: 32 page areas of image
+        // pixels, and of marker pixels at 16 samples each, with the same 16M floor.
         long rectangleWork = 0;
         long rectangleLimit = Math.Max(16L * 1024 * 1024, (long)width * height * 32);
+        long imageLimit = rectangleLimit;
+        long markerLimit = Math.Max(16L * 1024 * 1024, (long)width * height * 32 * 16);
         foreach (var paint in paints)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -111,8 +115,12 @@ internal static class NativeGlyphPainter
                 int y0 = (int)Math.Clamp(Math.Ceiling(imageTop - .5), regionTop, regionBottom);
                 int x1 = (int)Math.Clamp(Math.Ceiling(imageLeft + imageWidth - .5), regionLeft, regionRight);
                 int y1 = (int)Math.Clamp(Math.Ceiling(imageTop + imageHeight - .5), regionTop, regionBottom);
-                imageWork += (long)Math.Max(0, x1 - x0) * Math.Max(0, y1 - y0);
-                if (imageWork > 16 * 1024 * 1024)
+                int pageX0 = (int)Math.Clamp(Math.Ceiling(imageLeft - .5), 0, width);
+                int pageY0 = (int)Math.Clamp(Math.Ceiling(imageTop - .5), 0, height);
+                int pageX1 = (int)Math.Clamp(Math.Ceiling(imageLeft + imageWidth - .5), 0, width);
+                int pageY1 = (int)Math.Clamp(Math.Ceiling(imageTop + imageHeight - .5), 0, height);
+                imageWork += (long)Math.Max(0, pageX1 - pageX0) * Math.Max(0, pageY1 - pageY0);
+                if (imageWork > imageLimit)
                     throw new InvalidDataException("The native page exceeds its image paint work limit.");
                 for (int y = y0; y < y1; y++)
                 {
@@ -143,8 +151,12 @@ internal static class NativeGlyphPainter
                 int y0 = (int)Math.Clamp(Math.Floor(centerY - radiusY), regionTop, regionBottom);
                 int x1 = (int)Math.Clamp(Math.Ceiling(centerX + radiusX), regionLeft, regionRight);
                 int y1 = (int)Math.Clamp(Math.Ceiling(centerY + radiusY), regionTop, regionBottom);
-                markerWork += (long)(x1 - x0) * (y1 - y0) * 16;
-                if (markerWork > 16 * 1024 * 1024)
+                int pageX0 = (int)Math.Clamp(Math.Floor(centerX - radiusX), 0, width);
+                int pageY0 = (int)Math.Clamp(Math.Floor(centerY - radiusY), 0, height);
+                int pageX1 = (int)Math.Clamp(Math.Ceiling(centerX + radiusX), 0, width);
+                int pageY1 = (int)Math.Clamp(Math.Ceiling(centerY + radiusY), 0, height);
+                markerWork += (long)(pageX1 - pageX0) * (pageY1 - pageY0) * 16;
+                if (markerWork > markerLimit)
                     throw new InvalidDataException("The native page exceeds its marker paint work limit.");
                 for (int y = y0; y < y1; y++)
                 {
