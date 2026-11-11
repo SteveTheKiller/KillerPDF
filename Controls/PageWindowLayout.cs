@@ -37,12 +37,16 @@ namespace KillerPDF.Controls
         /// The size of the page image on a print sheet, given the page's scaled size and the printable
         /// area. A page within a pixel or so of the area snaps to it plus one bleed pixel, so the white
         /// sheet does not peek through as a hairline. Any other size is kept and clipped by the sheet.
+        /// The page is drawn by an Image that keeps its aspect ratio, so the box grows on both axes by
+        /// one factor (the larger one an axis needs); growing a single side would leave the drawing at
+        /// its old size, centred in a wider box.
         /// </summary>
         public static (double Width, double Height) PrintedImageBox(double width, double height, double areaWidth, double areaHeight)
         {
-            if (Math.Abs(width - areaWidth) <= 1.5) width = areaWidth + 1;
-            if (Math.Abs(height - areaHeight) <= 1.5) height = areaHeight + 1;
-            return (width, height);
+            double factor = 0;
+            if (width > 0 && Math.Abs(width - areaWidth) <= 1.5) factor = Math.Max(factor, (areaWidth + 1) / width);
+            if (height > 0 && Math.Abs(height - areaHeight) <= 1.5) factor = Math.Max(factor, (areaHeight + 1) / height);
+            return factor > 0 ? (width * factor, height * factor) : (width, height);
         }
 
         /// <summary>The string key for the Print window's label over two shown pages. "Pages 3-4" is

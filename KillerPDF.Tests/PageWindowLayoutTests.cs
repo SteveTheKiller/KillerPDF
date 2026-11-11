@@ -29,16 +29,38 @@ public sealed class PageWindowLayoutTests
         Assert.Equal((width, height), box);
     }
 
-    // The hairline snap stays for a page within 1.5 of the area on each axis.
+    // The hairline snap stays for a page within 1.5 of the area on an axis: that axis reaches the
+    // area plus a bleed pixel, and the other axis grows by the same factor so the page keeps its
+    // aspect ratio (the Image that draws it keeps aspect, so a one-sided box would not enlarge it).
     [Theory]
     [InlineData(767, 1007)]
     [InlineData(768, 1008)]
     [InlineData(769.4, 1009.4)]
     public void APageWithinAPixelAndAHalfOfTheAreaSnapsToItPlusABleedPixel(double width, double height)
     {
-        Assert.Equal((769.0, 1009.0), PageWindowLayout.PrintedImageBox(width, height, 768, 1008));
+        var (w, h) = PageWindowLayout.PrintedImageBox(width, height, 768, 1008);
+
+        Assert.True(w >= 769 - 1e-9 && h >= 1009 - 1e-9, $"box {w} x {h} is short of the area plus a bleed pixel");
+        Assert.Equal(width / height, w / h, 9);
     }
 
+    // controls BF-011: a page that fills only the width grew only its width, so the Image, which
+    // keeps aspect ratio, drew it at its old size centred in the wider box and left the seam.
+    [Theory]
+    [InlineData(768, 700, 768, 1008)]
+    [InlineData(767.2, 600, 768, 1008)]
+    [InlineData(500, 1008, 768, 1008)]
+    [InlineData(500, 1009.4, 768, 1008)]
+    public void AUniformImageInTheBoxCoversTheAreaPlusABleedPixelOnTheFittedAxis(double width, double height, double areaWidth, double areaHeight)
+    {
+        var (w, h) = PageWindowLayout.PrintedImageBox(width, height, areaWidth, areaHeight);
+        // Image.Stretch.Uniform: the bitmap is scaled by the smaller of the two box ratios.
+        double scale = Math.Min(w / width, h / height);
+        double drawnWidth = width * scale, drawnHeight = height * scale;
+
+        if (Math.Abs(width - areaWidth) <= 1.5) Assert.True(drawnWidth >= areaWidth + 1 - 1e-9, $"drawn width {drawnWidth}");
+        if (Math.Abs(height - areaHeight) <= 1.5) Assert.True(drawnHeight >= areaHeight + 1 - 1e-9, $"drawn height {drawnHeight}");
+    }
     [Fact]
     public void APageSmallerThanTheAreaIsLeftAlone()
     {
