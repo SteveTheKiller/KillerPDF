@@ -1264,6 +1264,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Del_More">+ 另外 {0} 項</sys:String>
     <sys:String x:Key="Str_Card_Actions">動作</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">空白頁</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">側邊欄</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">已選取 {0} 頁</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 個標記</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} 個標記</sys:String>

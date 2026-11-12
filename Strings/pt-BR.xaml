@@ -1275,6 +1275,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Del_More">+ {0} mais</sys:String>
     <sys:String x:Key="Str_Card_Actions">Ações</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Página em branco</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Barra lateral</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} páginas selecionadas</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 marcação</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} marcações</sys:String>

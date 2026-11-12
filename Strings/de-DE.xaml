@@ -1268,6 +1268,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Del_More">+ {0} weitere</sys:String>
     <sys:String x:Key="Str_Card_Actions">Aktionen</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Leere Seite</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Seitenleiste</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} Seiten ausgewählt</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 Anmerkung</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} Anmerkungen</sys:String>

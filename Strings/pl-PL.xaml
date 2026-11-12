@@ -1270,6 +1270,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Del_More">+ jeszcze: {0}</sys:String>
     <sys:String x:Key="Str_Card_Actions">Akcje</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Pusta strona</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Pasek boczny</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Wybrane strony: {0}</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 adnotacja</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">Adnotacje: {0}</sys:String>

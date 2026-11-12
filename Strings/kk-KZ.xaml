@@ -1171,6 +1171,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Del_More">+ тағы {0}</sys:String>
     <sys:String x:Key="Str_Card_Actions">Әрекеттер</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Бос бет</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Бүйірлік панель</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} бет таңдалды</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 аннотация</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} аннотация</sys:String>

@@ -64,7 +64,17 @@ public sealed class CardMenuTests
 
         string card = Read("Shell", "PageCard.cs");
         string strip = Between(card, "var strip = QuickStrip(menu,", "// The caption is short");
-        Assert.Equal(6, Count(strip, "Loc(\"Str_"));
+        // Four tiles; rotation sits under them as two half-width buttons (Steve: six icons was too wide).
+        Assert.Equal(4, Count(strip, "Loc(\"Str_"));
+        string rotate = Between(card, "private FrameworkElement RotateRow(", "private Button CompactCardButton(");
+        Assert.Contains("Str_Ctx_RotateCCWShort", rotate);
+        Assert.Contains("Str_Ctx_RotateCWShort", rotate);
+        Assert.Contains("menu.Items.Add(CardSlot(RotateRow(menu)", card);
+        // The sidebar side and two-page thumbnails sit in one Sidebar row's flyout, not four rows at the foot.
+        string side = Between(Read("Shell", "ContextMenu.cs"), "private void AppendSidebarSideSection(", "private ContextMenu MakeThemedMenu(");
+        Assert.Contains("Header = Loc(\"Str_Card_Sidebar\")", side);
+        Assert.Contains("sidebar.Items.Add(row);", side);
+        Assert.DoesNotContain("Header = Loc(\"Str_Sidebar\"), IsEnabled = false", side);
         // The short caption keeps the full action as its tooltip and accessible name.
         Assert.Contains("insert.ToolTip = Loc(\"Str_Ctx_InsertBlank\");", card);
         Assert.Contains("\"CardMenu\"", card);

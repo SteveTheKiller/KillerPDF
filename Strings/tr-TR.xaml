@@ -1262,6 +1262,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Del_More">+ {0} tane daha</sys:String>
     <sys:String x:Key="Str_Card_Actions">Eylemler</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Boş Sayfa</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Kenar çubuğu</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} sayfa seçildi</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 işaretleme</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} işaretleme</sys:String>

@@ -1275,6 +1275,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Del_More">+ {0} til</sys:String>
     <sys:String x:Key="Str_Card_Actions">Handlinger</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Tom side</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Sidepanel</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} sider valgt</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 markering</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} markeringer</sys:String>

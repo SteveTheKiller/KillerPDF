@@ -88,15 +88,6 @@
                             BorderBrush="{DynamicResource ButtonEdgeBrush}" BorderThickness="0">
                         <Grid>
                             <Border x:Name="tint" CornerRadius="{DynamicResource ControlCornerRadius}" Background="Transparent"/>
-                            <!-- The family stroke sits on a copy UNDER the label. An effect on the label
-                                 itself rasterizes it, which blurs it at rest and snaps it back to
-                                 hinted text on hover. With no stroke (98SE) the copy hides behind
-                                 the label. Ideal grayscale text keeps a large display font smooth, with no
-                                 ClearType fringes on the accent when hover drops the stroke. -->
-                            <ContentPresenter x:Name="stroke" Margin="{TemplateBinding Padding}" IsHitTestVisible="False"
-                                              HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              TextOptions.TextFormattingMode="Ideal" TextOptions.TextRenderingMode="Grayscale"
-                                              Effect="{DynamicResource TextStroke}"/>
                             <ContentPresenter x:Name="label" Margin="{TemplateBinding Padding}"
                                               HorizontalAlignment="Center" VerticalAlignment="Center"
                                               TextOptions.TextFormattingMode="Ideal" TextOptions.TextRenderingMode="Grayscale"/>
@@ -116,11 +107,9 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="tint" Property="Background" Value="#2EFFFFFF"/>
-                            <Setter TargetName="stroke" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="tint" Property="Background" Value="#38000000"/>
-                            <Setter TargetName="stroke" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5"/>
@@ -1058,8 +1047,15 @@
                                      shortcut text starts at the SAME x-offset in every sibling row (a real
                                      column) instead of hugging the right edge of whichever row is widest. -->
                                 <ColumnDefinition Width="Auto" SharedSizeGroup="MenuHeaderCol"/>
+                                <!-- Star spacer between the header and the shortcut: a menu sized to its
+                                     rows has no spare width, so nothing moves, but a wider host (the
+                                     note card) pushes the shortcut and arrow to the row's right edge
+                                     instead of leaving them mid-row. -->
+                                <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto" SharedSizeGroup="MenuGestureCol"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <!-- Shared, so a row without a submenu still reserves the arrow's width
+                                     and its shortcut lines up with the rows that have one. -->
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="MenuArrowCol"/>
                             </Grid.ColumnDefinitions>
                             <!-- Icon slot: MenuItem.Icon renders in the same 16px gutter the check
                                  glyph uses (MakeMenuItem's glyph parameter fills it with MDL2 icons).
@@ -1077,14 +1073,14 @@
                                        VerticalAlignment="Center" HorizontalAlignment="Left"
                                        Visibility="Collapsed"/>
                             <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="Gesture" Grid.Column="2" Text="{TemplateBinding InputGestureText}"
+                            <TextBlock x:Name="Gesture" Grid.Column="3" Text="{TemplateBinding InputGestureText}"
                                        Foreground="{DynamicResource MutedTextBrush}" FontSize="11"
                                        VerticalAlignment="Center" Margin="14,0,0,0"/>
                             <!-- submenu arrow for items that have children -->
-                            <TextBlock x:Name="SubArrow" Grid.Column="3" Text="&#xE76C;"
+                            <TextBlock x:Name="SubArrow" Grid.Column="4" Text="&#xE76C;"
                                        FontFamily="Segoe MDL2 Assets" FontSize="8"
                                        Foreground="{DynamicResource MutedTextBrush}"
-                                       VerticalAlignment="Center" Margin="12,0,0,0"
+                                       VerticalAlignment="Center" HorizontalAlignment="Right" Margin="12,0,0,0"
                                        Visibility="Collapsed"/>
                             <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Right"
                                    PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
@@ -1469,8 +1465,12 @@
         <Setter Property="KeyboardNavigation.TabNavigation" Value="Cycle"/>
     </Style>
 
+    <!-- StaysOpenOnClick: a slot is still a leaf MenuItem, so a click on its header text, icon,
+         label or border would raise Click and close the card for nothing. Its buttons close the
+         card themselves when they act. -->
     <Style x:Key="CardSlot" TargetType="MenuItem">
         <Setter Property="Focusable" Value="False"/>
+        <Setter Property="StaysOpenOnClick" Value="True"/>
         <Setter Property="Padding" Value="4,4"/>
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
         <Setter Property="FontFamily" Value="{DynamicResource MenuFontFamily}"/>
@@ -1904,7 +1904,7 @@
                             <TextBlock x:Name="check" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
                                        FontSize="{DynamicResource CheckBoxGlyphSize}"
                                        Foreground="{DynamicResource CheckBoxCheckBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       Visibility="Collapsed" Effect="{DynamicResource TextStrokeSoft}"/>
+                                       Visibility="Collapsed"/>
                         </Grid>
                         <ContentPresenter Margin="7,0,0,0" VerticalAlignment="Center"/>
                     </DockPanel>
@@ -1945,15 +1945,10 @@
                             <!-- Light/Yellow: the active or hovered glyph shows the yellow accent with the wordmark's
                                  dark halo behind it, so it reads on white. WordmarkAccentShadowOpacity is 0 on every
                                  other theme, which leaves both extra layers invisible. -->
-                            <TextBlock kl:GlyphInk.Center="True" Text="{TemplateBinding Content}" FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" UseLayoutRounding="True" SnapsToDevicePixels="True" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#D8000000" IsHitTestVisible="False" Opacity="{DynamicResource WordmarkAccentShadowOpacity}"><TextBlock.RenderTransform><TranslateTransform X="1" Y="2"/></TextBlock.RenderTransform><TextBlock.Effect><BlurEffect Radius="3"/></TextBlock.Effect><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}" Value="on"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
                             <TextBlock kl:GlyphInk.Center="True" Text="{TemplateBinding Content}"
                                        FontFamily="{TemplateBinding FontFamily}"
                                        FontSize="{TemplateBinding FontSize}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270"
-                                                      Opacity="{DynamicResource IconShadowOpacity}"/>
-                                </TextBlock.Effect>
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
@@ -3018,12 +3013,6 @@
                     <Border x:Name="Bd" Background="{TemplateBinding Background}"
                             CornerRadius="{DynamicResource SmallCornerRadius}" Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <ContentPresenter.Effect>
-                                <!-- IconShadowOpacity is 0 on Light, so the glyph keeps ClearType
-                                     there and only the dark themes get the depth. -->
-                                <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270"
-                                                  Opacity="{DynamicResource IconShadowOpacity}"/>
-                            </ContentPresenter.Effect>
                         </ContentPresenter>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -3064,12 +3053,6 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
-                            <Setter TargetName="Cp" Property="Effect">
-                                <Setter.Value>
-                                    <DropShadowEffect Color="#000000" BlurRadius="4" ShadowDepth="1"
-                                                      Direction="270" Opacity="0.5"/>
-                                </Setter.Value>
-                            </Setter>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>

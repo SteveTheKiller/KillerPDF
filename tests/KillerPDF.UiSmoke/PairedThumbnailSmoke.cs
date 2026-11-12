@@ -104,8 +104,7 @@ internal static class PairedThumbnailSmoke
             Stage("find-paired-thumbnail-option");
             // One dispatcher idle turn completes the opened menu's layout. Absence is now a bounded RED.
             openedMenu.UpdateLayout(); Pump();
-            MenuItem? option = Descendants(openedMenu).OfType<MenuItem>()
-                .SingleOrDefault(item => item.Name == "TwoPageThumbnailsMenuItem");
+            MenuItem? option = PairedOption(openedMenu);
             if (option is null)
                 throw new MissingOptionException("Opened the real owned sidebar menu after public open, Two Page selection, and one-column baseline; TwoPageThumbnailsMenuItem is absent.");
             Require(option.IsVisible && option.IsEnabled && option.IsCheckable,
@@ -304,7 +303,7 @@ internal static class PairedThumbnailSmoke
                 Require(ColorOrder().SequenceEqual(new[] { "green", "red", "blue", "orange", "magenta" }),
                     "Moving the sidebar must preserve page order.");
                 OpenSidebarMenu();
-                var preference = Descendants(openedMenu!).OfType<MenuItem>().Single(item => item.Name == "TwoPageThumbnailsMenuItem");
+                var preference = PairedOption(openedMenu!) ?? throw new MissingOptionException("TwoPageThumbnailsMenuItem is absent from the Sidebar flyout.");
                 Require(preference.IsChecked && preference.IsEnabled != strip,
                     "Paired preference must remain checked and be disabled only in a horizontal strip.");
                 openedMenu!.IsOpen = false;
@@ -704,6 +703,16 @@ internal static class PairedThumbnailSmoke
     private static bool Near(double a, double b) => Math.Abs(a - b) <= 1;
     private static object RectData(Rect r) => new { r.X, r.Y, r.Width, r.Height };
     private static string Hash(string path) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
+    // The sidebar options sit in the Sidebar row's flyout: open it the way a user does, then find the toggle.
+    private static MenuItem? PairedOption(ContextMenu menu)
+    {
+        var sidebar = Descendants(menu).OfType<MenuItem>().SingleOrDefault(item => item.Name == "SidebarMenuItem");
+        if (sidebar is null) return null;
+        sidebar.IsSubmenuOpen = true;
+        menu.UpdateLayout(); Pump();
+        return sidebar.Items.OfType<MenuItem>().SingleOrDefault(item => item.Name == "TwoPageThumbnailsMenuItem");
+    }
+
     private static IEnumerable<DependencyObject> Descendants(DependencyObject node)
     {
         yield return node;

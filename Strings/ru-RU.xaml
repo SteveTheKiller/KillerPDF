@@ -1275,6 +1275,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Del_More">+ ещё {0}</sys:String>
     <sys:String x:Key="Str_Card_Actions">Действия</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Пустая страница</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Боковая панель</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Выбрано страниц: {0}</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 аннотация</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">Аннотаций: {0}</sys:String>

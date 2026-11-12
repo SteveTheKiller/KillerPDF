@@ -803,7 +803,10 @@ namespace KillerPDF.Shell
         private void AppendSidebarSideSection(ContextMenu menu)
         {
             if (menu.Items.Count > 0) menu.Items.Add(new Separator());
-            menu.Items.Add(new MenuItem { Header = Loc("Str_Sidebar"), IsEnabled = false });
+            // One row with a flyout instead of a header and four rows at the foot of every sidebar menu.
+            var sidebar = new MenuItem { Name = "SidebarMenuItem", Header = Loc("Str_Card_Sidebar"), Icon = _sidebarSide.MenuIcon() };
+            menu.Items.Add(sidebar);
+            menu = new ContextMenu();   // collects the flyout's rows below, then hands them to the Sidebar row
             if (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
             {
                 var paired = new MenuItem
@@ -827,6 +830,12 @@ namespace KillerPDF.Shell
                 if (side == _sidebarSide.Next()) item.InputGestureText = GestureFor("Shift:F9");
                 item.Click += (_, _2) => SelectSidebarSide(side);
                 menu.Items.Add(item);
+            }
+            if (menu.Items.Count > 4) menu.Items.Insert(1, new Separator());   // the two-page toggle above the sides
+            foreach (object row in menu.Items.Cast<object>().ToList())
+            {
+                menu.Items.Remove(row);
+                sidebar.Items.Add(row);
             }
         }
 

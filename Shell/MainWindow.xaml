@@ -660,8 +660,12 @@
                                          shortcut text starts at the SAME x-offset in every sibling row (a real
                                          column) instead of hugging the right edge of whichever row is widest. -->
                                     <ColumnDefinition Width="Auto" SharedSizeGroup="MenuHeaderCol"/>
+                                    <!-- Star spacer between the header and the shortcut (KillerUI 09b52ab): a menu sized
+                                         to its rows has no spare width, so nothing moves, but a wider host (the page and
+                                         markup cards) pushes the shortcut and arrow to the row's right edge. -->
+                                    <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto" SharedSizeGroup="MenuGestureCol"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="MenuArrowCol"/>
                                 </Grid.ColumnDefinitions>
                                 <!-- Icon slot: MenuItem.Icon renders in the same 16px gutter the check
                                      glyph uses (MakeMenuItem's glyph parameter fills it with MDL2 icons). -->
@@ -674,14 +678,14 @@
                                            VerticalAlignment="Center" HorizontalAlignment="Left"
                                            Visibility="Collapsed"/>
                                 <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="Gesture" Grid.Column="2" Text="{TemplateBinding InputGestureText}"
+                                <TextBlock x:Name="Gesture" Grid.Column="3" Text="{TemplateBinding InputGestureText}"
                                            Foreground="{DynamicResource MutedTextBrush}" FontSize="11"
                                            VerticalAlignment="Center" Margin="14,0,0,0"/>
                                 <!-- submenu arrow for items that have children -->
-                                <TextBlock x:Name="SubArrow" Grid.Column="3" Text="&#xE76C;"
+                                <TextBlock x:Name="SubArrow" Grid.Column="4" Text="&#xE76C;"
                                            FontFamily="Segoe MDL2 Assets" FontSize="8"
                                            Foreground="{DynamicResource MutedTextBrush}"
-                                           VerticalAlignment="Center" Margin="12,0,0,0"
+                                           VerticalAlignment="Center" HorizontalAlignment="Right" Margin="12,0,0,0"
                                            Visibility="Collapsed"/>
                                 <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Right"
                                        PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"

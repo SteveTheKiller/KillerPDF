@@ -1178,6 +1178,7 @@
     <sys:String x:Key="Str_Del_More">+ še {0}</sys:String>
     <sys:String x:Key="Str_Card_Actions">Dejanja</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Prazna stran</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Stranska vrstica</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Izbrane strani: {0}</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 opomba</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">Opomb: {0}</sys:String>

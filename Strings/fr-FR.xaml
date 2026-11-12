@@ -1275,6 +1275,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Del_More">+ {0} de plus</sys:String>
     <sys:String x:Key="Str_Card_Actions">Actions</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Page vierge</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Panneau latéral</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} pages sélectionnées</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 annotation</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} annotations</sys:String>

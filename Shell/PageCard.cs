@@ -24,20 +24,19 @@ namespace KillerPDF.Shell
 
             menu.Items.Add(CardSlot(PageCardHeader(page, selected, row), new Thickness(4, 2, 4, 6)));
             var strip = QuickStrip(menu,
-                ("\uE7AD", Loc("Str_Ctx_RotateCCWShort"), "CtrlShift:R", () => RotatePages_Click(-90), true, true),
-                ("\uE7AD", Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90), false, true),
                 ("\uE8C8", Loc("Str_Ctx_DuplicatePage"), null, () => DuplicatePage(page), false, true),
                 ("\uE710", Loc("Str_Card_InsertBlank"), null, () => InsertBlankPage(page), false, true),
                 ("\uE8A7", Loc("Str_Ctx_ExtractPages"), null, () => Split_Click(this, new RoutedEventArgs()), false, true),
                 ("\uE74D", Loc("Str_Ctx_DeletePages"), "Del", () => Delete_Click(this, new RoutedEventArgs()), false, true));
             // The caption is short so it fits under its glyph; the tooltip and screen readers get the whole action.
-            if (strip is Border { Child: UniformGrid buttons } && buttons.Children[3] is Button insert)
+            if (strip is Border { Child: UniformGrid buttons } && buttons.Children[1] is Button insert)
             {
                 insert.ToolTip = Loc("Str_Ctx_InsertBlank");
                 System.Windows.Automation.AutomationProperties.SetName(insert, Loc("Str_Ctx_InsertBlank"));
             }
             menu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, strip);
+            menu.Items.Add(CardSlot(RotateRow(menu), new Thickness(6, 6, 6, 2)));
 
             menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Merge"), async (_, _) => await MergeAtIndex(page + 1), glyph: "\uE8F4"));
             menu.Items.Add(MakeTransformMenuItem(Loc("Str_Tf_Suffix"), (_, _) => OpenTransformWindow(), GestureFor("R")));
@@ -154,6 +153,42 @@ namespace KillerPDF.Shell
             for (DependencyObject? at = element; at is not null; at = LogicalTreeHelper.GetParent(at))
                 if (ReferenceEquals(at, menu)) return true;
             return false;
+        }
+
+        // Rotation sits under the four quick actions as two half-width buttons: six tiles made the strip too wide.
+        private FrameworkElement RotateRow(ContextMenu menu)
+        {
+            var row = new UniformGrid { Rows = 1, Columns = 2 };
+            row.Children.Add(CompactCardButton(menu, "\uE7AD", Loc("Str_Ctx_RotateCCWShort"), "CtrlShift:R", () => RotatePages_Click(-90), mirror: true));
+            row.Children.Add(CompactCardButton(menu, "\uE7AD", Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90), mirror: false));
+            return row;
+        }
+
+        // A small outline button with its glyph beside the caption. It closes the card, then acts.
+        private Button CompactCardButton(ContextMenu menu, string glyph, string caption, string gesture, Action act, bool mirror)
+        {
+            var icon = new TextBlock
+            {
+                Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 7, 0)
+            };
+            if (mirror)
+            {
+                icon.RenderTransformOrigin = new Point(0.5, 0.5);
+                icon.RenderTransform = new ScaleTransform(-1, 1);
+            }
+            var content = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+            content.Children.Add(icon);
+            content.Children.Add(new TextBlock { Text = caption, VerticalAlignment = VerticalAlignment.Center });
+            var button = new Button
+            {
+                Content = content, ToolTip = WithGesture(caption, gesture), Margin = new Thickness(3, 0, 3, 0),
+                Padding = new Thickness(8, 4, 8, 4), HorizontalContentAlignment = HorizontalAlignment.Center
+            };
+            if (TryFindResource("OutlineButton") is Style style) button.Style = style;
+            System.Windows.Automation.AutomationProperties.SetName(button, caption);
+            button.Click += (_, _) => { menu.IsOpen = false; act(); };
+            return button;
         }
 
         // A card row that holds controls rather than being a command (KillerUI CardSlot).

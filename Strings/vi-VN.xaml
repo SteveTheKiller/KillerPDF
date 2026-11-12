@@ -1275,6 +1275,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Del_More">+ {0} nữa</sys:String>
     <sys:String x:Key="Str_Card_Actions">Thao tác</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Trang trống</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Thanh bên</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Đã chọn {0} trang</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 chú thích</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} chú thích</sys:String>

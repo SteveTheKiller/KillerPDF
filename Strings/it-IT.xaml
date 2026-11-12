@@ -1275,6 +1275,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Del_More">+ {0} altre</sys:String>
     <sys:String x:Key="Str_Card_Actions">Azioni</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Pagina vuota</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Barra laterale</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} pagine selezionate</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 annotazione</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} annotazioni</sys:String>

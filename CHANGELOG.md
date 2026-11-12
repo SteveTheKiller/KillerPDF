@@ -92,6 +92,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The page menu is shorter: Back, Forward, Undo, Redo and Print share its top row with the page number, the selected-text and place-here tools are icon strips, and the page tools sit under Page.
 - Delete Pages takes one step: the range, a strip that marks the pages going (a run of pages is one tile, so a long document stays quick), and a button that says how many. The Yes/No box that followed it is gone.
 - Buttons are flat, and a dialog's close button sits in its corner.
+- Shortcuts in the page and markup cards sit at the right edge of each row, and the sidebar position and two-page thumbnails moved into one Sidebar row with a flyout at the foot of the sidebar menus.
 - Production layouts, Form data, Preflight and the other document tool launchers show each command as an icon tile in a grid instead of a column of identical buttons.
 
 ### Added

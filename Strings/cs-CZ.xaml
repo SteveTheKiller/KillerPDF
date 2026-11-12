@@ -1267,6 +1267,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Del_More">+ další: {0}</sys:String>
     <sys:String x:Key="Str_Card_Actions">Akce</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Prázdná stránka</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Postranní panel</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Vybrané stránky: {0}</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 anotace</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">Anotací: {0}</sys:String>

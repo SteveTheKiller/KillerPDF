@@ -1262,6 +1262,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Del_More">+ আরও {0}টি</sys:String>
     <sys:String x:Key="Str_Card_Actions">অ্যাকশন</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">ফাঁকা পৃষ্ঠা</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">সাইডবার</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0}টি পৃষ্ঠা নির্বাচিত</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1টি মার্কআপ</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0}টি মার্কআপ</sys:String>

@@ -1269,6 +1269,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Del_More">+ {0} további</sys:String>
     <sys:String x:Key="Str_Card_Actions">Műveletek</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Üres oldal</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Oldalsáv</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} oldal kijelölve</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 jelölés</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} jelölés</sys:String>

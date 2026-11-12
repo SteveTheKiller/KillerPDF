@@ -1262,6 +1262,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Del_More">+ {0} más</sys:String>
     <sys:String x:Key="Str_Card_Actions">Acciones</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Página en blanco</sys:String>
+    <sys:String x:Key="Str_Card_Sidebar">Barra lateral</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} páginas seleccionadas</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 anotación</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} anotaciones</sys:String>
