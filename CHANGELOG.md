@@ -4,26 +4,9 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.4] - Unreleased
-
-1.9.4 turns the right-click menus for pages and markup into cards, shortens the page menu, and deletes pages in one step.
-
-### Fixed
-
-- Selecting a highlight, drawing, filled rectangle or measurement no longer changes the color, opacity or width of the next mark you draw: the bar shows the selected mark's look while it is selected and returns to its own when it is not. A change you make on the bar meanwhile stays.
-- A right-click menu taller than the screen scrolls instead of cutting off its last items.
-
-### Changed
-
-- Right-clicking a page thumbnail opens a card with the page's size, orientation and markup count, quick buttons to rotate, duplicate, insert a blank page, extract and delete, and the cleanup, extract-from-page and move tools in three short submenus.
-- Right-clicking markup opens a card with quick buttons to edit, copy, raise, lower, group and delete it. A highlight, filled rectangle or drawing changes color and opacity right on the card, a drawing its width, and a highlight turns into an underline or strikethrough in place.
-- The page menu is shorter: Back, Forward, Undo, Redo and Print share its top row with the page number, the selected-text and place-here tools are icon strips, and the page tools sit under Page.
-- Delete Pages takes one step: the range, a strip that marks the pages going (a run of pages is one tile, so a long document stays quick), and a button that says how many. The Yes/No box that followed it is gone.
-- Buttons are flat, and a dialog's close button sits in its corner.
-
 ## [1.9.3] - Unreleased
 
-1.9.3 reads EPUB and DjVu books natively with Convert to PDF, selects and extracts pictures, color-manages viewing and printer proofing on standard monitors with HDR still in progress, opens large PDFs faster, and fixes redaction, cropping, form saving, merging, printing, stamps, updates and the file picker.
+1.9.3 reads EPUB and DjVu books natively with Convert to PDF, selects and extracts pictures, color-manages viewing and printer proofing on standard monitors with HDR still in progress, opens large PDFs faster, turns the page and markup right-click menus into cards, deletes pages in one step, and fixes redaction, cropping, form saving, merging, printing, stamps, updates and the file picker.
 
 ### Security
 
@@ -88,6 +71,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The Measure tool's options bar follows a language or theme change right away instead of keeping the old ones until the tool is chosen again.
 - Dialogs meant to be resizable, such as Comments, Color Management and the certificate list, can now be resized from any edge and maximize without covering the taskbar. Most never get smaller than they open; Accessibility Review, Guided Tasks, Edit paragraph and table export, which open larger at a larger app scale, go down to their usual minimum size.
 - When Detect finds a long table, the table export window grows to show it without pushing Export and Cancel below the bottom of the screen.
+- Selecting a highlight, drawing, filled rectangle or measurement no longer changes the color, opacity or width of the next mark you draw: the bar shows the selected mark's look while it is selected and returns to its own when it is not. A change you make on the bar meanwhile stays.
+- A right-click menu taller than the screen scrolls instead of cutting off its last items.
 
 ### Changed
 
@@ -101,6 +86,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The Print window is redesigned. Its options sit in two compact columns on the left, with Printer, Pages, Copies, Color and two-sided printing at the top, and Paper and Layout open below them. The window opens exactly as tall as its options and remembers its size and position. It resizes from any edge and maximizes with a double-click on its title. A 1 / 2 / Book switch in the title bar previews one sheet or two side by side, starting from the document's view, and the preview fills the window as it is resized. Cancel now comes before Print.
 - Shapes and text edges are drawn by a new anti-aliasing engine.
 - Saving many text notes or edited lines is faster and makes a much smaller file, because text in one font shares one embedded copy of it. In a 3,000-page test on a slower test PC, a note on every page saves in about 7.5 s instead of 32 s and makes an 11 MB file instead of 103 MB, and an edited line on every page saves in about 7 s instead of 32 s and makes a 10 MB file instead of 99 MB, using well under half the memory.
+- Right-clicking a page thumbnail opens a card with the page's size, orientation and markup count, quick buttons to rotate, duplicate, insert a blank page, extract and delete, and the cleanup, extract-from-page and move tools in three short submenus.
+- Right-clicking markup opens a card with quick buttons to edit, copy, raise, lower, group and delete it. A highlight, filled rectangle or drawing changes color and opacity right on the card, a drawing its width, and a highlight turns into an underline or strikethrough in place.
+- The page menu is shorter: Back, Forward, Undo, Redo and Print share its top row with the page number, the selected-text and place-here tools are icon strips, and the page tools sit under Page.
+- Delete Pages takes one step: the range, a strip that marks the pages going (a run of pages is one tile, so a long document stays quick), and a button that says how many. The Yes/No box that followed it is gone.
+- Buttons are flat, and a dialog's close button sits in its corner.
 
 ### Added
 

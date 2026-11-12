@@ -68,7 +68,7 @@ public partial class PdfViewer
     /// <summary>
     /// Redact and Crop keep their own bars: their Apply, Clear and confirm controls never give way to a selected mark's
     /// bar. The selection still lends its look, because switching tools keeps it selected and the next bar change must
-    /// start from the mark (1.9.4 review r3 BF-002, r4 BF-001).
+    /// start from the mark (1.9.3 review r3 BF-002, r4 BF-001).
     /// </summary>
     private static bool KeepsOwnBar(EditTool tool) => tool is EditTool.Redact or EditTool.Crop;
 
@@ -83,7 +83,7 @@ public partial class PdfViewer
 
     /// <summary>
     /// What settings save for the draw tools: the look the bar returns to, not a selected mark's. It releases
-    /// nothing, because a close or sign-out that saves settings can still be cancelled (1.9.4 review r2 BF-002, r3 BF-001).
+    /// nothing, because a close or sign-out that saves settings can still be cancelled (1.9.3 review r2 BF-002, r3 BF-001).
     /// </summary>
     internal DrawToolLook DrawLookToSave() => _drawLookLease.Peek(CurrentDrawLook());
 

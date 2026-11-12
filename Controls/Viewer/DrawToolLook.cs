@@ -9,7 +9,7 @@ internal sealed record DrawToolLook(Color Highlight, Color Line, Color Draw, byt
     /// Setting by setting, a value changed on the bar since the selection put its look there is a deliberate choice and
     /// wins; a value nobody touched goes back to the tool's own. A color's hue and its alpha are separate settings: the
     /// bar writes a picked color with the mark's alpha and an opacity drag rewrites only the alpha, so comparing whole
-    /// colors would carry the mark's opacity (or its hue) into the tool (1.9.4 review r2 BF-001).
+    /// colors would carry the mark's opacity (or its hue) into the tool (1.9.3 review r2 BF-001).
     /// </summary>
     internal static DrawToolLook Settle(DrawToolLook toolLook, DrawToolLook synced, DrawToolLook current) => new(
         Settle(toolLook.Highlight, synced.Highlight, current.Highlight),

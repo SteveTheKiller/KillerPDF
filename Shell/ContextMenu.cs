@@ -705,7 +705,7 @@ namespace KillerPDF.Shell
             e.Handled = true;
         }
 
-        /// <summary>The Menu key or Shift+F10 in the page list opens the focused thumbnail's card (1.9.4 review r2 BF-004).</summary>
+        /// <summary>The Menu key or Shift+F10 in the page list opens the focused thumbnail's card (1.9.3 review r2 BF-004).</summary>
         private bool OpenPageCardFromKeyboard()
         {
             if (_doc is null || !PageList.IsKeyboardFocusWithin) return false;

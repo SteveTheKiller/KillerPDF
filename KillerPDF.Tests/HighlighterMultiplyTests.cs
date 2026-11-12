@@ -150,7 +150,7 @@ public sealed class HighlighterMultiplyTests
     [Fact]
     public void SelectingAShapeRectangleDoesNotChangeTheHighlighterColor()
     {
-        // 1.9.4 moved the selection's bar sync into PdfViewer.DrawLook.cs.
+        // The card menus moved the selection's bar sync into PdfViewer.DrawLook.cs.
         string annotations = Source("Controls", "Viewer", "PdfViewer.DrawLook.cs");
         int shapeBranch = annotations.IndexOf("case HighlightAnnotation { IsShape: true } shape:", StringComparison.Ordinal);
         int highlightBranch = annotations.IndexOf("case HighlightAnnotation highlight:", StringComparison.Ordinal);

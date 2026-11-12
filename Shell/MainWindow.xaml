@@ -641,7 +641,7 @@
         </Style>
 
         <!-- Context menus use the KillerUI kit template in Controls.xaml, the same one the markup and page cards are
-             based on, so a plain menu and a card never differ in one theme (1.9.4 review BF-006). -->
+             based on, so a plain menu and a card never differ in one theme (1.9.3 review BF-006). -->
         <Style TargetType="MenuItem">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>

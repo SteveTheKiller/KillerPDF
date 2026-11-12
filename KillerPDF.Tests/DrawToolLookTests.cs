@@ -4,7 +4,7 @@ using Xunit;
 
 namespace KillerPDF.Tests;
 
-// 1.9.4: a selected mark lends the draw bar its look; deselecting gives the tool its own look back, except for what
+// 1.9.3: a selected mark lends the draw bar its look; deselecting gives the tool its own look back, except for what
 // the user changed on the bar in between.
 public sealed class DrawToolLookTests
 {

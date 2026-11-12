@@ -3,7 +3,7 @@ using Xunit;
 
 namespace KillerPDF.Tests;
 
-// 1.9.4 card menus (the KillerUI card menu kit): the page thumbnail and markup right-click menus are cards, the page
+// 1.9.3 card menus (the KillerUI card menu kit): the page thumbnail and markup right-click menus are cards, the page
 // menu is short, and selecting a mark lends it the draw bar without changing the look of the next mark.
 public sealed class CardMenuTests
 {

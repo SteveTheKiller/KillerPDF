@@ -126,7 +126,7 @@ namespace KillerPDF.Shell
 
         // Quick actions sit in rows the arrow keys skip (KillerUI CardSlot), so a menu opened from the keyboard
         // (Shift+F10, the Menu key) puts focus on the first enabled action of its first strip; from there the arrow keys
-        // move between the actions and on to the rows (1.9.4 review BF-012). A menu opened with the mouse leaves focus
+        // move between the actions and on to the rows (1.9.3 review BF-012). A menu opened with the mouse leaves focus
         // alone. The shared page menu is refilled on every right-click, so only a strip still on the menu counts, and
         // each menu gets one Opened handler.
         private static readonly ConditionalWeakTable<ContextMenu, List<Button>> s_keyboardFocusTargets = new();
