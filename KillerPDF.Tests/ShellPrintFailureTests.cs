@@ -51,6 +51,24 @@ public sealed class ShellPrintFailureTests
         Assert.True(finallyAt > 0 && show > finallyAt, "The failure is not shown after the print and its catches.");
     }
 
+    // The message runs before the app's own startup, like the crash preview, so it prepares what that startup would:
+    // closing it must not end the process with a success code, it speaks the user's language and theme, and with no
+    // user to close it (a service or print server) it is not shown at all, so the print still ends.
+    [Fact]
+    public void TheMessageIsPreparedLikeTheAppAndSkippedWithNoUser()
+    {
+        string root = FindRepositoryRoot();
+        string dialog = File.ReadAllText(Path.Combine(root, "Features", "Cli", "ShellPrintFailure.Dialog.cs"));
+        int show = dialog.IndexOf("KillerDialog.Show(", System.StringComparison.Ordinal);
+        Assert.True(show > 0, "The message is no longer shown with KillerDialog.");
+        string before = dialog[..show];
+        Assert.Contains("Environment.UserInteractive", before, System.StringComparison.Ordinal);
+        Assert.Contains("ShutdownMode.OnExplicitShutdown", before, System.StringComparison.Ordinal);
+        Assert.Contains("AppTheme.Configure()", before, System.StringComparison.Ordinal);
+        Assert.Contains("ThemeManager.Initialize()", before, System.StringComparison.Ordinal);
+        Assert.Contains("LocaleManager.Initialize()", before, System.StringComparison.Ordinal);
+    }
+
     private static string FindRepositoryRoot([System.Runtime.CompilerServices.CallerFilePath] string source = "")
     {
         var directory = new DirectoryInfo(Path.GetDirectoryName(source)!);
