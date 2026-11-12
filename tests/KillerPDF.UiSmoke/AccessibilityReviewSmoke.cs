@@ -26,6 +26,12 @@ internal static class AccessibilityReviewSmoke
                     if (args.NewValue is not Visibility.Visible) return;
                     var window = (Window)_;
                     window.ShowActivated = false; window.ShowInTaskbar = false;
+                    // A window that restored a saved position before its first show (the app's startup
+                    // placement) keeps it; parking it here would hide the saved place and let the
+                    // work-area fit drag the window to the corner. Only unplaced windows are parked.
+                    bool placed = window.WindowStartupLocation == WindowStartupLocation.Manual
+                        && !double.IsNaN(window.Left) && !double.IsNaN(window.Top);
+                    if (placed) return;
                     window.WindowStartupLocation = WindowStartupLocation.Manual;
                     window.Left = -10000; window.Top = -10000;
                 }));
