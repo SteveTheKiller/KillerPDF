@@ -53,7 +53,7 @@ public partial class MainWindow
         // Keep the overflow entry visible while its comparison choices are open.
         // Otherwise the parent click handler closes the anchor and dismisses both menus.
         if (ReferenceEquals(sender, MiCompare)) e.Handled = true;
-        ShowComparisonMenu(sender as FrameworkElement ?? ComparePdfBtn, source.Value);
+        ShowComparisonMenu(sender is MenuItem or System.Windows.Controls.Primitives.ButtonBase ? (FrameworkElement)sender : ComparePdfBtn, source.Value);
     }
 
     private void ShowComparisonMenu(FrameworkElement anchor, PdfViewer.ComparisonDocument source)
@@ -61,6 +61,13 @@ public partial class MainWindow
         var menu = MakeThemedMenu();
         menu.PlacementTarget = anchor;
         menu.Placement = PlacementMode.Bottom;
+        // The shortcut anchors to the toolbar button; when it is in the More menu, the menu opens on the page instead
+        // of hanging off the window's bottom edge, which is off screen when maximized.
+        if (!anchor.IsVisible)
+        {
+            menu.PlacementTarget = ActiveViewer;
+            menu.Placement = PlacementMode.Center;
+        }
         if (ReferenceEquals(anchor, MiCompare))
             menu.Closed += (_, _) => OverflowChevron.IsChecked = false;
         PopulateComparisonChoices(menu.Items, source);

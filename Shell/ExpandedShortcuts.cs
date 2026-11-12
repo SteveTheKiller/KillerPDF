@@ -26,7 +26,7 @@ public partial class MainWindow
                 Key.F => () => SaveFlattened_Click(this, new RoutedEventArgs()),
                 Key.B => () => Merge_Click(this, new RoutedEventArgs()),
                 Key.X => () => Split_Click(this, new RoutedEventArgs()),
-                Key.V => () => ComparePdf_Click(this, new RoutedEventArgs()),
+                Key.V => () => ComparePdf_Click(ComparePdfBtn, new RoutedEventArgs()),
                 Key.W => () => OpenWatchedFolders(this),
                 Key.N => TogglePageNavigationButtons,
                 Key.A => AddBlankPageAtEnd,

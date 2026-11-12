@@ -73,6 +73,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - When Detect finds a long table, the table export window grows to show it without pushing Export and Cancel below the bottom of the screen.
 - Selecting a highlight, drawing, filled rectangle or measurement no longer changes the color, opacity or width of the next mark you draw: the bar shows the selected mark's look while it is selected and returns to its own when it is not. A change you make on the bar meanwhile stays.
 - A right-click menu taller than the screen scrolls instead of cutting off its last items.
+- Alt+Shift+V opens the Compare PDFs menu under its toolbar button, or in the middle of the page when the button is in the More menu, instead of below the window, where a maximized window put it off the screen.
 
 ### Changed
 
