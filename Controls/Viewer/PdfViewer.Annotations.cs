@@ -431,6 +431,7 @@ namespace KillerPDF.Controls
             _selectedAnnotation = null;
             _selectedFormFieldName = null;
             ReleaseSelectedTextLook();
+            ReleaseSelectedDrawLook();
             // If the text bar was opened for a now-cleared text-box selection (not because the Text tool
             // is active), close it again.
             if (_currentTool != EditTool.Text && _annotBarTool == EditTool.Text)
@@ -819,16 +820,21 @@ namespace KillerPDF.Controls
             // color and opacity can be edited in place. The annotation's style picks the matching tool.
             // A filled Shapes rectangle opens the Shapes bar instead, so its opacity never becomes the
             // highlighter's (a 100% rectangle used to turn every later highlight into a solid bar).
+            // Each borrows the bar until it is deselected (PdfViewer.DrawLook.cs), so the tool's own look comes back.
             else if (annot is HighlightAnnotation { IsShape: true } shapeSel)
             {
+                BorrowDrawLook();
                 _drawColor   = shapeSel.GetColor();
                 _drawOpacity = shapeSel.GetColor().A;
+                NoteSelectedDrawLook();
                 ShowDrawSettings(EditTool.Shape);
             }
             else if (annot is HighlightAnnotation hsel)
             {
+                BorrowDrawLook();
                 if (hsel.Style == HighlightStyle.Fill) _highlightColor = hsel.GetColor();
                 else                                   _lineAnnotColor = hsel.GetColor();
+                NoteSelectedDrawLook();
                 ShowDrawSettings(hsel.Style switch
                 {
                     HighlightStyle.Strikethrough => EditTool.Strikethrough,
@@ -839,17 +845,21 @@ namespace KillerPDF.Controls
             // Selecting a freehand stroke opens the draw bar synced to it (color, opacity and width).
             else if (annot is InkAnnotation isel)
             {
+                BorrowDrawLook();
                 _drawColor   = isel.GetColor();
                 _drawOpacity = isel.GetColor().A;
                 _drawWidth   = isel.StrokeWidth;
+                NoteSelectedDrawLook();
                 ShowDrawSettings(EditTool.Draw);
             }
             // A measurement opens the Measure bar, whose color, size and opacity then restyle it.
             else if (annot is MeasurementAnnotation msel)
             {
+                BorrowDrawLook();
                 _drawColor   = msel.GetColor();
                 _drawOpacity = msel.GetColor().A;
                 _drawWidth   = msel.StrokeWidth;
+                NoteSelectedDrawLook();
                 ShowDrawSettings(EditTool.Measure);
             }
         }
