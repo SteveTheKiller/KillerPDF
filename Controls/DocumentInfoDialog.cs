@@ -92,7 +92,6 @@ namespace KillerPDF
             f.MaxHeight = wrap ? 110 : 72;   // grow up to ~5 lines (keywords) / ~3 lines (others), then scroll
             var menu = (ContextMenu)owner.FindResource("TextInputContextMenu");
             menu.Style = (Style)owner.FindResource(typeof(ContextMenu));
-            menu.Resources["GrainBrushShared"] = owner.FindResource("GrainBrushShared");
             Style itemStyle = (Style)owner.FindResource(typeof(MenuItem));
             Style separatorStyle = (Style)owner.FindResource(typeof(Separator));
             foreach (object item in menu.Items)

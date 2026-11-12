@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -123,25 +124,39 @@ namespace KillerPDF.Shell
             return string.Join(" · ", parts);
         }
 
-        // A card row that holds controls rather than being a command (KillerUI CardSlot).
-        // The card's quick actions sit in rows the arrow keys skip (KillerUI CardSlot), so a card opened from the
-        // keyboard (Shift+F10, the Menu key) puts focus on its first enabled action; Left and Right walk the strip and
-        // Tab goes on to the rows (1.9.4 review BF-012). A card opened with the mouse leaves focus alone.
+        // Quick actions sit in rows the arrow keys skip (KillerUI CardSlot), so a menu opened from the keyboard
+        // (Shift+F10, the Menu key) puts focus on the first enabled action of its first strip; from there the arrow keys
+        // move between the actions and on to the rows (1.9.4 review BF-012). A menu opened with the mouse leaves focus
+        // alone. The shared page menu is refilled on every right-click, so only a strip still on the menu counts, and
+        // each menu gets one Opened handler.
+        private static readonly ConditionalWeakTable<ContextMenu, List<Button>> s_keyboardFocusTargets = new();
+
         private static void FocusFirstActionFromKeyboard(ContextMenu menu, FrameworkElement strip)
         {
             if (strip is not Border { Child: UniformGrid grid } || grid.Children.OfType<Button>().FirstOrDefault(b => b.IsEnabled) is not { } first) return;
-            KeyboardNavigation.SetDirectionalNavigation(grid, KeyboardNavigationMode.Cycle);
-            RoutedEventHandler? opened = null, closed = null;
-            opened = (_, _) =>
+            if (!s_keyboardFocusTargets.TryGetValue(menu, out var targets))
             {
-                if (InputManager.Current.MostRecentInputDevice is KeyboardDevice)
-                    first.Dispatcher.BeginInvoke(DispatcherPriority.Input, () => first.Focus());
-            };
-            closed = (_, _) => { menu.Opened -= opened; menu.Closed -= closed; };
-            menu.Opened += opened;
-            menu.Closed += closed;
+                targets = [];
+                s_keyboardFocusTargets.Add(menu, targets);
+                menu.Opened += (_, _) =>
+                {
+                    var target = targets.FirstOrDefault(button => IsOnMenu(menu, button));
+                    targets.Clear();
+                    if (target is not null && InputManager.Current.MostRecentInputDevice is KeyboardDevice)
+                        target.Dispatcher.BeginInvoke(DispatcherPriority.Input, () => target.Focus());
+                };
+            }
+            targets.Add(first);
         }
 
+        private static bool IsOnMenu(ContextMenu menu, DependencyObject element)
+        {
+            for (DependencyObject? at = element; at is not null; at = LogicalTreeHelper.GetParent(at))
+                if (ReferenceEquals(at, menu)) return true;
+            return false;
+        }
+
+        // A card row that holds controls rather than being a command (KillerUI CardSlot).
         private MenuItem CardSlot(object content, Thickness padding)
         {
             var slot = new MenuItem { Header = content, Padding = padding };

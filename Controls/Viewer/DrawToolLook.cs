@@ -6,15 +6,24 @@ namespace KillerPDF.Controls;
 internal sealed record DrawToolLook(Color Highlight, Color Line, Color Draw, byte Opacity, double Width)
 {
     /// <summary>
-    /// Field by field, a value changed on the bar since the selection put its look there is a deliberate choice and
-    /// wins; a value nobody touched goes back to the tool's own.
+    /// Setting by setting, a value changed on the bar since the selection put its look there is a deliberate choice and
+    /// wins; a value nobody touched goes back to the tool's own. A color's hue and its alpha are separate settings: the
+    /// bar writes a picked color with the mark's alpha and an opacity drag rewrites only the alpha, so comparing whole
+    /// colors would carry the mark's opacity (or its hue) into the tool (1.9.4 review r2 BF-001).
     /// </summary>
     internal static DrawToolLook Settle(DrawToolLook toolLook, DrawToolLook synced, DrawToolLook current) => new(
-        current.Highlight == synced.Highlight ? toolLook.Highlight : current.Highlight,
-        current.Line == synced.Line ? toolLook.Line : current.Line,
-        current.Draw == synced.Draw ? toolLook.Draw : current.Draw,
+        Settle(toolLook.Highlight, synced.Highlight, current.Highlight),
+        Settle(toolLook.Line, synced.Line, current.Line),
+        Settle(toolLook.Draw, synced.Draw, current.Draw),
         current.Opacity == synced.Opacity ? toolLook.Opacity : current.Opacity,
         current.Width == synced.Width ? toolLook.Width : current.Width);
+
+    private static Color Settle(Color toolColor, Color synced, Color current)
+    {
+        bool hueChanged = current.R != synced.R || current.G != synced.G || current.B != synced.B;
+        var hue = hueChanged ? current : toolColor;
+        return Color.FromArgb(current.A != synced.A ? current.A : toolColor.A, hue.R, hue.G, hue.B);
+    }
 }
 
 // A selected mark borrows the draw bar: Borrow before the selection writes its look, Note once the bar holds it, and

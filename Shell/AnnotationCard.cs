@@ -212,7 +212,17 @@ namespace KillerPDF.Shell
             // The re-render wiped the canvases, so the rest of a multi-selection gets its outlines back (review BF-003),
             // and the bar the selection opened shows the new look so its next change does not write the old one back.
             ActiveViewer.ReattachMultiOutlinesExt();
-            ActiveViewer.RefreshSelectedDrawBar();
+            // A slider drag syncs the bar once it settles; rebuilding the docked bar on every tick is wasted work (r2 BF-006).
+            if (gesture is null) ActiveViewer.RefreshSelectedDrawBar();
+            else
+            {
+                _cardBarRefresh ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromMilliseconds(200),
+                    System.Windows.Threading.DispatcherPriority.Background, (_, _) => { _cardBarRefresh!.Stop(); ActiveViewer.RefreshSelectedDrawBar(); }, Dispatcher);
+                _cardBarRefresh.Stop();
+                _cardBarRefresh.Start();
+            }
         }
+
+        private System.Windows.Threading.DispatcherTimer? _cardBarRefresh;
     }
 }

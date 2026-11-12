@@ -673,8 +673,8 @@ namespace KillerPDF.Shell
                      && _doc is not null)
             {
                 // Windows accessibility convention: the Menu key / Shift+F10 opens the context menu
-                // at the current selection without the mouse.
-                OpenContextMenuAtSelection();
+                // at the current selection without the mouse; in the page list, the thumbnail's card.
+                if (!OpenPageCardFromKeyboard()) OpenContextMenuAtSelection();
                 e.Handled = true;
             }
             else if (mods == ModifierKeys.None && key is Key.Left or Key.Right or Key.Up or Key.Down
@@ -828,7 +828,7 @@ namespace KillerPDF.Shell
             var canvas = VisibleCanvasForPage(pg) ?? CanvasForPage(pg);
             if (canvas is null) return;
             _activeCanvas = canvas;
-            PopulateContextMenu(pt, pg);
+            PopulateContextMenu(pt, pg, _selectedAnnotation);
             cm.PlacementTarget = canvas;
             var prevPlacement = cm.Placement;
             cm.Placement = System.Windows.Controls.Primitives.PlacementMode.Center;

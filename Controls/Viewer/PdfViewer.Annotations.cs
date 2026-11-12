@@ -438,11 +438,12 @@ namespace KillerPDF.Controls
                 HideTextSettings();
             // Likewise the draw bar: if it was opened to edit a selected highlight / line / ink
             // annotation (the active tool isn't a draw-family tool), close it when the selection clears.
-            if (_currentTool is not (EditTool.Draw or EditTool.Highlight or EditTool.Strikethrough or EditTool.Underline
-                    or EditTool.Measure)
-                && _annotBarTool is EditTool.Draw or EditTool.Highlight or EditTool.Strikethrough or EditTool.Underline
-                    or EditTool.Measure)
-                HideDrawSettings();
+            // Shapes and Line count too (1.9.4 review r2 BF-007), and the Text tool gets its own bar back (r2 BF-008).
+            if (!IsDrawBarTool(_currentTool) && IsDrawBarTool(_annotBarTool))
+            {
+                if (_currentTool == EditTool.Text) ShowTextSettings();
+                else HideDrawSettings();
+            }
         }
 
         // ---- Shift+click multi-selection (Select tool) -------------------------------------------

@@ -75,13 +75,14 @@ namespace KillerPDF.Shell
         // Rebuild the shared context menu for a right-click at canvas point pt on the given page. If an
         // annotation sits under the cursor it is selected and gets a menu tailored to its type; otherwise
         // the page-level menu (tools, rotate, stamp, undo, clear) is shown.
-        internal void PopulateContextMenu(Point pt, int pageIdx)
+        internal void PopulateContextMenu(Point pt, int pageIdx, PageAnnotation? target = null)
         {
             _ctxMenu.Items.Clear();
             // One menu serves every right-click on the page: markup gets the card, everything else the plain menu.
             if (TryFindResource(typeof(ContextMenu)) is Style plain) _ctxMenu.Style = plain;
             AddOwnerPasswordItem(_ctxMenu);
-            var hit = AnnotationAt(pt, pageIdx);
+            // The keyboard path names the selected mark: a stroke need not pass through its own center (r2 BF-009).
+            var hit = target ?? AnnotationAt(pt, pageIdx);
             if (hit is not null)
             {
                 // Target this annotation: select it unless it's already part of the current selection
@@ -183,11 +184,13 @@ namespace KillerPDF.Shell
                     text.Add(("\uEDE0", Loc("Str_Lbl_Strike"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Strikethrough), false, true));
                     text.Add(("\uE72E", Loc("Str_Lbl_Redact"), null, ActiveViewer.MarkTextSelectionForRedaction, false, true));
                 }
-                _ctxMenu.Items.Add(CardSlot(LabelledStrip(Loc("Str_Card_SelectedText"), QuickStrip(_ctxMenu, [.. text])), new Thickness(0)));
+                var textStrip = QuickStrip(_ctxMenu, [.. text]);
+                _ctxMenu.Items.Add(CardSlot(LabelledStrip(Loc("Str_Card_SelectedText"), textStrip), new Thickness(0)));
+                FocusFirstActionFromKeyboard(_ctxMenu, textStrip);
             }
 
             // Placement drops the item exactly where the user right-clicked.
-            _ctxMenu.Items.Add(CardSlot(LabelledStrip(Loc("Str_Card_PlaceHere"), QuickStrip(_ctxMenu,
+            var placeStrip = QuickStrip(_ctxMenu,
                 ("\uE8D2", Loc("Str_Lbl_Text"), "T", () =>
                 {
                     SetTool(EditTool.Text);
@@ -205,7 +208,9 @@ namespace KillerPDF.Shell
                     _activeCanvas = CanvasForPage(pageIdx);
                     if (_pendingSignature is not null) PlaceSignature(pt, pageIdx);
                     else { SetTool(EditTool.Signature); ShowSignaturePopup(); }
-                }, false, true))), new Thickness(0)));
+                }, false, true));
+            _ctxMenu.Items.Add(CardSlot(LabelledStrip(Loc("Str_Card_PlaceHere"), placeStrip), new Thickness(0)));
+            FocusFirstActionFromKeyboard(_ctxMenu, placeStrip);   // only when no selected-text strip came first
 
             _ctxMenu.Items.Add(new Separator());
             _ctxMenu.Items.Add(BuildFieldPresetMenu(pt, pageIdx));
@@ -696,14 +701,37 @@ namespace KillerPDF.Shell
 
             // A thumbnail gets the page card; the empty area below the list keeps the page-agnostic menu.
             var menu = onThumb ? BuildPageCard(clickedPage) : MakeThemedMenu();
+            OpenSidebarMenu(menu, onThumb, PageList);
+            e.Handled = true;
+        }
+
+        /// <summary>The Menu key or Shift+F10 in the page list opens the focused thumbnail's card (1.9.4 review r2 BF-004).</summary>
+        private bool OpenPageCardFromKeyboard()
+        {
+            if (_doc is null || !PageList.IsKeyboardFocusWithin) return false;
+            var item = Keyboard.FocusedElement as ListBoxItem;
+            if (item?.DataContext is not PageThumbnailVm thumbnail)
+            {
+                if (PageList.SelectedIndex < 0) return false;
+                item = PageList.ItemContainerGenerator.ContainerFromIndex(PageList.SelectedIndex) as ListBoxItem;
+                thumbnail = (PageThumbnailVm)PageList.SelectedItem;
+            }
+            if (!PageList.SelectedItems.Contains(thumbnail)) PageList.SelectedItem = thumbnail;
+            var menu = BuildPageCard(thumbnail.PageIndex);
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            OpenSidebarMenu(menu, onThumb: true, (UIElement?)item ?? PageList);
+            return true;
+        }
+
+        private void OpenSidebarMenu(ContextMenu menu, bool onThumb, UIElement target)
+        {
             if (!onThumb && _doc is not null)
             {
                 FillPageAgnosticMenu(menu);
             }
             AppendSidebarSideSection(menu);
-            menu.PlacementTarget = PageList;
+            menu.PlacementTarget = target;
             menu.IsOpen = true;
-            e.Handled = true;
         }
 
         // Right-click on any other part of the sidebar - the PAGES/OUTLINES header, the page

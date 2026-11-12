@@ -74,11 +74,17 @@ public partial class PdfViewer
         if (_selectedAnnotation is { } selected && _drawLookLease.IsActive) SyncDrawBarToSelection(selected);
     }
 
-    private void ReleaseSelectedDrawLook()
+    /// <summary>
+    /// Settings are saved next (closing, a render recovery restart): a selected mark's look must not become the
+    /// tool's saved default (1.9.4 review r2 BF-002), the same as RestoreTextToolDefaultsForExit.
+    /// </summary>
+    internal void RestoreDrawToolDefaultsForExit() => ReleaseSelectedDrawLook(refreshBar: false);
+
+    private void ReleaseSelectedDrawLook(bool refreshBar = true)
     {
         if (_drawLookLease.Release(CurrentDrawLook()) is not { } look) return;
         (_highlightColor, _lineAnnotColor, _drawColor, _drawOpacity, _drawWidth) = (look.Highlight, look.Line, look.Draw, look.Opacity, look.Width);
         // Whichever draw bar the selection left up, the active draw tool's own bar comes back showing its own look.
-        if (IsDrawBarTool(_currentTool) && IsDrawBarTool(_annotBarTool)) ShowDrawSettings(_currentTool);
+        if (refreshBar && IsDrawBarTool(_currentTool) && IsDrawBarTool(_annotBarTool)) ShowDrawSettings(_currentTool);
     }
 }

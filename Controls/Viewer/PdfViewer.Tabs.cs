@@ -753,6 +753,7 @@ namespace KillerPDF.Controls
         {
             CancelRenderWork();
             RestoreTextToolDefaultsForExit();
+            RestoreDrawToolDefaultsForExit();
             _activeTextBox = null;
             RemoveTextEditHandles();
             Host?.ClearSidebarPages(this);

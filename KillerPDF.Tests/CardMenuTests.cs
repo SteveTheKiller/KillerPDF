@@ -97,6 +97,22 @@ public sealed class CardMenuTests
         // Review BF-012: opened from the keyboard, both cards focus their first quick action.
         Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, strip);", card);
         Assert.Contains("FocusFirstActionFromKeyboard(menu, strip);", Read("Shell", "PageCard.cs"));
+        // r2 BF-004/005/009: the page menu's strips, the page list's Menu key, and the selected mark itself.
+        string menu2 = Read("Shell", "ContextMenu.cs");
+        Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, textStrip);", menu2);
+        Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, placeStrip);", menu2);
+        Assert.Contains("var hit = target ?? AnnotationAt(pt, pageIdx);", menu2);
+        string keys = Read("Shell", "KeyboardShortcuts.cs");
+        Assert.Contains("if (!OpenPageCardFromKeyboard()) OpenContextMenuAtSelection();", keys);
+        Assert.Contains("PopulateContextMenu(pt, pg, _selectedAnnotation);", keys);
+    }
+
+    [Fact]
+    public void ASelectedMarksLookIsNeverSavedAsTheToolsDefault()
+    {
+        // r2 BF-002: settings are saved on close and on a render recovery restart.
+        Assert.Contains("pane.RestoreDrawToolDefaultsForExit();", Read("Shell", "WindowChrome.cs"));
+        Assert.Contains("pane.RestoreDrawToolDefaultsForExit();", Read("Shell", "RenderRecovery.cs"));
     }
 
     [Fact]
