@@ -23,9 +23,6 @@ public partial class PdfViewer
     /// </summary>
     private bool SyncDrawBarToSelection(PageAnnotation annot)
     {
-        // Redact and Crop keep their own bars: their Apply and Clear controls must not give way to a mark's look,
-        // and the card restyles the mark meanwhile (1.9.4 review r3 BF-002).
-        if (_currentTool is EditTool.Redact or EditTool.Crop) return false;
         EditTool tool;
         switch (annot)
         {
@@ -64,9 +61,16 @@ public partial class PdfViewer
                 return false;
         }
         _drawLookLease.Note(CurrentDrawLook());
-        ShowDrawSettings(tool);
+        if (!KeepsOwnBar(_currentTool)) ShowDrawSettings(tool);
         return true;
     }
+
+    /// <summary>
+    /// Redact and Crop keep their own bars: their Apply, Clear and confirm controls never give way to a selected mark's
+    /// bar. The selection still lends its look, because switching tools keeps it selected and the next bar change must
+    /// start from the mark (1.9.4 review r3 BF-002, r4 BF-001).
+    /// </summary>
+    private static bool KeepsOwnBar(EditTool tool) => tool is EditTool.Redact or EditTool.Crop;
 
     /// <summary>
     /// The markup card restyled the selection: the bar the selection opened shows the mark's new look, so the next

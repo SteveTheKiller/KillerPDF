@@ -815,7 +815,7 @@ namespace KillerPDF.Controls
                 _textFontSize = Math.Max(1, Math.Round(tsel.FontSize * sy));
                 _textLetterSpacing = tsel.LetterSpacing * sy;
                 if (borrowing) _selectedTextLook = CurrentTextToolDefaults();
-                ShowTextSettings();
+                if (!KeepsOwnBar(_currentTool)) ShowTextSettings();   // r4 BF-002
             }
             // A highlight, Shapes rectangle, drawing or measurement opens the draw bar synced to it.
             else SyncDrawBarToSelection(annot);

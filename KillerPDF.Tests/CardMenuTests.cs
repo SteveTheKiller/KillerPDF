@@ -118,6 +118,20 @@ public sealed class CardMenuTests
     }
 
     [Fact]
+    public void RedactAndCropKeepTheirBarsButASelectionStillLendsItsLook()
+    {
+        // r3 BF-002, r4 BF-001/002: under Redact or Crop a selected mark still syncs and borrows the draw look (a tool
+        // switch keeps the selection, and the next bar change must start from the mark), but neither the draw bar nor
+        // the text bar takes the dock from Redact's Apply and Clear or Crop's confirm bar.
+        string drawLook = Read("Controls", "Viewer", "PdfViewer.DrawLook.cs");
+        string sync = Between(drawLook, "private bool SyncDrawBarToSelection(", "internal void RefreshSelectedDrawBar()");
+        Assert.DoesNotContain("EditTool.Crop) return false;", sync);
+        Assert.Contains("if (!KeepsOwnBar(_currentTool)) ShowDrawSettings(tool);", sync);
+        Assert.Contains("if (!KeepsOwnBar(_currentTool)) ShowTextSettings();",
+            Between(Read("Controls", "Viewer", "PdfViewer.Annotations.cs"), "private void SelectAnnotation(", "private static bool IsDraggable("));
+    }
+
+    [Fact]
     public void ThePageMenuIsShortWithItsPageToolsUnderPage()
     {
         string page = Between(Read("Shell", "ContextMenu.cs"), "private void AddPageMenuItems(", "private FrameworkElement LabelledStrip(");
