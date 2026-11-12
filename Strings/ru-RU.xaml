@@ -1320,6 +1320,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_St_Saved">Сохранено - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Сохранено с аннотациями в {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Пропущено изображений, которые не удалось прочитать: {0}.</sys:String>
+    <sys:String x:Key="Str_Print_ShellFailed">KillerPDF не смог напечатать {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Сохранено в {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Сведенный PDF-файл сохранен в {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">Язык распознавания текста: {0}</sys:String>

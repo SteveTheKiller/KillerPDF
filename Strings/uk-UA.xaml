@@ -1320,6 +1320,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_St_Saved">Збережено - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Збережено з анотаціями до {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Пропущено зображень, які не вдалося прочитати: {0}.</sys:String>
+    <sys:String x:Key="Str_Print_ShellFailed">KillerPDF не зміг надрукувати {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Збережено до {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Зведений PDF збережено до {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">Мова OCR: {0}</sys:String>

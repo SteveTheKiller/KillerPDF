@@ -1303,6 +1303,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_St_Saved">Guardado - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Guardado con anotaciones en {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Imágenes omitidas porque no se pudieron leer: {0}.</sys:String>
+    <sys:String x:Key="Str_Print_ShellFailed">KillerPDF no pudo imprimir {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Guardado en {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">PDF aplanado guardado en {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">Idioma de OCR: {0}</sys:String>

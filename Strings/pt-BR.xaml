@@ -1320,6 +1320,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_St_Saved">Salvo - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Salvo com anotações em {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Imagens omitidas porque não puderam ser lidas: {0}.</sys:String>
+    <sys:String x:Key="Str_Print_ShellFailed">O KillerPDF não conseguiu imprimir {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Salvo em {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">PDF nivelado salvo em {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">Idioma do OCR: {0}</sys:String>

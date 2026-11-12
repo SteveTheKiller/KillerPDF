@@ -1305,6 +1305,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_St_Saved">已儲存 - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">已連同註釋儲存到 {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">因無法讀取而被省略的圖片數量：{0}。</sys:String>
+    <sys:String x:Key="Str_Print_ShellFailed">KillerPDF 無法列印 {0}。</sys:String>
     <sys:String x:Key="Str_St_SavedTo">已儲存到 {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">平面化 PDF 已儲存到 {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">OCR 語言：{0}</sys:String>

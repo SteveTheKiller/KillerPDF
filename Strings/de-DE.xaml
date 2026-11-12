@@ -1309,6 +1309,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_St_Saved">Gespeichert - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Mit Anmerkungen gespeichert unter {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Nicht lesbare Bilder wurden weggelassen: {0}.</sys:String>
+    <sys:String x:Key="Str_Print_ShellFailed">KillerPDF konnte {0} nicht drucken.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Gespeichert unter {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Reduzierte PDF gespeichert unter {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">OCR-Sprache: {0}</sys:String>

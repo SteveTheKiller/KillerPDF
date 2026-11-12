@@ -1327,6 +1327,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_St_Saved">Saved {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Saved with annotations to {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Pictures left out because they could not be read: {0}.</sys:String>
+    <sys:String x:Key="Str_Print_ShellFailed">KillerPDF could not print {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Saved to {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Flattened PDF saved to {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">OCR language: {0}</sys:String>

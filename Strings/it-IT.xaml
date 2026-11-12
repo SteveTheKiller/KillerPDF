@@ -1320,6 +1320,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_St_Saved">Salvato - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Salvato con annotazioni in {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Immagini omesse perché non è stato possibile leggerle: {0}.</sys:String>
+    <sys:String x:Key="Str_Print_ShellFailed">KillerPDF non è riuscito a stampare {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Salvato in {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">PDF appiattito salvato in {0}</sys:String>
     <sys:String x:Key="Str_St_OcrLanguage">Lingua OCR: {0}</sys:String>

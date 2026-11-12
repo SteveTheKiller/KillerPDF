@@ -75,10 +75,11 @@ internal static class FileAssociationRegistry
     // Windows asks these verbs how to print a file: "print" for right-click Print, Start-Process -Verb Print and mail
     // clients printing an attachment, and "printto" with the printer as %2 when a printer is named. Both run the
     // headless print, which reads PDFs only, so on an application key that also opens books they apply to PDFs alone.
-    // Unregister removes them with the keys they sit under.
+    // --shell makes a failed print say why in a message, since a shell launch has no console. Unregister removes
+    // these verbs with the keys they sit under.
     private static void RegisterPrintVerbs(RegistryKey root, string classKey, string exePath, bool pdfOnly)
     {
-        foreach (var (verb, arguments) in new[] { ("print", "--print \"%1\""), ("printto", "--print \"%1\" --printer \"%2\"") })
+        foreach (var (verb, arguments) in new[] { ("print", "--print \"%1\" --shell"), ("printto", "--print \"%1\" --printer \"%2\" --shell") })
         {
             using (var k = root.CreateSubKey(classKey + @"\shell\" + verb))
                 if (pdfOnly) k.SetValue("AppliesTo", "System.FileExtension:=.pdf");

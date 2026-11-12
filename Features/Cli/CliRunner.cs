@@ -146,6 +146,14 @@ namespace KillerPDF.Features
             var con = OpenBatchConsole();
             CommandLineCrash.Console = con;
             var (positionals, options) = ParseCliArgs(args, command);
+            // A print started from Windows (the shell's print verbs pass --shell) has no console. Its output is kept
+            // and shown in a message if the print fails, instead of going nowhere.
+            StringWriter? shellOutput = Eq(command, "--print") && options.ContainsKey("--shell") ? new StringWriter() : null;
+            if (shellOutput is not null)
+            {
+                con = shellOutput;
+                CommandLineCrash.Console = con;
+            }
             if (options.ContainsKey(CliSecrets.Option))
             {
                 // UTF-8, not the console code page, so passwords outside ASCII arrive intact.
@@ -385,6 +393,8 @@ namespace KillerPDF.Features
             finally
             {
                 App.CleanupSessionTemps();   // drop any decrypt/rotation temps the run created
+                if (shellOutput is not null && exitCode != 0)
+                    Services.ShellPrintFailure.Show(positionals.FirstOrDefault(), shellOutput.ToString());
             }
             return true;
         }

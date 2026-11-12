@@ -41,9 +41,9 @@ public sealed class FileAssociationRegistryTests : IDisposable
         FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
 
         using (var print = _root.OpenSubKey(@"Software\Classes\KillerPDF.pdf\shell\print\command"))
-            Assert.Equal("\"" + Exe + "\" --print \"%1\"", print?.GetValue(""));
+            Assert.Equal("\"" + Exe + "\" --print \"%1\" --shell", print?.GetValue(""));
         using (var printTo = _root.OpenSubKey(@"Software\Classes\KillerPDF.pdf\shell\printto\command"))
-            Assert.Equal("\"" + Exe + "\" --print \"%1\" --printer \"%2\"", printTo?.GetValue(""));
+            Assert.Equal("\"" + Exe + "\" --print \"%1\" --printer \"%2\" --shell", printTo?.GetValue(""));
     }
 
     // A default chosen through Open with (or kept from an older version) points at the application key instead of the
@@ -63,9 +63,9 @@ public sealed class FileAssociationRegistryTests : IDisposable
             Assert.Equal("System.FileExtension:=.pdf", key?.GetValue("AppliesTo"));
         }
         using (var print = _root.OpenSubKey(shell + @"print\command"))
-            Assert.Equal("\"" + Exe + "\" --print \"%1\"", print?.GetValue(""));
+            Assert.Equal("\"" + Exe + "\" --print \"%1\" --shell", print?.GetValue(""));
         using (var printTo = _root.OpenSubKey(shell + @"printto\command"))
-            Assert.Equal("\"" + Exe + "\" --print \"%1\" --printer \"%2\"", printTo?.GetValue(""));
+            Assert.Equal("\"" + Exe + "\" --print \"%1\" --printer \"%2\" --shell", printTo?.GetValue(""));
     }
 
     [Theory]
