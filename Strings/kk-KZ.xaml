@@ -1163,8 +1163,26 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Err_LangDataFailed">{0} тіл деректерін жүктеу мүмкін болмады:</sys:String>
     <sys:String x:Key="Str_Dlg_DownloadTimeout">{0} жүктеу уақыты аяқталды. Байланысты тексеріп, қайталап көріңіз.</sys:String>
     <sys:String x:Key="Str_Dlg_CancelBusy">Ағымдағы {0} болдырылсын ба?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePage1">Осы бетті жою керек пе?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePagesN">{0} бетті жою керек пе?</sys:String>
+    <sys:String x:Key="Str_Del_Btn1">1 бетті жою</sys:String>
+    <sys:String x:Key="Str_Del_BtnN">{0} бетті жою</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} жойылады, {1} қалады. Ctrl+Z оларды қайтарады.</sys:String>
+    <sys:String x:Key="Str_Del_Run">{0} - {1}</sys:String>
+    <sys:String x:Key="Str_Del_RunCount">{0} бет</sys:String>
+    <sys:String x:Key="Str_Del_More">+ тағы {0}</sys:String>
+    <sys:String x:Key="Str_Card_Actions">Әрекеттер</sys:String>
+    <sys:String x:Key="Str_Card_InsertBlank">Бос бет</sys:String>
+    <sys:String x:Key="Str_Card_PagesSelected">{0} бет таңдалды</sys:String>
+    <sys:String x:Key="Str_Card_AllSelected">Әрекеттер таңдалған барлық бетке қолданылады</sys:String>
+    <sys:String x:Key="Str_Card_Markups1">1 аннотация</sys:String>
+    <sys:String x:Key="Str_Card_MarkupsN">{0} аннотация</sys:String>
+    <sys:String x:Key="Str_Card_CleanUp">Тазалау</sys:String>
+    <sys:String x:Key="Str_Card_FromPage">Осы беттен</sys:String>
+    <sys:String x:Key="Str_Card_Move">Жылжыту</sys:String>
+    <sys:String x:Key="Str_Card_ItemsSelected">{0} элемент таңдалды</sys:String>
+    <sys:String x:Key="Str_Card_Style">Стиль</sys:String>
+    <sys:String x:Key="Str_Card_SelectedText">Таңдалған мәтін</sys:String>
+    <sys:String x:Key="Str_Card_PlaceHere">Осы жерге қою</sys:String>
+    <sys:String x:Key="Str_Card_PageTools">Бет</sys:String>
 
     <!-- Cancellable-operation labels (fill {0} in Str_Dlg_CancelBusy) and busy-overlay messages -->
     <sys:String x:Key="Str_Op_Repair">жөндеу</sys:String>

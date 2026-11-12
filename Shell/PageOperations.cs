@@ -111,16 +111,13 @@ namespace KillerPDF.Shell
             if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             if (!EnsureEditable(continueAfterUnlock: false)) return;
             var sourceCurrent = CaptureDocumentOrigin();
-            int[]? selected = PromptPageOperationRange("Str_Lbl_Delete", _doc.PageCount);
-            if (selected is null || !sourceCurrent()) return;
-            if (selected.Length >= _doc.PageCount)
-            {
-                KillerDialog.Show(this, Loc("Str_Dlg_KeepOnePage"));
-                return;
-            }
-            var result = KillerDialog.Show(this, selected.Length == 1 ? Loc("Str_Dlg_DeletePage1") : string.Format(Loc("Str_Dlg_DeletePagesN"), selected.Length), "KillerPDF",
-                MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            if (result != MessageBoxResult.Yes || !sourceCurrent()) return;
+            // One step: the dialog shows which pages go and says so on its button, so no Yes/No box follows it.
+            var dialog = new DeletePagesDialog(this, _doc.PageCount, InitialPageRange(_doc.PageCount),
+                page => page < PageList.Items.Count ? PageList.Items[page] as PageThumbnailVm : null);
+            if (dialog.ShowDialog() != true || !sourceCurrent()) return;
+            int[] selected = [.. dialog.Pages];
+            // The dialog refuses an empty range and one that leaves no page; the document can change behind it.
+            if (selected.Length == 0 || selected.Length >= _doc.PageCount) return;
             try
             {
                 var indices = selected.ToList();
@@ -168,13 +165,18 @@ namespace KillerPDF.Shell
             }
         }
 
-        private int[]? PromptPageOperationRange(string titleKey, int pageCount)
+        // The pages a page operation starts from: the sidebar selection, else the page in view.
+        private string InitialPageRange(int pageCount)
         {
             string initial = string.Join(",", PageList.SelectedItems.Cast<PageThumbnailVm>()
                 .Select(page => page.PageIndex + 1).Distinct().Order());
-            if (initial.Length == 0)
-                initial = (Math.Clamp(_currentPage, 0, Math.Max(0, pageCount - 1)) + 1)
-                    .ToString(System.Globalization.CultureInfo.CurrentCulture);
+            return initial.Length > 0 ? initial
+                : (Math.Clamp(_currentPage, 0, Math.Max(0, pageCount - 1)) + 1).ToString(System.Globalization.CultureInfo.CurrentCulture);
+        }
+
+        private int[]? PromptPageOperationRange(string titleKey, int pageCount)
+        {
+            string initial = InitialPageRange(pageCount);
             var dialog = new DocumentValuesDialog(this, Loc(titleKey), Loc("Str_Btn_OK"),
                 (string.Format(Loc("Str_Dlg_PageRange"), pageCount), initial));
             if (dialog.ShowDialog() != true) return null;

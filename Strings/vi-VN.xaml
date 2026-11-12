@@ -1267,8 +1267,26 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Err_LangDataFailed">Không thể tải xuống dữ liệu ngôn ngữ {0}:</sys:String>
     <sys:String x:Key="Str_Dlg_DownloadTimeout">Quá thời gian tải xuống {0}. Vui lòng kiểm tra kết nối và thử lại.</sys:String>
     <sys:String x:Key="Str_Dlg_CancelBusy">Hủy {0} hiện tại?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePage1">Xóa trang này?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePagesN">Xóa {0} trang?</sys:String>
+    <sys:String x:Key="Str_Del_Btn1">Xóa 1 trang</sys:String>
+    <sys:String x:Key="Str_Del_BtnN">Xóa {0} trang</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} sẽ bị xóa, {1} được giữ lại. Ctrl+Z sẽ khôi phục.</sys:String>
+    <sys:String x:Key="Str_Del_Run">{0} đến {1}</sys:String>
+    <sys:String x:Key="Str_Del_RunCount">{0} trang</sys:String>
+    <sys:String x:Key="Str_Del_More">+ {0} nữa</sys:String>
+    <sys:String x:Key="Str_Card_Actions">Thao tác</sys:String>
+    <sys:String x:Key="Str_Card_InsertBlank">Trang trống</sys:String>
+    <sys:String x:Key="Str_Card_PagesSelected">Đã chọn {0} trang</sys:String>
+    <sys:String x:Key="Str_Card_AllSelected">Thao tác áp dụng cho mọi trang đã chọn</sys:String>
+    <sys:String x:Key="Str_Card_Markups1">1 chú thích</sys:String>
+    <sys:String x:Key="Str_Card_MarkupsN">{0} chú thích</sys:String>
+    <sys:String x:Key="Str_Card_CleanUp">Dọn dẹp</sys:String>
+    <sys:String x:Key="Str_Card_FromPage">Từ trang này</sys:String>
+    <sys:String x:Key="Str_Card_Move">Di chuyển</sys:String>
+    <sys:String x:Key="Str_Card_ItemsSelected">Đã chọn {0} mục</sys:String>
+    <sys:String x:Key="Str_Card_Style">Kiểu</sys:String>
+    <sys:String x:Key="Str_Card_SelectedText">Văn bản đã chọn</sys:String>
+    <sys:String x:Key="Str_Card_PlaceHere">Đặt tại đây</sys:String>
+    <sys:String x:Key="Str_Card_PageTools">Trang</sys:String>
 
     <!-- Nhãn tác vụ có thể hủy (điền {0} vào Str_Dlg_CancelBusy) và thông báo lớp phủ bận -->
     <sys:String x:Key="Str_Op_Repair">sửa chữa</sys:String>

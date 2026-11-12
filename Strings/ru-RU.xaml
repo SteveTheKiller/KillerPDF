@@ -1267,8 +1267,26 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Err_LangDataFailed">Не удалось загрузить языковые данные {0}:</sys:String>
     <sys:String x:Key="Str_Dlg_DownloadTimeout">Время ожидания загрузки {0} истекло. Проверьте подключение и повторите попытку.</sys:String>
     <sys:String x:Key="Str_Dlg_CancelBusy">Отменить текущее {0}?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePage1">Удалить эту страницу?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePagesN">Удалить {0} страниц?</sys:String>
+    <sys:String x:Key="Str_Del_Btn1">Удалить 1 страницу</sys:String>
+    <sys:String x:Key="Str_Del_BtnN">Удалить страницы: {0}</sys:String>
+    <sys:String x:Key="Str_Del_Summary">Будет удалено: {0}, останется: {1}. Ctrl+Z вернёт их.</sys:String>
+    <sys:String x:Key="Str_Del_Run">с {0} по {1}</sys:String>
+    <sys:String x:Key="Str_Del_RunCount">Страниц: {0}</sys:String>
+    <sys:String x:Key="Str_Del_More">+ ещё {0}</sys:String>
+    <sys:String x:Key="Str_Card_Actions">Действия</sys:String>
+    <sys:String x:Key="Str_Card_InsertBlank">Пустая страница</sys:String>
+    <sys:String x:Key="Str_Card_PagesSelected">Выбрано страниц: {0}</sys:String>
+    <sys:String x:Key="Str_Card_AllSelected">Действия применяются ко всем выбранным страницам</sys:String>
+    <sys:String x:Key="Str_Card_Markups1">1 аннотация</sys:String>
+    <sys:String x:Key="Str_Card_MarkupsN">Аннотаций: {0}</sys:String>
+    <sys:String x:Key="Str_Card_CleanUp">Очистка</sys:String>
+    <sys:String x:Key="Str_Card_FromPage">С этой страницы</sys:String>
+    <sys:String x:Key="Str_Card_Move">Переместить</sys:String>
+    <sys:String x:Key="Str_Card_ItemsSelected">Выбрано элементов: {0}</sys:String>
+    <sys:String x:Key="Str_Card_Style">Стиль</sys:String>
+    <sys:String x:Key="Str_Card_SelectedText">Выделенный текст</sys:String>
+    <sys:String x:Key="Str_Card_PlaceHere">Вставить сюда</sys:String>
+    <sys:String x:Key="Str_Card_PageTools">Страница</sys:String>
 
     <!-- Cancellable-operation labels (fill {0} in Str_Dlg_CancelBusy) and busy-overlay messages -->
     <sys:String x:Key="Str_Op_Repair">ремонт</sys:String>

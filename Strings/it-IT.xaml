@@ -1267,8 +1267,26 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Err_LangDataFailed">Impossibile scaricare i dati sulla lingua {0}:</sys:String>
     <sys:String x:Key="Str_Dlg_DownloadTimeout">Il download di {0} è scaduto. Controlla la connessione e riprova.</sys:String>
     <sys:String x:Key="Str_Dlg_CancelBusy">Vuoi annullare l'attuale {0}?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePage1">Vuoi eliminare questa pagina?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePagesN">Vuoi eliminare {0} pagine?</sys:String>
+    <sys:String x:Key="Str_Del_Btn1">Elimina 1 pagina</sys:String>
+    <sys:String x:Key="Str_Del_BtnN">Elimina {0} pagine</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} da eliminare, {1} restanti. Ctrl+Z le ripristina.</sys:String>
+    <sys:String x:Key="Str_Del_Run">{0} a {1}</sys:String>
+    <sys:String x:Key="Str_Del_RunCount">{0} pagine</sys:String>
+    <sys:String x:Key="Str_Del_More">+ {0} altre</sys:String>
+    <sys:String x:Key="Str_Card_Actions">Azioni</sys:String>
+    <sys:String x:Key="Str_Card_InsertBlank">Pagina vuota</sys:String>
+    <sys:String x:Key="Str_Card_PagesSelected">{0} pagine selezionate</sys:String>
+    <sys:String x:Key="Str_Card_AllSelected">Le azioni si applicano a tutte le pagine selezionate</sys:String>
+    <sys:String x:Key="Str_Card_Markups1">1 annotazione</sys:String>
+    <sys:String x:Key="Str_Card_MarkupsN">{0} annotazioni</sys:String>
+    <sys:String x:Key="Str_Card_CleanUp">Pulisci</sys:String>
+    <sys:String x:Key="Str_Card_FromPage">Da questa pagina</sys:String>
+    <sys:String x:Key="Str_Card_Move">Sposta</sys:String>
+    <sys:String x:Key="Str_Card_ItemsSelected">{0} elementi selezionati</sys:String>
+    <sys:String x:Key="Str_Card_Style">Stile</sys:String>
+    <sys:String x:Key="Str_Card_SelectedText">Testo selezionato</sys:String>
+    <sys:String x:Key="Str_Card_PlaceHere">Inserisci qui</sys:String>
+    <sys:String x:Key="Str_Card_PageTools">Pagina</sys:String>
 
     <!-- Cancellable-operation labels (fill {0} in Str_Dlg_CancelBusy) and busy-overlay messages -->
     <sys:String x:Key="Str_Op_Repair">ripara</sys:String>

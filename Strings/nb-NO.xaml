@@ -1267,8 +1267,26 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Err_LangDataFailed">Kunne ikke laste ned språkdata for {0}:</sys:String>
     <sys:String x:Key="Str_Dlg_DownloadTimeout">Nedlastingen av {0} fikk tidsavbrudd. Sjekk tilkoblingen og prøv igjen.</sys:String>
     <sys:String x:Key="Str_Dlg_CancelBusy">Avbryte gjeldende {0}?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePage1">Slette denne siden?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePagesN">Slette {0} sider?</sys:String>
+    <sys:String x:Key="Str_Del_Btn1">Slett 1 side</sys:String>
+    <sys:String x:Key="Str_Del_BtnN">Slett {0} sider</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} slettes, {1} beholdes. Ctrl+Z henter dem tilbake.</sys:String>
+    <sys:String x:Key="Str_Del_Run">{0} til {1}</sys:String>
+    <sys:String x:Key="Str_Del_RunCount">{0} sider</sys:String>
+    <sys:String x:Key="Str_Del_More">+ {0} til</sys:String>
+    <sys:String x:Key="Str_Card_Actions">Handlinger</sys:String>
+    <sys:String x:Key="Str_Card_InsertBlank">Tom side</sys:String>
+    <sys:String x:Key="Str_Card_PagesSelected">{0} sider valgt</sys:String>
+    <sys:String x:Key="Str_Card_AllSelected">Handlingene gjelder alle valgte sider</sys:String>
+    <sys:String x:Key="Str_Card_Markups1">1 markering</sys:String>
+    <sys:String x:Key="Str_Card_MarkupsN">{0} markeringer</sys:String>
+    <sys:String x:Key="Str_Card_CleanUp">Rydd opp</sys:String>
+    <sys:String x:Key="Str_Card_FromPage">Fra denne siden</sys:String>
+    <sys:String x:Key="Str_Card_Move">Flytt</sys:String>
+    <sys:String x:Key="Str_Card_ItemsSelected">{0} elementer valgt</sys:String>
+    <sys:String x:Key="Str_Card_Style">Stil</sys:String>
+    <sys:String x:Key="Str_Card_SelectedText">Valgt tekst</sys:String>
+    <sys:String x:Key="Str_Card_PlaceHere">Plasser her</sys:String>
+    <sys:String x:Key="Str_Card_PageTools">Side</sys:String>
 
     <!-- Cancellable-operation labels (fill {0} in Str_Dlg_CancelBusy) and busy-overlay messages -->
     <sys:String x:Key="Str_Op_Repair">reparasjon</sys:String>

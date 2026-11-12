@@ -1267,8 +1267,26 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Err_LangDataFailed">Impossible de télécharger les données de langue {0} :</sys:String>
     <sys:String x:Key="Str_Dlg_DownloadTimeout">Le téléchargement de {0} a expiré. Vérifiez votre connexion et réessayez.</sys:String>
     <sys:String x:Key="Str_Dlg_CancelBusy">Annuler {0} en cours ?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePage1">Supprimer cette page ?</sys:String>
-    <sys:String x:Key="Str_Dlg_DeletePagesN">Supprimer {0} pages ?</sys:String>
+    <sys:String x:Key="Str_Del_Btn1">Supprimer 1 page</sys:String>
+    <sys:String x:Key="Str_Del_BtnN">Supprimer {0} pages</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} à supprimer, {1} conservées. Ctrl+Z les restaure.</sys:String>
+    <sys:String x:Key="Str_Del_Run">{0} à {1}</sys:String>
+    <sys:String x:Key="Str_Del_RunCount">{0} pages</sys:String>
+    <sys:String x:Key="Str_Del_More">+ {0} de plus</sys:String>
+    <sys:String x:Key="Str_Card_Actions">Actions</sys:String>
+    <sys:String x:Key="Str_Card_InsertBlank">Page vierge</sys:String>
+    <sys:String x:Key="Str_Card_PagesSelected">{0} pages sélectionnées</sys:String>
+    <sys:String x:Key="Str_Card_AllSelected">Les actions s'appliquent à chaque page sélectionnée</sys:String>
+    <sys:String x:Key="Str_Card_Markups1">1 annotation</sys:String>
+    <sys:String x:Key="Str_Card_MarkupsN">{0} annotations</sys:String>
+    <sys:String x:Key="Str_Card_CleanUp">Nettoyer</sys:String>
+    <sys:String x:Key="Str_Card_FromPage">Depuis cette page</sys:String>
+    <sys:String x:Key="Str_Card_Move">Déplacer</sys:String>
+    <sys:String x:Key="Str_Card_ItemsSelected">{0} éléments sélectionnés</sys:String>
+    <sys:String x:Key="Str_Card_Style">Style</sys:String>
+    <sys:String x:Key="Str_Card_SelectedText">Texte sélectionné</sys:String>
+    <sys:String x:Key="Str_Card_PlaceHere">Placer ici</sys:String>
+    <sys:String x:Key="Str_Card_PageTools">Page</sys:String>
 
     <!-- Cancellable-operation labels (fill {0} in Str_Dlg_CancelBusy) and busy-overlay messages -->
     <sys:String x:Key="Str_Op_Repair">la réparation</sys:String>
