@@ -2994,7 +2994,8 @@ namespace KillerPDF.Controls
         internal void ApplyViewMode(ViewMode mode, bool force = false)
         {
             if (_viewMode == mode && !force) return;
-            CancelRenderWork();
+            // A view mode keeps the document and its page list, so the list's thumbnail window is left running.
+            CancelRenderWork(includeThumbnails: false);
             _primaryRenderSession.Clear();
             // The background render cache stays: a view mode does not change the document, and opening a long
             // document's page tree again took about 225 ms before the new mode's first page could draw.

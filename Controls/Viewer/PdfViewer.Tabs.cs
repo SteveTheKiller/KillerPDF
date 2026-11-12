@@ -594,7 +594,9 @@ namespace KillerPDF.Controls
         // Stop every deferred or background renderer owned by this pane before its live document
         // fields are replaced. Each callback already observes its token; canceling them together
         // prevents pixels and thumbnails from the departing document reaching the incoming view.
-        private void CancelRenderWork()
+        // includeThumbnails is false for a change that keeps the document, such as a view mode: the page list is not
+        // rebuilt afterwards, so its thumbnail window must keep drawing the rows the list asks for.
+        private void CancelRenderWork(bool includeThumbnails = true)
         {
             CancelPrimaryRender();
             CancelVisibleRefinement();
@@ -610,9 +612,12 @@ namespace KillerPDF.Controls
             CancelAndRelease(_continuousSharpenCts);
             _continuousSharpenCts = null;
 
-            _thumbCts?.Cancel();
-            _thumbCts?.Dispose();
-            _thumbCts = null;
+            if (includeThumbnails)
+            {
+                _thumbCts?.Cancel();
+                _thumbCts?.Dispose();
+                _thumbCts = null;
+            }
         }
 
         private bool _windowResourcesReleased;
