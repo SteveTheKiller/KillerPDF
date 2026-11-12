@@ -6,6 +6,13 @@ namespace KillerPDF.Services;
 /// <summary>Shared geometry and page-range helpers for markup preview and engine burn-in.</summary>
 internal static class PdfBurn
 {
+    /// <summary>
+    /// A highlighter mark: multiplied with what lies under it on screen and in saved copies, so the text stays dark.
+    /// Covers, filled Shapes rectangles, strikethrough and underline paint normally. Screen and burn share this rule.
+    /// </summary>
+    internal static bool IsHighlighterMark(HighlightAnnotation highlight) =>
+        highlight is not CoverAnnotation && !highlight.IsShape && highlight.Style == HighlightStyle.Fill;
+
     internal static Geometry? HighlightEraseGeometry(HighlightAnnotation highlight)
     {
         if (highlight.Erases is not { Count: > 0 } erases) return null;

@@ -74,7 +74,7 @@ public sealed class HighlighterLookTests
     private static void Mark(Canvas canvas, Rect bounds, Color color, bool inverted = false, Geometry? carved = null)
     {
         canvas.Measure(new Size(W, H));
-        canvas.Children.Add(HighlighterLook.Build(canvas, bounds, carved, color, inverted));
+        canvas.Children.Add(HighlighterLook.Build(canvas, bounds, carved, color, inverted ? new HighlighterLook.Dark(true, []) : HighlighterLook.Dark.Off));
     }
 
     private static readonly Color Yellow = Color.FromArgb(255, 255, 255, 0);
@@ -203,10 +203,10 @@ public sealed class HighlighterLookTests
         string root = RepoRoot();
         string annotations = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Annotations.cs"));
         string refinement = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Refinement.cs"));
-        Assert.Contains("HighlighterLook.Multiplies(ha)", annotations);
+        Assert.Contains("PdfBurn.IsHighlighterMark(ha)", annotations);
         Assert.Contains("HighlighterLook.Build(", annotations);
-        // Added, removed and cancelled details each refresh the marks over them.
-        Assert.True(Count(refinement, "RefreshHighlighterMarks(") >= 4);
+        // Added, removed and cancelled details each refresh the marks over them: three call sites, not declarations.
+        Assert.Equal(3, Count(refinement, "RefreshHighlighterMarks(grid);"));
     }
 
     [Fact]
@@ -217,20 +217,22 @@ public sealed class HighlighterLookTests
         Mark(canvas, new Rect(0, 0, W, H), Yellow);
         AssertPixel(Render(grid), 15, 5, 0, 0, 0);
 
-        HighlighterLook.Refresh(canvas, inverted: true);
+        HighlighterLook.Refresh(canvas, new HighlighterLook.Dark(true, []));
         AssertPixel(Render(grid), 15, 5, 0, 0, 255);
     });
 
     [Fact]
-    public void DragPreviewLooksLikeTheMarkItWillBecome() => OnSta(() =>
+    public void AnnotationsDrawnBeforeTheMarkAreMultipliedNotHidden() => OnSta(() =>
     {
-        var (grid, canvas) = Page(Bitmap(W, H, (x, _) => x < W / 2 ? Colors.Black : Colors.White));
-        var preview = new System.Windows.Shapes.Rectangle();
-        canvas.Children.Add(preview);
-        Canvas.SetLeft(preview, 0); Canvas.SetTop(preview, 0);
-        preview.Width = W; preview.Height = H;
+        // An Edit Text cover (opaque white) over black page text, then a highlight over both: the mark must show the
+        // cover, tinted, never the page text the cover hides. That is what the saved copy draws.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.Black));
+        var cover = new System.Windows.Shapes.Rectangle { Width = 10, Height = H, Fill = Brushes.White };
+        Canvas.SetLeft(cover, 10); Canvas.SetTop(cover, 0);
+        canvas.Children.Add(cover);
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, W, H), Yellow);
 
-        HighlighterLook.Preview(preview, canvas, Yellow, inverted: false);
         byte[] pixels = Render(grid);
 
         AssertPixel(pixels, 4, 5, 0, 0, 0);
@@ -238,10 +240,88 @@ public sealed class HighlighterLookTests
     });
 
     [Fact]
-    public void HighlightDragUpdatesThePreviewLook()
+    public void AnnotationsDrawnAfterTheMarkStayOnTop() => OnSta(() =>
     {
-        string annotations = File.ReadAllText(Path.Combine(RepoRoot(), "Controls", "Viewer", "PdfViewer.Annotations.cs"));
-        Assert.True(Count(annotations, "HighlighterLook.Preview(") >= 2, "the preview takes the look when created and on every move");
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, W, H), Yellow);
+        var box = new System.Windows.Shapes.Rectangle { Width = 10, Height = H, Fill = Brushes.Red };
+        Canvas.SetLeft(box, 10); Canvas.SetTop(box, 0);
+        canvas.Children.Add(box);
+
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 4, 5, 255, 255, 0);
+        AssertPixel(pixels, 15, 5, 255, 0, 0);
+    });
+
+    [Fact]
+    public void OverlappingMarksCompoundLikeTheSavedCopy() => OnSta(() =>
+    {
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, W, H), Color.FromArgb(255, 255, 255, 0));
+        Mark(canvas, new Rect(10, 0, 10, H), Color.FromArgb(255, 0, 255, 255));
+
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 4, 5, 255, 255, 0);
+        AssertPixel(pixels, 15, 5, 0, 255, 0);
+    });
+
+    [Fact]
+    public void DarkModeLeavesUninvertedImagesOnThePlainMultiply() => OnSta(() =>
+    {
+        // Dark mode inverts the page but keeps pictures as they are, so over a kept region the saved highlight shows
+        // as a plain multiply, and over the inverted rest as the inverted look.
+        var (grid, canvas) = Page(Bitmap(W, H, (x, _) => x < W / 2 ? Colors.Black : Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        canvas.Measure(new Size(W, H));
+        canvas.Children.Add(HighlighterLook.Build(canvas, new Rect(0, 0, W, H), null, Yellow,
+            new HighlighterLook.Dark(true, [new Rect(0.5, 0, 0.5, 1)])));
+
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 4, 5, 0, 0, 255);
+        AssertPixel(pixels, 15, 5, 255, 255, 0);
+    });
+
+    [Fact]
+    public void DarkModeBlankScaffoldStillShowsTheMark() => OnSta(() =>
+    {
+        var grid = new Grid { Width = W, Height = H, Background = Brushes.White };
+        grid.Children.Add(new Image { Width = W, Height = H });
+        var canvas = new Canvas { Width = W, Height = H };
+        grid.Children.Add(canvas);
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, W, H), Yellow, inverted: true);
+
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 15, 5, 0, 0, 255);
+    });
+
+    [Theory]
+    [InlineData(0, 0.1, 0.2, 0.3, 0.4)]
+    [InlineData(90, 0.4, 0.1, 0.4, 0.3)]
+    [InlineData(180, 0.6, 0.4, 0.3, 0.4)]
+    [InlineData(270, 0.2, 0.6, 0.4, 0.3)]
+    public void KeptRegionsFollowThePageRotation(int rotation, double x, double y, double w, double h)
+    {
+        // An image box at L=0.1 T=0.2 R=0.4 B=0.6 of the upright page, turned the way the viewer turns the bitmap.
+        Rect kept = HighlighterLook.KeptOnPage(0.1, 0.2, 0.4, 0.6, rotation);
+        Assert.Equal(x, kept.X, 9); Assert.Equal(y, kept.Y, 9);
+        Assert.Equal(w, kept.Width, 9); Assert.Equal(h, kept.Height, 9);
+    }
+
+    [Fact]
+    public void FilledShapesRectanglesAreLabelledAsDrawings()
+    {
+        string root = RepoRoot();
+        string menu = File.ReadAllText(Path.Combine(root, "Shell", "ContextMenu.cs"));
+        string annotations = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Annotations.cs"));
+        Assert.Contains("HighlightAnnotation { IsShape: true } => Loc(\"Str_Annot_Drawing\")", menu);
+        Assert.Contains("HighlightAnnotation { IsShape: true } => Loc(\"Str_Annot_Drawing\")", annotations);
     }
 
     [Fact]

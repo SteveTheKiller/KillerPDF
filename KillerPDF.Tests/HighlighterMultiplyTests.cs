@@ -97,6 +97,32 @@ public sealed class HighlighterMultiplyTests
         Assert.True(JsonSerializer.Deserialize<HighlightAnnotation>(shape)!.IsShape);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TheEditableLayerKeepsTheShapeMarkerThroughSaveAndReopen(bool shape)
+    {
+        // The real overlay writer and its strict reader: unmapped members are refused and the property count must
+        // match, so this proves both the new field and the old shape of a plain highlight survive.
+        var model = new HighlightAnnotation { PageIndex = 0, Bounds = new Rect(1, 1, 10, 5), IsShape = shape };
+        var blank = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(20, 20).Build());
+        byte[] saved = PdfOverlayAnnotations.AppendPageBatch(blank, 0, 20, 20, 0, [model], new PdfContentStreamBuilder(), null);
+
+        var restored = Assert.IsType<HighlightAnnotation>(Assert.Single(PdfOverlayAnnotations.Read(PdfDocument.Open(saved))).Annotation);
+        Assert.Equal(shape, restored.IsShape);
+    }
+
+    [Fact]
+    public void ScreenAndSavedCopyShareOneHighlighterRule()
+    {
+        Assert.True(PdfBurn.IsHighlighterMark(new HighlightAnnotation { Style = HighlightStyle.Fill }));
+        Assert.False(PdfBurn.IsHighlighterMark(new HighlightAnnotation { Style = HighlightStyle.Fill, IsShape = true }));
+        Assert.False(PdfBurn.IsHighlighterMark(new HighlightAnnotation { Style = HighlightStyle.Underline }));
+        Assert.False(PdfBurn.IsHighlighterMark(new CoverAnnotation()));
+        Assert.Contains("PdfBurn.IsHighlighterMark(", Source("Services", "PdfEngineBurn.cs"));
+        Assert.Contains("PdfBurn.IsHighlighterMark(", Source("Controls", "Viewer", "PdfViewer.Annotations.cs"));
+    }
+
     private static string Source(params string[] parts) =>
         File.ReadAllText(Path.Combine([RepoRoot(), .. parts]));
 

@@ -147,6 +147,7 @@ namespace KillerPDF.Shell
             InkAnnotation => Loc("Str_Annot_Drawing"),
             SignatureAnnotation => Loc("Str_Annot_Signature"),
             ImageAnnotation => Loc("Str_Annot_Image"),
+            HighlightAnnotation { IsShape: true } => Loc("Str_Annot_Drawing"),
             HighlightAnnotation h => h.Style switch
             {
                 HighlightStyle.Strikethrough => Loc("Str_Annot_Strikethrough"),

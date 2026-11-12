@@ -53,8 +53,26 @@ public partial class PdfViewer
     /// <summary>Rebuilds every highlighter mark in this viewer for the current dark-mode setting.</summary>
     internal void RefreshHighlighterMarks()
     {
-        HighlighterLook.Refresh(_annotationCanvas, DocInvert);
-        foreach (var canvas in _continuousCanvases.Values) HighlighterLook.Refresh(canvas, DocInvert);
+        if (_annotationCanvas.Tag is int primary) HighlighterLook.Refresh(_annotationCanvas, HighlighterDarkLook(primary));
+        foreach (var (page, canvas) in _continuousCanvases) HighlighterLook.Refresh(canvas, HighlighterDarkLook(page));
+    }
+
+    /// <summary>
+    /// How dark mode shows <paramref name="page"/> under a highlighter mark. A PDF page is inverted except its pictures,
+    /// unless images invert too; a book page is inverted only when images invert too. Pictures come from the same cached
+    /// boxes the page render keeps, turned with the page.
+    /// </summary>
+    private HighlighterLook.Dark HighlighterDarkLook(int page)
+    {
+        if (!DocInvert) return HighlighterLook.Dark.Off;
+        if (_nativeDoc is not null) return BitmapHelpers.DocInvertImages ? new(true, []) : HighlighterLook.Dark.Off;
+        if (BitmapHelpers.DocInvertImages || _currentFile is null) return new(true, []);
+        Services.PdfContentDocument? content = null;
+        BitmapHelpers.FracRect[] boxes;
+        try { boxes = ImageRectsFor(_currentFile, _protection, page, ref content); }
+        finally { content?.Dispose(); }
+        int rotation = _pageRotations.TryGetValue(page, out int turned) ? turned : 0;
+        return new(true, [.. boxes.Select(box => HighlighterLook.KeptOnPage(box.L, box.T, box.R, box.B, rotation))]);
     }
 
     private void RefineVisibleRegions() => VisibleRefinementTask = RefineVisibleAsync();
