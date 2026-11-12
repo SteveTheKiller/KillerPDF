@@ -26,7 +26,8 @@ internal sealed class DocumentCommandDialog : Window
         KeyboardNavigation.SetDirectionalNavigation(choices, KeyboardNavigationMode.Cycle);
         foreach (var (label, glyph, run) in commands)
         {
-            var tile = new Button { Content = glyph, Tag = label, ToolTip = label, Margin = new Thickness(3), MinHeight = 76 };
+            // The caption is on the tile and is its accessible name (CardQuickButton binds Tag), so no tooltip repeats it.
+            var tile = new Button { Content = glyph, Tag = label, Margin = new Thickness(3), MinHeight = 76 };
             if (TryFindResource("CardQuickButton") is Style style) tile.Style = style;
             tile.Click += (_, _) => { Command = run; DialogResult = true; };
             choices.Children.Add(tile);
