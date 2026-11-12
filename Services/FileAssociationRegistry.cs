@@ -34,6 +34,7 @@ internal static class FileAssociationRegistry
                 k.SetValue("", type.Extension == ".pdf" ? pdfIconReference : $"{exePath},0");
             using (var k = root.CreateSubKey(@"Software\Classes\" + type.ProgId + @"\shell\open\command"))
                 k.SetValue("", command);
+            if (type.Extension == ".pdf") RegisterPrintVerbs(root, @"Software\Classes\" + type.ProgId, exePath, pdfOnly: false);
             // Adds KillerPDF to the extension's Open with list.
             using (var k = root.CreateSubKey(@"Software\Classes\" + type.Extension + @"\OpenWithProgids"))
                 k.SetValue(type.ProgId, Array.Empty<byte>(), RegistryValueKind.None);
@@ -48,6 +49,7 @@ internal static class FileAssociationRegistry
                 k.SetValue("FriendlyAppName", appName);
             using (var k = root.CreateSubKey(applicationKey + @"\shell\open\command"))
                 k.SetValue("", command);
+            RegisterPrintVerbs(root, applicationKey, exePath, pdfOnly: true);
             using (var k = root.CreateSubKey(applicationKey + @"\SupportedTypes"))
                 foreach (FileType type in Types) k.SetValue(type.Extension, "");
         }
@@ -68,6 +70,21 @@ internal static class FileAssociationRegistry
 
         using (var k = root.CreateSubKey(@"Software\RegisteredApplications"))
             k.SetValue(appName, @"Software\KillerPDF\Capabilities");
+    }
+
+    // Windows asks these verbs how to print a file: "print" for right-click Print, Start-Process -Verb Print and mail
+    // clients printing an attachment, and "printto" with the printer as %2 when a printer is named. Both run the
+    // headless print, which reads PDFs only, so on an application key that also opens books they apply to PDFs alone.
+    // Unregister removes them with the keys they sit under.
+    private static void RegisterPrintVerbs(RegistryKey root, string classKey, string exePath, bool pdfOnly)
+    {
+        foreach (var (verb, arguments) in new[] { ("print", "--print \"%1\""), ("printto", "--print \"%1\" --printer \"%2\"") })
+        {
+            using (var k = root.CreateSubKey(classKey + @"\shell\" + verb))
+                if (pdfOnly) k.SetValue("AppliesTo", "System.FileExtension:=.pdf");
+            using (var k = root.CreateSubKey(classKey + @"\shell\" + verb + @"\command"))
+                k.SetValue("", $"\"{exePath}\" {arguments}");
+        }
     }
 
     /// <summary>Removes only KillerPDF's own registrations, leaving other applications' entries intact.</summary>

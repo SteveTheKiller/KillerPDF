@@ -32,6 +32,53 @@ public sealed class FileAssociationRegistryTests : IDisposable
             Assert.Equal(progId, capabilities!.GetValue(extension));
     }
 
+    // Windows asks the file type's shell verbs how to print: right-click Print, Start-Process -Verb Print and mail
+    // clients printing an attachment use "print", and a print to a named printer uses "printto" with the printer as %2.
+    // Both run KillerPDF's own headless print, which reads PDFs only.
+    [Fact]
+    public void PdfDocumentsPrintThroughKillerPdfFromTheShell()
+    {
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        using (var print = _root.OpenSubKey(@"Software\Classes\KillerPDF.pdf\shell\print\command"))
+            Assert.Equal("\"" + Exe + "\" --print \"%1\"", print?.GetValue(""));
+        using (var printTo = _root.OpenSubKey(@"Software\Classes\KillerPDF.pdf\shell\printto\command"))
+            Assert.Equal("\"" + Exe + "\" --print \"%1\" --printer \"%2\"", printTo?.GetValue(""));
+    }
+
+    // A default chosen through Open with (or kept from an older version) points at the application key instead of the
+    // ProgID, so the verbs go there too. That key also opens books, which the headless print cannot read, so its print
+    // verbs apply to PDF files only.
+    [Theory]
+    [InlineData("KillerPDF.exe")]
+    [InlineData("KillerPDF.App.exe")]
+    public void ApplicationPrintVerbsApplyToPdfFilesOnly(string application)
+    {
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        string shell = @"Software\Classes\Applications\" + application + @"\shell\";
+        foreach (string verb in new[] { "print", "printto" })
+        {
+            using var key = _root.OpenSubKey(shell + verb);
+            Assert.Equal("System.FileExtension:=.pdf", key?.GetValue("AppliesTo"));
+        }
+        using (var print = _root.OpenSubKey(shell + @"print\command"))
+            Assert.Equal("\"" + Exe + "\" --print \"%1\"", print?.GetValue(""));
+        using (var printTo = _root.OpenSubKey(shell + @"printto\command"))
+            Assert.Equal("\"" + Exe + "\" --print \"%1\" --printer \"%2\"", printTo?.GetValue(""));
+    }
+
+    [Theory]
+    [InlineData("KillerPDF.epub")]
+    [InlineData("KillerPDF.djvu")]
+    public void BooksHaveNoPrintVerb(string progId)
+    {
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\" + progId + @"\shell\print"));
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\" + progId + @"\shell\printto"));
+    }
+
     [Fact]
     public void UnregisterRemovesOnlyKillerPdfEntries()
     {
