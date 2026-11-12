@@ -39,7 +39,8 @@ internal static class HighlighterLook
     {
         double canvasWidth = Size(canvas.Width, canvas.ActualWidth);
         double canvasHeight = Size(canvas.Height, canvas.ActualHeight);
-        if (canvas.Parent is not Grid grid || grid.Children.Count == 0 || grid.Children[0] is not Image page
+        // A hidden page image (a native presenter draws the page instead) has nothing to show through.
+        if (canvas.Parent is not Grid grid || grid.Children.Count == 0 || grid.Children[0] is not Image { Visibility: Visibility.Visible } page
             || canvasWidth <= 0 || canvasHeight <= 0 || bounds.Width <= 0 || bounds.Height <= 0)
             return Plain(bounds, carved, color);
 
@@ -57,20 +58,48 @@ internal static class HighlighterLook
                 kept.Add(new Rect((shared.X - onPage.X) / onPage.Width * bounds.Width, (shared.Y - onPage.Y) / onPage.Height * bounds.Height,
                     shared.Width / onPage.Width * bounds.Width, shared.Height / onPage.Height * bounds.Height));
             }
-        if (kept.Count == 0)
-            mark.Children.Add(PageStack(grid, page, bounds, onPage, color, dark.Inverted, clip: null));
-        else
+        Geometry? keptArea = null, invertedArea = null;
+        if (kept.Count > 0)
         {
-            var keptArea = new GeometryGroup { FillRule = FillRule.Nonzero };
-            foreach (var rect in kept) keptArea.Children.Add(new RectangleGeometry(rect));
-            var whole = new RectangleGeometry(new Rect(0, 0, bounds.Width, bounds.Height));
-            mark.Children.Add(PageStack(grid, page, bounds, onPage, color, true,
-                new CombinedGeometry(GeometryCombineMode.Exclude, whole, keptArea)));
-            mark.Children.Add(PageStack(grid, page, bounds, onPage, color, false, keptArea));
+            var group = new GeometryGroup { FillRule = FillRule.Nonzero };
+            foreach (var rect in kept) group.Children.Add(new RectangleGeometry(rect));
+            keptArea = group;
+            invertedArea = new CombinedGeometry(GeometryCombineMode.Exclude,
+                new RectangleGeometry(new Rect(0, 0, bounds.Width, bounds.Height)), group);
         }
-        // Annotations and form fields are never inverted on screen, so what paints beneath the mark multiplies plainly,
-        // in dark mode too. Their transparent parts stay transparent, so the page shows through them.
-        if (Beneath(canvas, bounds, earlier, color) is { } annotations) mark.Children.Add(annotations);
+        // Where the page shows inverted, the inverted look; elsewhere, and everywhere outside dark mode, the plain one.
+        void ByPage(Func<bool, Geometry?, Grid> layer)
+        {
+            if (!dark.Inverted) mark.Children.Add(layer(false, null));
+            else if (keptArea is null) mark.Children.Add(layer(true, null));
+            else
+            {
+                mark.Children.Add(layer(true, invertedArea!.CloneCurrentValue()));
+                mark.Children.Add(layer(false, keptArea.CloneCurrentValue()));
+            }
+        }
+        ByPage((inverted, clip) => PageStack(grid, page, bounds, onPage, color, inverted, clip));
+
+        // What paints beneath the mark, layered in paint order. Annotations and form fields are never inverted on screen,
+        // so they multiply plainly, in dark mode too; their transparent parts let the layers below show through. An
+        // earlier mark already shows the page's look, so it is multiplied the way the page under it is, and overlaps
+        // compound like the saved copy shown the same way.
+        Grid? run = null;
+        foreach (var child in Beneath(canvas, bounds, earlier))
+        {
+            if (child is Grid { Tag: MarkSpec })
+            {
+                run = null;
+                ByPage((inverted, clip) => Layer(child, bounds, color, inverted, clip));
+                continue;
+            }
+            if (run is null)
+            {
+                run = new Grid { UseLayoutRounding = false, Effect = new MultiplyEffect(Tint(color, false)) };
+                mark.Children.Add(run);
+            }
+            run.Children.Add(new Rectangle { Fill = Through(child, bounds, BrushMappingMode.Absolute) });
+        }
 
         if (carved is not null) mark.Clip = InMark(carved, bounds);
         else mark.ClipToBounds = true;
@@ -121,13 +150,18 @@ internal static class HighlighterLook
         return stack;
     }
 
-    // Everything on the canvas that paints beneath the mark, in paint order: a lower ZIndex (form fields sit at -1), or
-    // the same ZIndex and earlier. A brush of a canvas child paints it as it sits on the canvas, offset, transform and
-    // opacity included, so the mark's bounds in canvas units crop it. Earlier marks come through with their multiply,
-    // so overlaps compound like the saved copy.
-    private static Grid? Beneath(Canvas canvas, Rect bounds, int markIndex, Color color)
+    // One canvas child seen through the mark: a brush of a canvas child paints it as it sits on the canvas, offset,
+    // transform and opacity included, so the mark's bounds in canvas units crop it.
+    private static Grid Layer(UIElement child, Rect bounds, Color color, bool inverted, Geometry? clip) => new()
     {
-        Grid? stack = null;
+        UseLayoutRounding = false, Clip = clip, Effect = new MultiplyEffect(Tint(color, inverted)),
+        Children = { new Rectangle { Fill = Through(child, bounds, BrushMappingMode.Absolute) } }
+    };
+
+    // Everything on the canvas that paints beneath the mark and may overlap it, in paint order: a lower ZIndex (form
+    // fields sit at -1), or the same ZIndex and earlier.
+    private static IEnumerable<UIElement> Beneath(Canvas canvas, Rect bounds, int markIndex)
+    {
         var under = new List<(int Z, int Index, UIElement Child)>();
         for (int index = 0; index < canvas.Children.Count; index++)
         {
@@ -138,13 +172,7 @@ internal static class HighlighterLook
             if (child.Visibility != Visibility.Visible || !Overlaps(child, bounds)) continue;
             under.Add((z, index, child));
         }
-        foreach (var (_, _, child) in under.OrderBy(item => item.Z).ThenBy(item => item.Index))
-        {
-            stack ??= new Grid { UseLayoutRounding = false };
-            stack.Children.Add(new Rectangle { Fill = Through(child, bounds, BrushMappingMode.Absolute) });
-        }
-        if (stack is not null) stack.Effect = new MultiplyEffect(Tint(color, false));
-        return stack;
+        return under.OrderBy(item => item.Z).ThenBy(item => item.Index).Select(item => item.Child);
     }
 
     // Cheap bounds for a canvas child before layout. Anything turned, or of unknown size, counts as overlapping: a
@@ -159,7 +187,11 @@ internal static class HighlighterLook
             case Polyline { Points.Count: > 0 } line: area = PointsBounds(line.Points, line.StrokeThickness); break;
             case Polygon { Points.Count: > 0 } polygon: area = PointsBounds(polygon.Points, polygon.StrokeThickness); break;
             case System.Windows.Shapes.Path { Data: { } data } path when double.IsNaN(Canvas.GetLeft(path)):
-                area = data.Bounds; area.Inflate(path.StrokeThickness, path.StrokeThickness); break;
+                // An emptied outline (a Shapes rectangle erased away) has no bounds and paints nothing.
+                area = data.Bounds;
+                if (area.IsEmpty) return false;
+                area.Inflate(path.StrokeThickness, path.StrokeThickness);
+                break;
             case FrameworkElement element:
                 double left = Canvas.GetLeft(element), top = Canvas.GetTop(element);
                 double width = Size(element.Width, element.ActualWidth), height = Size(element.Height, element.ActualHeight);

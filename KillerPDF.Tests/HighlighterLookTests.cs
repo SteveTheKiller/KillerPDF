@@ -240,6 +240,67 @@ public sealed class HighlighterLookTests
     });
 
     [Fact]
+    public void AnEmptyShapeUnderTheMarkDoesNotBreakIt() => OnSta(() =>
+    {
+        // A filled Shapes rectangle the brush eraser removed entirely draws as an unplaced Path with empty geometry.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        var whole = new RectangleGeometry(new Rect(0, 0, 10, H));
+        canvas.Children.Add(new System.Windows.Shapes.Path { Fill = Brushes.Red,
+            Data = new CombinedGeometry(GeometryCombineMode.Exclude, whole, whole) });
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, W, H), Yellow);
+
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 4, 5, 255, 255, 0);
+    });
+
+    [Fact]
+    public void DarkModeOverlapShowsTheInvertedSavedLook() => OnSta(() =>
+    {
+        // Inverted white paper shows black. Saved, the overlap is paper times yellow times cyan (green); shown inverted
+        // that is magenta. A lone yellow mark shows inverted yellow (blue).
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.Black));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, W, H), Yellow, inverted: true);
+        Mark(canvas, new Rect(10, 0, 10, H), Color.FromArgb(255, 0, 255, 255), inverted: true);
+
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 4, 5, 0, 0, 255);
+        AssertPixel(pixels, 15, 5, 255, 0, 255);
+    });
+
+    [Fact]
+    public void DarkModeOverlapOverAKeptPictureStaysAPlainMultiply() => OnSta(() =>
+    {
+        // A kept picture shows as it is (white here), so overlapping marks over it multiply plainly: green.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        var dark = new HighlighterLook.Dark(true, [new Rect(0, 0, 1, 1)]);
+        canvas.Measure(new Size(W, H));
+        canvas.Children.Add(HighlighterLook.Build(canvas, new Rect(0, 0, W, H), null, Yellow, dark));
+        canvas.Children.Add(HighlighterLook.Build(canvas, new Rect(10, 0, 10, H), null, Color.FromArgb(255, 0, 255, 255), dark));
+
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 4, 5, 255, 255, 0);
+        AssertPixel(pixels, 15, 5, 0, 255, 0);
+    });
+
+    [Fact]
+    public void AHiddenPageImageGivesThePlainMarkInsteadOfASolidBar() => OnSta(() =>
+    {
+        // When a native presenter draws the page, the page image is hidden and has nothing to show through.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Children[0].Visibility = Visibility.Hidden;
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, W, H), Color.FromArgb(80, 255, 255, 0));
+
+        Assert.IsType<System.Windows.Shapes.Rectangle>(Assert.Single(canvas.Children.OfType<UIElement>()));
+    });
+
+    [Fact]
     public void FormFieldsPaintedBeneathTheMarkShowThroughAfterRefresh() => OnSta(() =>
     {
         // The viewer adds form field overlays after the marks, at ZIndex -1 so they paint beneath annotations.
