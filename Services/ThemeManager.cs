@@ -491,7 +491,9 @@ namespace KillerPDF.Services
             SetIfAbsent("DialogButtonsMargin", new Thickness(16, 12, 16, 16));
             SetIfAbsent("DialogContentMargin", new Thickness(0));
             SetIfAbsent("DialogOuterBorderThickness", new Thickness(1));
-            SetIfAbsent("DialogTitleBarPadding", new Thickness(6, 0, 14, 0));
+            // Right 2: the card themes' close X has no visible face, so it reads against the card's
+            // corner and sits as far in from the right edge as down from the top (16 px).
+            SetIfAbsent("DialogTitleBarPadding", new Thickness(6, 0, 2, 0));
             SetIfAbsent("DialogFieldMargin", new Thickness(16, 12, 16, 0));
             // 10, the halo every dialog already reserved for its drop shadow. 98SE sets 0: it
             // casts no shadow, and an invisible 10px gutter would put the resize grab outside
@@ -712,7 +714,6 @@ namespace KillerPDF.Services
             // toolbar buttons that should be bare until hover use BareButton (Controls.xaml).
             SetIfAbsent("OutlineFaceBrush", Transparent);          // rest FILL
             Mirror("OutlineRestBrush", "OutlineBtnBrush");         // rest EDGE
-            SetIfAbsent("OutlineLiftRestVisibility", Visibility.Visible);   // resting shadow
             Mirror("OutlineTextBrush", "OutlineBtnBrush");         // rest TEXT
             Mirror("OutlineHoverBrush", "OutlineBtnBrush");        // hover FILL
             // OutlineHoverTextBrush is set AFTER the accent overlay, next to OnOutlineBtnBrush -
@@ -1056,6 +1057,14 @@ namespace KillerPDF.Services
                 combined["AboutCloseGlyph"] = flat ? "\uE8BB" : "\u2715";
                 combined["AboutCloseFont"]  = flat ? new System.Windows.Media.FontFamily("Segoe MDL2 Assets")
                                                    : new System.Windows.Media.FontFamily("Segoe UI");
+                // 8 on 98SE: the 16x14 caption button has a 2 px bevel all round, and at the old
+                // 11 the bold X filled the whole face, jammed against the left highlight and the
+                // bottom shadow. 8 draws it centered with the bevel clear, the Win98 proportion.
+                combined["AboutCloseFontSize"] = flat ? 8.0 : 11.0;
+                // Segoe UI draws U+2715 1.5 px below the middle of its line box, and the button
+                // centers the line box, so the card themes' X sat low in its 28x26 slot. A 3 px
+                // bottom margin lifts the centered glyph by 1.5. The MDL2 X on 98SE needs none.
+                combined["AboutCloseGlyphMargin"] = flat ? new Thickness(0) : new Thickness(0, 0, 0, 3);
                 combined["AboutCloseFg"] = flat ? combined["CaptionCloseBrush"] : combined["MutedTextBrush"];
                 if (flat) combined["AboutCloseHoverFg"] = combined["CaptionCloseBrush"];
                 else

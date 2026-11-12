@@ -83,17 +83,6 @@
                          PrimaryHoverBrush swap was invisible whenever a palette left hover ==
                          primary (which most did) - no per-palette hover brushes to sync now. -->
                     <Grid>
-                        <!-- Raised: a soft shadow on item-free SIBLINGS under the face (an effect on the face
-                             itself would rasterize the caption and lose ClearType). Hover lifts the button
-                             higher, press sets it down. BarShadowOpacity is 0 on 98SE, which stays flat. -->
-                        <Border x:Name="liftRest" IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}"
-                                Background="Black" Opacity="{DynamicResource BarShadowOpacity}">
-                            <Border.Effect><DropShadowEffect Color="Black" Direction="270" ShadowDepth="1.5" BlurRadius="5" RenderingBias="Quality"/></Border.Effect>
-                        </Border>
-                        <Border x:Name="liftHover" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource ControlCornerRadius}"
-                                Background="Black" Opacity="{DynamicResource BarShadowOpacity}">
-                            <Border.Effect><DropShadowEffect Color="Black" Direction="270" ShadowDepth="3.5" BlurRadius="10" RenderingBias="Quality"/></Border.Effect>
-                        </Border>
                     <Border x:Name="border" Background="{TemplateBinding Background}"
                             CornerRadius="{DynamicResource ControlCornerRadius}"
                             BorderBrush="{DynamicResource ButtonEdgeBrush}" BorderThickness="0">
@@ -128,19 +117,13 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="tint" Property="Background" Value="#2EFFFFFF"/>
                             <Setter TargetName="stroke" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="liftRest" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="liftHover" Property="Visibility" Value="Visible"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="tint" Property="Background" Value="#38000000"/>
                             <Setter TargetName="stroke" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="liftRest" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="liftHover" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5"/>
-                            <Setter TargetName="liftRest" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="liftHover" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -167,17 +150,6 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid>
-                        <!-- Raised: a soft shadow on item-free SIBLINGS under the face (an effect on the face
-                             itself would rasterize the caption and lose ClearType). Hover lifts the button
-                             higher, press sets it down. BarShadowOpacity is 0 on 98SE, which stays flat. -->
-                        <Border x:Name="liftRest" IsHitTestVisible="False" Visibility="{DynamicResource OutlineLiftRestVisibility}" CornerRadius="{DynamicResource ControlCornerRadius}"
-                                Background="Transparent" BorderBrush="Black" BorderThickness="1" Opacity="{DynamicResource BarShadowOpacity}">
-                            <Border.Effect><DropShadowEffect Color="Black" Direction="270" ShadowDepth="1.5" BlurRadius="5" RenderingBias="Quality"/></Border.Effect>
-                        </Border>
-                        <Border x:Name="liftHover" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource ControlCornerRadius}"
-                                Background="Black" Opacity="{DynamicResource BarShadowOpacity}">
-                            <Border.Effect><DropShadowEffect Color="Black" Direction="270" ShadowDepth="3.5" BlurRadius="10" RenderingBias="Quality"/></Border.Effect>
-                        </Border>
                     <Border x:Name="borderRing" IsHitTestVisible="False" CornerRadius="{Binding CornerRadius, ElementName=border}" BorderThickness="{Binding BorderThickness, ElementName=border}" BorderBrush="{Binding Background, ElementName=border}" Margin="{Binding Margin, ElementName=border}" Visibility="{Binding Visibility, ElementName=border}" Opacity="{Binding Opacity, ElementName=border}"/><Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{DynamicResource ControlCornerRadius}" Padding="{TemplateBinding Padding}">
@@ -208,8 +180,6 @@
                             <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource OutlineHoverBrush}"/>
                             <Setter Property="Foreground" Value="{DynamicResource OutlineHoverTextBrush}"/>
                             <Setter TargetName="label" Property="Effect" Value="{x:Null}"/>
-                            <Setter TargetName="liftRest" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="liftHover" Property="Visibility" Value="Visible"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <!-- Pressed is a deeper shade of the accent fill (ThemeManager derives
@@ -218,13 +188,9 @@
                             <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource OutlinePressedFillBrush}"/>
                             <Setter Property="Foreground" Value="{DynamicResource OutlineHoverTextBrush}"/>
                             <Setter TargetName="label" Property="Effect" Value="{x:Null}"/>
-                            <Setter TargetName="liftRest" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="liftHover" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5"/>
-                            <Setter TargetName="liftRest" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="liftHover" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -232,13 +198,12 @@
         </Setter>
     </Style>
 
-    <!-- Bare until hover: a title-bar or toolbar button with no face, edge or resting shadow,
+    <!-- Bare until hover: a title-bar or toolbar button with no face or edge at rest,
          filling with the accent on hover and press like OutlineButton. Its own resources hide the
          rest state, so the template is OutlineButton's. Dialog confirm buttons stay OutlineButton. -->
     <Style x:Key="BareButton" TargetType="Button" BasedOn="{StaticResource OutlineButton}">
         <Style.Resources>
             <SolidColorBrush x:Key="OutlineRestBrush" Color="Transparent"/>
-            <Visibility x:Key="OutlineLiftRestVisibility">Collapsed</Visibility>
         </Style.Resources>
         <Setter Property="BorderBrush" Value="Transparent"/>
     </Style>
@@ -265,17 +230,6 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid>
-                        <!-- Raised: a soft shadow on item-free SIBLINGS under the face (an effect on the face
-                             itself would rasterize the caption and lose ClearType). Hover lifts the button
-                             higher, press sets it down. BarShadowOpacity is 0 on 98SE, which stays flat. -->
-                        <Border x:Name="liftRest" IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}"
-                                Background="Black" Opacity="{DynamicResource BarShadowOpacity}">
-                            <Border.Effect><DropShadowEffect Color="Black" Direction="270" ShadowDepth="1.5" BlurRadius="5" RenderingBias="Quality"/></Border.Effect>
-                        </Border>
-                        <Border x:Name="liftHover" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource ControlCornerRadius}"
-                                Background="Black" Opacity="{DynamicResource BarShadowOpacity}">
-                            <Border.Effect><DropShadowEffect Color="Black" Direction="270" ShadowDepth="3.5" BlurRadius="10" RenderingBias="Quality"/></Border.Effect>
-                        </Border>
                     <Border x:Name="borderRing" IsHitTestVisible="False" CornerRadius="{Binding CornerRadius, ElementName=border}" BorderThickness="{Binding BorderThickness, ElementName=border}" BorderBrush="{Binding Background, ElementName=border}" Margin="{Binding Margin, ElementName=border}" Visibility="{Binding Visibility, ElementName=border}" Opacity="{Binding Opacity, ElementName=border}"/><Border x:Name="border" Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{DynamicResource ControlCornerRadius}" Padding="{TemplateBinding Padding}">
@@ -297,15 +251,11 @@
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource ToolHoverFaceBrush}"/>
                             <Setter TargetName="tbLight" Property="BorderThickness" Value="{DynamicResource ToolHoverBevelLightThickness}"/>
                             <Setter TargetName="tbDark"  Property="BorderThickness" Value="{DynamicResource ToolHoverBevelDarkThickness}"/>
-                            <Setter TargetName="liftRest" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="liftHover" Property="Visibility" Value="Visible"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                             <Setter TargetName="tbLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
                             <Setter TargetName="tbDark"  Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
-                            <Setter TargetName="liftRest" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="liftHover" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
                         <!-- Checked/selected state - same Tag="on" convention and the same
                              SelectionBg/SelectionFg pair every other checkable button style in
@@ -322,8 +272,6 @@
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.4"/>
                             <Setter Property="Cursor" Value="Arrow"/>
-                            <Setter TargetName="liftRest" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="liftHover" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -1114,8 +1062,13 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <!-- Icon slot: MenuItem.Icon renders in the same 16px gutter the check
-                                 glyph uses (MakeMenuItem's glyph parameter fills it with MDL2 icons). -->
+                                 glyph uses (MakeMenuItem's glyph parameter fills it with MDL2 icons).
+                                 The icon font is set HERE so a bare glyph string (Icon="&#xE74D;")
+                                 draws too: without it the string took the menu's text font, which has
+                                 no such glyph, and the gutter stayed empty (KillerNotes 1.7.0 lab
+                                 check). An icon element with its own font keeps that font. -->
                             <ContentPresenter x:Name="IconPresenter" Grid.Column="0" ContentSource="Icon"
+                                              TextElement.FontFamily="Segoe MDL2 Assets" TextElement.FontSize="12"
                                               VerticalAlignment="Center" HorizontalAlignment="Left"/>
                             <!-- check glyph for checkable items (e.g. OCR language multi-select) -->
                             <TextBlock x:Name="Check" Grid.Column="0" Text="&#xE73E;"
@@ -1492,6 +1445,193 @@
         </Setter>
     </Style>
 
+    <!-- Card menu (KillerNotes 1.7.0 is the reference). A right-click menu about ONE object:
+         a header naming it, a strip of quick buttons, inline control rows, then a short list of
+         ordinary MenuItems. It is still a ContextMenu on the implicit template above (shadow,
+         fade, grain over the items, 98SE bevels), so open, close, Escape, the Menu key and
+         placement at the pointer all behave like every other menu. Only the rows differ:
+           CardSlot      - a MenuItem that is just a host for its Header (header, quick strip,
+                           swatch row, segmented toggle). Not focusable and never highlighted,
+                           so arrow keys walk the real rows and skip it; Tab reaches its buttons.
+           CardLabel     - the left label of an inline row ("Color", "Tags"). A slot that holds
+                           one gets Padding="24,..." so its label starts on the same column as
+                           the header text of the ordinary rows (8px padding + 16px gutter).
+           CardQuickButton, CardSwatch, CardSegment - the controls those slots hold.
+         Field rows that open a list (Tags, Group) are ordinary MenuItems with a richer Header,
+         so their submenus keep the family submenu popup. No new theme keys: every brush here is
+         an existing menu token. -->
+    <!-- 404 wide is a 360 card: the template's shadow halo takes 22 off each side. One fixed width
+         so the swatch row (ten colors and the picker) and six quick buttons always fit. -->
+    <Style x:Key="CardMenu" TargetType="ContextMenu" BasedOn="{StaticResource {x:Type ContextMenu}}">
+        <Setter Property="MinWidth" Value="404"/>
+        <Setter Property="MaxWidth" Value="404"/>
+        <Setter Property="Padding" Value="6"/>
+        <Setter Property="KeyboardNavigation.TabNavigation" Value="Cycle"/>
+    </Style>
+
+    <Style x:Key="CardSlot" TargetType="MenuItem">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Padding" Value="4,4"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource MenuFontFamily}"/>
+        <Setter Property="FontSize" Value="{DynamicResource MenuFontSize}"/>
+        <Setter Property="KeyboardNavigation.TabNavigation" Value="Continue"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <ContentPresenter ContentSource="Header" Margin="{TemplateBinding Padding}" RecognizesAccessKey="False"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="CardLabel" TargetType="TextBlock">
+        <Setter Property="Width" Value="52"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Foreground" Value="{DynamicResource DimTextBrush}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+
+    <!-- Glyph over a short caption. Content is the glyph, Tag is the caption; the tooltip carries
+         the full action name and its shortcut (the family shortcut rule). -->
+    <Style x:Key="CardQuickButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource MenuTextBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="2,7,2,5"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding Tag, RelativeSource={RelativeSource Self}}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="{TemplateBinding Padding}" BorderThickness="1" BorderBrush="Transparent">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock x:Name="Glyph" Text="{TemplateBinding Content}" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                       HorizontalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
+                            <TextBlock x:Name="Caption" Text="{TemplateBinding Tag}" FontSize="11" Margin="0,5,0,0"
+                                       HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                                       TextTrimming="CharacterEllipsis" MaxHeight="30"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
+                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
+                            <Setter TargetName="Caption" Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowSelectedBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- One color in a SwatchRow. Background is the color; Tag="on" marks the current one with a
+         text-colored edge and a menu-colored gap inside it. A Transparent background draws the
+         "no color" circle as an outline. Everything draws INSIDE the 20px box: a ring outside it
+         was clipped by the row (1.7.0 lab check). -->
+    <Style x:Key="CardSwatch" TargetType="Button">
+        <Setter Property="Width" Value="20"/>
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="Margin" Value="0,2,3,2"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource MenuBorderBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent">
+                        <Ellipse x:Name="Dot" Fill="{TemplateBinding Background}" Stroke="{TemplateBinding BorderBrush}" StrokeThickness="1"/>
+                        <Ellipse x:Name="Gap" Stroke="Transparent" StrokeThickness="2" Margin="2"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Dot" Property="StrokeThickness" Value="2"/></Trigger>
+                        <Trigger Property="Tag" Value="on">
+                            <Setter TargetName="Dot" Property="Stroke" Value="{DynamicResource TextBrush}"/>
+                            <Setter TargetName="Dot" Property="StrokeThickness" Value="2"/>
+                            <Setter TargetName="Gap" Property="Stroke" Value="{DynamicResource MenuBackgroundBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Dot" Property="Stroke" Value="{DynamicResource PrimaryBrush}"/>
+                            <Setter TargetName="Dot" Property="StrokeThickness" Value="2"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- One option of a segmented toggle: RadioButtons sharing a GroupName inside a Border
+         filled with MenuHoverBrush. The checked option lifts onto the menu surface. -->
+    <Style x:Key="CardSegment" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{DynamicResource MenuTextBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Padding" Value="10,3"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                            CornerRadius="{DynamicResource SmallCornerRadius}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource MenuBackgroundBrush}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource MenuBorderBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- An independent on/off chip on a card row ("Use for: Templates / Daily notes"). Off is an
+         outline, on takes the hover fill with the text color, so on and off read apart in every
+         theme without a new token. -->
+    <Style x:Key="CardToggle" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{DynamicResource MenuTextBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Padding" Value="9,3"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bd" Background="Transparent" BorderBrush="{DynamicResource MenuBorderBrush}" BorderThickness="1"
+                            CornerRadius="{DynamicResource SmallCornerRadius}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource DimTextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Compact horizontal slider. The default WPF Slider brings its own chrome, tick bar and
          system colors, none of which belong on a themed card - so the template is a thin track
          with an accent fill up to the thumb, and a small round grip. The fill is a second Border
@@ -1693,7 +1833,7 @@
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Foreground" Value="{DynamicResource AboutCloseFg}"/>
         <Setter Property="FontFamily" Value="{DynamicResource AboutCloseFont}"/>
-        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontSize" Value="{DynamicResource AboutCloseFontSize}"/>
         <Setter Property="FontWeight" Value="{DynamicResource CaptionGlyphWeight}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
@@ -1710,7 +1850,7 @@
                                 BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="{DynamicResource BevelInnerLightThickness}"/>
                         <Border x:Name="bevelOuterDark" IsHitTestVisible="False"
                                 BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{DynamicResource AboutCloseGlyphMargin}"/>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">

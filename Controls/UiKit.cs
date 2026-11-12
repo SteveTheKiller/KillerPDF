@@ -671,62 +671,12 @@ namespace KillerPDF
                 bf.SetValue(Border.CornerRadiusProperty, radius ?? RadControl);
             }
 
-            // Raised: a soft shadow on item-free siblings under the face (an effect on the face itself
-            // would rasterize the caption and lose ClearType). Hover lifts the button higher, press sets
-            // it down. A hollow face (no outline fill) casts its shadow from the ring only. Windows built
-            // before the theme loads have no BarShadowOpacity yet and stay flat, as 98SE does at 0.
-            bool raised = Application.Current?.TryFindResource("BarShadowOpacity") is double;
-            if (raised)
-            {
-                var stack = new FrameworkElementFactory(typeof(Grid));
-                stack.AppendChild(LiftLayer("liftRest", ring: !outlined, depth: 1.5, blur: 5, visible: true, radius));
-                stack.AppendChild(LiftLayer("liftHover", ring: false, depth: 3.5, blur: 10, visible: false, radius));
-                stack.AppendChild(root);
-                root = stack;
-            }
-
+            // Buttons are flat (KillerUI 5e8cdd9): no lift shadow under the face.
             var ct = new ControlTemplate(typeof(Button)) { VisualTree = root };
-            if (raised)
-            {
-                var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-                hover.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Collapsed, "liftRest"));
-                hover.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Visible, "liftHover"));
-                ct.Triggers.Add(hover);
-                var pressed = new Trigger { Property = ButtonBase.IsPressedProperty, Value = true };
-                pressed.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Collapsed, "liftRest"));
-                pressed.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Collapsed, "liftHover"));
-                ct.Triggers.Add(pressed);
-            }
             var dis = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
             dis.Setters.Add(new Setter(UIElement.OpacityProperty, 0.45) { TargetName = outlined ? "edge" : "bd" });
-            if (raised)
-            {
-                dis.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Collapsed, "liftRest"));
-                dis.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Collapsed, "liftHover"));
-            }
             ct.Triggers.Add(dis);
             return ct;
-        }
-
-        // One shadow layer for ButtonTemplate: the button's shape in black, faded by the theme's
-        // BarShadowOpacity, casting a soft drop shadow below it.
-        private static FrameworkElementFactory LiftLayer(string name, bool ring, double depth, double blur, bool visible, CornerRadius? radius = null)
-        {
-            var layer = new FrameworkElementFactory(typeof(Border)) { Name = name };
-            layer.SetValue(UIElement.IsHitTestVisibleProperty, false);
-            layer.SetValue(Border.CornerRadiusProperty, radius ?? RadControl);
-            if (ring)
-            {
-                layer.SetValue(Border.BorderBrushProperty, Brushes.Black);
-                layer.SetValue(Border.BorderThicknessProperty, new Thickness(1));
-            }
-            else layer.SetValue(Border.BackgroundProperty, Brushes.Black);
-            if (!visible) layer.SetValue(UIElement.VisibilityProperty, Visibility.Collapsed);
-            layer.SetResourceReference(UIElement.OpacityProperty, "BarShadowOpacity");
-            var shadow = new DropShadowEffect { Color = Colors.Black, Direction = 270, ShadowDepth = depth, BlurRadius = blur, RenderingBias = RenderingBias.Quality };
-            shadow.Freeze();
-            layer.SetValue(UIElement.EffectProperty, shadow);
-            return layer;
         }
     }
 }
