@@ -513,7 +513,8 @@ namespace KillerPDF.Controls
         // cache (the carve-out that keeps pictures uninverted) goes with it; it re-fills lazily.
         private void FlushAllRenderCaches()
         {
-            CancelRenderWork();
+            // The page list stays, so its thumbnail window keeps running; a caller whose thumbnails changed rebuilds it.
+            CancelRenderWork(includeThumbnails: false);
             _primaryRenderSession.Clear();
             _backgroundRenderCache.Clear();
             foreach (var s in _renderLru) { s.RenderCache.Clear(); s.RenderCacheSize.Clear(); }

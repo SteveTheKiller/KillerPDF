@@ -60,8 +60,9 @@ public sealed class ThumbnailWindowLifetimeTests
     }
 
     // A tab that comes back rebuilds its list, and the rebuild carries pictures forward so the list never flashes
-    // blank. They must come from that tab's own list for the same file: the list on screen belongs to the tab just left,
-    // so carrying from it showed the other document's pages.
+    // blank. They come from that tab's own list: the list on screen belongs to the tab just left, so carrying from it
+    // showed the other document's pages. The tab's list is used whatever its file path, because a page edit reloads
+    // the document from a fresh temporary path and the pictures must still carry over then.
     [Fact]
     public void ARebuiltListCarriesPicturesFromItsOwnTabOnly()
     {
@@ -73,7 +74,21 @@ public sealed class ThumbnailWindowLifetimeTests
         string line = pages[carry..pages.IndexOf(';', carry)];
         Assert.DoesNotContain("PageList.ItemsSource", line, StringComparison.Ordinal);
         Assert.Contains("thumbnailOwner.ThumbCache", line, StringComparison.Ordinal);
-        Assert.Contains("ThumbCacheFile", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("ThumbCacheFile", line, StringComparison.Ordinal);
+    }
+
+    // Flushing render caches (an invert toggle, a working CMYK change) repaints pages in place and keeps the page list,
+    // so it leaves the list's thumbnail window running; a caller whose thumbnails really changed rebuilds the list.
+    [Fact]
+    public void FlushingRenderCachesLeavesThePageListsThumbnailWindowRunning()
+    {
+        string root = FindRepositoryRoot();
+        string tabs = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Tabs.cs"));
+        int start = tabs.IndexOf("private void FlushAllRenderCaches()", StringComparison.Ordinal);
+        Assert.True(start >= 0, "FlushAllRenderCaches was not found.");
+        int cancel = tabs.IndexOf("CancelRenderWork(", start, StringComparison.Ordinal);
+        Assert.True(cancel > start && cancel - start < 200, "FlushAllRenderCaches no longer cancels render work first.");
+        Assert.StartsWith("CancelRenderWork(includeThumbnails: false);", tabs[cancel..], StringComparison.Ordinal);
     }
 
     private static string FindRepositoryRoot([System.Runtime.CompilerServices.CallerFilePath] string source = "")
