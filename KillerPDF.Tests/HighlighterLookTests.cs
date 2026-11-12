@@ -283,6 +283,37 @@ public sealed class HighlighterLookTests
         Assert.InRange(Visits(canvas.Children.OfType<Grid>().Last()), 1, 50);
     });
 
+    [Theory]
+    [InlineData(4, 16)]
+    [InlineData(5, 8)]
+    [InlineData(8, 1)]
+    public void StackedMarksKeepEveryColorTheSavedCopyHas(int marks, byte blue) => OnSta(() =>
+    {
+        // Half-opacity yellow halves the blue each time; the saved copy multiplies every mark.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        for (int i = 0; i < marks; i++) Mark(canvas, new Rect(0, 0, W, H), Color.FromArgb(128, 255, 255, 0));
+
+        AssertPixel(Render(grid), 10, 5, 255, 255, blue);
+    });
+
+    [Fact]
+    public void AChainOfPairwiseOverlapsKeepsEachOverlapsColors() => OnSta(() =>
+    {
+        // A over 0-8, B over 4-12, C over 8-16, D over 12-20. Where only C and D overlap the saved copy shows both.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, 8, H), Color.FromArgb(255, 255, 255, 128));
+        Mark(canvas, new Rect(4, 0, 8, H), Color.FromArgb(255, 255, 128, 255));
+        Mark(canvas, new Rect(8, 0, 8, H), Color.FromArgb(255, 128, 255, 255));
+        Mark(canvas, new Rect(12, 0, 8, H), Color.FromArgb(255, 192, 192, 192));
+
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 13, 5, 96, 192, 192);
+        AssertPixel(pixels, 9, 5, 128, 128, 255);
+    });
+
     [Fact]
     public void MarksThatOnlyTouchAtAnEdgeDoNotLayerEachOther() => OnSta(() =>
     {

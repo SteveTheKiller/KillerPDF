@@ -68,61 +68,65 @@ internal static class HighlighterLook
                 new RectangleGeometry(new Rect(0, 0, bounds.Width, bounds.Height)), group);
         }
         // Where the page shows inverted, the inverted look; elsewhere, and everywhere outside dark mode, the plain one.
-        void ByPage(Func<bool, Geometry?, Grid> layer)
+        void ByPage(Geometry? area, Func<bool, Geometry?, Grid> layer)
         {
-            if (!dark.Inverted) mark.Children.Add(layer(false, null));
-            else if (keptArea is null) mark.Children.Add(layer(true, null));
+            if (!dark.Inverted) mark.Children.Add(layer(false, Copy(area)));
+            else if (keptArea is null) mark.Children.Add(layer(true, Copy(area)));
             else
             {
-                mark.Children.Add(layer(true, invertedArea!.CloneCurrentValue()));
-                mark.Children.Add(layer(false, keptArea.CloneCurrentValue()));
+                mark.Children.Add(layer(true, Both(area, invertedArea)));
+                mark.Children.Add(layer(false, Both(area, keptArea)));
             }
         }
-        ByPage((inverted, clip) => PageStack(grid, page, bounds, onPage, color, inverted, clip));
 
-        // What paints beneath the mark, layered in paint order. Annotations and form fields are never inverted on screen,
-        // so they multiply plainly, in dark mode too; their transparent parts let the layers below show through. An
-        // earlier mark already shows the page's look, so it is multiplied the way the page under it is, and overlaps
-        // compound like the saved copy shown the same way.
-        // Each earlier mark seen through this one draws its own earlier marks again, so the work a frame takes grows with
-        // every link of a chain. Only the most recent few overlapping marks, themselves only a few links deep, are layered;
-        // in a deeper pile-up the newest colors win where they overlap, instead of every frame doubling in cost.
+        // An earlier mark under this one is not drawn through it: it is a factor over the part of this mark it covers,
+        // since highlights multiply. The mark is split into pieces by which earlier marks cover them, and each piece shows
+        // what lies beneath multiplied by this color and theirs, exactly as the saved copy compounds them. Nothing nests,
+        // so drawing stays cheap however highlights pile up. The newest MaxEarlierMarks marks count.
         var under = Beneath(canvas, bounds, earlier).ToList();
-        var layered = under.Where(child => child is FrameworkElement { Tag: MarkSpec { Depth: < MaxMarkDepth } })
-            .TakeLast(MaxEarlierMarks).ToHashSet();
-        int depth = 0;
-        Grid? run = null;
-        foreach (var child in under)
-        {
-            if (child is FrameworkElement { Tag: MarkSpec earlierMark })
-            {
-                if (!layered.Contains(child)) continue;
-                depth = Math.Max(depth, earlierMark.Depth + 1);
-                run = null;
-                ByPage((inverted, clip) => Layer(child, bounds, color, inverted, clip));
-                continue;
-            }
-            if (run is null)
-            {
-                run = new Grid { UseLayoutRounding = false, Effect = new MultiplyEffect(Tint(color, false)) };
-                mark.Children.Add(run);
-            }
-            run.Children.Add(new Rectangle { Fill = Through(child, bounds, BrushMappingMode.Absolute) });
-        }
+        var marks = new List<(int Position, Geometry Area, Vector3D Factor)>();
+        for (int position = 0; position < under.Count; position++)
+            if (under[position] is FrameworkElement { Tag: MarkSpec older })
+                marks.Add((position, Area(older, bounds), Factor(older.Color)));
+        if (marks.Count > MaxEarlierMarks) marks = marks.Skip(marks.Count - MaxEarlierMarks).ToList();
+        var own = Factor(color);
 
+        // The page lies beneath every earlier mark.
+        foreach (var (area, factor) in Pieces(marks.Select(m => (m.Area, m.Factor)), bounds))
+            ByPage(area, (inverted, clip) => PageStack(grid, page, bounds, onPage, Times(own, factor), inverted, clip));
+
+        // Annotations and form fields, in runs between marks in paint order. They are never inverted on screen, so they
+        // multiply plainly, in dark mode too, by this mark and by every earlier mark painted after them; their transparent
+        // parts let the page show through.
+        for (int start = 0; start < under.Count; start++)
+        {
+            if (under[start] is FrameworkElement { Tag: MarkSpec }) continue;
+            int end = start;
+            while (end + 1 < under.Count && under[end + 1] is not FrameworkElement { Tag: MarkSpec }) end++;
+            var run = under.GetRange(start, end - start + 1);
+            int last = end;
+            foreach (var (area, factor) in Pieces(marks.Where(m => m.Position > last).Select(m => (m.Area, m.Factor)), bounds))
+            {
+                var layer = new Grid { UseLayoutRounding = false, Clip = Copy(area),
+                    Effect = new MultiplyEffect(Tint(Times(own, factor), false)) };
+                foreach (var child in run) layer.Children.Add(new Rectangle { Fill = Through(child, bounds, BrushMappingMode.Absolute) });
+                mark.Children.Add(layer);
+            }
+            start = end;
+        }
         if (carved is not null) mark.Clip = InMark(carved, bounds);
         else mark.ClipToBounds = true;
         // Selection hit-tests annotations by their geometry; the visual itself must never take a click meant for a form
         // field or anything else under it.
         mark.IsHitTestVisible = false;
-        mark.Tag = new MarkSpec(bounds, carved, color, dark, depth);
+        mark.Tag = new MarkSpec(bounds, carved, color, dark);
         Canvas.SetLeft(mark, bounds.X);
         Canvas.SetTop(mark, bounds.Y);
         return mark;
     }
 
     // The page under the mark, multiplied: a backing for a page not drawn yet, the page image and its zoom detail.
-    private static Grid PageStack(Grid grid, Image page, Rect bounds, Rect onPage, Color color, bool inverted, Geometry? clip)
+    private static Grid PageStack(Grid grid, Image page, Rect bounds, Rect onPage, Vector3D factor, bool inverted, Geometry? clip)
     {
         var stack = new Grid { UseLayoutRounding = false, Clip = clip };
         // A page not drawn yet shows its scaffold; black in dark mode so the inverted look still shows the mark there.
@@ -155,17 +159,9 @@ internal static class HighlighterLook
                 });
             }
 
-        stack.Effect = new MultiplyEffect(Tint(color, inverted));
+        stack.Effect = new MultiplyEffect(Tint(factor, inverted));
         return stack;
     }
-
-    // One canvas child seen through the mark: a brush of a canvas child paints it as it sits on the canvas, offset,
-    // transform and opacity included, so the mark's bounds in canvas units crop it.
-    private static Grid Layer(UIElement child, Rect bounds, Color color, bool inverted, Geometry? clip) => new()
-    {
-        UseLayoutRounding = false, Clip = clip, Effect = new MultiplyEffect(Tint(color, inverted)),
-        Children = { new Rectangle { Fill = Through(child, bounds, BrushMappingMode.Absolute) } }
-    };
 
     // Everything on the canvas that paints beneath the mark and may overlap it, in paint order: a lower ZIndex (form
     // fields sit at -1), or the same ZIndex and earlier.
@@ -221,9 +217,8 @@ internal static class HighlighterLook
         return !shared.IsEmpty && shared.Width > 0 && shared.Height > 0;
     }
 
-    // At most 3 + 3 x 3 brushed marks per frame (twice that over dark mode's kept pictures); overlaps of up to three
-    // marks still compound exactly.
-    private const int MaxEarlierMarks = 3, MaxMarkDepth = 2;
+    // Earlier marks that compound under a new one; past this, the oldest stop counting where they overlap.
+    private const int MaxEarlierMarks = 8;
 
     private static Rect PointsBounds(PointCollection points, double stroke)
     {
@@ -253,13 +248,53 @@ internal static class HighlighterLook
             _ => new Rect(left, top, right - left, bottom - top)
         };
 
-    /// <summary>The per-channel factor a page pixel is multiplied by: 1 - a + a * color, with the inverted look in w.</summary>
-    internal static Point4D Tint(Color color, bool inverted)
+    /// <summary>The per-channel factor a page pixel is multiplied by: 1 - a + a * color.</summary>
+    internal static Vector3D Factor(Color color)
     {
         double a = color.A / 255d;
-        return new Point4D(1 - a + a * color.R / 255d, 1 - a + a * color.G / 255d, 1 - a + a * color.B / 255d,
-            inverted ? 1 : 0);
+        return new Vector3D(1 - a + a * color.R / 255d, 1 - a + a * color.G / 255d, 1 - a + a * color.B / 255d);
     }
+
+    /// <summary>The shader constants: the factor, with the inverted look in w.</summary>
+    internal static Point4D Tint(Vector3D factor, bool inverted) => new(factor.X, factor.Y, factor.Z, inverted ? 1 : 0);
+
+    internal static Point4D Tint(Color color, bool inverted) => Tint(Factor(color), inverted);
+
+    private static Vector3D Times(Vector3D a, Vector3D b) => new(a.X * b.X, a.Y * b.Y, a.Z * b.Z);
+
+    // The part of this mark an earlier mark covers, in this mark's own units.
+    private static Geometry Area(MarkSpec older, Rect bounds) => older.Carved is { } carved
+        ? InMark(carved, bounds)
+        : new RectangleGeometry(new Rect(older.Bounds.X - bounds.X, older.Bounds.Y - bounds.Y, older.Bounds.Width, older.Bounds.Height));
+
+    // This mark's area split by which of the given marks cover each piece, with the product of their factors. Null
+    // stands for the whole mark. Pieces with no area are dropped.
+    private static List<(Geometry? Area, Vector3D Factor)> Pieces(IEnumerable<(Geometry Area, Vector3D Factor)> marks, Rect bounds)
+    {
+        var whole = new RectangleGeometry(new Rect(0, 0, bounds.Width, bounds.Height));
+        var pieces = new List<(Geometry? Area, Vector3D Factor)> { (null, new Vector3D(1, 1, 1)) };
+        foreach (var (area, factor) in marks)
+        {
+            var next = new List<(Geometry? Area, Vector3D Factor)>();
+            foreach (var (piece, product) in pieces)
+            {
+                Geometry region = piece ?? whole;
+                var inside = Geometry.Combine(region, area, GeometryCombineMode.Intersect, null);
+                var outside = Geometry.Combine(region, area, GeometryCombineMode.Exclude, null);
+                if (HasArea(inside)) next.Add((inside, Times(product, factor)));
+                if (HasArea(outside)) next.Add((piece is null && !HasArea(inside) ? null : outside, product));
+            }
+            pieces = next;
+        }
+        return pieces;
+    }
+
+    private static bool HasArea(Geometry geometry) => geometry.Bounds is { IsEmpty: false } box && box.Width > 0 && box.Height > 0;
+
+    private static Geometry? Copy(Geometry? geometry) => geometry?.CloneCurrentValue();
+
+    private static Geometry? Both(Geometry? a, Geometry? b) =>
+        a is null ? Copy(b) : b is null ? Copy(a) : new CombinedGeometry(GeometryCombineMode.Intersect, a.CloneCurrentValue(), b.CloneCurrentValue());
 
     private static VisualBrush Through(Visual layer, Rect viewbox, BrushMappingMode units) => new(layer)
     {
@@ -279,7 +314,7 @@ internal static class HighlighterLook
     // page image shows turns it into the real mark.
     private static FrameworkElement Plain(Rect bounds, Geometry? carved, Color color, Dark dark)
     {
-        var spec = new MarkSpec(bounds, carved, color, dark, 0);
+        var spec = new MarkSpec(bounds, carved, color, dark);
         if (carved is not null)
             return new System.Windows.Shapes.Path { Fill = new SolidColorBrush(color), Data = carved, IsHitTestVisible = false, Tag = spec };
         var rect = new Rectangle { Fill = new SolidColorBrush(color), Width = bounds.Width, Height = bounds.Height,
@@ -289,7 +324,7 @@ internal static class HighlighterLook
         return rect;
     }
 
-    private sealed record MarkSpec(Rect Bounds, Geometry? Carved, Color Color, Dark Dark, int Depth);
+    private sealed record MarkSpec(Rect Bounds, Geometry? Carved, Color Color, Dark Dark);
 
     /// <summary>
     /// Rebuilds the marks on <paramref name="canvas"/> in place, in order, for zoom detail that arrived or left after
