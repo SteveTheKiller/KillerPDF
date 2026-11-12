@@ -84,7 +84,7 @@ internal static class HighlighterLook
         // what lies beneath multiplied by this color and theirs, exactly as the saved copy compounds them. Nothing nests,
         // so drawing stays cheap however highlights pile up. The newest MaxEarlierMarks marks count.
         var under = Beneath(canvas, bounds, earlier).ToList();
-        var marks = new List<(int Position, Geometry Area, Vector3D Factor)>();
+        var marks = new List<(int Position, Rect Area, Vector3D Factor)>();
         for (int position = 0; position < under.Count; position++)
             if (under[position] is FrameworkElement { Tag: MarkSpec older })
                 marks.Add((position, Area(older, bounds), Factor(older.Color)));
@@ -107,8 +107,8 @@ internal static class HighlighterLook
             int last = end;
             foreach (var (area, factor) in Pieces(marks.Where(m => m.Position > last).Select(m => (m.Area, m.Factor)), bounds))
             {
-                var layer = new Grid { UseLayoutRounding = false, Clip = Copy(area),
-                    Effect = new MultiplyEffect(Tint(Times(own, factor), false)) };
+                var layer = Tiled(new Grid { UseLayoutRounding = false, Clip = Copy(area),
+                    Effect = new MultiplyEffect(Tint(Times(own, factor), false)) });
                 foreach (var child in run) layer.Children.Add(new Rectangle { Fill = Through(child, bounds, BrushMappingMode.Absolute) });
                 mark.Children.Add(layer);
             }
@@ -128,7 +128,7 @@ internal static class HighlighterLook
     // The page under the mark, multiplied: a backing for a page not drawn yet, the page image and its zoom detail.
     private static Grid PageStack(Grid grid, Image page, Rect bounds, Rect onPage, Vector3D factor, bool inverted, Geometry? clip)
     {
-        var stack = new Grid { UseLayoutRounding = false, Clip = clip };
+        var stack = Tiled(new Grid { UseLayoutRounding = false, Clip = clip });
         // A page not drawn yet shows its scaffold; black in dark mode so the inverted look still shows the mark there.
         stack.Children.Add(new Rectangle { Fill = inverted ? Brushes.Black : Brushes.White });
         stack.Children.Add(new Rectangle { Fill = Through(page, onPage, BrushMappingMode.RelativeToBoundingBox) });
@@ -262,31 +262,47 @@ internal static class HighlighterLook
 
     private static Vector3D Times(Vector3D a, Vector3D b) => new(a.X * b.X, a.Y * b.Y, a.Z * b.Z);
 
-    // The part of this mark an earlier mark covers, in this mark's own units.
-    private static Geometry Area(MarkSpec older, Rect bounds) => older.Carved is { } carved
-        ? InMark(carved, bounds)
-        : new RectangleGeometry(new Rect(older.Bounds.X - bounds.X, older.Bounds.Y - bounds.Y, older.Bounds.Width, older.Bounds.Height));
+    // The part of this mark an earlier mark covers, in this mark's own units: its rectangle. An eraser-carved outline
+    // would make every split cost geometry work on long widened strokes, on the UI thread, so a hole erased in an
+    // earlier mark still counts as covered where a later mark lies over it.
+    private static Rect Area(MarkSpec older, Rect bounds) =>
+        new(older.Bounds.X - bounds.X, older.Bounds.Y - bounds.Y, older.Bounds.Width, older.Bounds.Height);
 
     // This mark's area split by which of the given marks cover each piece, with the product of their factors. Null
     // stands for the whole mark. Pieces with no area are dropped.
-    private static List<(Geometry? Area, Vector3D Factor)> Pieces(IEnumerable<(Geometry Area, Vector3D Factor)> marks, Rect bounds)
+    // Marks are taken newest first, since multiplying does not care about order; once the split would pass MaxPieces,
+    // the older marks left stop counting, so a pile-up never turns into thousands of layers.
+    private static List<(Geometry? Area, Vector3D Factor)> Pieces(IEnumerable<(Rect Area, Vector3D Factor)> marks, Rect bounds)
     {
         var whole = new RectangleGeometry(new Rect(0, 0, bounds.Width, bounds.Height));
         var pieces = new List<(Geometry? Area, Vector3D Factor)> { (null, new Vector3D(1, 1, 1)) };
-        foreach (var (area, factor) in marks)
+        foreach (var (rect, factor) in marks.Reverse())
         {
+            var area = new RectangleGeometry(rect);
             var next = new List<(Geometry? Area, Vector3D Factor)>();
             foreach (var (piece, product) in pieces)
             {
                 Geometry region = piece ?? whole;
+                if (!Shares(region.Bounds, rect)) { next.Add((piece, product)); continue; }
                 var inside = Geometry.Combine(region, area, GeometryCombineMode.Intersect, null);
                 var outside = Geometry.Combine(region, area, GeometryCombineMode.Exclude, null);
                 if (HasArea(inside)) next.Add((inside, Times(product, factor)));
                 if (HasArea(outside)) next.Add((piece is null && !HasArea(inside) ? null : outside, product));
             }
+            if (next.Count > MaxPieces) break;
             pieces = next;
         }
         return pieces;
+    }
+
+    private const int MaxPieces = 32;
+
+    // The layers inside a mark tile it exactly: aliased, a pixel belongs to one piece, so no seam lets what lies beneath
+    // the mark through between them. The mark's own clip still smooths its outer edge.
+    private static T Tiled<T>(T layer) where T : UIElement
+    {
+        RenderOptions.SetEdgeMode(layer, EdgeMode.Aliased);
+        return layer;
     }
 
     private static bool HasArea(Geometry geometry) => geometry.Bounds is { IsEmpty: false } box && box.Width > 0 && box.Height > 0;

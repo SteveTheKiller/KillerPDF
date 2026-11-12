@@ -298,6 +298,70 @@ public sealed class HighlighterLookTests
     });
 
     [Fact]
+    public void AnEarlierMarksEdgeLeavesNoSeamInsideALaterMark() => OnSta(() =>
+    {
+        // A half-opacity yellow mark ends at x 7.5; a cyan mark lies over everything. At the seam pixel the yellow's
+        // edge may blend, but nothing without the cyan may show through: red stays at or below the yellow-only value.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, 7.5, H), Color.FromArgb(128, 255, 255, 0));
+        Mark(canvas, new Rect(0, 0, W, H), Color.FromArgb(255, 0, 255, 255));
+
+        byte[] pixels = Render(grid);
+
+        for (int x = 0; x < W; x++)
+        {
+            int i = (5 * W + x) * 4;
+            Assert.True(pixels[i + 2] <= 2, $"x={x} red {pixels[i + 2]} leaks past the cyan mark");
+        }
+    });
+
+    [Fact]
+    public void ACoverUnderOverlappingMarksNeverLeaksThePageTextItHides() => OnSta(() =>
+    {
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.Black));
+        var cover = new System.Windows.Shapes.Rectangle { Width = W, Height = H, Fill = Brushes.White };
+        Canvas.SetLeft(cover, 0); Canvas.SetTop(cover, 0);
+        canvas.Children.Add(cover);
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, 7.5, H), Color.FromArgb(255, 255, 255, 0));
+        Mark(canvas, new Rect(0.5, 0, 19, H), Color.FromArgb(255, 0, 255, 255));
+
+        byte[] pixels = Render(grid);
+
+        for (int x = 0; x < W; x++)
+        {
+            int i = (5 * W + x) * 4;
+            Assert.True(pixels[i + 1] >= 250, $"x={x} green {pixels[i + 1]}: the black page shows through the cover");
+        }
+    });
+
+    [Fact]
+    public void ManyCarvedEarlierMarksStillBuildQuickly() => OnSta(() =>
+    {
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        for (int i = 0; i < 8; i++)
+        {
+            // Each earlier mark is carved by a long wavy eraser stroke, like a real brush erase.
+            var stroke = new StreamGeometry();
+            using (var g = stroke.Open())
+            {
+                g.BeginFigure(new Point(0, i % H), false, false);
+                for (int p = 1; p < 300; p++) g.LineTo(new Point(p * W / 300.0, (i + Math.Sin(p * 0.37 + i) * 4 + 5) % H), true, false);
+            }
+            var hole = stroke.GetWidenedPathGeometry(new Pen(Brushes.Black, 1.5));
+            var carved = new CombinedGeometry(GeometryCombineMode.Exclude, new RectangleGeometry(new Rect(0, 0, W, H)), hole);
+            canvas.Children.Add(HighlighterLook.Build(canvas, new Rect(0, 0, W, H), carved, Color.FromArgb(60, 255, 255, 0), HighlighterLook.Dark.Off));
+        }
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        Mark(canvas, new Rect(0, 0, W, H), Yellow);
+        HighlighterLook.Refresh(canvas);
+        Assert.True(timer.ElapsedMilliseconds < 1500, $"build and refresh took {timer.ElapsedMilliseconds} ms");
+        Assert.True(canvas.Children.OfType<Grid>().Last().Children.Count <= 40);
+    });
+
+    [Fact]
     public void AChainOfPairwiseOverlapsKeepsEachOverlapsColors() => OnSta(() =>
     {
         // A over 0-8, B over 4-12, C over 8-16, D over 12-20. Where only C and D overlap the saved copy shows both.
