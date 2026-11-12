@@ -67,6 +67,7 @@ public sealed class ShellPrintFailureTests
         Assert.Contains("AppTheme.Configure()", before, System.StringComparison.Ordinal);
         Assert.Contains("ThemeManager.Initialize()", before, System.StringComparison.Ordinal);
         Assert.Contains("LocaleManager.Initialize()", before, System.StringComparison.Ordinal);
+        Assert.Contains("GrainTexture.Publish()", before, System.StringComparison.Ordinal);
     }
 
     private static string FindRepositoryRoot([System.Runtime.CompilerServices.CallerFilePath] string source = "")

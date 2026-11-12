@@ -19,6 +19,7 @@ internal static partial class ShellPrintFailure
             AppTheme.Configure();
             ThemeManager.Initialize();
             LocaleManager.Initialize();
+            Controls.GrainTexture.Publish();
             string? format = Application.Current?.TryFindResource("Str_Print_ShellFailed") as string;
             KillerDialog.Show(null, Message(path, reason, format), "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
