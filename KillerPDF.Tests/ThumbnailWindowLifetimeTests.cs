@@ -91,6 +91,22 @@ public sealed class ThumbnailWindowLifetimeTests
         Assert.StartsWith("CancelRenderWork(includeThumbnails: false);", tabs[cancel..], StringComparison.Ordinal);
     }
 
+    // An empty tab is reused for the next file opened. Its page list belonged to the document it held before, so it is
+    // dropped there; otherwise the new document's rows would carry the old document's pictures until each redraws.
+    [Fact]
+    public void ReusingAnEmptyTabDropsItsOldPageList()
+    {
+        string root = FindRepositoryRoot();
+        string tabs = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Tabs.cs"));
+        int start = tabs.IndexOf("private DocumentSession BeginTabLoad(", StringComparison.Ordinal);
+        int reuse = tabs.IndexOf("target = _active;", start, StringComparison.Ordinal);
+        int otherwise = tabs.IndexOf("else", reuse, StringComparison.Ordinal);
+        Assert.True(start >= 0 && reuse > start && otherwise > reuse, "BeginTabLoad no longer reuses an empty tab.");
+        string branch = tabs[reuse..otherwise];
+        Assert.Contains("target.ThumbCache = null;", branch, StringComparison.Ordinal);
+        Assert.Contains("target.ThumbCacheComplete = false;", branch, StringComparison.Ordinal);
+    }
+
     private static string FindRepositoryRoot([System.Runtime.CompilerServices.CallerFilePath] string source = "")
     {
         var directory = new DirectoryInfo(Path.GetDirectoryName(source)!);

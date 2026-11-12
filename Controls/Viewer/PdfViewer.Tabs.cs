@@ -807,6 +807,9 @@ namespace KillerPDF.Controls
             {
                 target = _active;          // reuse the current empty tab (never a deferred or loading one)
                 createdNew = false;
+                // Its page list belonged to the document it held before, so the next file starts a list of its own.
+                target.ThumbCache = null;
+                target.ThumbCacheComplete = false;
             }
             else
             {
