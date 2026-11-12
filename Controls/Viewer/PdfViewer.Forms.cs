@@ -343,6 +343,14 @@ namespace KillerPDF.Controls
         /// </summary>
         private void RenderFormFields(int pageIndex, int canvasW, int canvasH)
         {
+            try { RenderFormFieldsCore(pageIndex, canvasW, canvasH); }
+            // Highlighter marks show what paints beneath them, and the fields paint beneath annotations, so the marks on
+            // this page take in the fields just laid (or forget the ones just removed).
+            finally { HighlighterLook.Refresh(CanvasForPage(pageIndex)); }
+        }
+
+        private void RenderFormFieldsCore(int pageIndex, int canvasW, int canvasH)
+        {
             if (_doc is null || _currentFile is null) return;
             if (pageIndex >= _doc.PageCount) return;
 

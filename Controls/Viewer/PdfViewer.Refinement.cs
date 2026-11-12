@@ -53,8 +53,9 @@ public partial class PdfViewer
     /// <summary>Rebuilds every highlighter mark in this viewer for the current dark-mode setting.</summary>
     internal void RefreshHighlighterMarks()
     {
-        if (_annotationCanvas.Tag is int primary) HighlighterLook.Refresh(_annotationCanvas, HighlighterDarkLook(primary));
-        foreach (var (page, canvas) in _continuousCanvases) HighlighterLook.Refresh(canvas, HighlighterDarkLook(page));
+        // The dark look is asked only for a canvas that holds a mark: it can read the document for kept pictures.
+        if (_annotationCanvas.Tag is int primary) HighlighterLook.Refresh(_annotationCanvas, () => HighlighterDarkLook(primary));
+        foreach (var (page, canvas) in _continuousCanvases) HighlighterLook.Refresh(canvas, () => HighlighterDarkLook(page));
     }
 
     /// <summary>

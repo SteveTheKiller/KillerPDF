@@ -184,6 +184,7 @@ namespace KillerPDF.Controls
             ClearRenderedCanvas(_activeCanvas);
 
             RenderStamps(pageIndex);   // stamp layer (page numbers / watermark) sits beneath annotations
+            HighlighterLook.Dark? markDark = null;   // asked once, by the first highlighter mark
 
             if (_annotations.TryGetValue(pageIndex, out var annotList))
             foreach (var annot in annotList)
@@ -221,7 +222,7 @@ namespace KillerPDF.Controls
                         var markRect = ha.DrawRect();
                         if (!IsFinitePositive(markRect.Width) || !IsFinitePositive(markRect.Height)) continue;
                         _activeCanvas.Children.Add(HighlighterLook.Build(_activeCanvas, markRect,
-                            PdfBurn.HighlightEraseGeometry(ha), ha.GetColor(), HighlighterDarkLook(pageIndex)));
+                            PdfBurn.HighlightEraseGeometry(ha), ha.GetColor(), markDark ??= HighlighterDarkLook(pageIndex)));
                         break;
                     }
                     case HighlightAnnotation ha:

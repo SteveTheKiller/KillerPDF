@@ -122,11 +122,12 @@ namespace KillerPDF.Shell
             // beside a normal one. The moon lights for the focused pane; FocusPane re-syncs it.
             if (ActiveViewer.DocInvert == on) return;
             ActiveViewer.DocInvert = on;
-            // Highlighter marks show the page under them, so they switch with it.
-            ActiveViewer.RefreshHighlighterMarks();
             App.SetSetting("DocInvert", on ? "1" : "0");
             DocInvertBtn.Tag = on ? "on" : null;   // lights the footer icon while active
             RepaintForInvertChange(bothPanes: false);   // per-pane toggle: the other pane is untouched
+            // Highlighter marks show the page under them, so they switch with it. After the repaint, which flushed the
+            // picture-box cache: the boxes worked out here are the ones the page renders then reuse.
+            ActiveViewer.RefreshHighlighterMarks();
         }
 
         // Right-click on the moon: night-mode options. One checkable item - "Invert images too"
@@ -159,7 +160,13 @@ namespace KillerPDF.Shell
             // Only repaint when night mode is actually showing in either pane; otherwise it just
             // takes effect the next time a moon is toggled on. Both panes: this option changes
             // how EVERY inverted pane renders.
-            if (Viewer.DocInvert || ViewerB.DocInvert) RepaintForInvertChange(bothPanes: true);
+            if (Viewer.DocInvert || ViewerB.DocInvert)
+            {
+                RepaintForInvertChange(bothPanes: true);
+                // Which pictures dark mode keeps changed, and highlighter marks over them change with it, in both panes.
+                Viewer.RefreshHighlighterMarks();
+                ViewerB.RefreshHighlighterMarks();
+            }
         }
 
         // Shared by the moon toggle and its right-click option: the invert state is baked into

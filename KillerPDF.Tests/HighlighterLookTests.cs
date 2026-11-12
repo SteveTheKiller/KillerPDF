@@ -240,6 +240,131 @@ public sealed class HighlighterLookTests
     });
 
     [Fact]
+    public void FormFieldsPaintedBeneathTheMarkShowThroughAfterRefresh() => OnSta(() =>
+    {
+        // The viewer adds form field overlays after the marks, at ZIndex -1 so they paint beneath annotations.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, W, H), Color.FromArgb(128, 255, 255, 0));
+        var field = new System.Windows.Shapes.Rectangle { Width = 10, Height = H, Fill = Brushes.Blue };
+        Canvas.SetLeft(field, 0); Canvas.SetTop(field, 0);
+        Panel.SetZIndex(field, -1);
+        canvas.Children.Add(field);
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+
+        HighlighterLook.Refresh(canvas);
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 4, 5, 0, 0, 127);
+        AssertPixel(pixels, 15, 5, 255, 255, 127);
+    });
+
+    [Fact]
+    public void AMarkNeverTakesClicksMeantForWhatIsUnderIt() => OnSta(() =>
+    {
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, W, H), Yellow);
+        Assert.False(canvas.Children.OfType<Grid>().Single().IsHitTestVisible);
+    });
+
+    [Fact]
+    public void DarkModeMultipliesAnnotationsPlainlyBecauseTheyAreNotInverted() => OnSta(() =>
+    {
+        // Dark mode shows the page inverted (black paper here) but draws annotations as they are.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.Black));
+        var ink = new System.Windows.Shapes.Rectangle { Width = 10, Height = H, Fill = Brushes.Red };
+        Canvas.SetLeft(ink, 0); Canvas.SetTop(ink, 0);
+        canvas.Children.Add(ink);
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, W, H), Yellow, inverted: true);
+
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 4, 5, 255, 0, 0);
+        AssertPixel(pixels, 15, 5, 0, 0, 255);
+    });
+
+    [Fact]
+    public void TurnedTextBoxesUnderTheMarkAreNotSkipped() => OnSta(() =>
+    {
+        // A text box turned 90 degrees: laid out 10 wide and 4 tall, it covers x 0-4 and y 0-10 on the canvas.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        var box = new System.Windows.Shapes.Rectangle { Width = 10, Height = 4, Fill = Brushes.Red,
+            LayoutTransform = new RotateTransform(90) };
+        Canvas.SetLeft(box, 0); Canvas.SetTop(box, 0);
+        canvas.Children.Add(box);
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 5, 4, 5), Yellow);
+
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 2, 7, 255, 0, 0);
+    });
+
+    [Fact]
+    public void TransformedPathsUnderTheMarkAreNotSkipped() => OnSta(() =>
+    {
+        // Vector signatures keep their geometry in signature units and are placed only by a transform.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        var signature = new System.Windows.Shapes.Path { Data = new RectangleGeometry(new Rect(0, 0, 4, 4)),
+            Fill = Brushes.Black, RenderTransform = new TranslateTransform(12, 3) };
+        canvas.Children.Add(signature);
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(10, 0, 10, H), Yellow);
+
+        byte[] pixels = Render(grid);
+
+        AssertPixel(pixels, 14, 5, 0, 0, 0);
+        AssertPixel(pixels, 18, 1, 255, 255, 0);
+    });
+
+    [Fact]
+    public void RefreshAsksForTheDarkLookOnlyWhenTheCanvasHasMarks() => OnSta(() =>
+    {
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        int asked = 0;
+        HighlighterLook.Refresh(canvas, () => { asked++; return HighlighterLook.Dark.Off; });
+        Assert.Equal(0, asked);
+
+        Mark(canvas, new Rect(0, 0, W, H), Yellow);
+        Mark(canvas, new Rect(0, 0, 5, H), Yellow);
+        HighlighterLook.Refresh(canvas, () => { asked++; return HighlighterLook.Dark.Off; });
+        Assert.Equal(1, asked);
+    });
+
+    [Fact]
+    public void BothDarkModeTogglesRefreshTheMarksAfterThePagesRepaint()
+    {
+        string settings = File.ReadAllText(Path.Combine(RepoRoot(), "Shell", "SettingsPanel.cs"));
+        string docInvert = Between(settings, "private void ToggleDocInvert(", "\n        }");
+        Assert.True(docInvert.IndexOf("RefreshHighlighterMarks()", StringComparison.Ordinal)
+            > docInvert.IndexOf("RepaintForInvertChange(", StringComparison.Ordinal));
+        string images = Between(settings, "private void ToggleInvertImages(", "\n        }");
+        Assert.True(images.IndexOf("RefreshHighlighterMarks()", StringComparison.Ordinal)
+            > images.IndexOf("RepaintForInvertChange(", StringComparison.Ordinal));
+        Assert.Contains("ViewerB.RefreshHighlighterMarks()", images);
+    }
+
+    [Fact]
+    public void FormFieldsRefreshTheMarksOnTheirPage()
+    {
+        string forms = File.ReadAllText(Path.Combine(RepoRoot(), "Controls", "Viewer", "PdfViewer.Forms.cs"));
+        string wrapper = Between(forms, "private void RenderFormFields(", "\n        }");
+        Assert.Contains("RenderFormFieldsCore(", wrapper);
+        Assert.Contains("HighlighterLook.Refresh(CanvasForPage(pageIndex))", wrapper);
+    }
+
+    private static string Between(string text, string start, string end)
+    {
+        int from = text.IndexOf(start, StringComparison.Ordinal);
+        Assert.True(from >= 0, "missing " + start);
+        int to = text.IndexOf(end, from, StringComparison.Ordinal);
+        return text[from..(to < 0 ? text.Length : to)].Replace("\r", "");
+    }
+
+    [Fact]
     public void AnnotationsDrawnAfterTheMarkStayOnTop() => OnSta(() =>
     {
         var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));

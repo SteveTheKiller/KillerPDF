@@ -11,7 +11,7 @@ namespace KillerPDF.Controls;
 /// <summary>
 /// The on-screen look of a highlighter mark (PdfBurn.IsHighlighterMark). WPF has no blend modes, so a translucent
 /// rectangle laid over the page covers the text as its opacity rises. The mark instead shows what lies under it, through
-/// live brushes of the page image, any zoom detail, and every annotation drawn before it on the canvas, multiplied by
+/// live brushes of the page image, any zoom detail, and everything that paints beneath it on the canvas, multiplied by
 /// the highlight color: the paper takes the color and the text stays dark at any opacity, exactly as the saved copy
 /// paints it (#200). Annotations drawn after the mark stay on top of it, as they do in the saved copy.
 /// In dark mode the page is shown inverted except for kept pictures, so the mark shows the inverted saved look over the
@@ -28,7 +28,7 @@ internal static class HighlighterLook
 
     /// <summary>
     /// Builds the mark for <paramref name="bounds"/> on <paramref name="canvas"/>, the page's annotation canvas in its
-    /// page grid. Every child already on the canvas counts as drawn before the mark. <paramref name="carved"/> is the
+    /// page grid; the mark paints above everything already on the canvas. <paramref name="carved"/> is the
     /// eraser-carved outline in canvas units, or null for the whole rectangle. Without a page image to show through, it
     /// falls back to the plain translucent rectangle.
     /// </summary>
@@ -58,33 +58,33 @@ internal static class HighlighterLook
                     shared.Width / onPage.Width * bounds.Width, shared.Height / onPage.Height * bounds.Height));
             }
         if (kept.Count == 0)
-            mark.Children.Add(Stack(canvas, grid, page, bounds, onPage, color, dark.Inverted, earlier, clip: null));
+            mark.Children.Add(PageStack(grid, page, bounds, onPage, color, dark.Inverted, clip: null));
         else
         {
             var keptArea = new GeometryGroup { FillRule = FillRule.Nonzero };
             foreach (var rect in kept) keptArea.Children.Add(new RectangleGeometry(rect));
             var whole = new RectangleGeometry(new Rect(0, 0, bounds.Width, bounds.Height));
-            mark.Children.Add(Stack(canvas, grid, page, bounds, onPage, color, true, earlier,
+            mark.Children.Add(PageStack(grid, page, bounds, onPage, color, true,
                 new CombinedGeometry(GeometryCombineMode.Exclude, whole, keptArea)));
-            mark.Children.Add(Stack(canvas, grid, page, bounds, onPage, color, false, earlier, keptArea));
+            mark.Children.Add(PageStack(grid, page, bounds, onPage, color, false, keptArea));
         }
+        // Annotations and form fields are never inverted on screen, so what paints beneath the mark multiplies plainly,
+        // in dark mode too. Their transparent parts stay transparent, so the page shows through them.
+        if (Beneath(canvas, bounds, earlier, color) is { } annotations) mark.Children.Add(annotations);
 
-        if (carved is not null)
-        {
-            mark.Clip = InMark(carved, bounds);
-            mark.IsHitTestVisible = false;
-        }
+        if (carved is not null) mark.Clip = InMark(carved, bounds);
         else mark.ClipToBounds = true;
+        // Selection hit-tests annotations by their geometry; the visual itself must never take a click meant for a form
+        // field or anything else under it.
+        mark.IsHitTestVisible = false;
         mark.Tag = new MarkSpec(bounds, carved, color, dark);
         Canvas.SetLeft(mark, bounds.X);
         Canvas.SetTop(mark, bounds.Y);
         return mark;
     }
 
-    // What lies under the mark, multiplied: a backing for a page not drawn yet, the page, its zoom detail, and the
-    // annotations drawn before the mark.
-    private static Grid Stack(Canvas canvas, Grid grid, Image page, Rect bounds, Rect onPage, Color color, bool inverted,
-        int earlier, Geometry? clip)
+    // The page under the mark, multiplied: a backing for a page not drawn yet, the page image and its zoom detail.
+    private static Grid PageStack(Grid grid, Image page, Rect bounds, Rect onPage, Color color, bool inverted, Geometry? clip)
     {
         var stack = new Grid { UseLayoutRounding = false, Clip = clip };
         // A page not drawn yet shows its scaffold; black in dark mode so the inverted look still shows the mark there.
@@ -117,22 +117,42 @@ internal static class HighlighterLook
                 });
             }
 
-        // A brush of a canvas child paints it as it sits on the canvas, offset, transform and opacity included, so the
-        // mark's own bounds in canvas units crop it. Earlier marks come through with their multiply, so overlaps compound.
-        for (int index = 0; index < earlier && index < canvas.Children.Count; index++)
-        {
-            UIElement child = canvas.Children[index];
-            if (child.Visibility != Visibility.Visible || !Overlaps(child, bounds)) continue;
-            stack.Children.Add(new Rectangle { Fill = Through(child, bounds, BrushMappingMode.Absolute) });
-        }
-
         stack.Effect = new MultiplyEffect(Tint(color, inverted));
         return stack;
     }
 
-    // Cheap bounds for a canvas child before layout; unknown sizes count as overlapping.
+    // Everything on the canvas that paints beneath the mark, in paint order: a lower ZIndex (form fields sit at -1), or
+    // the same ZIndex and earlier. A brush of a canvas child paints it as it sits on the canvas, offset, transform and
+    // opacity included, so the mark's bounds in canvas units crop it. Earlier marks come through with their multiply,
+    // so overlaps compound like the saved copy.
+    private static Grid? Beneath(Canvas canvas, Rect bounds, int markIndex, Color color)
+    {
+        Grid? stack = null;
+        var under = new List<(int Z, int Index, UIElement Child)>();
+        for (int index = 0; index < canvas.Children.Count; index++)
+        {
+            if (index == markIndex) continue;
+            UIElement child = canvas.Children[index];
+            int z = Panel.GetZIndex(child);
+            if (z > 0 || z == 0 && index > markIndex) continue;
+            if (child.Visibility != Visibility.Visible || !Overlaps(child, bounds)) continue;
+            under.Add((z, index, child));
+        }
+        foreach (var (_, _, child) in under.OrderBy(item => item.Z).ThenBy(item => item.Index))
+        {
+            stack ??= new Grid { UseLayoutRounding = false };
+            stack.Children.Add(new Rectangle { Fill = Through(child, bounds, BrushMappingMode.Absolute) });
+        }
+        if (stack is not null) stack.Effect = new MultiplyEffect(Tint(color, false));
+        return stack;
+    }
+
+    // Cheap bounds for a canvas child before layout. Anything turned, or of unknown size, counts as overlapping: a
+    // missed child would vanish under the mark, an extra one only costs a brush.
     private static bool Overlaps(UIElement child, Rect bounds)
     {
+        if (child is FrameworkElement { LayoutTransform: { } layout } && !layout.Value.IsIdentity
+            || child.RenderTransform is { } turn && !turn.Value.IsIdentity) return true;
         Rect area;
         switch (child)
         {
@@ -145,14 +165,6 @@ internal static class HighlighterLook
                 double width = Size(element.Width, element.ActualWidth), height = Size(element.Height, element.ActualHeight);
                 if (width <= 0 || height <= 0) return true;
                 area = new Rect(double.IsFinite(left) ? left : 0, double.IsFinite(top) ? top : 0, width, height);
-                if (element.RenderTransform is { } turn && !turn.Value.IsIdentity)
-                {
-                    var origin = element.RenderTransformOrigin;
-                    var pivot = new Point(area.X + origin.X * width, area.Y + origin.Y * height);
-                    var placed = new TransformGroup { Children = { new TranslateTransform(-pivot.X, -pivot.Y), turn,
-                        new TranslateTransform(pivot.X, pivot.Y) } };
-                    area = placed.TransformBounds(area);
-                }
                 break;
             default: return true;
         }
@@ -226,14 +238,22 @@ internal static class HighlighterLook
     /// they were drawn, or for dark mode turned on or off (<paramref name="dark"/>). Only marks are replaced, so selection
     /// chrome and a gesture in progress stay as they are.
     /// </summary>
-    internal static void Refresh(Canvas canvas, Dark? dark = null)
+    internal static void Refresh(Canvas canvas, Dark dark) => Refresh(canvas, () => dark);
+
+    /// <summary>As above; <paramref name="dark"/> is asked once, and only when the canvas holds a mark, since working
+    /// out dark mode's kept pictures can read the document.</summary>
+    internal static void Refresh(Canvas canvas, Func<Dark>? dark = null)
     {
+        Dark? asked = null;
         for (int index = 0; index < canvas.Children.Count; index++)
             if (canvas.Children[index] is Grid { Tag: MarkSpec spec })
             {
+                Dark look = dark is null ? spec.Dark : asked ??= dark();
+                // Built while the old mark still holds its place, so every other child keeps the index that orders it.
+                var rebuilt = Build(canvas, spec.Bounds, spec.Carved, spec.Color, look, index);
                 // A panel's children cannot be replaced by index: take the old mark out, then put the new one in its place.
                 canvas.Children.RemoveAt(index);
-                canvas.Children.Insert(index, Build(canvas, spec.Bounds, spec.Carved, spec.Color, dark ?? spec.Dark, index));
+                canvas.Children.Insert(index, rebuilt);
             }
     }
 
