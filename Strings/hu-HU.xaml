@@ -1263,14 +1263,13 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Dlg_CancelBusy">Megszakítja a folyamatban lévő műveletet ({0})?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">1 oldal törlése</sys:String>
     <sys:String x:Key="Str_Del_BtnN">{0} oldal törlése</sys:String>
-    <sys:String x:Key="Str_Del_Summary">{0} törlődik, {1} marad. A Ctrl+Z visszahozza őket.</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} törlődik, {1} marad. A {2} visszahozza őket.</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} - {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} oldal</sys:String>
     <sys:String x:Key="Str_Del_More">+ {0} további</sys:String>
     <sys:String x:Key="Str_Card_Actions">Műveletek</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Üres oldal</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} oldal kijelölve</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">A műveletek minden kijelölt oldalra vonatkoznak</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 jelölés</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} jelölés</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">Tisztítás</sys:String>

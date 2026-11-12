@@ -1269,14 +1269,13 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Dlg_CancelBusy">Скасувати поточну дію ({0})?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">Видалити 1 сторінку</sys:String>
     <sys:String x:Key="Str_Del_BtnN">Видалити сторінки: {0}</sys:String>
-    <sys:String x:Key="Str_Del_Summary">Буде видалено: {0}, залишиться: {1}. Ctrl+Z поверне їх.</sys:String>
+    <sys:String x:Key="Str_Del_Summary">Буде видалено: {0}, залишиться: {1}. {2} поверне їх.</sys:String>
     <sys:String x:Key="Str_Del_Run">від {0} до {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">Сторінок: {0}</sys:String>
     <sys:String x:Key="Str_Del_More">+ ще {0}</sys:String>
     <sys:String x:Key="Str_Card_Actions">Дії</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Порожня сторінка</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Вибрано сторінок: {0}</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">Дії застосовуються до всіх вибраних сторінок</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 анотація</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">Анотацій: {0}</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">Очищення</sys:String>

@@ -1276,14 +1276,13 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Dlg_CancelBusy">Cancel the current {0}?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">Delete 1 page</sys:String>
     <sys:String x:Key="Str_Del_BtnN">Delete {0} pages</sys:String>
-    <sys:String x:Key="Str_Del_Summary">{0} going, {1} staying. Ctrl+Z puts them back.</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} going, {1} staying. {2} puts them back.</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} to {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} pages</sys:String>
     <sys:String x:Key="Str_Del_More">+ {0} more</sys:String>
     <sys:String x:Key="Str_Card_Actions">Actions</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Blank page</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} pages selected</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">Actions apply to every selected page</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 markup</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} markups</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">Clean up</sys:String>

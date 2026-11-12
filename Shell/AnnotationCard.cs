@@ -34,14 +34,16 @@ namespace KillerPDF.Shell
             if (hit.GroupId.Length > 0) quick.Add(("\uF156", Loc("Str_Ctx_Ungroup"), null, () => UngroupAnnotation(hit), false, true));
             else if (multi) quick.Add(("\uF168", Loc("Str_Ctx_Group"), null, GroupSelected, false, true));
             quick.Add(("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, true));
-            _ctxMenu.Items.Add(CardSlot(QuickStrip(_ctxMenu, [.. quick]), new Thickness(0)));
+            var strip = QuickStrip(_ctxMenu, [.. quick]);
+            _ctxMenu.Items.Add(CardSlot(strip, new Thickness(0)));
+            FocusFirstActionFromKeyboard(_ctxMenu, strip);
 
             var colored = targets.Where(HasCardColor).ToList();
             if (colored.Count > 0)
             {
                 _ctxMenu.Items.Add(CardSlot(CardColorRow(colored), new Thickness(24, 8, 4, 2)));
                 _ctxMenu.Items.Add(CardSlot(CardSliderRow(Loc("Str_Bar_Opacity"), 10, 255, colored[0] is InkAnnotation ink ? ink.ColorA : ((HighlightAnnotation)colored[0]).ColorA,
-                    value => $"{(int)(value / 255.0 * 100)}%", (value, gesture) => ApplyCardStyle(colored, a => SetCardOpacity(a, (byte)value), gesture)),
+                    value => $"{(int)Math.Round(value / 255.0 * 100)}%", (value, gesture) => ApplyCardStyle(colored, a => SetCardOpacity(a, (byte)value), gesture)),
                     new Thickness(24, 2, 4, 2)));
             }
             var inks = targets.Where(a => a is InkAnnotation).ToList();
@@ -207,6 +209,10 @@ namespace KillerPDF.Shell
             foreach (int page in targets.Select(a => a.PageIndex).Distinct().Where(p => p != primary)) RenderAllAnnotations(page);
             RenderAllAnnotations(primary);
             ReattachSelectionVisuals();
+            // The re-render wiped the canvases, so the rest of a multi-selection gets its outlines back (review BF-003),
+            // and the bar the selection opened shows the new look so its next change does not write the old one back.
+            ActiveViewer.ReattachMultiOutlinesExt();
+            ActiveViewer.RefreshSelectedDrawBar();
         }
     }
 }

@@ -150,9 +150,10 @@ public sealed class HighlighterMultiplyTests
     [Fact]
     public void SelectingAShapeRectangleDoesNotChangeTheHighlighterColor()
     {
-        string annotations = Source("Controls", "Viewer", "PdfViewer.Annotations.cs");
-        int shapeBranch = annotations.IndexOf("annot is HighlightAnnotation { IsShape: true }", StringComparison.Ordinal);
-        int highlightBranch = annotations.IndexOf("annot is HighlightAnnotation hsel", StringComparison.Ordinal);
+        // 1.9.4 moved the selection's bar sync into PdfViewer.DrawLook.cs.
+        string annotations = Source("Controls", "Viewer", "PdfViewer.DrawLook.cs");
+        int shapeBranch = annotations.IndexOf("case HighlightAnnotation { IsShape: true } shape:", StringComparison.Ordinal);
+        int highlightBranch = annotations.IndexOf("case HighlightAnnotation highlight:", StringComparison.Ordinal);
         Assert.True(shapeBranch >= 0 && shapeBranch < highlightBranch, "a selected Shapes rectangle must be handled before the highlighter branch");
         string bar = Source("Shell", "TextSettingsBar.cs");
         Assert.Contains("ha.IsShape ? _drawColor", bar);

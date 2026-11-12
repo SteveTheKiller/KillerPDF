@@ -35,13 +35,13 @@ public sealed class CardMenuTests
     public void CardGlyphsAreWrittenAsEscapesNeverLiteralCharacters()
     {
         // Literal private-use glyphs do not survive tooling (family rule); the card code uses \u escapes.
-        foreach (var file in new[] { ("Shell", "PageCard.cs"), ("Shell", "AnnotationCard.cs"), ("Controls", "DeletePagesDialog.cs") })
+        foreach (var file in new[] { ("Shell", "PageCard.cs"), ("Shell", "AnnotationCard.cs"), ("Controls", "DeletePagesDialog.cs"), ("KillerPDF.Tests", "CardMenuTests.cs") })
         {
             string text = Read(file.Item1, file.Item2);
-            Assert.DoesNotContain(text, c => c >= '' && c <= '');
+            Assert.DoesNotContain(text, c => c >= '\uE000' && c <= '\uF8FF');
         }
         string pageMenu = Between(Read("Shell", "ContextMenu.cs"), "private void AddPageMenuItems(", "private Button NavRowButton(");
-        Assert.DoesNotContain(pageMenu, c => c >= '' && c <= '');
+        Assert.DoesNotContain(pageMenu, c => c >= '\uE000' && c <= '\uF8FF');
     }
 
     [Fact]
@@ -72,6 +72,10 @@ public sealed class CardMenuTests
         Assert.Contains("cleanUp.Items.Add(", card);
         Assert.Contains("fromPage.Items.Add(", card);
         Assert.Contains("move.Items.Add(", card);
+        // Review BF-007: the card names the clicked page, because its single-page actions act on that page, and
+        // Insert blank page goes after it.
+        Assert.DoesNotContain("Str_Card_AllSelected", card);
+        Assert.Contains("() => InsertBlankPage(page)", card);
     }
 
     [Fact]
@@ -90,6 +94,9 @@ public sealed class CardMenuTests
         Assert.Contains("PushStyleUndo(targets, gesture);", apply);
         Assert.DoesNotContain("_highlightColor", card);
         Assert.DoesNotContain("_drawColor", card);
+        // Review BF-012: opened from the keyboard, both cards focus their first quick action.
+        Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, strip);", card);
+        Assert.Contains("FocusFirstActionFromKeyboard(menu, strip);", Read("Shell", "PageCard.cs"));
     }
 
     [Fact]
@@ -99,6 +106,9 @@ public sealed class CardMenuTests
         Assert.InRange(Count(page, "_ctxMenu.Items.Add("), 1, 14);
         Assert.Equal(10, Count(page, "tools.Items.Add(Make"));
         Assert.Contains("AddNavRow(_ctxMenu, pageIdx);", page);
+        // Review BF-008: Delete Page acts on the right-clicked page like its neighbours, not the sidebar selection.
+        Assert.Contains("DeletePages(pageIdx)", page);
+        Assert.DoesNotContain("Delete_Click", page);
         string nav = Between(Read("Shell", "ContextMenu.cs"), "private void AddNavRow(", "private Button NavRowButton(");
         foreach (string key in new[] { "Str_Kb_Back", "Str_Kb_Forward", "Str_Ctx_UndoLast", "Str_Ctx_Redo", "Str_Ctx_Print" })
             Assert.Contains($"\"{key}\"", nav);
@@ -107,12 +117,17 @@ public sealed class CardMenuTests
     [Fact]
     public void SelectingAMarkLendsItTheBarAndDeselectingGivesTheToolsLookBack()
     {
+        // The borrow and release rules themselves are exercised in DrawToolLookTests; these pin the wiring.
         string annotations = Read("Controls", "Viewer", "PdfViewer.Annotations.cs");
-        string sync = Between(annotations, "else if (annot is HighlightAnnotation { IsShape: true } shapeSel)", "// A measurement opens the Measure bar");
-        Assert.Equal(3, Count(sync, "BorrowDrawLook();"));
-        Assert.Equal(3, Count(sync, "NoteSelectedDrawLook();"));
-        string measure = Between(annotations, "else if (annot is MeasurementAnnotation msel)", "ShowDrawSettings(EditTool.Measure);");
-        Assert.Contains("BorrowDrawLook();", measure);
+        Assert.Contains("else SyncDrawBarToSelection(annot);", Between(annotations, "private void SelectAnnotation(", "private static bool IsDraggable("));
         Assert.Contains("ReleaseSelectedDrawLook();", Between(annotations, "internal void ClearSelection()", "private void ClearMultiSelection()"));
+        string drawLook = Read("Controls", "Viewer", "PdfViewer.DrawLook.cs");
+        string sync = Between(drawLook, "private bool SyncDrawBarToSelection(", "internal void RefreshSelectedDrawBar()");
+        Assert.Equal(4, Count(sync, "_drawLookLease.Borrow(CurrentDrawLook());"));
+        Assert.Contains("_drawLookLease.Note(CurrentDrawLook());", sync);
+        // Review BF-001/002/003: a card change refreshes the bar the selection opened and keeps the outlines.
+        string apply = Between(Read("Shell", "AnnotationCard.cs"), "private void ApplyCardStyle", "\n        }");
+        Assert.Contains("ActiveViewer.RefreshSelectedDrawBar();", apply);
+        Assert.Contains("ActiveViewer.ReattachMultiOutlinesExt();", apply);
     }
 }

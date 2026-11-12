@@ -2,7 +2,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace KillerPDF.Shell
 {
@@ -24,7 +26,7 @@ namespace KillerPDF.Shell
                 ("\uE7AD", Loc("Str_Ctx_RotateCCWShort"), "CtrlShift:R", () => RotatePages_Click(-90), true, true),
                 ("\uE7AD", Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90), false, true),
                 ("\uE8C8", Loc("Str_Ctx_DuplicatePage"), null, () => DuplicatePage(page), false, true),
-                ("\uE710", Loc("Str_Card_InsertBlank"), null, () => InsertBlankPage_Click(this, new RoutedEventArgs()), false, true),
+                ("\uE710", Loc("Str_Card_InsertBlank"), null, () => InsertBlankPage(page), false, true),
                 ("\uE8A7", Loc("Str_Ctx_ExtractPages"), null, () => Split_Click(this, new RoutedEventArgs()), false, true),
                 ("\uE74D", Loc("Str_Ctx_DeletePages"), "Del", () => Delete_Click(this, new RoutedEventArgs()), false, true));
             // The caption is short so it fits under its glyph; the tooltip and screen readers get the whole action.
@@ -34,6 +36,7 @@ namespace KillerPDF.Shell
                 System.Windows.Automation.AutomationProperties.SetName(insert, Loc("Str_Ctx_InsertBlank"));
             }
             menu.Items.Add(CardSlot(strip, new Thickness(0)));
+            FocusFirstActionFromKeyboard(menu, strip);
 
             menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Merge"), async (_, _) => await MergeAtIndex(page + 1), glyph: "\uE8F4"));
             menu.Items.Add(MakeTransformMenuItem(Loc("Str_Tf_Suffix"), (_, _) => OpenTransformWindow(), GestureFor("R")));
@@ -91,7 +94,7 @@ namespace KillerPDF.Shell
                 FontSize = 14, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis
             };
             title.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-            var meta = new TextBlock { Text = selected > 1 ? Loc("Str_Card_AllSelected") : PageCardMeta(page), FontSize = 11, Margin = new Thickness(0, 1, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+            var meta = new TextBlock { Text = selected > 1 ? string.Format(Loc("Str_PageOf"), page + 1, count) : PageCardMeta(page), FontSize = 11, Margin = new Thickness(0, 1, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
             meta.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             text.Children.Add(title);
@@ -121,6 +124,24 @@ namespace KillerPDF.Shell
         }
 
         // A card row that holds controls rather than being a command (KillerUI CardSlot).
+        // The card's quick actions sit in rows the arrow keys skip (KillerUI CardSlot), so a card opened from the
+        // keyboard (Shift+F10, the Menu key) puts focus on its first enabled action; Left and Right walk the strip and
+        // Tab goes on to the rows (1.9.4 review BF-012). A card opened with the mouse leaves focus alone.
+        private static void FocusFirstActionFromKeyboard(ContextMenu menu, FrameworkElement strip)
+        {
+            if (strip is not Border { Child: UniformGrid grid } || grid.Children.OfType<Button>().FirstOrDefault(b => b.IsEnabled) is not { } first) return;
+            KeyboardNavigation.SetDirectionalNavigation(grid, KeyboardNavigationMode.Cycle);
+            RoutedEventHandler? opened = null, closed = null;
+            opened = (_, _) =>
+            {
+                if (InputManager.Current.MostRecentInputDevice is KeyboardDevice)
+                    first.Dispatcher.BeginInvoke(DispatcherPriority.Input, () => first.Focus());
+            };
+            closed = (_, _) => { menu.Opened -= opened; menu.Closed -= closed; };
+            menu.Opened += opened;
+            menu.Closed += closed;
+        }
+
         private MenuItem CardSlot(object content, Thickness padding)
         {
             var slot = new MenuItem { Header = content, Padding = padding };

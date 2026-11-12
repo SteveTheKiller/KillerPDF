@@ -1256,14 +1256,13 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Dlg_CancelBusy">Geçerli işlem ({0}) iptal edilsin mi?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">1 Sayfayı Sil</sys:String>
     <sys:String x:Key="Str_Del_BtnN">{0} Sayfayı Sil</sys:String>
-    <sys:String x:Key="Str_Del_Summary">{0} silinecek, {1} kalacak. Ctrl+Z bunları geri getirir.</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} silinecek, {1} kalacak. {2} bunları geri getirir.</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} ile {1} arası</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} sayfa</sys:String>
     <sys:String x:Key="Str_Del_More">+ {0} tane daha</sys:String>
     <sys:String x:Key="Str_Card_Actions">Eylemler</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Boş Sayfa</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} sayfa seçildi</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">Eylemler seçilen her sayfaya uygulanır</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 işaretleme</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} işaretleme</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">Temizle</sys:String>

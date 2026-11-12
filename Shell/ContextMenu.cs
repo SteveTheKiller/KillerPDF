@@ -226,7 +226,7 @@ namespace KillerPDF.Shell
             tools.Items.Add(MakeMenuItem(Loc("Str_TableExport_Title"), (_, _) => ExportTable(pageIdx), glyph: "\uE80A"));
             tools.Items.Add(new Separator());
             tools.Items.Add(MakeMenuItem(Loc("Str_Ctx_DuplicatePage"), (s, e) => DuplicatePage(pageIdx), glyph: "\uE8C8"));
-            tools.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeletePage"), (s, e) => Delete_Click(s!, e), glyph: "\uE74D"));
+            tools.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeletePage"), (_, _) => DeletePages(pageIdx), glyph: "\uE74D"));
             _ctxMenu.Items.Add(tools);
             _ctxMenu.Items.Add(new Separator());
 

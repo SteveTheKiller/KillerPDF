@@ -1269,14 +1269,13 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Dlg_CancelBusy">実行中の{0}をキャンセルしますか？</sys:String>
     <sys:String x:Key="Str_Del_Btn1">1 ページを削除</sys:String>
     <sys:String x:Key="Str_Del_BtnN">{0} ページを削除</sys:String>
-    <sys:String x:Key="Str_Del_Summary">{0} ページを削除、{1} ページを保持。Ctrl+Z で元に戻せます。</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} ページを削除、{1} ページを保持。{2} で元に戻せます。</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} から {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} ページ</sys:String>
     <sys:String x:Key="Str_Del_More">+ 他 {0} 件</sys:String>
     <sys:String x:Key="Str_Card_Actions">操作</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">空白ページ</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} ページを選択中</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">操作は選択したすべてのページに適用されます</sys:String>
     <sys:String x:Key="Str_Card_Markups1">注釈 1 件</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">注釈 {0} 件</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">クリーンアップ</sys:String>

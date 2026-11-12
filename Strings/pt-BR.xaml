@@ -1269,14 +1269,13 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Dlg_CancelBusy">Cancelar {0} em andamento?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">Excluir 1 página</sys:String>
     <sys:String x:Key="Str_Del_BtnN">Excluir {0} páginas</sys:String>
-    <sys:String x:Key="Str_Del_Summary">Excluídas: {0}, restantes: {1}. Ctrl+Z desfaz.</sys:String>
+    <sys:String x:Key="Str_Del_Summary">Excluídas: {0}, restantes: {1}. {2} desfaz.</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} a {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} páginas</sys:String>
     <sys:String x:Key="Str_Del_More">+ {0} mais</sys:String>
     <sys:String x:Key="Str_Card_Actions">Ações</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Página em branco</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} páginas selecionadas</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">As ações valem para todas as páginas selecionadas</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 marcação</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} marcações</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">Limpar</sys:String>

@@ -5,6 +5,8 @@ namespace KillerPDF.Services;
 /// each once), the same pages grouped into runs of neighbours for the thumbnail strip (one tile per run, however long),
 /// how many pages stay, and whether at least one does. Pages outside the document are dropped.
 /// </summary>
+internal enum DeletePagesProblem { None, InvalidRange, KeepOnePage }
+
 internal sealed class DeletePagesPlan
 {
     private DeletePagesPlan(IReadOnlyList<int> pages, IReadOnlyList<(int First, int Last)> groups, int pageCount)
@@ -20,6 +22,13 @@ internal sealed class DeletePagesPlan
     internal int Remaining => PageCount - Pages.Count;
     internal bool HasPages => Pages.Count > 0;
     internal bool KeepsAPage => Remaining > 0;
+
+    /// <summary>Pages in the runs after the first <paramref name="shownGroups"/>, for the strip's "+ N more" tile.</summary>
+    internal int PagesAfter(int shownGroups) => Groups.Skip(shownGroups).Sum(group => group.Last - group.First + 1);
+
+    /// <summary>Why the dialog's button is off, if it is: nothing readable to delete, or a range that leaves no page.</summary>
+    internal DeletePagesProblem Problem(bool parsed) =>
+        !parsed || !HasPages ? DeletePagesProblem.InvalidRange : !KeepsAPage ? DeletePagesProblem.KeepOnePage : DeletePagesProblem.None;
 
     internal static DeletePagesPlan From(IEnumerable<int> pages, int pageCount)
     {

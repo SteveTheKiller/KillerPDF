@@ -1256,14 +1256,13 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Dlg_CancelBusy">¿Cancelar {0} en curso?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">Eliminar 1 página</sys:String>
     <sys:String x:Key="Str_Del_BtnN">Eliminar {0} páginas</sys:String>
-    <sys:String x:Key="Str_Del_Summary">Se eliminan {0}, quedan {1}. Ctrl+Z las recupera.</sys:String>
+    <sys:String x:Key="Str_Del_Summary">Se eliminan {0}, quedan {1}. {2} las recupera.</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} a {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} páginas</sys:String>
     <sys:String x:Key="Str_Del_More">+ {0} más</sys:String>
     <sys:String x:Key="Str_Card_Actions">Acciones</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Página en blanco</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} páginas seleccionadas</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">Las acciones se aplican a todas las páginas seleccionadas</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 anotación</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} anotaciones</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">Limpiar</sys:String>

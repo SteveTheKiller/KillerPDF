@@ -1260,14 +1260,13 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Dlg_CancelBusy">取消当前{0}？</sys:String>
     <sys:String x:Key="Str_Del_Btn1">删除 1 页</sys:String>
     <sys:String x:Key="Str_Del_BtnN">删除 {0} 页</sys:String>
-    <sys:String x:Key="Str_Del_Summary">将删除 {0} 页，保留 {1} 页。按 Ctrl+Z 可恢复。</sys:String>
+    <sys:String x:Key="Str_Del_Summary">将删除 {0} 页，保留 {1} 页。按 {2} 可恢复。</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} 至 {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} 页</sys:String>
     <sys:String x:Key="Str_Del_More">+ 另外 {0} 项</sys:String>
     <sys:String x:Key="Str_Card_Actions">操作</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">空白页</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">已选择 {0} 页</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">操作将应用于每个选中的页面</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 个标记</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} 个标记</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">清理</sys:String>

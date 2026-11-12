@@ -1261,14 +1261,13 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Dlg_CancelBusy">Zrušit probíhající operaci ({0})?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">Smazat 1 stránku</sys:String>
     <sys:String x:Key="Str_Del_BtnN">Smazat stránky: {0}</sys:String>
-    <sys:String x:Key="Str_Del_Summary">Ke smazání: {0}, zůstane: {1}. Ctrl+Z je vrátí.</sys:String>
+    <sys:String x:Key="Str_Del_Summary">Ke smazání: {0}, zůstane: {1}. {2} je vrátí.</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} až {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">Stránek: {0}</sys:String>
     <sys:String x:Key="Str_Del_More">+ další: {0}</sys:String>
     <sys:String x:Key="Str_Card_Actions">Akce</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Prázdná stránka</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Vybrané stránky: {0}</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">Akce se použijí na každou vybranou stránku</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 anotace</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">Anotací: {0}</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">Vyčistit</sys:String>

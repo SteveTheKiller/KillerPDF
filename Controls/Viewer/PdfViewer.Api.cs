@@ -42,6 +42,7 @@ namespace KillerPDF.Controls
         internal PageAnnotation? SelectedPairedExt() => SelectedPaired();
         internal int SelectionCountExt() => SelectionCount();
         internal void ReattachSelectionVisualsExt() => ReattachSelectionVisuals();
+        internal void ReattachMultiOutlinesExt() => ReattachMultiOutlines();
         internal bool NudgeSelectionExt(Vector requested, bool createUndo) => NudgeSelection(requested, createUndo);
         internal void UnpairSelectedExt() => UnpairSelected();
         internal void GroupSelectedExt() => GroupSelected();

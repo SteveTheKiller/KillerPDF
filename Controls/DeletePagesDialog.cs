@@ -18,6 +18,7 @@ internal sealed class DeletePagesDialog : Window
 
     private readonly int _pageCount;
     private readonly Func<int, PageThumbnailVm?> _row;
+    private readonly string _undoGesture;
     private readonly TextBox _range;
     private readonly TextBlock _problem;
     private readonly StackPanel _strip;
@@ -28,9 +29,10 @@ internal sealed class DeletePagesDialog : Window
     /// <summary>The pages to delete, zero-based and sorted, once the dialog returns true.</summary>
     internal IReadOnlyList<int> Pages => _plan.Pages;
 
-    internal DeletePagesDialog(Window owner, int pageCount, string initialRange, Func<int, PageThumbnailVm?> row)
+    internal DeletePagesDialog(Window owner, int pageCount, string initialRange, Func<int, PageThumbnailVm?> row, string undoGesture)
     {
         _pageCount = pageCount;
+        _undoGesture = undoGesture;
         _row = row;
         _plan = DeletePagesPlan.From([], pageCount);
         Title = "KillerPDF - " + L("Str_Lbl_Delete");
@@ -85,14 +87,18 @@ internal sealed class DeletePagesDialog : Window
         List<int>? parsed = string.IsNullOrWhiteSpace(_range.Text)
             ? [] : Features.CliRunner.CliParsePageRange(_range.Text, _pageCount, out _);
         _plan = DeletePagesPlan.From(parsed ?? [], _pageCount);
-        string? problem = parsed is null ? L("Str_InvalidRange")
-            : _plan.HasPages && !_plan.KeepsAPage ? L("Str_Dlg_KeepOnePage") : null;
+        string? problem = _plan.Problem(parsed is not null) switch
+        {
+            DeletePagesProblem.InvalidRange => L("Str_InvalidRange"),
+            DeletePagesProblem.KeepOnePage => L("Str_Dlg_KeepOnePage"),
+            _ => null
+        };
         _problem.Text = problem ?? "";
         _problem.Visibility = problem is null ? Visibility.Collapsed : Visibility.Visible;
-        bool ok = problem is null && _plan.HasPages;
+        bool ok = problem is null;
         _delete.IsEnabled = ok;
-        _delete.Content = Text.Button(_plan.Pages.Count);
-        _summary.Text = ok ? Text.Summary(_plan.Pages.Count, _plan.Remaining) : "";
+        _delete.Content = ok ? Text.Button(_plan.Pages.Count) : L("Str_Lbl_Delete");
+        _summary.Text = ok ? Text.Summary(_plan.Pages.Count, _plan.Remaining, _undoGesture) : "";
         _summary.Visibility = ok ? Visibility.Visible : Visibility.Collapsed;
         BuildStrip(ok);
     }
@@ -103,7 +109,7 @@ internal sealed class DeletePagesDialog : Window
         if (!ok) return;
         foreach (var (first, last) in _plan.Groups.Take(MaxTiles))
             _strip.Children.Add(Tile(first, last));
-        int more = _plan.Groups.Count - MaxTiles;
+        int more = _plan.PagesAfter(MaxTiles);
         if (more > 0) _strip.Children.Add(MoreTile(more));
     }
 
@@ -170,10 +176,11 @@ internal sealed class DeletePagesDialog : Window
     internal static class Text
     {
         internal static string Button(int pages) => pages == 1 ? L("Str_Del_Btn1") : string.Format(L("Str_Del_BtnN"), pages);
-        internal static string Summary(int going, int staying) => string.Format(L("Str_Del_Summary"), going, staying);
+        // The undo key comes from the shortcut table, so a remap (or a keyboard that says Strg) reads right.
+        internal static string Summary(int going, int staying, string undo) => string.Format(L("Str_Del_Summary"), going, staying, undo);
         internal static string Run(int first, int last) => string.Format(L("Str_Del_Run"), first, last);
         internal static string RunCount(int pages) => string.Format(L("Str_Del_RunCount"), pages);
-        internal static string More(int groups) => string.Format(L("Str_Del_More"), groups);
+        internal static string More(int pages) => string.Format(L("Str_Del_More"), pages);
     }
 
     private static string L(string key) => Application.Current?.TryFindResource(key) as string ?? key;

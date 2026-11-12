@@ -1269,14 +1269,13 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Dlg_CancelBusy">Vuoi annullare l'attuale {0}?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">Elimina 1 pagina</sys:String>
     <sys:String x:Key="Str_Del_BtnN">Elimina {0} pagine</sys:String>
-    <sys:String x:Key="Str_Del_Summary">{0} da eliminare, {1} restanti. Ctrl+Z le ripristina.</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} da eliminare, {1} restanti. {2} le ripristina.</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} a {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} pagine</sys:String>
     <sys:String x:Key="Str_Del_More">+ {0} altre</sys:String>
     <sys:String x:Key="Str_Card_Actions">Azioni</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Pagina vuota</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} pagine selezionate</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">Le azioni si applicano a tutte le pagine selezionate</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 annotazione</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} annotazioni</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">Pulisci</sys:String>

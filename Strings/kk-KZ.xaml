@@ -1165,14 +1165,13 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Dlg_CancelBusy">Ағымдағы {0} болдырылсын ба?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">1 бетті жою</sys:String>
     <sys:String x:Key="Str_Del_BtnN">{0} бетті жою</sys:String>
-    <sys:String x:Key="Str_Del_Summary">{0} жойылады, {1} қалады. Ctrl+Z оларды қайтарады.</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} жойылады, {1} қалады. {2} оларды қайтарады.</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} - {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} бет</sys:String>
     <sys:String x:Key="Str_Del_More">+ тағы {0}</sys:String>
     <sys:String x:Key="Str_Card_Actions">Әрекеттер</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Бос бет</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} бет таңдалды</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">Әрекеттер таңдалған барлық бетке қолданылады</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 аннотация</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} аннотация</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">Тазалау</sys:String>

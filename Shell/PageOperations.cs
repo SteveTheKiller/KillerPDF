@@ -106,14 +106,19 @@ namespace KillerPDF.Shell
             }
         }
 
-        private void Delete_Click(object sender, RoutedEventArgs e)
+        private void Delete_Click(object sender, RoutedEventArgs e) => DeletePages(null);
+
+        /// <summary>Delete Pages, prefilled with one page (a page's own menu) or else the sidebar selection.</summary>
+        private void DeletePages(int? page)
         {
             if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             if (!EnsureEditable(continueAfterUnlock: false)) return;
             var sourceCurrent = CaptureDocumentOrigin();
+            string initial = page is int one && one >= 0 && one < _doc.PageCount
+                ? (one + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) : InitialPageRange(_doc.PageCount);
             // One step: the dialog shows which pages go and says so on its button, so no Yes/No box follows it.
-            var dialog = new DeletePagesDialog(this, _doc.PageCount, InitialPageRange(_doc.PageCount),
-                page => page < PageList.Items.Count ? PageList.Items[page] as PageThumbnailVm : null);
+            var dialog = new DeletePagesDialog(this, _doc.PageCount, initial,
+                page => page < PageList.Items.Count ? PageList.Items[page] as PageThumbnailVm : null, GestureFor("Ctrl:Z"));
             if (dialog.ShowDialog() != true || !sourceCurrent()) return;
             int[] selected = [.. dialog.Pages];
             // The dialog refuses an empty range and one that leaves no page; the document can change behind it.
@@ -189,12 +194,15 @@ namespace KillerPDF.Shell
             return [.. pages];
         }
 
-        private void InsertBlankPage_Click(object sender, RoutedEventArgs e)
+        private void InsertBlankPage_Click(object sender, RoutedEventArgs e) => InsertBlankPage(null);
+
+        /// <summary>Inserts a blank page after the given page (a page card), or else after the sidebar selection.</summary>
+        private void InsertBlankPage(int? after)
         {
             if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             if (!EnsureEditable(continueAfterUnlock: false)) return;
-            int insertAfter = PageList.SelectedIndex >= 0
-                ? PageList.SelectedIndex : _doc.PageCount - 1;
+            int insertAfter = after is int page && page >= 0 && page < _doc.PageCount ? page
+                : PageList.SelectedIndex >= 0 ? PageList.SelectedIndex : _doc.PageCount - 1;
             int insertIndex = insertAfter + 1;
             var (pageWidth, pageHeight) = EnsureEngineDocumentSession()
                 .VisualPageSize(Math.Max(0, insertAfter), _pageRotations);

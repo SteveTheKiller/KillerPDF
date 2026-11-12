@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Selecting a highlight, drawing, filled rectangle or measurement no longer changes the color, opacity or width of the next mark you draw: the bar shows the selected mark's look while it is selected and returns to its own when it is not. A change you make on the bar meanwhile stays.
+- A right-click menu taller than the screen scrolls instead of cutting off its last items.
 
 ### Changed
 

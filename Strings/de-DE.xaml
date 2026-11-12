@@ -1262,14 +1262,13 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Dlg_CancelBusy">{0} abbrechen?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">1 Seite löschen</sys:String>
     <sys:String x:Key="Str_Del_BtnN">{0} Seiten löschen</sys:String>
-    <sys:String x:Key="Str_Del_Summary">{0} werden gelöscht, {1} bleiben. Ctrl+Z holt sie zurück.</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0} werden gelöscht, {1} bleiben. {2} holt sie zurück.</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} bis {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} Seiten</sys:String>
     <sys:String x:Key="Str_Del_More">+ {0} weitere</sys:String>
     <sys:String x:Key="Str_Card_Actions">Aktionen</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Leere Seite</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} Seiten ausgewählt</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">Aktionen gelten für jede ausgewählte Seite</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 Anmerkung</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0} Anmerkungen</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">Bereinigen</sys:String>

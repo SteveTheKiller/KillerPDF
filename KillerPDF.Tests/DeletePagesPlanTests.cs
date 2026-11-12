@@ -38,6 +38,26 @@ public sealed class DeletePagesPlanTests
     }
 
     [Fact]
+    public void TheMoreTileCountsPagesNotRuns()
+    {
+        // Review BF-010: two tiles shown, and the one run left over is 500 pages long.
+        var plan = DeletePagesPlan.From([0, 2, .. Enumerable.Range(10, 500)], pageCount: 900);
+
+        Assert.Equal(500, plan.PagesAfter(shownGroups: 2));
+        Assert.Equal(0, plan.PagesAfter(shownGroups: 3));
+    }
+
+    [Fact]
+    public void AnEmptyOrUnreadableRangeSaysSo()
+    {
+        // Review BF-009: an empty box and "," both explain why the button is off.
+        Assert.Equal(DeletePagesProblem.InvalidRange, DeletePagesPlan.From([], 6).Problem(parsed: true));
+        Assert.Equal(DeletePagesProblem.InvalidRange, DeletePagesPlan.From([], 6).Problem(parsed: false));
+        Assert.Equal(DeletePagesProblem.KeepOnePage, DeletePagesPlan.From([0, 1], 2).Problem(parsed: true));
+        Assert.Equal(DeletePagesProblem.None, DeletePagesPlan.From([0], 2).Problem(parsed: true));
+    }
+
+    [Fact]
     public void PagesOutsideTheDocumentAreDropped()
     {
         var plan = DeletePagesPlan.From([-1, 0, 5, 9], pageCount: 6);
@@ -52,7 +72,7 @@ public sealed class DeletePagesPlanTests
         var dir = new System.IO.DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "KillerPDF.sln"))) dir = dir.Parent;
         string source = System.IO.File.ReadAllText(System.IO.Path.Combine(dir!.FullName, "Shell", "PageOperations.cs"));
-        int start = source.IndexOf("private void Delete_Click", StringComparison.Ordinal);
+        int start = source.IndexOf("private void DeletePages(", StringComparison.Ordinal);
         string delete = source[start..source.IndexOf("private string InitialPageRange", start, StringComparison.Ordinal)];
 
         Assert.Contains("new DeletePagesDialog(", delete);

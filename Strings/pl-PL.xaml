@@ -1264,14 +1264,13 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Dlg_CancelBusy">Anulować bieżącą operację ({0})?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">Usuń 1 stronę</sys:String>
     <sys:String x:Key="Str_Del_BtnN">Usuń strony: {0}</sys:String>
-    <sys:String x:Key="Str_Del_Summary">Do usunięcia: {0}, pozostanie: {1}. Ctrl+Z je przywróci.</sys:String>
+    <sys:String x:Key="Str_Del_Summary">Do usunięcia: {0}, pozostanie: {1}. {2} je przywróci.</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} do {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">Stron: {0}</sys:String>
     <sys:String x:Key="Str_Del_More">+ jeszcze: {0}</sys:String>
     <sys:String x:Key="Str_Card_Actions">Akcje</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Pusta strona</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Wybrane strony: {0}</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">Akcje dotyczą każdej wybranej strony</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1 adnotacja</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">Adnotacje: {0}</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">Uporządkuj</sys:String>

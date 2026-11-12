@@ -1256,14 +1256,13 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Dlg_CancelBusy">চলমান {0} বাতিল করবেন?</sys:String>
     <sys:String x:Key="Str_Del_Btn1">1টি পৃষ্ঠা মুছুন</sys:String>
     <sys:String x:Key="Str_Del_BtnN">{0}টি পৃষ্ঠা মুছুন</sys:String>
-    <sys:String x:Key="Str_Del_Summary">{0}টি মুছে যাবে, {1}টি থাকবে। Ctrl+Z দিয়ে ফিরিয়ে আনুন।</sys:String>
+    <sys:String x:Key="Str_Del_Summary">{0}টি মুছে যাবে, {1}টি থাকবে। {2} দিয়ে ফিরিয়ে আনুন।</sys:String>
     <sys:String x:Key="Str_Del_Run">{0} থেকে {1}</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0}টি পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_Del_More">+ আরও {0}টি</sys:String>
     <sys:String x:Key="Str_Card_Actions">অ্যাকশন</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">ফাঁকা পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0}টি পৃষ্ঠা নির্বাচিত</sys:String>
-    <sys:String x:Key="Str_Card_AllSelected">অ্যাকশনগুলি নির্বাচিত প্রতিটি পৃষ্ঠায় প্রযোজ্য</sys:String>
     <sys:String x:Key="Str_Card_Markups1">1টি মার্কআপ</sys:String>
     <sys:String x:Key="Str_Card_MarkupsN">{0}টি মার্কআপ</sys:String>
     <sys:String x:Key="Str_Card_CleanUp">পরিষ্কার করুন</sys:String>

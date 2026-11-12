@@ -640,73 +640,8 @@
             </Setter>
         </Style>
 
-        <Style TargetType="ContextMenu">
-            <Setter Property="Background" Value="{DynamicResource MenuBackgroundBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource MenuBorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource MenuFontFamily}"/>
-            <Setter Property="FontSize" Value="{DynamicResource MenuFontSize}"/>
-            <Setter Property="Padding" Value="0,4"/>
-            <Setter Property="HasDropShadow" Value="False"/>
-            <!-- Compensates the shadow halo so a menu lands where it did when that halo was 5 (this
-                 template) or 6 (FlyoutCard). Those two differ by a pixel, so the rail flyouts sit
-                 1px off their old spot; the menus are exact. -->
-            <Setter Property="HorizontalOffset" Value="-17"/>
-            <Setter Property="VerticalOffset" Value="-13"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ContextMenu">
-                        <!-- Radius 6 = the family flyout card (FlyoutCard above); the grain overlay
-                             takes 5, the card's 6 minus its 1px border, so the texture stops exactly
-                             inside the frame. -->
-                        <!-- Halo sized to the 22/4 shadow below, the family flyout value: WPF expands
-                             render bounds by the FULL BlurRadius, so 22 each way, less the 4px lift
-                             off the top and plus it on the bottom. The offsets on the style above
-                             hold the card in place against the wider halo. -->
-                        <Grid x:Name="MenuRoot" Opacity="0" Margin="22,18,22,26">
-                            <!-- Shadow-only layer behind, so the menu text stays crisp. -->
-                            <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource PanelCornerRadius}" IsHitTestVisible="False">
-                                <Border.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="{DynamicResource FlyoutShadowOpacity}"/>
-                                </Border.Effect>
-                            </Border>
-                            <Border Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="{DynamicResource PanelCornerRadius}">
-                                <Grid>
-                                    <!-- Film grain on the menu surface, matching the settings panel. -->
-                                    <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
-                                            CornerRadius="{DynamicResource PanelCornerRadius}" Background="{DynamicResource GrainBrushShared}"/>
-                                    <!-- IsSharedSizeScope so every MenuItem's Header/Gesture columns in THIS
-                                         popup align as real columns (see the MenuItem template's SharedSizeGroup
-                                         names) instead of each row sizing its shortcut text independently. -->
-                                    <StackPanel IsItemsHost="True" Margin="{TemplateBinding Padding}" KeyboardNavigation.DirectionalNavigation="Cycle"
-                                                Grid.IsSharedSizeScope="True"/>
-                                </Grid>
-                            </Border>
-                            <Border IsHitTestVisible="False" Margin="{DynamicResource MenuBevelInnerMargin}" BorderBrush="{DynamicResource MenuBevelLightBrush}" BorderThickness="{DynamicResource MenuBevelLightThickness}"/>
-                            <Border IsHitTestVisible="False" Margin="{DynamicResource MenuBevelInnerMargin}" BorderBrush="{DynamicResource MenuBevelDarkBrush}" BorderThickness="{DynamicResource MenuBevelDarkThickness}"/>
-                            <Border IsHitTestVisible="False" BorderBrush="{DynamicResource MenuBevel2LightBrush}" BorderThickness="{DynamicResource MenuBevel2LightThickness}"/>
-                            <Border IsHitTestVisible="False" BorderBrush="{DynamicResource MenuBevel2DarkBrush}" BorderThickness="{DynamicResource MenuBevel2DarkThickness}"/>
-                        </Grid>
-                    <ControlTemplate.Triggers>
-                            <EventTrigger RoutedEvent="ContextMenu.Loaded">
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="MenuRoot" Storyboard.TargetProperty="Opacity"
-                                                         From="0" To="1" Duration="0:0:0.15">
-                                            <DoubleAnimation.EasingFunction><QuadraticEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
-                                        </DoubleAnimation>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </EventTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <!-- Context menus use the KillerUI kit template in Controls.xaml, the same one the markup and page cards are
+             based on, so a plain menu and a card never differ in one theme (1.9.4 review BF-006). -->
         <Style TargetType="MenuItem">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
