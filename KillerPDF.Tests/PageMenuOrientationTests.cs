@@ -12,13 +12,17 @@ public sealed class PageMenuOrientationTests
     [Fact]
     public void ThePageMenuOffersFixPageOrientationWithItsShortcut()
     {
-        string menu = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Shell", "ContextMenu.cs"));
-        int build = menu.IndexOf("private void AddPageMenuItems(", StringComparison.Ordinal);
-        int end = menu.IndexOf("\n        private ", build + 10, StringComparison.Ordinal);
+        string root = FindRepositoryRoot();
+        string pageMenuFile = File.ReadAllText(Path.Combine(root, "Shell", "ContextMenu.cs"));
+        int build = pageMenuFile.IndexOf("private void AddPageMenuItems(", StringComparison.Ordinal);
+        int end = pageMenuFile.IndexOf("\n        private ", build + 10, StringComparison.Ordinal);
         Assert.True(build >= 0 && end > build);
-        string pageMenu = menu[build..end];
-        Assert.Contains("_ctxMenu.Items.Add(MakeMenuItem(Loc(\"Str_Pages_FixOrientation\")", pageMenu, StringComparison.Ordinal);
+        string pageMenu = pageMenuFile[build..end];
+        // On the page menu it sits under Page with the other page tools.
+        Assert.Contains("tools.Items.Add(MakeMenuItem(Loc(\"Str_Pages_FixOrientation\")", pageMenu, StringComparison.Ordinal);
 
+        // The page menu, the empty-area menu and the thumbnail card each offer it once.
+        string menu = pageMenuFile + "\n" + File.ReadAllText(Path.Combine(root, "Shell", "PageCard.cs"));
         string[] rows = menu.Split('\n').Where(l => l.Contains("Loc(\"Str_Pages_FixOrientation\")", StringComparison.Ordinal)).ToArray();
         Assert.Equal(3, rows.Length);
         int at = 0;

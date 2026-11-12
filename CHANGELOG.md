@@ -4,6 +4,22 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.4] - Unreleased
+
+1.9.4 turns the right-click menus for pages and markup into cards, shortens the page menu, and deletes pages in one step.
+
+### Fixed
+
+- Selecting a highlight, drawing, filled rectangle or measurement no longer changes the color, opacity or width of the next mark you draw: the bar shows the selected mark's look while it is selected and returns to its own when it is not. A change you make on the bar meanwhile stays.
+
+### Changed
+
+- Right-clicking a page thumbnail opens a card with the page's size, orientation and markup count, quick buttons to rotate, duplicate, insert a blank page, extract and delete, and the cleanup, extract-from-page and move tools in three short submenus.
+- Right-clicking markup opens a card with quick buttons to edit, copy, raise, lower, group and delete it. A highlight, filled rectangle or drawing changes color and opacity right on the card, a drawing its width, and a highlight turns into an underline or strikethrough in place.
+- The page menu is shorter: Back, Forward, Undo, Redo and Print share its top row with the page number, the selected-text and place-here tools are icon strips, and the page tools sit under Page.
+- Delete Pages takes one step: the range, a strip that marks the pages going (a run of pages is one tile, so a long document stays quick), and a button that says how many. The Yes/No box that followed it is gone.
+- Buttons are flat, and a dialog's close button sits in its corner.
+
 ## [1.9.3] - Unreleased
 
 1.9.3 reads EPUB and DjVu books natively with Convert to PDF, selects and extracts pictures, color-manages viewing and printer proofing on standard monitors with HDR still in progress, opens large PDFs faster, and fixes redaction, cropping, form saving, merging, printing, stamps, updates and the file picker.

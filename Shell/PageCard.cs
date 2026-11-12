@@ -1,0 +1,160 @@
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
+using System.Windows.Media;
+
+namespace KillerPDF.Shell
+{
+    // The page thumbnail's right-click card (KillerUI card menu): a header naming the page with its size, orientation
+    // and markup count, the six things done most as quick buttons, then a short list in which the scanner cleanup,
+    // the extract-from-page tools and the moves sit in submenus. Every action and shortcut is the one the old 21-row
+    // list had. With several thumbnails selected the header says so, and the actions take the selection as before.
+    public partial class MainWindow
+    {
+        private ContextMenu BuildPageCard(int page)
+        {
+            var menu = MakeThemedMenu();
+            if (TryFindResource("CardMenu") is Style card) menu.Style = card;
+            int selected = PageList.SelectedItems.Count;
+            var row = page < PageList.Items.Count ? PageList.Items[page] as PageThumbnailVm : null;
+
+            menu.Items.Add(CardSlot(PageCardHeader(page, selected, row), new Thickness(4, 2, 4, 6)));
+            var strip = QuickStrip(menu,
+                ("\uE7AD", Loc("Str_Ctx_RotateCCWShort"), "CtrlShift:R", () => RotatePages_Click(-90), true, true),
+                ("\uE7AD", Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90), false, true),
+                ("\uE8C8", Loc("Str_Ctx_DuplicatePage"), null, () => DuplicatePage(page), false, true),
+                ("\uE710", Loc("Str_Card_InsertBlank"), null, () => InsertBlankPage_Click(this, new RoutedEventArgs()), false, true),
+                ("\uE8A7", Loc("Str_Ctx_ExtractPages"), null, () => Split_Click(this, new RoutedEventArgs()), false, true),
+                ("\uE74D", Loc("Str_Ctx_DeletePages"), "Del", () => Delete_Click(this, new RoutedEventArgs()), false, true));
+            // The caption is short so it fits under its glyph; the tooltip and screen readers get the whole action.
+            if (strip is Border { Child: UniformGrid buttons } && buttons.Children[3] is Button insert)
+            {
+                insert.ToolTip = Loc("Str_Ctx_InsertBlank");
+                System.Windows.Automation.AutomationProperties.SetName(insert, Loc("Str_Ctx_InsertBlank"));
+            }
+            menu.Items.Add(CardSlot(strip, new Thickness(0)));
+
+            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Merge"), async (_, _) => await MergeAtIndex(page + 1), glyph: "\uE8F4"));
+            menu.Items.Add(MakeTransformMenuItem(Loc("Str_Tf_Suffix"), (_, _) => OpenTransformWindow(), GestureFor("R")));
+            menu.Items.Add(MakeMenuItem(Loc("Str_ColorCorrection"), (_, _) =>
+                OpenTransformWindow(TransformWindowMode.ColorCorrection), gesture: GestureFor("E"), glyph: "\uE790"));
+
+            // #436: with two or more pages selected these act on the selection, otherwise on the whole document.
+            var cleanUp = MakeMenuItem(Loc("Str_Card_CleanUp"), (_, _) => { }, glyph: "\uE771");
+            cleanUp.Items.Add(MakeMenuItem(Loc("Str_Pages_FixOrientation"), (_, _) => FixPageOrientation(), GestureFor("AltShift:O"), "\uE7AD"));
+            cleanUp.Items.Add(MakeMenuItem(Loc("Str_Pages_Straighten"), (_, _) => StraightenScannedPages(), glyph: "\uE7A6"));
+            cleanUp.Items.Add(MakeMenuItem(Loc("Str_Pages_DivideSpreads"), (_, _) => DivideSpreads(), glyph: "\uE89F"));
+            menu.Items.Add(cleanUp);
+
+            var fromPage = MakeMenuItem(Loc("Str_Card_FromPage"), (_, _) => { }, glyph: "\uE8B9");
+            fromPage.Items.Add(MakeMenuItem(Loc("Str_Pages_RasterizeRegion"), (_, _) => RasterizeRegion(page), glyph: "\uE80A"));
+            fromPage.Items.Add(MakeMenuItem(Loc("Str_ExtractImage_Menu"), (_, _) => ExtractImage(page), glyph: "\uEB9F"));
+            fromPage.Items.Add(MakeMenuItem(Loc("Str_TableExport_Title"), (_, _) => ExportTable(page), glyph: "\uE80A"));
+            fromPage.Items.Add(MakeMenuItem(Loc("Str_Paragraph_Title"), (_, _) => EditParagraph(page), GestureFor("AltShift:P"), "\uE8D2"));
+            menu.Items.Add(fromPage);
+
+            var move = MakeMenuItem(Loc("Str_Card_Move"), (_, _) => { }, glyph: "\uE7C2");
+            move.Items.Add(MakeMenuItem(Loc("Str_Lbl_MoveUp"), (s, e) => MoveUp_Click(s!, e), glyph: "\uE74A"));
+            move.Items.Add(MakeMenuItem(Loc("Str_Lbl_MoveDown"), (s, e) => MoveDown_Click(s!, e), glyph: "\uE74B"));
+            move.Items.Add(MakeMenuItem(Loc("Str_Pages_Reverse"), (_, _) => ReversePageOrder(), glyph: "\uE8CB"));
+            menu.Items.Add(move);
+
+            // The thumbnails' own Ctrl+Shift+O: every selected page, not only the clicked one.
+            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_OcrPage"), (_, _) => OcrSelectedPagesToClipboard(), GestureFor("CtrlShift:O"), "\uE8C8"));
+            // #207: the shared export dialog, scoped to the clicked selection (still editable).
+            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_ExportPageImage"), (_, _) =>
+            {
+                var nums = PageList.SelectedItems.Cast<PageThumbnailVm>().Select(vm => vm.PageIndex + 1).OrderBy(n => n);
+                _ = ExportImagesFlow(string.Join(",", nums));
+            }, glyph: "\uEB9F"));
+            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampPages"), (_, _) => OpenStampTool(), GestureFor("S"), "\uE8B0"));
+            return menu;
+        }
+
+        private FrameworkElement PageCardHeader(int page, int selected, PageThumbnailVm? row)
+        {
+            var thumb = new Border
+            {
+                Width = 26, Height = 34, Margin = new Thickness(0, 0, 12, 0), Background = Brushes.White,
+                BorderThickness = new Thickness(1), VerticalAlignment = VerticalAlignment.Center
+            };
+            thumb.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
+            var image = new Image { Stretch = Stretch.Uniform };
+            if (row is not null) image.SetBinding(Image.SourceProperty, new Binding(nameof(PageThumbnailVm.Thumbnail)) { Source = row });
+            thumb.Child = image;
+
+            int count = _doc?.PageCount ?? 0;
+            var title = new TextBlock
+            {
+                Text = selected > 1 ? string.Format(Loc("Str_Card_PagesSelected"), selected) : string.Format(Loc("Str_PageOf"), page + 1, count),
+                FontSize = 14, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            title.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            var meta = new TextBlock { Text = selected > 1 ? Loc("Str_Card_AllSelected") : PageCardMeta(page), FontSize = 11, Margin = new Thickness(0, 1, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+            meta.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
+            var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            text.Children.Add(title);
+            text.Children.Add(meta);
+            var header = new DockPanel();
+            DockPanel.SetDock(thumb, Dock.Left);
+            header.Children.Add(thumb);
+            header.Children.Add(text);
+            System.Windows.Automation.AutomationProperties.SetName(header, title.Text);
+            return header;
+        }
+
+        // "8.5 × 11 in · Portrait · 2 markups": size in the Measure bar's units, then orientation, then the page's markup.
+        private string PageCardMeta(int page)
+        {
+            var parts = new List<string>();
+            string size = ActiveViewer.MeasurePageSizeText(page);
+            if (size.Length > 0) parts.Add(size);
+            if (_doc is not null)
+            {
+                var (width, height) = EnsureEngineDocumentSession().VisualPageSize(page, _pageRotations);
+                parts.Add(Loc(width > height ? "Str_Print_Landscape" : "Str_Print_Portrait"));
+            }
+            int markups = _annotations.TryGetValue(page, out var list) ? list.Count : 0;
+            if (markups > 0) parts.Add(markups == 1 ? Loc("Str_Card_Markups1") : string.Format(Loc("Str_Card_MarkupsN"), markups));
+            return string.Join(" · ", parts);
+        }
+
+        // A card row that holds controls rather than being a command (KillerUI CardSlot).
+        private MenuItem CardSlot(object content, Thickness padding)
+        {
+            var slot = new MenuItem { Header = content, Padding = padding };
+            if (TryFindResource("CardSlot") is Style style) slot.Style = style;
+            slot.Padding = padding;
+            return slot;
+        }
+
+        // The card's strip of glyph-over-caption buttons between two rules. Each closes the card, then acts; the
+        // tooltip carries the full name and its shortcut (the family shortcut rule).
+        private FrameworkElement QuickStrip(ContextMenu menu, params (string Glyph, string Caption, string? Gesture, Action Act, bool Mirror, bool Enabled)[] buttons)
+        {
+            var grid = new UniformGrid { Rows = 1 };
+            foreach (var (glyph, caption, gesture, act, mirror, enabled) in buttons)
+            {
+                var button = new Button { Content = glyph, Tag = caption, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled };
+                ToolTipService.SetShowOnDisabled(button, true);
+                if (TryFindResource("CardQuickButton") is Style style) button.Style = style;
+                if (mirror)
+                    button.Loaded += (_, _) =>
+                    {
+                        if (button.Template?.FindName("Glyph", button) is TextBlock g)
+                        {
+                            g.RenderTransformOrigin = new Point(0.5, 0.5);
+                            g.RenderTransform = new ScaleTransform(-1, 1);
+                        }
+                    };
+                button.Click += (_, _) => { menu.IsOpen = false; act(); };
+                grid.Children.Add(button);
+            }
+            var strip = new Border { BorderThickness = new Thickness(0, 1, 0, 1), Padding = new Thickness(2, 4, 2, 4), Child = grid };
+            strip.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
+            System.Windows.Automation.AutomationProperties.SetName(strip, Loc("Str_Card_Actions"));
+            return strip;
+        }
+    }
+}

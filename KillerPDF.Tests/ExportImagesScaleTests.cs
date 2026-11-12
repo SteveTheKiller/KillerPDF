@@ -35,7 +35,11 @@ public sealed class ExportImagesScaleTests
     public void BothContextMenusOfferTheOwnerPassword()
     {
         string menu = Read("Shell", "ContextMenu.cs");
-        Assert.Contains("_ctxMenu.Items.Clear();\r\n            AddOwnerPasswordItem(_ctxMenu);".ReplaceLineEndings(), menu.ReplaceLineEndings(), StringComparison.Ordinal);
+        // The page menu offers it first: right after the menu is cleared and given its plain or card style.
+        int clear = menu.IndexOf("_ctxMenu.Items.Clear();", StringComparison.Ordinal);
+        int owner = menu.IndexOf("AddOwnerPasswordItem(_ctxMenu);", StringComparison.Ordinal);
+        int firstAdd = menu.IndexOf("_ctxMenu.Items.Add(", clear, StringComparison.Ordinal);
+        Assert.True(clear >= 0 && owner > clear && (firstAdd < 0 || owner < firstAdd));
         Assert.Contains("AddOwnerPasswordItem(menu);", menu, StringComparison.Ordinal);
     }
 
