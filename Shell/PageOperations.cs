@@ -416,7 +416,9 @@ namespace KillerPDF.Shell
             // Carry forward any existing thumbnails so the list never flashes blank
             // during reload (e.g. after a rotation).  New thumbnails replace them as
             // the background loader finishes each page.
-            var oldItems = PageList.ItemsSource is PageThumbnailVm[] oi ? oi : null;
+            // They come from this tab's own list for the same file. The list on screen can belong to the tab just
+            // left, whose pages are another document's.
+            var oldItems = string.Equals(thumbnailOwner.ThumbCacheFile, filePath, System.StringComparison.OrdinalIgnoreCase) ? thumbnailOwner.ThumbCache : null;
 
             var items = new PageThumbnailVm[pageCount];
             for (int i = 0; i < pageCount; i++)
@@ -463,6 +465,9 @@ namespace KillerPDF.Shell
             {
                 window.Dispose();
                 renderer.Release();
+                // Rows not drawn yet would ask a cancelled window, so a tab that comes back rebuilds its list
+                // (carrying the pictures already drawn) instead of re-seating these rows.
+                thumbnailOwner.MarkThumbnailCacheIncomplete(items);
             });
             foreach (var item in items) item.RequestThumbnail = window.Request;
             _sidebarPages.Show(items, provisional: nativeBook?.IsPaginating == true);

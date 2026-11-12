@@ -36,6 +36,46 @@ public sealed class ThumbnailWindowLifetimeTests
         Assert.True(guard > start && cancel > guard, "The thumbnail cancel is not behind includeThumbnails.");
     }
 
+    // A tab switch still cancels the outgoing tab's window. Its rows were kept as a finished list and re-seated when the
+    // tab came back, so rows not drawn yet asked a cancelled window. A cancelled window marks its list unfinished, so the
+    // tab's return rebuilds the list (carrying the pictures already drawn) instead.
+    [Fact]
+    public void ACancelledThumbnailWindowMarksItsListUnfinished()
+    {
+        string root = FindRepositoryRoot();
+        string pages = File.ReadAllText(Path.Combine(root, "Shell", "PageOperations.cs"));
+        int refresh = pages.IndexOf("internal void RefreshPageList()", StringComparison.Ordinal);
+        Assert.True(refresh >= 0, "RefreshPageList was not found.");
+        int register = pages.IndexOf("ct.Register(() =>", refresh, StringComparison.Ordinal);
+        Assert.True(register > refresh, "RefreshPageList no longer lets go of its window on cancel.");
+        int end = pages.IndexOf("});", register, StringComparison.Ordinal);
+        string onCancel = pages[register..end];
+        Assert.Contains("window.Dispose();", onCancel, StringComparison.Ordinal);
+        Assert.Contains("MarkThumbnailCacheIncomplete(items)", onCancel, StringComparison.Ordinal);
+
+        string api = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.TabsApi.cs"));
+        int mark = api.IndexOf("internal void MarkThumbnailCacheIncomplete(PageThumbnailVm[] cache)", StringComparison.Ordinal);
+        Assert.True(mark >= 0, "No way to mark a cancelled list unfinished.");
+        Assert.Contains("ThumbCacheComplete = false", api[mark..Math.Min(api.Length, mark + 500)], StringComparison.Ordinal);
+    }
+
+    // A tab that comes back rebuilds its list, and the rebuild carries pictures forward so the list never flashes
+    // blank. They must come from that tab's own list for the same file: the list on screen belongs to the tab just left,
+    // so carrying from it showed the other document's pages.
+    [Fact]
+    public void ARebuiltListCarriesPicturesFromItsOwnTabOnly()
+    {
+        string root = FindRepositoryRoot();
+        string pages = File.ReadAllText(Path.Combine(root, "Shell", "PageOperations.cs"));
+        int refresh = pages.IndexOf("internal void RefreshPageList()", StringComparison.Ordinal);
+        int carry = pages.IndexOf("var oldItems =", refresh, StringComparison.Ordinal);
+        Assert.True(refresh >= 0 && carry > refresh, "RefreshPageList no longer carries pictures forward.");
+        string line = pages[carry..pages.IndexOf(';', carry)];
+        Assert.DoesNotContain("PageList.ItemsSource", line, StringComparison.Ordinal);
+        Assert.Contains("thumbnailOwner.ThumbCache", line, StringComparison.Ordinal);
+        Assert.Contains("ThumbCacheFile", line, StringComparison.Ordinal);
+    }
+
     private static string FindRepositoryRoot([System.Runtime.CompilerServices.CallerFilePath] string source = "")
     {
         var directory = new DirectoryInfo(Path.GetDirectoryName(source)!);

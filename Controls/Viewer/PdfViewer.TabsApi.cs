@@ -223,6 +223,15 @@ namespace KillerPDF.Controls
             owner?.ThumbCacheComplete = true;
         }
 
+        /// <summary>The list's thumbnail window was cancelled, so its rows can no longer draw; the tab that owns it
+        /// rebuilds the list when it is shown again. Runs on the viewer's thread.</summary>
+        internal void MarkThumbnailCacheIncomplete(PageThumbnailVm[] cache)
+        {
+            if (!CheckAccess()) { Dispatcher.BeginInvoke(() => MarkThumbnailCacheIncomplete(cache)); return; }
+            var owner = _sessions.FirstOrDefault(s => ReferenceEquals(s.ThumbCache, cache));
+            owner?.ThumbCacheComplete = false;
+        }
+
         /// <summary>Highlight this pane's current page after the list is re-seated: assigning
         /// ItemsSource clears the selection.</summary>
         internal int CurrentPageIndex => State.CurrentPage;
