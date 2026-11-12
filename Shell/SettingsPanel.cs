@@ -122,6 +122,8 @@ namespace KillerPDF.Shell
             // beside a normal one. The moon lights for the focused pane; FocusPane re-syncs it.
             if (ActiveViewer.DocInvert == on) return;
             ActiveViewer.DocInvert = on;
+            // Highlighter marks show the page under them, so they switch with it.
+            ActiveViewer.RefreshHighlighterMarks();
             App.SetSetting("DocInvert", on ? "1" : "0");
             DocInvertBtn.Tag = on ? "on" : null;   // lights the footer icon while active
             RepaintForInvertChange(bothPanes: false);   // per-pane toggle: the other pane is untouched

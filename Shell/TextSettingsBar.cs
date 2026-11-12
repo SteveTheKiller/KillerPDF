@@ -197,7 +197,7 @@ namespace KillerPDF.Shell
             {
                 if (a is HighlightAnnotation ha)
                 {
-                    ha.SetColor(ha.Style == HighlightStyle.Fill ? _highlightColor : _lineAnnotColor);
+                    ha.SetColor(ha.IsShape ? _drawColor : ha.Style == HighlightStyle.Fill ? _highlightColor : _lineAnnotColor);
                     touched.Add(ha.PageIndex);
                 }
                 else if (a is InkAnnotation ia)

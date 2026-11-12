@@ -32,7 +32,7 @@ public sealed class FilledShapeLayeringRegressionTests
             {
                 [0] = [new HighlightAnnotation
                 {
-                    PageIndex = 0, Bounds = new Rect(10, 10, 180, 80), Style = HighlightStyle.Fill,
+                    PageIndex = 0, Bounds = new Rect(10, 10, 180, 80), Style = HighlightStyle.Fill, IsShape = true,
                     ColorR = 255, ColorG = 255, ColorB = 255, ColorA = 255
                 }, new TextAnnotation
                 {

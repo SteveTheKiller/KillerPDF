@@ -22,7 +22,7 @@ public sealed class FilledShapePrintTests
                 new PdfContentStreamBuilder().SetFillGray(0).Rectangle(0, 0, 5, 10).Fill()).Build());
             var rectangle = new HighlightAnnotation
             {
-                PageIndex = 0, Bounds = new Rect(0, 0, 10, 10), Style = HighlightStyle.Fill,
+                PageIndex = 0, Bounds = new Rect(0, 0, 10, 10), Style = HighlightStyle.Fill, IsShape = true,
                 ColorR = red, ColorG = green, ColorB = blue, ColorA = 255
             };
             PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [rectangle] },
@@ -52,7 +52,7 @@ public sealed class FilledShapePrintTests
                     .SetBlendMode(PdfBlendMode.Multiply)).Build());
             var rectangle = new HighlightAnnotation
             {
-                PageIndex = 0, Bounds = new Rect(0, 0, 10, 10), Style = HighlightStyle.Fill,
+                PageIndex = 0, Bounds = new Rect(0, 0, 10, 10), Style = HighlightStyle.Fill, IsShape = true,
                 ColorR = 255, ColorG = 255, ColorB = 0, ColorA = 128
             };
             PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [rectangle] },

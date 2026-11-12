@@ -155,6 +155,12 @@ namespace KillerPDF
         // highlights are ever carved.
         public System.Collections.Generic.List<HighlightErase>? Erases { get; set; }
         public HighlightStyle Style { get; set; } = HighlightStyle.Fill;
+        // True for a filled rectangle drawn with the Shapes tool. It covers what is under it, like on
+        // screen (#474), and edits with the Shapes settings. False is a highlighter mark, which darkens
+        // the paper behind the text with Multiply and never hides the text (#200). Not written when
+        // false, so highlights serialize exactly as they did before the field existed.
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+        public bool IsShape { get; set; }
         public byte ColorR { get; set; } = 255;
         public byte ColorG { get; set; } = 255;
         public byte ColorB { get; set; } = 0;

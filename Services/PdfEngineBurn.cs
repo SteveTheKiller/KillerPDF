@@ -674,8 +674,15 @@ internal static class PdfEngineBurn
     {
         var color = highlight.GetColor();
         Rect rect = highlight.DrawRect();
+        // A highlighter mark multiplies, so the paper takes the color and the text stays dark at any
+        // opacity (#200). Covers and filled Shapes rectangles keep Normal so they hide what is under them
+        // (#474). One graphics state carries both: each state is complete, so a separate blend state
+        // would reset the opacity to 1.
+        bool multiply = highlight is not CoverAnnotation && !highlight.IsShape && highlight.Style == HighlightStyle.Fill;
+        double opacity = color.A / 255d;
         content.SaveState().SetFillRgb(color.R / 255d, color.G / 255d, color.B / 255d)
-            .SetOpacity(color.A / 255d);
+            .SetGraphicsState(new PdfGraphicsState(opacity, opacity,
+                multiply ? PdfBlendMode.Multiply : PdfBlendMode.Normal));
         if (PdfBurn.HighlightEraseGeometry(highlight) is { } geometry)
         {
             foreach (var figure in geometry.GetFlattenedPathGeometry().Figures)

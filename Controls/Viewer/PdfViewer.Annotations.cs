@@ -215,6 +215,15 @@ namespace KillerPDF.Controls
                         Canvas.SetTop(covRect, cov.Bounds.Y);
                         _activeCanvas.Children.Add(covRect);
                         break;
+                    case HighlightAnnotation ha when HighlighterLook.Multiplies(ha):
+                    {
+                        // A highlighter mark multiplies the page under it like the saved copy, so the text stays dark.
+                        var markRect = ha.DrawRect();
+                        if (!IsFinitePositive(markRect.Width) || !IsFinitePositive(markRect.Height)) continue;
+                        _activeCanvas.Children.Add(HighlighterLook.Build(_activeCanvas, markRect,
+                            PdfBurn.HighlightEraseGeometry(ha), ha.GetColor(), DocInvert));
+                        break;
+                    }
                     case HighlightAnnotation ha:
                         if (PdfBurn.HighlightEraseGeometry(ha) is { } hgeo)
                         {
@@ -806,6 +815,14 @@ namespace KillerPDF.Controls
             }
             // Selecting a highlight / strikethrough / underline opens the draw bar synced to it, so its
             // color and opacity can be edited in place. The annotation's style picks the matching tool.
+            // A filled Shapes rectangle opens the Shapes bar instead, so its opacity never becomes the
+            // highlighter's (a 100% rectangle used to turn every later highlight into a solid bar).
+            else if (annot is HighlightAnnotation { IsShape: true } shapeSel)
+            {
+                _drawColor   = shapeSel.GetColor();
+                _drawOpacity = shapeSel.GetColor().A;
+                ShowDrawSettings(EditTool.Shape);
+            }
             else if (annot is HighlightAnnotation hsel)
             {
                 if (hsel.Style == HighlightStyle.Fill) _highlightColor = hsel.GetColor();
@@ -1530,6 +1547,9 @@ namespace KillerPDF.Controls
                     Canvas.SetLeft(rect, pos.X);
                     Canvas.SetTop(rect, pos.Y);
                     _activeCanvas.Children.Add(rect);
+                    // A highlighter drag previews the mark it will leave: the page under it, multiplied.
+                    if (_currentTool == EditTool.Highlight && !_highlightErase)
+                        HighlighterLook.Preview(rect, _activeCanvas, _highlightColor, DocInvert);
                     _activePreview = rect;
                     _activeCanvas.CaptureMouse();
                     break;
@@ -2043,6 +2063,8 @@ namespace KillerPDF.Controls
                     Canvas.SetTop(rect, Math.Min(pos.Y, _drawStart.Y));
                     rect.Width = Math.Abs(pos.X - _drawStart.X);
                     rect.Height = Math.Abs(pos.Y - _drawStart.Y);
+                    if (_currentTool == EditTool.Highlight && !_highlightErase && _activeCanvas is not null)
+                        HighlighterLook.Preview(rect, _activeCanvas, _highlightColor, DocInvert);
                     break;
 
                 case EditTool.Shape when _activePreview is Ellipse sell:

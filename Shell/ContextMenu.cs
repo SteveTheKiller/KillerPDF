@@ -477,6 +477,7 @@ namespace KillerPDF.Shell
                 GroupId = h.GroupId,
                 Bounds = h.Bounds,
                 Style = h.Style,
+                IsShape = h.IsShape,
                 ColorR = h.ColorR,
                 ColorG = h.ColorG,
                 ColorB = h.ColorB,

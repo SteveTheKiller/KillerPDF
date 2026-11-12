@@ -23,7 +23,11 @@ public partial class PdfViewer
         foreach (var detail in _visibleDetails.Values)
         {
             detail.Source = null;
-            if (detail.Parent is Grid grid) grid.Children.Remove(detail);
+            if (detail.Parent is Grid grid)
+            {
+                grid.Children.Remove(detail);
+                RefreshHighlighterMarks(grid);
+            }
         }
         _visibleDetails.Clear();
     }
@@ -32,7 +36,25 @@ public partial class PdfViewer
     {
         if (!_visibleDetails.Remove(image, out var detail)) return;
         detail.Source = null;
-        if (detail.Parent is Grid grid) grid.Children.Remove(detail);
+        if (detail.Parent is Grid grid)
+        {
+            grid.Children.Remove(detail);
+            RefreshHighlighterMarks(grid);
+        }
+    }
+
+    // Highlighter marks show the page and its zoom detail through them, so a detail that arrives or leaves rebuilds the
+    // marks on that page.
+    private static void RefreshHighlighterMarks(Grid grid)
+    {
+        foreach (var canvas in grid.Children.OfType<Canvas>()) HighlighterLook.Refresh(canvas);
+    }
+
+    /// <summary>Rebuilds every highlighter mark in this viewer for the current dark-mode setting.</summary>
+    internal void RefreshHighlighterMarks()
+    {
+        HighlighterLook.Refresh(_annotationCanvas, DocInvert);
+        foreach (var canvas in _continuousCanvases.Values) HighlighterLook.Refresh(canvas, DocInvert);
     }
 
     private void RefineVisibleRegions() => VisibleRefinementTask = RefineVisibleAsync();
@@ -173,6 +195,7 @@ public partial class PdfViewer
                 Panel.SetZIndex(image, -2);
                 grid.Children.Add(detail);
                 _visibleDetails[image] = detail;
+                RefreshHighlighterMarks(grid);
             }
         }
         catch (OperationCanceledException) { }

@@ -145,6 +145,7 @@
     <Compile Include="..\Services\RedactionGeometry.cs" Link="Services\RedactionGeometry.cs" />
     <Compile Include="..\Controls\Viewer\CropMath.cs" Link="Controls\Viewer\CropMath.cs" />
     <Compile Include="..\Controls\Viewer\DragStartGate.cs" Link="Controls\Viewer\DragStartGate.cs" />
+    <Compile Include="..\Controls\Viewer\HighlighterLook.cs" Link="Controls\Viewer\HighlighterLook.cs" />
     <Compile Include="..\Controls\Viewer\LinkCacheKey.cs" Link="Controls\Viewer\LinkCacheKey.cs" />
     <Compile Include="..\Services\TextTurn.cs" Link="Services\TextTurn.cs" />
     <Compile Include="..\Services\PdfPrintSource.cs" Link="Services\PdfPrintSource.cs" />

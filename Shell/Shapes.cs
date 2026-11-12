@@ -108,12 +108,13 @@ namespace KillerPDF.Shell
 
             if (shp is Rectangle && _shapeFill)
             {
-                // Same annotation the old rectangle-highlight gesture produced.
+                // A filled rectangle: it covers like it does on screen, not like a highlighter.
                 var ha = new HighlightAnnotation
                 {
                     PageIndex = pageIdx,
                     Bounds = new Rect(x, y, w, h),
-                    Style = HighlightStyle.Fill
+                    Style = HighlightStyle.Fill,
+                    IsShape = true
                 };
                 ha.SetColor(_drawColor);
                 AddAnnotation(ha);
