@@ -416,9 +416,9 @@ namespace KillerPDF.Shell
             // Carry forward any existing thumbnails so the list never flashes blank
             // during reload (e.g. after a rotation).  New thumbnails replace them as
             // the background loader finishes each page.
-            // They come from this tab's own list for the same file. The list on screen can belong to the tab just
-            // left, whose pages are another document's.
-            var oldItems = string.Equals(thumbnailOwner.ThumbCacheFile, filePath, System.StringComparison.OrdinalIgnoreCase) ? thumbnailOwner.ThumbCache : null;
+            // They come from this tab's own list. The list on screen can belong to the tab just left, whose pages are
+            // another document's. The file path is not compared: a page edit reloads from a fresh temporary path.
+            var oldItems = thumbnailOwner.ThumbCache;
 
             var items = new PageThumbnailVm[pageCount];
             for (int i = 0; i < pageCount; i++)
