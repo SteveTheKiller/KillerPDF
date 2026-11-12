@@ -239,6 +239,85 @@ public sealed class HighlighterLookTests
         AssertPixel(pixels, 15, 5, 255, 255, 0);
     });
 
+    // How many mark visuals one frame of this mark draws through its brushes, itself included.
+    private static int Visits(Visual mark)
+    {
+        int count = 1;
+        foreach (var rect in Descendants(mark).OfType<System.Windows.Shapes.Rectangle>())
+            if (rect.Fill is VisualBrush { Visual: Grid { Tag: not null } inner } && inner.Tag.GetType().Name == "MarkSpec")
+                count += Visits(inner);
+        return count;
+    }
+
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            yield return child;
+            foreach (var deeper in Descendants(child)) yield return deeper;
+        }
+    }
+
+    [Fact]
+    public void AChainOfOverlappingMarksStaysCheapToDraw() => OnSta(() =>
+    {
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        for (int i = 0; i < 12; i++) Mark(canvas, new Rect(0, 0, W, H), Color.FromArgb(40, 255, 255, 0));
+
+        var last = canvas.Children.OfType<Grid>().Last();
+        Assert.InRange(Visits(last), 1, 100);
+    });
+
+    [Fact]
+    public void ADarkModeChainOverAKeptPictureStaysCheapToDraw() => OnSta(() =>
+    {
+        // Over a kept picture each earlier mark takes two layers, so a chain grows faster in dark mode.
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        canvas.Measure(new Size(W, H));
+        var dark = new HighlighterLook.Dark(true, [new Rect(0, 0, 0.5, 1)]);
+        for (int i = 0; i < 12; i++)
+            canvas.Children.Add(HighlighterLook.Build(canvas, new Rect(0, 0, W, H), null, Color.FromArgb(40, 255, 255, 0), dark));
+
+        Assert.InRange(Visits(canvas.Children.OfType<Grid>().Last()), 1, 50);
+    });
+
+    [Fact]
+    public void MarksThatOnlyTouchAtAnEdgeDoNotLayerEachOther() => OnSta(() =>
+    {
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, 10, H), Yellow);
+        Mark(canvas, new Rect(10, 0, 10, H), Yellow);
+
+        Assert.Equal(1, Visits(canvas.Children.OfType<Grid>().Last()));
+    });
+
+    [Fact]
+    public void APlainFallbackMarkTakesNoClicksAndUpgradesOnRefresh() => OnSta(() =>
+    {
+        var (grid, canvas) = Page(Bitmap(W, H, (_, _) => Colors.White));
+        var page = grid.Children[0];
+        page.Visibility = Visibility.Hidden;
+        grid.Measure(new Size(W, H)); grid.Arrange(new Rect(0, 0, W, H));
+        Mark(canvas, new Rect(0, 0, W, H), Yellow);
+        var plain = Assert.Single(canvas.Children.OfType<UIElement>());
+        Assert.False(plain.IsHitTestVisible);
+
+        page.Visibility = Visibility.Visible;
+        HighlighterLook.Refresh(canvas);
+        AssertPixel(Render(grid), 15, 5, 255, 255, 0);
+        Assert.IsType<Grid>(Assert.Single(canvas.Children.OfType<UIElement>()));
+    });
+
+    [Fact]
+    public void ThePresenterRefreshesMarksWhenItHidesOrShowsThePageImage()
+    {
+        string presentation = File.ReadAllText(Path.Combine(RepoRoot(), "Controls", "Viewer", "PdfViewer.Presentation.cs"));
+        Assert.True(Count(presentation, "HighlighterLook.Refresh(_annotationCanvas)") >= 3);
+    }
+
     [Fact]
     public void AnEmptyShapeUnderTheMarkDoesNotBreakIt() => OnSta(() =>
     {

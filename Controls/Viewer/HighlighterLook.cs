@@ -42,7 +42,7 @@ internal static class HighlighterLook
         // A hidden page image (a native presenter draws the page instead) has nothing to show through.
         if (canvas.Parent is not Grid grid || grid.Children.Count == 0 || grid.Children[0] is not Image { Visibility: Visibility.Visible } page
             || canvasWidth <= 0 || canvasHeight <= 0 || bounds.Width <= 0 || bounds.Height <= 0)
-            return Plain(bounds, carved, color);
+            return Plain(bounds, carved, color, dark);
 
         // The canvas lies exactly over the page image, so the mark's place on the page is its bounds over the canvas size.
         var onPage = new Rect(bounds.X / canvasWidth, bounds.Y / canvasHeight, bounds.Width / canvasWidth, bounds.Height / canvasHeight);
@@ -84,11 +84,20 @@ internal static class HighlighterLook
         // so they multiply plainly, in dark mode too; their transparent parts let the layers below show through. An
         // earlier mark already shows the page's look, so it is multiplied the way the page under it is, and overlaps
         // compound like the saved copy shown the same way.
+        // Each earlier mark seen through this one draws its own earlier marks again, so the work a frame takes grows with
+        // every link of a chain. Only the most recent few overlapping marks, themselves only a few links deep, are layered;
+        // in a deeper pile-up the newest colors win where they overlap, instead of every frame doubling in cost.
+        var under = Beneath(canvas, bounds, earlier).ToList();
+        var layered = under.Where(child => child is FrameworkElement { Tag: MarkSpec { Depth: < MaxMarkDepth } })
+            .TakeLast(MaxEarlierMarks).ToHashSet();
+        int depth = 0;
         Grid? run = null;
-        foreach (var child in Beneath(canvas, bounds, earlier))
+        foreach (var child in under)
         {
-            if (child is Grid { Tag: MarkSpec })
+            if (child is FrameworkElement { Tag: MarkSpec earlierMark })
             {
+                if (!layered.Contains(child)) continue;
+                depth = Math.Max(depth, earlierMark.Depth + 1);
                 run = null;
                 ByPage((inverted, clip) => Layer(child, bounds, color, inverted, clip));
                 continue;
@@ -106,7 +115,7 @@ internal static class HighlighterLook
         // Selection hit-tests annotations by their geometry; the visual itself must never take a click meant for a form
         // field or anything else under it.
         mark.IsHitTestVisible = false;
-        mark.Tag = new MarkSpec(bounds, carved, color, dark);
+        mark.Tag = new MarkSpec(bounds, carved, color, dark, depth);
         Canvas.SetLeft(mark, bounds.X);
         Canvas.SetTop(mark, bounds.Y);
         return mark;
@@ -169,7 +178,9 @@ internal static class HighlighterLook
             UIElement child = canvas.Children[index];
             int z = Panel.GetZIndex(child);
             if (z > 0 || z == 0 && index > markIndex) continue;
-            if (child.Visibility != Visibility.Visible || !Overlaps(child, bounds)) continue;
+            if (child.Visibility != Visibility.Visible) continue;
+            // A mark knows its own bounds exactly; anything else gets the cheap, generous test.
+            if (child is FrameworkElement { Tag: MarkSpec spec } ? !Shares(spec.Bounds, bounds) : !Overlaps(child, bounds)) continue;
             under.Add((z, index, child));
         }
         return under.OrderBy(item => item.Z).ThenBy(item => item.Index).Select(item => item.Child);
@@ -200,8 +211,19 @@ internal static class HighlighterLook
                 break;
             default: return true;
         }
-        return area.IntersectsWith(bounds);
+        return Shares(area, bounds);
     }
+
+    // Overlap with area: rectangles that only touch along an edge share nothing.
+    private static bool Shares(Rect a, Rect b)
+    {
+        var shared = Rect.Intersect(a, b);
+        return !shared.IsEmpty && shared.Width > 0 && shared.Height > 0;
+    }
+
+    // At most 3 + 3 x 3 brushed marks per frame (twice that over dark mode's kept pictures); overlaps of up to three
+    // marks still compound exactly.
+    private const int MaxEarlierMarks = 3, MaxMarkDepth = 2;
 
     private static Rect PointsBounds(PointCollection points, double stroke)
     {
@@ -253,17 +275,21 @@ internal static class HighlighterLook
         return shifted;
     }
 
-    private static FrameworkElement Plain(Rect bounds, Geometry? carved, Color color)
+    // The translucent rectangle, for a page with nothing to show through yet. It keeps its spec, so a Refresh once the
+    // page image shows turns it into the real mark.
+    private static FrameworkElement Plain(Rect bounds, Geometry? carved, Color color, Dark dark)
     {
+        var spec = new MarkSpec(bounds, carved, color, dark, 0);
         if (carved is not null)
-            return new System.Windows.Shapes.Path { Fill = new SolidColorBrush(color), Data = carved, IsHitTestVisible = false };
-        var rect = new Rectangle { Fill = new SolidColorBrush(color), Width = bounds.Width, Height = bounds.Height };
+            return new System.Windows.Shapes.Path { Fill = new SolidColorBrush(color), Data = carved, IsHitTestVisible = false, Tag = spec };
+        var rect = new Rectangle { Fill = new SolidColorBrush(color), Width = bounds.Width, Height = bounds.Height,
+            IsHitTestVisible = false, Tag = spec };
         Canvas.SetLeft(rect, bounds.X);
         Canvas.SetTop(rect, bounds.Y);
         return rect;
     }
 
-    private sealed record MarkSpec(Rect Bounds, Geometry? Carved, Color Color, Dark Dark);
+    private sealed record MarkSpec(Rect Bounds, Geometry? Carved, Color Color, Dark Dark, int Depth);
 
     /// <summary>
     /// Rebuilds the marks on <paramref name="canvas"/> in place, in order, for zoom detail that arrived or left after
@@ -278,7 +304,7 @@ internal static class HighlighterLook
     {
         Dark? asked = null;
         for (int index = 0; index < canvas.Children.Count; index++)
-            if (canvas.Children[index] is Grid { Tag: MarkSpec spec })
+            if (canvas.Children[index] is FrameworkElement { Tag: MarkSpec spec })
             {
                 Dark look = dark is null ? spec.Dark : asked ??= dark();
                 // Built while the old mark still holds its place, so every other child keeps the index that orders it.

@@ -131,6 +131,8 @@ public partial class PdfViewer
         _primaryViewport?.ClearDetail();
         if (State.PageImage is { } image) image.Visibility = Visibility.Visible;
         if (_primaryViewport?.OverlayRoot is Panel panel) panel.Background = Brushes.White;
+        // Highlighter marks show the page image through them; with it shown again they can.
+        HighlighterLook.Refresh(_annotationCanvas);
     }
 
     private long CapturePrimaryProofGeneration(PdfDocumentProofViewSnapshot? proof)
@@ -183,6 +185,7 @@ public partial class PdfViewer
         string notice = string.Format(Loc("Str_PageOf"), page + 1, ReadPageTotal) + ". " + Loc("Str_CM_DisplayFallback");
         PageImage.Visibility = Visibility.Visible;
         PageImage.ToolTip = notice;
+        HighlighterLook.Refresh(_annotationCanvas);
         if (page == _currentPage && (Host is null || Host.IsViewerFocused(this))) SetStatus(notice);
     }
 
@@ -235,6 +238,9 @@ public partial class PdfViewer
             _primaryPresentationState = state;
             PageImage.Visibility = Visibility.Hidden;
             ((Panel)_primaryViewport.OverlayRoot).Background = Brushes.Transparent;
+            // The presenter draws the page now and highlighter marks cannot show it through them; until the presenter
+            // blends them itself, they fall back to the translucent look instead of an opaque bar.
+            HighlighterLook.Refresh(_annotationCanvas);
         }
         else if (result.Outcome == PdfFrameSubmissionOutcome.Unavailable)
         {
