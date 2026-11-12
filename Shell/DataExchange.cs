@@ -24,7 +24,7 @@ public partial class MainWindow
         if (_doc is null) { SetStatus(Loc("Str_Msg_OpenFirst")); return; }
         var isSourceCurrent = CaptureDocumentOrigin();
         var dialog = new DocumentCommandDialog(this, Loc(titleKey),
-            commands.Select(command => (Loc(command.Label), command.Run)).ToArray());
+            commands.Select(command => (Loc(command.Label), Controls.CommandLauncher.GlyphFor(command.Label), command.Run)).ToArray());
         if (dialog.ShowDialog() == true && isSourceCurrent()) dialog.Command?.Invoke();
     }
 
