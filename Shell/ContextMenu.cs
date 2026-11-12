@@ -717,6 +717,13 @@ namespace KillerPDF.Shell
                 thumbnail = (PageThumbnailVm)PageList.SelectedItem;
             }
             if (!PageList.SelectedItems.Contains(thumbnail)) PageList.SelectedItem = thumbnail;
+            if (item is null)
+            {
+                // A scrolled-away thumbnail has no container; bring it into view so the card opens beside it (r3 BF-004).
+                PageList.ScrollIntoView(thumbnail);
+                PageList.UpdateLayout();
+                item = PageList.ItemContainerGenerator.ContainerFromItem(thumbnail) as ListBoxItem;
+            }
             var menu = BuildPageCard(thumbnail.PageIndex);
             menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
             OpenSidebarMenu(menu, onThumb: true, (UIElement?)item ?? PageList);

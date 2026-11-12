@@ -110,9 +110,11 @@ public sealed class CardMenuTests
     [Fact]
     public void ASelectedMarksLookIsNeverSavedAsTheToolsDefault()
     {
-        // r2 BF-002: settings are saved on close and on a render recovery restart.
-        Assert.Contains("pane.RestoreDrawToolDefaultsForExit();", Read("Shell", "WindowChrome.cs"));
-        Assert.Contains("pane.RestoreDrawToolDefaultsForExit();", Read("Shell", "RenderRecovery.cs"));
+        // r2 BF-002, r3 BF-001: settings save the settled tool look (DrawToolLookTests covers Peek) and nothing is
+        // released before a close that can still be cancelled.
+        Assert.Contains("var draw = ActiveViewer.DrawLookToSave();", Read("Shell", "MainWindow.xaml.cs"));
+        Assert.DoesNotContain("DrawToolDefaultsForExit", Read("Shell", "WindowChrome.cs"));
+        Assert.DoesNotContain("DrawToolDefaultsForExit", Read("Shell", "RenderRecovery.cs"));
     }
 
     [Fact]

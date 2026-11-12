@@ -23,6 +23,9 @@ public partial class PdfViewer
     /// </summary>
     private bool SyncDrawBarToSelection(PageAnnotation annot)
     {
+        // Redact and Crop keep their own bars: their Apply and Clear controls must not give way to a mark's look,
+        // and the card restyles the mark meanwhile (1.9.4 review r3 BF-002).
+        if (_currentTool is EditTool.Redact or EditTool.Crop) return false;
         EditTool tool;
         switch (annot)
         {
@@ -75,10 +78,10 @@ public partial class PdfViewer
     }
 
     /// <summary>
-    /// Settings are saved next (closing, a render recovery restart): a selected mark's look must not become the
-    /// tool's saved default (1.9.4 review r2 BF-002), the same as RestoreTextToolDefaultsForExit.
+    /// What settings save for the draw tools: the look the bar returns to, not a selected mark's. It releases
+    /// nothing, because a close or sign-out that saves settings can still be cancelled (1.9.4 review r2 BF-002, r3 BF-001).
     /// </summary>
-    internal void RestoreDrawToolDefaultsForExit() => ReleaseSelectedDrawLook(refreshBar: false);
+    internal DrawToolLook DrawLookToSave() => _drawLookLease.Peek(CurrentDrawLook());
 
     private void ReleaseSelectedDrawLook(bool refreshBar = true)
     {

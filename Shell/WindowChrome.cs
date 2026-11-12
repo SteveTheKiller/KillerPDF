@@ -545,7 +545,6 @@ namespace KillerPDF.Shell
                 {
                     pane.CommitActiveTextBoxExt();
                     pane.RestoreTextToolDefaultsForExit();   // settings are saved next, and page ink must not be
-                    pane.RestoreDrawToolDefaultsForExit();   // nor a selected mark's look
                     pane.CaptureActiveIfAny();
                 });
         }

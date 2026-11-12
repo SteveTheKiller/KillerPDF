@@ -85,5 +85,21 @@ public sealed class DrawToolLookTests
     }
 
     [Fact]
+    public void SavingSettingsSeesTheToolsLookAndLeavesTheSelectionBorrowed()
+    {
+        // Review r3 BF-001: settings are saved before a close that can still be cancelled, so the save reads the
+        // settled look without releasing the selected mark.
+        var tool = Look(Yellow);
+        var mark = Look(Blue, opacity: 255, width: 12);
+        var lease = new DrawLookLease();
+        Assert.Equal(mark, lease.Peek(mark));          // nothing borrowed: the live look is the tool's
+        lease.Borrow(tool);
+        lease.Note(mark);
+        Assert.Equal(tool, lease.Peek(mark));
+        Assert.True(lease.IsActive);
+        Assert.Equal(tool, lease.Release(mark));
+    }
+
+    [Fact]
     public void NothingBorrowedReleasesNothing() => Assert.Null(new DrawLookLease().Release(Look(Yellow)));
 }

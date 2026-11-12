@@ -778,9 +778,11 @@ namespace KillerPDF.Shell
         {
             try
             {
-                App.SetSetting("DrawColor",     ToolColorHex(_drawColor));
-                App.SetSetting("DrawWidth",     _drawWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                App.SetSetting("DrawOpacity",   _drawOpacity.ToString());
+                // A selected mark lends the draw bar its look; the tool's own look is what gets saved.
+                var draw = ActiveViewer.DrawLookToSave();
+                App.SetSetting("DrawColor",     ToolColorHex(draw.Draw));
+                App.SetSetting("DrawWidth",     draw.Width.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                App.SetSetting("DrawOpacity",   draw.Opacity.ToString());
                 App.SetSetting("TextFontSize",  _textFontSize.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 App.SetSetting("TextFontName",  _textFontName);
                 App.SetSetting("TextBold",      _textBold ? "1" : "0");

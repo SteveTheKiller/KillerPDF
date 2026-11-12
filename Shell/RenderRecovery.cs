@@ -132,7 +132,7 @@ namespace KillerPDF.Shell
             // settings saved next would otherwise keep the page's ink as the default for new text.
             foreach (MainWindow window in windows)
             foreach (Controls.PdfViewer pane in new[] { window.Viewer, window.ViewerB })
-                try { pane.RestoreTextToolDefaultsForExit(); pane.RestoreDrawToolDefaultsForExit(); }
+                try { pane.RestoreTextToolDefaultsForExit(); }
                 catch (Exception ex) when (ex is not OutOfMemoryException) { CrashReporter.Capture(ex, "Recovery text defaults"); }
 
             // The open tabs are remembered first, so a restart with only clean tabs reopens them

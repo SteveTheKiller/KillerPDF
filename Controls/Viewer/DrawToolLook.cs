@@ -45,6 +45,10 @@ internal sealed class DrawLookLease
 
     internal void Note(DrawToolLook current) => _synced = current;
 
+    /// <summary>The look the bar returns to on release, without releasing: what settings save while a mark is selected.</summary>
+    internal DrawToolLook Peek(DrawToolLook current) =>
+        _toolLook is { } toolLook ? DrawToolLook.Settle(toolLook, _synced ?? current, current) : current;
+
     internal DrawToolLook? Release(DrawToolLook current)
     {
         if (_toolLook is not { } toolLook) return null;

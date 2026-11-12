@@ -216,13 +216,16 @@ namespace KillerPDF.Shell
             if (gesture is null) ActiveViewer.RefreshSelectedDrawBar();
             else
             {
+                // The pane the card changed, not whichever pane has focus when the timer fires (r3 BF-003).
+                _cardBarRefreshPane = ActiveViewer;
                 _cardBarRefresh ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromMilliseconds(200),
-                    System.Windows.Threading.DispatcherPriority.Background, (_, _) => { _cardBarRefresh!.Stop(); ActiveViewer.RefreshSelectedDrawBar(); }, Dispatcher);
+                    System.Windows.Threading.DispatcherPriority.Background, (_, _) => { _cardBarRefresh!.Stop(); _cardBarRefreshPane?.RefreshSelectedDrawBar(); }, Dispatcher);
                 _cardBarRefresh.Stop();
                 _cardBarRefresh.Start();
             }
         }
 
         private System.Windows.Threading.DispatcherTimer? _cardBarRefresh;
+        private Controls.PdfViewer? _cardBarRefreshPane;
     }
 }
