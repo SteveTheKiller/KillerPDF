@@ -166,27 +166,30 @@ public sealed partial class EpubDocument
             using var output = new MemoryStream();
             var buffer = new byte[8192];
             int count;
-            while (damage is null && stream is not null)
+            try
             {
-                try { count = stream.Read(buffer); }
-                catch (Exception error) when (error is InvalidDataException or IOException or NotSupportedException)
+                while (damage is null && stream is not null)
                 {
-                    damage = error;
-                    break;
+                    try { count = stream.Read(buffer); }
+                    catch (Exception error) when (error is InvalidDataException or IOException or NotSupportedException)
+                    {
+                        damage = error;
+                        break;
+                    }
+                    if (count == 0) break;
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (output.Length + count > MaxEntryBytes)
+                    {
+                        OmitOversized(entry.FullName);
+                        break;
+                    }
+                    expandedBytes += count;
+                    if (expandedBytes > MaxExpandedBytes)
+                        throw new InvalidDataException("EPUB exceeds the total expanded size limit.");
+                    output.Write(buffer, 0, count);
                 }
-                if (count == 0) break;
-                cancellationToken.ThrowIfCancellationRequested();
-                if (output.Length + count > MaxEntryBytes)
-                {
-                    OmitOversized(entry.FullName);
-                    break;
-                }
-                expandedBytes += count;
-                if (expandedBytes > MaxExpandedBytes)
-                    throw new InvalidDataException("EPUB exceeds the total expanded size limit.");
-                output.Write(buffer, 0, count);
             }
-            stream?.Dispose();
+            finally { stream?.Dispose(); }
             if (damage is not null)
             {
                 damagedResources.Add(entry.FullName);
