@@ -127,6 +127,19 @@ internal static class PairedThumbnailSmoke
             events.Add(new { stage, rectangles = paired.Select(RectData).ToArray(), itemCount = originalList.Items.Count,
                 independentItemsPreserved = true, originalListPreserved = true });
             CaptureSidebar("paired-sidebar");
+            Stage("book-cover-centered");
+            var toggleBook = owner.GetType().GetMethod("ToggleBookMode", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            toggleBook.Invoke(owner, null);
+            Stable();
+            Rect[] book = Rectangles();
+            Require(Near(book[0].Left, paired[0].Left + paired[0].Width / 2)
+                && book[1].Top >= book[0].Bottom - 1 && Near(book[1].Top, book[2].Top)
+                && Near(book[1].Left, paired[0].Left) && Near(book[2].Left, paired[1].Left),
+                "Book layout centers page 1 alone before the page 2 and 3 spread.");
+            CaptureSidebar("book-cover-centered");
+            toggleBook.Invoke(owner, null);
+            Stable();
+            Require(Near(Rectangles()[0].Top, Rectangles()[1].Top), "Turning Book layout off restores page 1 and 2 as a pair.");
             Stage("marquee-both-columns");
             var first = (ListBoxItem)originalList.ItemContainerGenerator.ContainerFromIndex(0);
             var fourth = (ListBoxItem)originalList.ItemContainerGenerator.ContainerFromIndex(3);

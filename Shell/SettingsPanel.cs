@@ -380,6 +380,7 @@ namespace KillerPDF.Shell
             App.SetSetting("TwoPageBook", Controls.PdfViewer.BookMode ? "0" : "1");
             Viewer.ReapplyViewMode();
             ViewerB.ReapplyViewMode();
+            ApplyPageThumbnailLayout();
         }
 
         // ── Toolbar appearance ────────────────────────────────────────────

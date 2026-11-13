@@ -280,6 +280,47 @@ public sealed class PageThumbnailSpreadPanelTests
         Assert.Same(list.Items[1], list.ItemContainerGenerator.ItemFromContainer(second));
     });
 
+    [Fact]
+    public void BookCoverIsCenteredBeforeTheRemainingPairs() => OnSta(() =>
+    {
+        var list = Create(5);
+        Layout(list, 200, 240);
+        var panel = Find<PageThumbnailSpreadPanel>(list)!;
+        panel.FirstPageAlone = true;
+        Layout(list, 200, 240);
+        var cells = Enumerable.Range(0, 5).Select(i =>
+            (ListBoxItem)list.ItemContainerGenerator.ContainerFromIndex(i)).ToArray();
+        Assert.Equal(50, cells[0].TranslatePoint(new Point(), panel).X);
+        Assert.Equal(100, cells[0].ActualWidth);
+        Assert.True(cells[1].TranslatePoint(new Point(), panel).Y >= cells[0].ActualHeight);
+        Assert.Equal(cells[1].TranslatePoint(new Point(), panel).Y, cells[2].TranslatePoint(new Point(), panel).Y);
+        Assert.Equal(0, cells[1].TranslatePoint(new Point(), panel).X);
+        Assert.Equal(100, cells[2].TranslatePoint(new Point(), panel).X);
+        panel.FirstPageAlone = false;
+        Layout(list, 200, 240);
+        Assert.Equal(0, cells[0].TranslatePoint(new Point(), panel).X);
+        Assert.Equal(cells[0].TranslatePoint(new Point(), panel).Y, cells[1].TranslatePoint(new Point(), panel).Y);
+    });
+
+    [Theory]
+    [InlineData(1000, 0)]
+    [InlineData(1001, 100)]
+    public void BookLayoutScrollsToTheLastSpreadWithBoundedRealization(int count, double expectedX) => OnSta(() =>
+    {
+        var list = Create(count);
+        Layout(list, 200, 200);
+        var panel = Find<PageThumbnailSpreadPanel>(list)!;
+        panel.FirstPageAlone = true;
+        Layout(list, 200, 200);
+        list.ScrollIntoView(list.Items[count - 1]);
+        Layout(list, 200, 200);
+        var last = (ListBoxItem)list.ItemContainerGenerator.ContainerFromIndex(count - 1);
+        Assert.Equal(expectedX, last.TranslatePoint(new Point(), panel).X);
+        Assert.InRange(last.TranslatePoint(new Point(), panel).Y, 0, 160);
+        Assert.InRange(panel.Children.Count, 2, 20);
+        Assert.Null(list.ItemContainerGenerator.ContainerFromIndex(0));
+    });
+
     private static ListBox Create(int count)
     {
         var list = new ListBox { BorderThickness = new Thickness(0), Padding = new Thickness(0) };

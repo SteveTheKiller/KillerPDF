@@ -16,7 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - Changing the working CMYK profile refreshes every open pane and rejects older renders. DjVu conversion reports pages and bookmarks it could not keep.
 - About checkboxes stay aligned when labels wrap, the footer zoom percentage fits its control, and the unsaved Save button has no shadow.
-- Paired sidebar thumbnails sit close together like a spread, and menu icon rows use the normal dividers without extra full-width rules.
+- Paired sidebar thumbnails sit close together like a spread, center the cover alone in Book layout, and menu icon rows use the normal dividers without extra full-width rules.
 - Crop keeps the area you drew on pages whose box does not start at the page corner, including a page cropped a second time, crops the page you drew on in Continuous view, sizes its fields from that page, follows All and the page range when you press Enter in a field, and no longer freezes on a very large end page.
 - Pictures and image watermarks in a format the page shows but saving could not read, such as JPEG XR, appear in saved, printed and flattened copies instead of disappearing from them.
 - Quoted full paths can be opened even when the file picker's folder listing fails.

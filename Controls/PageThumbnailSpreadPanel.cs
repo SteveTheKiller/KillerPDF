@@ -6,6 +6,17 @@ namespace KillerPDF.Controls;
 
 internal sealed class PageThumbnailSpreadPanel : VirtualizingPanel, IScrollInfo
 {
+    public static readonly DependencyProperty FirstPageAloneProperty = DependencyProperty.Register(
+        nameof(FirstPageAlone), typeof(bool), typeof(PageThumbnailSpreadPanel),
+        new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsMeasure,
+            (sender, _) => ((PageThumbnailSpreadPanel)sender).ClearRowHeights()));
+
+    public bool FirstPageAlone
+    {
+        get => (bool)GetValue(FirstPageAloneProperty);
+        set => SetValue(FirstPageAloneProperty, value);
+    }
+
     private const double EstimatedRowHeight = 160;
     private readonly Dictionary<int, double> _rowHeights = new();
     private double[] _tree = [0];
@@ -33,7 +44,11 @@ internal sealed class PageThumbnailSpreadPanel : VirtualizingPanel, IScrollInfo
     /// <summary>Counted work for tests: calls to RowTop and the steps they took.</summary>
     internal long RowTopCalls, RowTopSteps;
 
-    private int RowCount => ((ItemsControl.GetItemsOwner(this)?.Items.Count ?? 0) + 1) / 2;
+    private int RowCount => ItemsControl.GetItemsOwner(this)?.Items.Count is > 0 and var count
+        ? (count + (FirstPageAlone ? 2 : 1)) / 2 : 0;
+    private int RowFor(int index) => FirstPageAlone ? (index + 1) / 2 : index / 2;
+    private int FirstIndex(int row) => FirstPageAlone ? Math.Max(0, row * 2 - 1) : row * 2;
+    private int EndIndex(int row) => FirstPageAlone && row == 0 ? 1 : FirstIndex(row) + 2;
 
     private double RowTop(int row)
     {
@@ -101,17 +116,17 @@ internal sealed class PageThumbnailSpreadPanel : VirtualizingPanel, IScrollInfo
         var generator = ItemContainerGenerator;
         var retained = new HashSet<UIElement>();
         ExtentHeight = RowTop(RowCount);
-        if (_bringIndex is { } target) VerticalOffset = RowTop(target / 2);
+        if (_bringIndex is { } target) VerticalOffset = RowTop(RowFor(target));
         VerticalOffset = Math.Clamp(VerticalOffset, 0, Math.Max(0, ExtentHeight - ViewportHeight));
         int first;
         do
         {
             first = Math.Max(0, RowAt(VerticalOffset) - 1);
             var lastVisible = RowAt(VerticalOffset + ViewportHeight);
-            for (var row = first; row * 2 < count && (RowTop(row) <= VerticalOffset + ViewportHeight || row <= lastVisible + 1); row++)
+            for (var row = first; FirstIndex(row) < count && (RowTop(row) <= VerticalOffset + ViewportHeight || row <= lastVisible + 1); row++)
             {
                 double height = 0;
-                for (var i = row * 2; i < Math.Min(count, row * 2 + 2); i++)
+                for (var i = FirstIndex(row); i < Math.Min(count, EndIndex(row)); i++)
                 {
                     var position = generator.GeneratorPositionFromIndex(i);
                     using (generator.StartAt(position, GeneratorDirection.Forward, true))
@@ -133,7 +148,7 @@ internal sealed class PageThumbnailSpreadPanel : VirtualizingPanel, IScrollInfo
             }
             ExtentHeight = RowTop(RowCount);
             VerticalOffset = _bringIndex is { } requested
-                ? Math.Clamp(RowTop(requested / 2), 0, Math.Max(0, ExtentHeight - ViewportHeight))
+                ? Math.Clamp(RowTop(RowFor(requested)), 0, Math.Max(0, ExtentHeight - ViewportHeight))
                 : atEnd ? Math.Max(0, ExtentHeight - ViewportHeight) : Math.Clamp(VerticalOffset, 0, Math.Max(0, ExtentHeight - ViewportHeight));
         } while (first != Math.Max(0, RowAt(VerticalOffset) - 1));
         _bringIndex = null;
@@ -142,7 +157,7 @@ internal sealed class PageThumbnailSpreadPanel : VirtualizingPanel, IScrollInfo
         for (var i = InternalChildren.Count - 1; i >= 0; i--)
         {
             var child = InternalChildren[i];
-            if (retained.Contains(child) && _indices[child] / 2 >= finalFirst && _indices[child] / 2 <= finalLast) continue;
+            if (retained.Contains(child) && RowFor(_indices[child]) >= finalFirst && RowFor(_indices[child]) <= finalLast) continue;
             var position = generator.GeneratorPositionFromIndex(_indices[child]);
             if (generator is IRecyclingItemContainerGenerator recycling) recycling.Recycle(position, 1);
             else generator.Remove(position, 1);
@@ -158,8 +173,11 @@ internal sealed class PageThumbnailSpreadPanel : VirtualizingPanel, IScrollInfo
         foreach (UIElement child in InternalChildren)
         {
             var index = _indices[child];
-            var y = RowTop(index / 2) - VerticalOffset;
-            child.Arrange(new Rect(index % 2 * finalSize.Width / 2, y, finalSize.Width / 2, _rowHeights[index / 2]));
+            int row = RowFor(index);
+            var y = RowTop(row) - VerticalOffset;
+            double x = FirstPageAlone && index == 0 ? finalSize.Width / 4
+                : (index - FirstIndex(row)) * finalSize.Width / 2;
+            child.Arrange(new Rect(x, y, finalSize.Width / 2, _rowHeights[row]));
         }
         return finalSize;
     }

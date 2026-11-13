@@ -439,6 +439,7 @@ namespace KillerPDF.Shell
         private ItemsPanelTemplate? _pageColumnPanel;
         private ItemsPanelTemplate? _pageStripPanel;
         private ItemsPanelTemplate? _pairedThumbnailPanel;
+        private bool _pairedThumbnailBook;
 
         private bool PairedThumbnailsActive => !_sidebarStripLayout
             && (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
@@ -453,8 +454,16 @@ namespace KillerPDF.Shell
             if (_sidebarStripLayout)
                 desired = _pageStripPanel ?? PageList.ItemsPanel;
             else if (PairedThumbnailsActive)
-                desired = _pairedThumbnailPanel ??= new ItemsPanelTemplate(
-                    new FrameworkElementFactory(typeof(PageThumbnailSpreadPanel)));
+            {
+                if (_pairedThumbnailPanel is null || _pairedThumbnailBook != Controls.PdfViewer.BookMode)
+                {
+                    _pairedThumbnailBook = Controls.PdfViewer.BookMode;
+                    var panel = new FrameworkElementFactory(typeof(PageThumbnailSpreadPanel));
+                    panel.SetValue(PageThumbnailSpreadPanel.FirstPageAloneProperty, _pairedThumbnailBook);
+                    _pairedThumbnailPanel = new ItemsPanelTemplate(panel);
+                }
+                desired = _pairedThumbnailPanel;
+            }
             if (ReferenceEquals(PageList.ItemsPanel, desired)) return;
             EndPageBoxSelection(cancel: true);
             HidePageDropIndicator();
