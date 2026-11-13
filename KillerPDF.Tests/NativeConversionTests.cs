@@ -182,6 +182,18 @@ public sealed class NativeConversionTests
         Assert.Contains("notices = NativePdfConversion.WriteNewDjvu(", shell);
     }
 
+    [Theory]
+    [InlineData("PageNotConverted", 0)]
+    [InlineData("BookmarksNotConverted", null)]
+    [InlineData("BookmarkNotConverted", null)]
+    public void ConversionCompletionDisclosesPageAndBookmarkFailures(string code, int? page)
+    {
+        var diagnostic = new KillerPdf.Engine.Formats.Djvu.DjvuDiagnostic(code, "Could not preserve this content") { PageIndex = page };
+        string? note = NativePdfConversion.DjvuConversionNote([diagnostic],
+            key => key == "Str_Djvu_Diagnostics_Page" ? "Page {0}" : "Whole document");
+        Assert.Equal((page is null ? "Whole document" : "Page 1") + ": Could not preserve this content", note);
+    }
+
     private static string RepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

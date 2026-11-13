@@ -67,9 +67,8 @@ internal static class NativePdfConversion
     }
 
     /// <summary>
-    /// The note shown after a DjVu conversion: the pages whose text was left out, then the pages whose text kept
-    /// replacement characters, each as one-based numbers with consecutive pages joined. A page left out is named only
-    /// there. Null when no page lost text.
+    /// Completion warnings for failed pages, omitted bookmarks and text loss. Text warnings group
+    /// consecutive one-based page numbers. Null when conversion has no reportable losses.
     /// </summary>
     internal static string? DjvuConversionNote(IReadOnlyList<DjvuDiagnostic> notices, Func<string, string> loc)
     {
@@ -77,14 +76,23 @@ internal static class NativePdfConversion
         ArgumentNullException.ThrowIfNull(loc);
         var leftOut = new SortedSet<int>();
         var replaced = new SortedSet<int>();
+        var failures = new List<string>();
         foreach (var notice in notices)
         {
+            if (notice.Code is "PageNotConverted" or "BookmarksNotConverted" or "BookmarkNotConverted")
+            {
+                string scope = notice.PageIndex is int failedPage
+                    ? string.Format(loc("Str_Djvu_Diagnostics_Page"), failedPage + 1)
+                    : loc("Str_Djvu_Diagnostics_Document");
+                failures.Add(scope + ": " + notice.Message);
+            }
             if (notice.PageIndex is not int page) continue;
             if (notice.Code == "TextNotConverted") leftOut.Add(page);
             else if (notice.Code is "TextEncodingInvalid" or "TextCharactersReplaced") replaced.Add(page);
         }
         replaced.ExceptWith(leftOut);
         var lines = new List<string>(2);
+        lines.AddRange(failures);
         if (leftOut.Count > 0) lines.Add(string.Format(loc("Str_NativePdf_TextLeftOut"), IncompletePageLog.Describe([.. leftOut])));
         if (replaced.Count > 0) lines.Add(string.Format(loc("Str_NativePdf_TextReplaced"), IncompletePageLog.Describe([.. replaced])));
         return lines.Count == 0 ? null : string.Join("\n", lines);
