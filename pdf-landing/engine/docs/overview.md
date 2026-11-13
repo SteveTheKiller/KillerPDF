@@ -1,6 +1,6 @@
 # The KillerPDF.Engine
 
-The KillerPDF.Engine is an independent, UI-free .NET 10 library for reading, extracting text, rendering, searching, validating, authoring, editing, redacting, signing, encrypting, and writing PDF files. It gives applications a modern PDF 2.0, PDF/A, and PDF/UA foundation without tying them to the KillerPDF desktop interface.
+The KillerPDF.Engine is an independent, UI-free .NET 10 library for reading, extracting text, rendering, searching, validating, authoring, editing, redacting, signing, encrypting, and writing PDF files. It also reads EPUB and DjVu documents natively, converts them to PDF, and renders with ICC color management and printer proofing. It gives applications a modern PDF 2.0, PDF/A, and PDF/UA foundation without tying them to the KillerPDF desktop interface.
 
 ## Start building
 
@@ -28,6 +28,9 @@ Use the task guides in the sidebar when you already know what you need to do.
 - Content-level redaction with sensitive-data search and read-back verification
 - AcroForm editing, FDF and XFDF interchange, XFA inspection and conversion, and data merge
 - Export to plain text, HTML, Markdown, JSON, Word, Excel, and PowerPoint formats
+- Native EPUB and DjVu reading (in development): metadata, text, outlines, page and region rendering, explicit conversion to PDF, and link regions for EPUB
+- ICC color management: float32 page rendering, monitor-profile output, a bundled working CMYK profile, and printer proofing with all four rendering intents, black-point compensation, paper and black simulation, overprint simulation, and gamut warnings. HDR output and physical color accuracy are still in progress
+- Picture editing: move, resize, and remove placed images, detached image assets, and rectangle or color-area pixel selection and extraction
 - Repair and lossless optimization plans, preflight, accessibility, and print-production reports
 - Imposition, headers, footers, Bates numbering, calibrated measurement, layers, attachments, and structural comparison
 - Structural diagnostics, bounded parsing, implementation limits, and round-trip validation

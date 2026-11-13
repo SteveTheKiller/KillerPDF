@@ -6,7 +6,7 @@ The public API is organized by PDF responsibility. Start with high-level documen
 
 | Namespace | Use it for |
 | --- | --- |
-| `KillerPdf.Engine.Documents` | Open files, read document, page, text, bookmark, link, form, and tree information, and run redaction, export, OCR, comparison, and other document workflows |
+| `KillerPdf.Engine.Documents` | Open files, read document, page, text, bookmark, link, form, and tree information, run redaction, export, OCR, comparison, and other document workflows, and read native EPUB and DjVu snapshots |
 | `KillerPdf.Engine.Authoring` | Create documents, page content, resources, annotations, forms, navigation, and conformance structures |
 | `KillerPdf.Engine.Editing` | Append byte-preserving revisions to existing documents |
 | `KillerPdf.Engine.Writing` | Deterministic rewrites, incremental update options, and output sanitization |
@@ -14,7 +14,10 @@ The public API is organized by PDF responsibility. Start with high-level documen
 | `KillerPdf.Engine.Validation` | Deterministic reopen and round-trip verification |
 | `KillerPdf.Engine.Security` | Password authentication, permissions, encryption options, and security handlers |
 | `KillerPdf.Engine.Signing` | Signature creation, discovery, verification, certification, and revision analysis |
-| `KillerPdf.Engine.Rendering` | Render pages to BGRA32 pixel buffers |
+| `KillerPdf.Engine.Rendering` | Render pages to BGRA32 pixel buffers or float32 frames, with printer proof options and gamut masks |
+| `KillerPdf.Engine.ColorManagement` | Load ICC profiles, convert color between profiles, describe printer proofs and presets, check printer gamut, and supply the bundled working CMYK profile |
+| `KillerPdf.Engine.Formats.Epub` | Open EPUB packages, read metadata, text, and navigation, lay out and render pages, and convert books to PDF |
+| `KillerPdf.Engine.Formats.Djvu` | Open DjVu documents, read page information, text, and navigation, render pages, and convert documents to PDF |
 | `KillerPdf.Engine.Fonts` | Font loading, text codes, glyph outlines, and host font resolvers |
 | `KillerPdf.Engine.Objects` | Typed PDF objects for lower-level work |
 | `KillerPdf.Engine.Syntax` | Headers, tokens, tokenizer behavior, and PDF versions |
@@ -32,6 +35,13 @@ The public API is organized by PDF responsibility. Start with high-level documen
 | Read forms | `PdfFormWidgetReader` |
 | Extract text and geometry | `PdfPageContentReader` |
 | Render a page | `PdfPageRenderer` |
+| Render with float32 precision | `PdfPageRenderer.RenderFrame` and `PdfPageRenderer.RenderFrameRegion` |
+| Proof a render for a printer | `PdfRenderOptions.Proof`, `PdfDocumentProofSettings`, and `PdfProofPreset` |
+| Mark out-of-gamut pixels | `PdfRenderedFrame.WithGamutWarningsMarked` |
+| Load the working CMYK profile | `PdfCmykViewingDefault.LoadProfile` |
+| Open an EPUB | `EpubDocument.Open`, `PdfReadSnapshot.OpenEpub`, and `PdfReadSnapshot.OpenEpubProgressive` |
+| Open a DjVu document | `DjvuDocument.Open` and `PdfReadSnapshot.OpenDjvu` |
+| Convert EPUB or DjVu to PDF | `EpubDocument.ConvertToPdf` and `DjvuDocument.ConvertToPdf` |
 | Redact content | `PdfRedactionSearch` and `PdfContentRedaction` |
 | Optimize a file | `PdfOptimizer` |
 | Export to Office, HTML, Markdown, or JSON | `PdfStructuredExport` |
@@ -40,6 +50,8 @@ The public API is organized by PDF responsibility. Start with high-level documen
 | Build page content | `PdfContentStreamBuilder` |
 | Change pages and forms | `PdfIncrementalPageEditor` |
 | Change annotations and links | `PdfIncrementalAnnotationEditor` |
+| Move, resize, or remove a placed image | `PdfImagePlacementEditor` |
+| Select or extract pixels | `PdfRasterSelection` and `PdfRasterExtraction` |
 | Rewrite deterministically | `PdfDocumentWriter.Write` |
 | Validate a rewrite | `PdfRoundTripValidator.Validate` |
 | Read and verify signatures | `PdfSignatureReader`, `PdfSignatureVerifier`, and `PdfSignatureInspection` |
