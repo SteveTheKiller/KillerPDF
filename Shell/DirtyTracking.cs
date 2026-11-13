@@ -54,17 +54,9 @@ namespace KillerPDF.Shell
             {
                 if (dirty)
                 {
-                    // Deeper orange = unsaved. The old #FFA500 washed out on the light theme's white
-                    // toolbar; this reads on light and dark. A soft dark halo (ShadowDepth 0) outlines
-                    // the glyph so it pops on light backgrounds and stays invisible on dark ones.
+                    // Deeper orange keeps the unsaved indicator readable on light and dark surfaces.
                     _saveAsBtnRef.Foreground = new SolidColorBrush(Color.FromRgb(0xE0, 0x73, 0x00));
-                    _saveAsBtnRef.Effect = new System.Windows.Media.Effects.DropShadowEffect
-                    {
-                        Color = Colors.Black,
-                        BlurRadius = 5,
-                        ShadowDepth = 0,
-                        Opacity = 0.55
-                    };
+                    _saveAsBtnRef.Effect = null;
                 }
                 else
                 {
