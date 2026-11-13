@@ -8,19 +8,19 @@
 <meta name="darkreader-lock">
 <title>KillerPDF - Free, open-source PDF editor for Windows</title>
 <link rel="canonical" href="https://killerpdf.net/">
-<meta name="description" content="Compact installer or self-contained portable edition. No account, subscription, or telemetry. Local PDF editor. GPLv3.">
+<meta name="description" content="Free, open-source PDF editor for Windows that also reads EPUB books and DjVu scans. Installer or portable edition. No account, subscription, or telemetry. GPLv3.">
 <link rel="icon" type="image/x-icon" href="kp-icon.ico">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://killerpdf.net/">
 <meta property="og:title" content="KillerPDF - Free, open-source PDF editor for Windows">
-<meta property="og:description" content="Compact installer or self-contained portable edition. No account, subscription, or telemetry. Local PDF editor. GPLv3.">
+<meta property="og:description" content="Free, open-source PDF editor for Windows that also reads EPUB books and DjVu scans. Installer or portable edition. No account, subscription, or telemetry. GPLv3.">
 <meta property="og:image" content="https://killerpdf.net/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="KillerPDF - Free, open-source PDF editor for Windows">
-<meta name="twitter:description" content="Compact installer or self-contained portable edition. No account, subscription, or telemetry. Local PDF editor. GPLv3.">
+<meta name="twitter:description" content="Free, open-source PDF editor for Windows that also reads EPUB books and DjVu scans. Installer or portable edition. No account, subscription, or telemetry. GPLv3.">
 <meta name="twitter:image" content="https://killerpdf.net/og-image.png">
 <script defer src="https://koya.thekiller.net/script.js" data-website-id="4036b11d-f6c0-4254-b448-933d3e38b0cb"></script>
 <link rel="stylesheet" href="kp.css?v=36">
@@ -283,8 +283,9 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 <a href="https://github.com/SteveTheKiller/KillerPDF/raw/main/KillerPDF.pdf" class="brochure-link" target="_blank" rel="noopener"><img src="brand/brochure-doc.png" alt=""><span data-i18n="brochure_btn">Informational Brochure (PDF)</span></a>
 </div>
 <div class="blurb"><h3 data-i18n="b2_t">Built from scratch</h3><p data-i18n="b2_d">KillerPDF is written in C# and WPF on .NET. It renders through The KillerPDF.Engine and runs OCR on Tesseract, with language models downloaded on demand so the base download stays small.<br><br>PDF creation, editing, validation, encryption, and writing are powered by <a href="./engine/index.html">The KillerPDF.Engine</a>, an independent .NET library built from scratch for PDF 2.0 and modern PDF/A. The <a href="technical.html">Technical</a> page shows how it all fits together.</p></div>
-<div class="blurb"><h3 data-i18n="b1_t">Fully featured</h3><ul class="blurb-list" data-i18n="pi19_b1_d">
-<li>Four view modes, tabs and split panes</li>
+<div class="blurb"><h3 data-i18n="b1_t">Fully featured</h3><ul class="blurb-list" data-i18n="pi193_b1_d">
+<li>Five view modes, tabs and split panes</li>
+<li>Reads EPUB books and DjVu scans</li>
 <li>Edit PDF text in place, by line or paragraph</li>
 <li>Permanent redaction with pattern search</li>
 <li>AES-256 protection and certificate signing</li>
@@ -292,7 +293,7 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 <li>OCR scans in twenty languages, on device</li>
 <li>Fill, recognize and flatten forms</li>
 <li>Guided tasks, macros and automatic folders</li>
-<li>Sixty-six commands for scripts</li>
+<li>Seventy-one commands for scripts</li>
 </ul></div>
 </div>
 </section>
@@ -308,25 +309,27 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 <button class="feature-arrow feature-next" type="button" aria-label="Next feature">&#8594;</button>
 </div>
 <div class="feature-stage" aria-live="polite">
-<div class="feature-card"><h3 data-i18n="f_annot_t">Annotate &amp; edit</h3><p data-i18n="pi19_f_annot_d">Edit a PDF's own text in place, by line or by paragraph, with Find and Replace across the document, plus text boxes, freehand drawing, lines, shapes with optional fill, and text-hugging highlights, each with its own color, opacity and width. A full RGB color picker on every swatch.</p></div>
+<div class="feature-card"><h3 data-i18n="f_annot_t">Annotate &amp; edit</h3><p data-i18n="pi193_f_annot_d">Edit a PDF's own text in place, by line or by paragraph, with Find and Replace across the document, plus text boxes, freehand drawing, lines, shapes with optional fill, and text-hugging highlights, each with its own color, opacity and width. Select, move and resize the pictures already in a PDF, or lift part of a scan out as a new picture with Extract Image.</p></div>
 <div class="feature-card"><h3 data-i18n="pi19_f_redact_t">Permanent redaction</h3><p data-i18n="pi19_f_redact_d">Mark areas by hand, by search, or by pattern for email addresses, phone numbers, Social Security numbers, payment cards and IBANs, then remove the content from the page itself, text in form fields and annotations included. The result is verified before it is saved, and a whole-page raster fallback never happens without asking.</p></div>
 <div class="feature-card"><h3 data-i18n="pi19_f_protect_t">Protect &amp; verify</h3><p data-i18n="pi19_f_protect_d">Save AES-256 encrypted copies with passwords, permissions or certificate recipients. Inspect signers, certificate chains, trusted timestamps and later changes, and manage the certificates KillerPDF trusts without touching Windows.</p></div>
 <div class="feature-card"><h3 data-i18n="f_sign_t">Forms &amp; signing</h3><p data-i18n="pi19_f_sign_d">Fill PDF forms and save them back, recognize fields on a flat form, exchange FDF and XFDF data, convert supported XFA layouts and flatten fields. Draw or import reusable signatures, or sign with a certificate from Windows or a .pfx file, with an RFC 3161 timestamp.</p></div>
 <div class="feature-card"><h3 data-i18n="pi19_f_export_t">Export to Office &amp; more</h3><p data-i18n="pi19_f_export_d">Export to Word, Excel, PowerPoint, HTML, Markdown, text or JSON with a page range and a review of what the format cannot carry. Pull a ruled table into XLSX or CSV after correcting its cells, or export pages as images.</p></div>
-<div class="feature-card"><h3 data-i18n="pi19_f_convert_t">Convert &amp; scan in</h3><p data-i18n="pi19_f_convert_d">Turn a .docx or .xlsx into a PDF without Office, convert legacy .doc and .xls through an installed Word or Excel with macros disabled, or scan straight into a new PDF through TWAIN.</p></div>
+<div class="feature-card"><h3 data-i18n="pi19_f_convert_t">Convert &amp; scan in</h3><p data-i18n="pi193_f_convert_d">Turn an EPUB book or a DjVu scan into a PDF with its text, links and bookmarks, turn a .docx or .xlsx into a PDF without Office, convert legacy .doc and .xls through an installed Word or Excel with macros disabled, or scan straight into a new PDF through TWAIN.</p></div>
 <div class="feature-card"><h3 data-i18n="f_ocr_t">OCR built in</h3><p data-i18n="pi19_f_ocr_d">OCR a page or a dragged region to the clipboard, make a scanned PDF searchable, or convert a scan's words into real, editable text with a review of the uncertain ones. Twenty languages, all on device; every model, English included, downloads on first use and stays cached.</p></div>
 <div class="feature-card"><h3 data-i18n="f_compare_t">Compare PDFs</h3><p data-i18n="f_compare_d">Page navigation, zoom and scrolling stay synchronized. Difference regions are marked directly over the pages, with a changed percentage for each pair. The results also identify different page dimensions and pages that exist in only one document. You can export the comparison report without changing either source PDF.</p></div>
-<div class="feature-card"><h3 data-i18n="f_view_t">View &amp; navigate</h3><p data-i18n="f_view_d_172">The KillerPDF.Engine rendering with four view modes - single page, continuous scroll, two-page with optional book layout, and a grid of every page. Open several PDFs in tabs, with search, outlines, and clickable links.</p></div>
+<div class="feature-card"><h3 data-i18n="f_view_t">View &amp; navigate</h3><p data-i18n="f_view_d_193">The KillerPDF.Engine rendering with five view modes: single page, continuous scroll, two-page, two-page continuous, and a grid of every page, with an optional book layout for the two-page views. Open several PDFs in tabs, with search, outlines, and clickable links.</p></div>
+<div class="feature-card"><h3 data-i18n="pi193_f_books_t">EPUB books &amp; DjVu</h3><p data-i18n="pi193_f_books_d">Open EPUB books and DjVu scans in tabs without converting them first, with every view mode, thumbnails, outlines, links, search and copy. Long books show their first page right away and keep counting in the background, and Convert to PDF makes a PDF copy whenever you want one. The original file is never changed.</p></div>
 <div class="feature-card"><h3 data-i18n="f_org_t">Organize pages</h3><p data-i18n="pi19_f_org_d">Merge PDFs and extract pages, drag to reorder, rotate, reverse, fix the orientation of scans, straighten them and divide spreads. Edit bookmarks, attachments, layers and page labels, generate a table of contents, and drop a folder or .zip to merge everything inside.</p></div>
 <div class="feature-card"><h3 data-i18n="f_search_t">Search &amp; select text</h3><p data-i18n="f_search_d">Search the whole document with every result highlighted as you scroll. Text selection follows columns and reading order, so copying one column no longer pulls in the next.</p></div>
 <div class="feature-card"><h3 data-i18n="pi19_f_toolsearch_t">Search Tools</h3><p data-i18n="pi19_f_toolsearch_d">Press Ctrl+K and type what you want to do. Every tool and command is listed by name with its shortcut, in English and in the interface language, and Enter runs it. Shortcuts are customizable and every tool is one letter.</p></div>
 <div class="feature-card"><h3 data-i18n="f_transform_t">Transform</h3><p data-i18n="pi19_f_transform_d">Rotate, scale, flip, straighten with a level line, correct perspective, tune levels, and fix exposure, saturation and white balance, all with a live preview, while annotations follow the page.</p></div>
 <div class="feature-card"><h3 data-i18n="pi19_f_measure_t">Measure</h3><p data-i18n="pi19_f_measure_d">Calibrated distance, perimeter, area and angle with snapping, nine units and a drawing scale per page or document. Measurements save as standard PDF annotations, so other viewers show them too, and a report lists them as CSV or JSON.</p></div>
-<div class="feature-card"><h3 data-i18n="f_print_t">Print &amp; flatten</h3><p data-i18n="f_print_d_172">A real in-app print preview with printer paper and source controls, collapsible layout and output sections, scale, margins, N-up, subsets, duplex, and live preparation and spool progress at 300 DPI. Or flatten or export pages as images.</p></div>
+<div class="feature-card"><h3 data-i18n="f_print_t">Print &amp; flatten</h3><p data-i18n="f_print_d_193">A real in-app print preview in a compact two-column window, with printer paper and source controls, scale, margins, N-up, subsets, duplex, a one, two or book sheet preview, and live preparation and spool progress at 300 DPI. When KillerPDF is your default PDF app, Windows prints through it too. Or flatten or export pages as images.</p></div>
+<div class="feature-card"><h3 data-i18n="pi193_f_color_t">Color management</h3><p data-i18n="pi193_f_color_d">Pages are color-managed on standard monitors that have a color profile, and CMYK colors follow one working profile everywhere a page is shown, printed or exported. A printer proof previews a document on a given printer and paper, with paper and black ink simulation, overprint and gamut warnings. HDR output is still in progress.</p></div>
 <div class="feature-card"><h3 data-i18n="pi19_f_review_t">Review &amp; repair</h3><p data-i18n="pi19_f_review_d">A preflight report with confirmed corrections, an accessibility review with guided repairs and Undo, print production and separations reports, a navigation audit that repairs bad links, and Reduce File Size for a smaller copy.</p></div>
 <div class="feature-card"><h3 data-i18n="pi19_f_production_t">Production tools</h3><p data-i18n="pi19_f_production_d">Headers, footers, page numbers and continuous Bates numbering across a batch of files; N-up, booklet, step and repeat, cut and stack, manual and poster layouts with printer's marks, previewed before they are saved.</p></div>
 <div class="feature-card"><h3 data-i18n="f_split_t">Split pane</h3><p data-i18n="f_split_d_172">F10 shows two documents side by side in one window, sharing the same toolbar and sidebar while keeping independent view and invert settings. Drag a tab from one pane to the other, and F10 again closes the split.</p></div>
-<div class="feature-card"><h3 data-i18n="f_cli_t">Automation &amp; command line</h3><p data-i18n="pi19_f_cli_d">Sixty-six commands from PowerShell or cmd with no window: merge, split, redact, protect, sign, export, OCR, print, impose, data merge and more, each with a script-friendly exit code and JSON reports where it counts. Passwords can arrive on standard input.</p></div>
+<div class="feature-card"><h3 data-i18n="f_cli_t">Automation &amp; command line</h3><p data-i18n="pi193_f_cli_d">Seventy-one commands from PowerShell or cmd with no window: merge, split, redact, protect, sign, export, OCR, print, impose, data merge and more, each with a script-friendly exit code and JSON reports where it counts. Passwords can arrive on standard input.</p></div>
 <div class="feature-card"><h3 data-i18n="pi19_f_automate_t">Guided tasks &amp; macros</h3><p data-i18n="pi19_f_automate_d">Prepare a PDF for email, clean up a scan, remove sensitive information or create a fillable form through reviewed steps. Save compatible tasks as macros, run them on a stack of files or an automatic folder, and merge CSV, JSON or XLSX data into forms.</p></div>
 <div class="feature-card"><h3 data-i18n="f_stamp_t">Stamps &amp; watermarks</h3><p data-i18n="f_stamp_d">Stamp page numbers or a text watermark across any page range - positioned, sized, and styled - applied as a single undo.</p></div>
 <div class="feature-card"><h3 data-i18n="f_open_t">Open &amp; repair PDFs</h3><p data-i18n="f_open_d">Opens password-protected PDFs by prompting instead of erroring, and repairs damaged or broken-xref files so they open and print.</p></div>
@@ -397,7 +400,7 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 </div>
 <div class="egg-toast" id="eggToast"></div>
 
-<script src="kp-i18n.js?v=22"></script>
+<script src="kp-i18n.js?v=23"></script>
 <script src="brand-layout.js?v=1"></script>
 <script src="engine/engine-site-facts.js?v=1.9.0"></script>
 <script src="kp-site-info.js?v=1"></script>
