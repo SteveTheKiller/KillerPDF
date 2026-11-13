@@ -25,17 +25,21 @@ namespace KillerPDF.Shell
             return PdfEngineBurn.AnnotationSpace(_renderDims, pageIndex, visualWidth, visualHeight);
         }
 
-        private void RotatePages_Click(int delta)
+        // page: the page a menu named; it turns that page, or the whole selection when the page is part of it.
+        private void RotatePages_Click(int delta, int? page = null)
         {
             if (_doc is null) return;
             if (!EnsureEditable(continueAfterUnlock: false)) return;
             var selected = PageList.SelectedItems;
-            if (selected.Count == 0) return;
+            if (selected.Count == 0 && page is null) return;
             try
             {
                 UndoEntry? documentUndo = CaptureDocumentUndo();
                 var indices = new List<int>();
-                foreach (PageThumbnailVm vm in selected) indices.Add(vm.PageIndex);
+                if (page is { } clicked)
+                    indices.AddRange(Services.PageMenuTarget.Pages(clicked, [.. selected.Cast<PageThumbnailVm>().Select(vm => vm.PageIndex)]));
+                else
+                    foreach (PageThumbnailVm vm in selected) indices.Add(vm.PageIndex);
                 // #169: rotation must not destroy the overlay annotations - the reload's default
                 // keepAnnotations:false cleared them all, losing committed unsaved work on the
                 // second rotation after placing it. Remap each rotated page's annotations through

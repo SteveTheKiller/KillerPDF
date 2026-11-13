@@ -195,7 +195,7 @@ namespace KillerPDF.Shell
                 case SidebarPanel.Attachments:
                     Add("Str_Attachment_Add", AddSidebarAttachment);
                     if (clicked?.Tag is PdfAttachmentInfo attachment)
-                        Add("Str_Btn_Save", () => SaveAttachmentCopy(attachment));
+                        menu.Items.Add(MakeMenuItem(Loc("Str_Btn_Save"), (_, _) => SaveAttachmentCopy(attachment), ""));
                     Add("Str_DocumentTools_EditAttachments", EditAttachments);
                     break;
                 case SidebarPanel.Comments:

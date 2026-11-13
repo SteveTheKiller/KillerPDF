@@ -670,11 +670,11 @@
                                                 BorderBrush="{DynamicResource MenuBorderBrush}"
                                                 BorderThickness="1" CornerRadius="{DynamicResource FlyoutCornerRadius}">
                                             <Grid>
-                                                <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
-                                                        CornerRadius="{DynamicResource FlyoutCornerRadius}" Background="{DynamicResource GrainBrushShared}"/>
                                                 <!-- Own scope, so a submenu's columns align among its own
                                                      siblings rather than the unrelated parent popup's rows. -->
                                                 <ItemsPresenter Margin="4" Grid.IsSharedSizeScope="True"/>
+                                                <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
+                                                        CornerRadius="{DynamicResource FlyoutCornerRadius}" Background="{DynamicResource GrainBrushShared}"/>
                                             </Grid>
                                         </Border>
                                         <Border IsHitTestVisible="False" Margin="{DynamicResource MenuBevelInnerMargin}" BorderBrush="{DynamicResource MenuBevelLightBrush}" BorderThickness="{DynamicResource MenuBevelLightThickness}"/>
@@ -1689,7 +1689,6 @@
                                 <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="{DynamicResource FlyoutShadowOpacity}"/>
                             </Border.Effect>
                             <Grid>
-                            <Border CornerRadius="{DynamicResource FlyoutCornerRadius}" IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
                             <StackPanel x:Name="OverflowMenuPanel" ButtonBase.Click="OverflowItem_Click" MinWidth="180" Margin="4">
                                 <Button x:Name="MiCompare" Style="{StaticResource OverflowMenuButton}" Visibility="Collapsed" Click="ComparePdf_Click">
                                     <StackPanel Orientation="Horizontal">
@@ -1770,6 +1769,7 @@
                                     <StackPanel Orientation="Horizontal"><a11y:Glyph Text="&#xED62;" FontFamily="Segoe MDL2 Assets" FontSize="14" Width="24" Foreground="{DynamicResource TextBrush}"/><TextBlock Text="{DynamicResource Str_Lbl_Clear}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/></StackPanel>
                                 </Button>
                             </StackPanel>
+                            <Border CornerRadius="{DynamicResource FlyoutCornerRadius}" IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
                             </Grid>
                         </Border>
                     </Popup>

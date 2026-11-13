@@ -166,6 +166,7 @@ namespace KillerPDF.Shell
         // shortcut is the one the old flat list had.
         private void AddPageMenuItems(Point pt, int pageIdx)
         {
+            if (ActiveViewer.NativeDocumentRef is not null) { AddNativePageMenuItems(pageIdx); return; }
             bool hasSelection = SelectionCount() > 0;
             bool hasTextSel   = !string.IsNullOrEmpty(_selectedText);
 
@@ -182,7 +183,7 @@ namespace KillerPDF.Shell
                     text.Add(("\uE7E6", Loc("Str_Lbl_Highlight"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Highlight), false, true));
                     text.Add(("\uE8DC", Loc("Str_Lbl_Underline"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Underline), false, true));
                     text.Add(("\uEDE0", Loc("Str_Lbl_Strike"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Strikethrough), false, true));
-                    text.Add(("\uE72E", Loc("Str_Lbl_Redact"), null, ActiveViewer.MarkTextSelectionForRedaction, false, true));
+                    text.Add(("\uED1A", Loc("Str_Lbl_Redact"), null, ActiveViewer.MarkTextSelectionForRedaction, false, true));
                 }
                 // Two rows of three keep the page menu narrow (Steve: five across was too wide).
                 var textStrip = QuickStrip(_ctxMenu, 3, [.. text]);
@@ -217,18 +218,18 @@ namespace KillerPDF.Shell
             _ctxMenu.Items.Add(new Separator());
             _ctxMenu.Items.Add(BuildFieldPresetMenu(pt, pageIdx));
             _ctxMenu.Items.Add(BuildComparisonContextItem());
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_OcrPage"), (s, e) => OcrPageToClipboard(pageIdx), GestureFor("CtrlShift:O"), "\uE8C8"));
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_OcrPage"), (s, e) => OcrPageToClipboard(pageIdx), GestureFor("CtrlShift:O"), "\uEE6F"));
 
             var tools = MakeMenuItem(Loc("Str_Card_PageTools"), (_, _) => { }, glyph: "\uE7C3");
-            tools.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCW"), (s, e) => RotatePages_Click(90), clockwise: true));
-            tools.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCCW"), (s, e) => RotatePages_Click(-90), clockwise: false));
-            tools.Items.Add(MakeTransformMenuItem(Loc("Str_Lbl_Rotate"), (s, e) => OpenTransformWindow(), GestureFor("R")));
+            tools.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCW"), (s, e) => RotatePages_Click(90, pageIdx), clockwise: true));
+            tools.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCCW"), (s, e) => RotatePages_Click(-90, pageIdx), clockwise: false));
+            tools.Items.Add(MakeTransformMenuItem(Loc("Str_Lbl_Rotate"), (s, e) => OpenTransformWindow(page: pageIdx), GestureFor("R")));
             tools.Items.Add(MakeMenuItem(Loc("Str_ColorCorrection"), (s, e) =>
-                OpenTransformWindow(TransformWindowMode.ColorCorrection), gesture: GestureFor("E"), glyph: "\uE790"));
+                OpenTransformWindow(TransformWindowMode.ColorCorrection, pageIdx), gesture: GestureFor("E"), glyph: "\uE790"));
             tools.Items.Add(MakeMenuItem(Loc("Str_Pages_FixOrientation"), (s, e) => FixPageOrientation(),
                 GestureFor("AltShift:O"), "\uE7AD"));
             tools.Items.Add(new Separator());
-            tools.Items.Add(MakeMenuItem(Loc("Str_Pages_RasterizeRegion"), (s, e) => RasterizeRegion(pageIdx), glyph: "\uE80A"));
+            tools.Items.Add(MakeMenuItem(Loc("Str_Pages_RasterizeRegion"), (s, e) => RasterizeRegion(pageIdx), glyph: "\uE91B"));
             tools.Items.Add(MakeMenuItem(Loc("Str_ExtractImage_Menu"), (s, e) => ExtractImage(pageIdx), glyph: "\uEB9F"));
             tools.Items.Add(MakeMenuItem(Loc("Str_TableExport_Title"), (_, _) => ExportTable(pageIdx), glyph: "\uE80A"));
             tools.Items.Add(new Separator());
@@ -243,8 +244,10 @@ namespace KillerPDF.Shell
             if (CanPasteInView())
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (s, e) => PasteInView(pageIdx), GestureFor("Ctrl:V"), "\uE77F"));
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SelectAll"), (s, e) => SelectAllInView(), GestureFor("Ctrl:A"), "\uE8B3"));
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampPages"), (s, e) => OpenStampTool(), GestureFor("S"), "\uE8B0"));
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_ClearPage"), (s, e) => ClearAnnotations_Click(s!, e), glyph: "\uE75C"));
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampPages"), (s, e) => OpenStampTool(pageIdx), GestureFor("S"), "\uE932"));
+            var clearPage = MakeMenuItem(Loc("Str_Ctx_ClearPage"), (s, e) => ClearAnnotations_Click(s!, e), glyph: "\uE75C");
+            clearPage.IsEnabled = (_annotations.TryGetValue(pageIdx, out var pageMarks) && pageMarks.Count > 0) || ActiveViewer.HasPendingAnnotationExt;
+            _ctxMenu.Items.Add(clearPage);
             AppendViewItems(_ctxMenu);
         }
 
@@ -259,6 +262,18 @@ namespace KillerPDF.Shell
             return panel;
         }
 
+        // A native EPUB or DjVu book has no PDF page behind it, so its page menu holds only what works on a book:
+        // the jump history, copying the selected text, Select All, converting to a PDF and the view items.
+        private void AddNativePageMenuItems(int pageIdx)
+        {
+            AddNavRow(_ctxMenu, pageIdx);
+            if (!string.IsNullOrEmpty(_selectedText))
+                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Copy"), (_, _) => CopySelectedText(), GestureFor("Ctrl:C"), "\uE8C8"));
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SelectAll"), (_, _) => SelectAllInView(), GestureFor("Ctrl:A"), "\uE8B3"));
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_NativePdf_Convert") + "...", (_, _) => ConvertNativeDocumentToPdf(), "", "\uE8AB"));
+            AppendViewItems(_ctxMenu);
+        }
+
         // The top row of the page menus, laid out the way a browser's is: Back and Forward retrace the jump history
         // (Alt+Left, Alt+Right, the mouse's side buttons), then Undo, Redo and Print, and the page on the right.
         private void AddNavRow(ContextMenu menu, int pageIdx = -1)
@@ -270,16 +285,18 @@ namespace KillerPDF.Shell
             var rule = new Border { Width = 1, Height = 16, Margin = new Thickness(4, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
             rule.SetResourceReference(Border.BackgroundProperty, "MenuBorderBrush");
             buttons.Children.Add(rule);
-            buttons.Children.Add(NavRowButton(menu, "\uE7A7", "Str_Ctx_UndoLast", "Ctrl:Z", () => Undo_Click(this, new RoutedEventArgs()), true));
-            buttons.Children.Add(NavRowButton(menu, "\uE7A6", "Str_Ctx_Redo", "Ctrl:Y", () => Redo_Click(this, new RoutedEventArgs()), true));
-            buttons.Children.Add(NavRowButton(menu, "\uE749", "Str_Ctx_Print", "Ctrl:P", () => Print_Click(this, new RoutedEventArgs()), true));
+            var edit = EditAvailability();
+            buttons.Children.Add(NavRowButton(menu, "\uE7A7", "Str_Ctx_UndoLast", "Ctrl:Z", () => Undo_Click(this, new RoutedEventArgs()), edit.Undo));
+            buttons.Children.Add(NavRowButton(menu, "\uE7A6", "Str_Ctx_Redo", "Ctrl:Y", () => Redo_Click(this, new RoutedEventArgs()), edit.Redo));
+            buttons.Children.Add(NavRowButton(menu, "\uE749", "Str_Ctx_Print", "Ctrl:P", () => Print_Click(this, new RoutedEventArgs()), _doc is not null && _currentFile is not null));
             DockPanel.SetDock(buttons, Dock.Left);
             row.Children.Add(buttons);
-            if (pageIdx >= 0 && _doc is not null)
+            int pageCount = _doc?.PageCount ?? ActiveViewer.ReadPageCountExt;
+            if (pageIdx >= 0 && pageCount > 0)
             {
                 var where = new TextBlock
                 {
-                    Text = string.Format(Loc("Str_PageOf"), pageIdx + 1, _doc.PageCount), FontSize = 11,
+                    Text = string.Format(Loc("Str_PageOf"), pageIdx + 1, pageCount), FontSize = 11,
                     HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 4, 0)
                 };
                 where.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
@@ -325,7 +342,7 @@ namespace KillerPDF.Shell
         private void AppendViewItems(ContextMenu menu)
         {
             menu.Items.Add(new Separator());
-            var fullScreen = MakeMenuItem(Loc("Str_Ctx_FullScreen"), (s, e) => ToggleFullScreen(), GestureFor("F11"));
+            var fullScreen = MakeMenuItem(Loc("Str_Ctx_FullScreen"), (s, e) => ToggleFullScreen(), GestureFor("F11"), "\uE740");
             fullScreen.IsCheckable = true;
             fullScreen.IsChecked = _fullScreen;
             menu.Items.Add(fullScreen);
@@ -339,7 +356,7 @@ namespace KillerPDF.Shell
         {
             if (_viewMode is not (ViewMode.TwoPage or ViewMode.TwoPageContinuous)) return;
 
-            var book = MakeMenuItem(Loc("Str_View_BookMode"), (s, e) => ToggleBookMode(), GestureFor("B"), "");
+            var book = MakeMenuItem(Loc("Str_View_BookMode"), (s, e) => ToggleBookMode(), GestureFor("B"), "\uE736");
             book.IsCheckable = true;
             book.IsChecked = Controls.PdfViewer.BookMode;
             menu.Items.Add(book);
@@ -863,17 +880,19 @@ namespace KillerPDF.Shell
             menu.Items.Add(MakeMenuItem(Loc("Str_Pages_Reverse"), (s, e) => ReversePageOrder(), glyph: "\uE8CB"));
             menu.Items.Add(MakeMenuItem(Loc("Str_Pages_FixOrientation"), (s, e) => FixPageOrientation(),
                 GestureFor("AltShift:O"), "\uE7AD"));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Pages_Straighten"), (s, e) => StraightenScannedPages()));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Pages_DivideSpreads"), (s, e) => DivideSpreads()));
+            menu.Items.Add(MakeMenuItem(Loc("Str_Pages_Straighten"), (s, e) => StraightenScannedPages(), glyph: "\uE809"));
+            menu.Items.Add(MakeMenuItem(Loc("Str_Pages_DivideSpreads"), (s, e) => DivideSpreads(), glyph: "\uE89F"));
             menu.Items.Add(new Separator());
             menu.Items.Add(BuildComparisonContextItem());
             menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_ZoomIn"), (s, e) => ZoomIn_Click(s!, e), GestureFor("Ctrl:Equals"), ""));
             menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_ZoomOut"), (s, e) => ZoomOut_Click(s!, e), GestureFor("Ctrl:Minus"), ""));
             menu.Items.Add(new Separator());
             if (CanPasteInView())
-                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (s, e) => PasteInView(PageList.SelectedIndex), GestureFor("Ctrl:V")));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SelectAll"), (s, e) => SelectAllInView(), GestureFor("Ctrl:A")));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Clear"), (s, e) => ClearAllAnnotations_Click(s!, e), glyph: ""));
+                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (s, e) => PasteInView(PageList.SelectedIndex), GestureFor("Ctrl:V"), "\uE77F"));
+            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SelectAll"), (s, e) => SelectAllInView(), GestureFor("Ctrl:A"), "\uE8B3"));
+            var clearAll = MakeMenuItem(Loc("Str_Lbl_Clear"), (s, e) => ClearAllAnnotations_Click(s!, e), glyph: "\uED62");
+            clearAll.IsEnabled = EditAvailability().Clear;
+            menu.Items.Add(clearAll);
             AppendViewItems(menu);
         }
 

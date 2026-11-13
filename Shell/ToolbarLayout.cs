@@ -155,17 +155,24 @@ namespace KillerPDF.Shell
                 control.IsEnabled = hasReadingDocument;
                 control.Opacity = hasReadingDocument ? 1 : .4;
             }
-            bool pendingText = ActiveViewer.HasPendingTextEditExt;
-            var state = new ToolbarAvailability.State(hasDoc,
-                CanUndo: _undoStack.Count > 0 || pendingText,
-                CanRedo: _redoStack.Count > 0 && !pendingText,
-                CanClear: hasDoc && (_annotations.Values.Any(items => items.Count > 0) || ActiveViewer.HasPendingAnnotationExt),
+            var edit = EditAvailability();
+            var state = new ToolbarAvailability.State(hasDoc, edit.Undo, edit.Redo, edit.Clear,
                 PageList.SelectedItems.Count, PageList.SelectedIndex, _doc?.PageCount ?? 0);
             foreach (ToolbarUnit unit in _toolbarUnits)
             {
                 unit.Bar.IsEnabled = ToolbarAvailability.GroupEnabled(unit.Id, state);
                 unit.Main.IsEnabled = ToolbarAvailability.MainEnabled(unit.Id, state);
             }
+        }
+
+        /// <summary>What Undo, Redo and Clear can do right now, for the toolbar and the page menus. Read from the
+        /// stacks, not from a button's IsEnabled, which the queued toolbar refresh can leave one step behind.</summary>
+        private (bool Undo, bool Redo, bool Clear) EditAvailability()
+        {
+            bool pendingText = ActiveViewer.HasPendingTextEditExt;
+            return (_undoStack.Count > 0 || pendingText,
+                _redoStack.Count > 0 && !pendingText,
+                _doc is not null && (_annotations.Values.Any(items => items.Count > 0) || ActiveViewer.HasPendingAnnotationExt));
         }
 
         /// <summary>A More menu row for a button the XAML gives no row of its own: its icon and

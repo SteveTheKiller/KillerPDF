@@ -26,10 +26,11 @@ namespace KillerPDF.Shell
         }
 
         // Opens the Stamp window seeded with the current spec (so it edits the existing stamps).
-        private void OpenStampTool()
+        // page: the page a menu named; the preview opens on it.
+        private void OpenStampTool(int? page = null)
         {
             if (_doc is null) return;
-            int pageIdx = PageList.SelectedIndex < 0 ? 0 : PageList.SelectedIndex;
+            int pageIdx = page ?? (PageList.SelectedIndex < 0 ? 0 : PageList.SelectedIndex);
             if (!TryBurnStampPreview(pageIdx, this, out string? burned)) return;
             var src = RenderPageBitmap(pageIdx, 1100, burned);
             if (src is null) { SetStatus(Loc("Str_Tf_NoRender")); return; }

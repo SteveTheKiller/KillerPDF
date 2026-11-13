@@ -31,7 +31,7 @@ namespace KillerPDF.Shell
             quick.Add(("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true));
             quick.Add(("\uE70E", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(hit, +1), false, canRaise));
             quick.Add(("\uE70D", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(hit, -1), false, canLower));
-            if (hit.GroupId.Length > 0) quick.Add(("\uF156", Loc("Str_Ctx_Ungroup"), null, () => UngroupAnnotation(hit), false, true));
+            if (hit.GroupId.Length > 0) quick.Add(("\uF168", Loc("Str_Ctx_Ungroup"), null, () => UngroupAnnotation(hit), false, true));
             else if (multi) quick.Add(("\uF168", Loc("Str_Ctx_Group"), null, GroupSelected, false, true));
             quick.Add(("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, true));
             var strip = QuickStrip(_ctxMenu, [.. quick]);
@@ -61,7 +61,7 @@ namespace KillerPDF.Shell
                 _ctxMenu.Items.Add(MakeMenuItem(Loc(partner is CoverAnnotation ? "Str_Ctx_SelectCover" : "Str_Ctx_SelectText"),
                     (_, _) => SelectPartner(hit), glyph: "\uE8B3"));
             if (SelectedPaired() is not null)
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Unpair"), (_, _) => UnpairSelected(), glyph: "\uE71B"));
+                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Unpair"), (_, _) => UnpairSelected(), glyph: "\uE738"));
             if (hit.GroupId.Length > 0)
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_RemoveFromGroup"), (_, _) => RemoveFromGroup(hit), glyph: "\uE738"));
             // A list with nothing in it after the rule reads as broken; the rule goes when it would end the card.

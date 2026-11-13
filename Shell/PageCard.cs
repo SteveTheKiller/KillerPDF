@@ -27,13 +27,13 @@ namespace KillerPDF.Shell
             menu.Items.Add(CardSlot(PageCardHeader(menu, page, selected, row), new Thickness(4, 2, 4, 6)));
             var strip = QuickStrip(menu,
                 ("\uE8C8", Loc("Str_Ctx_DuplicatePage"), null, () => DuplicatePage(page), false, true),
-                ("\uE8A7", Loc("Str_Ctx_ExtractPages"), null, () => Split_Click(this, new RoutedEventArgs()), false, true),
+                ("\uE8B1", Loc("Str_Ctx_ExtractPages"), "AltShift:X", () => Split_Click(this, new RoutedEventArgs()), false, true),
                 ("\uE74D", Loc("Str_Ctx_DeletePages"), "Del", () => Delete_Click(this, new RoutedEventArgs()), false, true));
             menu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, strip);
             menu.Items.Add(CardSlot(RotateRow(menu), new Thickness(6, 6, 6, 2)));
 
-            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Merge"), async (_, _) => await MergeAtIndex(page + 1), glyph: "\uE8F4"));
+            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Merge"), async (_, _) => await MergeAtIndex(page + 1), gesture: "", glyph: "\uE710"));
             menu.Items.Add(MakeTransformMenuItem(Loc("Str_Tf_Suffix"), (_, _) => OpenTransformWindow(), GestureFor("R")));
             menu.Items.Add(MakeMenuItem(Loc("Str_ColorCorrection"), (_, _) =>
                 OpenTransformWindow(TransformWindowMode.ColorCorrection), gesture: GestureFor("E"), glyph: "\uE790"));
@@ -41,15 +41,15 @@ namespace KillerPDF.Shell
             // #436: with two or more pages selected these act on the selection, otherwise on the whole document.
             var cleanUp = MakeMenuItem(Loc("Str_Card_CleanUp"), (_, _) => { }, glyph: "\uE771");
             cleanUp.Items.Add(MakeMenuItem(Loc("Str_Pages_FixOrientation"), (_, _) => FixPageOrientation(), GestureFor("AltShift:O"), "\uE7AD"));
-            cleanUp.Items.Add(MakeMenuItem(Loc("Str_Pages_Straighten"), (_, _) => StraightenScannedPages(), glyph: "\uE7A6"));
+            cleanUp.Items.Add(MakeMenuItem(Loc("Str_Pages_Straighten"), (_, _) => StraightenScannedPages(), glyph: "\uE809"));
             cleanUp.Items.Add(MakeMenuItem(Loc("Str_Pages_DivideSpreads"), (_, _) => DivideSpreads(), glyph: "\uE89F"));
             menu.Items.Add(cleanUp);
 
             var fromPage = MakeMenuItem(Loc("Str_Card_FromPage"), (_, _) => { }, glyph: "\uE8B9");
-            fromPage.Items.Add(MakeMenuItem(Loc("Str_Pages_RasterizeRegion"), (_, _) => RasterizeRegion(page), glyph: "\uE80A"));
+            fromPage.Items.Add(MakeMenuItem(Loc("Str_Pages_RasterizeRegion"), (_, _) => RasterizeRegion(page), glyph: "\uE91B"));
             fromPage.Items.Add(MakeMenuItem(Loc("Str_ExtractImage_Menu"), (_, _) => ExtractImage(page), glyph: "\uEB9F"));
             fromPage.Items.Add(MakeMenuItem(Loc("Str_TableExport_Title"), (_, _) => ExportTable(page), glyph: "\uE80A"));
-            fromPage.Items.Add(MakeMenuItem(Loc("Str_Paragraph_Title"), (_, _) => EditParagraph(page), GestureFor("AltShift:P"), "\uE8D2"));
+            fromPage.Items.Add(MakeMenuItem(Loc("Str_Paragraph_Title"), (_, _) => EditParagraph(page), GestureFor("AltShift:P"), "\uE8E4"));
             menu.Items.Add(fromPage);
 
             var move = MakeMenuItem(Loc("Str_Card_Move"), (_, _) => { }, glyph: "\uE7C2");
@@ -59,14 +59,14 @@ namespace KillerPDF.Shell
             menu.Items.Add(move);
 
             // The thumbnails' own Ctrl+Shift+O: every selected page, not only the clicked one.
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_OcrPage"), (_, _) => OcrSelectedPagesToClipboard(), GestureFor("CtrlShift:O"), "\uE8C8"));
+            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_OcrPage"), (_, _) => OcrSelectedPagesToClipboard(), GestureFor("CtrlShift:O"), "\uEE6F"));
             // #207: the shared export dialog, scoped to the clicked selection (still editable).
             menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_ExportPageImage"), (_, _) =>
             {
                 var nums = PageList.SelectedItems.Cast<PageThumbnailVm>().Select(vm => vm.PageIndex + 1).OrderBy(n => n);
                 _ = ExportImagesFlow(string.Join(",", nums));
             }, glyph: "\uEB9F"));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampPages"), (_, _) => OpenStampTool(), GestureFor("S"), "\uE8B0"));
+            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampPages"), (_, _) => OpenStampTool(), GestureFor("S"), "\uE932"));
             return menu;
         }
 
@@ -100,7 +100,7 @@ namespace KillerPDF.Shell
             // Insert a blank page after this one: an icon at the header's right, so the strip below keeps three tiles.
             var insert = new Button
             {
-                Content = "\uE710", Width = 34, Height = 30, Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center,
+                Content = "\uE7C3", Width = 34, Height = 30, Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center,
                 ToolTip = Loc("Str_Ctx_InsertBlank")
             };
             if (TryFindResource("CardQuickButton") is Style quick) insert.Style = quick;

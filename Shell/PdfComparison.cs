@@ -79,6 +79,7 @@ public partial class MainWindow
         var root = new MenuItem
         {
             Header = Loc("Str_TT_ComparePDFs"),
+            InputGestureText = GestureFor("AltShift:V"),
             Icon = BuildComparisonMenuIcon()
         };
         PdfViewer.ComparisonDocument? source = ActiveViewer.ActiveComparisonDocumentExt();

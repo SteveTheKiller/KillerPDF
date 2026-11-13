@@ -450,7 +450,7 @@ namespace KillerPDF.Shell
             else
             {
                 int pageIdx = PageList.SelectedIndex;
-                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_OcrPage"), (_, _) => OcrPageToClipboard(pageIdx), GestureFor("CtrlShift:O"), ""));
+                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_OcrPage"), (_, _) => OcrPageToClipboard(pageIdx), GestureFor("CtrlShift:O"), "\uEE6F"));
                 menu.Items.Add(MakeMenuItem(Loc("Str_Ocr_Region"), (_, _) => BeginOcrRegion(), GestureFor("CtrlShift:I"), ""));
                 menu.Items.Add(new Separator());
                 menu.Items.Add(MakeMenuItem(Loc("Str_Ocr_SearchablePdf"), (_, _) => MakeSearchablePdf(), null, ""));

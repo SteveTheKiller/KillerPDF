@@ -202,6 +202,7 @@
     <Compile Include="..\Services\ShortcutRemap.cs" Link="Services\ShortcutRemap.cs" />
     <Compile Include="..\Services\CommandSearch.cs" Link="Services\CommandSearch.cs" />
     <Compile Include="..\Services\ToolbarAvailability.cs" Link="Services\ToolbarAvailability.cs" />
+    <Compile Include="..\Services\PageMenuTarget.cs" Link="Services\PageMenuTarget.cs" />
     <Compile Include="..\Services\VisibleTextGeometry.cs" Link="Services\VisibleTextGeometry.cs" />
     <Compile Include="..\Services\ReadingAnnotationText.cs" Link="Services\ReadingAnnotationText.cs" />
     <Compile Include="..\Services\MeasurementUnits.cs" Link="Services\MeasurementUnits.cs" />

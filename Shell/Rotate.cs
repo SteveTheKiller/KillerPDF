@@ -29,7 +29,8 @@ namespace KillerPDF.Shell
             OpenTransformWindow(TransformWindowMode.ColorCorrection);
         }
 
-        private void OpenTransformWindow(TransformWindowMode mode = TransformWindowMode.Transform)
+        // page: the page a menu named; the window opens on it, or on the whole selection when it is part of it.
+        private void OpenTransformWindow(TransformWindowMode mode = TransformWindowMode.Transform, int? page = null)
         {
             if (_doc is null) return;
             string toolName = Loc(mode == TransformWindowMode.Transform
@@ -38,9 +39,10 @@ namespace KillerPDF.Shell
             // box that still has keyboard focus has not entered that layer yet, so opening Transform
             // directly after typing used to preview (and apply) the page without the new text.
             CommitActiveTextBox();
-            int pageIdx = Math.Max(0, PageList.SelectedIndex);
-            int[] pageIndices = [.. PageList.SelectedItems.Cast<PageThumbnailVm>()
-                .Select(page => page.PageIndex).Distinct().OrderBy(index => index)];
+            int pageIdx = page ?? Math.Max(0, PageList.SelectedIndex);
+            int[] selectedPages = [.. PageList.SelectedItems.Cast<PageThumbnailVm>()
+                .Select(vm => vm.PageIndex).Distinct().OrderBy(index => index)];
+            int[] pageIndices = page is { } clicked ? [.. Services.PageMenuTarget.Pages(clicked, selectedPages).OrderBy(index => index)] : selectedPages;
             if (pageIndices.Length == 0) pageIndices = [pageIdx];
 
             // Any page's preview, rendered when the window flips to it, with that page's annotations burned in.
