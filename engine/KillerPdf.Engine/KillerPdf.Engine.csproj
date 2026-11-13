@@ -14,8 +14,8 @@
     <Title>The KillerPDF.Engine</Title>
     <Authors>Steve the Killer</Authors>
     <Copyright>Copyright (c) 2026 Steve the Killer</Copyright>
-    <Description>An independent .NET PDF 2.0 engine for reading, text extraction, rendering, search, editing, redaction, forms including XFA, signing and timestamp validation, certificate encryption, OCR, export to Office, HTML, Markdown and JSON, optimization, preflight, imposition, measurement, and comparison.</Description>
-    <PackageTags>pdf;pdf-2.0;pdf-a;pdf-ua;pdf-x;validation;preflight;authoring;editing;rendering;text-extraction;ocr;redaction;forms;acroform;xfa;signing;digital-signature;timestamp;encryption;export;docx;accessibility;imposition;document-processing;csharp</PackageTags>
+    <Description>An independent .NET PDF 2.0 engine for reading, text extraction, rendering, search, editing, redaction, forms including XFA, signing and timestamp validation, certificate encryption, OCR, export to Office, HTML, Markdown and JSON, optimization, preflight, imposition, measurement, comparison, ICC color management and printer proofing, and native EPUB and DjVu reading with conversion to PDF.</Description>
+    <PackageTags>pdf;pdf-2.0;pdf-a;pdf-ua;pdf-x;validation;preflight;authoring;editing;rendering;text-extraction;ocr;redaction;forms;acroform;xfa;signing;digital-signature;timestamp;encryption;export;docx;accessibility;imposition;color-management;icc;epub;djvu;document-processing;csharp</PackageTags>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <PackageProjectUrl>https://killerpdf.net/engine.html</PackageProjectUrl>
     <RepositoryUrl>https://github.com/SteveTheKiller/KillerPDF</RepositoryUrl>

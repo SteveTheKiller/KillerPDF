@@ -15,15 +15,17 @@
     <projectSourceUrl>https://github.com/SteveTheKiller/KillerPDF</projectSourceUrl>
     <docsUrl>https://github.com/SteveTheKiller/KillerPDF/blob/main/README.md</docsUrl>
     <bugTrackerUrl>https://github.com/SteveTheKiller/KillerPDF/issues</bugTrackerUrl>
-    <tags>pdf viewer editor annotate merge split sign ocr redact convert cli portable</tags>
-    <summary>Open-source PDF editor for Windows with text editing, OCR, annotations, redaction, signatures, forms, Office export and page organization.</summary>
-    <description>PDF editor for Windows. View, annotate, OCR, merge, split, edit text, draw, sign, fill forms, redact, protect, convert, print, flatten, and open password-protected PDFs without an Adobe subscription or telemetry.
+    <tags>pdf viewer editor annotate merge split sign ocr redact convert cli portable epub djvu</tags>
+    <summary>Open-source PDF editor for Windows with text editing, OCR, annotations, redaction, signatures, forms, Office export and page organization, which also reads EPUB books and DjVu scans.</summary>
+    <description>PDF editor for Windows. View, annotate, OCR, merge, split, edit text, draw, sign, fill forms, redact, protect, convert, print, flatten, and open password-protected PDFs without an Adobe subscription or telemetry. It also reads EPUB books and DjVu scans and converts them to PDF.
 
 **Features:**
 
 - Rendering, text extraction, search, editing and document processing through KillerPDF's own PDF engine
-- Four view modes (Single, Continuous, Two-Page with a book layout option, Grid), tabbed documents that restore their page, zoom and view mode, and a split pane (F10) for two documents side by side
+- Five view modes (Single, Continuous, Two-Page, Two-Page Continuous and Grid, with a book layout option for the two-page views), tabbed documents that restore their page, zoom and view mode, and a split pane (F10) for two documents side by side
 - Sidebar panels for pages, outline, comments, attachments, layers and signatures, dockable on any side of the window; tabs at the top or the bottom
+- EPUB books and DjVu scans open natively in tabs with thumbnails, outlines, links, search and copy, and convert to PDF
+- Color-managed viewing on standard monitors, a working CMYK profile, and printer proofing with ICC profiles
 - Edit a page's own text line by line or by paragraph, with font matching, or change matching text everywhere with Find and Replace
 - Text boxes, freehand drawing, lines, shapes, highlights, strikethrough, underline, stamps and images, with an RGB color picker and screen eyedropper
 - Calibrated Distance, Perimeter, Area and Angle measurements with units, snapping and a report
@@ -34,7 +36,7 @@
 - Form filling with live text, checkbox, radio, dropdown and comb fields; recognize fields, flatten forms, and exchange FDF and XFDF data
 - Digital signatures from a Windows certificate or .pfx file with RFC 3161 timestamps; verify signers, certificate chains and later changes
 - Compare two documents with the changes marked; merge, split, extract, reorder, rotate, reverse, straighten and divide scanned spreads
-- Correct a photographed page's perspective, adjust color and levels, crop with handles, and rasterize a region
+- Correct a photographed page's perspective, adjust color and levels, crop with handles, and rasterize a region; select, move and resize the pictures in a PDF, or lift part of a scan out with Extract Image
 - Headers, footers, page numbers, watermarks and Bates batches; N-up, booklet and poster layouts; preflight, accessibility and print-production reports; Reduce File Size
 - Guided tasks, reusable macros, watched folders and data merge from CSV, JSON or XLSX
 - Full command line with scripting-friendly exit codes for merging, splitting, rendering, printing, OCR, redaction, export and batch work
