@@ -153,6 +153,9 @@
 <a href="#text-edit-paragraphs" class="sub" data-i18n="te19_toc_para">Paragraphs</a>
 <a href="#text-edit-replace" class="sub" data-i18n="te19_toc_replace">Find and Replace</a>
 <a href="#text-edit-cover" class="sub" data-i18n="te19_toc_cover">The cover fallback</a>
+<a href="#books" data-i18n="pt193_books_toc">Books &amp; color</a>
+<a href="#native-books" class="sub" data-i18n="pt193_native_h">EPUB and DjVu without conversion</a>
+<a href="#color-management" class="sub" data-i18n="pt193_cm_h">Color management</a>
 <a href="#zoom" data-i18n="pt_10">Zoom &amp; interaction</a>
 <a href="#cursor-anchored-zoom" class="sub" data-i18n="pt_100">Cursor-anchored zoom</a>
 <a href="#grid-zoom-by-column-count" class="sub" data-i18n="pt_102">Grid zoom by column count</a>
@@ -208,7 +211,7 @@
 <p data-i18n="release_185_rotation">Ctrl+R rotates selected pages 90° clockwise. Ctrl+Shift+R rotates them 90° counterclockwise.</p>
 <p data-i18n="pt_35">KillerPDF ships in two forms. The compact installer is the standard download and supports per-user or all-users installation. The larger portable edition contains its own runtime and runs from anywhere without installation.</p>
 <h3 id="what-the-installer-does" data-i18n="pt_36">What the installer does</h3>
-<p data-i18n="pt_37">The installer verifies and extracts the framework-dependent application to <code>%LOCALAPPDATA%\Programs\KillerPDF\</code>, or to <code>%ProgramFiles%\KillerPDF\</code> after an elevation prompt for all users. Installed shortcuts launch <code>KillerPDF.App.exe</code> directly. The portable edition verifies and extracts its self-contained payload for the current run. Installed copies register the PDF handler and <code>killerpdf:</code> protocol at the matching scope and create an Add/Remove Programs entry.</p>
+<p data-i18n="pt_37_193">The installer verifies and extracts the framework-dependent application to <code>%LOCALAPPDATA%\Programs\KillerPDF\</code>, or to <code>%ProgramFiles%\KillerPDF\</code> after an elevation prompt for all users. Installed shortcuts launch <code>KillerPDF.App.exe</code> directly. The portable edition verifies and extracts its self-contained payload for the current run. Installed copies register the PDF handler, <b>Open with</b> entries for <code>.epub</code>, <code>.djvu</code> and <code>.djv</code>, the <b>Print</b> and <b>Print to</b> shell verbs (<code>--print "%1" --shell</code> and <code>--print "%1" --printer "%2" --shell</code>) and the <code>killerpdf:</code> protocol at the matching scope, and create an Add/Remove Programs entry.</p>
 <h3 id="where-things-live" data-i18n="pt_38">Where things live</h3>
 <table class="spec-table"><tr><th data-i18n="pt_39">Location</th><th data-i18n="pt_40">Holds</th></tr>
 <tr><td><code>%LOCALAPPDATA%\Programs\KillerPDF\</code></td><td data-i18n="pt_41">the installed application payload, including KillerPDF.App.exe and its native and managed dependencies</td></tr>
@@ -231,7 +234,7 @@
 <h2 data-i18n="pt_54">Architecture</h2>
 <p data-i18n="pt_218"><b>MainWindow</b> is a composed application shell rather than one giant code-behind. Its partials under <code>Shell/</code> own the shared toolbar, sidebar, dialogs and application workflows, while each document pane is a reusable <b>PdfViewer</b> with independent tabs, view state, render surfaces, thumbnails and interaction state. Two viewer instances create split pane without opening a second window. Thin host adapters connect the shell and viewers; reusable application policy lives under <code>Services/</code>; focused controllers live under <code>Features/</code>; and all PDF structure and serialization crosses the independent <a href="./engine/index.html">KillerPDF.Engine boundary</a>.</p>
 <h3 id="two-render-pipelines" data-i18n="pt_56">Two render pipelines</h3>
-<p data-i18n="pt_57">KillerPDF has a primary-page renderer (<b>RenderPage</b>) and a multi-page streaming renderer used by Continuous, Grid and Two-Page layouts. Single view uses the primary tile; multi-page layouts create per-page tiles and replace their bitmaps progressively as work completes. RenderPage is deliberately switched off during Continuous so a primary-page repaint cannot clear the live multi-page overlay map.</p>
+<p data-i18n="pt_57_193">KillerPDF has a primary-page renderer (<b>RenderPage</b>) and a multi-page streaming renderer used by the Continuous, Grid, Two-Page and Two Page Continuous layouts. Single view uses the primary tile; multi-page layouts create per-page tiles and replace their bitmaps progressively as work completes. RenderPage is deliberately switched off during Continuous so a primary-page repaint cannot clear the live multi-page overlay map.</p>
 <p data-i18n="pt19_render_thread">Since 1.9 the drawing itself happens on a background thread. Pages in the viewport are rendered first, work for pages that have scrolled away is canceled, and a zoomed page shows a scaled image at once and is redrawn sharp when the wheel rests. The app and engine ship precompiled, installed fonts are cached, and font discovery runs in the background, so startup does not wait on it.</p>
 <h3 id="per-tab-sessions-an-lru-cache" data-i18n="pt_58">Per-tab sessions &amp; an LRU cache</h3>
 <p data-i18n="pt_59_172">Each open document is a <b>DocumentSession</b> that remembers its own zoom, fit and view mode, grid columns, current tool, page, and scroll position, along with its per-document data (annotations, page sizes, rotations, form values, and undo history). Switching tabs simply points the app back at that session. Each session also keeps a cache of already-drawn page images, so flipping back to a recent tab is instant and skips the renderer entirely. To keep memory bounded, only the three most recently used tabs retain caches; each tab has an approximately 160 MB budget, keeps at least six useful pages where possible, and has a hard cap of 48 cached entries.</p>
@@ -403,6 +406,17 @@
 </figure>
 </div>
 
+<div class="tech-sec" id="books">
+<h2 data-i18n="pt193_books_h">Books, DjVu &amp; color management</h2>
+<h3 id="native-books" data-i18n="pt193_native_h">EPUB and DjVu without conversion</h3>
+<p data-i18n="pt193_native_1">EPUB and DjVu files are not turned into PDFs to be shown. KillerPDF reads them natively and hands the viewer pages through the same tile pipeline a PDF uses, so tabs, thumbnails, the outline, search, copy and every view mode work the same way, and the original file is never written.</p>
+<p data-i18n="pt193_native_2">An EPUB is laid out with KillerPDF's own HTML and CSS layout. Unknown elements and style properties are ignored the way browsers ignore them, scripts are never run, and anything that cannot be laid out is listed in the book's diagnostics. Long books keep a small page index that records where each page's layout begins, so a page is laid out only when it is shown: on test hardware the Complete Works of Shakespeare holds about 22 MB, peaks at about 260 MB while it opens, and shows a page it jumps to in about 90 ms.</p>
+<p data-i18n="pt193_native_3">DjVu pages are decoded by KillerPDF's own decoder: bitonal JB2 text layers, IW44 grayscale and color backgrounds, shared letter shapes decoded once per open book, and the hidden text layer for search and copy. Thumbnails and fitted views decode only the detail they show. Explicit <b>Convert to PDF</b> writes a new PDF from either format with its text, links, fonts, pictures and bookmarks.</p>
+<h3 id="color-management" data-i18n="pt193_cm_h">Color management</h3>
+<p data-i18n="pt193_cm_1">Pages render in floating point and are converted to the monitor's ICC profile when it has one, and to plain sRGB when it does not. CMYK content without its own profile goes through one working CMYK profile, CGATS TR 001 by default, everywhere a page is shown, printed or exported, so the viewer, thumbnails, print, export and the command line agree.</p>
+<p data-i18n="pt193_cm_2">A printer proof converts the page through the chosen printer or paper profile with the selected intent, black-point compensation and paper and black simulation. Overprint is simulated the way a separation preview does it, eight bits a plate, before the proof conversion, and gamut warnings paint unreproducible colors flat gray. Proof settings are stored per document, not in the PDF. HDR output is still in progress.</p>
+</div>
+
 <div class="tech-sec" id="zoom">
 <h2 data-i18n="pt_99">Zoom &amp; interaction</h2>
 <h3 id="cursor-anchored-zoom" data-i18n="pt_100">Cursor-anchored zoom</h3>
@@ -534,7 +548,7 @@
 <a class="reddit-community" href="https://www.reddit.com/r/KillerTools/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 8c2.648 0 5.028 .826 6.675 2.14a2.5 2.5 0 0 1 2.326 4.36c0 3.59 -4.03 6.5 -9 6.5c-4.875 0 -8.845 -2.8 -9 -6.294l-1 -.206a2.5 2.5 0 0 1 2.326 -4.36c1.646 -1.313 4.026 -2.14 6.674 -2.14l.999 0"/><path d="M12 8l1 -5l6 1"/><path d="M18 4a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M8.5 13a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0"/><path d="M14.5 13a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0"/><path d="M10 17c.667 .333 1.333 .5 2 .5s1.333 -.167 2 -.5"/></svg><span>r/KillerTools</span></a>
 </footer>
 <div class="egg-toast" id="eggToast"></div>
-<script src="kp-i18n.js?v=21"></script>
+<script src="kp-i18n.js?v=22"></script>
 <script src="engine/engine-site-facts.js?v=1.9.2"></script>
 <script src="kp-site-info.js?v=1"></script>
 <script src="kp.js?v=21"></script>
