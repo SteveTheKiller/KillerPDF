@@ -1663,6 +1663,7 @@ namespace KillerPDF.Shell
             {
                 bool hasAnnotations = _annotations.Values.Any(list => list.Count > 0);
                 _lastSaveSkippedPictures = 0;
+                _lastSaveFlattenedMarkup = false;
                 Dictionary<int, int> finalRotations = SnapshotPageRotations();
                 if (hasAnnotations || HasActiveStamps)   // #147: stamps alone must still burn
                 {
@@ -1678,6 +1679,7 @@ namespace KillerPDF.Shell
                     PdfEngineBurn.Burn(tempEdited, _annotations, _renderDims,
                         _docStampSpec, null, _pageRotations, measurementsAsAnnotations: true);
                     _lastSaveSkippedPictures = PdfEngineBurn.SkippedPictures;
+                    _lastSaveFlattenedMarkup = PdfEngineBurn.FlattenedMarkup;
                     PdfEngineIntegration.StripLinkAppearances(tempEdited);
                     WriteFormValuesToDocument(tempEdited);
                     WriteRedactionMarksToDocument(tempEdited);
@@ -1722,12 +1724,16 @@ namespace KillerPDF.Shell
             catch (Exception ex)
             {
                 _lastSaveSkippedPictures = 0;   // a failed save must not lend its count to the next one
+                _lastSaveFlattenedMarkup = false;
                 KillerDialog.Show(this, Loc("Str_Err_SaveFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         // Pictures the last save could not read and left out, reported once with that save.
         private int _lastSaveSkippedPictures;
+
+        // The last save could not keep the markup editable and drew it into the pages, reported once with that save.
+        private bool _lastSaveFlattenedMarkup;
 
         // The tail of every save. A file that lost its protection says so and stops counting as
         // protected (#149), and a field that could not take a value is named with the save.
@@ -1747,6 +1753,8 @@ namespace KillerPDF.Shell
             if (viewer.ProofPreferenceNoticeKeyExt is { } notice) status += " " + Loc(notice);
             status = Services.PicturesSkippedNote.Append(status, _lastSaveSkippedPictures, Loc("Str_Save_PicturesSkipped"));
             _lastSaveSkippedPictures = 0;
+            if (_lastSaveFlattenedMarkup) status += " " + Loc("Str_Save_MarkupFlattened");
+            _lastSaveFlattenedMarkup = false;
             SetStatus(WithFieldsThatKeptTheirValue(status, viewer.FieldsThatKeptTheirValueRef));
         }
 
@@ -1892,6 +1900,7 @@ namespace KillerPDF.Shell
             {
                 bool hasAnnotations = _annotations.Values.Any(list => list.Count > 0);
                 _lastSaveSkippedPictures = 0;
+                _lastSaveFlattenedMarkup = false;
                 Dictionary<int, int> finalRotations = SnapshotPageRotations();
                 if (hasAnnotations || HasActiveStamps)   // #147: stamps alone must still burn
                 {
@@ -1905,6 +1914,7 @@ namespace KillerPDF.Shell
                     PdfEngineBurn.Burn(tempEdited, _annotations, _renderDims,
                         _docStampSpec, null, _pageRotations, measurementsAsAnnotations: true);
                     _lastSaveSkippedPictures = PdfEngineBurn.SkippedPictures;
+                    _lastSaveFlattenedMarkup = PdfEngineBurn.FlattenedMarkup;
                     PdfEngineIntegration.StripLinkAppearances(tempEdited);
                     WriteFormValuesToDocument(tempEdited);
                     WriteRedactionMarksToDocument(tempEdited);
@@ -1956,6 +1966,7 @@ namespace KillerPDF.Shell
             catch (Exception ex)
             {
                 _lastSaveSkippedPictures = 0;   // a failed save must not lend its count to the next one
+                _lastSaveFlattenedMarkup = false;
                 KillerDialog.Show(this, Loc("Str_Err_SaveFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

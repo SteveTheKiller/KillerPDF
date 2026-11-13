@@ -1325,6 +1325,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_St_Saved">Kaydedildi - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Açıklamalarla birlikte kaydedildi: {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Okunamadığı için dışarıda bırakılan resimler: {0}.</sys:String>
+    <sys:String x:Key="Str_Save_MarkupFlattened">İşaretlemeler düzenlenebilir olarak korunamadı ve sayfalara çizildi.</sys:String>
     <sys:String x:Key="Str_Print_ShellFailed">KillerPDF {0} dosyasını yazdıramadı.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Kaydedildi: {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Düzleştirilmiş PDF kaydedildi: {0}</sys:String>

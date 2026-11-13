@@ -1342,6 +1342,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_St_Saved">Lagret - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Lagret med merknader til {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Bilder som ble utelatt fordi de ikke kunne leses: {0}.</sys:String>
+    <sys:String x:Key="Str_Save_MarkupFlattened">Markeringene kunne ikke forbli redigerbare og ble tegnet inn i sidene.</sys:String>
     <sys:String x:Key="Str_Print_ShellFailed">KillerPDF kunne ikke skrive ut {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Lagret til {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Flatet PDF lagret til {0}</sys:String>

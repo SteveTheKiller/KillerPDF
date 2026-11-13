@@ -1329,6 +1329,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_St_Saved">已保存 - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">已连同注释保存到 {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">因无法读取而被省略的图片数量：{0}。</sys:String>
+    <sys:String x:Key="Str_Save_MarkupFlattened">无法保持标记可编辑，已将其绘制到页面中。</sys:String>
     <sys:String x:Key="Str_Print_ShellFailed">KillerPDF 无法打印 {0}。</sys:String>
     <sys:String x:Key="Str_St_SavedTo">已保存到 {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">展平的 PDF 已保存到 {0}</sys:String>

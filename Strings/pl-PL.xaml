@@ -1333,6 +1333,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_St_Saved">Zapisano - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Zapisano z adnotacjami do {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Pominięte obrazy, których nie udało się odczytać: {0}.</sys:String>
+    <sys:String x:Key="Str_Save_MarkupFlattened">Nie udało się zachować edytowalności adnotacji, dlatego zostały narysowane na stronach.</sys:String>
     <sys:String x:Key="Str_Print_ShellFailed">KillerPDF nie mógł wydrukować pliku {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Zapisano do {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Spłaszczony PDF zapisano do {0}</sys:String>

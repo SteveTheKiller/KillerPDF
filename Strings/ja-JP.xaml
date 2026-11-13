@@ -1342,6 +1342,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_St_Saved">保存しました - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">注釈付きで保存しました：{0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">読み取れなかったため除外した画像：{0}。</sys:String>
+    <sys:String x:Key="Str_Save_MarkupFlattened">注釈を編集可能なまま保存できなかったため、ページに描画しました。</sys:String>
     <sys:String x:Key="Str_Print_ShellFailed">KillerPDF で {0} を印刷できませんでした。</sys:String>
     <sys:String x:Key="Str_St_SavedTo">保存しました : {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">統合された PDF を保存しました : {0}</sys:String>

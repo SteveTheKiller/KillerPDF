@@ -89,6 +89,10 @@ internal static class PdfEngineBurn
     /// that the saved file is missing them.</summary>
     [ThreadStatic] internal static int SkippedPictures;
 
+    /// <summary>True when the last <see cref="Burn"/> on this thread could not keep the markup editable and drew it
+    /// into the pages instead, so the caller can say the saved markup can no longer be edited.</summary>
+    [ThreadStatic] internal static bool FlattenedMarkup;
+
     /// <summary>Applies a page bake to the annotation lists: a baked page's records are all in the page now, or were
     /// left out of it (and the caller says so), and a record cannot follow a page that was rotated, flipped or warped,
     /// so every baked page loses all of its records. Undo restores them.</summary>
@@ -115,6 +119,7 @@ internal static class PdfEngineBurn
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         SkippedPictures = 0;
+        FlattenedMarkup = false;
         if (annotations.Values.Any(items => items.Count > 0))
             PdfEngineIntegration.StripLinkAppearances(path);
         var document = PdfDocument.Open(File.ReadAllBytes(path));
@@ -234,32 +239,44 @@ internal static class PdfEngineBurn
         if (pageBatches.Count > 0)
         {
             try { result = PdfOverlayAnnotations.AppendPageBatches(PdfDocument.Open(result), pageBatches); }
-            catch (ArgumentException)
+            catch (Exception error) when (EditingBatchRefused(error))
             {
                 // The editing layer refused a batch the size check let through: draw every page's markup as page
                 // content instead of failing the save.
                 Burn(path, annotations, renderDims, stamps, onlyPage, rotations, forRasterization,
                     measurementsAsAnnotations, cancellationToken, flattenEditing, allowNativeText,
                     allowEditableBatches: false);
+                FlattenedMarkup = true;
                 return;
             }
         }
         if (!forRasterization && !flattenEditing && allowNativeText)
         {
             try { result = SaveTextAnnotations(result, annotations, renderDims, onlyPage, rotations, fonts, cancellationToken); }
-            catch (InvalidOperationException)
+            catch (Exception error) when (NativeAnnotationRefused(error))
             {
                 // A page whose own annotation list cannot take a new entry: draw the text boxes and pictures as page
                 // content, as 1.9.2 did, instead of failing the save.
                 Burn(path, annotations, renderDims, stamps, onlyPage, rotations, forRasterization,
                     measurementsAsAnnotations, cancellationToken, flattenEditing, allowNativeText: false,
                     allowEditableBatches: allowEditableBatches);
+                FlattenedMarkup = true;
                 return;
             }
         }
         cancellationToken.ThrowIfCancellationRequested();
         Replace(path, result);
     }
+
+    /// <summary>The editing layer refuses a batch it cannot hold with an ArgumentException; that save draws the markup
+    /// into the pages instead. Anything else is a fault, not a refusal, and fails the save.</summary>
+    internal static bool EditingBatchRefused(Exception error) => error is ArgumentException and not ArgumentNullException;
+
+    /// <summary>The native annotation editor refuses a page whose own annotation list it cannot extend with an
+    /// InvalidOperationException; that save draws the text boxes and pictures into the pages instead. Anything else
+    /// is a fault, not a refusal, and fails the save.</summary>
+    internal static bool NativeAnnotationRefused(Exception error) =>
+        error is InvalidOperationException and not ObjectDisposedException;
 
     private static byte[] SaveTextAnnotations(byte[] bytes,
         IReadOnlyDictionary<int, List<PageAnnotation>> annotations,

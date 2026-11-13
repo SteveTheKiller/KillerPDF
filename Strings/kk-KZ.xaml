@@ -1238,6 +1238,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_St_Saved">Сақталды - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Ескертпелермен {0} ішіне сақталды</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Оқу мүмкін болмағандықтан қалдырылған суреттер: {0}.</sys:String>
+    <sys:String x:Key="Str_Save_MarkupFlattened">Аннотацияларды өңделетін күйде сақтау мүмкін болмады, сондықтан олар беттерге салынды.</sys:String>
     <sys:String x:Key="Str_Print_ShellFailed">KillerPDF {0} файлын басып шығара алмады.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">{0} ішіне сақталды</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Тегістелген PDF {0} ішіне сақталды</sys:String>

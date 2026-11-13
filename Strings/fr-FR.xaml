@@ -1342,6 +1342,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_St_Saved">Enregistré - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Enregistré avec annotations dans {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Images omises car elles n'ont pas pu être lues : {0}.</sys:String>
+    <sys:String x:Key="Str_Save_MarkupFlattened">Les annotations n'ont pas pu rester modifiables et ont été dessinées dans les pages.</sys:String>
     <sys:String x:Key="Str_Print_ShellFailed">KillerPDF n’a pas pu imprimer {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Enregistré dans {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">PDF aplati enregistré dans {0}</sys:String>

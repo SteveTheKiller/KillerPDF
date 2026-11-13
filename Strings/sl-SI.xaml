@@ -1241,6 +1241,7 @@
     <sys:String x:Key="Str_St_Saved">Shranjeno: {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">Shranjeno s pripombami v {0}</sys:String>
     <sys:String x:Key="Str_Save_PicturesSkipped">Izpuščene slike, ki jih ni bilo mogoče prebrati: {0}.</sys:String>
+    <sys:String x:Key="Str_Save_MarkupFlattened">Opomb ni bilo mogoče ohraniti urejljivih, zato so bile vrisane v strani.</sys:String>
     <sys:String x:Key="Str_Print_ShellFailed">KillerPDF ni mogel natisniti {0}.</sys:String>
     <sys:String x:Key="Str_St_SavedTo">Shranjeno v {0}</sys:String>
     <sys:String x:Key="Str_St_FlattenedSaved">Sploščen PDF je shranjen v {0}</sys:String>
