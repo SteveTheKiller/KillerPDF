@@ -290,7 +290,7 @@
     if (lang === 'en' || !/^[a-z]{2}(-[a-z]{2})?$/.test(lang)) return;
     var script = document.createElement('script');
     script.async = false;
-    script.src = './docs-i18n/' + lang + '.js?v=2';
+    script.src = './docs-i18n/' + lang + '.js?v=3';
     script.onload = applyDocsL10n;
     document.body.appendChild(script);
   }
