@@ -1,12 +1,15 @@
 ﻿Field,Type,English,Bangla,Czech,German,Spanish,Hungarian,Italian,Japanese,Kazakh,Turkish,Ukrainian,Vietnamese (Vietnam),Portuguese (Brazil),Polish,Norwegian (Bokmål),Chinese (Simplified),Chinese (Traditional),French,Russian,Slovenian
 ProductName,Text,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF,KillerPDF
-Description,Text,"KillerPDF is a free, open-source PDF editor for Windows. Install it or use the portable package. Version 1.9 uses KillerPDF's own engine for rendering, text extraction and document processing.
+Description,Text,"KillerPDF is a free, open-source PDF editor for Windows that also reads EPUB books and DjVu scans. Install it or use the portable package. Version 1.9 uses KillerPDF's own engine for rendering, text extraction and document processing.
 
 Read and organize
-Open PDFs in tabs or split panes. Search text, follow bookmarks, compare documents, and merge, split, reorder, rotate, crop or extract pages.
+Open PDFs in tabs or split panes, in five view modes. Search text, follow bookmarks, compare documents, and merge, split, reorder, rotate, crop or extract pages.
+
+Books and scans
+Open EPUB books and DjVu scans in tabs without converting them first, with thumbnails, outlines, links, search and copy, and turn either into a PDF when you want one. The original file is never changed.
 
 Edit and annotate
-Add text, drawings, highlights, stamps, watermarks and images. Edit supported source text and simple paragraphs, or use Find and Replace. Scans and complex layouts may need OCR or overlays.
+Add text, drawings, highlights, stamps, watermarks and images. Edit supported source text and simple paragraphs, or use Find and Replace. Scans and complex layouts may need OCR or overlays. Select, move and resize the pictures in a PDF, or lift part of a scan out as a new picture with Extract Image.
 
 OCR and export
 Download the OCR languages you need, recognize scanned text and review the result. Export to Word, Excel, PowerPoint, HTML, Markdown, text, JSON or page images. Review detected tables before exporting to XLSX or CSV. Conversion can change layout.
@@ -17,17 +20,23 @@ Create and fill forms, exchange supported FDF/XFDF data, and flatten copies. Pro
 Redaction and automation
 Mark sensitive content for redaction, review any required raster fallback, and save a separate copy with verification and optional sanitization. Use guided tasks, macros, watched folders, data merge and command-line workflows for repeated work.
 
+Color
+View pages color-managed on monitors that have a color profile, and proof a document against a printer profile with paper and ink simulation and gamut warnings. HDR output is still in progress.
+
 Make it yours
 Choose from 13 themes and 20 app languages, adjust interface scale and customize keyboard shortcuts.
 
 GPLv3. Source code and released packages: https://killerpdf.net
-","KillerPDF হলো Windows-এর জন্য একটি বিনামূল্যের, ওপেন-সোর্স PDF সম্পাদক। ইনস্টল করুন অথবা পোর্টেবল প্যাকেজ ব্যবহার করুন। সংস্করণ 1.9 রেন্ডারিং, টেক্সট নিষ্কাশন এবং নথি প্রক্রিয়াকরণের জন্য KillerPDF-এর নিজস্ব ইঞ্জিন ব্যবহার করে।
+","KillerPDF হলো Windows-এর জন্য একটি বিনামূল্যের, ওপেন-সোর্স PDF সম্পাদক, যা EPUB বই ও DjVu স্ক্যানও পড়তে পারে। ইনস্টল করুন অথবা পোর্টেবল প্যাকেজ ব্যবহার করুন। সংস্করণ 1.9 রেন্ডারিং, টেক্সট নিষ্কাশন এবং নথি প্রক্রিয়াকরণের জন্য KillerPDF-এর নিজস্ব ইঞ্জিন ব্যবহার করে।
 
 পড়ুন ও সাজান
-ট্যাব বা বিভক্ত প্যানে PDF খুলুন। টেক্সট খুঁজুন, বুকমার্ক অনুসরণ করুন, নথি তুলনা করুন এবং পৃষ্ঠা একত্র করুন, ভাগ করুন, পুনর্বিন্যাস করুন, ঘোরান, ক্রপ করুন বা আলাদা করে বের করুন।
+পাঁচটি ভিউ মোডে ট্যাব বা বিভক্ত প্যানে PDF খুলুন। টেক্সট খুঁজুন, বুকমার্ক অনুসরণ করুন, নথি তুলনা করুন এবং পৃষ্ঠা একত্র করুন, ভাগ করুন, পুনর্বিন্যাস করুন, ঘোরান, ক্রপ করুন বা আলাদা করে বের করুন।
+
+বই ও স্ক্যান
+EPUB বই ও DjVu স্ক্যান আগে রূপান্তর না করেই ট্যাবে খুলুন, থাম্বনেইল, রূপরেখা, লিংক, অনুসন্ধান ও কপি সুবিধাসহ, এবং চাইলে যেকোনোটিকে PDF-এ রূপান্তর করুন। মূল ফাইল কখনো বদলায় না।
 
 সম্পাদনা ও টীকা
-টেক্সট, আঁকা, হাইলাইট, স্ট্যাম্প, ওয়াটারমার্ক ও ছবি যোগ করুন। সমর্থিত মূল টেক্সট ও সাধারণ অনুচ্ছেদ সম্পাদনা করুন অথবা খুঁজুন ও প্রতিস্থাপন ব্যবহার করুন। স্ক্যান ও জটিল বিন্যাসে OCR বা ওভারলে প্রয়োজন হতে পারে।
+টেক্সট, আঁকা, হাইলাইট, স্ট্যাম্প, ওয়াটারমার্ক ও ছবি যোগ করুন। সমর্থিত মূল টেক্সট ও সাধারণ অনুচ্ছেদ সম্পাদনা করুন অথবা খুঁজুন ও প্রতিস্থাপন ব্যবহার করুন। স্ক্যান ও জটিল বিন্যাসে OCR বা ওভারলে প্রয়োজন হতে পারে। PDF-এর ছবি নির্বাচন, সরানো ও আকার পরিবর্তন করুন, অথবা ছবি বের করুন দিয়ে স্ক্যানের একটি অংশ নতুন ছবি হিসেবে তুলে নিন।
 
 OCR ও রপ্তানি
 প্রয়োজনীয় OCR ভাষা ডাউনলোড করুন, স্ক্যান করা টেক্সট শনাক্ত করুন এবং ফলাফল পর্যালোচনা করুন। Word, Excel, PowerPoint, HTML, Markdown, টেক্সট, JSON বা পৃষ্ঠার ছবি হিসেবে রপ্তানি করুন। XLSX বা CSV-তে রপ্তানির আগে শনাক্ত করা টেবিল পর্যালোচনা করুন। রূপান্তরে বিন্যাস বদলে যেতে পারে।
@@ -38,17 +47,23 @@ OCR ও রপ্তানি
 সংবেদনশীল তথ্য অপসারণ ও স্বয়ংক্রিয়করণ
 অপসারণের জন্য সংবেদনশীল বিষয়বস্তু চিহ্নিত করুন, প্রয়োজনীয় রাস্টার বিকল্প পর্যালোচনা করুন এবং যাচাই ও ঐচ্ছিক স্যানিটাইজেশনসহ আলাদা কপি সংরক্ষণ করুন। পুনরাবৃত্ত কাজের জন্য নির্দেশিত কাজ, ম্যাক্রো, পর্যবেক্ষিত ফোল্ডার, ডেটা মার্জ ও কমান্ড-লাইন কর্মপ্রবাহ ব্যবহার করুন।
 
+রং
+রঙের প্রোফাইল আছে এমন মনিটরে পৃষ্ঠা রং-ব্যবস্থাপিত অবস্থায় দেখুন, এবং কাগজ ও কালির সিমুলেশন ও গ্যামাট সতর্কতাসহ প্রিন্টার প্রোফাইলের বিপরীতে নথির প্রুফ দেখুন। HDR আউটপুট এখনো বিকাশাধীন।
+
 নিজের মতো সাজান
 13টি থিম ও অ্যাপের 20টি ভাষা থেকে বেছে নিন, ইন্টারফেসের স্কেল বদলান এবং কিবোর্ড শর্টকাট কাস্টমাইজ করুন।
 
 GPLv3। সোর্স কোড ও প্রকাশিত প্যাকেজ: https://killerpdf.net
-","KillerPDF je bezplatný editor PDF s otevřeným zdrojovým kódem pro Windows. Nainstalujte jej nebo použijte přenosný balíček. Verze 1.9 používá vlastní jádro KillerPDF pro vykreslování, extrakci textu a zpracování dokumentů.
+","KillerPDF je bezplatný editor PDF s otevřeným zdrojovým kódem pro Windows, který čte také knihy EPUB a skeny DjVu. Nainstalujte jej nebo použijte přenosný balíček. Verze 1.9 používá vlastní jádro KillerPDF pro vykreslování, extrakci textu a zpracování dokumentů.
 
 Čtení a organizace
-Otevírejte PDF na kartách nebo v rozdělených panelech. Hledejte text, procházejte záložky, porovnávejte dokumenty a slučujte, rozdělujte, přesouvejte, otáčejte, ořezávejte nebo extrahujte stránky.
+Otevírejte PDF na kartách nebo v rozdělených panelech v pěti režimech zobrazení. Hledejte text, procházejte záložky, porovnávejte dokumenty a slučujte, rozdělujte, přesouvejte, otáčejte, ořezávejte nebo extrahujte stránky.
+
+Knihy a skeny
+Otevírejte knihy EPUB a skeny DjVu na kartách bez předchozího převodu, s miniaturami, osnovami, odkazy, vyhledáváním a kopírováním, a kdykoli je převeďte do PDF. Původní soubor se nikdy nemění.
 
 Úpravy a poznámky
-Přidávejte text, kresby, zvýraznění, razítka, vodoznaky a obrázky. Upravujte podporovaný zdrojový text a jednoduché odstavce nebo použijte funkci Najít a nahradit. Skeny a složitá rozvržení mohou vyžadovat OCR nebo překryvné vrstvy.
+Přidávejte text, kresby, zvýraznění, razítka, vodoznaky a obrázky. Upravujte podporovaný zdrojový text a jednoduché odstavce nebo použijte funkci Najít a nahradit. Skeny a složitá rozvržení mohou vyžadovat OCR nebo překryvné vrstvy. Vybírejte, přesouvejte a měňte velikost obrázků v PDF, nebo pomocí funkce Extrahovat obrázek vyjměte část skenu jako nový obrázek.
 
 OCR a export
 Stáhněte si potřebné jazyky OCR, rozpoznejte naskenovaný text a zkontrolujte výsledek. Exportujte do Wordu, Excelu, PowerPointu, HTML, Markdownu, textu, JSON nebo obrázků stránek. Před exportem do XLSX nebo CSV zkontrolujte rozpoznané tabulky. Převod může změnit rozvržení.
@@ -59,17 +74,23 @@ Vytvářejte a vyplňujte formuláře, vyměňujte podporovaná data FDF/XFDF a 
 Redakce a automatizace
 Označte citlivý obsah k odstranění, zkontrolujte případný požadovaný náhradní převod do rastru a uložte samostatnou kopii s ověřením a volitelnou sanitizací. Pro opakovanou práci používejte průvodce úlohami, makra, sledované složky, slučování dat a postupy příkazového řádku.
 
+Barvy
+Zobrazujte stránky s řízením barev na monitorech s barevným profilem a prověřte dokument proti profilu tiskárny se simulací papíru a inkoustu a upozorněními na gamut. Výstup HDR je stále ve vývoji.
+
 Přizpůsobení
 Vyberte si ze 13 motivů a 20 jazyků aplikace, upravte měřítko rozhraní a přizpůsobte klávesové zkratky.
 
 GPLv3. Zdrojový kód a vydané balíčky: https://killerpdf.net
-","KillerPDF ist ein kostenloser Open-Source-PDF-Editor für Windows. Installieren Sie ihn oder nutzen Sie das portable Paket. Version 1.9 verwendet die eigene Engine von KillerPDF für die Darstellung, Textextraktion und Dokumentverarbeitung.
+","KillerPDF ist ein kostenloser Open-Source-PDF-Editor für Windows, der auch EPUB-Bücher und DjVu-Scans liest. Installieren Sie ihn oder nutzen Sie das portable Paket. Version 1.9 verwendet die eigene Engine von KillerPDF für die Darstellung, Textextraktion und Dokumentverarbeitung.
 
 Lesen und organisieren
-Öffnen Sie PDFs in Registerkarten oder geteilten Ansichten. Suchen Sie Text, folgen Sie Lesezeichen, vergleichen Sie Dokumente und führen Sie Seiten zusammen, teilen, sortieren, drehen, beschneiden oder extrahieren Sie sie.
+Öffnen Sie PDFs in Registerkarten oder geteilten Ansichten, in fünf Ansichtsmodi. Suchen Sie Text, folgen Sie Lesezeichen, vergleichen Sie Dokumente und führen Sie Seiten zusammen, teilen, sortieren, drehen, beschneiden oder extrahieren Sie sie.
+
+Bücher und Scans
+Öffnen Sie EPUB-Bücher und DjVu-Scans in Registerkarten, ohne sie vorher zu konvertieren, mit Miniaturansichten, Gliederungen, Links, Suche und Kopieren, und machen Sie bei Bedarf ein PDF daraus. Die Originaldatei wird nie verändert.
 
 Bearbeiten und kommentieren
-Fügen Sie Text, Zeichnungen, Hervorhebungen, Stempel, Wasserzeichen und Bilder hinzu. Bearbeiten Sie unterstützten Ursprungstext und einfache Absätze oder verwenden Sie Suchen und Ersetzen. Scans und komplexe Layouts können OCR oder Überlagerungen erfordern.
+Fügen Sie Text, Zeichnungen, Hervorhebungen, Stempel, Wasserzeichen und Bilder hinzu. Bearbeiten Sie unterstützten Ursprungstext und einfache Absätze oder verwenden Sie Suchen und Ersetzen. Scans und komplexe Layouts können OCR oder Überlagerungen erfordern. Wählen Sie die Bilder in einem PDF aus, verschieben Sie sie und ändern Sie ihre Größe, oder heben Sie mit Bild extrahieren einen Teil eines Scans als neues Bild heraus.
 
 OCR und Export
 Laden Sie die benötigten OCR-Sprachen herunter, erkennen Sie gescannten Text und prüfen Sie das Ergebnis. Exportieren Sie nach Word, Excel, PowerPoint, HTML, Markdown, Text, JSON oder in Seitenbilder. Prüfen Sie erkannte Tabellen vor dem Export nach XLSX oder CSV. Die Konvertierung kann das Layout verändern.
@@ -80,17 +101,23 @@ Erstellen und füllen Sie Formulare, tauschen Sie unterstützte FDF/XFDF-Daten a
 Schwärzung und Automatisierung
 Markieren Sie sensible Inhalte zum Schwärzen, prüfen Sie einen gegebenenfalls erforderlichen Raster-Fallback und speichern Sie eine separate Kopie mit Verifizierung und optionaler Bereinigung. Nutzen Sie geführte Aufgaben, Makros, überwachte Ordner, Datenzusammenführung und Befehlszeilenabläufe für wiederkehrende Arbeiten.
 
+Farbe
+Zeigen Sie Seiten auf Monitoren mit Farbprofil farbverwaltet an und erstellen Sie für ein Dokument einen Proof anhand eines Druckerprofils, mit Papier- und Tintensimulation sowie Gamut-Warnungen. Die HDR-Ausgabe ist noch in Arbeit.
+
 Individuell anpassen
 Wählen Sie aus 13 Designs und 20 App-Sprachen, passen Sie die Oberflächenskalierung an und legen Sie Tastenkombinationen fest.
 
 GPLv3. Quellcode und veröffentlichte Pakete: https://killerpdf.net
-","KillerPDF es un editor de PDF gratuito y de código abierto para Windows. Instálalo o utiliza el paquete portátil. La versión 1.9 utiliza el motor propio de KillerPDF para la renderización, la extracción de texto y el procesamiento de documentos.
+","KillerPDF es un editor de PDF gratuito y de código abierto para Windows que también lee libros EPUB y escaneos DjVu. Instálalo o utiliza el paquete portátil. La versión 1.9 utiliza el motor propio de KillerPDF para la renderización, la extracción de texto y el procesamiento de documentos.
 
 Leer y organizar
-Abre PDF en pestañas o paneles divididos. Busca texto, sigue marcadores, compara documentos y combina, divide, reordena, gira, recorta o extrae páginas.
+Abre PDF en pestañas o paneles divididos, en cinco modos de vista. Busca texto, sigue marcadores, compara documentos y combina, divide, reordena, gira, recorta o extrae páginas.
+
+Libros y escaneos
+Abre libros EPUB y escaneos DjVu en pestañas sin convertirlos antes, con miniaturas, esquemas, enlaces, búsqueda y copia, y conviértelos en un PDF cuando quieras. El archivo original nunca se modifica.
 
 Editar y anotar
-Añade texto, dibujos, resaltados, sellos, marcas de agua e imágenes. Edita el texto de origen compatible y los párrafos sencillos, o utiliza Buscar y reemplazar. Los documentos escaneados y los diseños complejos pueden requerir OCR o superposiciones.
+Añade texto, dibujos, resaltados, sellos, marcas de agua e imágenes. Edita el texto de origen compatible y los párrafos sencillos, o utiliza Buscar y reemplazar. Los documentos escaneados y los diseños complejos pueden requerir OCR o superposiciones. Selecciona, mueve y cambia el tamaño de las imágenes de un PDF, o separa parte de un escaneo como una imagen nueva con Extraer imagen.
 
 OCR y exportación
 Descarga los idiomas de OCR que necesites, reconoce el texto escaneado y revisa el resultado. Exporta a Word, Excel, PowerPoint, HTML, Markdown, texto, JSON o imágenes de páginas. Revisa las tablas detectadas antes de exportarlas a XLSX o CSV. La conversión puede cambiar el diseño.
@@ -101,17 +128,23 @@ Crea y rellena formularios, intercambia datos FDF/XFDF compatibles y convierte l
 Eliminación de contenido confidencial y automatización
 Marca el contenido confidencial para su eliminación, revisa cualquier alternativa de rasterización necesaria y guarda una copia independiente con verificación y saneamiento opcional. Utiliza tareas guiadas, macros, carpetas supervisadas, combinación de datos y flujos de trabajo de línea de comandos para tareas repetitivas.
 
+Color
+Visualiza las páginas con gestión de color en monitores que tengan un perfil de color, y haz una prueba de un documento con un perfil de impresora, con simulación de papel y tinta y avisos de gamut. La salida HDR sigue en desarrollo.
+
 Personalízalo
 Elige entre 13 temas y 20 idiomas de la aplicación, ajusta la escala de la interfaz y personaliza los atajos de teclado.
 
 GPLv3. Código fuente y paquetes publicados: https://killerpdf.net
-","A KillerPDF ingyenes, nyílt forráskódú PDF-szerkesztő Windowshoz. Telepítse, vagy használja a hordozható csomagot. Az 1.9-es verzió a KillerPDF saját motorját használja a megjelenítéshez, a szövegkinyeréshez és a dokumentumfeldolgozáshoz.
+","A KillerPDF ingyenes, nyílt forráskódú PDF-szerkesztő Windowshoz, amely EPUB-könyveket és DjVu-beolvasásokat is olvas. Telepítse, vagy használja a hordozható csomagot. Az 1.9-es verzió a KillerPDF saját motorját használja a megjelenítéshez, a szövegkinyeréshez és a dokumentumfeldolgozáshoz.
 
 Olvasás és rendezés
-Nyisson meg PDF-eket lapokon vagy osztott paneleken. Keressen szöveget, kövesse a könyvjelzőket, hasonlítsa össze a dokumentumokat, és egyesítse, ossza fel, rendezze át, forgassa el, vágja körül vagy nyerje ki az oldalakat.
+Nyisson meg PDF-eket lapokon vagy osztott paneleken, öt nézetmódban. Keressen szöveget, kövesse a könyvjelzőket, hasonlítsa össze a dokumentumokat, és egyesítse, ossza fel, rendezze át, forgassa el, vágja körül vagy nyerje ki az oldalakat.
+
+Könyvek és beolvasások
+Nyisson meg EPUB-könyveket és DjVu-beolvasásokat lapokon előzetes átalakítás nélkül, miniatűrökkel, vázlatokkal, hivatkozásokkal, kereséssel és másolással, és ha szeretné, alakítsa át őket PDF-fé. Az eredeti fájl soha nem változik.
 
 Szerkesztés és megjegyzések
-Adjon hozzá szöveget, rajzokat, kiemeléseket, bélyegzőket, vízjeleket és képeket. Szerkessze a támogatott eredeti szöveget és egyszerű bekezdéseket, vagy használja a Keresés és csere funkciót. A beolvasott dokumentumok és összetett elrendezések OCR-t vagy fedőrétegeket igényelhetnek.
+Adjon hozzá szöveget, rajzokat, kiemeléseket, bélyegzőket, vízjeleket és képeket. Szerkessze a támogatott eredeti szöveget és egyszerű bekezdéseket, vagy használja a Keresés és csere funkciót. A beolvasott dokumentumok és összetett elrendezések OCR-t vagy fedőrétegeket igényelhetnek. Jelölje ki, mozgassa és méretezze át a PDF képeit, vagy emelje ki a beolvasás egy részét új képként a Kép kinyerése funkcióval.
 
 OCR és exportálás
 Töltse le a szükséges OCR-nyelveket, ismerje fel a beolvasott szöveget, és ellenőrizze az eredményt. Exportáljon Word-, Excel-, PowerPoint-, HTML-, Markdown-, szöveg- vagy JSON-formátumba, illetve oldalképekként. XLSX- vagy CSV-exportálás előtt ellenőrizze a felismert táblázatokat. Az átalakítás megváltoztathatja az elrendezést.
@@ -122,17 +155,23 @@ Hozzon létre és töltsön ki űrlapokat, cseréljen támogatott FDF/XFDF-adato
 Kitakarás és automatizálás
 Jelölje meg az érzékeny tartalmat kitakarásra, ellenőrizze az esetleg szükséges raszteres tartalékmegoldást, és mentsen külön másolatot ellenőrzéssel és opcionális tisztítással. Az ismétlődő munkához használjon vezetett feladatokat, makrókat, figyelt mappákat, adategyesítést és parancssori munkafolyamatokat.
 
+Szín
+Jelenítse meg az oldalakat színkezelten a színprofillal rendelkező monitorokon, és készítsen nyomtatási próbát a dokumentumról nyomtatóprofillal, papír- és tintaszimulációval és színtartomány-figyelmeztetésekkel. A HDR-kimenet még fejlesztés alatt áll.
+
 Személyre szabás
 Válasszon 13 téma és 20 alkalmazásnyelv közül, állítsa be a felület méretezését, és szabja testre a billentyűparancsokat.
 
 GPLv3. Forráskód és kiadott csomagok: https://killerpdf.net
-","KillerPDF è un editor PDF gratuito e open source per Windows. Installalo oppure usa il pacchetto portatile. La versione 1.9 usa il proprio motore per il rendering, l'estrazione del testo e l'elaborazione dei documenti.
+","KillerPDF è un editor PDF gratuito e open source per Windows che legge anche libri EPUB e scansioni DjVu. Installalo oppure usa il pacchetto portatile. La versione 1.9 usa il proprio motore per il rendering, l'estrazione del testo e l'elaborazione dei documenti.
 
 Lettura e organizzazione
-Apri i PDF in schede o riquadri divisi. Cerca testo, segui i segnalibri, confronta documenti e unisci, dividi, riordina, ruota, ritaglia o estrai pagine.
+Apri i PDF in schede o riquadri divisi, in cinque modalità di visualizzazione. Cerca testo, segui i segnalibri, confronta documenti e unisci, dividi, riordina, ruota, ritaglia o estrai pagine.
+
+Libri e scansioni
+Apri libri EPUB e scansioni DjVu in schede senza convertirli prima, con miniature, struttura, collegamenti, ricerca e copia, e trasformali in PDF quando vuoi. Il file originale non viene mai modificato.
 
 Modifica e annotazione
-Aggiungi testo, disegni, evidenziazioni, timbri, filigrane e immagini. Modifica il testo di origine supportato e i paragrafi semplici oppure usa Trova e sostituisci. Le scansioni e le impaginazioni complesse possono richiedere OCR o sovrapposizioni.
+Aggiungi testo, disegni, evidenziazioni, timbri, filigrane e immagini. Modifica il testo di origine supportato e i paragrafi semplici oppure usa Trova e sostituisci. Le scansioni e le impaginazioni complesse possono richiedere OCR o sovrapposizioni. Seleziona, sposta e ridimensiona le immagini di un PDF oppure estrai una parte di una scansione come nuova immagine con Estrai immagine.
 
 OCR ed esportazione
 Scarica le lingue OCR necessarie, riconosci il testo scansionato e controlla il risultato. Esporta in Word, Excel, PowerPoint, HTML, Markdown, testo, JSON o immagini delle pagine. Controlla le tabelle rilevate prima di esportarle in XLSX o CSV. La conversione può modificare l'impaginazione.
@@ -143,17 +182,23 @@ Crea e compila moduli, scambia dati FDF/XFDF supportati e trasforma i moduli del
 Oscuramento e automazione
 Contrassegna i contenuti sensibili da oscurare, controlla l'eventuale conversione raster alternativa necessaria e salva una copia separata con verifica e sanificazione facoltativa. Usa attività guidate, macro, cartelle monitorate, unione di dati e flussi da riga di comando per le operazioni ripetitive.
 
+Colore
+Visualizza le pagine con gestione del colore sui monitor che hanno un profilo colore e fai la prova di stampa di un documento con un profilo stampante, con simulazione di carta e inchiostro e avvisi sul gamut. L'output HDR è ancora in fase di sviluppo.
+
 Personalizzazione
 Scegli tra 13 temi e 20 lingue dell'app, regola la scala dell'interfaccia e personalizza le scorciatoie da tastiera.
 
 GPLv3. Codice sorgente e pacchetti pubblicati: https://killerpdf.net
-","KillerPDF は、Windows 用の無料でオープンソースの PDF エディターです。インストールするか、ポータブルパッケージを使用できます。バージョン 1.9 は、描画、テキスト抽出、文書処理に KillerPDF 独自のエンジンを使用しています。
+","KillerPDF は、Windows 用の無料でオープンソースの PDF エディターで、EPUB の書籍や DjVu のスキャンも読めます。インストールするか、ポータブルパッケージを使用できます。バージョン 1.9 は、描画、テキスト抽出、文書処理に KillerPDF 独自のエンジンを使用しています。
 
 閲覧と整理
-PDF をタブや分割ペインで開けます。テキストの検索、ブックマークの移動、文書の比較に加え、ページの結合、分割、並べ替え、回転、トリミング、抽出ができます。
+PDF をタブや分割ペインで、5 つの表示モードで開けます。テキストの検索、ブックマークの移動、文書の比較に加え、ページの結合、分割、並べ替え、回転、トリミング、抽出ができます。
+
+書籍とスキャン
+EPUB の書籍や DjVu のスキャンを、変換せずにタブで開けます。サムネイル、アウトライン、リンク、検索、コピーに対応し、必要なときは PDF にすることもできます。元のファイルは変更されません。
 
 編集と注釈
-テキスト、描画、ハイライト、スタンプ、透かし、画像を追加できます。対応する元のテキストや単純な段落を編集したり、検索と置換を使用したりできます。スキャン文書や複雑なレイアウトでは、OCR やオーバーレイが必要になる場合があります。
+テキスト、描画、ハイライト、スタンプ、透かし、画像を追加できます。対応する元のテキストや単純な段落を編集したり、検索と置換を使用したりできます。スキャン文書や複雑なレイアウトでは、OCR やオーバーレイが必要になる場合があります。 PDF 内の画像を選択、移動、サイズ変更できるほか、「画像を抽出」でスキャンの一部を新しい画像として切り出せます。
 
 OCR とエクスポート
 必要な OCR 言語をダウンロードし、スキャンしたテキストを認識して結果を確認できます。Word、Excel、PowerPoint、HTML、Markdown、テキスト、JSON、ページ画像にエクスポートできます。検出された表は、XLSX や CSV にエクスポートする前に確認してください。変換によりレイアウトが変わる場合があります。
@@ -164,17 +209,23 @@ OCR とエクスポート
 墨消しと自動化
 機密性の高い内容を墨消し対象として指定し、必要な場合は代替のラスタライズを確認して、検証と任意のサニタイズを行った別のコピーを保存できます。繰り返しの作業には、ガイド付きタスク、マクロ、監視フォルダー、データの差し込み、コマンドラインのワークフローを使用できます。
 
+カラー
+カラープロファイルのあるモニターでは、ページをカラーマネジメントして表示できます。プリンタープロファイルに対して文書をプルーフし、用紙とインクのシミュレーションと色域の警告も利用できます。HDR 出力は開発中です。
+
 使いやすくカスタマイズ
 13 種類のテーマと 20 のアプリ言語から選び、インターフェイスの表示倍率やキーボードショートカットを変更できます。
 
 GPLv3。ソースコードとリリース済みパッケージ: https://killerpdf.net
-","KillerPDF Windows жүйесіне арналған тегін, бастапқы коды ашық PDF редакторы. Оны орнатыңыз немесе тасымалды пакетті пайдаланыңыз. 1.9 нұсқасы көрсету, мәтінді шығарып алу және құжаттарды өңдеу үшін KillerPDF-тің өз қозғалтқышын қолданады.
+","KillerPDF Windows жүйесіне арналған тегін, бастапқы коды ашық PDF редакторы, ол EPUB кітаптарын және DjVu сканерленген құжаттарын да оқиды. Оны орнатыңыз немесе тасымалды пакетті пайдаланыңыз. 1.9 нұсқасы көрсету, мәтінді шығарып алу және құжаттарды өңдеу үшін KillerPDF-тің өз қозғалтқышын қолданады.
 
 Оқу және реттеу
-PDF файлдарын қойындыларда немесе бөлінген панельдерде ашыңыз. Мәтін іздеңіз, бетбелгілерге өтіңіз, құжаттарды салыстырыңыз және беттерді біріктіріңіз, бөліңіз, қайта реттеңіз, бұрыңыз, қиыңыз немесе шығарып алыңыз.
+PDF файлдарын қойындыларда немесе бөлінген панельдерде бес көру режимінде ашыңыз. Мәтін іздеңіз, бетбелгілерге өтіңіз, құжаттарды салыстырыңыз және беттерді біріктіріңіз, бөліңіз, қайта реттеңіз, бұрыңыз, қиыңыз немесе шығарып алыңыз.
+
+Кітаптар мен сканерленген құжаттар
+EPUB кітаптары мен DjVu сканерленген құжаттарын алдын ала түрлендірместен қойындыларда ашыңыз: нобайлар, құрылым, сілтемелер, іздеу және көшіру қолжетімді, ал қажет болса кез келгенін PDF етіп түрлендіруге болады. Түпнұсқа файл ешқашан өзгертілмейді.
 
 Өңдеу және аннотациялар
-Мәтін, сызбалар, ерекшелеулер, мөрлер, сутаңбалар және суреттер қосыңыз. Қолдау көрсетілетін бастапқы мәтін мен қарапайым абзацтарды өңдеңіз немесе Табу және ауыстыру мүмкіндігін пайдаланыңыз. Сканерленген құжаттар мен күрделі орналасуларға OCR немесе қабаттастыру қажет болуы мүмкін.
+Мәтін, сызбалар, ерекшелеулер, мөрлер, сутаңбалар және суреттер қосыңыз. Қолдау көрсетілетін бастапқы мәтін мен қарапайым абзацтарды өңдеңіз немесе Табу және ауыстыру мүмкіндігін пайдаланыңыз. Сканерленген құжаттар мен күрделі орналасуларға OCR немесе қабаттастыру қажет болуы мүмкін. PDF ішіндегі суреттерді таңдап, жылжытып, өлшемін өзгертіңіз немесе Суретті шығарып алу арқылы сканердің бір бөлігін жаңа сурет ретінде бөліп алыңыз.
 
 OCR және экспорттау
 Қажетті OCR тілдерін жүктеп алыңыз, сканерленген мәтінді танып, нәтижесін тексеріңіз. Word, Excel, PowerPoint, HTML, Markdown, мәтін, JSON немесе бет суреттеріне экспорттаңыз. XLSX немесе CSV пішіміне экспорттау алдында анықталған кестелерді тексеріңіз. Түрлендіру бет орналасуын өзгертуі мүмкін.
@@ -185,17 +236,23 @@ OCR және экспорттау
 Құпия мазмұнды жою және автоматтандыру
 Құпия мазмұнды жою үшін белгілеңіз, қажет болатын растрлық баламаны тексеріңіз және тексеру мен қосымша тазарту арқылы бөлек көшірме сақтаңыз. Қайталанатын жұмыс үшін нұсқаулы тапсырмаларды, макростарды, бақыланатын қалталарды, деректерді біріктіруді және пәрмен жолы жұмыс үрдістерін пайдаланыңыз.
 
+Түс
+Түс профилі бар мониторларда беттерді түсті басқарумен көріңіз және құжатты принтер профилі бойынша қағаз бен бояуды модельдеумен және түс гаммасы туралы ескертулермен тексеріп көріңіз. HDR шығысы әлі әзірленуде.
+
 Өзіңізге бейімдеу
 13 тақырып пен қолданбаның 20 тілінен таңдаңыз, интерфейс масштабын реттеңіз және пернетақта тіркесімдерін бейімдеңіз.
 
 GPLv3. Бастапқы код пен шығарылған пакеттер: https://killerpdf.net
-","KillerPDF, Windows için ücretsiz ve açık kaynaklı bir PDF düzenleyicisidir. Yükleyin veya taşınabilir paketi kullanın. Sürüm 1.9; görüntüleme, metin çıkarma ve belge işleme için KillerPDF'nin kendi motorunu kullanır.
+","KillerPDF, EPUB kitaplarını ve DjVu taramalarını da okuyan, Windows için ücretsiz ve açık kaynaklı bir PDF düzenleyicisidir. Yükleyin veya taşınabilir paketi kullanın. Sürüm 1.9; görüntüleme, metin çıkarma ve belge işleme için KillerPDF'nin kendi motorunu kullanır.
 
 Okuma ve düzenleme
-PDF'leri sekmelerde veya bölünmüş bölmelerde açın. Metin arayın, yer imlerini izleyin, belgeleri karşılaştırın ve sayfaları birleştirin, bölün, yeniden sıralayın, döndürün, kırpın veya ayıklayın.
+PDF'leri sekmelerde veya bölünmüş bölmelerde, beş görünüm modunda açın. Metin arayın, yer imlerini izleyin, belgeleri karşılaştırın ve sayfaları birleştirin, bölün, yeniden sıralayın, döndürün, kırpın veya ayıklayın.
+
+Kitaplar ve taramalar
+EPUB kitaplarını ve DjVu taramalarını önce dönüştürmeden sekmelerde açın; küçük resimler, ana hatlar, bağlantılar, arama ve kopyalama kullanılabilir, isterseniz ikisini de PDF'ye dönüştürebilirsiniz. Özgün dosya hiçbir zaman değişmez.
 
 Düzenleme ve açıklama ekleme
-Metin, çizim, vurgulama, damga, filigran ve resim ekleyin. Desteklenen kaynak metni ve basit paragrafları düzenleyin veya Bul ve Değiştir'i kullanın. Taramalar ve karmaşık düzenler OCR ya da kaplamalar gerektirebilir.
+Metin, çizim, vurgulama, damga, filigran ve resim ekleyin. Desteklenen kaynak metni ve basit paragrafları düzenleyin veya Bul ve Değiştir'i kullanın. Taramalar ve karmaşık düzenler OCR ya da kaplamalar gerektirebilir. PDF'teki resimleri seçin, taşıyın ve yeniden boyutlandırın veya Görüntü ayıkla ile bir taramanın bir bölümünü yeni resim olarak ayırın.
 
 OCR ve dışa aktarma
 İhtiyacınız olan OCR dillerini indirin, taranmış metni tanıyın ve sonucu gözden geçirin. Word, Excel, PowerPoint, HTML, Markdown, metin, JSON veya sayfa resimleri olarak dışa aktarın. XLSX veya CSV'ye aktarmadan önce algılanan tabloları gözden geçirin. Dönüştürme, sayfa düzenini değiştirebilir.
@@ -206,17 +263,23 @@ Form oluşturun ve doldurun, desteklenen FDF/XFDF verilerini aktarın ve kopyala
 Karartma ve otomasyon
 Hassas içeriği karartmak üzere işaretleyin, gerekli olabilecek alternatif rasterleştirmeyi gözden geçirin ve doğrulama ile isteğe bağlı temizleme içeren ayrı bir kopya kaydedin. Tekrarlanan işler için kılavuzlu görevleri, makroları, izlenen klasörleri, veri birleştirmeyi ve komut satırı iş akışlarını kullanın.
 
+Renk
+Renk profili olan monitörlerde sayfaları renk yönetimli görüntüleyin ve bir belgenin provasını yazıcı profiline göre kâğıt ve mürekkep benzetimi ile gamut uyarılarıyla yapın. HDR çıktısı hâlâ geliştirme aşamasındadır.
+
 Kişiselleştirme
 13 tema ve 20 uygulama dili arasından seçim yapın, arayüz ölçeğini ayarlayın ve klavye kısayollarını özelleştirin.
 
 GPLv3. Kaynak kod ve yayımlanan paketler: https://killerpdf.net
-","KillerPDF є безкоштовним редактором PDF з відкритим кодом для Windows. Установіть його або скористайтеся портативним пакетом. Версія 1.9 використовує власний рушій KillerPDF для відтворення, видобування тексту й обробки документів.
+","KillerPDF є безкоштовним редактором PDF з відкритим кодом для Windows, який також читає книги EPUB і скани DjVu. Установіть його або скористайтеся портативним пакетом. Версія 1.9 використовує власний рушій KillerPDF для відтворення, видобування тексту й обробки документів.
 
 Читання та впорядкування
-Відкривайте PDF у вкладках або розділених панелях. Шукайте текст, переходьте за закладками, порівнюйте документи, об'єднуйте, розділяйте, перевпорядковуйте, повертайте, обрізайте або видобувайте сторінки.
+Відкривайте PDF у вкладках або розділених панелях, у п'яти режимах перегляду. Шукайте текст, переходьте за закладками, порівнюйте документи, об'єднуйте, розділяйте, перевпорядковуйте, повертайте, обрізайте або видобувайте сторінки.
+
+Книги та скани
+Відкривайте книги EPUB і скани DjVu у вкладках без попереднього перетворення, з мініатюрами, структурою, посиланнями, пошуком і копіюванням, а за потреби перетворюйте їх на PDF. Початковий файл ніколи не змінюється.
 
 Редагування та примітки
-Додавайте текст, малюнки, виділення, штампи, водяні знаки та зображення. Редагуйте підтримуваний вихідний текст і прості абзаци або використовуйте пошук і заміну. Скановані документи та складні макети можуть потребувати OCR або накладень.
+Додавайте текст, малюнки, виділення, штампи, водяні знаки та зображення. Редагуйте підтримуваний вихідний текст і прості абзаци або використовуйте пошук і заміну. Скановані документи та складні макети можуть потребувати OCR або накладень. Виділяйте, переміщуйте й змінюйте розмір зображень у PDF або виріжте частину скана як нове зображення за допомогою функції Витягти зображення.
 
 OCR та експорт
 Завантажте потрібні мови OCR, розпізнайте сканований текст і перевірте результат. Експортуйте у Word, Excel, PowerPoint, HTML, Markdown, текст, JSON або зображення сторінок. Перед експортом у XLSX або CSV перевірте виявлені таблиці. Перетворення може змінити макет.
@@ -227,17 +290,23 @@ OCR та експорт
 Вилучення конфіденційного вмісту та автоматизація
 Позначте конфіденційний вміст для вилучення, перегляньте резервний растровий варіант, якщо він потрібний, і збережіть окрему копію з перевіркою та необов'язковим очищенням. Для повторюваної роботи використовуйте покрокові завдання, макроси, відстежувані папки, злиття даних і робочі процеси командного рядка.
 
+Колір
+Переглядайте сторінки з керуванням кольором на моніторах, що мають колірний профіль, і робіть пробний відбиток документа за профілем принтера із симуляцією паперу й фарб та попередженнями про гаму. Вивід HDR ще в розробці.
+
 Персоналізація
 Вибирайте серед 13 тем і 20 мов програми, змінюйте масштаб інтерфейсу та налаштовуйте сполучення клавіш.
 
 GPLv3. Вихідний код і випущені пакети: https://killerpdf.net
-","KillerPDF là trình chỉnh sửa PDF miễn phí, mã nguồn mở dành cho Windows. Hãy cài đặt hoặc dùng gói di động. Phiên bản 1.9 sử dụng bộ máy riêng của KillerPDF để kết xuất, trích xuất văn bản và xử lý tài liệu.
+","KillerPDF là trình chỉnh sửa PDF miễn phí, mã nguồn mở dành cho Windows, đồng thời đọc được sách EPUB và bản quét DjVu. Hãy cài đặt hoặc dùng gói di động. Phiên bản 1.9 sử dụng bộ máy riêng của KillerPDF để kết xuất, trích xuất văn bản và xử lý tài liệu.
 
 Đọc và sắp xếp
-Mở PDF trong các thẻ hoặc ngăn chia đôi. Tìm văn bản, truy cập dấu trang, so sánh tài liệu và gộp, tách, sắp xếp lại, xoay, cắt hoặc trích xuất trang.
+Mở PDF trong các thẻ hoặc ngăn chia đôi, với năm chế độ xem. Tìm văn bản, truy cập dấu trang, so sánh tài liệu và gộp, tách, sắp xếp lại, xoay, cắt hoặc trích xuất trang.
+
+Sách và bản quét
+Mở sách EPUB và bản quét DjVu trong các thẻ mà không cần chuyển đổi trước, kèm hình thu nhỏ, mục lục, liên kết, tìm kiếm và sao chép, và chuyển từng loại thành PDF khi bạn muốn. Tệp gốc không bao giờ bị thay đổi.
 
 Chỉnh sửa và chú thích
-Thêm văn bản, hình vẽ, phần tô sáng, dấu, hình mờ và hình ảnh. Chỉnh sửa văn bản gốc được hỗ trợ và các đoạn văn đơn giản, hoặc dùng Tìm và Thay thế. Bản quét và bố cục phức tạp có thể cần OCR hoặc lớp phủ.
+Thêm văn bản, hình vẽ, phần tô sáng, dấu, hình mờ và hình ảnh. Chỉnh sửa văn bản gốc được hỗ trợ và các đoạn văn đơn giản, hoặc dùng Tìm và Thay thế. Bản quét và bố cục phức tạp có thể cần OCR hoặc lớp phủ. Chọn, di chuyển và đổi kích thước các hình ảnh trong PDF, hoặc tách một phần của bản quét thành hình ảnh mới bằng Trích xuất ảnh.
 
 OCR và xuất
 Tải xuống các ngôn ngữ OCR cần dùng, nhận dạng văn bản đã quét và kiểm tra kết quả. Xuất sang Word, Excel, PowerPoint, HTML, Markdown, văn bản, JSON hoặc hình ảnh trang. Kiểm tra các bảng được phát hiện trước khi xuất sang XLSX hoặc CSV. Việc chuyển đổi có thể thay đổi bố cục.
@@ -248,17 +317,23 @@ Tạo và điền biểu mẫu, trao đổi dữ liệu FDF/XFDF được hỗ t
 Xóa nội dung nhạy cảm và tự động hóa
 Đánh dấu nội dung nhạy cảm cần xóa, xem xét phương án chuyển sang ảnh raster dự phòng nếu cần và lưu một bản sao riêng có xác minh cùng tùy chọn làm sạch. Sử dụng tác vụ có hướng dẫn, macro, thư mục theo dõi, trộn dữ liệu và quy trình dòng lệnh cho công việc lặp lại.
 
+Màu sắc
+Xem trang với quản lý màu trên các màn hình có hồ sơ màu, và thử in một tài liệu theo hồ sơ máy in với mô phỏng giấy và mực cùng cảnh báo vượt gam màu. Đầu ra HDR vẫn đang được phát triển.
+
 Tùy chỉnh
 Chọn trong 13 chủ đề và 20 ngôn ngữ ứng dụng, điều chỉnh tỷ lệ giao diện và tùy chỉnh phím tắt.
 
 GPLv3. Mã nguồn và các gói đã phát hành: https://killerpdf.net
-","KillerPDF é um editor de PDF gratuito e de código aberto para Windows. Instale ou use o pacote portátil. A versão 1.9 usa o mecanismo próprio do KillerPDF para renderização, extração de texto e processamento de documentos.
+","KillerPDF é um editor de PDF gratuito e de código aberto para Windows que também lê livros EPUB e digitalizações DjVu. Instale ou use o pacote portátil. A versão 1.9 usa o mecanismo próprio do KillerPDF para renderização, extração de texto e processamento de documentos.
 
 Leitura e organização
-Abra PDFs em abas ou painéis divididos. Pesquise texto, siga marcadores, compare documentos e mescle, divida, reordene, gire, recorte ou extraia páginas.
+Abra PDFs em abas ou painéis divididos, em cinco modos de exibição. Pesquise texto, siga marcadores, compare documentos e mescle, divida, reordene, gire, recorte ou extraia páginas.
+
+Livros e digitalizações
+Abra livros EPUB e digitalizações DjVu em abas sem convertê-los antes, com miniaturas, estrutura de tópicos, links, pesquisa e cópia, e transforme qualquer um deles em PDF quando quiser. O arquivo original nunca é alterado.
 
 Edição e anotações
-Adicione texto, desenhos, destaques, carimbos, marcas-d'água e imagens. Edite o texto de origem compatível e parágrafos simples ou use Localizar e Substituir. Digitalizações e layouts complexos podem precisar de OCR ou sobreposições.
+Adicione texto, desenhos, destaques, carimbos, marcas-d'água e imagens. Edite o texto de origem compatível e parágrafos simples ou use Localizar e Substituir. Digitalizações e layouts complexos podem precisar de OCR ou sobreposições. Selecione, mova e redimensione as imagens de um PDF, ou destaque parte de uma digitalização como uma nova imagem com Extrair imagem.
 
 OCR e exportação
 Baixe os idiomas de OCR necessários, reconheça o texto digitalizado e revise o resultado. Exporte para Word, Excel, PowerPoint, HTML, Markdown, texto, JSON ou imagens de páginas. Revise as tabelas detectadas antes de exportar para XLSX ou CSV. A conversão pode alterar o layout.
@@ -269,17 +344,23 @@ Crie e preencha formulários, troque dados FDF/XFDF compatíveis e transforme os
 Remoção de conteúdo sensível e automação
 Marque o conteúdo sensível para remoção, revise qualquer alternativa de rasterização necessária e salve uma cópia separada com verificação e limpeza opcional. Use tarefas guiadas, macros, pastas monitoradas, mesclagem de dados e fluxos de linha de comando para trabalhos repetitivos.
 
+Cor
+Veja as páginas com gerenciamento de cor em monitores que têm perfil de cor e faça a prova de um documento com base em um perfil de impressora, com simulação de papel e tinta e avisos de cores fora da gama. A saída HDR ainda está em desenvolvimento.
+
 Personalização
 Escolha entre 13 temas e 20 idiomas do aplicativo, ajuste a escala da interface e personalize os atalhos de teclado.
 
 GPLv3. Código-fonte e pacotes lançados: https://killerpdf.net
-","KillerPDF to bezpłatny edytor PDF o otwartym kodzie źródłowym dla systemu Windows. Zainstaluj go lub użyj pakietu przenośnego. Wersja 1.9 używa własnego silnika KillerPDF do renderowania, wyodrębniania tekstu i przetwarzania dokumentów.
+","KillerPDF to bezpłatny edytor PDF o otwartym kodzie źródłowym dla systemu Windows, który odczytuje także książki EPUB i skany DjVu. Zainstaluj go lub użyj pakietu przenośnego. Wersja 1.9 używa własnego silnika KillerPDF do renderowania, wyodrębniania tekstu i przetwarzania dokumentów.
 
 Czytanie i porządkowanie
-Otwieraj pliki PDF na kartach lub w podzielonych panelach. Wyszukuj tekst, przechodź do zakładek, porównuj dokumenty oraz scalaj, dziel, przestawiaj, obracaj, przycinaj lub wyodrębniaj strony.
+Otwieraj pliki PDF na kartach lub w podzielonych panelach, w pięciu trybach widoku. Wyszukuj tekst, przechodź do zakładek, porównuj dokumenty oraz scalaj, dziel, przestawiaj, obracaj, przycinaj lub wyodrębniaj strony.
+
+Książki i skany
+Otwieraj książki EPUB i skany DjVu na kartach bez wcześniejszej konwersji, z miniaturami, konspektami, linkami, wyszukiwaniem i kopiowaniem, a gdy zechcesz, zamień każdy z nich w plik PDF. Oryginalny plik nigdy nie jest zmieniany.
 
 Edycja i adnotacje
-Dodawaj tekst, rysunki, wyróżnienia, stemple, znaki wodne i obrazy. Edytuj obsługiwany tekst źródłowy i proste akapity albo użyj funkcji Znajdź i zamień. Skany i złożone układy mogą wymagać OCR lub nakładek.
+Dodawaj tekst, rysunki, wyróżnienia, stemple, znaki wodne i obrazy. Edytuj obsługiwany tekst źródłowy i proste akapity albo użyj funkcji Znajdź i zamień. Skany i złożone układy mogą wymagać OCR lub nakładek. Zaznaczaj, przesuwaj i zmieniaj rozmiar obrazów w pliku PDF albo wyodrębnij fragment skanu jako nowy obraz za pomocą funkcji Wyodrębnij obraz.
 
 OCR i eksport
 Pobierz potrzebne języki OCR, rozpoznaj zeskanowany tekst i sprawdź wynik. Eksportuj do Worda, Excela, PowerPointa, HTML, Markdown, tekstu, JSON lub obrazów stron. Przed eksportem do XLSX lub CSV sprawdź wykryte tabele. Konwersja może zmienić układ.
@@ -290,17 +371,23 @@ Twórz i wypełniaj formularze, wymieniaj obsługiwane dane FDF/XFDF i przekszta
 Usuwanie poufnej treści i automatyzacja
 Zaznacz poufną treść do usunięcia, sprawdź ewentualną wymaganą rasteryzację zastępczą i zapisz osobną kopię z weryfikacją i opcjonalnym oczyszczaniem. Do powtarzalnych prac używaj zadań z przewodnikiem, makr, obserwowanych folderów, scalania danych i procesów wiersza poleceń.
 
+Kolor
+Wyświetlaj strony z zarządzaniem kolorami na monitorach z profilem kolorów i sprawdzaj dokument względem profilu drukarki, z symulacją papieru i farby oraz ostrzeżeniami o przekroczeniu gamy. Obsługa wyjścia HDR jest jeszcze w trakcie prac.
+
 Dostosowanie
 Wybierz spośród 13 motywów i 20 języków aplikacji, zmień skalę interfejsu i dostosuj skróty klawiaturowe.
 
 GPLv3. Kod źródłowy i wydane pakiety: https://killerpdf.net
-","KillerPDF er et gratis PDF-redigeringsprogram med åpen kildekode for Windows. Installer det eller bruk den portable pakken. Versjon 1.9 bruker KillerPDFs egen motor til gjengivelse, tekstuttrekking og dokumentbehandling.
+","KillerPDF er et gratis PDF-redigeringsprogram med åpen kildekode for Windows som også leser EPUB-bøker og DjVu-skanninger. Installer det eller bruk den portable pakken. Versjon 1.9 bruker KillerPDFs egen motor til gjengivelse, tekstuttrekking og dokumentbehandling.
 
 Les og organiser
-Åpne PDF-er i faner eller delte ruter. Søk etter tekst, følg bokmerker, sammenlign dokumenter og slå sammen, del, omorganiser, roter, beskjær eller trekk ut sider.
+Åpne PDF-er i faner eller delte ruter, i fem visningsmoduser. Søk etter tekst, følg bokmerker, sammenlign dokumenter og slå sammen, del, omorganiser, roter, beskjær eller trekk ut sider.
+
+Bøker og skanninger
+Åpne EPUB-bøker og DjVu-skanninger i faner uten å konvertere dem først, med miniatyrbilder, disposisjoner, lenker, søk og kopiering, og gjør dem om til PDF når du vil. Originalfilen endres aldri.
 
 Rediger og kommenter
-Legg til tekst, tegninger, uthevinger, stempler, vannmerker og bilder. Rediger støttet kildetekst og enkle avsnitt, eller bruk Søk og erstatt. Skanninger og komplekse oppsett kan kreve OCR eller overlegg.
+Legg til tekst, tegninger, uthevinger, stempler, vannmerker og bilder. Rediger støttet kildetekst og enkle avsnitt, eller bruk Søk og erstatt. Skanninger og komplekse oppsett kan kreve OCR eller overlegg. Velg, flytt og endre størrelsen på bildene i en PDF, eller løft ut en del av en skanning som et nytt bilde med Trekk ut bilde.
 
 OCR og eksport
 Last ned OCR-språkene du trenger, gjenkjenn skannet tekst og se gjennom resultatet. Eksporter til Word, Excel, PowerPoint, HTML, Markdown, tekst, JSON eller sidebilder. Se gjennom oppdagede tabeller før eksport til XLSX eller CSV. Konvertering kan endre oppsettet.
@@ -311,17 +398,23 @@ Opprett og fyll ut skjemaer, utveksle støttede FDF/XFDF-data og gjør skjemaene
 Sladding og automatisering
 Marker sensitivt innhold for sladding, se gjennom en eventuell nødvendig rasterbasert reserveløsning og lagre en egen kopi med verifisering og valgfri rensing. Bruk veiledede oppgaver, makroer, overvåkede mapper, datafletting og kommandolinjearbeidsflyter for gjentakende arbeid.
 
+Farger
+Vis sider med fargestyring på skjermer som har en fargeprofil, og prøv ut et dokument mot en skriverprofil med papir- og blekksimulering og advarsler om fargeområde. HDR-utdata er fortsatt under arbeid.
+
 Tilpass etter behov
 Velg blant 13 temaer og 20 appspråk, juster grensesnittets skalering og tilpass hurtigtaster.
 
 GPLv3. Kildekode og utgitte pakker: https://killerpdf.net
-","KillerPDF 是一款适用于 Windows 的免费开源 PDF 编辑器。您可以安装使用，也可以使用便携包。1.9 版本使用 KillerPDF 自有引擎进行渲染、文本提取和文档处理。
+","KillerPDF 是一款适用于 Windows 的免费开源 PDF 编辑器，同时可阅读 EPUB 图书和 DjVu 扫描件。您可以安装使用，也可以使用便携包。1.9 版本使用 KillerPDF 自有引擎进行渲染、文本提取和文档处理。
 
 阅读与整理
-在标签页或拆分窗格中打开 PDF。搜索文本、浏览书签、比较文档，以及合并、拆分、重排、旋转、裁剪或提取页面。
+在标签页或拆分窗格中打开 PDF，提供五种视图模式。搜索文本、浏览书签、比较文档，以及合并、拆分、重排、旋转、裁剪或提取页面。
+
+图书与扫描件
+无需先转换，即可在标签页中打开 EPUB 图书和 DjVu 扫描件，并提供缩略图、大纲、链接、搜索和复制功能，需要时还可将其转为 PDF。原始文件绝不会被更改。
 
 编辑与批注
-添加文本、绘图、高亮、图章、水印和图像。编辑受支持的原始文本和简单段落，或使用查找与替换。扫描件和复杂版式可能需要 OCR 或覆盖层。
+添加文本、绘图、高亮、图章、水印和图像。编辑受支持的原始文本和简单段落，或使用查找与替换。扫描件和复杂版式可能需要 OCR 或覆盖层。 选择、移动并调整 PDF 中图片的大小，或使用提取图像将扫描件的一部分提取为新图片。
 
 OCR 与导出
 下载所需的 OCR 语言，识别扫描文本并检查结果。导出为 Word、Excel、PowerPoint、HTML、Markdown、文本、JSON 或页面图像。导出为 XLSX 或 CSV 之前，请检查检测到的表格。转换可能改变版式。
@@ -332,17 +425,23 @@ OCR 与导出
 涂黑与自动化
 标记要涂黑的敏感内容，检查任何必需的光栅化备用处理，并保存经过验证且可选择清理的单独副本。使用引导式任务、宏、监视文件夹、数据合并和命令行工作流处理重复工作。
 
+色彩
+在带有色彩配置文件的显示器上以色彩管理方式查看页面，并对照打印机配置文件校样文档，提供纸张与油墨模拟及色域警告。HDR 输出仍在开发中。
+
 个性化设置
 从 13 种主题和 20 种应用语言中选择，调整界面缩放并自定义键盘快捷键。
 
 GPLv3。源代码及已发布的软件包：https://killerpdf.net
-","KillerPDF 是一款適用於 Windows 的免費開源 PDF 編輯器。您可以安裝使用，也可以使用可攜式套件。1.9 版使用 KillerPDF 自有引擎進行算繪、文字擷取與文件處理。
+","KillerPDF 是一款適用於 Windows 的免費開源 PDF 編輯器，同時可閱讀 EPUB 書籍與 DjVu 掃描檔。您可以安裝使用，也可以使用可攜式套件。1.9 版使用 KillerPDF 自有引擎進行算繪、文字擷取與文件處理。
 
 閱讀與整理
-在分頁或分割窗格中開啟 PDF。搜尋文字、瀏覽書籤、比較文件，以及合併、分割、重新排序、旋轉、裁切或擷取頁面。
+在分頁或分割窗格中開啟 PDF，提供五種檢視模式。搜尋文字、瀏覽書籤、比較文件，以及合併、分割、重新排序、旋轉、裁切或擷取頁面。
+
+書籍與掃描檔
+無需先轉換，即可在分頁中開啟 EPUB 書籍與 DjVu 掃描檔，並提供縮圖、大綱、連結、搜尋與複製功能，需要時還可將其轉為 PDF。原始檔案絕不會被變更。
 
 編輯與註解
-新增文字、繪圖、醒目提示、戳記、浮水印與影像。編輯支援的原始文字與簡單段落，或使用尋找與取代。掃描文件與複雜版面配置可能需要 OCR 或覆疊圖層。
+新增文字、繪圖、醒目提示、戳記、浮水印與影像。編輯支援的原始文字與簡單段落，或使用尋找與取代。掃描文件與複雜版面配置可能需要 OCR 或覆疊圖層。 選取、移動並調整 PDF 中圖片的大小，或使用擷取影像將掃描檔的一部分擷取為新圖片。
 
 OCR 與匯出
 下載所需的 OCR 語言，辨識掃描文字並檢查結果。匯出為 Word、Excel、PowerPoint、HTML、Markdown、文字、JSON 或頁面影像。匯出為 XLSX 或 CSV 之前，請檢查偵測到的表格。轉換可能改變版面配置。
@@ -353,17 +452,23 @@ OCR 與匯出
 遮蔽與自動化
 標記要遮蔽的敏感內容，檢查任何必要的點陣化備援處理，並儲存經過驗證且可選擇清理的獨立副本。使用引導式工作、巨集、監看的資料夾、資料合併與命令列工作流程處理重複工作。
 
+色彩
+在具有色彩設定檔的顯示器上以色彩管理方式檢視頁面，並對照印表機設定檔校樣文件，提供紙張與油墨模擬及色域警告。HDR 輸出仍在開發中。
+
 個人化設定
 從 13 種佈景主題與 20 種應用程式語言中選擇，調整介面縮放並自訂鍵盤快速鍵。
 
 GPLv3。原始碼與已發行套件：https://killerpdf.net
-","KillerPDF est un éditeur PDF gratuit et open source pour Windows. Installez-le ou utilisez le paquet portable. La version 1.9 utilise le moteur propre à KillerPDF pour le rendu, l'extraction de texte et le traitement des documents.
+","KillerPDF est un éditeur PDF gratuit et open source pour Windows qui lit aussi les livres EPUB et les numérisations DjVu. Installez-le ou utilisez le paquet portable. La version 1.9 utilise le moteur propre à KillerPDF pour le rendu, l'extraction de texte et le traitement des documents.
 
 Lecture et organisation
-Ouvrez des PDF dans des onglets ou des volets divisés. Recherchez du texte, suivez les signets, comparez les documents et fusionnez, divisez, réorganisez, faites pivoter, recadrez ou extrayez des pages.
+Ouvrez des PDF dans des onglets ou des volets divisés, en cinq modes d'affichage. Recherchez du texte, suivez les signets, comparez les documents et fusionnez, divisez, réorganisez, faites pivoter, recadrez ou extrayez des pages.
+
+Livres et numérisations
+Ouvrez des livres EPUB et des numérisations DjVu dans des onglets sans les convertir au préalable, avec miniatures, plans, liens, recherche et copie, et transformez-les en PDF quand vous le souhaitez. Le fichier d'origine n'est jamais modifié.
 
 Modification et annotation
-Ajoutez du texte, des dessins, des surlignages, des tampons, des filigranes et des images. Modifiez le texte source pris en charge et les paragraphes simples, ou utilisez Rechercher et remplacer. Les documents numérisés et les mises en page complexes peuvent nécessiter l'OCR ou des superpositions.
+Ajoutez du texte, des dessins, des surlignages, des tampons, des filigranes et des images. Modifiez le texte source pris en charge et les paragraphes simples, ou utilisez Rechercher et remplacer. Les documents numérisés et les mises en page complexes peuvent nécessiter l'OCR ou des superpositions. Sélectionnez, déplacez et redimensionnez les images d'un PDF, ou détachez une partie d'une numérisation en une nouvelle image avec Extraire une image.
 
 OCR et exportation
 Téléchargez les langues OCR nécessaires, reconnaissez le texte numérisé et vérifiez le résultat. Exportez vers Word, Excel, PowerPoint, HTML, Markdown, texte, JSON ou des images de pages. Vérifiez les tableaux détectés avant de les exporter vers XLSX ou CSV. La conversion peut modifier la mise en page.
@@ -374,17 +479,23 @@ Créez et remplissez des formulaires, échangez les données FDF/XFDF prises en 
 Caviardage et automatisation
 Marquez le contenu sensible à caviarder, examinez toute solution de repli par rastérisation nécessaire et enregistrez une copie distincte avec vérification et nettoyage facultatif. Utilisez les tâches guidées, les macros, les dossiers surveillés, la fusion de données et les workflows en ligne de commande pour les travaux répétitifs.
 
+Couleur
+Affichez les pages avec gestion des couleurs sur les moniteurs dotés d'un profil colorimétrique, et réalisez l'épreuve d'un document selon un profil d'imprimante, avec simulation du papier et de l'encre et avertissements de gamut. La sortie HDR est encore en cours de développement.
+
 Personnalisation
 Choisissez parmi 13 thèmes et 20 langues de l'application, ajustez l'échelle de l'interface et personnalisez les raccourcis clavier.
 
 GPLv3. Code source et paquets publiés : https://killerpdf.net
-","KillerPDF представляет собой бесплатный редактор PDF с открытым исходным кодом для Windows. Установите его или используйте портативный пакет. Версия 1.9 использует собственный движок KillerPDF для отрисовки, извлечения текста и обработки документов.
+","KillerPDF представляет собой бесплатный редактор PDF с открытым исходным кодом для Windows, который также читает книги EPUB и сканы DjVu. Установите его или используйте портативный пакет. Версия 1.9 использует собственный движок KillerPDF для отрисовки, извлечения текста и обработки документов.
 
 Чтение и упорядочивание
-Открывайте PDF во вкладках или разделенных панелях. Ищите текст, переходите по закладкам, сравнивайте документы, объединяйте, разделяйте, переупорядочивайте, поворачивайте, обрезайте или извлекайте страницы.
+Открывайте PDF во вкладках или разделенных панелях, в пяти режимах просмотра. Ищите текст, переходите по закладкам, сравнивайте документы, объединяйте, разделяйте, переупорядочивайте, поворачивайте, обрезайте или извлекайте страницы.
+
+Книги и сканы
+Открывайте книги EPUB и сканы DjVu во вкладках без предварительного преобразования, с миниатюрами, оглавлением, ссылками, поиском и копированием, а при необходимости превращайте их в PDF. Исходный файл никогда не изменяется.
 
 Редактирование и аннотации
-Добавляйте текст, рисунки, выделения, штампы, водяные знаки и изображения. Редактируйте поддерживаемый исходный текст и простые абзацы или используйте поиск и замену. Сканам и сложным макетам могут потребоваться OCR или наложения.
+Добавляйте текст, рисунки, выделения, штампы, водяные знаки и изображения. Редактируйте поддерживаемый исходный текст и простые абзацы или используйте поиск и замену. Сканам и сложным макетам могут потребоваться OCR или наложения. Выделяйте, перемещайте и изменяйте размер изображений в PDF или вырезайте часть скана как новое изображение с помощью функции «Извлечь изображение».
 
 OCR и экспорт
 Загрузите нужные языки OCR, распознайте отсканированный текст и проверьте результат. Экспортируйте в Word, Excel, PowerPoint, HTML, Markdown, текст, JSON или изображения страниц. Перед экспортом в XLSX или CSV проверьте обнаруженные таблицы. Преобразование может изменить макет.
@@ -395,17 +506,23 @@ OCR и экспорт
 Удаление конфиденциального содержимого и автоматизация
 Помечайте конфиденциальное содержимое для удаления, проверяйте необходимый резервный вариант растеризации и сохраняйте отдельную копию с проверкой и необязательной очисткой. Для повторяющейся работы используйте пошаговые задачи, макросы, отслеживаемые папки, слияние данных и процессы командной строки.
 
+Цвет
+Просматривайте страницы с управлением цветом на мониторах с цветовым профилем и выполняйте цветопробу документа по профилю принтера с имитацией бумаги и красок и предупреждениями о выходе за гамму. Вывод HDR пока находится в разработке.
+
 Настройка
 Выбирайте из 13 тем и 20 языков приложения, меняйте масштаб интерфейса и настраивайте сочетания клавиш.
 
 GPLv3. Исходный код и выпущенные пакеты: https://killerpdf.net
-","KillerPDF je brezplačen odprtokodni urejevalnik PDF za Windows. Namestite ga ali uporabite prenosni paket. Različica 1.9 uporablja lastni pogon KillerPDF za izrisovanje, izluščanje besedila in obdelavo dokumentov.
+","KillerPDF je brezplačen odprtokodni urejevalnik PDF za Windows, ki bere tudi knjige EPUB in skene DjVu. Namestite ga ali uporabite prenosni paket. Različica 1.9 uporablja lastni pogon KillerPDF za izrisovanje, izluščanje besedila in obdelavo dokumentov.
 
 Branje in urejanje strani
-Odprite PDF-je v zavihkih ali razdeljenih podoknih. Iščite besedilo, sledite zaznamkom, primerjajte dokumente ter združujte, razdeljujte, prerazporejajte, vrtite, obrezujte ali izluščite strani.
+Odprite PDF-je v zavihkih ali razdeljenih podoknih, v petih načinih pogleda. Iščite besedilo, sledite zaznamkom, primerjajte dokumente ter združujte, razdeljujte, prerazporejajte, vrtite, obrezujte ali izluščite strani.
+
+Knjige in skeni
+Odprite knjige EPUB in skene DjVu v zavihkih brez predhodne pretvorbe, s sličicami, orisi, povezavami, iskanjem in kopiranjem, ter jih po želji pretvorite v PDF. Izvirna datoteka se nikoli ne spremeni.
 
 Urejanje in opombe
-Dodajajte besedilo, risbe, poudarke, žige, vodne žige in slike. Urejajte podprto izvorno besedilo in preproste odstavke ali uporabite Najdi in zamenjaj. Skeni in zapletene postavitve lahko zahtevajo OCR ali prekrivne plasti.
+Dodajajte besedilo, risbe, poudarke, žige, vodne žige in slike. Urejajte podprto izvorno besedilo in preproste odstavke ali uporabite Najdi in zamenjaj. Skeni in zapletene postavitve lahko zahtevajo OCR ali prekrivne plasti. Izberite, premikajte in spreminjajte velikost slik v PDF-ju ali iztrgajte del skena kot novo sliko z ukazom Izvleci sliko.
 
 OCR in izvoz
 Prenesite potrebne jezike OCR, prepoznajte skenirano besedilo in preverite rezultat. Izvozite v Word, Excel, PowerPoint, HTML, Markdown, besedilo, JSON ali slike strani. Pred izvozom v XLSX ali CSV preverite zaznane tabele. Pretvorba lahko spremeni postavitev.
@@ -416,13 +533,16 @@ Ustvarjajte in izpolnjujte obrazce, izmenjujte podprte podatke FDF/XFDF ter pret
 Odstranjevanje občutljive vsebine in avtomatizacija
 Označite občutljivo vsebino za odstranitev, preverite morebitno potrebno nadomestno rasterizacijo in shranite ločeno kopijo s preverjanjem ter izbirnim čiščenjem. Za ponavljajoče se delo uporabite vodene naloge, makre, nadzorovane mape, spajanje podatkov in poteke dela v ukazni vrstici.
 
+Barve
+Ogledujte strani z upravljanjem barv na zaslonih z barvnim profilom in preizkusite dokument glede na profil tiskalnika s simulacijo papirja in črnila ter opozorili o barvah zunaj barvnega obsega. Izhod HDR je še v pripravi.
+
 Prilagoditev
 Izbirajte med 13 temami in 20 jeziki aplikacije, prilagodite merilo vmesnika in bližnjice na tipkovnici.
 
 GPLv3. Izvorna koda in izdani paketi: https://killerpdf.net
 "
 WhatsNew,Text,,,,,,,,,,,,,,,,,,,,""
-ProductFeatures1,Text,Four view modes across unlimited tabs,সীমাহীন ট্যাব জুড়ে চারটি ভিউ মোড,Čtyři režimy zobrazení v neomezeném počtu karet,Vier Ansichtsmodi über unbegrenzte Tabs,Cuatro modos de vista en pestañas ilimitadas,Négy nézetmód korlátlan számú lapon,Quattro modalità di visualizzazione su schede illimitate,4 つの表示モードと無制限のタブ,Шексіз қойындыда төрт көру режимі,Sınırsız sekmede dört görünüm modu,Чотири режими перегляду та необмежена кількість вкладок,Bốn chế độ xem trên số lượng tab không giới hạn,Quatro modos de exibição em guias ilimitadas,Cztery tryby widoku i dowolna liczba kart,Fire visningsmoduser med ubegrenset antall faner,四种视图模式，可跨无限标签页,四種檢視模式，可跨無限分頁,Quatre modes d'affichage sur un nombre illimité d'onglets,Четыре режима просмотра и неограниченное число вкладок,Štirje načini pogleda in neomejeno zavihkov
+ProductFeatures1,Text,Five view modes across unlimited tabs,সীমাহীন ট্যাব জুড়ে পাঁচটি ভিউ মোড,Pět režimů zobrazení v neomezeném počtu karet,Fünf Ansichtsmodi über unbegrenzte Tabs,Cinco modos de vista en pestañas ilimitadas,Öt nézetmód korlátlan számú lapon,Cinque modalità di visualizzazione su schede illimitate,5 つの表示モードと無制限のタブ,Шексіз қойындыда бес көру режимі,Sınırsız sekmede beş görünüm modu,П'ять режимів перегляду та необмежена кількість вкладок,Năm chế độ xem trên số lượng tab không giới hạn,Cinco modos de exibição em guias ilimitadas,Pięć trybów widoku i dowolna liczba kart,Fem visningsmoduser med ubegrenset antall faner,五种视图模式，可跨无限标签页,五種檢視模式，可跨無限分頁,Cinq modes d'affichage sur un nombre illimité d'onglets,Пять режимов просмотра и неограниченное число вкладок,Pet načinov pogleda in neomejeno zavihkov
 ProductFeatures2,Text,Split panes show two documents side by side,বিভক্ত ভিউ - পাশাপাশি দুটি নথি,Rozdělené zobrazení - dva dokumenty vedle sebe,Geteilte Ansicht - zwei Dokumente nebeneinander,Vista dividida - dos documentos lado a lado,Az osztott ablaktáblákon két dokumentum látható egymás mellett,I riquadri divisi mostrano due documenti affiancati,分割ビュー - 2つの文書を左右に並べて表示,Бөлінген панельде екі құжат қатар көрсетіледі,Bölünmüş görünüm - iki belge yan yana,Розділені панелі показують два документи поруч,Chia đôi khung để xem hai tài liệu song song nhau,Painéis divididos mostram dois documentos lado a lado,Dwa dokumenty obok siebie w widoku dzielonym,Delte ruter viser to dokumenter side ved side,拆分视图 - 两份文档并排显示,分割視窗 - 兩份文件並排顯示,Vue partagée - deux documents côte à côte,Разделенные панели показывают два документа рядом,Razdeljena podokna za dva dokumenta drug ob drugem
 ProductFeatures3,Text,"Text, highlights, drawing and shapes","টেক্সট, হাইলাইট, অঙ্কন এবং আকৃতি","Text, zvýraznění, kreslení a tvary","Text, Hervorhebungen, Zeichnen und Formen","Texto, resaltados, dibujo y formas","Szöveg, kiemelések, rajzok és formák","Testo, evidenziazioni, disegno e forme",テキスト、ハイライト、描画、図形,"Мәтін, ерекшелеу, сурет салу және пішіндер","Metin, vurgular, çizim ve şekiller","Текст, виділення, малювання та фігури","Văn bản, đánh dấu, vẽ tay và hình vẽ","Texto, realces, desenho e formas","Tekst, podświetlenia, rysunki i kształty","Tekst, utheving, tegning og former",文本、高亮、绘图与形状,文字、螢光標示、繪圖與形狀,"Texte, surlignages, dessin et formes","Текст, выделения, рисование и фигуры","Besedilo, označevanje, risanje in oblike"
 ProductFeatures4,Text,Edit text inline and OCR scans,ইনলাইনে টেক্সট সম্পাদনা করুন এবং স্ক্যান OCR করুন,Úprava textu přímo v dokumentu a OCR skenů,Text direkt bearbeiten und Scans per OCR erfassen,Edita texto en línea y aplica OCR a escaneos,Szöveg soron belüli szerkesztése és OCR-beolvasások,Modifica del testo in linea e OCR delle scansioni,テキストのインライン編集とスキャンの OCR,Мәтінді орнында өңдеу және скандарды OCR арқылы тану,Metni satır içinde düzenle ve taramalara OCR uygula,Редагування тексту прямо на сторінці та OCR сканів,Chỉnh sửa văn bản trực tiếp và OCR bản quét,Edite texto direto no PDF e faça OCR de digitalizações,Edycja tekstu w miejscu i OCR skanów,Rediger tekst direkte og OCR-behandle skanninger,就地编辑文本并对扫描件进行 OCR,就地編輯文字並對掃描件進行 OCR,Modifier le texte en ligne et appliquer l'OCR aux numérisations,Правка текста прямо на странице и OCR сканов,Neposredno urejanje besedila in OCR skenov
@@ -431,10 +551,10 @@ ProductFeatures6,Text,Stamp page numbers and watermarks,পৃষ্ঠা ন�
 ProductFeatures7,Text,"Crop, transform, merge and split","ক্রপ, রূপান্তর, একত্র এবং বিভক্ত করুন","Oříznutí, transformace, sloučení a rozdělení","Zuschneiden, transformieren, zusammenführen und teilen","Recorta, transforma, combina y divide","Vágás, átalakítás, egyesítés és felosztás","Ritaglio, trasformazione, unione e divisione",トリミング、変換、結合、分割,"Қию, түрлендіру, біріктіру және бөлу","Kırp, dönüştür, birleştir ve böl","Обрізання, трансформація, об'єднання та розділення","Cắt, chuyển đổi, gộp và tách","Corte, transforme, mescle e divida","Przycinanie, przekształcanie, scalanie i dzielenie","Beskjær, transformer, slå sammen og del",裁剪、变换、合并与拆分,裁切、變形、合併與分割,"Recadrer, transformer, fusionner et diviser","Обрезка, трансформация, объединение и разделение","Obrezovanje, preoblikovanje, združevanje in delitev"
 ProductFeatures8,Text,Compare PDFs page by page,পৃষ্ঠা ধরে PDF তুলনা করুন,Porovnávání PDF stránku po stránce,PDFs Seite für Seite vergleichen,Compara archivos PDF página por página,PDF-ek összehasonlítása oldalanként,Confronto dei PDF pagina per pagina,PDF をページごとに比較,PDF файлдарын бет бойынша салыстыру,PDF dosyalarını sayfa sayfa karşılaştır,Порівняння PDF посторінково,So sánh PDF từng trang một,Compare PDFs página a página,Porównywanie plików PDF strona po stronie,Sammenlign PDF-er side for side,逐页比较 PDF,逐頁比較 PDF,Comparer les PDF page par page,Сравнение PDF постранично,Primerjava PDF-jev po straneh
 ProductFeatures9,Text,"Print with full control, or flatten","সম্পূর্ণ নিয়ন্ত্রণসহ মুদ্রণ করুন, বা সমতল করুন","Tisk s plnou kontrolou, nebo sloučení do jedné vrstvy",Mit voller Kontrolle drucken oder verflachen,"Imprime con control total, o aplana",Nyomtatás teljes vezérléssel vagy lapítás,"Stampa con pieno controllo, oppure appiattimento",細かく制御できる印刷、またはフラット化,Толық басқарумен басып шығару немесе тегістеу,Tam denetimle yazdır veya düzleştir,Друк з повним контролем або зведення,"In với toàn quyền kiểm soát, hoặc làm phẳng",Imprima com controle total ou nivele,Pełna kontrola druku lub spłaszczanie,"Skriv ut med full kontroll, eller flat ut",完全掌控地打印，或进行平面化,完全掌控地列印，或進行平面化,"Imprimer avec un contrôle total, ou aplatir",Печать с полным контролем или сведение,Tiskanje s popolnim nadzorom ali združevanje v sliko
-ProductFeatures10,Text,,,,,,,,,,,,,,,,,,,,""
-ProductFeatures11,Text,,,,,,,,,,,,,,,,,,,,""
-ProductFeatures12,Text,,,,,,,,,,,,,,,,,,,,""
-ProductFeatures13,Text,,,,,,,,,,,,,,,,,,,,""
+ProductFeatures10,Text,Read EPUB books and DjVu scans,EPUB বই ও DjVu স্ক্যান পড়ুন,Čtěte knihy EPUB a skeny DjVu,EPUB-Bücher und DjVu-Scans lesen,Lee libros EPUB y escaneos DjVu,EPUB-könyvek és DjVu-beolvasások olvasása,Leggi libri EPUB e scansioni DjVu,EPUB の書籍と DjVu のスキャンを閲覧,EPUB кітаптарын және DjVu сканерленген құжаттарын оқу,EPUB kitaplarını ve DjVu taramalarını oku,Читання книг EPUB і сканів DjVu,Đọc sách EPUB và bản quét DjVu,Leia livros EPUB e digitalizações DjVu,Czytaj książki EPUB i skany DjVu,Les EPUB-bøker og DjVu-skanninger,阅读 EPUB 图书和 DjVu 扫描件,閱讀 EPUB 書籍與 DjVu 掃描檔,Lisez des livres EPUB et des numérisations DjVu,Чтение книг EPUB и сканов DjVu,Branje knjig EPUB in skenov DjVu
+ProductFeatures11,Text,Convert EPUB and DjVu files to PDF,EPUB ও DjVu ফাইল PDF-এ রূপান্তর করুন,Převádějte soubory EPUB a DjVu do PDF,EPUB- und DjVu-Dateien in PDF umwandeln,Convierte archivos EPUB y DjVu a PDF,EPUB- és DjVu-fájlok átalakítása PDF-fé,Converti file EPUB e DjVu in PDF,EPUB と DjVu のファイルを PDF に変換,EPUB және DjVu файлдарын PDF форматына түрлендіру,EPUB ve DjVu dosyalarını PDF'ye dönüştür,Перетворення файлів EPUB і DjVu на PDF,Chuyển tệp EPUB và DjVu sang PDF,Converta arquivos EPUB e DjVu em PDF,Konwertuj pliki EPUB i DjVu na PDF,Konverter EPUB- og DjVu-filer til PDF,将 EPUB 和 DjVu 文件转换为 PDF,將 EPUB 與 DjVu 檔案轉換為 PDF,Convertissez des fichiers EPUB et DjVu en PDF,Преобразование файлов EPUB и DjVu в PDF,Pretvorba datotek EPUB in DjVu v PDF
+ProductFeatures12,Text,Extract pictures from scans and pages,স্ক্যান ও পৃষ্ঠা থেকে ছবি বের করুন,Extrahujte obrázky ze skenů a stránek,Bilder aus Scans und Seiten extrahieren,Extrae imágenes de escaneos y páginas,Képek kinyerése beolvasásokból és oldalakról,Estrai immagini da scansioni e pagine,スキャンやページから画像を抽出,Сканерлер мен беттерден суреттерді шығарып алу,Taramalardan ve sayfalardan resim ayıkla,Витягання зображень зі сканів і сторінок,Trích xuất hình ảnh từ bản quét và trang,Extraia imagens de digitalizações e páginas,Wyodrębniaj obrazy ze skanów i stron,Trekk ut bilder fra skanninger og sider,从扫描件和页面中提取图片,從掃描檔和頁面中擷取圖片,Extrayez des images de numérisations et de pages,Извлечение изображений из сканов и страниц,Izluščanje slik iz skenov in strani
+ProductFeatures13,Text,Color-managed viewing and printer proofing,রং-ব্যবস্থাপিত দেখা ও প্রিন্টার প্রুফিং,Zobrazení s řízením barev a nátisk pro tiskárnu,Farbverwaltete Ansicht und Druckerproof,Visualización con gestión de color y pruebas de impresora,Színkezelt megjelenítés és nyomtatási próba,Visualizzazione con gestione del colore e prova di stampa,カラーマネジメント表示とプリンターのプルーフ,Түсті басқарумен көру және принтер үшін алдын ала тексеру,Renk yönetimli görüntüleme ve yazıcı provası,Перегляд з керуванням кольором і пробний друк,Xem có quản lý màu và thử in theo máy in,Visualização com gerenciamento de cor e prova de impressão,Podgląd z zarządzaniem kolorami i próby drukarskie,Fargestyrt visning og skriverprøving,色彩管理查看与打印机校样,色彩管理檢視與印表機校樣,Affichage avec gestion des couleurs et épreuvage d'imprimante,Просмотр с управлением цветом и цветопроба для принтера,Ogled z upravljanjem barv in preizkus tiskanja
 ProductFeatures14,Text,,,,,,,,,,,,,,,,,,,,""
 ProductFeatures15,Text,,,,,,,,,,,,,,,,,,,,""
 ProductFeatures16,Text,,,,,,,,,,,,,,,,,,,,""
@@ -442,14 +562,14 @@ ProductFeatures17,Text,,,,,,,,,,,,,,,,,,,,""
 ProductFeatures18,Text,,,,,,,,,,,,,,,,,,,,""
 ProductFeatures19,Text,,,,,,,,,,,,,,,,,,,,""
 ProductFeatures20,Text,,,,,,,,,,,,,,,,,,,,""
-ShortDescription,Text,"View, edit, OCR, organize, compare, fill, sign, and batch process PDFs locally, privately, and without an account.","PDF দেখুন, সম্পাদনা করুন, OCR করুন, সাজান, তুলনা করুন, পূরণ করুন, স্বাক্ষর করুন এবং ব্যাচে প্রক্রিয়া করুন স্থানীয়ভাবে, ব্যক্তিগতভাবে এবং কোনো অ্যাকাউন্ট ছাড়াই।","Prohlížejte, upravujte, rozpoznávejte text, organizujte, porovnávejte, vyplňujte, podepisujte a dávkově zpracovávejte PDF lokálně, soukromě a bez účtu.","PDFs anzeigen, bearbeiten, per OCR erkennen, organisieren, vergleichen, ausfüllen, signieren und stapelweise verarbeiten lokal, privat und ohne Konto.","Visualiza, edita, aplica OCR, organiza, compara, rellena, firma y procesa PDF por lotes de forma local, privada y sin una cuenta.","PDF-ek megtekintése, szerkesztése, OCR-ezése, rendezése, összehasonlítása, kitöltése, aláírása és kötegelt feldolgozása helyben, privát módon és fiók nélkül.","Visualizza, modifica, esegui OCR, organizza, confronta, compila, firma ed elabora in batch i PDF in locale, in privato e senza account.",PDF の閲覧、編集、OCR、整理、比較、フォーム入力、署名、一括処理をローカルかつプライベートに、アカウントなしで。,"PDF файлдарын қараңыз, өңдеңіз, OCR жасаңыз, реттеңіз, салыстырыңыз, толтырыңыз, қол қойыңыз және топтамамен өңдеңіз Барлығы жергілікті, құпия және тіркелгісіз орындалады.","PDF'leri görüntüleyin, düzenleyin, OCR uygulayın, organize edin, karşılaştırın, doldurun, imzalayın ve toplu olarak işleyin yerel, gizli ve hesap gerektirmeden.","Переглядайте, редагуйте, розпізнавайте (OCR), упорядковуйте, порівнюйте, заповнюйте, підписуйте та пакетно обробляйте PDF локально, приватно й без облікового запису.","Xem, chỉnh sửa, OCR, sắp xếp, so sánh, điền, ký và xử lý hàng loạt tệp PDF ngay trên máy, riêng tư và không cần tài khoản.","Visualize, edite, faça OCR, organize, compare, preencha, assine e processe PDFs em lote localmente, com privacidade e sem conta.","Przeglądaj, edytuj, rozpoznawaj tekst, organizuj, porównuj, wypełniaj, podpisuj i przetwarzaj wsadowo pliki PDF lokalnie, prywatnie i bez konta.","Vis, rediger, OCR-behandle, organiser, sammenlign, fyll ut, signer og batchbehandle PDF-er lokalt, privat og uten konto.",查看、编辑、OCR、整理、比较、填写、签署及批量处理 PDF 全程在本机私密完成，无需账户。,檢視、編輯、OCR、整理、比較、填寫、簽署及批次處理 PDF 全程在本機私密完成，無需帳號。,"Affichez, modifiez, OCRisez, organisez, comparez, remplissez, signez et traitez vos PDF par lots en local, en privé et sans compte.","Просматривайте, редактируйте, распознавайте, упорядочивайте, сравнивайте, заполняйте, подписывайте и пакетно обрабатывайте PDF локально, приватно и без учетной записи.","Ogledujte, urejajte, prepoznavajte besedilo, razvrščajte, primerjajte, izpolnjujte, podpisujte in paketno obdelujte PDF-je lokalno, zasebno in brez računa."
+ShortDescription,Text,"View, edit, OCR, organize, compare, fill, sign, and batch process PDFs, and read EPUB books and DjVu scans, locally, privately, and without an account.","PDF দেখুন, সম্পাদনা করুন, OCR করুন, সাজান, তুলনা করুন, পূরণ করুন, স্বাক্ষর করুন ও ব্যাচে প্রক্রিয়া করুন, এবং EPUB বই ও DjVu স্ক্যান পড়ুন, স্থানীয়ভাবে, ব্যক্তিগতভাবে এবং কোনো অ্যাকাউন্ট ছাড়াই।","Prohlížejte, upravujte, rozpoznávejte text, organizujte, porovnávejte, vyplňujte, podepisujte a dávkově zpracovávejte PDF a čtěte knihy EPUB a skeny DjVu lokálně, soukromě a bez účtu.","PDFs anzeigen, bearbeiten, per OCR erkennen, organisieren, vergleichen, ausfüllen, signieren und stapelweise verarbeiten sowie EPUB-Bücher und DjVu-Scans lesen, lokal, privat und ohne Konto.","Visualiza, edita, aplica OCR, organiza, compara, rellena, firma y procesa PDF por lotes, y lee libros EPUB y escaneos DjVu, de forma local, privada y sin una cuenta.","PDF-ek megtekintése, szerkesztése, OCR-ezése, rendezése, összehasonlítása, kitöltése, aláírása és kötegelt feldolgozása, valamint EPUB-könyvek és DjVu-beolvasások olvasása helyben, privát módon és fiók nélkül.","Visualizza, modifica, esegui OCR, organizza, confronta, compila, firma ed elabora in batch i PDF e leggi libri EPUB e scansioni DjVu, in locale, in privato e senza account.",PDF の閲覧、編集、OCR、整理、比較、フォーム入力、署名、一括処理に加え、EPUB の書籍や DjVu のスキャンの閲覧も、ローカルかつプライベートに、アカウントなしで。,"PDF файлдарын қараңыз, өңдеңіз, OCR жасаңыз, реттеңіз, салыстырыңыз, толтырыңыз, қол қойыңыз және топтамамен өңдеңіз, сондай-ақ EPUB кітаптары мен DjVu сканерленген құжаттарын оқыңыз. Барлығы жергілікті, құпия және тіркелгісіз орындалады.","PDF'leri görüntüleyin, düzenleyin, OCR uygulayın, organize edin, karşılaştırın, doldurun, imzalayın ve toplu olarak işleyin, EPUB kitaplarını ve DjVu taramalarını okuyun, yerel, gizli ve hesap gerektirmeden.","Переглядайте, редагуйте, розпізнавайте (OCR), упорядковуйте, порівнюйте, заповнюйте, підписуйте та пакетно обробляйте PDF, а також читайте книги EPUB і скани DjVu локально, приватно й без облікового запису.","Xem, chỉnh sửa, OCR, sắp xếp, so sánh, điền, ký và xử lý hàng loạt tệp PDF, đồng thời đọc sách EPUB và bản quét DjVu, ngay trên máy, riêng tư và không cần tài khoản.","Visualize, edite, faça OCR, organize, compare, preencha, assine e processe PDFs em lote, e leia livros EPUB e digitalizações DjVu, localmente, com privacidade e sem conta.","Przeglądaj, edytuj, rozpoznawaj tekst, organizuj, porównuj, wypełniaj, podpisuj i przetwarzaj wsadowo pliki PDF oraz czytaj książki EPUB i skany DjVu, lokalnie, prywatnie i bez konta.","Vis, rediger, OCR-behandle, organiser, sammenlign, fyll ut, signer og batchbehandle PDF-er, og les EPUB-bøker og DjVu-skanninger, lokalt, privat og uten konto.",查看、编辑、OCR、整理、比较、填写、签署及批量处理 PDF，并阅读 EPUB 图书和 DjVu 扫描件，全程在本机私密完成，无需账户。,檢視、編輯、OCR、整理、比較、填寫、簽署及批次處理 PDF，並閱讀 EPUB 書籍與 DjVu 掃描檔，全程在本機私密完成，無需帳號。,"Affichez, modifiez, OCRisez, organisez, comparez, remplissez, signez et traitez vos PDF par lots, et lisez des livres EPUB et des numérisations DjVu, en local, en privé et sans compte.","Просматривайте, редактируйте, распознавайте, упорядочивайте, сравнивайте, заполняйте, подписывайте и пакетно обрабатывайте PDF, а также читайте книги EPUB и сканы DjVu, локально, приватно и без учетной записи.","Ogledujte, urejajte, prepoznavajte besedilo, razvrščajte, primerjajte, izpolnjujte, podpisujte in paketno obdelujte PDF-je ter berite knjige EPUB in skene DjVu, lokalno, zasebno in brez računa."
 SearchTerms1,Text,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,PDF editor,urejevalnik PDF
 SearchTerms2,Text,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,PDF viewer,pregledovalnik PDF
 SearchTerms3,Text,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR,OCR
 SearchTerms4,Text,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,PDF forms,obrazci PDF
 SearchTerms5,Text,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,sign PDF,podpisovanje PDF
 SearchTerms6,Text,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,merge PDF,združevanje PDF
-SearchTerms7,Text,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,compare PDF,primerjava PDF
+SearchTerms7,Text,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu viewer,EPUB DjVu pregledovalnik
 Applicable license terms,Text,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Source code: https://github.com/SteveTheKiller/KillerPDF,GNU General Public License v3.0 (GPLv3). Izvorna koda: https://github.com/SteveTheKiller/KillerPDF
 Copyright,Text,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer,© 2026 Steve the Killer
 DevelopedBy,Text,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer,Steve the Killer
@@ -486,6 +606,6 @@ Screenshots6,Provide the file name only if it is in the same folder. Provide rel
 Screenshots7,Provide the file name only if it is in the same folder. Provide relative path to image starting with the subfolder name otherwise,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png,screenshots/08.png
 Screenshots8,Provide the file name only if it is in the same folder. Provide relative path to image starting with the subfolder name otherwise,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png,screenshots/09.png
 Screenshots9,Provide the file name only if it is in the same folder. Provide relative path to image starting with the subfolder name otherwise,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png,screenshots/10.png
-Screenshots10,Provide the file name only if it is in the same folder. Provide relative path to image starting with the subfolder name otherwise,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png,screenshots/14.png
+Screenshots10,Provide the file name only if it is in the same folder. Provide relative path to image starting with the subfolder name otherwise,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png,screenshots/epub.png
 HeroArts,Text,,,,,,,,,,,,,,,,,,,,""
 Trailers,Text,,,,,,,,,,,,,,,,,,,,""
