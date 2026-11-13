@@ -6764,6 +6764,10 @@ public sealed partial class PdfPageRenderer
             {
                 // A second spot's colorant is an object; equal tints and inks share one per range.
                 SpotColorant?[]? secondSpots = spotPlaneSecondName is null ? null : new SpotColorant?[256];
+                // An ink target composites native samples as ink; an RGB target with a spot shadow
+                // shows their display color.
+                bool inkTarget = target.Ink is not null;
+                PdfCmykDisplayTable cmyk = target.Cmyk;
                 for (int y = rowStart; y < rowEnd; y++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -6817,7 +6821,7 @@ public sealed partial class PdfPageRenderer
                             int sx = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
                             int sy = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
                             uint packed = matteConverter.ConvertMatte(sx, sy, preblendMatte!, imageMaskSample);
-                            color = target.Ink is not null ? InkColor(packed)
+                            color = inkTarget ? InkOnlyColor(packed)
                                 : target.ColorFromRgb(new Color((byte)(packed >> 16), (byte)(packed >> 8), (byte)packed));
                             alpha = 255;
                         }
@@ -6826,7 +6830,8 @@ public sealed partial class PdfPageRenderer
                             // Preserve the reduced plane's sampling grid without copying its bytes.
                             int sx = Math.Min(px * factor, sourceWidth - 1);
                             int sy = Math.Min(py * factor, sourceHeight - 1);
-                            color = InkColor(ReadInk(samples, sy * rowBytes + sx * 4));
+                            uint ink = ReadInk(samples, sy * rowBytes + sx * 4);
+                            color = inkTarget ? InkOnlyColor(ink) : InkColor(ink, cmyk);
                             alpha = 255;
                         }
                         else if (directDeviceSamples)
@@ -6929,7 +6934,7 @@ public sealed partial class PdfPageRenderer
                                 uint packed = 0;
                                 for (int channel = 0; channel < 4; channel++)
                                     packed |= (uint)Math.Round(Mixed(channel)) << (channel * 8);
-                                color = InkColor(packed);
+                                color = inkTarget ? InkOnlyColor(packed) : InkColor(packed, cmyk);
                             }
                             else
                                 color = target.ColorFromRgb(new((byte)Math.Round(Mixed(2)),
@@ -6941,7 +6946,8 @@ public sealed partial class PdfPageRenderer
                             alpha = nativeImageSamples
                                 ? alphaPlane is not null ? alphaPlane[planeOffset / 4] : 255
                                 : plane[planeOffset + 3];
-                            color = nativeImageSamples ? InkColor(ReadInk(plane, planeOffset))
+                            color = nativeImageSamples
+                                ? inkTarget ? InkOnlyColor(ReadInk(plane, planeOffset)) : InkColor(ReadInk(plane, planeOffset), cmyk)
                                 : target.ColorFromRgb(new(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]));
                         }
                         if (alpha == 0) continue;
@@ -7774,7 +7780,7 @@ public sealed partial class PdfPageRenderer
         {
             if (_targetInk && space.Components == 4 && space.Profile is not null
                 && space.ComponentRange is null && SameProfile(space.Profile, _targetProfile))
-                return Color.Cmyk(_values[0], _values[1], _values[2], _values[3]).Ink!.Value;
+                return Color.CmykInk(_values[0], _values[1], _values[2], _values[3]);
             if (_targetInk && space.Components == 3 && space.Profile is not null
                 && space.Palette is null && space.Converter is null && space.MultiConverter is null
                 && space.ComponentRange is null && !space.DoesNotPaint
@@ -7785,7 +7791,7 @@ public sealed partial class PdfPageRenderer
                 space.Profile.ToXyz(_values.AsSpan(0, 3), xyz);
                 Span<double> ink = stackalloc double[4];
                 _targetProfile.FromXyz(xyz, ink);
-                return Color.Cmyk(ink[0], ink[1], ink[2], ink[3]).Ink!.Value;
+                return Color.CmykInk(ink[0], ink[1], ink[2], ink[3]);
             }
             return Pack(space.Convert(_values));
         }
@@ -9858,13 +9864,15 @@ public sealed partial class PdfPageRenderer
             new(SrgbEncoding.Encode(red), SrgbEncoding.Encode(green), SrgbEncoding.Encode(blue));
         internal static Color Cmyk(double cyan, double magenta, double yellow, double black)
         {
-            uint ink = (uint)(Channel(cyan) | Channel(magenta) << 8
-                | Channel(yellow) << 16 | Channel(black) << 24);
+            uint ink = CmykInk(cyan, magenta, yellow, black);
             return InkColor(ink) with
             {
                 OverprintComponents = ZeroInkComponents(cyan, magenta, yellow, black)
             };
         }
+        /// <summary>The packed ink of <see cref="Cmyk"/>, without its display conversion.</summary>
+        internal static uint CmykInk(double cyan, double magenta, double yellow, double black) =>
+            (uint)(Channel(cyan) | Channel(magenta) << 8 | Channel(yellow) << 16 | Channel(black) << 24);
         internal static byte ZeroInkComponents(double cyan, double magenta, double yellow, double black) =>
             (byte)((cyan <= 0 ? 1 : 0) | (magenta <= 0 ? 2 : 0)
                 | (yellow <= 0 ? 4 : 0) | (black <= 0 ? 8 : 0));

@@ -373,7 +373,7 @@ public sealed partial class PdfPageRenderer
         {
             // A matching native destination consumes the ink directly; display conversion is unnecessary.
             if (InkProfile is null || destination?.Ink is not null
-                && SameProfile(InkProfile, destination.InkProfile)) return InkColor(ink);
+                && SameProfile(InkProfile, destination.InkProfile)) return InkColor(ink, Cmyk);
             ref ReadCache cache = ref t_read;
             int generation = ColorCacheGeneration;
             if (ReferenceEquals(cache.Surface, this) && cache.Generation == generation

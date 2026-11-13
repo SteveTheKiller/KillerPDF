@@ -230,9 +230,13 @@ internal sealed class PdfCmykDisplayTable
         public void Dispose() => Active.Value = previous;
     }
 
+    /// <summary>Counts the display conversions of the calling thread, so tests can bound them.</summary>
+    [ThreadStatic] internal static int ConversionCountOnThisThread;
+
     /// <summary>Converts packed C, M, Y, K bytes (low to high) to packed 0x00RRGGBB display color.</summary>
     internal uint ToRgb(uint ink)
     {
+        ConversionCountOnThisThread++;
         if (_byteInput is { } input)
         {
             Span<double> xyz = stackalloc double[3];

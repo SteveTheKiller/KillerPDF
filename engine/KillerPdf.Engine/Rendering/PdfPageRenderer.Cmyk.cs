@@ -45,7 +45,7 @@ public sealed partial class PdfPageRenderer
                     profile.FromXyz(xyz, destination);
                 }
                 else color.InkProfile.ConvertTo(profile, source, destination);
-                return Color.Cmyk(destination[0], destination[1], destination[2], destination[3]).Ink!.Value;
+                return Color.CmykInk(destination[0], destination[1], destination[2], destination[3]);
             }
         }
         if (profile is { CanConvertFromXyz: true })
@@ -55,7 +55,7 @@ public sealed partial class PdfPageRenderer
                 Span<double> destination = stackalloc double[4];
                 ReadOnlySpan<double> xyz = [connection.X, connection.Y, connection.Z];
                 profile.FromXyz(xyz, destination);
-                return Color.Cmyk(destination[0], destination[1], destination[2], destination[3]).Ink!.Value;
+                return Color.CmykInk(destination[0], destination[1], destination[2], destination[3]);
             }
             return DisplayToProfileInk(color, profile);
         }
@@ -82,9 +82,19 @@ public sealed partial class PdfPageRenderer
     private static Color InkColor(uint ink, PdfColorTransform? profile = null)
     {
         if (profile is not null) return ProfileInkToDisplay(ink, profile) with { Ink = ink, InkProfile = profile };
-        uint rgb = PdfDeviceCmyk.ToRgb(ink);
+        return InkColor(ink, PdfCmykDisplayTable.Current);
+    }
+
+    // Hot loops pass the table they captured inside the render's working CMYK scope.
+    private static Color InkColor(uint ink, PdfCmykDisplayTable table)
+    {
+        uint rgb = table.ToRgb(ink);
         return new Color((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb) { Ink = ink };
     }
+
+    // An untagged ink for an ink destination, which composites the ink alone and never reads
+    // the display channels, so they are left unconverted.
+    private static Color InkOnlyColor(uint ink) => new(0, 0, 0) { Ink = ink };
 
     private static Color InkLuminosityColor(uint ink)
     {

@@ -193,7 +193,7 @@ public sealed partial class PdfPageRenderer
         Color color = IccXyzToDisplay(xyz[0], xyz[1], xyz[2]) with { Connection = (xyz[0], xyz[1], xyz[2]) };
         return profile.Components == 4 ? color with
         {
-            Ink = Color.Cmyk(first, second, third, fourth).Ink,
+            Ink = Color.CmykInk(first, second, third, fourth),
             OverprintComponents = Color.ZeroInkComponents(first, second, third, fourth),
             InkProfile = profile
         } : color;
@@ -214,7 +214,7 @@ public sealed partial class PdfPageRenderer
         DisplayToXyz(color, xyz);
         Span<double> device = stackalloc double[4];
         profile.FromXyz(xyz, device);
-        return Color.Cmyk(device[0], device[1], device[2], device[3]).Ink!.Value;
+        return Color.CmykInk(device[0], device[1], device[2], device[3]);
     }
 
     private static Color ProfileRgbToDisplay(Color samples, PdfColorTransform profile) =>
