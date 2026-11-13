@@ -111,7 +111,7 @@ internal static class OtherPaneSaveSmoke
         var pages = (ListBox)owner.FindName("PageList");
         pages.SelectedIndex = 0;
         Pump();
-        rotate.Invoke(owner, [90]);
+        rotate.Invoke(owner, [90, null]);
         Pump();
     }
 }

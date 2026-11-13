@@ -42,7 +42,7 @@ internal static class ThumbnailBoxActionsSmoke
 
         void Command(bool extract)
         {
-            int ranges = 0, pickers = 0, confirmations = 0;
+            int ranges = 0, pickers = 0;
             var seen = new HashSet<Window>();
             Exception? failure = null;
             var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(20) };
@@ -54,7 +54,7 @@ internal static class ThumbnailBoxActionsSmoke
                     try
                     {
                         Button accept;
-                        if (dialog.GetType().Name == "DocumentValuesDialog")
+                        if (dialog.GetType().Name == (extract ? "DocumentValuesDialog" : "DeletePagesDialog"))
                         {
                             ranges++;
                             if (Descendants<TextBox>(dialog).Single().Text != string.Join(',', selected.Select(page => page + 1)))
@@ -67,11 +67,6 @@ internal static class ThumbnailBoxActionsSmoke
                             ((TextBox)dialog.FindName("FileNameBox")).Text = extracted;
                             accept = (Button)dialog.FindName("AcceptButton");
                         }
-                        else if (!extract && Descendants<Button>(dialog).FirstOrDefault(button => Equals(button.Content, owner.FindResource("Str_Btn_Yes"))) is Button yes)
-                        {
-                            confirmations++;
-                            accept = yes;
-                        }
                         else throw new InvalidOperationException("Unexpected dialog during box-selected page action.");
                         owner.Dispatcher.BeginInvoke(DispatcherPriority.Input, (Action)(() => accept.RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
                     }
@@ -82,8 +77,8 @@ internal static class ThumbnailBoxActionsSmoke
             try { Click(owner, extract ? "ExtractPagesBtn" : "DeletePagesBtn"); }
             finally { timer.Stop(); }
             if (failure is not null) throw new InvalidOperationException("Box-selected page-action dialog failed.", failure);
-            if (ranges != 1 || pickers != (extract ? 1 : 0) || confirmations != (extract ? 0 : 1))
-                throw new InvalidOperationException("The box-selected command did not use exactly one range prompt and expected confirmation or picker.");
+            if (ranges != 1 || pickers != (extract ? 1 : 0))
+                throw new InvalidOperationException("The box-selected command did not use exactly one range dialog and expected picker.");
         }
     }
 }

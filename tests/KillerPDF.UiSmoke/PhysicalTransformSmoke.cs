@@ -29,11 +29,21 @@ internal static class PhysicalTransformSmoke
             owner.GetType().GetMethod("OpenFromExternal", Members)!.Invoke(owner, [source]);
             owner.Opacity = 1; owner.Activate();
             Wait(() => Descendants<Canvas>(owner).Any(IsPageCanvas), "physical Transform source rendered");
-            bool applied = false;
+            bool applied = false, closeQueued = false;
+            Window? transformWindow = null;
+            Button? applyButton = null;
             var seen = new HashSet<Window>();
             var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(20) };
             timer.Tick += (_, _) =>
             {
+                // Apply keeps the Transform window open, so it is closed once Apply has settled and changed the document.
+                if (!closeQueued && transformWindow is { IsVisible: true } && applyButton is { IsEnabled: true } && Dirty(owner))
+                {
+                    closeQueued = true;
+                    Button close = Descendants<Button>(transformWindow).Single(button => button.IsCancel);
+                    owner.Dispatcher.BeginInvoke(DispatcherPriority.Input,
+                        (Action)(() => close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
+                }
                 foreach (Window dialog in Application.Current.Windows.Cast<Window>().Where(window => window != owner && window.IsVisible).ToArray())
                 {
                     if (!seen.Add(dialog)) continue;
@@ -45,6 +55,7 @@ internal static class PhysicalTransformSmoke
                         applied = true;
                     }
                     Button? accept = Descendants<Button>(dialog).FirstOrDefault(button => button.IsDefault);
+                    if (dialog.GetType().Name == "TransformWindow") { transformWindow = dialog; applyButton = accept; }
                     if (accept is not null) accept.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     else dialog.Close();
                 }

@@ -229,11 +229,13 @@ internal static class ScrollOverlaySmoke
         }
         var bitmap = BitmapSource.Create(100, 140, 96, 96, PixelFormats.Bgra32, null, pixels, 400);
         bitmap.Freeze();
-        var previews = Array.CreateInstance(previewType, 1);
-        previews.SetValue(Activator.CreateInstance(previewType, bitmap, 500d, 700d, 1, null), 0);
+        object firstPreview = Activator.CreateInstance(previewType, bitmap, 500d, 700d, 1, null)!;
+        object previewSource = typeof(ScrollOverlaySmoke).GetMethod(nameof(Constant), BindingFlags.Static | BindingFlags.NonPublic)!
+            .MakeGenericMethod(previewType).Invoke(null, [firstPreview])!;
+        Func<Window, IReadOnlyList<int>, Task<bool>> applyNothing = (_, _) => Task.FromResult(false);
         foreach (string mode in new[] { "ColorCorrection" })
         {
-            var dialog = (Window)Activator.CreateInstance(transformType, dialogOwner, previews,
+            var dialog = (Window)Activator.CreateInstance(transformType, dialogOwner, 1, new[] { 0 }, firstPreview, previewSource, applyNothing,
                 Enum.Parse(type.Assembly.GetType("KillerPDF.TransformWindowMode", true)!, mode))!;
             try
             {
@@ -440,6 +442,8 @@ internal static class ScrollOverlaySmoke
         File.WriteAllLines(Path.Combine(folder, "report.txt"), report);
         return failures == 0 ? 0 : 1;
     }
+
+    private static Func<int, T?> Constant<T>(T value) where T : class => _ => value;
 
     private static void Settle(FrameworkElement root, double width, double height)
     {

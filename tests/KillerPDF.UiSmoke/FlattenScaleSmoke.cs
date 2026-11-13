@@ -48,7 +48,7 @@ internal static class FlattenScaleSmoke
             dialogHandle = new WindowInteropHelper(dialog).Handle;
             SetForegroundWindow(dialogHandle);
             Stable();
-            CheckBox keep = Descendants(dialog).OfType<CheckBox>().Single(c => Equals(c.Content, app.TryFindResource("Str_Output_KeepResolution")));
+            CheckBox keep = Descendants(dialog).OfType<CheckBox>().Single(c => c.Content is TextBlock text && Equals(text.Text, app.TryFindResource("Str_Output_KeepResolution")));
             TextBox dpi = Descendants(dialog).OfType<TextBox>().Single();
             Panel body = keep.Parent as Panel ?? throw new InvalidOperationException("Keep Resolution parent absent.");
             TextBlock label = body.Children[body.Children.IndexOf(keep) + 1] as TextBlock

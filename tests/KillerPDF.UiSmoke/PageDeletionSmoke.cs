@@ -167,7 +167,8 @@ internal static class PageDeletionSmoke
                         (Action)(() => accept.RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
                     continue;
                 }
-                TextBox? range = dialog.GetType().Name == "DocumentValuesDialog" ? Descendants<TextBox>(dialog).SingleOrDefault() : null;
+                string dialogType = dialog.GetType().Name;
+                TextBox? range = dialogType is "DocumentValuesDialog" or "DeletePagesDialog" ? Descendants<TextBox>(dialog).SingleOrDefault() : null;
                 if (range is not null && seen.Add(dialog))
                 {
                     rangePrompts++;
@@ -183,13 +184,36 @@ internal static class PageDeletionSmoke
                     if (scenario == "range-switch")
                         owner.GetType().GetMethod("OpenFromExternal", BindingFlags.Public | BindingFlags.Instance)!
                             .Invoke(owner, [switchedSource]);
-                    Button apply = Descendants<Button>(dialog).Single(button => scenario == "range-cancel" ? button.IsCancel : button.IsDefault);
+                    // The one-step Delete dialog is also the confirmation, and it refuses an unusable range in place.
+                    bool refused = dialogType == "DeletePagesDialog" && (rejectedRange || scenario == "all");
+                    if (refused)
+                    {
+                        string problem = (string)owner.FindResource(scenario == "all" ? "Str_Dlg_KeepOnePage" : "Str_InvalidRange");
+                        if (Descendants<Button>(dialog).Single(button => button.IsDefault).IsEnabled
+                            || !Descendants<TextBlock>(dialog).Any(text => text.IsVisible && text.Text == problem))
+                            throw new InvalidOperationException("The Delete dialog did not refuse the range in place.");
+                        failures++;
+                        Console.WriteLine("CONTROL Delete refused in the dialog: " + problem);
+                    }
+                    else if (dialogType == "DeletePagesDialog" && scenario is not ("range-cancel" or "range-switch"))
+                    {
+                        confirmations++;
+                        if (denyWrite)
+                        {
+                            DirectorySecurity denied = sessionDirectory!.GetAccessControl(AccessControlSections.Access);
+                            denied.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!,
+                                FileSystemRights.CreateFiles, InheritanceFlags.None, PropagationFlags.None, AccessControlType.Deny));
+                            sessionDirectory!.SetAccessControl(denied);
+                        }
+                    }
+                    bool dismiss = refused || scenario is "range-cancel" or "cancel";
+                    Button apply = Descendants<Button>(dialog).Single(button => dismiss ? button.IsCancel : button.IsDefault);
                     owner.Dispatcher.BeginInvoke(DispatcherPriority.Input,
                         (Action)(() => apply.RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
                     continue;
                 }
                 Button? ok = Descendants<Button>(dialog).FirstOrDefault(button => Equals(button.Content, owner.FindResource("Str_Btn_OK")));
-                if ((denyWrite || scenario == "all" || rejectedRange) && ok is not null && seen.Add(dialog))
+                if (denyWrite && ok is not null && seen.Add(dialog))
                 {
                     failures++;
                     Console.WriteLine("CONTROL Delete failure: " + string.Join(" ", Descendants<TextBlock>(dialog).Select(text => text.Text)));
@@ -197,19 +221,6 @@ internal static class PageDeletionSmoke
                         (Action)(() => ok.RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
                     continue;
                 }
-                Button? yes = Descendants<Button>(dialog).FirstOrDefault(button => Equals(button.Content,
-                    owner.FindResource(scenario == "cancel" ? "Str_Btn_No" : "Str_Btn_Yes")));
-                if (yes is null || !seen.Add(dialog)) continue;
-                confirmations++;
-                if (denyWrite)
-                {
-                    DirectorySecurity denied = sessionDirectory!.GetAccessControl(AccessControlSections.Access);
-                    denied.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!,
-                        FileSystemRights.CreateFiles, InheritanceFlags.None, PropagationFlags.None, AccessControlType.Deny));
-                    sessionDirectory!.SetAccessControl(denied);
-                }
-                Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Input,
-                    (Action)(() => yes.RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
             }
         };
         timer.Start();

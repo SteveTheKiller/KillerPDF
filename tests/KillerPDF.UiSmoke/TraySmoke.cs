@@ -139,7 +139,7 @@ internal static class TraySmoke
             Wait(() => (page = pages.ItemContainerGenerator.ContainerFromIndex(0) as ListBoxItem) is not null);
             page!.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Right)
                 { RoutedEvent = Mouse.MouseUpEvent });
-            InvokeMenuItem(app, "Str_Ctx_RotateCWShort");
+            InvokeCardButton(app, "Str_Ctx_RotateCWShort");
             owner.Close(); Pump();
             if (owner.IsVisible) throw new InvalidOperationException("Closing dirty work did not hide the window.");
             ChooseExitPrompt(app, owner, folder, "Str_Btn_CancelDlg");
@@ -308,6 +308,18 @@ internal static class TraySmoke
             .SelectMany(Descendants<MenuItem>).FirstOrDefault(candidate => Equals(candidate.Header, label))) is not null);
         if (ItemsControl.ItemsControlFromItemContainer(item!) is ContextMenu menu) menu.IsOpen = false;
         item!.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+    }
+
+    // A card button is found by its accessible name; it closes the card itself, then acts.
+    private static void InvokeCardButton(Application app, string key)
+    {
+        string label = (string)app.FindResource(key);
+        Button? button = null;
+        Wait(() => (button = PresentationSource.CurrentSources.Cast<PresentationSource>()
+            .Select(source => source.RootVisual).OfType<DependencyObject>()
+            .SelectMany(Descendants<Button>).FirstOrDefault(candidate =>
+                System.Windows.Automation.AutomationProperties.GetName(candidate) == label)) is not null);
+        button!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
     }
 
     private static void ChooseExitPrompt(Application app, Window owner, string folder, string choice)

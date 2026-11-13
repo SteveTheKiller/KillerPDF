@@ -669,8 +669,9 @@ internal static partial class Program
             { RoutedEvent = Mouse.MouseUpEvent });
         Pump(80);
         string label = (string)Owner.FindResource("Str_Ctx_RotateCWShort");
-        MenuItem clockwise = Menus().SelectMany(m => Items(m.Items)).First(m => Header(m) == label);
-        clockwise.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        Button clockwise = Menus().SelectMany(Descendants<Button>)
+            .First(b => System.Windows.Automation.AutomationProperties.GetName(b) == label);
+        Click(clockwise);
         foreach (ContextMenu menu in Menus()) menu.IsOpen = false;
         Pump(250);
     }

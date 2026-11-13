@@ -484,7 +484,7 @@ internal static class DocumentStateSmoke
                 {
                     string type = dialog.GetType().Name;
                     if (type == "DocumentCommandDialog")
-                        Descendants<Button>(dialog).Single(button => Equals(button.Content, owner.FindResource(layoutKey ?? "Str_Production_NUp")))
+                        Descendants<Button>(dialog).Single(button => Equals(button.Tag, owner.FindResource(layoutKey ?? "Str_Production_NUp")))
                             .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     else if (type is "ProductionLayoutDialog" or "ProductionPreviewDialog" or "DataMergeDialog" or "ImportReviewDialog")
                     {
@@ -564,22 +564,14 @@ internal static class DocumentStateSmoke
         {
             foreach (Window dialog in Application.Current.Windows.Cast<Window>().Where(window => window != owner && window.IsVisible).ToArray())
             {
-                if (delete && dialog.GetType().Name == "DocumentValuesDialog" && seen.Add(dialog))
+                if (delete && dialog.GetType().Name == "DeletePagesDialog" && seen.Add(dialog))
                 {
                     if (Descendants<TextBox>(dialog).Single().Text != "1")
                         throw new InvalidOperationException("Annotated Delete did not prefill the current page.");
+                    confirmations++;
                     Button apply = Descendants<Button>(dialog).Single(button => button.IsDefault);
                     owner.Dispatcher.BeginInvoke(DispatcherPriority.Input,
                         (Action)(() => apply.RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
-                    continue;
-                }
-                Button? yes = delete ? Descendants<Button>(dialog).FirstOrDefault(button =>
-                    Equals(button.Content, Application.Current.FindResource("Str_Btn_Yes"))) : null;
-                if (yes is not null && seen.Add(dialog))
-                {
-                    confirmations++;
-                    owner.Dispatcher.BeginInvoke(DispatcherPriority.Input,
-                        (Action)(() => yes.RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
                     continue;
                 }
                 Button? ok = Descendants<Button>(dialog).FirstOrDefault(button =>
@@ -978,9 +970,21 @@ internal static class DocumentStateSmoke
             catch (UnauthorizedAccessException) { blocked = true; }
             if (!blocked) throw new InvalidOperationException("Synthetic temporary-write denial was not effective.");
         }
+        Window? transformWindow = null;
+        Button? applyButton = null;
+        bool closeQueued = false;
         var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(20) };
         timer.Tick += (_, _) =>
         {
+            // Apply keeps the Transform window open, so it is closed once Apply has settled and the expected outcome holds.
+            if (!closeQueued && transformWindow is { IsVisible: true } && applyButton is { IsEnabled: true } && !cancel
+                && (success ? !visible.IsVisible : errors == 1))
+            {
+                closeQueued = true;
+                Button close = Descendants<Button>(transformWindow).Single(button => button.IsCancel);
+                owner.Dispatcher.BeginInvoke(DispatcherPriority.Input,
+                    (Action)(() => close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
+            }
             foreach (Window dialog in Application.Current.Windows.Cast<Window>().Where(window => window != owner && window.IsVisible).ToArray())
             {
                 if (!seen.Add(dialog)) continue;
@@ -991,6 +995,8 @@ internal static class DocumentStateSmoke
                     if (lateFailure) DenyTemporaryWrites();
                     Button turn = Descendants<Button>(dialog).Single(button => Equals(button.Content, "90° ↻"));
                     Button apply = Descendants<Button>(dialog).Single(button => cancel ? button.IsCancel : button.IsDefault);
+                    transformWindow = dialog;
+                    applyButton = apply;
                     owner.Dispatcher.BeginInvoke(DispatcherPriority.Input, (Action)(() =>
                     {
                         turn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -1099,8 +1105,9 @@ internal static class DocumentStateSmoke
         var roots = PresentationSource.CurrentSources.Cast<PresentationSource>().Select(source => source.RootVisual).OfType<DependencyObject>();
         ContextMenu[] menus = roots.OfType<ContextMenu>().Concat(roots.SelectMany(Descendants<ContextMenu>)).Distinct().Where(menu => menu.IsOpen).ToArray();
         string rotationLabel = (string)owner.FindResource("Str_Ctx_RotateCWShort");
-        MenuItem rotate = menus.SelectMany(menu => menu.Items.OfType<MenuItem>()).Single(item => Equals(item.Header, rotationLabel));
-        try { rotate.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); }
+        Button rotate = menus.SelectMany(Descendants<Button>)
+            .Single(button => System.Windows.Automation.AutomationProperties.GetName(button) == rotationLabel);
+        try { rotate.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
         finally { foreach (ContextMenu menu in menus) menu.IsOpen = false; }
     }
 

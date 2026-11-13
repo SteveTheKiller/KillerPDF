@@ -134,11 +134,12 @@ internal static class SessionEndingSmoke
             .Select(item => item.RootVisual).OfType<DependencyObject>().SelectMany(Children)
             .OfType<ContextMenu>().SingleOrDefault(item => item.IsOpen)
             ?? throw new InvalidOperationException("The thumbnail right-click did not expose an open context menu.");
-        MenuItem rotate = menu.Items.OfType<MenuItem>().SingleOrDefault(item =>
-            Equals(item.Header, Application.Current.FindResource("Str_Ctx_RotateCWShort")))
-            ?? throw new InvalidOperationException("Rotate menu action is missing. Actual="
-                + string.Join("|", menu.Items.OfType<MenuItem>().Select(item => item.Header)));
-        rotate.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        string rotateName = (string)Application.Current.FindResource("Str_Ctx_RotateCWShort");
+        Button rotate = Children(menu).OfType<Button>().SingleOrDefault(button =>
+            System.Windows.Automation.AutomationProperties.GetName(button) == rotateName)
+            ?? throw new InvalidOperationException("Rotate card button is missing. Actual="
+                + string.Join("|", Children(menu).OfType<Button>().Select(button => System.Windows.Automation.AutomationProperties.GetName(button))));
+        rotate.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         menu.IsOpen = false;
         Pump();
     }
