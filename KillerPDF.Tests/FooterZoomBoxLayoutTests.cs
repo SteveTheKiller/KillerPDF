@@ -21,7 +21,7 @@ public sealed class FooterZoomBoxLayoutTests
         Assert.True(style >= 0, "FooterZoomCombo was not found.");
         Match box = Regex.Match(window[style..], @"<TextBox x:Name=""PART_EditableTextBox""[^>]*>", RegexOptions.Singleline);
         Assert.True(box.Success, "The zoom box template has no PART_EditableTextBox.");
-        Assert.Contains("Height=\"Auto\"", box.Value);
+        Assert.Contains("Height=\"18\"", box.Value);
         Assert.Contains("MinHeight=\"0\"", box.Value);
         Assert.Contains("Padding=\"0\"", box.Value);
     }

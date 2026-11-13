@@ -1228,18 +1228,24 @@
                                                       ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                                       Margin="6,0,0,0" VerticalAlignment="Center"
                                                       HorizontalAlignment="Left" IsHitTestVisible="False"/>
-                                    <!-- Height, MinHeight and Padding are stated because the kit's implicit TextBox
-                                         style sets Height 28 and Padding 6,3. This box is Hidden, not Collapsed, so it
-                                         still takes layout space: at 28 it outgrew the 20-tall combo and pushed the
-                                         zoom text below the visible area. -->
+                                    <!-- Explicit height keeps the ordinary textbox template's automatic
+                                         height floor from exceeding the compact footer content area. -->
                                     <TextBox x:Name="PART_EditableTextBox" Grid.Column="0" Margin="5,0,0,0"
                                              AutomationProperties.Name="{DynamicResource Str_TT_ZoomLevel}"
                                              Background="Transparent" BorderThickness="0"
-                                             Height="Auto" MinHeight="0" Padding="0"
+                                             Height="18" MinHeight="0" Padding="0"
                                              Foreground="{DynamicResource TextBrush}" FontFamily="{DynamicResource UiFont}"
                                              FontSize="10" VerticalAlignment="Center"
                                              IsReadOnly="{TemplateBinding IsReadOnly}" Visibility="Hidden"
-                                             Focusable="True" SelectionBrush="Transparent"/>
+                                             Focusable="True" SelectionBrush="Transparent">
+                                        <TextBox.Template>
+                                            <ControlTemplate TargetType="TextBox">
+                                                <Grid x:Name="InputRoot">
+                                                    <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Padding="0"/>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </TextBox.Template>
+                                    </TextBox>
                                     <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
                                                FontSize="7" Foreground="{DynamicResource MutedTextBrush}"
                                                VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -1388,7 +1394,7 @@
                                 Margin="-8,0,2,0" Padding="{TemplateBinding Padding}">
                             <DockPanel LastChildFill="True" Background="Transparent">
                                 <!-- Centered on the label's capitals for whatever font the theme uses (Controls/CapCenterMargin.cs). A fixed nudge only fits one face. -->
-                                <Grid Width="16" Height="16" VerticalAlignment="Center" DockPanel.Dock="Left"><Grid.Margin><MultiBinding Converter="{x:Static kl:CapCenterMargin.Instance}" ConverterParameter="0,0,8,0"><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontFamily"/><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontSize"/></MultiBinding></Grid.Margin>
+                                <Grid Width="16" Height="16" VerticalAlignment="Top" DockPanel.Dock="Left"><Grid.Margin><MultiBinding Converter="{x:Static kl:CapCenterMargin.Instance}" ConverterParameter="0,0,8,0"><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontFamily"/><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontSize"/></MultiBinding></Grid.Margin>
                                     <Border x:Name="box" Width="14" Height="14" CornerRadius="{DynamicResource ControlCornerRadius}"
                                             BorderBrush="{DynamicResource DimTextBrush}" BorderThickness="1"
                                             Background="{DynamicResource RadioWellBrush}"/>

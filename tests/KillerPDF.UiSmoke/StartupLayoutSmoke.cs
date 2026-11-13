@@ -90,6 +90,24 @@ internal static class StartupLayoutSmoke
             Point first = startup.TransformToAncestor(about).Transform(new Point(0, 0));
             Point action = clear.TransformToAncestor(about).Transform(new Point(0, clear.ActualHeight / 2));
             CaptureOwnedWindow(owner, Path.Combine(folder, "about-" + name + ".png"));
+            var tray = (CheckBox)owner.FindName("AboutCloseToTray");
+            var recent = (CheckBox)owner.FindName("NoRecentCheck");
+            double SquareY(CheckBox control)
+            {
+                var square = (FrameworkElement)control.Template.FindName("box", control);
+                return square.TransformToAncestor(about).Transform(new Point()).Y;
+            }
+            if (Math.Abs(SquareY(tray) - SquareY(recent)) > 1)
+                throw new InvalidOperationException($"About checkbox squares differ in {name}.");
+            var zoom = (ComboBox)owner.FindName("ZoomBox");
+            zoom.ApplyTemplate();
+            var editor = (TextBox)zoom.Template.FindName("PART_EditableTextBox", zoom);
+            editor.ApplyTemplate();
+            var input = (FrameworkElement)editor.Template.FindName("InputRoot", editor);
+            if (input.ActualHeight > editor.ActualHeight + 0.5)
+                throw new InvalidOperationException($"Zoom text exceeds editor in {name}: {input.ActualHeight}/{editor.ActualHeight}.");
+            File.AppendAllText(Path.Combine(folder, "alignment.txt"),
+                $"{name}: squares={SquareY(tray):F2}/{SquareY(recent):F2}, zoom={zoom.ActualHeight}, editor={editor.ActualHeight}, root={input.ActualHeight}\n");
             if (Math.Abs(check.X - first.X) > 2 || action.X <= check.X || Math.Abs(check.Y - action.Y) > 2)
                 throw new InvalidOperationException($"Unbalanced About columns in {name}: startup={first}, links={check}, clear={action}.");
         }
