@@ -189,28 +189,35 @@ internal sealed class PdfIccLut : PdfIccTable
         double[] grid = input.Grid;
         ref double cell = ref grid[baseOffset / 3 * 4];
         int[] corners = input.CornerOffsets;
-        Vector256<double> sum = Vector256<double>.Zero;
-        sum = Add(sum, d0 * low3, ref cell, corners[0]);
-        sum = Add(sum, d1 * low3, ref cell, corners[1]);
-        sum = Add(sum, d2 * low3, ref cell, corners[2]);
-        sum = Add(sum, d3 * low3, ref cell, corners[3]);
-        sum = Add(sum, d4 * low3, ref cell, corners[4]);
-        sum = Add(sum, d5 * low3, ref cell, corners[5]);
-        sum = Add(sum, d6 * low3, ref cell, corners[6]);
-        sum = Add(sum, d7 * low3, ref cell, corners[7]);
-        sum = Add(sum, d0 * high3, ref cell, corners[8]);
-        sum = Add(sum, d1 * high3, ref cell, corners[9]);
-        sum = Add(sum, d2 * high3, ref cell, corners[10]);
-        sum = Add(sum, d3 * high3, ref cell, corners[11]);
-        sum = Add(sum, d4 * high3, ref cell, corners[12]);
-        sum = Add(sum, d5 * high3, ref cell, corners[13]);
-        sum = Add(sum, d6 * high3, ref cell, corners[14]);
-        sum = Add(sum, d7 * high3, ref cell, corners[15]);
-        double x = sum.GetElement(0), y = sum.GetElement(1), z = sum.GetElement(2);
+        // X and Y share one 128-bit vector and Z is scalar. 128-bit vectors are in the
+        // ReadyToRun baseline, so this method ships precompiled; a 256-bit vector would
+        // leave it to the JIT, starting unoptimized, in every process.
+        Vector128<double> sum = Vector128<double>.Zero;
+        double z = 0;
+        Add(ref sum, ref z, d0 * low3, ref cell, corners[0]);
+        Add(ref sum, ref z, d1 * low3, ref cell, corners[1]);
+        Add(ref sum, ref z, d2 * low3, ref cell, corners[2]);
+        Add(ref sum, ref z, d3 * low3, ref cell, corners[3]);
+        Add(ref sum, ref z, d4 * low3, ref cell, corners[4]);
+        Add(ref sum, ref z, d5 * low3, ref cell, corners[5]);
+        Add(ref sum, ref z, d6 * low3, ref cell, corners[6]);
+        Add(ref sum, ref z, d7 * low3, ref cell, corners[7]);
+        Add(ref sum, ref z, d0 * high3, ref cell, corners[8]);
+        Add(ref sum, ref z, d1 * high3, ref cell, corners[9]);
+        Add(ref sum, ref z, d2 * high3, ref cell, corners[10]);
+        Add(ref sum, ref z, d3 * high3, ref cell, corners[11]);
+        Add(ref sum, ref z, d4 * high3, ref cell, corners[12]);
+        Add(ref sum, ref z, d5 * high3, ref cell, corners[13]);
+        Add(ref sum, ref z, d6 * high3, ref cell, corners[14]);
+        Add(ref sum, ref z, d7 * high3, ref cell, corners[15]);
+        double x = sum.GetElement(0), y = sum.GetElement(1);
 
-        // Multiply, then add: never fused, so each lane rounds as the scalar Transform does.
-        static Vector256<double> Add(Vector256<double> sum, double weight, ref double cell, int offset) =>
-            sum + Vector256.Create(weight) * Vector256.LoadUnsafe(ref cell, (nuint)offset);
+        // Multiply, then add: never fused, so each channel rounds as the scalar Transform does.
+        static void Add(ref Vector128<double> sum, ref double z, double weight, ref double cell, int offset)
+        {
+            sum += Vector128.Create(weight) * Vector128.LoadUnsafe(ref cell, (nuint)offset);
+            z += weight * System.Runtime.CompilerServices.Unsafe.Add(ref cell, offset + 2);
+        }
         double[] curves = input.OutputCurves;
         output[0] = Curve(curves, 0, _outputEntries, Math.Clamp(x, 0, 1));
         output[1] = Curve(curves, _outputEntries, _outputEntries, Math.Clamp(y, 0, 1));
