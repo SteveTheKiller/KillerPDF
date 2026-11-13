@@ -111,17 +111,14 @@ namespace KillerPDF.Features
         // the reader looks at it (the current hit's page, and each page on screen), then the highlights repaint.
         private PdfCapturedReadRevision? _locator;
         private readonly HashSet<int> _unlocatedPages = [];
-        private readonly HashSet<int> _locating = [];
-        private int _locateGeneration;
+        private readonly PageAreaReads _reads = new();
 
         // Forgets the pages waiting for their areas; a reading still running for them is dropped when it lands.
         private void ForgetLocation()
         {
-            CancelLocation();
+            _reads.Cancel();
             _locator = null;
             _unlocatedPages.Clear();
-            _locating.Clear();
-            _locateGeneration++;
         }
 
         private void TrackLocation(PdfCapturedReadRevision? locator)
@@ -134,26 +131,17 @@ namespace KillerPDF.Features
         }
 
         /// <summary>The token the pages being located read under. Tests read it to see a new search stop that work.</summary>
-        internal CancellationToken LocationToken => _locateCancellation?.Token ?? default;
-
         // One source for the pages being located: a new search, or results that are replaced or cleared, cancel it.
-        private CancellationTokenSource? _locateCancellation;
-
-        private void CancelLocation()
-        {
-            _locateCancellation?.Cancel();
-            _locateCancellation?.Dispose();
-            _locateCancellation = null;
-        }
+        internal CancellationToken LocationToken => _reads.Token;
 
         private void Locate(int page)
         {
             // While a newer search runs these results are about to be replaced; reading their pages again would only
             // slow it down. If that search is dropped instead, showing the page again reads it then.
             if (_runner.IsRunning) return;
-            if (_locator is not { } revision || !_unlocatedPages.Contains(page) || !_locating.Add(page)) return;
-            _locateCancellation ??= new CancellationTokenSource();
-            _ = LocateAsync(revision, page, [.. HitsOn(page)], _locateGeneration, _locateCancellation.Token);
+            if (_locator is not { } revision || !_unlocatedPages.Contains(page)
+                || !_reads.TryStart(page, out int generation, out CancellationToken token)) return;
+            _ = LocateAsync(revision, page, [.. HitsOn(page)], generation, token);
         }
 
         private async Task LocateAsync(PdfCapturedReadRevision revision, int page, SearchHit[] hits, int generation,
@@ -164,13 +152,12 @@ namespace KillerPDF.Features
             // A new search stopped the reading. The page stays unread, so showing it again reads it then.
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                if (generation == _locateGeneration) _locating.Remove(page);
+                _reads.Finish(page, generation);
                 return;
             }
             // A closed book or a page that cannot be laid out keeps its hits counted, without highlights.
             catch (Exception) { }
-            if (generation != _locateGeneration) return;
-            _locating.Remove(page);
+            if (!_reads.Finish(page, generation)) return;
             _unlocatedPages.Remove(page);
             located ??= [.. hits.Select(hit => hit with { Located = true, HasGeometry = false })];
             var byPosition = located.ToDictionary(hit => (hit.Start, hit.Length));
@@ -323,7 +310,7 @@ namespace KillerPDF.Features
                 // edit rewrites it and the worker searches one version from start to end.
                 FileRevision? revision = Revision(file);
                 // The results on show are about to be replaced, so reading their pages' highlight areas stops.
-                CancelLocation();
+                _reads.Cancel();
                 CurrentSearchSnapshot source = _host.CaptureSearchSnapshot();
                 long editRevision = _host.SearchRevision;
                 _searchedFile = file;
