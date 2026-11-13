@@ -118,10 +118,12 @@ public static partial class PdfCommentReader
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         if (!pages[pageIndex].Dictionary.TryGetValue(Name("Annots"), out PdfObject? value))
             return 0;
-        return Resolve(document, value) is PdfArray annotations
-            ? annotations.Count
-            : throw new InvalidOperationException(
-                $"Page {pageIndex + 1} /Annots value is not an array.");
+        return Resolve(document, value) switch
+        {
+            PdfArray annotations => annotations.Count,
+            PdfNull => 0,
+            _ => throw new InvalidOperationException($"Page {pageIndex + 1} /Annots value is not an array."),
+        };
     }
 
     /// <summary>
@@ -169,10 +171,12 @@ public static partial class PdfCommentReader
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++)
         {
             if (!pages[pageIndex].Dictionary.TryGetValue(Name("Annots"), out PdfObject? value)) continue;
-            counts[pageIndex] = Resolve(document, value) is PdfArray annotations
-                ? annotations.Count
-                : throw new InvalidOperationException(
-                    $"Page {pageIndex + 1} /Annots value is not an array.");
+            counts[pageIndex] = Resolve(document, value) switch
+            {
+                PdfArray annotations => annotations.Count,
+                PdfNull => 0,
+                _ => throw new InvalidOperationException($"Page {pageIndex + 1} /Annots value is not an array."),
+            };
         }
         return Array.AsReadOnly(counts);
     }

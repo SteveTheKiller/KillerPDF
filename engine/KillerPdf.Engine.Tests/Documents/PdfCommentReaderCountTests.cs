@@ -46,6 +46,22 @@ public sealed class PdfCommentReaderCountTests
         Assert.Equal([1], unreadable);
     }
 
+    // A null /Annots is a legal empty list, so the strict counts read it as zero too, while a number is still refused.
+    [Fact]
+    public void TheStrictCountsReadANullAnnotationListAsEmpty()
+    {
+        PdfDocument document = PdfDocument.Open(Build(
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots null >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots [null] >>"
+        ]));
+
+        Assert.Equal([0, 1], PdfCommentReader.ReadPageAnnotationCounts(document));
+        Assert.Equal(0, PdfCommentReader.ReadPageAnnotationCount(document, 0));
+    }
+
     // The count above says a null annotation list holds nothing, so a save adds the page's new annotations natively.
     // The annotation editor must then accept that page and give it a list of its own.
     [Fact]
