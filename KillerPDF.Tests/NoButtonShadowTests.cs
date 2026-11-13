@@ -71,6 +71,9 @@ public sealed class NoButtonShadowTests
     [Fact]
     public void ButtonsBuiltInCodeCastNoShadow()
     {
+        string swatches = ShellSource.Read("Controls", "ThemePicker.cs");
+        Assert.DoesNotContain("dot.Effect", swatches, StringComparison.Ordinal);
+
         string signing = ShellSource.Read("Shell", "Signing.cs");
         Assert.DoesNotContain("closeText.Effect", signing, StringComparison.Ordinal);
 

@@ -67,7 +67,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Hiding shortcut hints removes the hints the app adds to tooltips in every language, including translated keys such as (Strg+D).
 - Menu rows show the right shortcut: the Attachments Save row no longer shows Ctrl+S, which saves the PDF, and Compare PDFs shows its own. The Bold, Italic and Underline buttons show their shortcuts, and the status line names Ctrl+Enter, not Enter, as the key that saves a text box.
 - Submenus and the toolbar overflow menu keep their texture on the highlighted row.
-- Toolbar, rail, theme, close and comparison bar buttons no longer cast a shadow behind their icons or captions, and neither does the unsaved Save button.
+- Toolbar, rail, theme, accent swatch, close and comparison bar buttons no longer cast a shadow behind their icons or captions, and neither does the unsaved Save button.
 - About places link confirmation in the left column, aligns Clear all Data on the same bottom row and keeps its checkboxes aligned when labels wrap, and the footer zoom percentage fits its control.
 - Image watermarks are applied at the size the preview shows: the image's own size from its resolution, with Scale as a percent of that. (#478)
 - The Measure tool's options bar follows a language or theme change right away instead of keeping the old ones until the tool is chosen again.

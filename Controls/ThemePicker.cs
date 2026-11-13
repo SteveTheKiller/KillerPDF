@@ -332,10 +332,6 @@ namespace KillerPDF.Controls
                     scale.BeginAnimation(ScaleTransform.ScaleYProperty,
                         new DoubleAnimation(pop ? 1.03 : 1, TimeSpan.FromMilliseconds(100)));
                 }
-                dot.Effect = pop
-                    ? new System.Windows.Media.Effects.DropShadowEffect
-                    { Color = Colors.Black, BlurRadius = 4, ShadowDepth = 1, Opacity = 0.25 }
-                    : null;
             }
         }
 
