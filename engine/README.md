@@ -1,6 +1,6 @@
 # The KillerPDF.Engine
 
-The KillerPDF.Engine is an independent, UI-free .NET library for reading, rendering, searching, validating, authoring, editing, redacting, signing, encrypting, and writing PDF files. It gives KillerPDF a modern PDF 2.0, PDF/A, and PDF/UA foundation while exposing a public API designed for use in other applications.
+The KillerPDF.Engine is an independent, UI-free .NET library for reading, rendering, searching, validating, authoring, editing, redacting, signing, encrypting, and writing PDF files. It also opens native EPUB and DjVu documents, renders them, and converts them to PDF; selects and extracts pictures; and renders with ICC color management and printer proofing. The EPUB and DjVu support is in development, and HDR output and physical color accuracy are still in progress. The engine gives KillerPDF a modern PDF 2.0, PDF/A, and PDF/UA foundation while exposing a public API designed for use in other applications.
 
 “The KillerPDF.Engine” is the formal display name. Ordinary prose may use “KillerPDF.Engine” or “the engine” when it reads more naturally. The assembly, package identifier, and C# namespaces use `KillerPdf.Engine`.
 
@@ -91,8 +91,9 @@ Nested, inline, masked and optional-content images, recovery documents and compl
 page state remain explicitly unsupported.
 
 `PdfImagePlacementExtractor.Extract` creates an immutable `PdfImageAsset` from a
-complete simple occurrence. This initial subset retains eight-bit DeviceRGB samples
-without converting them, including raw or single-filter Flate-encoded images.
+complete simple occurrence. This subset retains eight-bit DeviceRGB samples
+without converting them, including raw, single-filter Flate-encoded and supported
+baseline DCTDecode (JPEG) images. JPEG assets require direct DeviceRGB and no soft mask.
 Flate samples are validated within the decoded-size budget and against their zlib
 checksum while retaining the original encoded bytes. `ToPdfBytes` returns a separate
 single-image PDF whose page size matches the original pixel dimensions, containing
@@ -110,9 +111,55 @@ Flate masks validate decoded length and their zlib checksum. Supported RGB ICC
 profiles and captured source intent remain intact with these masks. Mask Decode,
 Matte, predictors, other filters and nested masks remain refused. Encoded and decoded image
 plus mask data share the 5 MiB limit; serialized assets have the same limit.
-Other color spaces, default color substitutions, other filters, predictors,
+Other color spaces, default color substitutions, filters other than Flate and supported DCT, predictors,
 other masks and uncaptured context remain refused.
-These backend APIs do not yet provide application image-selection or Copy/Cut tools.
+KillerPDF builds its picture Copy, Cut, Move, Resize and Delete tools on these APIs.
+
+### Image selection and extraction
+
+`PdfRasterSelection` (namespace `KillerPdf.Engine.Editing`) is an immutable binary pixel
+selection with a top-left origin. `Width` and `Height` give its size and `Coverage` exposes
+tightly packed bytes that are each zero or 255; there is no feathering. `SelectRectangle(width,
+height, left, top, selectionWidth, selectionHeight)` selects a positive-size rectangle that lies
+wholly inside the given dimensions. `SelectConnected(frame, seedX, seedY, tolerance)` selects the
+four-connected region of positive-alpha pixels whose RGB values are each within `tolerance` of the
+seed pixel's, compared inclusively in the frame's own channel encoding. Alpha only decides
+eligibility, so a zero-alpha seed selects nothing. `Add` and `Subtract` return a new union or
+difference with a selection of the same dimensions. Every operation takes an optional
+`CancellationToken` and a `maximumWorkingBytes` value that cannot exceed 256 MiB, counts its
+retained buffers and output copy against it, and refuses an oversized selection with an
+`ArgumentException`. Inputs and source frames are never changed.
+
+`PdfRasterExtraction.Extract(frame, selection, featherRadius)` copies the selected pixels of a
+`PdfRenderedFrame` into a `PdfRasterExtractionResult`. Its `Image` is a detached transparent
+`PdfImageAsset`, with unselected pixels fully transparent, and `Left`, `Top`, `Width` and
+`Height` give the rectangle of the source frame it covers. The selection must have the frame's
+dimensions and at least one selected pixel. Pixels come from the frame's own sRGB output, never
+from a monitor- or proof-converted view, and the page's own transparency still limits the copy.
+A `featherRadius` of zero keeps hard edges; larger values, up to `MaximumFeatherRadius` (32),
+soften the mask edge with a box average and grow the covered rectangle by that radius. The
+result is limited like an extracted page picture: `MaximumPixels` (1,310,720) pixels and five
+MiB of data, and a larger area throws `NotSupportedException`.
+`AllowsExtraction(document)` reports whether the document's content-copy rule permits
+copying page pixels, the same rule that applies to extracting an original picture.
+
+For a Cut, `SampleFillColor(frame, selection)` returns the rounded mean sRGB color of the opaque
+unselected pixels exactly `ringDistance` four-connected steps from the selection (default
+`DefaultFillRingDistance`, 3), the nearest closer ring that has any when that one has none, or
+white when no ring does. `CreateFill(selection, extracted, red, green, blue)` returns a solid
+image of that color shaped like the extracted selection, for covering the cut area.
+
+```csharp
+using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Rendering;
+
+PdfReadSnapshot snapshot = PdfReadSnapshot.OpenDjvu(File.ReadAllBytes("scan.djvu"));
+PdfRenderedFrame frame = snapshot.RenderPage(0);
+PdfRasterSelection selection = PdfRasterSelection.SelectConnected(frame, 120, 80, 0.05f);
+PdfRasterExtractionResult result = PdfRasterExtraction.Extract(frame, selection, featherRadius: 2);
+byte[] pictureAsPdf = result.Image.ToPdfBytes();
+```
 
 ### Author complete documents
 
@@ -159,15 +206,15 @@ KillerPDF uses these typed content APIs for annotations, stamps and print/export
 `PdfEditablePageOverlayEditor.Append` keeps opaque editing data with a dedicated page-content overlay, preserving its ordinary rendering and searchable text. `Read` returns intact tail batches in content order; `Remove` revalidates them and removes only their drawing, isolation wrappers and owned tagged descriptions. Current foreign form values, markup and other page data remain intact. Changed resources, malformed ownership data, a foreign content tail or a changed page frame prevent extraction. Editing payloads are limited to 8 MiB per batch and resource fingerprints to 32 MiB, 16,384 visits and depth 64. The optional `expectedRotation` supports saves that apply final page rotation later. Authentication, copying/modification permissions and certification restrictions still apply.
 
 `PdfContentStreamBuilder.DrawImage(PdfImageAsset, x, y, width, height)` reuses a
-detached raw or Flate-encoded eight-bit DeviceRGB or supported RGB ICC image on pages, inside forms,
+detached raw, Flate-encoded or supported JPEG eight-bit DeviceRGB image, or a supported RGB ICC image, on pages, inside forms,
 colored patterns and caller-authored stamp appearances. Resources are shared by
 asset identity, retain encoded bytes and interpolation, and exclude the source
-page's unrelated content. Negative dimensions flip the image. Raw assets require
+page's unrelated content. Negative dimensions flip the image. Raw and JPEG assets require
 PDF 1.0; Flate assets require PDF 1.2, supported ICC assets require PDF 1.3,
 and soft-mask assets require PDF 1.4, including inside forms.
 Uncolored patterns reject these colored
-assets, including through nested forms and patterns. This bounded authoring slice
-does not implement application Copy/Cut or additional source color spaces.
+assets, including through nested forms and patterns. Additional source color spaces
+remain unsupported.
 
 ### Edit document structure
 
@@ -224,8 +271,11 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 - Preflight, accessibility, and print-production reports with previewed corrections
 - Imposition, headers, footers, Bates numbering, calibrated measurement, layers, attachments, bookmarks and links, macros, and structural comparison
 - Structural diagnostics, bounded parsing, implementation limits, round-trip validation, and fail-closed import validation
+- Native EPUB and DjVu reading, rendering, text, outlines, and explicit conversion to PDF (in development)
+- Float32 rendering, monitor-profile output, a bundled working CMYK profile, and printer proofing with all four intents, black-point compensation, paper and black simulation, and gamut warnings; HDR output and physical color accuracy are still in progress
+- Placed-image move, resize, and delete, detached image assets including supported JPEG, and raster selection and extraction (`PdfRasterSelection`, `PdfRasterExtraction`)
 
-## Native DjVu text (1.9.3 development)
+## Native DjVu text (in development)
 
 `DjvuDocument.ReadText` preserves page text and embedded separators without changing
 the original. Optional zone labels remain in the documented 1..7 range, including
@@ -241,11 +291,11 @@ IW44's image-specific operation, including across compressed block boundaries.
 UTF16 source ranges and unrotated bottom-left pixel rectangles. Encoded separators
 remain part of their original ranges. UTF8 endpoints inside a scalar are rejected.
 Mapping uses at most 16,777,220 bytes of integer elements plus bounded zone records;
-it is omitted when there are no zones. Application selection/search integration,
-broader BZZ coverage and mixed visual layers still need acceptance.
+it is omitted when there are no zones. KillerPDF uses these zones for search, selection
+and copy; broader BZZ coverage and mixed visual layers are still in progress.
 Text extraction does not prove visual fidelity.
 
-## Native text snapshots (1.9.3 development)
+## Native text snapshots
 
 `PdfReadSnapshot.ReadTextPage` exposes original page text and immutable regions with
 page-local UTF16 ranges and unrotated bottom-left bounds in PDF points. EPUB uses its
@@ -256,17 +306,18 @@ remain in the source text but do not become selectable page-sized rectangles.
 Selection filtering is linear in text plus zones, with at most another 16,777,220
 bytes of integer elements plus bounded region storage. The Windows shell's captured
 read lease retains the immutable native snapshot and links text reads to caller and
-document closure cancellation without reopening the source path. Application search,
-selection and accessibility integration still require implementation and runtime acceptance.
+document closure cancellation without reopening the source path. KillerPDF uses these
+regions for search, selection, copy and initial accessibility; full acceptance remains in progress.
 
-## Native EPUB layout (1.9.3 development)
+## Native EPUB layout (in development)
 
 Initial unordered lists support text items with outside disc markers, 40px left
 padding and 1em vertical list margins. Markers follow the first line across page
 breaks without repeating on continuation pages. Generated discs add no source text
 or offsets; literal bullets, selection and item destinations keep their identity.
 Native rendering and reopened PDF output preserve the separate marker paint.
-Empty items, nested or ordered lists, unsupported list styles and items without a
+Ordered lists number their items from their start, value and type attributes.
+Empty items, nested lists, unsupported list styles and items without a
 supported first line remain diagnosed. Explicit block or inline item display
 suppresses generated markers.
 
@@ -275,9 +326,10 @@ trailing whitespace and inline style boundaries. Normal paragraphs still collaps
 whitespace. Native block `pre` layout and PDF conversion preserve mapped spaces,
 line breaks and source offsets with cascading monospace defaults and 1em vertical
 margins. Blank lines, terminal spaces and supported inline styles survive page
-continuations and independently reopened output. Nested blocks, preserved tabs,
-literal carriage returns, incompatible display/reset modes and oversized unwrapped
-lines remain diagnosed.
+continuations and independently reopened output. Preformatted tabs advance to stops
+every eight space advances of their font, and a line with no break opportunity breaks
+before the first character that no longer fits. Nested blocks, literal carriage returns
+other than a character reference, and incompatible display/reset modes remain diagnosed.
 
 Semantic `header`, `footer`, `main`, `nav`, `section`, `article` and `aside`
 containers retain normal block flow, their CSS identity and supported box styles.
@@ -383,7 +435,7 @@ strict diagnostics. Supported wrappers use
 wrapper and image. Body margins and padding constrain the viewport. Block container
 parents, inherited hiding, source dimensions and explicit PDF conversion share the
 same placement. Active content, external references, other drawing elements,
-transforms, custom SVG styles and additional image attributes are diagnosed.
+transforms that collapse the image, custom SVG styles and additional image attributes are diagnosed.
 This is a bounded cover subset, not general SVG rendering.
 
 Initial `letter-spacing` accepts nonnegative px/em lengths and `normal`. Lengths
@@ -429,8 +481,9 @@ and supplementary mathematical alphanumeric letters and digits when the font has
 their glyphs. Text retains UTF-16 source ranges when scalars share a supported ligature,
 including after wrapping, pagination, anchor resolution and explicit PDF conversion.
 Mapped trademark signs, punctuation characters in the General Punctuation block and mapped characters
-in the Currency Symbols block are also supported. Combining marks, complex scripts,
-bidi controls, joiners, variation selectors and other unsupported characters still
+in the Currency Symbols block are also supported. Zero width non-joiners, the word joiner
+and the left-to-right and right-to-left marks lay out. Combining marks, complex scripts,
+other bidi controls, the zero width joiner, variation selectors and other unsupported characters still
 require implementation and are diagnosed explicitly.
 When no selected family maps U+00A0, a mapped blank space glyph in the same style
 and weight can supply its advance without adding a line-break opportunity. Real
@@ -446,7 +499,7 @@ gap between their line boxes. Wrapped lines and paragraphs continue onto new pag
 when the next line box does not fit. Each page exposes its normalized, display-filtered text
 slice, `SpineIndex` and `TextStart` offset; placement offsets remain relative to
 that chapter's display-filtered text. These offsets can differ from structural `ReadText`
-when hidden content is present. The layout accepts up to 1,000,000 UTF-16 text
+when hidden content is present. The layout accepts up to 16,000,000 UTF-16 text
 characters across all chapters, with explicit refusal above that limit. Existing
 per-spine processing, page, font and image limits still apply.
 Headings `h1` through `h6` reuse paragraph box layout and retain their source
@@ -466,7 +519,7 @@ Explicit `br` elements within supported paragraphs and spans advance lines witho
 paragraph gaps. Consecutive breaks retain blank line heights through pagination,
 and styled text keeps its source offsets. Structural normalization still omits
 leading breaks before any text and trims trailing breaks.
-Words wider than the content box are diagnosed explicitly.
+A word wider than the content box breaks before the first character that no longer fits.
 Initial tables require rows and cells, optionally grouped in `tbody`, plain or
 linked cell text, zero spacing and no cell padding. Explicit table and cell widths
 must be positive. Automatic text-only tables share intrinsic word and line widths
@@ -478,18 +531,21 @@ columns and whole-row pagination remain shared across groups. Empty groups add n
 Empty table `summary` attributes remain inert and available to CSS selectors.
 Only ASCII formatting whitespace is ignored between table parts. Other text,
 including nonbreaking spaces, requires a cell and is diagnosed outside one.
-Cell percentages resolve against the table once. Every row must use the same
-column count and resolved widths, filling the table within 0.0000001 CSS pixels.
+Cell percentages resolve against the table once. Explicit-width tables take their
+columns from the first row whose cells each span one column and give a width; spanning
+or widthless cells cover the columns they span, and every row must fill the table
+within 0.0000001 CSS pixels. Automatic tables honor colspan, widening spanned columns
+evenly, leave the last columns of shorter rows empty, lay out a caption above
+the rows, size nested tables by their own columns, and give content outside cells
+anonymous cell boxes (CSS 2.1 section 17.2.1).
 Cells wrap independently; row height follows the tallest cell, and whole rows
 move to the next page while keeping contiguous chapter text ranges. Empty cells
 retain their columns without adding text. Native and converted PDF output retain
 the supported outer container background and preceding paragraph margins.
 Explicit `display:table` on a table element retains the same typed grid.
 Mixed explicit/automatic columns, automatic empty columns or replaced content,
-header/footer groups, spans, nested tables, anonymous table boxes,
 row-group backgrounds, nonzero spacing and row/cell/group page-break requests
-remain diagnosed. Cells taller than a
-fresh page are refused before retaining additional cell pages.
+remain diagnosed. A row taller than a page lays its cells out as consecutive blocks.
 CSS `display:block` and `display:inline` follow specificity, declaration order and
 inline overrides without inheriting the parent's display value. A bounded formatting
 tree separates source elements from generated block containers and inline sequences.
@@ -792,21 +848,25 @@ initially A4 with 15 mm margins. Existing destinations are not overwritten, and
 unsupported content is diagnosed before any PDF is published. Full format and
 workflow acceptance remains in progress.
 
-`DjvuDocument.ConvertToPdf()` initially supports bitonal Smmr and grayscale IW44 pages and supported
-text with complete leaf-zone coverage.
-It embeds lossless one-bit images or original eight-bit grayscale samples at the
-page's recorded DPI. Grayscale uses D65 CalGray with the recorded INFO gamma,
-without quantizing a rendered preview. Conversion preserves intrinsic
-orientation, bundled page order and local bookmark labels, hierarchy and page
-destinations. The source, native rendering and navigation stay unchanged. Relative,
-external, invalid or unrepresentable bookmark entries reject the conversion rather
-than being omitted. Invisible text retains logical Unicode and separator strings
-at the recorded zone bounds through all four intrinsic orientations. One glyph
-transports each logical zone, without inventing individual character positions.
-The bundled font must support every non-whitespace source character. Unlocated,
-incompletely covered, overlapping or out-of-page text is diagnosed. Conversion is
-limited to 4096 nonempty leaf zones per page and 65536 UTF16 units per logical
-replacement. Color conversion and full format preservation remain unfinished.
+`DjvuDocument.ConvertToPdf()` converts bitonal Smmr and JB2 pages as lossless one-bit
+images, using JBIG2 when it is smaller than CCITT G4 or Flate. It converts grayscale IW44
+pages with their original eight-bit samples under D65 CalGray at the recorded INFO gamma,
+without quantizing a rendered preview; compound pages as a background image under one-bit
+soft masks painted in their foreground colors; and color photo pages as one RGB image.
+Pages are sized from their recorded DPI. Conversion preserves intrinsic orientation,
+bundled page order and local bookmark labels, hierarchy and page destinations. The source,
+native rendering and navigation stay unchanged. The overloads taking an
+`ICollection<DjvuDiagnostic>` report what was left out. A bookmark that names no page is
+left out with a `BookmarkNotConverted` diagnostic, and its children take its place.
+Invisible text retains logical Unicode and separator strings at the recorded zone bounds
+through all four intrinsic orientations. One glyph transports each logical zone, without
+inventing individual character positions. A character the bundled text font cannot
+represent is written as U+FFFD, and a page whose text cannot be placed, because it is
+unlocated, incompletely covered, overlapping or out of the page, converts without its text
+and with a diagnostic naming the page. A page that cannot be converted at all becomes a
+placeholder page with a `PageNotConverted` diagnostic. DjVu hyperlink annotations are not
+converted. Conversion is limited to 4096 nonempty leaf zones per page and 65536 UTF16 units
+per logical replacement. Full format coverage remains in progress.
 
 The EPUB `RenderPage(pageIndex, renderOptions)` overload rasterizes the original
 glyph outlines at the requested pixel dimensions without changing pagination or
@@ -823,8 +883,44 @@ DjVu retains each page's recorded resolution. Geometry describes the page before
 intrinsic rotation, which `RenderPage` already applies. `PdfLogicalDocument` gives
 each independent
 open a fresh identity and retains an explicitly supplied snapshot. Equal source
-hashes do not share logical identity. Native decoder limits still apply; desktop
-opening and the PDF read adapter remain in development.
+hashes do not share logical identity. Native decoder limits still apply. KillerPDF
+opens EPUB and DjVu documents in tabs through these snapshots.
+
+`OpenEpubOwned(bytes, options)` and `OpenDjvuOwned(bytes)` open as the methods above do but
+take the caller's byte array instead of copying it, so the caller must not change it afterward.
+`PdfReadSnapshot.OpenEpubProgressive(bytes, options)` lays out the EPUB's first chapter in
+reading order and returns while the rest of the book is paginated in the background;
+`OpenEpubProgressiveOwned` is its ownership-taking form. `PageCount` grows a chapter at a
+time, and pages already counted never change. `IsPaginating` and `PaginationProgress` report
+whether pages are still being added and how many spine items are paginated of the total.
+`Pagination` is a `Task` that completes when every page is known, at once for DjVu and for
+a blocking open. It fails with the error that stopped pagination and is canceled when the
+layout is released first. `WaitForPageAsync(pageIndex)` waits until a page exists and returns
+false when pagination ended without reaching it, and `WaitForNavigationTargetAsync(target)`
+waits until `ResolveNavigationTarget` can resolve the target as in the finished book.
+`ReleaseLayout()` ends the book's layout when its owner closes it: queued layout work is
+cancelled, and a page that would need laying out again is refused. Page text stays readable.
+`ReadPageText(pageIndex)` returns a page's text exactly as `ReadTextPage` does, without its
+geometry, and for EPUB it never lays a chapter out again. `RenderPageRegion(pageIndex,
+options, left, top, width, height)` renders the pixel rectangle at that position of a page
+drawn at the options' full size, which is exactly that crop of `RenderPage(pageIndex,
+options)` with storage limits applied to the region, so a viewer can draw the visible part of
+a page at any zoom. `DjvuDiagnostics` lists the `DjvuDiagnostic` notices a DjVu document
+raised when it opened, such as unresolved included components; it is empty for other formats.
+
+```csharp
+using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Formats.Epub;
+
+var font = TrueTypeFont.Load(File.ReadAllBytes("fallback.ttf"));
+var snapshot = PdfReadSnapshot.OpenEpubProgressive(
+    File.ReadAllBytes("book.epub"), new EpubLayoutOptions(800, 1000, font));
+if (await snapshot.WaitForPageAsync(0))
+    Console.WriteLine(snapshot.ReadPageText(0));
+await snapshot.Pagination;
+snapshot.ReleaseLayout();
+```
 
 `PdfReadSnapshot.ReadNavigation` returns captured, read-only outline trees for EPUB and DjVu.
 Invalid or unsupported outline metadata is reported when requested without preventing page reading.
@@ -915,9 +1011,10 @@ display observations, not physical measurements or all-profile acceptance.
 Owned-app display notifications exercise valid, unavailable and recovered profile
 observations in Two-page, Continuous and Two-page continuous views. Continuous
 checks retain scroll position, view mode and the public proof-view owner.
-Proof controls, other rendering paths and persistence remain unfinished.
+KillerPDF exposes these settings in its Color Management panel and stores them per document;
+other rendering paths remain in progress, as do HDR output and physical color accuracy.
 
-## Bundled CMYK viewing assumption (1.9.3 development)
+## Bundled CMYK viewing assumption
 
 `PdfCmykViewingDefault.LoadProfile()` loads an owned copy of the bundled CC0
 CGATS001Compat-v2-micro profile without accessing a file or network resource.
@@ -983,7 +1080,12 @@ when requested. Classification uses intended color before compensation and proof
 Frame-local coordinates, printer-profile identity and warning/boundary counts stay separate
 from color pixels and byte/half output. Rendering counts both mask planes in its storage limit;
 half output counts the retained mask. Fully transparent pixels are `NotEvaluated` and
-do not contribute warnings or boundary counts. Desktop warning overlays still require integration.
+do not contribute warnings or boundary counts. `PdfRenderedFrame.WithGamutWarningsMarked()`
+returns a viewing copy in which the pixels the mask classifies as outside the printer gamut are
+painted flat neutral gray (`GamutWarningGray`, sRGB 128/255). Alpha, every other pixel and the
+mask are retained. A frame without a mask, or with no outside pixel, is returned as is
+without copying. The mark is for viewing only, never for output. KillerPDF shows these
+warnings on proofed pages in every view and in sidebar previews.
 
 ## Rendering status
 
@@ -1007,7 +1109,7 @@ The combined storage limit counts input floats, output bytes and a retained gamu
 cancellation and unsupported profile types are diagnosed. This portable conversion does
 not select an operating-system profile or establish desktop integration or physical accuracy.
 
-The 1.9.3 development `RenderFrame` API also retains floating-point source colors for its
+The `RenderFrame` API also retains floating-point source colors for its
 supported path, text, gradient and image cases, including ordinary Form XObjects with
 their matrices and bounding-box clips. It rejects unsupported precision features
 with a reason instead of returning colors quantized through the BGRA32 surface.
@@ -1102,7 +1204,7 @@ Advanced Color uses compositor conversion. HDR scales document white from the re
 SDR-white setting, while Advanced Color SDR uses display-relative white at one. Missing
 HDR white data and ambiguous outputs leave the policy unavailable. A decision does not
 load a monitor profile, initialize a transport or establish physical accuracy. Desktop
-viewer integration remains in progress.
+viewer integration, HDR output and physical color accuracy remain in progress.
 
 See the [rendering guide](docs/rendering.md) for integration, pixel layout, authentication,
 diagnostics, resource limits, and validation guidance.
