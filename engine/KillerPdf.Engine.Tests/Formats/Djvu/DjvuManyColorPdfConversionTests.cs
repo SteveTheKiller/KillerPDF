@@ -37,6 +37,20 @@ public sealed class DjvuManyColorPdfConversionTests
         AssertColors(bytes, 500);
     }
 
+    // Five colors are well under the per-color mask limit, but each color's two pixels sit in opposite corners, so
+    // their rectangles together cover more than four page areas. The notice names the overlap as the reason.
+    [Fact]
+    public void AFewColorsMergedForTheirOverlapGiveTheOverlapAsTheReason()
+    {
+        var notices = new List<DjvuDiagnostic>();
+        DjvuDocument.Open(DjvuTestStreams.ManyColorPage(5)).ConvertToPdf(notices);
+
+        var notice = Assert.Single(notices);
+        Assert.Equal("ForegroundColorsMerged", notice.Code);
+        Assert.DoesNotContain("5 foreground colors", notice.Message, StringComparison.Ordinal);
+        Assert.Contains("overlap", notice.Message, StringComparison.Ordinal);
+    }
+
     // The merged foreground image holds black where no shape lies, and a viewer that smooths it while scaling averages
     // that black into a glyph edge. Every pixel must hold a real palette color: the nearest shape in its row (the left
     // one on a tie), or the nearest row that has a shape.

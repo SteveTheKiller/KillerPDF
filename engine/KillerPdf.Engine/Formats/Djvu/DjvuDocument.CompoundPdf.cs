@@ -61,7 +61,10 @@ public sealed partial class DjvuDocument
                     DrawPaletteImage(all);
                     content.RestoreState();
                 }
-                diagnostics.Add(new("ForegroundColorsMerged", $"Page {pageIndex + 1} has {usedColors} foreground colors. " +
+                string reason = usedColors > MaximumColorMasks
+                    ? $"Page {pageIndex + 1} has {usedColors} foreground colors. "
+                    : $"Page {pageIndex + 1} has foreground colors that overlap across the page. ";
+                diagnostics.Add(new("ForegroundColorsMerged", reason +
                     "They are drawn as one image under one mask, with the colors unchanged.") { PageIndex = pageIndex });
                 boxes = [];
             }
