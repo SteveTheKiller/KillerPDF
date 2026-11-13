@@ -971,7 +971,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_St_FieldSigned">已簽署欄位</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">已儲存簽名-在頁面上按一下即可放置</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">已載入影像-在頁面上按一下即可放置</sys:String>
-    <sys:String x:Key="Str_St_EditingText">正在編輯文字-在上方變更大小/顏色，按 Enter 儲存</sys:String>
+    <sys:String x:Key="Str_St_EditingText">正在編輯文字-在上方變更大小/顏色，按 Ctrl+Enter 儲存</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">此處已有編輯-按一下其文字可重新編輯，或拖曳遮蓋層</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">在此位置找不到文字行</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">此行已編輯-按一下其文字即可變更</sys:String>

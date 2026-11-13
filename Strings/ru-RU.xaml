@@ -1057,7 +1057,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_St_FieldSigned">Поле подписано</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Подпись сохранена - нажмите на страницу, чтобы разместить ее</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Изображение загружено - нажмите на страницу, чтобы разместить его</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Редактирование текста - измените размер / цвет выше, Enter чтобы сохранить</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Редактирование текста - измените размер / цвет выше, Ctrl+Enter чтобы сохранить</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Здесь уже есть правка - щелкните по тексту, чтобы отредактировать заново, или перетащите покрытие</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">В этой позиции не найдено ни одной текстовой строки</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Эта строка уже отредактирована - щелкните по ее тексту, чтобы изменить его</sys:String>

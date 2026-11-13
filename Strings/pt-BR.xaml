@@ -1057,7 +1057,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_St_FieldSigned">Campo assinado</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Assinatura salva - clique na página para posicioná-la</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Imagem carregada - clique na página para posicioná-la</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Editando texto - altere o tamanho/cor acima, Enter para salvar</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Editando texto - altere o tamanho/cor acima, Ctrl+Enter para salvar</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Já existe uma edição aqui - clique no texto para editar de novo ou arraste a cobertura</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Nenhuma linha de texto encontrada nesta posição</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Esta linha já foi editada - clique no texto para alterá-la</sys:String>

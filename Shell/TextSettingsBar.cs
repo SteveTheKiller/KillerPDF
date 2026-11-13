@@ -258,7 +258,7 @@ namespace KillerPDF.Shell
             bar.Add(Controls.ToolOptionGroup.Font, BarGroup(BarLabel(Loc("Str_Bar_Font")), fontBox));
 
             FrameworkElement StyleToggle(string glyph, string tipKey, string id, bool active, FontWeight fw, FontStyle fs,
-                TextDecorationCollection? deco, Action onClick)
+                TextDecorationCollection? deco, Action onClick, string? cap = null)
             {
                 var text = new TextBlock
                 {
@@ -267,19 +267,20 @@ namespace KillerPDF.Shell
                     HorizontalAlignment = HorizontalAlignment.Center
                 };
                 text.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-                var toggle = Controls.ToolOptionsControls.IconToggle(text, active, Loc(tipKey), () => { onClick(); ShowTextSettings(); });
+                var toggle = Controls.ToolOptionsControls.IconToggle(text, active, Loc(tipKey), () => { onClick(); ShowTextSettings(); },
+                    cap is null ? null : ShortcutTip(tipKey, cap));
                 System.Windows.Automation.AutomationProperties.SetAutomationId(toggle, id);
                 return toggle;
             }
             bar.Add(Controls.ToolOptionGroup.Style, BarGroup(
                 StyleToggle("B", "Str_Lbl_Bold", "TextBold", _textBold, FontWeights.Bold, FontStyles.Normal, null,
-                    () => { _textBold = !_textBold; ApplyTextStyleToSelection(); }),
+                    () => { _textBold = !_textBold; ApplyTextStyleToSelection(); }, "Ctrl:B"),
                 StyleToggle("I", "Str_Lbl_Italic", "TextItalic", _textItalic, FontWeights.Normal, FontStyles.Italic, null,
-                    () => { _textItalic = !_textItalic; ApplyTextStyleToSelection(); }),
+                    () => { _textItalic = !_textItalic; ApplyTextStyleToSelection(); }, "Ctrl:I"),
                 StyleToggle("S", "Str_Lbl_Strike", "TextStrike", _textStrike, FontWeights.Normal, FontStyles.Normal, TextDecorations.Strikethrough,
                     () => { _textStrike = !_textStrike; ApplyTextStyleToSelection(); }),
                 StyleToggle("U", "Str_Lbl_Underline", "TextUnderline", _textUnderline, FontWeights.Normal, FontStyles.Normal, TextDecorations.Underline,
-                    () => { _textUnderline = !_textUnderline; ApplyTextStyleToSelection(); })));
+                    () => { _textUnderline = !_textUnderline; ApplyTextStyleToSelection(); }, "Ctrl:U")));
 
             // Size: slider, minus and plus steppers and an exact 40-wide box, in points.
             var sizeSlider = BarSlider(8, 72, Math.Max(8, Math.Min(72, _textFontSize)), LabelName(Loc("Str_Bar_Size")));

@@ -1612,7 +1612,7 @@ namespace KillerPDF.Shell
         // which every caller already reads as a canceled save.
         private void SaveInPlace(bool otherPaneConfirmed, bool removeProtection = false)
         {
-            if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
+            if (_doc is null) { if (OpenFirstPrompt.Shows(false, ActiveViewer.NativeDocumentRef is not null)) KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             if (!otherPaneConfirmed && !string.IsNullOrEmpty(_originalFile) && OtherPaneHasDirtyCopyOf(_originalFile)
                 && KillerDialog.Show(this,
                     string.Format(Loc("Str_Dlg_SaveOtherPaneDirty"), System.IO.Path.GetFileName(_originalFile)),
@@ -1804,7 +1804,7 @@ namespace KillerPDF.Shell
         // Save As, offering the given file name in place of the current one when there is one.
         internal void SaveAsWithName(string? suggestedName, bool openCopy = false, bool removeProtection = false)
         {
-            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
+            if (_doc is null || _currentFile is null) { if (OpenFirstPrompt.Shows(_doc is not null, ActiveViewer.NativeDocumentRef is not null)) KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             bool restrictedFill = !removeProtection && CanSaveRestrictedFormFill();
             if (!restrictedFill && (!EnsureEditable() || !EnsureProtectionReadable())) return;
             OpenedProtection publishUnder = removeProtection ? OpenedProtection.None : _protection;
@@ -2368,7 +2368,7 @@ namespace KillerPDF.Shell
 
         private void Print_Click(object sender, RoutedEventArgs e)
         {
-            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
+            if (_doc is null || _currentFile is null) { if (OpenFirstPrompt.Shows(_doc is not null, ActiveViewer.NativeDocumentRef is not null)) KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             CommitActiveTextBox();
             if (!TryAllowPrinting(out double printDpi)) return;
 

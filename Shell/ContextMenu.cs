@@ -220,7 +220,7 @@ namespace KillerPDF.Shell
             _ctxMenu.Items.Add(BuildComparisonContextItem());
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_OcrPage"), (s, e) => OcrPageToClipboard(pageIdx), GestureFor("CtrlShift:O"), "\uEE6F"));
 
-            var tools = MakeMenuItem(Loc("Str_Card_PageTools"), (_, _) => { }, glyph: "\uE7C3");
+            var tools = MakeMenuItem(Loc("Str_Card_PageTools"), (_, _) => { }, gesture: "", glyph: "\uE7C3");
             tools.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCW"), (s, e) => RotatePages_Click(90, pageIdx), clockwise: true));
             tools.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCCW"), (s, e) => RotatePages_Click(-90, pageIdx), clockwise: false));
             tools.Items.Add(MakeTransformMenuItem(Loc("Str_Lbl_Rotate"), (s, e) => OpenTransformWindow(page: pageIdx), GestureFor("R")));

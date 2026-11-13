@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using KillerPDF.Services;
 
 namespace KillerPDF.Shell;
 
@@ -43,7 +44,10 @@ public partial class MainWindow
                 _ => null,
             };
         if (run is null) return false;
-        if (!repeat && (_doc is not null || (key is Key.W or Key.N) && modifiers == (ModifierKeys.Alt | ModifierKeys.Shift)))
+        // A book has no PDF, but the rail buttons it leaves enabled still open their panels, so their keys follow them.
+        bool railButtonEnabled = modifiers == ModifierKeys.Alt && key is >= Key.D1 and <= Key.D6
+            && RailPanelButtons().First(entry => entry.Panel == (SidebarPanel)(key - Key.D1)).Button.IsEnabled;
+        if (!repeat && ExpandedShortcutGate.Runs(_doc is not null, HasReadingDocument, railButtonEnabled, key, modifiers))
             run();
         return true;
     }

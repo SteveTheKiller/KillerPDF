@@ -1036,7 +1036,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_St_FieldSigned">Pole podepsáno</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Podpis uložen - kliknutím na stránku jej umístíte</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Obrázek načten - kliknutím na stránku jej umístíte</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Úprava textu - velikost/barvu změníte nahoře, Enter uloží</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Úprava textu - velikost/barvu změníte nahoře, Ctrl+Enter uloží</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Zde už úprava je - kliknutím na její text ji upravíte znovu, nebo přetáhněte překrytí</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Na této pozici nebyl nalezen žádný řádek textu</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Tento řádek je již upraven - kliknutím na jeho text jej změníte</sys:String>

@@ -1028,7 +1028,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_St_FieldSigned">Pole podpisano</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Podpis zapisany - kliknij na stronę, aby go umieścić</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Obraz załadowany - kliknij na stronę, aby go umieścić</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Edycja tekstu - zmień rozmiar/kolor powyżej, Enter do zapisania</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Edycja tekstu - zmień rozmiar/kolor powyżej, Ctrl+Enter do zapisania</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Tutaj dokonano już edycji - kliknij jej tekst, aby dokonać ponownej edycji, lub przeciągnij przykrycie</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Nie znaleziono wiersza tekstu w tej pozycji</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Ta linia jest już edytowana - kliknij jej tekst, aby go zmienić</sys:String>

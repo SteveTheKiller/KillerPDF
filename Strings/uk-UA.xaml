@@ -1057,7 +1057,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_St_FieldSigned">Поле підписано</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Підпис збережено - натисніть на сторінці, щоб його розмістити</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Зображення завантажено - натисніть на сторінці, щоб його розмістити</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Редагування тексту - змініть розмір або колір угорі, Enter для збереження</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Редагування тексту - змініть розмір або колір угорі, Ctrl+Enter для збереження</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Тут уже є редагування - натисніть на його текст, щоб редагувати знову, або перетягніть накладку</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">У цій позиції рядок тексту не знайдено</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Цей рядок уже відредаговано - натисніть на його текст, щоб змінити</sys:String>

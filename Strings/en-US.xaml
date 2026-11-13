@@ -1058,7 +1058,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_St_FieldSigned">Field signed</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Signature saved. Click on the page to place it</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Image loaded. Click on the page to place it</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Editing text. Change size/color above, Enter to save</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Editing text. Change size/color above, Ctrl+Enter to save</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">There is already an edit here. Click its text to re-edit, or drag the cover</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">No text line found at this position</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">This line is already edited. Click its text to change it</sys:String>

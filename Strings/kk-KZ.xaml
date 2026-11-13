@@ -953,7 +953,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_St_FieldSigned">Өріске қол қойылды</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Қолтаңба сақталды - қою үшін бетті басыңыз</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Сурет жүктелді - қою үшін бетті басыңыз</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Мәтін өңделуде - жоғарыда өлшем/түсті өзгертіңіз, сақтау үшін Enter</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Мәтін өңделуде - жоғарыда өлшем/түсті өзгертіңіз, сақтау үшін Ctrl+Enter</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Мұнда әлдеқашан өңдеу бар - қайта өңдеу үшін мәтінін басыңыз немесе жабынды сүйреңіз</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Осы орында мәтін жолы табылмады</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Бұл жол әлдеқашан өңделген - өзгерту үшін мәтінін басыңыз</sys:String>

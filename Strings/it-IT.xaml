@@ -1057,7 +1057,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_St_FieldSigned">Campo firmato</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Firma salvata: fai clic sulla pagina per posizionarla</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Immagine caricata: fai clic sulla pagina per posizionarla</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Modifica testo: modifica dimensione/colore sopra, 'Invio' per salvare</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Modifica testo: modifica dimensione/colore sopra, 'Ctrl+Invio' per salvare</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">C'è già una modifica: fai clic sul testo per modificarlo nuovamente o trascina la copertura</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Nessuna riga testo trovata in questa posizione</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Questa riga è già stata modificata: fai clic sul testo per modificarlo</sys:String>

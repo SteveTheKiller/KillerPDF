@@ -1057,7 +1057,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_St_FieldSigned">Đã ký trường</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Đã lưu chữ ký - nhấp vào trang để đặt chữ ký</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Đã tải hình ảnh - nhấp vào trang để đặt hình ảnh</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Đang chỉnh sửa văn bản - thay đổi kích thước/màu sắc ở trên, nhấn Enter để lưu</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Đang chỉnh sửa văn bản - thay đổi kích thước/màu sắc ở trên, nhấn Ctrl+Enter để lưu</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Đã có một chỉnh sửa ở đây - nhấp vào văn bản để chỉnh sửa lại, hoặc kéo lớp phủ che</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Không tìm thấy dòng văn bản nào tại vị trí này</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Dòng này đã được chỉnh sửa - nhấp vào văn bản để thay đổi</sys:String>

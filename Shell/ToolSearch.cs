@@ -12,6 +12,7 @@ using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using KillerFamily.Accessibility;
+using KillerPDF.Services;
 
 namespace KillerPDF.Shell
 {
@@ -57,7 +58,7 @@ namespace KillerPDF.Shell
         [
             "Str_KS_TextStyle", "Str_Lbl_Bold", "Str_Lbl_Italic", "Str_Lbl_Underline",
             "Str_KS_DeleteAnnot", "Str_Ctx_BmRename", "Str_KS_ConfirmCancel", "Str_Kb_Confirm",
-            "Str_Kb_Cancel", "Str_KS_ContextMenu", "Str_KS_CopyText", "Str_KS_Paste",
+            "Str_Kb_Cancel", "Str_KS_ContextMenu", "Str_KS_CopyText", "Str_KS_Paste", "Str_Ctx_Cut",
             "Str_KS_ScrollView", "Str_KS_PanView",
         ];
 
@@ -423,7 +424,8 @@ namespace KillerPDF.Shell
             void Add(string labelKey, string cat, string gesture, Action run, bool? requiresDocument = null)
             {
                 if (!seen.Add(labelKey)) return;
-                if (!hasDocument && (requiresDocument ?? !ToolSearchWithoutDocument.Contains(labelKey))) return;
+                if (!hasDocument && (requiresDocument ?? !ToolSearchWithoutDocument.Contains(labelKey))
+                    && !ToolSearchReadingCommands.Admits(HasReadingDocument, labelKey)) return;
                 entries.Add(new ToolSearchEntry(WithoutShortcut(Loc(labelKey)), EnglishText(labelKey),
                     ToolSearchKeywords.GetValueOrDefault(labelKey, ""), cat, gesture, run));
             }

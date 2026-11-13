@@ -969,7 +969,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_St_FieldSigned">ফিল্ড স্বাক্ষরিত হয়েছে</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">স্বাক্ষর সংরক্ষণ করা হয়েছে - এটি স্থাপন করতে পৃষ্ঠায় ক্লিক করুন</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">ছবি লোড করা হয়েছে - এটি স্থাপন করতে পৃষ্ঠায় ক্লিক করুন</sys:String>
-    <sys:String x:Key="Str_St_EditingText">টেক্সট সম্পাদনা করা হচ্ছে - উপরে আকার/রঙ পরিবর্তন করুন, সংরক্ষণ করতে Enter</sys:String>
+    <sys:String x:Key="Str_St_EditingText">টেক্সট সম্পাদনা করা হচ্ছে - উপরে আকার/রঙ পরিবর্তন করুন, সংরক্ষণ করতে Ctrl+Enter</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">এখানে ইতিমধ্যে একটি সম্পাদনা আছে - পুনরায় সম্পাদনা করতে এর টেক্সটে ক্লিক করুন, অথবা কভারটি টেনে আনুন</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">এই অবস্থানে কোনো টেক্সট লাইন পাওয়া যায়নি</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">এই লাইনটি ইতিমধ্যে সম্পাদিত হয়েছে - এটি পরিবর্তন করতে এর টেক্সটে ক্লিক করুন</sys:String>

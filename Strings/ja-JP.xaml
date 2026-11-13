@@ -1057,7 +1057,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_St_FieldSigned">フィールドに署名しました</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">署名を保存しました。ページをクリックして配置してください</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">画像を読み込みました。ページをクリックして配置してください</sys:String>
-    <sys:String x:Key="Str_St_EditingText">テキストを編集中です。上部でサイズや色を変更し、Enterで保存します</sys:String>
+    <sys:String x:Key="Str_St_EditingText">テキストを編集中です。上部でサイズや色を変更し、Ctrl+Enterで保存します</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">ここには既に編集があります。テキストをクリックして再編集するか、カバーをドラッグしてください</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">この位置にテキスト行が見つかりませんでした</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">この行は既に編集済みです。テキストをクリックして変更してください</sys:String>

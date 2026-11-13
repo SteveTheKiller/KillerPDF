@@ -973,7 +973,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_St_FieldSigned">Feld signiert</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Signatur gespeichert - zum Platzieren auf die Seite klicken</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Bild geladen - zum Platzieren auf die Seite klicken</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Text wird bearbeitet - Größe/Farbe oben ändern, Enter zum Speichern</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Text wird bearbeitet - Größe/Farbe oben ändern, Strg+Enter zum Speichern</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Hier ist bereits eine Bearbeitung - Text anklicken zum erneuten Bearbeiten oder Abdeckung ziehen</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Keine Textzeile an dieser Position gefunden</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Diese Zeile wurde bereits bearbeitet - Text anklicken zum Ändern</sys:String>

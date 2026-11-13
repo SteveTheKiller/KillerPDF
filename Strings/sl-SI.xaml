@@ -980,7 +980,7 @@
     <sys:String x:Key="Str_St_FieldSigned">Polje je podpisano</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Podpis je shranjen. Kliknite na stran, da ga postavite</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Slika je naložena. Kliknite na stran, da jo postavite</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Urejanje besedila. Zgoraj spremenite velikost/barvo, Enter za shranjevanje</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Urejanje besedila. Zgoraj spremenite velikost/barvo, Ctrl+Enter za shranjevanje</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Tukaj je že sprememba. Kliknite besedilo za ponovno urejanje ali povlecite prekrivno ploskev</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Na tem mestu ni vrstice besedila</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Ta vrstica je že urejena. Kliknite njeno besedilo, da ga spremenite</sys:String>

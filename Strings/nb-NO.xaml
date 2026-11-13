@@ -1057,7 +1057,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_St_FieldSigned">Feltet er signert</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Signaturen er lagret. Klikk på siden for å plassere den</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Bildet er lastet. Klikk på siden for å plassere det</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Redigerer tekst. Endre størrelse/farge ovenfor, Enter for å lagre</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Redigerer tekst. Endre størrelse/farge ovenfor, Ctrl+Enter for å lagre</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Det finnes allerede en redigering her. Klikk på teksten for å redigere på nytt, eller dra dekket</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Fant ingen tekstlinje på denne posisjonen</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Denne linjen er allerede redigert. Klikk på teksten for å endre den</sys:String>

@@ -1057,7 +1057,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_St_FieldSigned">Mező aláírva</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Aláírás mentve - kattintson az oldalra az elhelyezéshez</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Kép betöltve - kattintson az oldalra az elhelyezéshez</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Szöveg szerkesztése - fent módosíthatja a méretet/színt, Enter a mentéshez</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Szöveg szerkesztése - fent módosíthatja a méretet/színt, Ctrl+Enter a mentéshez</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Itt már van szerkesztés - kattintson a szövegére az újraszerkesztéshez, vagy húzza a fedőréteget</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Ezen a helyen nem található szövegsor</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Ez a sor már szerkesztve van - kattintson a szövegére a módosításához</sys:String>

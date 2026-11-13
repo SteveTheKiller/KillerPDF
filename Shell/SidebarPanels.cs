@@ -207,7 +207,8 @@ namespace KillerPDF.Shell
                     Add("Str_Measure_Area", () => SelectMeasurement(MeasurementKind.Area));
                     Add("Str_Measure_Angle", () => SelectMeasurement(MeasurementKind.Angle));
                     Add("Str_Measure_TT_Scale", () => OpenMeasureScale());
-                    Add("Str_DocumentTools_Measurements", ShowMeasurementReport);
+                    menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_Measurements"), (_, _) => ShowMeasurementReport(),
+                        GestureFor("CtrlShift:D") + ", " + ShortcutTable.DocumentToolKey("Str_DocumentTools_Measurements")));
                     break;
                 case SidebarPanel.Layers:
                     Add("Str_DocumentTools_EditLayers", EditLayers);

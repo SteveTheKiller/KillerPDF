@@ -1057,7 +1057,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_St_FieldSigned">Champ signé</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Signature enregistrée - cliquez sur la page pour la placer</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Image chargée - cliquez sur la page pour la placer</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Modification du texte - changez la taille/couleur ci-dessus, Enter pour enregistrer</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Modification du texte - changez la taille/couleur ci-dessus, Ctrl+Entrée pour enregistrer</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Une modification existe déjà ici - cliquez sur son texte pour la modifier, ou faites glisser le cache</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Aucune ligne de texte trouvée à cette position</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Cette ligne est déjà modifiée - cliquez sur son texte pour la changer</sys:String>

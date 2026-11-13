@@ -973,7 +973,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_St_FieldSigned">已签署字段</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">已保存签名，点击页面以放置</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">已加载图像，点击页面以放置</sys:String>
-    <sys:String x:Key="Str_St_EditingText">正在编辑文本，在上方更改大小/颜色，按 Enter 保存</sys:String>
+    <sys:String x:Key="Str_St_EditingText">正在编辑文本，在上方更改大小/颜色，按 Ctrl+Enter 保存</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">此处已有编辑，点击其文本可重新编辑，或拖动遮盖层</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">此位置未找到文本行</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">此行已编辑，点击其文本可更改</sys:String>

@@ -969,7 +969,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_St_FieldSigned">Alan imzalandı</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">İmza kaydedildi - yerleştirmek için sayfaya tıklayın</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Resim yüklendi - yerleştirmek için sayfaya tıklayın</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Metin düzenleniyor - boyutu/rengi yukarıdan değiştirin, kaydetmek için Enter</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Metin düzenleniyor - boyutu/rengi yukarıdan değiştirin, kaydetmek için Ctrl+Enter</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Burada zaten bir düzenleme var - yeniden düzenlemek için metnine tıklayın veya örtüyü sürükleyin</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">Bu konumda metin satırı bulunamadı</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Bu satır zaten düzenlendi - değiştirmek için metnine tıklayın</sys:String>

@@ -969,7 +969,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_St_FieldSigned">Campo firmado</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">Firma guardada - haga clic en la página para colocarla</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">Imagen cargada - haga clic en la página para colocarla</sys:String>
-    <sys:String x:Key="Str_St_EditingText">Editando texto - cambie el tamaño/color arriba, Enter para guardar</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Editando texto - cambie el tamaño/color arriba, Ctrl+Intro para guardar</sys:String>
     <sys:String x:Key="Str_St_AlreadyEditHere">Ya hay una edición aquí - haga clic en su texto para volver a editarla, o arrastre la cubierta</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">No se encontró ninguna línea de texto en esta posición</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">Esta línea ya está editada - haga clic en su texto para cambiarla</sys:String>
