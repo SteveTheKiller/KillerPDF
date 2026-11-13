@@ -74,6 +74,7 @@ namespace KillerPDF.Controls
             string currentFile = _currentFile;
             bool invert = DocInvert;
             long revision = session?.RenderRevision ?? 0;
+            long prefetchCmyk = KillerPDF.Services.WorkingCmykProfiles.Generation;
             int total = _doc.PageCount;
             int forward = _viewMode == ViewMode.TwoPage
                 ? SpreadStart(pageIndex) + 2 : pageIndex + 1;
@@ -137,6 +138,7 @@ namespace KillerPDF.Controls
                         {
                             if (cancellationToken.IsCancellationRequested) return;
                             if (monitor is not null && !ReferenceEquals(display, _presentationDisplay)) return;
+                            if (prefetchCmyk != KillerPDF.Services.WorkingCmykProfiles.Generation) return;
                             CacheRender(session, localTarget, scaledMax, localRot, bitmap, proofStamp: proof.Stamp, monitorIdentity: monitorIdentity);
                         }));
                     }
@@ -732,7 +734,9 @@ namespace KillerPDF.Controls
             // Pages converted for a monitor are cached under its profile's identity; with none established they are not cached.
             bool continuousCacheable = TryMonitorCacheIdentity(continuousMonitor, continuousDisplay, out string? continuousMonitorIdentity);
             var renderToken = cts.Token;
-            bool Current() => !renderToken.IsCancellationRequested && mode == _viewMode && _viewMode.IsContinuous()
+            long continuousCmyk = KillerPDF.Services.WorkingCmykProfiles.Generation;
+            bool Current() => continuousCmyk == KillerPDF.Services.WorkingCmykProfiles.Generation
+                && !renderToken.IsCancellationRequested && mode == _viewMode && _viewMode.IsContinuous()
                 && ReferenceEquals(_active, session) && ReferenceEquals(_nativeDoc, nativeOwner)
                 && _currentFile == currentFile && ReferenceEquals(continuousDisplay, _presentationDisplay)
                 && revision == (_active?.RenderRevision ?? 0) && invert == DocInvert
@@ -1096,7 +1100,9 @@ namespace KillerPDF.Controls
                 _annotationCanvas.IsHitTestVisible = false;
                 ClearSecondaryPages();
             }
-            bool Current() => !primaryToken.IsCancellationRequested && generation == _primaryRenderGeneration
+            long primaryCmyk = KillerPDF.Services.WorkingCmykProfiles.Generation;
+            bool Current() => primaryCmyk == KillerPDF.Services.WorkingCmykProfiles.Generation
+                && !primaryToken.IsCancellationRequested && generation == _primaryRenderGeneration
                 && ReferenceEquals(primarySession, _active) && primaryFile == _currentFile
                 && ReferenceEquals(primaryNative, _nativeDoc)
                 && primaryRevision == (_active?.RenderRevision ?? 0) && primaryMode == _viewMode
@@ -1521,7 +1527,9 @@ namespace KillerPDF.Controls
                     && PdfDisplayPresentationPolicy.Resolve(secondaryDisplay).TransformOwner == PdfMonitorTransformOwner.Application
                     ? _sdrDisplayConverter : null;
                 bool secondaryCacheable = TryMonitorCacheIdentity(secondaryMonitor, secondaryDisplay, out string? secondaryMonitorIdentity);
-                bool Current() => !cts.IsCancellationRequested && HasReadDocument
+                long secondaryCmyk = KillerPDF.Services.WorkingCmykProfiles.Generation;
+                bool Current() => secondaryCmyk == KillerPDF.Services.WorkingCmykProfiles.Generation
+                    && !cts.IsCancellationRequested && HasReadDocument
                     && ReferenceEquals(nativeOwner, _nativeDoc)
                     && ReferenceEquals(secondaryDisplay, _presentationDisplay)
                     && ReferenceEquals(session, _active) && currentFile == _currentFile

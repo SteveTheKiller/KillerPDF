@@ -20,7 +20,14 @@ public partial class MainWindow
             // and in-flight renders are cancelled by the re-render below.
             KillerPDF.Services.PdfPageRenderSession.InvalidateWorkingCmyk();
             KillerPDF.Services.WorkingCmykProfiles.WarmDisplayTableInBackground();
-            viewer.FlushAllRenderCachesExt();
+            foreach (var window in System.Windows.Application.Current.Windows.OfType<MainWindow>())
+            {
+                window.Viewer.FlushAllRenderCachesExt();
+                window.ViewerB.FlushAllRenderCachesExt();
+                if (window.Viewer.ActiveSessionExt?.HasReadDocument == true) window.Viewer.RenderActiveSessionExt();
+                if (window.ViewerB.ActiveSessionExt?.HasReadDocument == true) window.ViewerB.RenderActiveSessionExt();
+                window.RestorePageListForActivePane();
+            }
         }
         if (proof.Stamp.IsComparison) view.ComparisonOverride = settings;
         else
