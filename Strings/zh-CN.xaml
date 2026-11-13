@@ -1276,7 +1276,6 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">已选择 {0} 项</sys:String>
     <sys:String x:Key="Str_Card_Style">样式</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">选中的文本</sys:String>
-    <sys:String x:Key="Str_Card_PlaceHere">放置到此处</sys:String>
     <sys:String x:Key="Str_Card_PageTools">页面</sys:String>
     <sys:String x:Key="Str_Op_Repair">修复</sys:String>
     <sys:String x:Key="Str_Op_Operation">操作</sys:String>

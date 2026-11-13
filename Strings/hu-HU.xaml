@@ -1279,7 +1279,6 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Card_ItemsSelected">{0} elem kijelölve</sys:String>
     <sys:String x:Key="Str_Card_Style">Stílus</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Kijelölt szöveg</sys:String>
-    <sys:String x:Key="Str_Card_PlaceHere">Beszúrás ide</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Oldal</sys:String>
     <sys:String x:Key="Str_Op_Repair">javítás</sys:String>
     <sys:String x:Key="Str_Op_Operation">művelet</sys:String>

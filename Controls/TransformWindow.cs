@@ -52,7 +52,17 @@ namespace KillerPDF
         public Point[] PerspectiveCorners { get; private set; } =
             [new(0, 0), new(1, 0), new(1, 1), new(0, 1)];
 
-        private readonly IReadOnlyList<PagePreview> _pages;
+        // Every page of the document can be previewed and changed from the window (Steve, 2026-11-12: navigate and
+        // modify pages from within the tool). Pages render on demand and stay cached until a change replaces them.
+        private readonly int _pageCount;
+        private readonly IReadOnlyList<int> _selection;
+        private readonly Func<int, PagePreview?> _renderPage;
+        private readonly Func<TransformWindow, IReadOnlyList<int>, Task<bool>> _apply;
+        private readonly Dictionary<int, PagePreview> _previews = [];
+        private CheckBox? _applyToSelection;
+        private Button _applyButton = null!;
+        private Action _resetAll = () => { };
+        private bool _busy;
         private BitmapSource _src;
         private readonly Image _preview = new()
         {
@@ -111,18 +121,30 @@ namespace KillerPDF
         private static Brush R(string key) => PageWindowLayout.ThemeBrush(Application.Current?.TryFindResource(key));
         private static string S(string key) => Application.Current.TryFindResource(key) as string ?? key;
 
-        public TransformWindow(Window owner, IReadOnlyList<PagePreview> pages,
+        /// <param name="pageCount">Pages in the document; the flipper walks all of them.</param>
+        /// <param name="selection">The pages selected when the window opened (zero-based); the first is shown.</param>
+        /// <param name="first">The preview of the selection's first page.</param>
+        /// <param name="renderPage">Renders any page's preview, or null when it cannot.</param>
+        /// <param name="apply">Changes the given pages with this window's settings; true once they are changed.</param>
+        public TransformWindow(Window owner, int pageCount, IReadOnlyList<int> selection, PagePreview first,
+            Func<int, PagePreview?> renderPage, Func<TransformWindow, IReadOnlyList<int>, Task<bool>> apply,
             TransformWindowMode mode = TransformWindowMode.Transform)
         {
-            ArgumentNullException.ThrowIfNull(pages);
-            if (pages.Count == 0) throw new ArgumentException("At least one page preview is required.", nameof(pages));
-            _pages = pages;
-            _src = pages[0].Source;
+            ArgumentNullException.ThrowIfNull(selection);
+            ArgumentNullException.ThrowIfNull(first);
+            if (selection.Count == 0) throw new ArgumentException("At least one page is required.", nameof(selection));
+            _pageCount = Math.Max(1, pageCount);
+            _selection = selection;
+            _renderPage = renderPage;
+            _apply = apply;
+            _previewPageIndex = selection[0];
+            _previews[selection[0]] = first;
+            _src = first.Source;
             _srcW = _src.PixelWidth;
             _srcH = _src.PixelHeight;
-            _pageWpt = pages[0].WidthPoints;
-            _pageHpt = pages[0].HeightPoints;
-            _imagePixels = pages[0].ImagePixels;
+            _pageWpt = first.WidthPoints;
+            _pageHpt = first.HeightPoints;
+            _imagePixels = first.ImagePixels;
             string toolName = S(mode == TransformWindowMode.Transform
                 ? "Str_Tf_Suffix" : "Str_ColorCorrection");
             Title = "KillerPDF - " + toolName;
@@ -146,7 +168,7 @@ namespace KillerPDF
                 Resources[typeof(System.Windows.Controls.Primitives.ScrollBar)] = sbStyle;
 
             // Footer: "Reset all" on the left, then Cancel and Apply, on one row.
-            var resetAll = PageWindowLayout.LinkButton(S("Str_Tf_ResetAll"), () =>
+            _resetAll = () =>
             {
                 _quarter = 0; _rotSlider.Value = 0; _scaleSlider.Value = 100;
                 _resizeRadio.IsChecked = true; _flipHCheck.IsChecked = false; _flipVCheck.IsChecked = false;
@@ -154,12 +176,14 @@ namespace KillerPDF
                 ResetLevels();   // #174
                 ResetColorAdjustments();
                 ResetQuality();
-            });
-            var cancelBtn = UiKit.Make(S("Str_Tf_Cancel"), false);
-            cancelBtn.Click += (_, _2) => { Applied = false; Close(); };
+            };
+            var resetAll = PageWindowLayout.LinkButton(S("Str_Tf_ResetAll"), () => _resetAll());
+            // Apply changes the page on screen and keeps the window open, so Cancel becomes Close.
+            var cancelBtn = UiKit.Make(S("Str_Lbl_Close"), false);
+            cancelBtn.Click += (_, _2) => Close();
             cancelBtn.IsCancel = true;   // Esc
-            var applyBtn = UiKit.Make(pages.Count == 1 ? S("Str_Tf_Apply") : $"{S("Str_Tf_Apply")} ({pages.Count})", true);
-            applyBtn.Click += (_, _2) => CommitAndClose();
+            var applyBtn = _applyButton = UiKit.Make(S("Str_Tf_Apply"), true);
+            applyBtn.Click += async (_, _2) => await ApplyCurrentAsync();
             applyBtn.IsDefault = true;   // Enter
             var footer = PageWindowLayout.Footer(resetAll, cancelBtn, applyBtn);
 
@@ -433,7 +457,7 @@ namespace KillerPDF
             {
                 BorderThickness = new Thickness(1),
                 CornerRadius = UiKit.RadCard,
-                Margin = new Thickness(8, 8, 8, pages.Count > 1 ? 0 : 8),
+                Margin = new Thickness(8, 8, 8, _pageCount > 1 ? 0 : 8),
                 ClipToBounds = true
             };
             previewWrap.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
@@ -555,7 +579,18 @@ namespace KillerPDF
             };
 
             var previewColumn = new DockPanel();
-            if (pages.Count > 1)
+            if (_selection.Count > 1)
+            {
+                // Opened on several pages: Apply changes all of them at once while this is ticked, as before.
+                _applyToSelection = new CheckBox
+                {
+                    Content = string.Format(S("Str_Divide_Selected"), _selection.Count), IsChecked = true,
+                    Margin = new Thickness(10, 0, 8, 6), Foreground = R("TextBrush")
+                };
+                DockPanel.SetDock(_applyToSelection, Dock.Bottom);
+                previewColumn.Children.Add(_applyToSelection);
+            }
+            if (_pageCount > 1)
             {
                 var navigation = new Grid { Height = 36, Margin = new Thickness(8, 2, 8, 6) };
                 navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -593,7 +628,7 @@ namespace KillerPDF
             int columns = SystemParameters.WorkArea.Width < PageWindowLayout.OptionsWidth + 24 + 282 ? 1 : 2;
             var root = PageWindowLayout.Body(options, footer, previewColumn, out _, columns);
 
-            Content = DialogFrame.Frame(this, Owner, "KillerPDF - " + toolName, () => { Applied = false; Close(); }, root);
+            Content = DialogFrame.Frame(this, Owner, "KillerPDF - " + toolName, Close, root);
             // Color correction opens with focus on its first setting, Exposure, so Tab and the arrow keys
             // start there; a slider leaves Enter to Apply. Transform keeps today's open focus: its first
             // control is the 90-degree button, which would take Enter away from Apply.
@@ -611,10 +646,10 @@ namespace KillerPDF
             // batch previews unless a slider currently owns the key press.
             KeyDown += (_, e) =>
             {
-                if (e.Key == Key.Enter) CommitAndClose();
-                else if (_pages.Count > 1 && e.OriginalSource is not Slider && e.Key == Key.Left)
+                if (e.Key == Key.Enter) { _ = ApplyCurrentAsync(); e.Handled = true; }
+                else if (_pageCount > 1 && e.OriginalSource is not Slider && e.Key == Key.Left)
                 { ShowPreviewPage(_previewPageIndex - 1); e.Handled = true; }
-                else if (_pages.Count > 1 && e.OriginalSource is not Slider && e.Key == Key.Right)
+                else if (_pageCount > 1 && e.OriginalSource is not Slider && e.Key == Key.Right)
                 { ShowPreviewPage(_previewPageIndex + 1); e.Handled = true; }
             };
         }
@@ -652,11 +687,19 @@ namespace KillerPDF
             _previewTransform.Matrix = matrix;
         }
 
-        private void ShowPreviewPage(int index)
+        private PagePreview? PreviewFor(int index)
         {
-            if (index < 0 || index >= _pages.Count || index == _previewPageIndex) return;
+            if (_previews.TryGetValue(index, out var cached)) return cached;
+            if (_renderPage(index) is not { } rendered) return null;
+            _previews[index] = rendered;
+            return rendered;
+        }
+
+        private void ShowPreviewPage(int index, bool force = false)
+        {
+            if (_busy || index < 0 || index >= _pageCount || (index == _previewPageIndex && !force)) return;
+            if (PreviewFor(index) is not { } page) return;
             _previewPageIndex = index;
-            PagePreview page = _pages[index];
             _src = page.Source;
             _srcW = _src.PixelWidth;
             _srcH = _src.PixelHeight;
@@ -671,23 +714,56 @@ namespace KillerPDF
 
         private void UpdatePageNavigation()
         {
-            if (_pages.Count <= 1 || _pageCounter is null) return;
-            PagePreview page = _pages[_previewPageIndex];
-            _pageCounter.Text = $"{_previewPageIndex + 1} / {_pages.Count}    #{page.DocumentPageNumber}";
-            _previousPage.IsEnabled = _previewPageIndex > 0;
-            _nextPage.IsEnabled = _previewPageIndex + 1 < _pages.Count;
+            if (_pageCount <= 1 || _pageCounter is null) return;
+            _pageCounter.Text = $"{_previewPageIndex + 1} / {_pageCount}";
+            _previousPage.IsEnabled = !_busy && _previewPageIndex > 0;
+            _nextPage.IsEnabled = !_busy && _previewPageIndex + 1 < _pageCount;
         }
 
-        private void CommitAndClose()
+        // The live settings, copied into the properties the main window applies.
+        private void CaptureSettings()
         {
-            Applied = true;
             Angle = Total;
             Scale = _scale;
             FixedPage = _fixedPage;
             FlipH = _flipH;
             FlipV = _flipV;
             PerspectiveCorners = [.. PerspectiveCorners];
-            Close();
+        }
+
+        /// <summary>True when the captured settings would change a page.</summary>
+        internal bool HasChanges => Math.Abs(Angle) > 0.01 || Math.Abs(Scale - 1.0) > 0.001 || FlipH || FlipV
+            || !PerspectiveWarp.IsIdentity(PerspectiveCorners) || !LevelsIdentity(LevelBlack, LevelWhite, LevelGamma)
+            || !ColorAdjustments.IsIdentity || ColorMode != PageColorMode.Color || OutputDpi > 0 || UseJpegCompression;
+
+        // Apply changes the page on screen (or the opening selection while its box is ticked) and keeps the window
+        // open, so another page can be flipped to and changed; each Apply is its own undo step. The settings reset
+        // afterwards so a second Apply never doubles a change, and the page reloads from the changed document.
+        private async Task ApplyCurrentAsync()
+        {
+            if (_busy) return;
+            CaptureSettings();
+            if (!HasChanges) return;
+            IReadOnlyList<int> targets = _applyToSelection?.IsChecked == true ? _selection : [_previewPageIndex];
+            _busy = true;
+            _applyButton.IsEnabled = false;
+            UpdatePageNavigation();
+            bool changed;
+            try { changed = await _apply(this, targets); }
+            finally
+            {
+                _busy = false;
+                _applyButton.IsEnabled = true;
+            }
+            if (changed)
+            {
+                Applied = true;
+                foreach (int page in targets) _previews.Remove(page);
+                if (_applyToSelection is not null) _applyToSelection.IsChecked = false;   // done; next Applies go page by page
+                _resetAll();
+                ShowPreviewPage(_previewPageIndex, force: true);
+            }
+            UpdatePageNavigation();
         }
 
         private void ResetPerspective()

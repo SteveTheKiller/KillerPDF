@@ -1285,7 +1285,6 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Card_ItemsSelected">{0} éléments sélectionnés</sys:String>
     <sys:String x:Key="Str_Card_Style">Style</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Texte sélectionné</sys:String>
-    <sys:String x:Key="Str_Card_PlaceHere">Placer ici</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Page</sys:String>
 
     <!-- Cancellable-operation labels (fill {0} in Str_Dlg_CancelBusy) and busy-overlay messages -->

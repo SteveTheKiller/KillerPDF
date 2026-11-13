@@ -19,21 +19,16 @@ namespace KillerPDF.Shell
         {
             var menu = MakeThemedMenu();
             if (TryFindResource("CardMenu") is Style card) menu.Style = card;
+            // Three tiles and a header icon need less room than the kit card's 404 (Steve: make it less wide).
+            menu.MinWidth = menu.MaxWidth = 320;
             int selected = PageList.SelectedItems.Count;
             var row = page < PageList.Items.Count ? PageList.Items[page] as PageThumbnailVm : null;
 
-            menu.Items.Add(CardSlot(PageCardHeader(page, selected, row), new Thickness(4, 2, 4, 6)));
+            menu.Items.Add(CardSlot(PageCardHeader(menu, page, selected, row), new Thickness(4, 2, 4, 6)));
             var strip = QuickStrip(menu,
                 ("\uE8C8", Loc("Str_Ctx_DuplicatePage"), null, () => DuplicatePage(page), false, true),
-                ("\uE710", Loc("Str_Card_InsertBlank"), null, () => InsertBlankPage(page), false, true),
                 ("\uE8A7", Loc("Str_Ctx_ExtractPages"), null, () => Split_Click(this, new RoutedEventArgs()), false, true),
                 ("\uE74D", Loc("Str_Ctx_DeletePages"), "Del", () => Delete_Click(this, new RoutedEventArgs()), false, true));
-            // The caption is short so it fits under its glyph; the tooltip and screen readers get the whole action.
-            if (strip is Border { Child: UniformGrid buttons } && buttons.Children[1] is Button insert)
-            {
-                insert.ToolTip = Loc("Str_Ctx_InsertBlank");
-                System.Windows.Automation.AutomationProperties.SetName(insert, Loc("Str_Ctx_InsertBlank"));
-            }
             menu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, strip);
             menu.Items.Add(CardSlot(RotateRow(menu), new Thickness(6, 6, 6, 2)));
@@ -75,7 +70,7 @@ namespace KillerPDF.Shell
             return menu;
         }
 
-        private FrameworkElement PageCardHeader(int page, int selected, PageThumbnailVm? row)
+        private FrameworkElement PageCardHeader(ContextMenu menu, int page, int selected, PageThumbnailVm? row)
         {
             var thumb = new Border
             {
@@ -102,6 +97,18 @@ namespace KillerPDF.Shell
             var header = new DockPanel();
             DockPanel.SetDock(thumb, Dock.Left);
             header.Children.Add(thumb);
+            // Insert a blank page after this one: an icon at the header's right, so the strip below keeps three tiles.
+            var insert = new Button
+            {
+                Content = "\uE710", Width = 34, Height = 30, Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = Loc("Str_Ctx_InsertBlank")
+            };
+            if (TryFindResource("CardQuickButton") is Style quick) insert.Style = quick;
+            insert.Padding = new Thickness(0, 6, 0, 0);
+            System.Windows.Automation.AutomationProperties.SetName(insert, Loc("Str_Ctx_InsertBlank"));
+            insert.Click += (_, _) => { menu.IsOpen = false; InsertBlankPage(page); };
+            DockPanel.SetDock(insert, Dock.Right);
+            header.Children.Add(insert);
             header.Children.Add(text);
             System.Windows.Automation.AutomationProperties.SetName(header, title.Text);
             return header;

@@ -1272,7 +1272,6 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">{0} elementos seleccionados</sys:String>
     <sys:String x:Key="Str_Card_Style">Estilo</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Texto seleccionado</sys:String>
-    <sys:String x:Key="Str_Card_PlaceHere">Colocar aquí</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Página</sys:String>
     <sys:String x:Key="Str_Op_Repair">la reparación</sys:String>
     <sys:String x:Key="Str_Op_Operation">la operación</sys:String>

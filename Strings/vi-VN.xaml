@@ -1285,7 +1285,6 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Card_ItemsSelected">Đã chọn {0} mục</sys:String>
     <sys:String x:Key="Str_Card_Style">Kiểu</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Văn bản đã chọn</sys:String>
-    <sys:String x:Key="Str_Card_PlaceHere">Đặt tại đây</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Trang</sys:String>
 
     <!-- Nhãn tác vụ có thể hủy (điền {0} vào Str_Dlg_CancelBusy) và thông báo lớp phủ bận -->

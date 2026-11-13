@@ -189,29 +189,6 @@ namespace KillerPDF.Shell
                 FocusFirstActionFromKeyboard(_ctxMenu, textStrip);
             }
 
-            // Placement drops the item exactly where the user right-clicked.
-            var placeStrip = QuickStrip(_ctxMenu,
-                ("\uE8D2", Loc("Str_Lbl_Text"), "T", () =>
-                {
-                    SetTool(EditTool.Text);
-                    _activeCanvas = CanvasForPage(pageIdx);
-                    PlaceTextBox(pt, pageIdx);
-                }, false, true),
-                ("\uE8E4", Loc("Str_Paragraph_Title"), "AltShift:P", () => EditParagraph(pageIdx, pt), false, true),
-                ("\uEB9F", Loc("Str_Lbl_Image"), "I", () =>
-                {
-                    _activeCanvas = CanvasForPage(pageIdx);
-                    PlaceImageFromDialog(pt, pageIdx);
-                }, false, true),
-                ("\uEE56", Loc("Str_Lbl_Signature"), "G", () =>
-                {
-                    _activeCanvas = CanvasForPage(pageIdx);
-                    if (_pendingSignature is not null) PlaceSignature(pt, pageIdx);
-                    else { SetTool(EditTool.Signature); ShowSignaturePopup(); }
-                }, false, true));
-            _ctxMenu.Items.Add(CardSlot(LabelledStrip(Loc("Str_Card_PlaceHere"), placeStrip), new Thickness(0)));
-            FocusFirstActionFromKeyboard(_ctxMenu, placeStrip);   // only when no selected-text strip came first
-
             _ctxMenu.Items.Add(new Separator());
             _ctxMenu.Items.Add(BuildFieldPresetMenu(pt, pageIdx));
             _ctxMenu.Items.Add(BuildComparisonContextItem());

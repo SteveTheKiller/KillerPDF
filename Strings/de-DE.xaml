@@ -1278,7 +1278,6 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Card_ItemsSelected">{0} Elemente ausgewählt</sys:String>
     <sys:String x:Key="Str_Card_Style">Stil</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Ausgewählter Text</sys:String>
-    <sys:String x:Key="Str_Card_PlaceHere">Hier einfügen</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Seite</sys:String>
     <sys:String x:Key="Str_Op_Repair">Reparatur</sys:String>
     <sys:String x:Key="Str_Op_Operation">Vorgang</sys:String>

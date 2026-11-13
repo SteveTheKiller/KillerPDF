@@ -38,35 +38,34 @@ namespace KillerPDF.Shell
             // box that still has keyboard focus has not entered that layer yet, so opening Transform
             // directly after typing used to preview (and apply) the page without the new text.
             CommitActiveTextBox();
-            int pageIdx = PageList.SelectedIndex;
+            int pageIdx = Math.Max(0, PageList.SelectedIndex);
             int[] pageIndices = [.. PageList.SelectedItems.Cast<PageThumbnailVm>()
                 .Select(page => page.PageIndex).Distinct().OrderBy(index => index)];
             if (pageIndices.Length == 0) pageIndices = [pageIdx];
-            // Build a modest preview for every selected page. Transform settings remain shared, while
-            // the window can flip through the actual targets before applying the batch.
-            PdfEngineDocumentSession previewSession = EnsureEngineDocumentSession();
-            var previews = new List<TransformWindow.PagePreview>();
-            foreach (int selectedPage in pageIndices)
+
+            // Any page's preview, rendered when the window flips to it, with that page's annotations burned in.
+            TransformWindow.PagePreview? RenderPreview(int page)
             {
+                if (_doc is null || page < 0 || page >= _doc.PageCount) return null;
                 string? burned;
                 try
                 {
-                    // The preview burns the page's annotations into a temporary copy. A temp folder that refuses
-                    // the copy is reported like a failed Apply instead of escaping the toolbar click.
-                    burned = BurnPageAnnotationsToTemp(selectedPage).Path;
+                    // A temp folder that refuses the copy is reported like a failed Apply instead of escaping the click.
+                    burned = BurnPageAnnotationsToTemp(page).Path;
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
                     KillerDialog.Show(this, string.Format(Loc("Str_Tf_Failed"), ex.Message), "KillerPDF",
                         MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
+                    return null;
                 }
-                var src = RenderPageBitmap(selectedPage, 1100, burned);
-                if (src is null) { SetStatus(Loc("Str_Tf_NoRender")); return; }
-                var (pwpt, phpt) = previewSession.PhysicalPageSize(selectedPage, _pageRotations);
-                previews.Add(new TransformWindow.PagePreview(src, pwpt, phpt, selectedPage + 1,
-                    previewSession.PageImagePixels(selectedPage, _pageRotations)));
+                var src = RenderPageBitmap(page, 1100, burned);
+                if (src is null) { SetStatus(Loc("Str_Tf_NoRender")); return null; }
+                PdfEngineDocumentSession session = EnsureEngineDocumentSession();
+                var (pwpt, phpt) = session.PhysicalPageSize(page, _pageRotations);
+                return new TransformWindow.PagePreview(src, pwpt, phpt, page + 1, session.PageImagePixels(page, _pageRotations));
             }
+            if (RenderPreview(pageIndices[0]) is not { } first) return;
 
             // First-use warning that a transform rasterizes the page; persists the opt-out.
             if (App.GetSetting("RotateWarnAck") != "1")
@@ -78,21 +77,20 @@ namespace KillerPDF.Shell
                 if (dontWarn) App.SetSetting("RotateWarnAck", "1");
             }
 
-            var win = new TransformWindow(this, previews, mode);
+            // Apply changes the page in the window (or the opening selection) and the window stays open, so the
+            // next page can be flipped to and changed; each Apply is its own undo step.
+            var win = new TransformWindow(this, _doc.PageCount, pageIndices, first, RenderPreview,
+                (window, pages) => window.HasChanges
+                    ? ApplyPageTransformsAsync(pages, window.Angle, window.Scale, window.FixedPage, window.FlipH, window.FlipV,
+                        window.PerspectiveCorners, window.LevelBlack, window.LevelWhite, window.LevelGamma,
+                        window.ColorMode, window.BlackWhiteThreshold, window.OutputDpi,
+                        window.UseJpegCompression, window.JpegQuality, window.ColorAdjustments)
+                    : Task.FromResult(false), mode);
             win.ShowDialog();
-            if (win.Applied && (Math.Abs(win.Angle) > 0.01 || Math.Abs(win.Scale - 1.0) > 0.001 ||
-                win.FlipH || win.FlipV || !PerspectiveWarp.IsIdentity(win.PerspectiveCorners) ||
-                !TransformWindow.LevelsIdentity(win.LevelBlack, win.LevelWhite, win.LevelGamma) ||
-                !win.ColorAdjustments.IsIdentity || win.ColorMode != PageColorMode.Color || win.OutputDpi > 0 ||
-                win.UseJpegCompression))
-                ApplyPageTransforms(pageIndices, win.Angle, win.Scale, win.FixedPage, win.FlipH, win.FlipV,
-                    win.PerspectiveCorners, win.LevelBlack, win.LevelWhite, win.LevelGamma,
-                    win.ColorMode, win.BlackWhiteThreshold, win.OutputDpi,
-                    win.UseJpegCompression, win.JpegQuality, win.ColorAdjustments);
         }
 
         // Rasterizes every selected page with one transform setup and swaps the batch in as one undo step.
-        private async void ApplyPageTransforms(IReadOnlyList<int> pageIndices, double angleDeg,
+        private async Task<bool> ApplyPageTransformsAsync(IReadOnlyList<int> pageIndices, double angleDeg,
             double scale, bool fixedPage, bool flipH, bool flipV, Point[] perspectiveCorners,
             int levelBlack = 0, int levelWhite = 255, double levelGamma = 1.0,
             PageColorMode colorMode = PageColorMode.Color,
@@ -100,11 +98,11 @@ namespace KillerPDF.Shell
             bool useJpegCompression = false, int jpegQuality = 85,
             ColorCorrectionSettings? colorAdjustments = null)
         {
-            if (_doc is null || _currentFile is null) return;
-            if (!EnsureEditable(continueAfterUnlock: false)) return;
+            if (_doc is null || _currentFile is null) return false;
+            if (!EnsureEditable(continueAfterUnlock: false)) return false;
             PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
             int[] pages = [.. pageIndices.Distinct().OrderBy(index => index)];
-            if (pages.Length == 0 || pages.Any(index => index < 0 || index >= engineSession.PageCount)) return;
+            if (pages.Length == 0 || pages.Any(index => index < 0 || index >= engineSession.PageCount)) return false;
 
             var sourceViewer = ActiveViewer;
             var sourceSession = sourceViewer.ActiveSessionExt;
@@ -120,7 +118,7 @@ namespace KillerPDF.Shell
                 busy = ShowBusyOverlay($"{Loc("Str_Tf_Suffix")}: 1/{pages.Length}");
                 await System.Windows.Threading.Dispatcher.Yield(
                     System.Windows.Threading.DispatcherPriority.Background);
-                if (!IsSourceCurrent() || ct.IsCancellationRequested) return;
+                if (!IsSourceCurrent() || ct.IsCancellationRequested) return false;
 
                 // Retain the complete pre-transform state for the central history push.
                 UndoEntry? documentUndo = CaptureDocumentUndo();
@@ -137,13 +135,13 @@ namespace KillerPDF.Shell
                     if (ct.IsCancellationRequested)
                     {
                         SetStatus(Loc("Str_St_Canceled"));
-                        return;
+                        return false;
                     }
                     int pageIdx = pages[i];
                     SetBusyMessage(busy, $"{Loc("Str_Tf_Suffix")}: {i + 1}/{pages.Length}");
                     await System.Windows.Threading.Dispatcher.Yield(
                         System.Windows.Threading.DispatcherPriority.Background);
-                    if (!IsSourceCurrent() || ct.IsCancellationRequested) return;
+                    if (!IsSourceCurrent() || ct.IsCancellationRequested) return false;
 
                     PageBake bake = BurnPageAnnotationsToTemp(pageIdx);
                     string? burned = bake.Path;
@@ -186,7 +184,7 @@ namespace KillerPDF.Shell
                 if (ct.IsCancellationRequested)
                 {
                     SetStatus(Loc("Str_St_Canceled"));
-                    return;
+                    return false;
                 }
                 SaveTempAndReload(
                     keepAnnotations: true,
@@ -219,6 +217,7 @@ namespace KillerPDF.Shell
                     ? string.Format(Loc("Str_Tf_Done"), pages[0] + 1)
                     : string.Format(Loc("Str_Tf_DoneBatch"), pages.Length),
                     skippedPictures, Loc("Str_Save_PicturesSkipped")));
+                return true;
             }
             catch (Exception ex)
             {
@@ -230,6 +229,7 @@ namespace KillerPDF.Shell
                 if (busy is not null) HideBusyOverlay(busy);
                 EndCancellableOp(ct);
             }
+            return false;
         }
 
         // Saves the document with ONE page's annotations burned in, to a temp PDF, and returns its path

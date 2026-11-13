@@ -1280,7 +1280,6 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Card_ItemsSelected">Wybrane elementy: {0}</sys:String>
     <sys:String x:Key="Str_Card_Style">Styl</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Zaznaczony tekst</sys:String>
-    <sys:String x:Key="Str_Card_PlaceHere">Umieść tutaj</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Strona</sys:String>
     <sys:String x:Key="Str_Op_Repair">naprawa</sys:String>
     <sys:String x:Key="Str_Op_Operation">operacja</sys:String>

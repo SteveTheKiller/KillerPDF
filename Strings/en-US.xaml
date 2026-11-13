@@ -1292,7 +1292,6 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Card_ItemsSelected">{0} items selected</sys:String>
     <sys:String x:Key="Str_Card_Style">Style</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Selected text</sys:String>
-    <sys:String x:Key="Str_Card_PlaceHere">Place here</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Page</sys:String>
 
     <!-- Cancellable-operation labels (fill {0} in Str_Dlg_CancelBusy) and busy-overlay messages -->

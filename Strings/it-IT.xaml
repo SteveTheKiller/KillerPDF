@@ -1285,7 +1285,6 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Card_ItemsSelected">{0} elementi selezionati</sys:String>
     <sys:String x:Key="Str_Card_Style">Stile</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Testo selezionato</sys:String>
-    <sys:String x:Key="Str_Card_PlaceHere">Inserisci qui</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Pagina</sys:String>
 
     <!-- Cancellable-operation labels (fill {0} in Str_Dlg_CancelBusy) and busy-overlay messages -->

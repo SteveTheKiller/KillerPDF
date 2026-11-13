@@ -1188,7 +1188,6 @@
     <sys:String x:Key="Str_Card_ItemsSelected">Izbrani elementi: {0}</sys:String>
     <sys:String x:Key="Str_Card_Style">Slog</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Izbrano besedilo</sys:String>
-    <sys:String x:Key="Str_Card_PlaceHere">Vstavi sem</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Stran</sys:String>
     <sys:String x:Key="Str_Op_Repair">popravilo</sys:String>
     <sys:String x:Key="Str_Op_Operation">opravilo</sys:String>

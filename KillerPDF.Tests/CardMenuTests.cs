@@ -63,9 +63,11 @@ public sealed class CardMenuTests
         Assert.DoesNotContain("Str_Ctx_InsertBlank", handler);
 
         string card = Read("Shell", "PageCard.cs");
-        string strip = Between(card, "var strip = QuickStrip(menu,", "// The caption is short");
-        // Four tiles; rotation sits under them as two half-width buttons (Steve: six icons was too wide).
-        Assert.Equal(4, Count(strip, "Loc(\"Str_"));
+        string strip = Between(card, "var strip = QuickStrip(menu,", "menu.Items.Add(CardSlot(strip");
+        // Three tiles; Blank page is an icon in the header and rotation sits under the tiles (Steve: narrower card).
+        Assert.Equal(3, Count(strip, "Loc(\"Str_"));
+        Assert.Contains("header.Children.Add(insert);", card);
+        Assert.Contains("menu.MinWidth = menu.MaxWidth = 320;", card);
         string rotate = Between(card, "private FrameworkElement RotateRow(", "private Button CompactCardButton(");
         Assert.Contains("Str_Ctx_RotateCCWShort", rotate);
         Assert.Contains("Str_Ctx_RotateCWShort", rotate);
@@ -76,7 +78,7 @@ public sealed class CardMenuTests
         Assert.Contains("sidebar.Items.Add(row);", side);
         Assert.DoesNotContain("Header = Loc(\"Str_Sidebar\"), IsEnabled = false", side);
         // The short caption keeps the full action as its tooltip and accessible name.
-        Assert.Contains("insert.ToolTip = Loc(\"Str_Ctx_InsertBlank\");", card);
+        Assert.Contains("ToolTip = Loc(\"Str_Ctx_InsertBlank\")", card);
         Assert.Contains("\"CardMenu\"", card);
         // The scanner cleanup, the extract-from-page tools and the moves fold into three submenus.
         Assert.Contains("cleanUp.Items.Add(", card);
@@ -85,7 +87,7 @@ public sealed class CardMenuTests
         // Review BF-007: the card names the clicked page, because its single-page actions act on that page, and
         // Insert blank page goes after it.
         Assert.DoesNotContain("Str_Card_AllSelected", card);
-        Assert.Contains("() => InsertBlankPage(page)", card);
+        Assert.Contains("InsertBlankPage(page);", card);
     }
 
     [Fact]
@@ -110,7 +112,8 @@ public sealed class CardMenuTests
         // r2 BF-004/005/009: the page menu's strips, the page list's Menu key, and the selected mark itself.
         string menu2 = Read("Shell", "ContextMenu.cs");
         Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, textStrip);", menu2);
-        Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, placeStrip);", menu2);
+        // Place here is gone from the page menu (Steve); Text, Paragraph, Image and Signature keep their tools and keys.
+        Assert.DoesNotContain("Str_Card_PlaceHere", menu2);
         Assert.Contains("var hit = target ?? AnnotationAt(pt, pageIdx);", menu2);
         string keys = Read("Shell", "KeyboardShortcuts.cs");
         Assert.Contains("if (!OpenPageCardFromKeyboard()) OpenContextMenuAtSelection();", keys);

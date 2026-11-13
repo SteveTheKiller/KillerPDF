@@ -89,10 +89,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Saving many text notes or edited lines is faster and makes a much smaller file, because text in one font shares one embedded copy of it. In a 3,000-page test on a slower test PC, a note on every page saves in about 7.5 s instead of 32 s and makes an 11 MB file instead of 103 MB, and an edited line on every page saves in about 7 s instead of 32 s and makes a 10 MB file instead of 99 MB, using well under half the memory.
 - Right-clicking a page thumbnail opens a card with the page's size, orientation and markup count, quick buttons to rotate, duplicate, insert a blank page, extract and delete, and the cleanup, extract-from-page and move tools in three short submenus.
 - Right-clicking markup opens a card with quick buttons to edit, copy, raise, lower, group and delete it. A highlight, filled rectangle or drawing changes color and opacity right on the card, a drawing its width, and a highlight turns into an underline or strikethrough in place.
-- The page menu is shorter: Back, Forward, Undo, Redo and Print share its top row with the page number, the selected-text and place-here tools are icon strips, and the page tools sit under Page.
+- The page menu is shorter: Back, Forward, Undo, Redo and Print share its top row with the page number, the selected-text tools are an icon strip, and the page tools sit under Page.
 - Delete Pages takes one step: the range, a strip that marks the pages going (a run of pages is one tile, so a long document stays quick), and a button that says how many. The Yes/No box that followed it is gone.
 - Buttons are flat, and a dialog's close button sits in its corner.
 - Shortcuts in the page and markup cards sit at the right edge of each row, and the sidebar position and two-page thumbnails moved into one Sidebar row with a flyout at the foot of the sidebar menus.
+- Transform and Color correction flip through every page of the document. Apply changes the page on screen and keeps the window open, so the next page can be fixed without reopening it, and a window opened on several selected pages can still change them all at once.
+- The page card puts Insert blank page beside its title and is narrower, and the page menu no longer has a Place here row; Text, Paragraph, Image and Signature keep their toolbar buttons and keys.
 - Production layouts, Form data, Preflight and the other document tool launchers show each command as an icon tile in a grid instead of a column of identical buttons.
 
 ### Added

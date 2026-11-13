@@ -1277,7 +1277,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Card_ItemsSelected">Vybrané položky: {0}</sys:String>
     <sys:String x:Key="Str_Card_Style">Styl</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Vybraný text</sys:String>
-    <sys:String x:Key="Str_Card_PlaceHere">Vložit sem</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Stránka</sys:String>
     <sys:String x:Key="Str_Op_Repair">oprava</sys:String>
     <sys:String x:Key="Str_Op_Operation">operace</sys:String>
