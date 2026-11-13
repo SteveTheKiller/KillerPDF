@@ -109,8 +109,55 @@ public sealed class PdfProofPaperWhiteTests
                 new PdfProofOptions { BlackPointCompensation = false, SimulatePaper = true, SimulateBlack = simulateBlack })
         });
 
+        // Source white keeps the reverse table's trace of ink under paper simulation. Paper-only
+        // viewing then maps the profile's black estimate to zero and keeps the paper fixed.
+        var printer = MisalignedPrinter(alignedForwardWhite);
+        double[] device = new double[4], xyz = new double[3];
+        printer.FromXyz([0.9642, 1, 0.8249], device, PdfRenderingIntent.RelativeColorimetric);
+        printer.ToXyz(device, xyz, PdfRenderingIntent.AbsoluteColorimetric);
+        double expected = xyz[1];
+        if (!simulateBlack)
+        {
+            printer.ToXyz(new double[4], xyz, PdfRenderingIntent.AbsoluteColorimetric);
+            double paper = xyz[1];
+            printer.FromXyz([0, 0, 0], device, PdfRenderingIntent.Perceptual);
+            printer.ToXyz(device, xyz, PdfRenderingIntent.AbsoluteColorimetric);
+            expected = (expected - xyz[1]) * paper / (paper - xyz[1]);
+        }
         for (int channel = 0; channel < 3; channel++)
-            Assert.InRange(frame.Pixels[channel], .8f - 2e-4f, .8f + 2e-4f);
+            Assert.InRange(frame.Pixels[channel], expected - 2e-4, expected + 2e-4);
+    }
+
+    // Paper simulation keeps the profile's own endpoints: source white goes through the reverse
+    // table as it stands, trace of ink included, and comes back through the absolute forward table.
+    // The same printer without paper simulation still prints white as no ink.
+    [Fact]
+    public void PaperSimulationProofsSourceWhiteThroughTheProfileTablesWithoutTheWhiteCorrection()
+    {
+        var printer = MisalignedPrinter(alignedForwardWhite: true);
+        double[] device = new double[4], xyz = new double[3];
+        printer.FromXyz([0.9642, 1, 0.8249], device, PdfRenderingIntent.RelativeColorimetric);
+        printer.ToXyz(device, xyz, PdfRenderingIntent.AbsoluteColorimetric);
+        double expected = xyz[1];
+        Assert.True(Math.Abs(expected - .8) > 1e-2);
+        var renderer = new PdfPageRenderer(PdfDocument.Open(WhitePage()));
+
+        var simulated = renderer.RenderFrame(0, new PdfRenderOptions(2, 2)
+        {
+            Proof = new PdfDocumentProofSettings(true, printer,
+                new PdfProofOptions { BlackPointCompensation = false, SimulatePaper = true, SimulateBlack = true })
+        });
+        var relative = renderer.RenderFrame(0, new PdfRenderOptions(2, 2)
+        {
+            Proof = new PdfDocumentProofSettings(true, printer,
+                new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        });
+
+        for (int channel = 0; channel < 3; channel++)
+        {
+            Assert.InRange(simulated.Pixels[channel], expected - 2e-4, expected + 2e-4);
+            Assert.InRange(relative.Pixels[channel], 1 - 1e-6f, 1 + 1e-6f);
+        }
     }
 
     // DjVu and EPUB pages take the same proof chain.

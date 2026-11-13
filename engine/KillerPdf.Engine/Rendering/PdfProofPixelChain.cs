@@ -54,7 +54,7 @@ internal sealed class PdfProofPixelChain
         Span<double> xyz = stackalloc double[3];
         Span<double> noInk = stackalloc double[3];
         printer.ToXyz(_deviceWhite, noInk, PdfRenderingIntent.RelativeColorimetric);
-        if (options.RenderingIntent != PdfRenderingIntent.AbsoluteColorimetric)
+        if (!options.SimulatePaper && options.RenderingIntent != PdfRenderingIntent.AbsoluteColorimetric)
         {
             // Compensation keeps reference white fixed, so source white reaches the table unchanged.
             // The error is measured as the color the printer would put down instead of no ink.
