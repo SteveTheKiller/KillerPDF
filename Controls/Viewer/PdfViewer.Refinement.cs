@@ -54,8 +54,14 @@ public partial class PdfViewer
     internal void RefreshHighlighterMarks()
     {
         // The dark look is asked only for a canvas that holds a mark: it can read the document for kept pictures.
-        if (_annotationCanvas.Tag is int primary) HighlighterLook.Refresh(_annotationCanvas, () => HighlighterDarkLook(primary));
-        foreach (var (page, canvas) in _continuousCanvases) HighlighterLook.Refresh(canvas, () => HighlighterDarkLook(page));
+        // One open of the document serves every marked page, and it is released before this returns.
+        Services.PdfContentDocument? content = null;
+        try
+        {
+            if (_annotationCanvas.Tag is int primary) HighlighterLook.Refresh(_annotationCanvas, () => HighlighterDarkLook(primary, ref content));
+            foreach (var (page, canvas) in _continuousCanvases) HighlighterLook.Refresh(canvas, () => HighlighterDarkLook(page, ref content));
+        }
+        finally { content?.Dispose(); }
     }
 
     /// <summary>
@@ -63,17 +69,21 @@ public partial class PdfViewer
     /// unless images invert too; a book page is inverted only when images invert too. Pictures come from the same cached
     /// boxes the page render keeps, turned with the page.
     /// </summary>
-    private HighlighterLook.Dark HighlighterDarkLook(int page)
+    private HighlighterLook.Dark HighlighterDarkLook(int page, ref Services.PdfContentDocument? content)
     {
         if (!DocInvert) return HighlighterLook.Dark.Off;
         if (_nativeDoc is not null) return BitmapHelpers.DocInvertImages ? new(true, []) : HighlighterLook.Dark.Off;
         if (BitmapHelpers.DocInvertImages || _currentFile is null) return new(true, []);
-        Services.PdfContentDocument? content = null;
-        BitmapHelpers.FracRect[] boxes;
-        try { boxes = ImageRectsFor(_currentFile, _protection, page, ref content); }
-        finally { content?.Dispose(); }
+        var boxes = ImageRectsFor(_currentFile, _protection, page, ref content);
         int rotation = _pageRotations.TryGetValue(page, out int turned) ? turned : 0;
         return new(true, [.. boxes.Select(box => HighlighterLook.KeptOnPage(box.L, box.T, box.R, box.B, rotation))]);
+    }
+
+    private HighlighterLook.Dark HighlighterDarkLook(int page)
+    {
+        Services.PdfContentDocument? content = null;
+        try { return HighlighterDarkLook(page, ref content); }
+        finally { content?.Dispose(); }
     }
 
     private void RefineVisibleRegions() => VisibleRefinementTask = RefineVisibleAsync();

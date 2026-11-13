@@ -721,4 +721,22 @@ public sealed class HighlighterLookTests
 
         AssertPixel(pixels, 15, 5, 255, 255, 0);
     });
+
+    // Turning dark mode on empties the image-box cache and then asks for the dark look of every marked page, so the
+    // refresh opens the document once and shares it across the pages, the way a render loop does. The viewer needs a
+    // real window to construct, so what the refresh must do is pinned from its source.
+    [Fact]
+    public void TheDarkRefreshOpensTheDocumentOnceForAllMarkedPages()
+    {
+        string source = ShellSource.Read("Controls", "Viewer", "PdfViewer.Refinement.cs");
+        string refresh = ShellSource.Between(source, "internal void RefreshHighlighterMarks()", "private HighlighterLook.Dark HighlighterDarkLook(");
+        string look = ShellSource.Between(source, "private HighlighterLook.Dark HighlighterDarkLook(", "private HighlighterLook.Dark HighlighterDarkLook(int page)");
+
+        Assert.Contains("HighlighterDarkLook(int page, ref Services.PdfContentDocument? content)", look, StringComparison.Ordinal);
+        Assert.DoesNotContain("Dispose()", look, StringComparison.Ordinal);
+        Assert.Equal(1, Count(refresh, "Services.PdfContentDocument? content = null;"));
+        Assert.Equal(2, Count(refresh, "ref content"));
+        Assert.Contains("finally", refresh, StringComparison.Ordinal);
+        Assert.Contains("content?.Dispose()", refresh, StringComparison.Ordinal);
+    }
 }
