@@ -73,7 +73,7 @@ namespace KillerPDF.Shell
             KbLayer.Shift => Loc("Str_Key_Shift").ToUpperInvariant(),
             KbLayer.Alt => Loc("Str_Key_Alt").ToUpperInvariant(),
             KbLayer.AltShift => $"{Loc("Str_Key_Alt").ToUpperInvariant()}+{Loc("Str_Key_Shift").ToUpperInvariant()}",
-            _ => "BASE",
+            _ => Loc("Str_KS_LayerBase").ToUpperInvariant(),
         };
 
         private static string? KbCapResource(string id) => id switch

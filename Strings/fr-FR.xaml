@@ -168,7 +168,7 @@ La page peut être remplacée par une image d'elle-même avec les zones marquée
     <sys:String x:Key="Str_CustomizeToolbar_Space">Côté gauche au-dessus, côté droit en dessous</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Séparateur</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Réinitialiser</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Barre d'outils masquée - Alt+M la réaffiche</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Barre d'outils masquée - {0} la réaffiche</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Barre d'outils affichée</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -197,8 +197,12 @@ La page peut être remplacée par une image d'elle-même avec les zones marquée
     <sys:String x:Key="Str_KS_PanView">Déplacer la vue</sys:String>
     <sys:String x:Key="Str_KS_Editing">ÉDITION</sys:String>
     <sys:String x:Key="Str_KS_Undo">Annuler</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Supprimer l'annotation sélectionnée</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Valider / annuler le texte ou le recadrage</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Supprimer l'annotation ou les pages sélectionnées</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Valider / annuler le recadrage ou la mesure</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Enregistrer le texte (Entrée ajoute une ligne)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Supprimer le dernier point</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Respecter la casse / mot entier (Rechercher du texte)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Base</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">RECHERCHER &amp; SÉLECTIONNER</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -344,7 +348,7 @@ L'enregistrement remplace le fichier et supprime sa signature. Pour conserver le
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">L'autre volet a également « {0} » ouvert, avec ses propres modifications non enregistrées.
 
 L'enregistrement va écraser le fichier et ces modifications seront perdues. Enregistrez d'abord l'autre volet si vous souhaitez les conserver.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Volet divisé activé - F10 pour fermer</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Volet divisé activé - {0} pour fermer</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Volet divisé désactivé</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Installer KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">Installer KillerPDF sur cet ordinateur ?</sys:String>
@@ -1011,7 +1015,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <!-- View-mode + full-screen shortcuts -->
     <sys:String x:Key="Str_KS_View">AFFICHAGE</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Plein écran</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Appuyez sur F11 ou Échap pour quitter le plein écran</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Appuyez sur {0} ou Échap pour quitter le plein écran</sys:String>
     <!-- Quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">Quitter KillerPDF ?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Fermer mes onglets ouverts</sys:String>
@@ -1144,6 +1148,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Key_PgUp">Pg préc</sys:String>
     <sys:String x:Key="Str_Key_PgDn">Pg suiv</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Retour arrière</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Molette</sys:String>
     <sys:String x:Key="Str_Key_Click">Clic</sys:String>
     <sys:String x:Key="Str_Key_Or">ou</sys:String>

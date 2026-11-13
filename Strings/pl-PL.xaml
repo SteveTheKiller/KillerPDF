@@ -168,7 +168,7 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_CustomizeToolbar_Space">Wyżej lewa strona, niżej prawa</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Separator</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Resetuj</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Pasek narzędzi ukryty - Alt+M przywraca go</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Pasek narzędzi ukryty - {0} przywraca go</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Pasek narzędzi widoczny</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -197,8 +197,12 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_KS_PanView">Przesuń widok</sys:String>
     <sys:String x:Key="Str_KS_Editing">EDYTOWANIE</sys:String>
     <sys:String x:Key="Str_KS_Undo">Cofnij</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Usuń zaznaczoną adnotację</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Potwierdź / anuluj tekst lub kadrowanie</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Usuń zaznaczoną adnotację lub strony</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Potwierdź / anuluj kadrowanie lub pomiar</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Zapisz tekst (Enter dodaje wiersz)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Usuń ostatni punkt</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Uwzględniaj wielkość liter / całe wyrazy (Znajdź tekst)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Podstawa</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">WYSZUKIWANIE &amp; WYBIERZ</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -344,7 +348,7 @@ Zapisanie zastąpi plik i usunie jego podpis. Aby zachować podpisany plik, anul
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">W drugim okienku również jest otwarty plik "{0}" z własnymi niezapisanymi zmianami.
 
 Zapisanie teraz nadpisze plik, a te zmiany zostaną utracone. Jeśli chcesz je zachować, najpierw zapisz drugie okienko.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Włączono podział panelu - F10, aby zamknąć</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Włączono podział panelu - {0}, aby zamknąć</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Wyłączono podział panelu</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Zainstaluj KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">Zainstalować program KillerPDF na tym komputerze?</sys:String>
@@ -982,7 +986,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <!-- View-mode + full-screen shortcuts -->
     <sys:String x:Key="Str_KS_View">WIDOK</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Pełny ekran</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Naciśnij F11 lub Esc do wyjścia z trybu pełnoekranowego</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Naciśnij {0} lub Esc do wyjścia z trybu pełnoekranowego</sys:String>
     <!-- Quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">Opuścić KillerPDF?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Zamknij moje otwarte karty</sys:String>
@@ -1109,6 +1113,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Kółko</sys:String>
     <sys:String x:Key="Str_Key_Click">Kliknięcie</sys:String>
     <sys:String x:Key="Str_Key_Or">lub</sys:String>

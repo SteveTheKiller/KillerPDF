@@ -164,7 +164,7 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_CustomizeToolbar_Space">Üstte sol taraf, altta sağ taraf</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Ayırıcı</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Sıfırla</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Araç çubuğu gizlendi - Alt+M yeniden gösterir</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Araç çubuğu gizlendi - {0} yeniden gösterir</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Araç çubuğu gösteriliyor</sys:String>
     <sys:String x:Key="Str_Lang_English">İngilizce</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">İspanyolca</sys:String>
@@ -193,8 +193,12 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_KS_PanView">Görünümü kaydır</sys:String>
     <sys:String x:Key="Str_KS_Editing">DÜZENLEME</sys:String>
     <sys:String x:Key="Str_KS_Undo">Geri al</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Seçili açıklamayı sil</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Metni veya kırpmayı onayla / iptal et</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Seçili açıklamayı veya sayfaları sil</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Kırpmayı veya ölçümü onayla / iptal et</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Metni kaydet (Enter yeni satır ekler)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Son noktayı kaldır</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Büyük/küçük harf eşleştir / tam sözcük (Metin bul)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Temel</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">ARA &amp; SEÇ</sys:String>
     <sys:String x:Key="Str_KS_Find">Metin bul</sys:String>
     <sys:String x:Key="Str_KS_Replace">Bul ve değiştir</sys:String>
@@ -279,7 +283,7 @@ Kaydetmek dosyayı değiştirir ve imzasını kaldırır. İmzalı dosyayı koru
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">Diğer bölmede de "{0}" açık ve kendi kaydedilmemiş değişiklikleri var.
 
 Şimdi kaydetmek dosyanın üzerine yazar ve bu değişiklikler kaybolur. Korumak istiyorsanız önce diğer bölmeyi kaydedin.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Bölünmüş görünüm açık - kapatmak için F10</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Bölünmüş görünüm açık - kapatmak için {0}</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Bölünmüş görünüm kapalı</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF'i Yükle</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">KillerPDF bu bilgisayara yüklensin mi?</sys:String>
@@ -923,7 +927,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Crop_AllTip">Her sayfayı kırp</sys:String>
     <sys:String x:Key="Str_KS_View">GÖRÜNÜM</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Tam ekran</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Tam ekrandan çıkmak için F11 veya Esc'e basın</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Tam ekrandan çıkmak için {0} veya Esc'e basın</sys:String>
     <!-- Quit prompt -->
     <sys:String x:Key="Str_Dlg_QuitMsg">KillerPDF'den çıkılsın mı?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Açık sekmelerimi kapat</sys:String>
@@ -1112,6 +1116,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Kaydırma</sys:String>
     <sys:String x:Key="Str_Key_Click">Tıklama</sys:String>
     <sys:String x:Key="Str_Key_Or">veya</sys:String>

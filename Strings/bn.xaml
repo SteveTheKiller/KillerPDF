@@ -164,7 +164,7 @@
     <sys:String x:Key="Str_CustomizeToolbar_Space">উপরে বাম দিক, নিচে ডান দিক</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">বিভাজক</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">রিসেট</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">টুলবার লুকানো হয়েছে - Alt+M আবার দেখাবে</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">টুলবার লুকানো হয়েছে - {0} আবার দেখাবে</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">টুলবার দেখানো হয়েছে</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -193,8 +193,12 @@
     <sys:String x:Key="Str_KS_PanView">ভিউ প্যান করুন</sys:String>
     <sys:String x:Key="Str_KS_Editing">সম্পাদনা</sys:String>
     <sys:String x:Key="Str_KS_Undo">পূর্বাবস্থায় ফেরান</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">নির্বাচিত অ্যানোটেশন মুছুন</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">টেক্সট বা ক্রপ নিশ্চিত / বাতিল করুন</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">নির্বাচিত অ্যানোটেশন বা পৃষ্ঠা মুছুন</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">ক্রপ বা পরিমাপ নিশ্চিত / বাতিল করুন</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">টেক্সট সংরক্ষণ (Enter নতুন লাইন যোগ করে)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">শেষ বিন্দু সরান</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">বড় ও ছোট হাতের অক্ষর মেলান / সম্পূর্ণ শব্দ (লেখা খুঁজুন)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">মূল</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">অনুসন্ধান &amp; নির্বাচন</sys:String>
     <sys:String x:Key="Str_KS_Find">লেখা খুঁজুন</sys:String>
     <sys:String x:Key="Str_KS_Replace">খুঁজুন ও প্রতিস্থাপন করুন</sys:String>
@@ -279,7 +283,7 @@
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">অন্য প্যানেও "{0}" খোলা আছে এবং সেখানে নিজস্ব অসংরক্ষিত পরিবর্তন রয়েছে।
 
 এখন সংরক্ষণ করলে ফাইলটি ওভাররাইট হবে এবং সেই পরিবর্তনগুলি হারিয়ে যাবে। রাখতে চাইলে আগে অন্য প্যানটি সংরক্ষণ করুন।</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">স্প্লিট প্যান চালু - বন্ধ করতে F10</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">স্প্লিট প্যান চালু - বন্ধ করতে {0}</sys:String>
     <sys:String x:Key="Str_St_SplitOff">স্প্লিট প্যান বন্ধ</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF ইনস্টল করুন</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">এই কম্পিউটারে KillerPDF ইনস্টল করবেন?</sys:String>
@@ -923,7 +927,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Crop_AllTip">প্রতিটি পৃষ্ঠা ক্রপ করুন</sys:String>
     <sys:String x:Key="Str_KS_View">ভিউ</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">পূর্ণ স্ক্রিন</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">পূর্ণ স্ক্রিন থেকে বের হতে F11 বা Esc চাপুন</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">পূর্ণ স্ক্রিন থেকে বের হতে {0} বা Esc চাপুন</sys:String>
     <!-- Quit prompt -->
     <sys:String x:Key="Str_Dlg_QuitMsg">KillerPDF থেকে বেরোবেন?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">আমার খোলা ট্যাব বন্ধ করুন</sys:String>
@@ -1112,6 +1116,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">স্ক্রল</sys:String>
     <sys:String x:Key="Str_Key_Click">ক্লিক</sys:String>
     <sys:String x:Key="Str_Key_Or">বা</sys:String>

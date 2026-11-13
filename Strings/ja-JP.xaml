@@ -168,7 +168,7 @@
     <sys:String x:Key="Str_CustomizeToolbar_Space">上が左側、下が右側</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">区切り線</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">リセット</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">ツールバーを非表示にしました - Alt+M で再表示</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">ツールバーを非表示にしました - {0} で再表示</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">ツールバーを表示しました</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -197,8 +197,12 @@
     <sys:String x:Key="Str_KS_PanView">ビューをパン</sys:String>
     <sys:String x:Key="Str_KS_Editing">編集</sys:String>
     <sys:String x:Key="Str_KS_Undo">元に戻す</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">選択した注釈を削除</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">テキストまたはトリミングを確定 / キャンセル</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">選択した注釈またはページを削除</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">トリミングまたは計測を確定 / キャンセル</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">テキストを保存 (Enterで改行)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">最後の点を削除</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">大文字と小文字を区別 / 単語単位 (テキストを検索)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">基本</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">検索 &amp; 選択</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -344,7 +348,7 @@
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">もう一方のペインでも「{0}」が開かれており、そちらにも未保存の変更があります。
 
 ここで保存するとファイルが上書きされ、その変更は失われます。残したい場合は先にもう一方のペインを保存してください。</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">分割表示オン - F10 で閉じる</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">分割表示オン - {0} で閉じる</sys:String>
     <sys:String x:Key="Str_St_SplitOff">分割表示オフ</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF をインストール</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">KillerPDF をこのコンピューターにインストールしますか？</sys:String>
@@ -1011,7 +1015,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <!-- 表示モード + 全画面ショートカット -->
     <sys:String x:Key="Str_KS_View">表示</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">全画面</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">F11 または Esc で全画面を終了します</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">{0} または Esc で全画面を終了します</sys:String>
     <!-- KillerFind-style quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">KillerPDF を終了しますか？</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">開いているタブを閉じる</sys:String>
@@ -1144,6 +1148,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">スクロール</sys:String>
     <sys:String x:Key="Str_Key_Click">クリック</sys:String>
     <sys:String x:Key="Str_Key_Or">または</sys:String>

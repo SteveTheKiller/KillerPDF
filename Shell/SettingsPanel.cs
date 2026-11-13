@@ -400,7 +400,7 @@ namespace KillerPDF.Shell
             ToolbarRowBorder.Visibility = hidden ? Visibility.Collapsed : Visibility.Visible;
             App.SetSetting("ToolbarHidden", hidden ? "1" : "0");
             SyncToolbarMenuChecks();
-            SetStatus(Loc(hidden ? "Str_St_ToolbarHidden" : "Str_St_ToolbarShown"));
+            SetStatus(hidden ? string.Format(Loc("Str_St_ToolbarHidden"), GestureFor("Alt:M")) : Loc("Str_St_ToolbarShown"));
         }
 
 

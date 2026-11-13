@@ -154,7 +154,7 @@
     <sys:String x:Key="Str_CustomizeToolbar_Space">Leva stran zgoraj, desna stran spodaj</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Ločilo</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Ponastavi</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Orodna vrstica je skrita. Za ponovni prikaz pritisnite Alt+M</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Orodna vrstica je skrita. Za ponovni prikaz pritisnite {0}</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Orodna vrstica je prikazana</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -181,8 +181,12 @@
     <sys:String x:Key="Str_KS_PanView">Premakni pogled</sys:String>
     <sys:String x:Key="Str_KS_Editing">UREJANJE</sys:String>
     <sys:String x:Key="Str_KS_Undo">Razveljavi</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Izbriši izbrano pripombo</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Potrdi / prekliči besedilo ali obrezovanje</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Izbriši izbrano pripombo ali strani</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Potrdi / prekliči obrezovanje ali merjenje</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Shrani besedilo (Enter doda vrstico)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Odstrani zadnjo točko</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Razlikuj velike in male črke / cela beseda (Poišči besedilo)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Osnova</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">ISKANJE IN IZBIRA</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
     <sys:String x:Key="Str_TT_DocInfo">Informacije o dokumentu (F4)</sys:String>
@@ -316,7 +320,7 @@
     <sys:String x:Key="Str_RotateFailed">Vrtenje ni uspelo: {0}</sys:String>
     <sys:String x:Key="Str_Dlg_SaveRemovesSignature">Datoteka »{0}« je digitalno podpisana.&#10;&#10;Shranjevanje nadomesti datoteko in odstrani njen podpis. Če želite ohraniti podpisano datoteko, prekličite in uporabite Shrani kot z drugim imenom.</sys:String>
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty">V drugem podoknu je prav tako odprta datoteka »{0}« z lastnimi neshranjenimi spremembami.&#10;&#10;Če zdaj shranite, prepišete datoteko in te spremembe se izgubijo. Če jih želite ohraniti, najprej shranite drugo podokno.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Razdeljen pogled je vklopljen. Za zapiranje pritisnite F10</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Razdeljen pogled je vklopljen. Za zapiranje pritisnite {0}</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Razdeljen pogled je izklopljen</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Namesti KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">Želite namestiti KillerPDF v ta računalnik?</sys:String>
@@ -938,7 +942,7 @@
     <sys:String x:Key="Str_Crop_AllTip">Obreži vse strani</sys:String>
     <sys:String x:Key="Str_KS_View">POGLED</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Celozaslonski način</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Za izhod iz celozaslonskega načina pritisnite F11 ali Esc</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Za izhod iz celozaslonskega načina pritisnite {0} ali Esc</sys:String>
     <sys:String x:Key="Str_Dlg_QuitMsg">Želite zapreti KillerPDF?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Zapri moje odprte zavihke</sys:String>
     <sys:String x:Key="Str_Btn_Quit">Izhod</sys:String>
@@ -1052,6 +1056,7 @@
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Drsenje</sys:String>
     <sys:String x:Key="Str_Key_Click">Klik</sys:String>
     <sys:String x:Key="Str_Key_Or">ali</sys:String>

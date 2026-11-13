@@ -168,7 +168,7 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_CustomizeToolbar_Space">Venstre side over, høyre side under</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Skillelinje</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Tilbakestill</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Verktøylinjen er skjult. Alt+M viser den igjen</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Verktøylinjen er skjult. {0} viser den igjen</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Verktøylinjen vises</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -197,8 +197,12 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_KS_PanView">Panorer visningen</sys:String>
     <sys:String x:Key="Str_KS_Editing">REDIGERING</sys:String>
     <sys:String x:Key="Str_KS_Undo">Angre</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Slett valgt merknad</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Bekreft / avbryt tekst eller beskjæring</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Slett valgt merknad eller valgte sider</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Bekreft / avbryt beskjæring eller måling</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Lagre tekst (Enter legger til en linje)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Fjern siste punkt</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Skill mellom store og små bokstaver / bare hele ord (Finn tekst)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Grunn</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">SØK &amp; MARKER</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -344,7 +348,7 @@ Hvis du lagrer, erstattes filen, og signaturen fjernes. Avbryt og bruk Lagre som
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">Det andre panelet har også «{0}» åpen, med egne ulagrede endringer.
 
 Hvis du lagrer nå, overskrives filen, og disse endringene går tapt. Lagre det andre panelet først hvis du vil beholde dem.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Delt panel er på. Trykk F10 for å lukke</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Delt panel er på. Trykk {0} for å lukke</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Delt panel er av</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Installer KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">Vil du installere KillerPDF på denne datamaskinen?</sys:String>
@@ -1011,7 +1015,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <!-- View-mode + full-screen shortcuts -->
     <sys:String x:Key="Str_KS_View">VISNING</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Fullskjerm</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Trykk F11 eller Esc for å avslutte fullskjerm</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Trykk {0} eller Esc for å avslutte fullskjerm</sys:String>
     <!-- Quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">Avslutte KillerPDF?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Lukk de åpne fanene mine</sys:String>
@@ -1144,6 +1148,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Rull</sys:String>
     <sys:String x:Key="Str_Key_Click">Klikk</sys:String>
     <sys:String x:Key="Str_Key_Or">eller</sys:String>

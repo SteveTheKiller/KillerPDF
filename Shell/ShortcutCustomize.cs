@@ -10,10 +10,18 @@ namespace KillerPDF.Shell
     public partial class MainWindow
     {
         private const string ShortcutRemapSetting = "ShortcutRemap";
-        private ShortcutRemap? _shortcutRemap;
 
-        private ShortcutRemap ShortcutRemaps =>
-            _shortcutRemap ??= ShortcutRemap.Parse(App.GetSetting(ShortcutRemapSetting));
+        // One map for the whole app: every window translates keys with it and refreshes when it moves.
+        private static readonly ShortcutRemapStore s_shortcutRemaps = new(
+            () => App.GetSetting(ShortcutRemapSetting), text => App.SetSetting(ShortcutRemapSetting, text));
+
+        private ShortcutRemap ShortcutRemaps => s_shortcutRemaps.Current;
+
+        private void FollowShortcutRemapChanges()
+        {
+            s_shortcutRemaps.Changed += RefreshShortcutViews;
+            Closed += (_, _) => s_shortcutRemaps.Changed -= RefreshShortcutViews;
+        }
 
         /// <summary>
         /// The key the dispatcher should see for a press. A custom key becomes the command's
@@ -79,32 +87,7 @@ namespace KillerPDF.Shell
 
         /// <summary>The overlay row's key text: the table's own unless one of its keys was moved,
         /// then each of its keys as they are now.</summary>
-        private string ShortcutRowKeys(KsRow row)
-        {
-            if (!row.Caps.Any(ShortcutRemaps.IsCustomized)) return row.Keys;
-            return string.Join(" / ", row.Caps.Select(cap => CapTokens(ShortcutRemaps.Effective(cap))));
-        }
-
-        // A cap written with the overlay's key-name tokens, so it reads in the user's language.
-        private static string CapTokens(KsCap cap)
-        {
-            string prefix = cap.Layer switch
-            {
-                KbLayer.Ctrl => "%ctrl%+",
-                KbLayer.CtrlShift => "%ctrl%+%shift%+",
-                KbLayer.Shift => "%shift%+",
-                KbLayer.Alt => "%alt%+",
-                KbLayer.AltShift => "%alt%+%shift%+",
-                _ => ""
-            };
-            string key = cap.Id switch
-            {
-                "Del" => "%del%",
-                var digit when digit.Length == 2 && digit[0] == 'D' => digit[1..],
-                var other => other
-            };
-            return prefix + key;
-        }
+        private string ShortcutRowKeys(KsRow row) => ShortcutRowText.RowKeys(row.Keys, row.Caps, ShortcutRemaps);
 
         // The Customize button sits in the overlay's footer, opposite the on/off switch.
         private void AddShortcutCustomizeButton()
@@ -124,9 +107,7 @@ namespace KillerPDF.Shell
             var dialog = new ShortcutCustomizeDialog(this, ShortcutRemaps);
             dialog.ShowDialog();
             if (!dialog.Saved) return;
-            _shortcutRemap = dialog.Result;
-            App.SetSetting(ShortcutRemapSetting, _shortcutRemap.Serialize());
-            RefreshShortcutViews();
+            s_shortcutRemaps.Save(dialog.Result);
         }
 
         // The list, the map and the tooltips show the keys as they are now.
@@ -137,6 +118,7 @@ namespace KillerPDF.Shell
             BuildShortcutsColumn(ShortcutRightColumn, KsColumn(right: true));
             if (_kbBuilt && ShortcutKeyboardHost.Visibility == Visibility.Visible) BuildKeyboardView();
             else _kbBuilt = false;
+            BuildToolbarMenu();
             ApplyShortcutTooltips();
         }
     }

@@ -168,7 +168,7 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_CustomizeToolbar_Space">Bên trên là bên trái, bên dưới là bên phải</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Dấu phân cách</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Đặt lại</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Đã ẩn thanh công cụ - Nhấn Alt+M để hiện lại</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Đã ẩn thanh công cụ - Nhấn {0} để hiện lại</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Đã hiển thị thanh công cụ</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -197,8 +197,12 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_KS_PanView">Đẩy khung nhìn</sys:String>
     <sys:String x:Key="Str_KS_Editing">CHỈNH SỬA</sys:String>
     <sys:String x:Key="Str_KS_Undo">Hoàn tác</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Xóa chú thích đã chọn</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Xác nhận / hủy văn bản hoặc vùng cắt</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Xóa chú thích hoặc trang đã chọn</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Xác nhận / hủy vùng cắt hoặc phép đo</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Lưu văn bản (Enter thêm một dòng)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Xóa điểm cuối cùng</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Khớp chữ hoa/thường / khớp toàn bộ từ (Tìm văn bản)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Cơ bản</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">TÌM KIẾM &amp; CHỌN</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -344,7 +348,7 @@ Lưu sẽ thay thế tệp và xóa chữ ký của tệp. Để giữ lại t�
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">Khung bên kia cũng đang mở "{0}" và có các thay đổi chưa được lưu.
 
 Lưu ngay bây giờ sẽ ghi đè lên tệp và các thay đổi đó sẽ bị mất. Hãy lưu khung bên kia trước nếu bạn muốn giữ lại chúng.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Đã bật chia đôi khung - Nhấn F10 để đóng</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Đã bật chia đôi khung - Nhấn {0} để đóng</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Đã tắt chia đôi khung</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Cài đặt KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">Cài đặt KillerPDF trên máy tính này?</sys:String>
@@ -1011,7 +1015,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <!-- Phím tắt chế độ xem + toàn màn hình -->
     <sys:String x:Key="Str_KS_View">XEM</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Toàn màn hình</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Nhấn F11 hoặc Esc để thoát chế độ toàn màn hình</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Nhấn {0} hoặc Esc để thoát chế độ toàn màn hình</sys:String>
     <!-- Thông báo thoát (tiêu chuẩn gia đình) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">Thoát KillerPDF?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Đóng các tab đang mở của tôi</sys:String>
@@ -1144,6 +1148,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Cuộn</sys:String>
     <sys:String x:Key="Str_Key_Click">Nhấp</sys:String>
     <sys:String x:Key="Str_Key_Or">hoặc</sys:String>

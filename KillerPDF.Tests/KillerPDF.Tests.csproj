@@ -200,6 +200,8 @@
          and of MainWindow so the invariants can be checked without standing up a window. -->
     <Compile Include="..\Services\ShortcutTable.cs" Link="Services\ShortcutTable.cs" />
     <Compile Include="..\Services\ShortcutRemap.cs" Link="Services\ShortcutRemap.cs" />
+    <Compile Include="..\Services\ShortcutRowText.cs" Link="Services\ShortcutRowText.cs" />
+    <Compile Include="..\Services\ShortcutRemapStore.cs" Link="Services\ShortcutRemapStore.cs" />
     <Compile Include="..\Services\CommandSearch.cs" Link="Services\CommandSearch.cs" />
     <Compile Include="..\Services\ToolbarAvailability.cs" Link="Services\ToolbarAvailability.cs" />
     <Compile Include="..\Services\PageMenuTarget.cs" Link="Services\PageMenuTarget.cs" />

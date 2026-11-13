@@ -21,7 +21,7 @@ foreach (string path in Directory.GetFiles(Path.Combine(root, "Strings"), "*.xam
     string Keys(string text)
     {
         foreach (var (token, key) in ShortcutTable.KeyTokens) text = text.Replace(token, Label(key));
-        return text.Replace("%zin%", "=").Replace("%zout%", "-");
+        return text.Replace("%zin%", ShortcutTable.SiteZoomInChar(locale)).Replace("%zout%", "-");
     }
     locales[locale] = new
     {

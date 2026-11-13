@@ -168,7 +168,7 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_CustomizeToolbar_Space">Fent a bal oldal, lent a jobb</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Elválasztó</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Alaphelyzet</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Eszköztár elrejtve - az Alt+M újra megjeleníti</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Eszköztár elrejtve - újra megjeleníti: {0}</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Eszköztár megjelenítve</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -197,8 +197,12 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_KS_PanView">Nézet mozgatása</sys:String>
     <sys:String x:Key="Str_KS_Editing">SZERKESZTÉS</sys:String>
     <sys:String x:Key="Str_KS_Undo">Visszavonás</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Kijelölt jegyzet törlése</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Szöveg vagy vágás megerősítése / megszakítása</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Kijelölt jegyzet vagy oldalak törlése</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Vágás vagy mérés megerősítése / megszakítása</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Szöveg mentése (az Enter új sort szúr be)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Utolsó pont eltávolítása</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Kis- és nagybetűk megkülönböztetése / csak teljes szó (Szöveg keresése)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Alap</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">KERESÉS ÉS KIJELÖLÉS</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -344,7 +348,7 @@ A mentés lecseréli a fájlt, és eltávolítja az aláírását. Az aláírt f
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">A másik ablaktáblában is meg van nyitva a(z) „{0}", saját, nem mentett módosításokkal.
 
 A mentés most felülírja a fájlt, és azok a módosítások elvesznek. Előbb mentse a másik ablaktáblát, ha meg szeretné őrizni őket.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Osztott ablaktábla be - F10 a bezáráshoz</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Osztott ablaktábla be - {0} a bezáráshoz</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Osztott ablaktábla ki</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF telepítése</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">Telepíti a KillerPDF-et erre a számítógépre?</sys:String>
@@ -1011,7 +1015,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <!-- View-mode + full-screen shortcuts -->
     <sys:String x:Key="Str_KS_View">NÉZET</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Teljes képernyő</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Nyomja meg az F11 vagy Esc billentyűt a teljes képernyőből való kilépéshez</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">A teljes képernyőből való kilépés: {0} vagy Esc</sys:String>
     <!-- Quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">Kilép a KillerPDF-ből?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">A megnyitott lapjaim bezárása</sys:String>
@@ -1142,6 +1146,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Görgetés</sys:String>
     <sys:String x:Key="Str_Key_Click">Kattintás</sys:String>
     <sys:String x:Key="Str_Key_Or">vagy</sys:String>

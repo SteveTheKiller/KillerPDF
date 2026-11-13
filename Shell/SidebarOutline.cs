@@ -621,7 +621,10 @@ namespace KillerPDF.Shell
             }
             if (!CanEditBookmarks) return;
             var primary = (OutlineTree.SelectedItem as TreeViewItem)?.Tag as OutlineNodeRef;
-            if (e.Key == Key.Delete && (primary is not null || _bmExtraSel.Count > 0))
+            // Delete as the user has it now: the window's chain swallows a moved key's old press and
+            // hands the new key on as it arrived, so it is translated back here.
+            var (deleteKey, _, _, _) = TranslateShortcut(e.Key, Keyboard.Modifiers, e.SystemKey);
+            if (deleteKey == Key.Delete && (primary is not null || _bmExtraSel.Count > 0))
             {
                 e.Handled = true;
                 DeleteSelectedBookmarks(primary);
@@ -905,7 +908,7 @@ namespace KillerPDF.Shell
                 if (inMulti && _bmExtraSel.Count > 1)
                 {
                     menu.Items.Add(MakeMenuItem($"{Loc("Str_Ctx_BmDelete")} ({_bmExtraSel.Count})",
-                                                (_, _2) => DeleteSelectedBookmarks(nref), KeyText("%del%"), ""));
+                                                (_, _2) => DeleteSelectedBookmarks(nref), GestureFor("Del"), ""));
                 }
                 else
                 {
@@ -922,7 +925,7 @@ namespace KillerPDF.Shell
                     down.IsEnabled = idx >= 0 && idx < siblingCount - 1;
                     menu.Items.Add(down);
                     menu.Items.Add(new Separator());
-                    menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_BmDelete"), (_, _2) => DeleteSelectedBookmarks(nref), KeyText("%del%"), ""));
+                    menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_BmDelete"), (_, _2) => DeleteSelectedBookmarks(nref), GestureFor("Del"), ""));
                 }
             }
             else

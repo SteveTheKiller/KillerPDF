@@ -169,7 +169,7 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_CustomizeToolbar_Space">Left side above, right side below</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Separator</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Reset</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Toolbar hidden. Press Alt+M to show it again</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Toolbar hidden. Press {0} to show it again</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Toolbar shown</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -198,8 +198,12 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_KS_PanView">Pan view</sys:String>
     <sys:String x:Key="Str_KS_Editing">EDITING</sys:String>
     <sys:String x:Key="Str_KS_Undo">Undo</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Delete selected annotation</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Confirm / cancel text or crop</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Delete selected annotation or pages</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Confirm / cancel crop or measurement</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Save text (Enter adds a line)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Remove last point</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Match case / whole word (Find Text)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Base</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">SEARCH &amp; SELECT</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -345,7 +349,7 @@ Saving replaces the file and removes its signature. To keep the signed file, can
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">The other pane also has "{0}" open, with unsaved changes of its own.
 
 Saving now overwrites the file and those changes will be lost. Save the other pane first if you want to keep them.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Split pane on. Press F10 to close it</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Split pane on. Press {0} to close it</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Split pane off</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Install KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">Install KillerPDF on this computer?</sys:String>
@@ -1012,7 +1016,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <!-- View-mode + full-screen shortcuts -->
     <sys:String x:Key="Str_KS_View">VIEW</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Full screen</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Press F11 or Esc to exit full screen</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Press {0} or Esc to exit full screen</sys:String>
     <!-- Quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">Quit KillerPDF?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Close my open tabs</sys:String>
@@ -1145,6 +1149,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Scroll</sys:String>
     <sys:String x:Key="Str_Key_Click">Click</sys:String>
     <sys:String x:Key="Str_Key_Or">or</sys:String>

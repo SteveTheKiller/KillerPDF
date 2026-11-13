@@ -66,6 +66,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Changing the file type in the save picker while the name box holds characters no file name can carry keeps the name as typed and shows the invalid-path message.
 - Hiding shortcut hints removes the hints the app adds to tooltips in every language, including translated keys such as (Strg+D).
 - Menu rows show the right shortcut: the Attachments Save row no longer shows Ctrl+S, which saves the PDF, and Compare PDFs shows its own. The Bold, Italic and Underline buttons show their shortcuts, and the status line names Ctrl+Enter, not Enter, as the key that saves a text box.
+- A shortcut you change in Customize Shortcuts shows its new key in the shortcut list, the keyboard map, the toolbar menu, status messages and bookmark Delete, in every open window. The list now also names Backspace, Ctrl+Enter, Ctrl+Alt+Enter, and Alt+C and Alt+W in Find.
 - Submenus and the toolbar overflow menu keep their texture on the highlighted row.
 - Toolbar, rail, theme, accent swatch, close and comparison bar buttons no longer cast a shadow behind their icons or captions, and neither does the unsaved Save button.
 - About places link confirmation in the left column, aligns Clear all Data on the same bottom row and keeps its checkboxes aligned when labels wrap, and the footer zoom percentage fits its control.

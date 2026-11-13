@@ -320,7 +320,7 @@ namespace KillerPDF.Shell
 
             ApplyFocusHalo();
             SyncSplitRailButton();
-            SetStatus(Loc("Str_St_SplitOn"));
+            SetStatus(string.Format(Loc("Str_St_SplitOn"), GestureFor("F10")));
 
             if (_restoringSplit)
             {

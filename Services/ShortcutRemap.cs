@@ -34,8 +34,10 @@ namespace KillerPDF
             || id.Length is 2 or 3 && id[0] == 'F' && int.TryParse(id[1..], out int f) && f is >= 1 and <= 12;
 
         // F2 renames in the outline and the toggle chord has to stay reachable, so neither moves.
+        // The find box reads Alt+C and Alt+W itself, so they are listed but stay where they are.
         internal static bool IsRemappable(KsCap cap) =>
-            IsAssignable(cap.Id) && cap.Id != "F2" && !(cap.Layer == KbLayer.CtrlShift && cap.Id == "K");
+            IsAssignable(cap.Id) && cap.Id != "F2" && !(cap.Layer == KbLayer.CtrlShift && cap.Id == "K")
+            && !(cap.Layer == KbLayer.Alt && cap.Id is "C" or "W");
 
         /// <summary>Every command that can be moved, once each, in the table's order.</summary>
         internal static IReadOnlyList<ShortcutCommand> Commands { get; } =

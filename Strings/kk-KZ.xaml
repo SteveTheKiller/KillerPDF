@@ -90,7 +90,7 @@
     <sys:String x:Key="Str_CustomizeToolbar_Space">Жоғарыда сол жақ, төменде оң жақ</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Бөлгіш</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Қалпына келтіру</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Құралдар тақтасы жасырылды - Alt+M оны қайта көрсетеді</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Құралдар тақтасы жасырылды - {0} оны қайта көрсетеді</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Құралдар тақтасы көрсетілді</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -119,8 +119,12 @@
     <sys:String x:Key="Str_KS_PanView">Көріністі жылжыту</sys:String>
     <sys:String x:Key="Str_KS_Editing">ӨҢДЕУ</sys:String>
     <sys:String x:Key="Str_KS_Undo">Кері қайтару</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Таңдалған ескертпені жою</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Мәтінді немесе қиюды растау / болдырмау</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Таңдалған ескертпені немесе беттерді жою</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Қиюды немесе өлшеуді растау / болдырмау</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Мәтінді сақтау (Enter жаңа жол қосады)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Соңғы нүктені жою</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Регистрді ескеру / тек тұтас сөз (Мәтінді табу)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Негізгі</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">ІЗДЕУ ЖӘНЕ ТАҢДАУ</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -266,7 +270,7 @@
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">Екінші панельде де "{0}" ашық, оның өзінде сақталмаған өзгерістер бар.
 
 Қазір сақтасаңыз, файл үстінен жазылады және сол өзгерістер жоғалады. Оларды қалдырғыңыз келсе, алдымен екінші панельді сақтаңыз.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Бөлінген панель қосулы - жабу үшін F10</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Бөлінген панель қосулы - жабу үшін {0}</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Бөлінген панель өшірулі</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF орнату</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">KillerPDF-ті осы компьютерге орнату керек пе?</sys:String>
@@ -907,7 +911,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <!-- View-mode + full-screen shortcuts -->
     <sys:String x:Key="Str_KS_View">КӨРІНІС</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Толық экран</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Толық экраннан шығу үшін F11 немесе Esc басыңыз</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Толық экраннан шығу үшін {0} немесе Esc басыңыз</sys:String>
     <!-- Quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">KillerPDF-тен шығу керек пе?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Ашық қойындыларымды жабу</sys:String>
@@ -1040,6 +1044,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Айналдыру</sys:String>
     <sys:String x:Key="Str_Key_Click">Басу</sys:String>
     <sys:String x:Key="Str_Key_Or">немесе</sys:String>

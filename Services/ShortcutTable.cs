@@ -57,6 +57,7 @@ namespace KillerPDF
             ("%pgup%",       "Str_Key_PgUp"),
             ("%pgdn%",       "Str_Key_PgDn"),
             ("%tab%",        "Str_Key_Tab"),
+            ("%back%",       "Str_Key_Backspace"),
             ("%scroll%",     "Str_Key_Scroll"),
             ("%click%",      "Str_Key_Click"),
             ("%or%",         "Str_Key_Or"),
@@ -65,6 +66,12 @@ namespace KillerPDF
             ("%middledrag%", "Str_Key_MiddleDrag"),
             ("%spacedrag%",  "Str_Key_SpaceDrag"),
         ];
+
+        /// <summary>The character the website prints for zoom in. The app prints what the reader's
+        /// keyboard can type without Shift (Services/KeyLayout.cs); a web page only knows the
+        /// language, so this is the usual layout for each.</summary>
+        internal static string SiteZoomInChar(string locale)
+            => locale is "de" or "es" or "it" or "nb" or "hu" or "sl" or "tr" or "ja" ? "+" : "=";
 
         /// <summary>Authoring helper: "F3", "Shift:F3", or either with a per-cap hover label.
         /// Cap ids match KbRows in KeyboardMapOverlay.cs; bare ids are the base layer.</summary>
@@ -204,6 +211,7 @@ namespace KillerPDF
             B("M",               "Str_Lbl_Measure",   "Tools", Cap("M")),
             B("%shift%+M",       "Str_KS_NextMeasure", "Tools", Cap("Shift:M")),
             B("X",               "Str_Lbl_Redact",    "Tools", Cap("X")),
+            B("%back%",          "Str_KS_RemoveLastPoint", "Tools", Cap("Back")),
 
             B("%ctrl%+Z",         "Str_KS_Undo",        "Edit", Cap("Ctrl:Z")),
             B("%ctrl%+Y",         "Str_Ctx_Redo",       "Edit", Cap("Ctrl:Y")),
@@ -217,6 +225,8 @@ namespace KillerPDF
                                                                 Cap("Ctrl:I", "Str_Lbl_Italic"),
                                                                 Cap("Ctrl:U", "Str_Lbl_Underline")),
             B("%del%",            "Str_KS_DeleteAnnot", "Edit", Cap("Del")),
+            // Enter adds a line in a text box, so the box is saved with Ctrl+Enter.
+            B("%ctrl%+%enter%",   "Str_KS_CommitText",  "Edit", Cap("Ctrl:Enter")),
             B("F2",               "Str_Ctx_BmRename",   "Edit", Cap("F2")),
             B("%enter% / %esc%",  "Str_KS_ConfirmCancel","Edit", Cap("Enter", "Str_Kb_Confirm"),
                                                                  Cap("Esc",   "Str_Kb_Cancel")),
@@ -287,6 +297,8 @@ namespace KillerPDF
             B("F3 / %shift%+F3",           "Str_KS_NextPrevResult", "Search", Cap("F3",       "Str_Kb_NextResult"),
                                                                               Cap("Shift:F3", "Str_Kb_PrevResult")),
             B("%enter% / %shift%+%enter%", "Str_KS_NextPrevResult", "Search", Cap("Shift:Enter", "Str_Kb_PrevResult")),
+            B("%alt%+C / %alt%+W",         "Str_KS_SearchOptions",  "Search", Cap("Alt:C"), Cap("Alt:W")),
+            B("%ctrl%+%alt%+%enter%",      "Str_Replace_All",       "Search"),
             B("%ctrl%+A",                  "Str_KS_SelectAll",      "Search", Cap("Ctrl:A")),
             B("%shift%+%click%",           "Str_KS_MultiSelect",    "Search"),
 

@@ -164,7 +164,7 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_CustomizeToolbar_Space">Oben linke Seite, unten rechte Seite</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Trennlinie</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Zurücksetzen</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Symbolleiste ausgeblendet - Alt+M zeigt sie wieder an</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Symbolleiste ausgeblendet - {0} zeigt sie wieder an</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Symbolleiste eingeblendet</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -193,8 +193,12 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_KS_PanView">Ansicht verschieben</sys:String>
     <sys:String x:Key="Str_KS_Editing">BEARBEITUNG</sys:String>
     <sys:String x:Key="Str_KS_Undo">Rückgängig</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Ausgewählte Anmerkung löschen</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Text oder Zuschnitt bestätigen / abbrechen</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Ausgewählte Anmerkung oder Seiten löschen</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Zuschnitt oder Messung bestätigen / abbrechen</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Text speichern (Enter fügt eine Zeile ein)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Letzten Punkt entfernen</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Groß-/Kleinschreibung beachten / nur ganzes Wort (Text suchen)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Basis</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">SUCHEN &amp; AUSWÄHLEN</sys:String>
     <sys:String x:Key="Str_KS_Find">Text suchen</sys:String>
     <sys:String x:Key="Str_KS_Replace">Suchen und ersetzen</sys:String>
@@ -279,7 +283,7 @@ Beim Speichern wird die Datei ersetzt und ihre Signatur entfernt. Um die signier
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">Im anderen Bereich ist „{0}“ ebenfalls geöffnet, mit eigenen ungespeicherten Änderungen.
 
 Beim Speichern wird die Datei überschrieben und diese Änderungen gehen verloren. Speichern Sie zuerst den anderen Bereich, wenn Sie sie behalten möchten.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Geteilte Ansicht an - F10 zum Schließen</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Geteilte Ansicht an - {0} zum Schließen</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Geteilte Ansicht aus</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF installieren</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">KillerPDF auf diesem Computer installieren?</sys:String>
@@ -927,7 +931,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Crop_AllTip">Jede Seite zuschneiden</sys:String>
     <sys:String x:Key="Str_KS_View">ANSICHT</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Vollbild</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">F11 oder Esc drücken, um den Vollbildmodus zu beenden</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">{0} oder Esc drücken, um den Vollbildmodus zu beenden</sys:String>
     <!-- Quit prompt -->
     <sys:String x:Key="Str_Dlg_QuitMsg">KillerPDF beenden?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Meine offenen Tabs schließen</sys:String>
@@ -1118,6 +1122,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Key_PgUp">Bild auf</sys:String>
     <sys:String x:Key="Str_Key_PgDn">Bild ab</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Rücktaste</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Scrollen</sys:String>
     <sys:String x:Key="Str_Key_Click">Klick</sys:String>
     <sys:String x:Key="Str_Key_Or">oder</sys:String>

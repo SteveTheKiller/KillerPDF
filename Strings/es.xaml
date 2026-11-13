@@ -164,7 +164,7 @@ La página se puede sustituir por una imagen de sí misma con las áreas marcada
     <sys:String x:Key="Str_CustomizeToolbar_Space">Arriba el lado izquierdo, abajo el derecho</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Separador</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Restablecer</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Barra de herramientas oculta - Alt+M la muestra de nuevo</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Barra de herramientas oculta - {0} la muestra de nuevo</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Barra de herramientas visible</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -193,8 +193,12 @@ La página se puede sustituir por una imagen de sí misma con las áreas marcada
     <sys:String x:Key="Str_KS_PanView">Desplazar vista</sys:String>
     <sys:String x:Key="Str_KS_Editing">EDICIÓN</sys:String>
     <sys:String x:Key="Str_KS_Undo">Deshacer</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Eliminar anotación seleccionada</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Confirmar / cancelar texto o recorte</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Eliminar la anotación o las páginas seleccionadas</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Confirmar / cancelar recorte o medición</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Guardar texto (Intro añade una línea)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Quitar el último punto</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Coincidir mayúsculas y minúsculas / solo palabras completas (Buscar texto)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Base</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">BUSCAR Y SELECCIONAR</sys:String>
     <sys:String x:Key="Str_KS_Find">Buscar texto</sys:String>
     <sys:String x:Key="Str_KS_Replace">Buscar y reemplazar</sys:String>
@@ -279,7 +283,7 @@ Al guardar se reemplaza el archivo y se elimina su firma. Para conservar el arch
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">El otro panel también tiene «{0}» abierto, con cambios sin guardar propios.
 
 Al guardar ahora se sobrescribe el archivo y esos cambios se perderán. Guarde primero el otro panel si desea conservarlos.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Vista dividida activada - F10 para cerrar</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Vista dividida activada - {0} para cerrar</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Vista dividida desactivada</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Instalar KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">¿Instalar KillerPDF en este equipo?</sys:String>
@@ -923,7 +927,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Crop_AllTip">Recortar todas las páginas</sys:String>
     <sys:String x:Key="Str_KS_View">VISTA</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Pantalla completa</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Pulsa F11 o Esc para salir de pantalla completa</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Pulsa {0} o Esc para salir de pantalla completa</sys:String>
     <!-- Quit prompt -->
     <sys:String x:Key="Str_Dlg_QuitMsg">¿Salir de KillerPDF?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Cerrar mis pestañas abiertas</sys:String>
@@ -1112,6 +1116,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Key_PgUp">RePág</sys:String>
     <sys:String x:Key="Str_Key_PgDn">AvPág</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Retroceso</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Rueda</sys:String>
     <sys:String x:Key="Str_Key_Click">Clic</sys:String>
     <sys:String x:Key="Str_Key_Or">o</sys:String>

@@ -219,7 +219,7 @@ namespace KillerPDF.Shell
                 Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 12, ShadowDepth = 2, Opacity = 0.5 },
                 Child = new TextBlock
                 {
-                    Text = Loc("Str_FullScreen_Hint"), Foreground = Brushes.White, FontSize = 13,
+                    Text = string.Format(Loc("Str_FullScreen_Hint"), GestureFor("F11")), Foreground = Brushes.White, FontSize = 13,
                     FontFamily = UiKit.UiFont
                 }
             };

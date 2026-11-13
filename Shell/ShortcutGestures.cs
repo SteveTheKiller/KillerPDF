@@ -37,40 +37,7 @@ namespace KillerPDF.Shell
             => string.Join(" " + Loc("Str_Key_Or") + " ", caps.Select(GestureFor));
 
         /// <summary>A cap written with the overlay's key-name tokens.</summary>
-        private static string CapKeys(KsCap cap)
-        {
-            string prefix = cap.Layer switch
-            {
-                KbLayer.Ctrl => "%ctrl%+",
-                KbLayer.CtrlShift => "%ctrl%+%shift%+",
-                KbLayer.Shift => "%shift%+",
-                KbLayer.Alt => "%alt%+",
-                KbLayer.AltShift => "%alt%+%shift%+",
-                _ => ""
-            };
-            string key = cap.Id switch
-            {
-                "Del" => "%del%",
-                "Enter" => "%enter%",
-                "Esc" => "%esc%",
-                "Menu" => "%menu%",
-                "Home" => "%home%",
-                "End" => "%end%",
-                "PgUp" => "%pgup%",
-                "PgDn" => "%pgdn%",
-                "Tab" => "%tab%",
-                "Equals" => "%zin%",
-                "Minus" => "%zout%",
-                "Slash" => "?",
-                "Left" => "←",
-                "Up" => "↑",
-                "Right" => "→",
-                "Down" => "↓",
-                var digit when digit.Length == 2 && digit[0] == 'D' && char.IsDigit(digit[1]) => digit[1..],
-                var other => other
-            };
-            return prefix + key;
-        }
+        private static string CapKeys(KsCap cap) => ShortcutRowText.CapKeys(cap);
 
         /// <summary>Overlay key text with its tokens replaced by the active language's key names.</summary>
         private static string KeyText(string keys)
@@ -151,6 +118,7 @@ namespace KillerPDF.Shell
             Tip(SidebarAttachmentsTab, "Str_Rail_Attachments", "Alt:D4");
             Tip(SidebarLayersTab, "Str_Rail_Layers", "Alt:D5");
             Tip(SidebarSignaturesTab, "Str_Rail_Signatures", "Alt:D6");
+            Tip(DeletePagesBtn, "Str_TT_DeletePages", "Del");
             Tip(FlattenBtn, "Str_Lbl_Flatten", "AltShift:F");
             Tip(MergeBtn, "Str_Lbl_Merge", "AltShift:B");
             Tip(ExtractPagesBtn, "Str_Lbl_Extract", "AltShift:X");

@@ -168,7 +168,7 @@ A página pode ser substituída por uma imagem dela mesma com as áreas marcadas
     <sys:String x:Key="Str_CustomizeToolbar_Space">Acima o lado esquerdo, abaixo o direito</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Separador</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Redefinir</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Barra de ferramentas oculta - Alt+M a exibe novamente</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Barra de ferramentas oculta - {0} a exibe novamente</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Barra de ferramentas exibida</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -197,8 +197,12 @@ A página pode ser substituída por uma imagem dela mesma com as áreas marcadas
     <sys:String x:Key="Str_KS_PanView">Mover visualização</sys:String>
     <sys:String x:Key="Str_KS_Editing">EDIÇÃO</sys:String>
     <sys:String x:Key="Str_KS_Undo">Desfazer</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Excluir anotação selecionada</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Confirmar / cancelar texto ou corte</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Excluir anotação ou páginas selecionadas</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Confirmar / cancelar corte ou medição</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Salvar texto (Enter adiciona uma linha)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Remover o último ponto</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Diferenciar maiúsculas e minúsculas / palavra inteira (Localizar texto)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Base</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">PESQUISAR &amp; SELECIONAR</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -344,7 +348,7 @@ Salvar substitui o arquivo e remove a assinatura. Para manter o arquivo assinado
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">O outro painel também tem “{0}” aberto, com alterações próprias não salvas.
 
 Salvar agora sobrescreve o arquivo e essas alterações serão perdidas. Salve o outro painel primeiro se quiser mantê-las.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Painel dividido ativado - F10 para fechar</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Painel dividido ativado - {0} para fechar</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Painel dividido desativado</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Instalar o KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">Instalar o KillerPDF neste computador?</sys:String>
@@ -1011,7 +1015,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <!-- View-mode + full-screen shortcuts -->
     <sys:String x:Key="Str_KS_View">EXIBIÇÃO</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Tela cheia</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Pressione F11 ou Esc para sair da tela cheia</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Pressione {0} ou Esc para sair da tela cheia</sys:String>
     <!-- Quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">Sair do KillerPDF?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Fechar minhas guias abertas</sys:String>
@@ -1144,6 +1148,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Rolar</sys:String>
     <sys:String x:Key="Str_Key_Click">Clique</sys:String>
     <sys:String x:Key="Str_Key_Or">ou</sys:String>

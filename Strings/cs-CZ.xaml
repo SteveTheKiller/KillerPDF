@@ -168,7 +168,7 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_CustomizeToolbar_Space">Nahoře levá strana, dole pravá</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Oddělovač</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Obnovit výchozí</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Panel nástrojů skryt - Alt+M jej znovu zobrazí</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Panel nástrojů skryt - {0} jej znovu zobrazí</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Panel nástrojů zobrazen</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -197,8 +197,12 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_KS_PanView">Posun zobrazení</sys:String>
     <sys:String x:Key="Str_KS_Editing">ÚPRAVY</sys:String>
     <sys:String x:Key="Str_KS_Undo">Zpět</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Smazat vybranou anotaci</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Potvrdit / zrušit text nebo ořez</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Smazat vybranou anotaci nebo stránky</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Potvrdit / zrušit ořez nebo měření</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Uložit text (Enter vloží nový řádek)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Odebrat poslední bod</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Rozlišovat velikost písmen / celá slova (Najít text)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Základ</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">HLEDÁNÍ &amp; VÝBĚR</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -344,7 +348,7 @@ Uložením se soubor nahradí a jeho podpis se odstraní. Pokud chcete podepsan�
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">Druhý panel má soubor „{0}“ rovněž otevřený a obsahuje vlastní neuložené změny.
 
 Uložením se soubor přepíše a tyto změny budou ztraceny. Pokud si je chcete ponechat, uložte nejprve druhý panel.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Rozdělené zobrazení zapnuto - F10 zavře</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Rozdělené zobrazení zapnuto - {0} zavře</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Rozdělené zobrazení vypnuto</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Nainstalovat KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">Nainstalovat KillerPDF do tohoto počítače?</sys:String>
@@ -990,7 +994,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <!-- View-mode + full-screen shortcuts -->
     <sys:String x:Key="Str_KS_View">ZOBRAZENÍ</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Celá obrazovka</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Celou obrazovku ukončíte stisknutím F11 nebo Esc</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Celou obrazovku ukončíte stisknutím {0} nebo Esc</sys:String>
     <!-- Quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">Ukončit KillerPDF?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Zavřít mé otevřené karty</sys:String>
@@ -1117,6 +1121,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Kolečko</sys:String>
     <sys:String x:Key="Str_Key_Click">Kliknutí</sys:String>
     <sys:String x:Key="Str_Key_Or">nebo</sys:String>

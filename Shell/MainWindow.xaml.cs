@@ -444,6 +444,7 @@ namespace KillerPDF.Shell
             BuildToolSearch();           // the title bar's magnifier and search box (ToolSearch.cs)
             ApplyShortcutTooltips();     // every tooltip that names a key, from the live bindings
             BuildShortcutsOverlay();     // generate the shortcuts card from the single-source table (ShortcutsOverlay.cs)
+            FollowShortcutRemapChanges();   // a key moved in another window refreshes this one (ShortcutCustomize.cs)
             InitThemePicker();           // ThemeFlyout.cs: the kit's theme menu on the rail's theme button
             InitLanguageMenu();          // Language.cs: the kit's language menu on the rail's language button
             SourceInitialized += MainWindow_SourceInitialized;   // Chrome.cs: hook, snap layouts, corners

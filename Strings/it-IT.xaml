@@ -168,7 +168,7 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_CustomizeToolbar_Space">Sopra il lato sinistro, sotto il destro</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Separatore</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Ripristina</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Barra strumenti nascosta - Alt+M per visualizzarla</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Barra strumenti nascosta - {0} per visualizzarla</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Barra strumenti visualizzata</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -197,8 +197,12 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_KS_PanView">Sposta vista</sys:String>
     <sys:String x:Key="Str_KS_Editing">MODIFICA</sys:String>
     <sys:String x:Key="Str_KS_Undo">Annulla operazione</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Elimina annotazione selezionata</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Conferma/annulla testo o ritaglia</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Elimina annotazione o pagine selezionate</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Conferma/annulla ritaglio o misura</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Salva testo (Invio aggiunge una riga)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Rimuovi ultimo punto</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Maiuscole/minuscole / parola intera (Trova testo)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Base</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">CERCA / SELEZIONA</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -344,7 +348,7 @@ Il salvataggio sostituisce il file e ne rimuove la firma. Per conservare il file
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">Anche l'altro riquadro ha "{0}" aperto, con le proprie modifiche non salvate.
 
 Il salvataggio sovrascrive il file e quelle modifiche andranno perse. Se desideri mantenerle, salva prima l'altro riquadro.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Pannello suddivisione on - F10 per chiudere</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Pannello suddivisione on - {0} per chiudere</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Pannello suddivisione off</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Installa KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">Vuoi installare KillerPDF in questo computer?</sys:String>
@@ -1011,7 +1015,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <!-- View-mode + full-screen shortcuts -->
     <sys:String x:Key="Str_KS_View">VISUALIZZA</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Schermo pieno</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Per uscire dallo schermo intero premi F11 o Esc</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Per uscire dallo schermo intero premi {0} o Esc</sys:String>
     <!-- Quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">Vuoi uscire da KillerPDF?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Chiudi le schede aperte</sys:String>
@@ -1144,6 +1148,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Key_PgUp">PagSu</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PagGiù</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Scorri</sys:String>
     <sys:String x:Key="Str_Key_Click">Clic</sys:String>
     <sys:String x:Key="Str_Key_Or">o</sys:String>

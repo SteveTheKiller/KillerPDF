@@ -166,7 +166,7 @@
     <sys:String x:Key="Str_CustomizeToolbar_Space">上方為左側，下方為右側</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">分隔線</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">重設</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">工具列已隱藏 - Alt+M 可重新顯示</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">工具列已隱藏 - {0} 可重新顯示</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">已顯示工具列</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -195,8 +195,12 @@
     <sys:String x:Key="Str_KS_PanView">平移檢視</sys:String>
     <sys:String x:Key="Str_KS_Editing">編輯</sys:String>
     <sys:String x:Key="Str_KS_Undo">復原</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">刪除選取的注釋</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">確認 / 取消文字或裁切</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">刪除選取的注釋或頁面</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">確認 / 取消裁切或測量</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">儲存文字 (Enter 插入新行)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">刪除最後一個點</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">大小寫須相符 / 全字拼寫須相符 (尋找文字)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">基本</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">搜尋與選取</sys:String>
     <sys:String x:Key="Str_KS_Find">尋找文字</sys:String>
     <sys:String x:Key="Str_KS_Replace">尋找和取代</sys:String>
@@ -281,7 +285,7 @@
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">另一個窗格中也開啟了「{0}」，並且有自己未儲存的變更。
 
 現在儲存會覆寫該檔案，那些變更將會遺失。若要保留，請先儲存另一個窗格。</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">分割檢視已開啟 - 按 F10 關閉</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">分割檢視已開啟 - 按 {0} 關閉</sys:String>
     <sys:String x:Key="Str_St_SplitOff">分割檢視已關閉</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">安裝 KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">要將 KillerPDF 安裝到這台電腦嗎？</sys:String>
@@ -925,7 +929,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Crop_AllTip">裁切每一頁</sys:String>
     <sys:String x:Key="Str_KS_View">檢視</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">全螢幕</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">按 F11 或 Esc 離開全螢幕</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">按 {0} 或 Esc 離開全螢幕</sys:String>
     <!-- Quit prompt -->
     <sys:String x:Key="Str_Dlg_QuitMsg">結束 KillerPDF？</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">關閉我開啟的分頁</sys:String>
@@ -1114,6 +1118,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">滾輪</sys:String>
     <sys:String x:Key="Str_Key_Click">按一下</sys:String>
     <sys:String x:Key="Str_Key_Or">或</sys:String>

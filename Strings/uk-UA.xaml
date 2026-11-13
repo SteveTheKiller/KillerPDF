@@ -168,7 +168,7 @@
     <sys:String x:Key="Str_CustomizeToolbar_Space">Вище ліва сторона, нижче права</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Separator">Роздільник</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Reset">Скинути</sys:String>
-    <sys:String x:Key="Str_St_ToolbarHidden">Панель інструментів схована - Alt+M показує її знову</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Панель інструментів схована - {0} показує її знову</sys:String>
     <sys:String x:Key="Str_St_ToolbarShown">Панель інструментів показано</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
@@ -197,8 +197,12 @@
     <sys:String x:Key="Str_KS_PanView">Переміщення вигляду</sys:String>
     <sys:String x:Key="Str_KS_Editing">РЕДАГУВАННЯ</sys:String>
     <sys:String x:Key="Str_KS_Undo">Скасувати</sys:String>
-    <sys:String x:Key="Str_KS_DeleteAnnot">Видалити вибрану анотацію</sys:String>
-    <sys:String x:Key="Str_KS_ConfirmCancel">Підтвердити / скасувати текст або обрізання</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Видалити вибрану анотацію або сторінки</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Підтвердити / скасувати обрізання або вимірювання</sys:String>
+    <sys:String x:Key="Str_KS_CommitText">Зберегти текст (Enter додає рядок)</sys:String>
+    <sys:String x:Key="Str_KS_RemoveLastPoint">Видалити останню точку</sys:String>
+    <sys:String x:Key="Str_KS_SearchOptions">Враховувати регістр / лише ціле слово (Знайти текст)</sys:String>
+    <sys:String x:Key="Str_KS_LayerBase">Основна</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">ПОШУК &amp; ВИДІЛЕННЯ</sys:String>
     <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
 
@@ -344,7 +348,7 @@
     <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">В іншій панелі також відкрито «{0}» з власними незбереженими змінами.
 
 Якщо зберегти зараз, файл буде перезаписано, а ці зміни втрачено. Спершу збережіть іншу панель, якщо хочете їх зберегти.</sys:String>
-    <sys:String x:Key="Str_St_SplitOn">Розділену панель увімкнено - F10, щоб закрити</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Розділену панель увімкнено - {0}, щоб закрити</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Розділену панель вимкнено</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Установлення KillerPDF</sys:String>
     <sys:String x:Key="Str_Dlg_InstallMsg">Установити KillerPDF на цей комп'ютер?</sys:String>
@@ -1011,7 +1015,7 @@ KillerPDF не створюватиме двох установлених коп
     <!-- View-mode + full-screen shortcuts -->
     <sys:String x:Key="Str_KS_View">ПЕРЕГЛЯД</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">На весь екран</sys:String>
-    <sys:String x:Key="Str_FullScreen_Hint">Натисніть F11 або Esc, щоб вийти з повноекранного режиму</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Натисніть {0} або Esc, щоб вийти з повноекранного режиму</sys:String>
     <!-- Quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">Вийти з KillerPDF?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Закрити мої відкриті вкладки</sys:String>
@@ -1144,6 +1148,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
     <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
     <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Backspace">Backspace</sys:String>
     <sys:String x:Key="Str_Key_Scroll">Прокручування</sys:String>
     <sys:String x:Key="Str_Key_Click">Клацання</sys:String>
     <sys:String x:Key="Str_Key_Or">або</sys:String>
