@@ -7079,8 +7079,8 @@ SOFTWARE.
 =========================================
 END OF Sergio0694/ComputeSharp NOTICES AND INFORMATION
 
-System.Numerics.Tensors package 11.0.0, used with Microsoft.ML.OnnxRuntime.Managed 1.31.1 and included in the installed payload.
-The license and third-party notices are reproduced from the installed NuGet package.
+System.Numerics.Tensors package 11.0.0, used with Microsoft.ML.OnnxRuntime.Managed 1.31.1, and System.Security.Cryptography.Pkcs package 11.0.0, used for CMS signatures, timestamps and certificate encryption. Both are included in the installed payload.
+The license and third-party notices are reproduced from the installed NuGet packages, which carry the same text.
 
 The MIT License (MIT)
 
