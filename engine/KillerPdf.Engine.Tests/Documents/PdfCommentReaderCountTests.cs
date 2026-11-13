@@ -26,17 +26,38 @@ public sealed class PdfCommentReaderCountTests
     public void TheStrictCountsStillRefuseABrokenAnnotationArray() =>
         Assert.Throws<InvalidOperationException>(() => PdfCommentReader.ReadPageAnnotationCounts(PdfDocument.Open(ThreePages())));
 
-    // Page 2's /Annots is a number, page 3 holds two (empty) entries.
-    private static byte[] ThreePages()
+    [Fact]
+    public void ANullAnnotationListCountsZeroAndACyclicOneIsRecordedAsUnreadable()
     {
         string[] objects =
         [
             "<< /Type /Catalog /Pages 2 0 R >>",
-            "<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R] /Count 3 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots 7 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots [null null] >>"
+            "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots null >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots 5 0 R >>",
+            "5 0 R"
         ];
+        PdfDocument document = PdfDocument.Open(Build(objects));
+        var unreadable = new List<int>();
+
+        IReadOnlyList<int> counts = PdfCommentReader.ReadPageAnnotationCounts(document, unreadable);
+
+        Assert.Equal([0, 0], counts);
+        Assert.Equal([1], unreadable);
+    }
+
+    // Page 2's /Annots is a number, page 3 holds two (empty) entries.
+    private static byte[] ThreePages() => Build(
+    [
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R] /Count 3 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots 7 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots [null null] >>"
+    ]);
+
+    private static byte[] Build(string[] objects)
+    {
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();
         for (int index = 0; index < objects.Length; index++)

@@ -140,8 +140,16 @@ public static partial class PdfCommentReader
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++)
         {
             if (!pages[pageIndex].Dictionary.TryGetValue(Name("Annots"), out PdfObject? value)) continue;
-            if (Resolve(document, value) is PdfArray annotations) counts[pageIndex] = annotations.Count;
-            else unreadablePages.Add(pageIndex);
+            try
+            {
+                PdfObject resolved = Resolve(document, value);
+                if (resolved is PdfArray annotations) counts[pageIndex] = annotations.Count;
+                else if (resolved is not PdfNull) unreadablePages.Add(pageIndex);
+            }
+            catch (InvalidOperationException)
+            {
+                unreadablePages.Add(pageIndex);
+            }
         }
         return Array.AsReadOnly(counts);
     }
