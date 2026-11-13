@@ -23,6 +23,18 @@ namespace KillerPDF.Shell
         // Keyboard shortcuts
         // ============================================================
 
+        // The keys that work while shortcuts are off (ShortcutTogglePolicy.StaysOn).
+        private void StayOnShortcut(Key key)
+        {
+            if (key == Key.F1 || key == Key.Escape && ShortcutsOverlay.Visibility == Visibility.Visible)
+            {
+                if (ShortcutsOverlay.Visibility == Visibility.Visible) FadeOverlayOut(ShortcutsOverlay);
+                else ShowShortcutsOverlayExclusive();
+            }
+            else if (AboutOverlay.Visibility == Visibility.Visible) CloseAboutOverlay();
+            else ShowAboutOverlay();
+        }
+
         protected override void OnPreviewKeyDown(KeyEventArgs e)
         {
             if (_pageBoxActive && e.Key is not (Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift))
@@ -82,6 +94,13 @@ namespace KillerPDF.Shell
                 return;
             if (_syntheticShortcut is null && !KeyboardShortcutsEnabled)
             {
+                if (ShortcutTogglePolicy.StaysOn(e.Key, Keyboard.Modifiers, e.SystemKey,
+                        ShortcutsOverlay.Visibility == Visibility.Visible || AboutOverlay.Visibility == Visibility.Visible))
+                {
+                    StayOnShortcut(e.Key == Key.System ? e.SystemKey : e.Key);
+                    e.Handled = true;
+                    return;
+                }
                 e.Handled = ShortcutTogglePolicy.SuppressWhenDisabled(
                     e.Key, e.OriginalSource is TextBox or PasswordBox, e.SystemKey);
                 return;

@@ -34,9 +34,9 @@ public sealed class ShortcutRowTextTests
     public void AMovedKeyInAMultiKeyRowKeepsTheOtherKeysAsFriendlyNames()
     {
         var remap = new ShortcutRemap();
-        Assert.Null(remap.Assign(Cap(KbLayer.Base, "F1"), Cap(KbLayer.Base, "J")));
+        Assert.Null(remap.Assign(Cap(KbLayer.Base, "F4"), Cap(KbLayer.Base, "J")));
 
-        Assert.Equal("J / %ctrl%+?", RowKeys("Str_KS_ThisList", remap));
+        Assert.Equal("%ctrl%+D / J", RowKeys("Str_KS_DocInfo", remap));
     }
 
     [Fact]

@@ -12,6 +12,15 @@ internal static class ShortcutTogglePolicy
         => (key == Key.System ? systemKey : key) == Key.K
             && modifiers == (ModifierKeys.Control | ModifierKeys.Shift);
 
+    /// <summary>Keys that still act while shortcuts are off: bare F1 and F12, which open the
+    /// shortcuts list and About, and Esc while one of those is showing so it can be closed.</summary>
+    internal static bool StaysOn(Key key, ModifierKeys modifiers, Key systemKey, bool overlayOpen)
+    {
+        if (modifiers != ModifierKeys.None) return false;
+        key = key == Key.System ? systemKey : key;
+        return key is Key.F1 or Key.F12 || key == Key.Escape && overlayOpen;
+    }
+
     internal static bool SuppressWhenDisabled(Key key, bool textInput, Key systemKey = Key.None)
     {
         if (textInput) return false;

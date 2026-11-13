@@ -97,6 +97,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The page menu is shorter: Back, Forward, Undo, Redo and Print share its top row with the page number, the selected-text and placement tools are icon strips, and the page tools sit under Page.
 - Delete Pages takes one step: the range, a strip that marks the pages going (a run of pages is one tile, so a long document stays quick), and a button that says how many. The Yes/No box that followed it is gone.
 - Buttons are flat, and a dialog's close button sits in its corner.
+- F1 always opens the shortcut list and F12 always opens About: they can no longer be reassigned in Customize Shortcuts, and they work, along with Esc to close what they open, even when keyboard shortcuts are switched off.
 - The sidebar position and two-page thumbnail options share one Sidebar row with a flyout at the foot of the sidebar menus.
 - Transform and Color correction flip through every page of the document. Apply changes the page on screen and keeps the window open, so the next page can be fixed without reopening it, and a window opened on several selected pages can still change them all at once.
 - Production layouts, Form data, Preflight and the other document tool launchers show each command as an icon tile in a grid instead of a column of identical buttons.

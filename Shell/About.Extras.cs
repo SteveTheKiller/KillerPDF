@@ -77,7 +77,7 @@ namespace KillerPDF.Shell
             MainWindow? main = null;
             for (Window? owner = window.Owner; owner is not null; owner = owner.Owner)
                 if (owner is MainWindow found) { main = found; break; }
-            if (main is null || ReferenceEquals(window, main._aboutHost) || !KeyboardShortcutsEnabled) return;
+            if (main is null || ReferenceEquals(window, main._aboutHost)) return;
             var (key, _, _, swallow) = main.TranslateShortcut(e.Key, Keyboard.Modifiers, e.SystemKey);
             if (swallow || key != Key.F12) return;
             main.ShowAboutOverlay();

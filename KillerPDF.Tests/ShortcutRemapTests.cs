@@ -79,4 +79,37 @@ public sealed class ShortcutRemapTests
         Assert.Equal("Str_KS_Find", map[KbLayer.Alt]["K"].Label);
         Assert.False(map[KbLayer.Ctrl].ContainsKey("F"));
     }
+
+    [Theory]
+    [InlineData("F1")]
+    [InlineData("F12")]
+    public void HelpAndAbout_StayOnTheirKeys(string id)
+    {
+        string[] names = [.. ShortcutRemap.Commands.Select(command => ShortcutRemap.Name(command.Original))];
+
+        Assert.False(ShortcutRemap.IsRemappable(Cap(KbLayer.Base, id)));
+        Assert.DoesNotContain("Base:" + id, names);
+    }
+
+    [Theory]
+    [InlineData("F1", "Str_KS_ThisList")]
+    [InlineData("F12", "Str_KS_About")]
+    public void Assign_RefusesBareF1AndF12ForAnyOtherCommand(string id, string owner)
+    {
+        var remap = new ShortcutRemap();
+
+        Assert.Equal(owner, remap.Assign(Cap(KbLayer.Base, "F5"), Cap(KbLayer.Base, id)));
+        Assert.Equal(0, remap.Count);
+    }
+
+    [Fact]
+    public void Parse_IgnoresSavedMovesOfHelpAndAboutAndSavedCommandsOnBareF1AndF12()
+    {
+        ShortcutRemap restored = ShortcutRemap.Parse(
+            "Base:F1=Alt:J;Base:F12=Alt:Y;Ctrl:P=Base:F12;Ctrl:O=Base:F1");
+
+        Assert.Equal(0, restored.Count);
+        Assert.Equal<(KbLayer, string)?>((KbLayer.Base, "F1"), restored.Translate(KbLayer.Base, "F1"));
+        Assert.Equal<(KbLayer, string)?>((KbLayer.Base, "F12"), restored.Translate(KbLayer.Base, "F12"));
+    }
 }
