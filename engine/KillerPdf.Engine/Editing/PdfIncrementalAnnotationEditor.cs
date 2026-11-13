@@ -2048,6 +2048,9 @@ public sealed class PdfIncrementalAnnotationEditor
                 continue;
             PdfObject resolvedAnnots = ResolveValue(annotsValue,
                 $"Page {page.Index + 1} /Annots value");
+            // A null annotation list is a page with no annotations.
+            if (resolvedAnnots is PdfNull)
+                continue;
             if (resolvedAnnots is not PdfArray annotations)
                 throw new InvalidOperationException(
                     $"Page {page.Index + 1} /Annots value is not an array.");
@@ -2551,10 +2554,11 @@ public sealed class PdfIncrementalAnnotationEditor
         var values = new List<PdfObject>();
         var annotationIdentities = new HashSet<(int ObjectNumber, int Generation)>();
         var annotationNames = new HashSet<string>(StringComparer.Ordinal);
-        if (page.Dictionary.TryGetValue(AnnotsName, out PdfObject existing))
+        // A null annotation list is a page with no annotations, so the page gets a new list.
+        if (page.Dictionary.TryGetValue(AnnotsName, out PdfObject existing)
+            && ResolveWithIdentity(existing, $"Page {page.Index + 1} /Annots value") is
+                { Value: not PdfNull } resolvedArray)
         {
-            ResolvedValue resolvedArray = ResolveWithIdentity(existing,
-                $"Page {page.Index + 1} /Annots value");
             PdfArray array = resolvedArray.Value as PdfArray
                 ?? throw new InvalidOperationException($"Page {page.Index + 1} /Annots value is not an array.");
             PrepareExistingAnnotations(array);

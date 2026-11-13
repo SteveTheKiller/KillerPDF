@@ -46,6 +46,25 @@ public sealed class PdfCommentReaderCountTests
         Assert.Equal([1], unreadable);
     }
 
+    // The count above says a null annotation list holds nothing, so a save adds the page's new annotations natively.
+    // The annotation editor must then accept that page and give it a list of its own.
+    [Fact]
+    public void APageWithANullAnnotationListTakesANewAnnotation()
+    {
+        PdfDocument document = PdfDocument.Open(Build(
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots null >>"
+        ]));
+
+        byte[] saved = new KillerPdf.Engine.Editing.PdfIncrementalAnnotationEditor(document)
+            .AddTextNote(0, 20, 20, "Added")
+            .Build();
+
+        Assert.Equal([1], PdfCommentReader.ReadPageAnnotationCounts(PdfDocument.Open(saved)));
+    }
+
     // Page 2's /Annots is a number, page 3 holds two (empty) entries.
     private static byte[] ThreePages() => Build(
     [
