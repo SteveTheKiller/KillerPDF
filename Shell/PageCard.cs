@@ -233,7 +233,7 @@ namespace KillerPDF.Shell
                 button.Click += (_, _) => { menu.IsOpen = false; act(); };
                 grid.Children.Add(button);
             }
-            var strip = new Border { BorderThickness = new Thickness(0, 1, 0, 1), Padding = new Thickness(2, 4, 2, 4), Child = grid };
+            var strip = new Border { Padding = new Thickness(2, 4, 2, 4), Child = grid };
             strip.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
             System.Windows.Automation.AutomationProperties.SetName(strip, Loc("Str_Card_Actions"));
             return strip;

@@ -772,6 +772,11 @@
             <Setter Property="VerticalContentAlignment" Value="Stretch"/>
         </Style>
         <Style TargetType="ListBoxItem">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True">
+                    <Setter Property="Padding" Value="0,6"/>
+                </DataTrigger>
+            </Style.Triggers>
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -2027,7 +2032,7 @@
                                 <DataTemplate DataType="{x:Type local:PageThumbnailVm}">
                                     <!-- Thumbnail scales to the sidebar width (the item stretches) with side
                                          margins that clear the scrollbar, so it never gets clipped. -->
-                                    <StackPanel Margin="8,2,8,2">
+                                    <StackPanel x:Name="ThumbContent" Margin="8,2,8,2">
                                         <Border x:Name="ThumbBorder"
                                                 Background="White"
                                                 BorderBrush="{DynamicResource SurfaceBrush}"
@@ -2057,6 +2062,11 @@
                                         </TextBlock>
                                     </StackPanel>
                                     <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True">
+                                            <Setter TargetName="ThumbContent" Property="Margin" Value="1,2,1,2"/>
+                                            <Setter TargetName="ThumbBorder" Property="MaxWidth" Value="Infinity"/>
+                                            <Setter TargetName="ThumbBorder" Property="HorizontalAlignment" Value="Stretch"/>
+                                        </DataTrigger>
                                         <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
                                             <Setter TargetName="ThumbBorder" Property="Visibility" Value="Collapsed"/>
                                         </DataTrigger>

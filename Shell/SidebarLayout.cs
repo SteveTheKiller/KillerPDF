@@ -447,6 +447,7 @@ namespace KillerPDF.Shell
         private void ApplyPageThumbnailLayout()
         {
             if (PageList is null) return;
+            PageList.Tag = PairedThumbnailsActive;
             _pageColumnPanel ??= PageList.ItemsPanel;
             ItemsPanelTemplate desired = _pageColumnPanel;
             if (_sidebarStripLayout)
