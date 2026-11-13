@@ -24,7 +24,7 @@
 - Rendering, text extraction, search, editing and document processing through KillerPDF's own PDF engine
 - Five view modes (Single, Continuous, Two-Page, Two-Page Continuous and Grid, with a book layout option for the two-page views), tabbed documents that restore their page, zoom and view mode, and a split pane (F10) for two documents side by side
 - Sidebar panels for pages, outline, comments, attachments, layers and signatures, dockable on any side of the window; tabs at the top or the bottom
-- EPUB books and DjVu scans open natively in tabs with thumbnails, outlines, links, search and copy, and convert to PDF
+- EPUB books and DjVu scans open natively in tabs with thumbnails, outlines, search and copy, links in EPUB books, and convert to PDF
 - Color-managed viewing on standard monitors, a working CMYK profile, and printer proofing with ICC profiles
 - Edit a page's own text line by line or by paragraph, with font matching, or change matching text everywhere with Find and Replace
 - Text boxes, freehand drawing, lines, shapes, highlights, strikethrough, underline, stamps and images, with an RGB color picker and screen eyedropper
