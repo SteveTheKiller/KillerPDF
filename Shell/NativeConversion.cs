@@ -27,7 +27,7 @@ public partial class MainWindow
                     ?? throw new NotSupportedException(Loc("Str_Convert_FontUnavailable"));
                 epubOptions = NativePdfConversion.EpubOptions(face.Font,
                     PdfEngineIntegration.EpubFontFaceResolver(face.Family), options.WidthPoints,
-                    options.HeightPoints, options.MarginPoints, Loc("Str_Epub_ChapterUnavailable"));
+                    options.HeightPoints, options.MarginPoints, Loc("Str_Epub_ChapterUnavailable"), face.Family);
             }
             // The picker asks before replacing an existing file; the conversion then replaces it only
             // once the new PDF is complete.

@@ -41,15 +41,26 @@ internal static class NativePdfConversion
     /// </summary>
     internal static EpubPdfConversionOptions EpubOptions(KillerPdf.Engine.Fonts.TrueTypeFont font,
         Func<EpubFontFaceRequest, EpubFontFaceResult?>? faceResolver, double widthPoints, double heightPoints,
-        double marginPoints, string unavailableChapterLabel) => new(font)
+        double marginPoints, string unavailableChapterLabel, string? defaultFamily = null) => new(font)
     {
         PageWidthPoints = widthPoints,
         PageHeightPoints = heightPoints,
         MarginPoints = marginPoints,
         FontFaceResolver = faceResolver,
         IsolateChapterFailures = true,
-        UnavailableChapterLabel = unavailableChapterLabel
+        UnavailableChapterLabel = unavailableChapterLabel,
+        NoticeFallbackFamilies = defaultFamily is null ? [] : NoticeFallbackFamilies(defaultFamily, unavailableChapterLabel)
     };
+
+    /// <summary>
+    /// The installed family an EPUB chapter notice falls back to when the default family cannot draw its localized
+    /// heading, such as a Japanese or Chinese heading with Segoe UI, or none when the default family can.
+    /// </summary>
+    internal static IReadOnlyList<EpubFontFamily> NoticeFallbackFamilies(string defaultFamily, string heading)
+    {
+        string family = FontCoverage.PickFamily(defaultFamily, heading);
+        return string.Equals(family, defaultFamily, StringComparison.OrdinalIgnoreCase) ? [] : [new EpubFontFamily(family)];
+    }
 
     /// <summary>
     /// Converts a DjVu document. An existing destination is replaced only when the user confirmed it. Returns the

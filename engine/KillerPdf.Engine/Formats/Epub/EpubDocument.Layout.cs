@@ -171,7 +171,7 @@ public sealed partial class EpubDocument
                     noticeMessage = error.Message;
                     chapterDiagnostics.Add(new(spineIndex, href, error.Message) { Reason = OmissionReason(error) });
                     pages.Add(ChapterDiagnosisPage(spineIndex, options, reader, href, error.Message,
-                        () => ResolveFamily(null, 400, EpubFontStyle.Normal), token));
+                        family => ResolveFamily(family, 400, EpubFontStyle.Normal), token));
                 }
                 if (laidOut)
                     EpubLayoutDocument.RecordAnchorDestinations(pages, pageMark, spineIndex,
@@ -203,7 +203,7 @@ public sealed partial class EpubDocument
                 {
                     string href = Spine[spineIndex].Item.Href;
                     pages[pageIndex] = ChapterDiagnosisPage(spineIndex, options, reader, href, noticeMessage ?? "",
-                        () => null, CancellationToken.None, plain: true);
+                        _ => null, CancellationToken.None, plain: true);
                     try { residentPage(pages[pageIndex], pageIndex); }
                     catch (Exception again) when (again is not (OperationCanceledException or OutOfMemoryException))
                     {
@@ -379,10 +379,11 @@ public sealed partial class EpubDocument
 
     /// <summary>
     /// Draws the caller's label, the chapter path and the diagnosis. Each character uses the fallback font when it maps the
-    /// character, then the host's default face, and otherwise shows the fallback font's missing-glyph box.
+    /// character, then the host's default face, then the first notice fallback family whose face maps it, and otherwise
+    /// shows the fallback font's missing-glyph box. Faces come from the host's resolver, null asking for its default face.
     /// </summary>
     private static EpubLayoutPage ChapterDiagnosisPage(int spineIndex, EpubLayoutOptions options,
-        TrueTypeOutlineReader reader, string href, string message, Func<TrueTypeFont?> resolveHostFace,
+        TrueTypeOutlineReader reader, string href, string message, Func<EpubFontFamily?, TrueTypeFont?> resolveFace,
         CancellationToken cancellationToken, bool plain = false)
     {
         var font = options.DefaultFont;
@@ -395,8 +396,9 @@ public sealed partial class EpubDocument
         // One unsubstituted cluster per drawn run lets PDF conversion emit the diagnosis as selectable text.
         var clusters = new List<EpubGlyphCluster>();
         var readers = new Dictionary<TrueTypeFont, TrueTypeOutlineReader> { [font] = reader };
-        TrueTypeFont? hostFace = null;
-        bool hostFaceAsked = false;
+        // The host's default face first, then each notice fallback family; null where a face is missing or cannot draw.
+        TrueTypeFont?[]? hostFaces = null;
+        bool[]? hostFacesAsked = null;
         double top = options.Margin;
         foreach (string paragraph in new[] { options.UnavailableChapterLabel ?? "", href, message })
         {
@@ -434,14 +436,21 @@ public sealed partial class EpubDocument
             if (glyph != 0) return (font, glyph);
             // The plain page is drawn in the default font alone; a character it does not map is left undrawn.
             if (plain) return (font, 0);
-            if (!hostFaceAsked)
+            hostFaces ??= new TrueTypeFont?[1 + options.NoticeFallbackFamilies.Count];
+            hostFacesAsked ??= new bool[hostFaces.Length];
+            for (int index = 0; index < hostFaces.Length; index++)
             {
-                hostFaceAsked = true;
-                try { hostFace = resolveHostFace(); }
-                catch (Exception error) when (error is not (OperationCanceledException or OutOfMemoryException)) { hostFace = null; }
-                if (hostFace is { HasCffOutlines: true }) hostFace = null;
+                // Each face is asked for once, and only when every face before it lacks a character.
+                if (!hostFacesAsked[index])
+                {
+                    hostFacesAsked[index] = true;
+                    try { hostFaces[index] = resolveFace(index == 0 ? null : options.NoticeFallbackFamilies[index - 1]); }
+                    catch (Exception error) when (error is not (OperationCanceledException or OutOfMemoryException)) { hostFaces[index] = null; }
+                    if (hostFaces[index] is { HasCffOutlines: true }) hostFaces[index] = null;
+                }
+                if (hostFaces[index] is { } hostFace && hostFace.GetGlyphId(scalar) is var hostGlyph and not 0)
+                    return (hostFace, hostGlyph);
             }
-            if (hostFace is not null && hostFace.GetGlyphId(scalar) is var hostGlyph and not 0) return (hostFace, hostGlyph);
             return (font, 0);
         }
 

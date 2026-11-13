@@ -48,7 +48,8 @@ public sealed partial class EpubDocument
             FontFaceResolver = options.FontFaceResolver,
             TableFlowWorkLimit = options.TableFlowWorkLimit,
             IsolateChapterFailures = options.IsolateChapterFailures,
-            UnavailableChapterLabel = options.UnavailableChapterLabel
+            UnavailableChapterLabel = options.UnavailableChapterLabel,
+            NoticeFallbackFamilies = options.NoticeFallbackFamilies
         }, AddPage, cancellationToken);
         layoutReference = new WeakReference(layout);
         foreach (var (pageIndex, placement) in linkRuns)

@@ -205,6 +205,33 @@ public sealed class EpubConversionIsolationTests
     }
 
     [Fact]
+    public void AJapaneseNoticeHeadingFallsBackToTheFirstNoticeFamilyWithItsScript()
+    {
+        // The host's default face is the Latin fallback font, which has no U+65E5. The first notice family is not
+        // installed; the second is a face that maps it, so the heading must draw in that face.
+        var cjk = HostFaceMapping(0x65E5);
+        var latin = Liberation();
+        var book = new Book { Chapters = { Chapter(Unscripted) } };
+        string label = char.ConvertFromUtf32(0x65E5);
+        Func<EpubFontFaceRequest, EpubFontFaceResult?> resolver = request => request.Family?.Name switch
+        {
+            null => new EpubFontFaceResult(latin, 400, EpubFontMatch.Exact),
+            "Japanese UI" => new EpubFontFaceResult(cjk, 400, EpubFontMatch.Exact),
+            _ => null
+        };
+        var options = new EpubLayoutOptions(400, 600, latin) { FontSize = 10, Margin = 2, IsolateChapterFailures = true,
+            UnavailableChapterLabel = label, FontFaceResolver = resolver,
+            NoticeFallbackFamilies = [new EpubFontFamily("Missing UI"), new EpubFontFamily("Japanese UI")] };
+
+        var page = Assert.Single(EpubDocument.Open(book.Build()).CreateLayout(options).Pages);
+
+        var cluster = page.Clusters.Values.Single(item => item.Start == 0);
+        Assert.False(cluster.Missing);
+        Assert.Same(cjk, cluster.Font);
+        Assert.Equal<ushort>(2, cluster.Glyphs[0].GlyphId);
+    }
+
+    [Fact]
     public void ANoticePageTheHostCannotWriteBecomesAPlainPageInsteadOfEndingTheBook()
     {
         var book = EpubDocument.Open(new Book { Chapters = { Chapter(Unscripted), Chapter("<p>ALPHA</p>") } }.Build());

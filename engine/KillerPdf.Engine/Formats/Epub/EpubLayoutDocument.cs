@@ -32,6 +32,11 @@ public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, True
     /// <summary>Gets the caller's localized heading for an isolated chapter's diagnosis page.</summary>
     public string UnavailableChapterLabel { get; init; } = "This chapter could not be displayed.";
     /// <summary>
+    /// Gets families the diagnosis page tries in order, through the face resolver, for a character neither the
+    /// default font nor the host's default face maps, such as a heading in a script those faces lack.
+    /// </summary>
+    public IReadOnlyList<EpubFontFamily> NoticeFallbackFamilies { get; init; } = [];
+    /// <summary>
     /// Gets an optional callback that layout invokes on its own thread after each spine item, laid out or
     /// isolated, with the number of completed spine items and the spine's length.
     /// </summary>

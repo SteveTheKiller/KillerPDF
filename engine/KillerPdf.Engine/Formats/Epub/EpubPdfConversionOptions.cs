@@ -28,6 +28,11 @@ public sealed record EpubPdfConversionOptions(TrueTypeFont DefaultFont)
     public bool IsolateChapterFailures { get; init; }
     /// <summary>Gets the caller's localized heading for an isolated chapter's diagnosis page.</summary>
     public string UnavailableChapterLabel { get; init; } = "This chapter could not be displayed.";
+    /// <summary>
+    /// Gets families the diagnosis page tries in order, through the face resolver, for a character neither the
+    /// default font nor the host's default face maps, such as a heading in a script those faces lack.
+    /// </summary>
+    public IReadOnlyList<EpubFontFamily> NoticeFallbackFamilies { get; init; } = [];
 
     /// <summary>Reports whether a PDF reader accepts this page size in points.</summary>
     /// <remarks>ISO 32000-1 annex C.2: without UserUnit each side is 3 to 14,400 default user units (200 in, 5,080 mm).</remarks>

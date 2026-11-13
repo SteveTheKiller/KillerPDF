@@ -21,11 +21,13 @@ public partial class MainWindow
                 // Localized text and the fallback face are read here; layout itself runs off the UI thread.
                 var face = PdfEngineIntegration.LoadTextFont("Segoe UI", "A", bold: false, italic: false)
                     ?? throw new NotSupportedException("Native EPUB fallback font is unavailable.");
+                string unavailable = Loc("Str_Epub_ChapterUnavailable");
                 epubOptions = new EpubLayoutOptions(800, 1000, face.Font)
                 {
                     FontFaceResolver = PdfEngineIntegration.EpubFontFaceResolver(face.Family),
                     IsolateChapterFailures = true,
-                    UnavailableChapterLabel = Loc("Str_Epub_ChapterUnavailable")
+                    UnavailableChapterLabel = unavailable,
+                    NoticeFallbackFamilies = NativePdfConversion.NoticeFallbackFamilies(face.Family, unavailable)
                 };
             }
         }
