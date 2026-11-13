@@ -29,6 +29,40 @@ public sealed class PreviewSpreadsTests
     public void SpreadsStartWhereTheViewersDo(int index, bool book, int start)
         => Assert.Equal(start, PreviewSpreads.SpreadStart(index, book));
 
+    // The viewer draws the page a step would land on before the step. In Book layout the cover stands alone, so the
+    // spread after it starts at page 1 and the spread before pages 1-2 is the cover. Worked by hand from the spreads:
+    // Book 10 is [0] [1,2] [3,4] [5,6] [7,8] [9]; Book 9 is [0] [1,2] [3,4] [5,6] [7,8].
+    [Theory]
+    [InlineData("Single", 10, 4, new[] { 5, 3 })]
+    [InlineData("Single", 10, 0, new[] { 1 })]
+    [InlineData("Single", 10, 9, new[] { 8 })]
+    [InlineData("TwoPage", 10, 0, new[] { 2 })]
+    [InlineData("TwoPage", 10, 3, new[] { 4, 0 })]
+    [InlineData("TwoPage", 9, 7, new[] { 8, 4 })]
+    [InlineData("TwoPage", 9, 8, new[] { 6 })]
+    [InlineData("Book", 10, 0, new[] { 1 })]
+    [InlineData("Book", 10, 1, new[] { 3, 0 })]
+    [InlineData("Book", 10, 2, new[] { 3, 0 })]
+    [InlineData("Book", 10, 8, new[] { 9, 5 })]
+    [InlineData("Book", 10, 9, new[] { 7 })]
+    [InlineData("Book", 9, 8, new[] { 5 })]
+    [InlineData("Book", 9, 4, new[] { 5, 1 })]
+    [InlineData("Single", 1, 0, new int[0])]
+    [InlineData("TwoPage", 1, 0, new int[0])]
+    [InlineData("Book", 1, 0, new int[0])]
+    public void TheNextAndPreviousSpreadsAreDrawnAheadFromTheirFirstRealPage(string layout, int count, int page,
+        int[] expected)
+        => Assert.Equal(expected, PreviewSpreads.NeighborStarts(page, count, Enum.Parse<PreviewLayout>(layout)));
+
+    // SOURCE PIN: the viewer is not compiled into this project. Its prefetch takes its targets from the function above.
+    [Fact]
+    public void TheViewersPrefetchDrawsTheNeighborStarts()
+    {
+        string viewport = ViewerSourcePin.Viewer("PdfViewer.Viewport.cs");
+        string prefetch = ViewerSourcePin.Between(viewport, "private void KickOffAdjacentPrefetch(", "var rotations = ");
+        Assert.Contains("int[] targets = PreviewSpreads.NeighborStarts(pageIndex, total,", prefetch);
+    }
+
     [Fact]
     public void BookShowsTheFirstSheetAloneThenPairs()
     {

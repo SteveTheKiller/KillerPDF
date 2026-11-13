@@ -55,6 +55,23 @@ namespace KillerPDF.Controls
             return spreads.Count == 0 ? 0 : index < 0 ? 0 : spreads.Count - 1;
         }
 
+        /// <summary>The pages worth drawing ahead of a step away from item <paramref name="index"/>: the first item
+        /// of the next spread, then the first item of the spread before, each only when it exists.</summary>
+        public static int[] NeighborStarts(int index, int count, PreviewLayout layout)
+        {
+            if (index < 0 || index >= count) return [];
+            bool single = layout == PreviewLayout.Single, book = layout == PreviewLayout.Book;
+            int start = single ? index : SpreadStart(index, book);
+            // The same pairing as Spreads: a single layout, the book cover and a last odd item stand alone.
+            bool alone = single || (book && start == 0) || start + 1 >= count;
+            int forward = start + (alone ? 1 : 2);
+            int backward = start == 0 ? -1 : single ? start - 1 : SpreadStart(start - 1, book);
+            var targets = new List<int>(2);
+            if (forward < count) targets.Add(forward);
+            if (backward >= 0) targets.Add(backward);
+            return [.. targets];
+        }
+
         /// <summary>True when a frame this wide can draw two pages of at least the minimum width.</summary>
         public static bool FitsTwo(double frameWidth) => frameWidth >= 2 * MinSpreadPage + Gap + 2 * Margin;
 

@@ -76,11 +76,8 @@ namespace KillerPDF.Controls
             long revision = session?.RenderRevision ?? 0;
             long prefetchCmyk = KillerPDF.Services.WorkingCmykProfiles.Generation;
             int total = _doc.PageCount;
-            int forward = _viewMode == ViewMode.TwoPage
-                ? SpreadStart(pageIndex) + 2 : pageIndex + 1;
-            int backward = _viewMode == ViewMode.TwoPage
-                ? SpreadStart(pageIndex) - 2 : pageIndex - 1;
-            int[] targets = [forward, backward];
+            int[] targets = PreviewSpreads.NeighborStarts(pageIndex, total,
+                PreviewSpreads.FromViewer(_viewMode == ViewMode.TwoPage, BookMode));
             var rotations = new Dictionary<int, int>(_pageRotations);
             var renderRequest = _backgroundRenderCache.Capture(currentFile, revision, _protection);
             _ = System.Threading.Tasks.Task.Run(async () =>
