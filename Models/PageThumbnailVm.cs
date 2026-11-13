@@ -115,15 +115,41 @@ namespace KillerPDF
 
         internal static BitmapSource? BuildNativeThumb(PdfCapturedReadRevision revision, int pageIndex,
             int rotation, int maximumWidth, int maximumHeight, CancellationToken cancellationToken,
-            PdfDocumentProofSettings? proof = null)
+            PdfDocumentProofSettings? proof = null, KillerPDF.Presentation.PdfSdrDisplayConverter? monitor = null)
         {
             var frame = NativeFrameRendering.Render(revision, pageIndex, maximumWidth, maximumHeight, cancellationToken, proof);
             int width = frame.Width, height = frame.Height;
-            byte[] pixels = frame.ToSrgbBgra32(cancellationToken);
+            byte[] pixels = KillerPDF.Presentation.PdfViewingFrameConversion.DisplayPixels(frame, monitor, cancellationToken).Pixels;
             if (rotation != 0)
                 (pixels, width, height) = BitmapHelpers.RotateBitmap(pixels, width, height, rotation);
             cancellationToken.ThrowIfCancellationRequested();
             return EncodeToBitmapSource(pixels, width, height);
+        }
+
+        /// <summary>One PDF page's thumbnail pixels, rotated, or null when the page drew nothing.</summary>
+        internal static (byte[] Pixels, int Width, int Height)? RenderPdfThumbPixels(PdfPageRenderSession renderSession,
+            int pageIndex, int rotation, CancellationToken cancellationToken, PdfDocumentProofSettings? proof = null,
+            KillerPDF.Presentation.PdfSdrDisplayConverter? monitor = null)
+        {
+            int tw, th;
+            byte[] raw;
+            if (monitor is null)
+            {
+                PdfRenderedPage page = renderSession.RenderPreview(pageIndex, cancellationToken, proof);
+                (tw, th, raw) = (page.Width, page.Height, page.Pixels);
+            }
+            else
+            {
+                // The page view's own conversion, so a thumbnail on a profiled monitor matches the page.
+                var viewing = KillerPDF.Presentation.PdfViewingFrameConversion.Render(
+                    requested => renderSession.RenderPreviewFrame(pageIndex, cancellationToken, requested),
+                    () => renderSession.RenderPreview(pageIndex, cancellationToken), proof, monitor, cancellationToken);
+                (tw, th, raw) = (viewing.Width, viewing.Height, viewing.Pixels);
+            }
+            if (tw <= 0 || th <= 0 || raw == null || raw.Length < tw * th * 4) return null;
+            if (rotation != 0)
+                (raw, tw, th) = BitmapHelpers.RotateBitmap(raw, tw, th, rotation);
+            return (raw, tw, th);
         }
 
         internal static BitmapSource? BuildThumb(string filePath, Services.OpenedProtection? protection, int pageIndex,

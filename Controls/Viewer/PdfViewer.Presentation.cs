@@ -94,6 +94,11 @@ public partial class PdfViewer
 
     private bool _presentationDisplayObserving;
 
+    /// <summary>The monitor conversion pages take on the viewer's display, or null when they are plain sRGB there.</summary>
+    internal PdfSdrDisplayConverter? CaptureThumbnailMonitor() =>
+        PdfDisplayPresentationPolicy.Resolve(CapturePrimaryDisplay()).TransformOwner == PdfMonitorTransformOwner.Application
+            ? _sdrDisplayConverter : null;
+
     private void RerenderForDisplayChange()
     {
         _presentationRerenderPending = false;

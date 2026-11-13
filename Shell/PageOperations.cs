@@ -399,6 +399,8 @@ namespace KillerPDF.Shell
         {
             var thumbnailOwner = ActiveViewer;
             var thumbnailProof = thumbnailOwner.DocumentProofView?.CaptureProof();
+            // Thumbnails take the monitor conversion the page takes; a monitor without a profile keeps plain sRGB.
+            var thumbnailMonitor = thumbnailOwner.CaptureThumbnailMonitor();
             // Cancel any in-flight thumbnail load for the previous file.
             _thumbCts?.Cancel();
             // Hold the token locally rather than reading it back off _thumbCts. That property
@@ -453,18 +455,11 @@ namespace KillerPDF.Shell
                 if (ct.IsCancellationRequested) return null;
                 rotSnap.TryGetValue(i, out int rot);
                 if (nativeRevision is not null)
-                    return PageThumbnailVm.BuildNativeThumb(nativeRevision, i, rot, 128, 256, ct, thumbnailProof?.Settings);
+                    return PageThumbnailVm.BuildNativeThumb(nativeRevision, i, rot, 128, 256, ct, thumbnailProof?.Settings,
+                        thumbnailMonitor);
                 return renderer.Use(() => PdfPageRenderSession.OpenEngineFirst(filePath, 128, 256, protection), renderSession =>
-                {
-                    PdfRenderedPage page = renderSession.RenderPreview(i, ct, thumbnailProof?.Settings);
-                    int tw = page.Width;
-                    int th = page.Height;
-                    byte[] raw = page.Pixels;
-                    if (tw <= 0 || th <= 0 || raw == null || raw.Length < tw * th * 4) return null;
-                    if (rot != 0)
-                        (raw, tw, th) = BitmapHelpers.RotateBitmap(raw, tw, th, rot);
-                    return PageThumbnailVm.BuildThumbFromRaw(raw, tw, th);
-                }, ct);
+                    PageThumbnailVm.RenderPdfThumbPixels(renderSession, i, rot, ct, thumbnailProof?.Settings, thumbnailMonitor)
+                        is { } drawn ? PageThumbnailVm.BuildThumbFromRaw(drawn.Pixels, drawn.Width, drawn.Height) : null, ct);
             }, (i, image) =>
             {
                 if (ct.IsCancellationRequested) return;

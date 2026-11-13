@@ -73,14 +73,23 @@ internal static class PdfViewingFrameConversion
         return (proofRefusedForPage ? "Str_CM_ProofUnavailablePage" : null, preferenceNoticeKey);
     }
 
-    private static PdfViewingPixels Convert(PdfRenderedFrame frame, PdfSdrDisplayConverter? monitor,
-        bool proofUnavailable, CancellationToken token)
+    /// <summary>A rendered frame's BGRA bytes for the monitor, or sRGB without monitor conversion, and why
+    /// conversion was not applied when it was requested.</summary>
+    internal static (byte[] Pixels, string? FailureOperation) DisplayPixels(PdfRenderedFrame frame,
+        PdfSdrDisplayConverter? monitor, CancellationToken token)
     {
         var conversion = monitor?.Convert(frame, token);
         if (conversion?.Outcome == PdfSdrConversionOutcome.Stale) throw new OperationCanceledException(token);
         byte[] pixels = conversion?.Outcome == PdfSdrConversionOutcome.Converted
             ? conversion.BgraPixels.ToArray() : frame.ToSrgbBgra32(token);
-        return new(frame.Width, frame.Height, pixels, proofUnavailable, conversion?.FailureOperation, null);
+        return (pixels, conversion?.FailureOperation);
+    }
+
+    private static PdfViewingPixels Convert(PdfRenderedFrame frame, PdfSdrDisplayConverter? monitor,
+        bool proofUnavailable, CancellationToken token)
+    {
+        var (pixels, failure) = DisplayPixels(frame, monitor, token);
+        return new(frame.Width, frame.Height, pixels, proofUnavailable, failure, null);
     }
 
     private static PdfViewingPixels Compatible(PdfRenderedPage page, bool proofUnavailable, string? fallback) =>

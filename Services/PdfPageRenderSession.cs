@@ -313,15 +313,23 @@ internal sealed class PdfPageRenderSession : IDisposable
         cancellationToken.ThrowIfCancellationRequested();
         if (proof?.Enabled == true)
         {
-            var options = CreateRenderOptions(pageIndex, transparentBackground: false,
-                includeAnnotations: true, includeFormFields: true) with { Proof = proof };
-            var frame = Renderer.RenderFrame(pageIndex, options, cancellationToken)
-                .WithGamutWarningsMarked(cancellationToken);
+            var frame = RenderPreviewFrame(pageIndex, cancellationToken, proof);
             return new PdfRenderedPage(frame.Width, frame.Height, frame.ToSrgbBgra32(cancellationToken),
                 PdfRenderBackend.Engine, null);
         }
         return RenderEnginePage(pageIndex, transparentBackground: false,
             includeAnnotations: true, includeFormFields: true, cancellationToken);
+    }
+
+    /// <summary>The same display-only page as <see cref="RenderPreview"/> as a float frame, for monitor conversion.</summary>
+    internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderPreviewFrame(int pageIndex,
+        CancellationToken cancellationToken = default, KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var options = CreateRenderOptions(pageIndex, transparentBackground: false,
+            includeAnnotations: true, includeFormFields: true) with { Proof = proof };
+        return Renderer.RenderFrame(pageIndex, options, cancellationToken)
+            .WithGamutWarningsMarked(cancellationToken);
     }
 
     private PdfRenderedPage RenderEnginePage(int pageIndex, bool transparentBackground,

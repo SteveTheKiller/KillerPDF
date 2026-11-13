@@ -127,7 +127,7 @@ public sealed class PdfViewingFrameConversionTests
 
     private static PdfRenderedPage Compatible() => new(1, 1, [0, 0, 255, 255], PdfRenderBackend.Engine, null);
 
-    private static PdfSdrDisplayConverter Monitor()
+    internal static PdfSdrDisplayConverter Monitor()
     {
         var converter = new PdfSdrDisplayConverter((_, _) => PdfColorProfile.Load(MonitorBytes()));
         converter.UpdateDisplay(new(1, PdfDisplayDiscoveryStatus.Available, "desktop-a",
