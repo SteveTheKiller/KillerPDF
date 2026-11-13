@@ -21,10 +21,13 @@ public sealed class RestyleUndoTests
         // Nothing is restyled before it: the only earlier mention of Apply is the local function itself.
         Assert.DoesNotMatch(new System.Text.RegularExpressions.Regex(@"(?<!void )\bApply\("), method[..snapshot]);
         Assert.Contains("Apply(", method[snapshot..], StringComparison.Ordinal);
-        // The snapshot is the page's annotations, taken once per page of the selection.
+        // The snapshot covers every page of the selection in one undo entry.
         string helper = ShellSource.Between(ShellSource.Read("Shell", "TextSettingsBar.cs"),
             "private void PushStyleUndo(", "private void ApplyTextStyleToSelection(");
-        Assert.Contains("PushPageSnapshotUndoExt(page)", helper, StringComparison.Ordinal);    }
+        Assert.Contains("PushPagesSnapshotUndoExt(annotations.Select(a => a.PageIndex))", helper, StringComparison.Ordinal);
+        Assert.DoesNotContain("foreach", helper, StringComparison.Ordinal);
+        Assert.DoesNotContain("PushPageSnapshotUndoExt(", helper, StringComparison.Ordinal);
+    }
 
     // No slider is found by guessing from the mouse capture or the keys down: each slider on the text and draw bars
     // owns the SliderGesture made for it and hands it to the apply call, as the Blur slider does.

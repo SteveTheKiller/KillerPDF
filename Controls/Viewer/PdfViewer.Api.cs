@@ -179,6 +179,7 @@ namespace KillerPDF.Controls
             => CaptureSerializedDocumentUndo(path);
         internal void PushUndoExt(UndoEntry entry) => PushUndo(entry);
         internal void PushPageSnapshotUndoExt(int pageIdx) => PushPageSnapshotUndo(pageIdx);
+        internal void PushPagesSnapshotUndoExt(IEnumerable<int> pages) => PushPagesSnapshotUndo(pages);
         internal void UndoClickExt(object sender, RoutedEventArgs e) => Undo_Click(sender, e);
         internal void RedoClickExt(object sender, RoutedEventArgs e) => Redo_Click(sender, e);
         internal void ClearAnnotationsClickExt(object sender, RoutedEventArgs e) => ClearAnnotations_Click(sender, e);

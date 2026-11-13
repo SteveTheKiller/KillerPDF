@@ -137,8 +137,7 @@ namespace KillerPDF.Shell
         private void PushStyleUndo(IEnumerable<PageAnnotation> annotations, Controls.SliderGesture? gesture = null)
         {
             if (gesture is not null && !gesture.Starts()) return;
-            foreach (int page in annotations.Select(a => a.PageIndex).Distinct())
-                ActiveViewer.PushPageSnapshotUndoExt(page);
+            ActiveViewer.PushPagesSnapshotUndoExt(annotations.Select(a => a.PageIndex));
         }
 
         private void ApplyTextStyleToSelection(Controls.SliderGesture? gesture = null)
