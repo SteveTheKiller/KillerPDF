@@ -431,8 +431,8 @@ namespace KillerPDF.Shell
                     Margin = new Thickness(0, 0, 6, 0),
                     Padding = new Thickness(4)
                 };
-                closeText.MouseEnter += (_, _) => { closeText.Foreground = (Brush)FindResource("DangerRed"); closeText.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 4, ShadowDepth = 1, Direction = 270, Opacity = 0.5 }; };
-                closeText.MouseLeave += (_, _) => { closeText.Foreground = (Brush)FindResource("MutedTextBrush"); closeText.Effect = null; };
+                closeText.MouseEnter += (_, _) => { closeText.Foreground = (Brush)FindResource("DangerRed"); };
+                closeText.MouseLeave += (_, _) => { closeText.Foreground = (Brush)FindResource("MutedTextBrush"); };
                 var closeButton = new Button { Content = closeText, Style = (Style)FindResource("ToolbarButton"),
                     Background = Brushes.Transparent, BorderThickness = new Thickness(0), Padding = new Thickness(0) };
                 System.Windows.Automation.AutomationProperties.SetName(closeButton, Loc("Str_Lbl_Close"));

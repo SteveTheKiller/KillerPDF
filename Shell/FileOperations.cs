@@ -1250,8 +1250,8 @@ namespace KillerPDF.Shell
                     Child             = delIcon,
                     ToolTip           = Loc("Str_Menu_RemoveFromRecents")
                 };
-                del.MouseEnter += (_, _) => { delIcon.SetResourceReference(TextBlock.ForegroundProperty, "DangerRed"); delIcon.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = System.Windows.Media.Colors.Black, BlurRadius = 4, ShadowDepth = 1, Direction = 270, Opacity = 0.5 }; };
-                del.MouseLeave += (_, _) => { delIcon.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush"); delIcon.Effect = null; };
+                del.MouseEnter += (_, _) => { delIcon.SetResourceReference(TextBlock.ForegroundProperty, "DangerRed"); };
+                del.MouseLeave += (_, _) => { delIcon.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush"); };
                 del.MouseLeftButtonDown += (_, ev) =>
                 {
                     ev.Handled = true;   // don't open the file
@@ -1272,7 +1272,6 @@ namespace KillerPDF.Shell
                     SnapsToDevicePixels = true
                 };
                 RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.HighQuality);
-                icon.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = System.Windows.Media.Colors.Black, BlurRadius = 4, ShadowDepth = 2, Direction = 270, Opacity = TryFindResource("IconShadowOpacity") is double so ? so : 0.5 };
                 stack.VerticalAlignment = VerticalAlignment.Center;
 
                 var rowGrid = new Grid();

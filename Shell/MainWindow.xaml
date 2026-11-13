@@ -122,20 +122,11 @@
                                 CornerRadius="{DynamicResource ControlCornerRadius}"
                                 Padding="{TemplateBinding Padding}"
                                 ToolTip="{TemplateBinding ToolTip}">
-                            <ContentPresenter x:Name="ToolbarButtonContent" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <ContentPresenter.Effect>
-                                    <!-- IconShadowOpacity is 0 in Light theme, so the glyph stays crisp ClearType
-                                         there; dark themes get the soft depth shadow. -->
-                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
-                                </ContentPresenter.Effect>
-                            </ContentPresenter>
+                            <ContentPresenter x:Name="ToolbarButtonContent" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border></Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Background" Value="{DynamicResource RowHoverBrush}"/>
-                            </Trigger>
-                            <Trigger Property="Tag" Value="selected">
-                                <Setter TargetName="ToolbarButtonContent" Property="Effect" Value="{x:Null}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.4"/>
@@ -172,9 +163,6 @@
         </Style>
         <Style x:Key="ToolbarButtonAccent" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
             <Setter Property="Foreground" Value="{DynamicResource AccentLogo}"/>
-            <!-- Light/Yellow draws these glyphs yellow on a light bar; the wordmark's dark halo keeps
-                 them legible. WordmarkAccentShadowOpacity is 0 on every other theme. -->
-            <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="297" Opacity="{DynamicResource WordmarkAccentShadowOpacity}"/></Setter.Value></Setter>
         </Style>
         <!-- Main half of an Open/Save split button: its hover fill is inset on the right so it
              stops just short of the overlapping dropdown chevron instead of running under it. -->
@@ -188,11 +176,7 @@
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     CornerRadius="{DynamicResource ControlCornerRadius}" Margin="0,0,7,0"/>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              ToolTip="{TemplateBinding ToolTip}">
-                                <ContentPresenter.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
-                                </ContentPresenter.Effect>
-                            </ContentPresenter>
+                                              ToolTip="{TemplateBinding ToolTip}"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -208,9 +192,6 @@
         </Style>
         <Style x:Key="ToolbarSplitMainAccent" TargetType="Button" BasedOn="{StaticResource ToolbarSplitMain}">
             <Setter Property="Foreground" Value="{DynamicResource AccentLogo}"/>
-            <!-- Light/Yellow draws these glyphs yellow on a light bar; the wordmark's dark halo keeps
-                 them legible. WordmarkAccentShadowOpacity is 0 on every other theme. -->
-            <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="297" Opacity="{DynamicResource WordmarkAccentShadowOpacity}"/></Setter.Value></Setter>
         </Style>
         <Style x:Key="ToolbarButtonDanger" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
             <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
@@ -236,11 +217,7 @@
                                 CornerRadius="{DynamicResource ControlCornerRadius}"
                                 Padding="{TemplateBinding Padding}"
                                 ToolTip="{TemplateBinding ToolTip}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <ContentPresenter.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
-                                </ContentPresenter.Effect>
-                            </ContentPresenter>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border></Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
@@ -498,19 +475,9 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
-                                <Setter TargetName="Cp" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="#000000" BlurRadius="4" ShadowDepth="1" Direction="270" Opacity="0.5"/>
-                                    </Setter.Value>
-                                </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
-                                <Setter TargetName="Cp" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="#000000" BlurRadius="6" ShadowDepth="2" Direction="270" Opacity="0.6"/>
-                                    </Setter.Value>
-                                </Setter>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -903,9 +870,6 @@
                                            FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}"
                                            Foreground="{TemplateBinding Foreground}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <TextBlock.Effect>
-                                        <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
-                                    </TextBlock.Effect>
                                 </TextBlock>
                                 <Border x:Name="Grain" IsHitTestVisible="False" Visibility="Collapsed"
                                         CornerRadius="{DynamicResource ControlCornerRadius}"
@@ -945,9 +909,6 @@
                                        FontFamily="Segoe MDL2 Assets" FontSize="15"
                                        Foreground="{DynamicResource TextBrush}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
-                                </TextBlock.Effect>
                             </TextBlock>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -1348,12 +1309,6 @@
                                 <Setter TargetName="dot" Property="Visibility" Value="Visible"/>
                                 <Setter TargetName="ring" Property="Stroke" Value="{DynamicResource RadioAccent}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource RadioAccentText}"/>
-                                <Setter TargetName="bd" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Direction="270"
-                                                          Opacity="{DynamicResource ThemeRadioShadowOpacity}"/>
-                                    </Setter.Value>
-                                </Setter>
                             </Trigger>
                             <!-- Hovered: the ring takes RadioHoverFgBrush too, for the same reason
                                  as the label below - on Sepulchre an accent ring on the accent
@@ -2152,9 +2107,6 @@
                                                  trigger and the glyph would never swap. -->
                                             <TextBlock kl:GlyphInk.Center="True" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <TextBlock.Effect>
-                                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
-                                                </TextBlock.Effect>
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
@@ -2200,9 +2152,6 @@
                                                        FontFamily="Segoe MDL2 Assets" FontSize="15"
                                                        Foreground="{DynamicResource TextBrush}"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <TextBlock.Effect>
-                                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
-                                                </TextBlock.Effect>
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Style.Triggers>
@@ -2234,9 +2183,6 @@
                                                        FontFamily="{DynamicResource UiFont}" FontSize="18"
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center">
-                                                <TextBlock.Effect>
-                                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
-                                                </TextBlock.Effect>
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Style.Triggers>
@@ -2261,9 +2207,6 @@
                                             <TextBlock kl:GlyphInk.Center="True" Text="&#xF2B7;"
                                                        FontFamily="Segoe MDL2 Assets" FontSize="15"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <TextBlock.Effect>
-                                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
-                                                </TextBlock.Effect>
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
@@ -2310,9 +2253,6 @@
                                             <TextBlock kl:GlyphInk.Center="True" Text="&#xE790;"
                                                        FontFamily="Segoe MDL2 Assets" FontSize="15"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <TextBlock.Effect>
-                                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
-                                                </TextBlock.Effect>
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
@@ -2530,7 +2470,6 @@
                             <Grid.Resources>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Foreground" Value="{DynamicResource ComparisonBarForegroundBrush}"/>
-                                    <Setter Property="Effect" Value="{DynamicResource ComparisonBarTextEffect}"/>
                                 </Style>
                             </Grid.Resources>
                             <Grid.ColumnDefinitions>
@@ -2549,7 +2488,7 @@
                                             <Rectangle Height="1" Margin="1" VerticalAlignment="Center" Fill="{DynamicResource ComparisonBarForegroundBrush}"/>
                                         </Border>
                                     </Grid>
-                                    <TextBlock Text="{DynamicResource Str_Compare_Bar}" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource Str_Compare_Bar}" FontWeight="SemiBold" Effect="{DynamicResource ComparisonBarTextEffect}"
                                                Foreground="{DynamicResource ComparisonBarForegroundBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
@@ -2562,7 +2501,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock x:Name="ComparisonFilesText" Foreground="{DynamicResource ComparisonBarForegroundBrush}"
+                                    <TextBlock x:Name="ComparisonFilesText" Effect="{DynamicResource ComparisonBarTextEffect}" Foreground="{DynamicResource ComparisonBarForegroundBrush}"
                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="390"/>
                                     <Rectangle Grid.Column="1" Width="1" Margin="10,2" Fill="{DynamicResource ComparisonBarForegroundBrush}" Opacity="0.6"/>
                                     <Button x:Name="ComparisonResultButton" Grid.Column="2" Width="300" Height="24" Margin="0" Padding="5,1"
@@ -2583,7 +2522,7 @@
                                                 Click="ComparisonPreviousDifference_Click" ToolTip="{DynamicResource Str_Compare_PreviousRegion}">
                                             <a11y:Glyph Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
                                         </Button>
-                                        <TextBlock x:Name="ComparisonRegionText" MinWidth="38" TextAlignment="Center"
+                                        <TextBlock x:Name="ComparisonRegionText" Effect="{DynamicResource ComparisonBarTextEffect}" MinWidth="38" TextAlignment="Center"
                                                    FontFamily="{DynamicResource MenuFontFamily}" FontSize="{DynamicResource MenuFontSize}"
                                                    Foreground="{DynamicResource ComparisonBarForegroundBrush}" VerticalAlignment="Center"/>
                                         <Button Width="24" Height="24" Padding="0" Style="{StaticResource ComparisonBarButton}"

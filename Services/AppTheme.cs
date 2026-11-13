@@ -265,7 +265,6 @@ namespace KillerPDF.Services
             Default("AboutCaptionVisibility", Visibility.Collapsed);
             Default("AboutModernCloseVisibility", Visibility.Visible);
             Default("ShortcutHeaderShadowOpacity", 0.55);
-            Default("ThemeRadioShadowOpacity", 0.5);
             Default("ShortcutCaptionVisibility", Visibility.Collapsed);
             Default("ShortcutModernHeaderVisibility", Visibility.Visible);
             Default("FooterVersionDividerVisibility", Visibility.Visible);

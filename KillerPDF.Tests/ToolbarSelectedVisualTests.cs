@@ -18,15 +18,11 @@ public sealed class ToolbarSelectedVisualTests
         XElement toolbarStyle = document.Descendants()
             .Single(element => element.Name.LocalName == "Style" &&
                 (string?)element.Attribute(x + "Key") == "ToolbarButton");
-        XElement selectedTrigger = toolbarStyle.Descendants()
-            .Single(element => element.Name.LocalName == "Trigger" &&
-                (string?)element.Attribute("Property") == "Tag" &&
-                (string?)element.Attribute("Value") == "selected");
-        Assert.Contains(selectedTrigger.Elements(), element =>
-            element.Name.LocalName == "Setter" &&
-            (string?)element.Attribute("TargetName") == "ToolbarButtonContent" &&
-            (string?)element.Attribute("Property") == "Effect" &&
-            (string?)element.Attribute("Value") == "{x:Null}");
+        Assert.DoesNotContain(toolbarStyle.Descendants(), element =>
+            element.Name.LocalName is "DropShadowEffect" or "BlurEffect" ||
+            (element.Name.LocalName == "Setter" && (string?)element.Attribute("Property") == "Effect" &&
+                (string?)element.Attribute("Value") != "{x:Null}") ||
+            element.Name.LocalName.EndsWith(".Effect", StringComparison.Ordinal));
 
         string selectionSource = File.ReadAllText(Path.Combine(root, "Shell", "ToolSelection.cs"));
         Assert.Contains("btn.Tag = t == tool ? \"selected\" : null;", selectionSource, StringComparison.Ordinal);

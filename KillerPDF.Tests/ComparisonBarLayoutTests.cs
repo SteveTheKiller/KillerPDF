@@ -246,10 +246,12 @@ public sealed class ComparisonBarLayoutTests
         XElement comparisonTextStyle = comparisonBar.Descendants()
             .Single(element => element.Name.LocalName == "Style" &&
                 (string?)element.Attribute("TargetType") == "TextBlock");
-        Assert.Contains(comparisonTextStyle.Elements(), element =>
+        Assert.DoesNotContain(comparisonTextStyle.Elements(), element =>
             element.Name.LocalName == "Setter" &&
-            (string?)element.Attribute("Property") == "Effect" &&
-            (string?)element.Attribute("Value") == "{DynamicResource ComparisonBarTextEffect}");
+            (string?)element.Attribute("Property") == "Effect");
+        Assert.DoesNotContain(comparisonBar.Descendants().Where(element => element.Name.LocalName == "Button")
+            .SelectMany(button => button.Descendants()), element =>
+            element.Attribute("Effect") is { } effect && effect.Value != "{x:Null}");
 
         Assert.DoesNotContain(comparisonBar.Descendants(), element =>
             (string?)element.Attribute("Foreground") == "White" ||
