@@ -19,5 +19,8 @@ public sealed class ReplacementLayerNamesTests
         // Every row passes its own label to its three buttons.
         string row = ShellSource.Between(bar, "void AddRow(", "void Place(");
         Assert.Equal(3, System.Text.RegularExpressions.Regex.Matches(row, @"row, [1-3]\);").Count);
-        Assert.Equal(3, System.Text.RegularExpressions.Regex.Matches(row, @"rowLabel, row, ").Count);    }
+        Assert.Equal(3, System.Text.RegularExpressions.Regex.Matches(row, @"rowLabel, row, ").Count);
+        // The pair's one link button is built only for the row ReplacementLayers names.
+        Assert.Contains("if (ReplacementLayers.ShowsLinkToggle(layer))", row, StringComparison.Ordinal);
+    }
 }

@@ -5,6 +5,16 @@ namespace KillerPDF.Tests;
 
 public sealed class ReplacementLayersTests
 {
+    // The link is one setting of the pair. Three link buttons, one per row, all drove it, so turning one off turned
+    // the other two off as well; only the Group row carries it.
+    [Fact]
+    public void OnlyTheGroupRowCarriesTheLinkButton()
+    {
+        Assert.True(ReplacementLayers.ShowsLinkToggle(ReplacementLayer.Group));
+        Assert.False(ReplacementLayers.ShowsLinkToggle(ReplacementLayer.Cover));
+        Assert.False(ReplacementLayers.ShowsLinkToggle(ReplacementLayer.Text));
+    }
+
     [Fact]
     public void HiddenChildStaysHiddenAfterGroupVisibilityCycle()
     {

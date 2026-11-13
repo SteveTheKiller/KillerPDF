@@ -51,9 +51,10 @@ public partial class MainWindow
             Toggle(prefix + "Movable", "Str_Replacement_LayerMove", movable,
                 "M5,8 L5,3 C5,1 7,1 7,3 L7,7 L7,2 C7,0 9,0 9,2 L9,7 L9,3 C9,1 11,1 11,3 L11,8 L11,5 C11,3 13,3 13,5 L13,10 C13,14 10,16 7,16 L5,16 L1,10 C0,8 2,7 3,8 L5,10 Z",
                 value => ReplacementLayers.SetMovementAllowed(pair, layer, value), rowLabel, row, 2);
-            Toggle(prefix + "Linked", "Str_Replacement_Link", pair.Text.PairLinked && pair.Cover.PairLinked,
-                "M6,5 L4,5 A3,3 0 0 0 4,11 L7,11 M10,5 L12,5 A3,3 0 0 1 12,11 L9,11 M5,8 L11,8",
-                value => ReplacementLayers.SetLinked(pair, value), rowLabel, row, 3);
+            if (ReplacementLayers.ShowsLinkToggle(layer))
+                Toggle(prefix + "Linked", "Str_Replacement_Link", pair.Text.PairLinked && pair.Cover.PairLinked,
+                    "M6,5 L4,5 A3,3 0 0 0 4,11 L7,11 M10,5 L12,5 A3,3 0 0 1 12,11 L9,11 M5,8 L11,8",
+                    value => ReplacementLayers.SetLinked(pair, value), rowLabel, row, 3);
         }
 
         void Place(UIElement element, int row, int column)

@@ -20,6 +20,10 @@ public static class ReplacementLayers
     public static void SetLinked(ReplacementPair pair, bool linked) =>
         pair.Text.PairLinked = pair.Cover.PairLinked = linked;
 
+    /// <summary>Whether a row of the layer controls carries the link button. The link belongs to the pair, not to
+    /// one layer, so only one row shows it.</summary>
+    public static bool ShowsLinkToggle(ReplacementLayer layer) => layer == ReplacementLayer.Group;
+
     /// <summary>Returns the lead first, followed by connected members in page stack order.</summary>
     public static IReadOnlyList<PageAnnotation> SelectionMembers(PageAnnotation lead, IReadOnlyList<PageAnnotation> page)
     {
