@@ -7793,6 +7793,11 @@ public sealed partial class PdfPageRenderer
                 _targetProfile.FromXyz(xyz, ink);
                 return Color.CmykInk(ink[0], ink[1], ink[2], ink[3]);
             }
+            // Plain DeviceCMYK into ink packs its own ink, and Pack never reads the display
+            // channels of an untagged ink, so they are left unconverted. Its spot tint is zero.
+            if (_targetInk && space is { Components: 4, Profile: null, Converter: null, MultiConverter: null,
+                Palette: null, ComponentRange: null, DoesNotPaint: false } && _values.Length >= 4)
+                return _preserveSpotZero ? 0 : Color.CmykInk(_values[0], _values[1], _values[2], _values[3]);
             return Pack(space.Convert(_values));
         }
 

@@ -36,6 +36,28 @@ public sealed class PdfInkPaintDisplayConversionTests
         Assert.NotEqual(255, plate.Pixels.Span[(8 * 16 + 8) * 4 + 2]);
     }
 
+    // An inverted Decode sends each DeviceCMYK sample through the decoded conversion, which on
+    // an ink surface keeps the ink alone.
+    [Fact]
+    public void ADecodedDeviceCmykImageOnAnInkSurfaceMakesNoDisplayConversions()
+    {
+        var hex = new StringBuilder();
+        for (int index = 0; index < 4 * 4 * 4; index++) hex.Append((index * 37 % 256).ToString("X2"));
+        byte[] content = Encoding.ASCII.GetBytes("q 16 0 0 16 0 0 cm BI /W 4 /H 4 /CS /DeviceCMYK /BPC 8 "
+            + "/D [1 0 1 0 1 0 1 0] /F /AHx ID " + hex + "> EI Q");
+        var renderer = new PdfPageRenderer(PdfDocument.Open(new PdfDocumentBuilder().AddPage(16, 16, content).Build()));
+        var options = new PdfRenderOptions(16, 16, includeAnnotations: false, includeFormFields: false)
+        {
+            SeparationPlate = "Cyan", MaximumParallelism = 1
+        };
+
+        PdfCmykDisplayTable.ConversionCountOnThisThread = 0;
+        PdfRenderedPage plate = renderer.Render(0, options);
+
+        Assert.Equal(0, PdfCmykDisplayTable.ConversionCountOnThisThread);
+        Assert.NotEqual(255, plate.Pixels.Span[(8 * 16 + 8) * 4 + 2]);
+    }
+
     // An ICC-based CMYK fill is displayed from its profile; the ink it carries is only packed.
     [Fact]
     public void AnIccBasedCmykFillPacksItsInkWithoutADisplayConversion()
