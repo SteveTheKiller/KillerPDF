@@ -82,10 +82,19 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
             {
                 if (_requests.Count == 0 || token.IsCancellationRequested)
                 {
-                    _running = false;
-                    _threw.Clear();
                     // Called under the lock, so a request arriving now starts a new pass only after this returns.
                     if (!token.IsCancellationRequested) _drained?.Invoke();
+                    // A row whose draw threw holds no picture, so nothing makes it ask again; its page is tried once
+                    // more here. Its throw count is already spent, so a second throw settles it as failed.
+                    if (!token.IsCancellationRequested && _threw.Count > 0)
+                    {
+                        foreach (int thrown in _threw)
+                            if (_pending.Add(thrown)) _requests.Add(thrown);
+                        _threw.Clear();
+                        if (_requests.Count > 0) continue;
+                    }
+                    _running = false;
+                    _threw.Clear();
                     return;
                 }
                 page = _requests[^1];

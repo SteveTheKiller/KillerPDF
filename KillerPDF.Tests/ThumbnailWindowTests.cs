@@ -228,7 +228,8 @@ public sealed class ThumbnailWindowTests
             Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref asked) >= 1, TimeSpan.FromSeconds(10)));
             Thread.Sleep(300);
 
-            Assert.Equal(1, Volatile.Read(ref attempts));
+            // The one retry after the pass, not the row's request.
+            Assert.Equal(2, Volatile.Read(ref attempts));
         }
     }
 
@@ -252,6 +253,26 @@ public sealed class ThumbnailWindowTests
 
         Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(10)),
             "The page was never drawn when asked for after the failed pass.");
+        Assert.Equal(2, Volatile.Read(ref attempts));
+    }
+
+    // A row whose draw threw has no picture, so nothing tells the list to read it again. The window tries the page once
+    // more after the pass drains, without waiting for the row to ask.
+    [Fact]
+    public void APageWhoseDrawThrewOnceIsDrawnAfterThePassWithoutBeingAskedAgain()
+    {
+        int attempts = 0;
+        var shown = new ConcurrentDictionary<int, string>();
+        using var window = new ThumbnailWindow<string>(100, (page, _) =>
+        {
+            if (Interlocked.Increment(ref attempts) == 1) throw new IOException("briefly locked");
+            return $"thumb {page}";
+        }, (page, image) => { if (image is not null) shown[page] = image; }, retain: 8);
+
+        window.Request(3);
+
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(5)),
+            "The page whose draw threw was never drawn again without a second request.");
         Assert.Equal(2, Volatile.Read(ref attempts));
     }
 
