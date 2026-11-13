@@ -942,7 +942,18 @@ public static partial class PdfContentRedaction
                 }
                 if (!emptiedWidgets.Add(reference.ObjectNumber)) continue;
                 PdfName appearanceName = Name("AP");
-                if (!field.ContainsKey(appearanceName)) continue;
+                if (!field.TryGetValue(appearanceName, out PdfObject? appearanceValue)) continue;
+                // A button widget keeps its state appearances and just switches to Off.
+                if (Resolve(document, appearanceValue) is PdfDictionary appearances
+                    && appearances.TryGetValue(Name("N"), out PdfObject? normalValue)
+                    && Resolve(document, normalValue) is PdfDictionary states
+                    && states.ContainsKey(Name("Off")))
+                {
+                    var offEntries = field.ToDictionary(entry => entry.Key, entry => entry.Value);
+                    offEntries[Name("AS")] = Name("Off");
+                    update.ReplaceObject(reference.ObjectNumber, new PdfDictionary(offEntries));
+                    continue;
+                }
                 double width = 0, height = 0;
                 try
                 {

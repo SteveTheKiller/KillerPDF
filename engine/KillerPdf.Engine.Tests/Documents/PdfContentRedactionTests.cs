@@ -1566,6 +1566,44 @@ public sealed class PdfContentRedactionTests
         Assert.Equal(string.Empty, sibling.Value);
     }
 
+    [Fact]
+    public void RemovingOneWidgetOfARadioGroupKeepsTheSiblingStateAppearancesAndTurnsItOff()
+    {
+        var objects = new List<string>
+        {
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>",
+            "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 10 0 R >> >> /Contents 5 0 R /Annots [7 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 10 0 R >> >> /Contents 9 0 R /Annots [8 0 R] >>",
+            Stream("BT /F1 12 Tf 72 700 Td (Patient NAMEHERE) Tj ET"),
+            "<< /FT /Btn /Ff 32768 /T (Choice) /V /A /Kids [7 0 R 8 0 R] >>",
+            "<< /Type /Annot /Subtype /Widget /Parent 6 0 R /P 3 0 R /Rect [140 690 160 710] /AS /A /AP << /N << /A 11 0 R /Off 12 0 R >> >> >>",
+            "<< /Type /Annot /Subtype /Widget /Parent 6 0 R /P 4 0 R /Rect [100 700 120 720] /AS /A /AP << /N << /A 13 0 R /Off 14 0 R >> >> >>",
+            Stream("BT /F1 12 Tf 72 700 Td (Page two) Tj ET"),
+            Helvetica,
+            Stream("0 0 10 10 re f", "/Type /XObject /Subtype /Form /BBox [0 0 20 20]"),
+            Stream("0 0 20 20 re S", "/Type /XObject /Subtype /Form /BBox [0 0 20 20]"),
+            Stream("0 0 10 10 re f", "/Type /XObject /Subtype /Form /BBox [0 0 20 20]"),
+            Stream("0 0 20 20 re S", "/Type /XObject /Subtype /Form /BBox [0 0 20 20]")
+        };
+        PdfDocument document = PdfDocument.Open(CreatePdf(objects));
+        PdfRedactionRegion region = Region(document, 0, "NAMEHERE");
+
+        PdfContentRedactionResult result = PdfContentRedaction.Apply(document, [region]);
+
+        PdfDocument output = PdfDocument.Open(result.Document);
+        PdfObject ResolveOutput(PdfObject value) => value is PdfIndirectReference reference
+            ? output.Resolve(reference) : value;
+        var sibling = Assert.IsType<PdfDictionary>(output.Resolve(8));
+        Assert.Equal(new PdfName("Off"u8), ResolveOutput(sibling[new PdfName("AS"u8)]));
+        var appearance = Assert.IsType<PdfDictionary>(ResolveOutput(sibling[new PdfName("AP"u8)]));
+        var states = Assert.IsType<PdfDictionary>(ResolveOutput(appearance[new PdfName("N"u8)]));
+        Assert.True(states.ContainsKey(new PdfName("Off"u8)));
+        Assert.True(states.ContainsKey(new PdfName("A"u8)));
+        var parent = Assert.IsType<PdfDictionary>(output.Resolve(6));
+        Assert.False(parent.ContainsKey(new PdfName("V"u8)));
+    }
+
     private static List<string> AllObjectText(PdfDocument document)
     {
         var found = new List<string>();
