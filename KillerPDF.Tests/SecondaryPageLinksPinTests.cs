@@ -20,8 +20,8 @@ public sealed class SecondaryPageLinksPinTests
         Assert.Contains("object? owner = (object?)_nativeDoc ?? _doc;", method);
         Assert.Contains("_continuousLinks.TryGetValue(pageIndex, out var links)", method);
         Assert.Contains("_continuousLinkKeys.TryGetValue(pageIndex, out var key)", method);
-        Assert.Contains("key.Matches(links, bitmapW, bitmapH, owner)", method);
-        Assert.Contains("_continuousLinkKeys[pageIndex] = LinkCacheKey.For(bitmapW, bitmapH, owner, links);", method);
+        Assert.Contains("key.Matches(links, bitmapW, bitmapH, owner, pagination)", method);
+        Assert.Contains("_continuousLinkKeys[pageIndex] = LinkCacheKey.For(bitmapW, bitmapH, owner, links,\n                    unresolved ? pagination : null);", method.ReplaceLineEndings("\n"));
         Assert.Contains("private readonly Dictionary<int, LinkCacheKey> _continuousLinkKeys = [];", links);
     }
 }

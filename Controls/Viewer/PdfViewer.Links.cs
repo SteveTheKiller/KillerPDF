@@ -259,8 +259,14 @@ namespace KillerPDF.Controls
         /// Parses all link annotations from a PDF page and converts them to canvas-space
         /// rectangles. Works for both primary and secondary page renders.
         /// </summary>
-        private List<LinkInfo> GetPageLinks(int pageIndex, int bitmapW, int bitmapH)
+        private List<LinkInfo> GetPageLinks(int pageIndex, int bitmapW, int bitmapH) =>
+            GetPageLinks(pageIndex, bitmapW, bitmapH, out _);
+
+        /// <param name="unresolved">True when some link's label could not name its page because the target's chapter
+        /// is not paginated yet.</param>
+        private List<LinkInfo> GetPageLinks(int pageIndex, int bitmapW, int bitmapH, out bool unresolved)
         {
+            unresolved = false;
             var links = new List<LinkInfo>();
             if (_currentFile is null) return links;
             try
@@ -287,6 +293,7 @@ namespace KillerPDF.Controls
                         catch (Exception error) when (error is InvalidDataException or NotSupportedException or ArgumentException
                             or InvalidOperationException)
                         {
+                            if (error is InvalidOperationException) unresolved = true;
                             System.Diagnostics.Debug.WriteLine($"Native link label: {error.Message}");
                         }
                         links.Add(new LinkInfo(x, y, w, h,
@@ -428,13 +435,17 @@ namespace KillerPDF.Controls
         internal void AddSecondaryPageLinks(int pageIndex, int bitmapW, int bitmapH)
         {
             object? owner = (object?)_nativeDoc ?? _doc;
+            // A book label read before pagination reached its target says "Open link"; the list is read again once
+            // pagination has moved on, so the label can name the page.
+            int pagination = _nativeDoc?.PaginationProgress.Paginated ?? 0;
             if (!(_continuousLinks.TryGetValue(pageIndex, out var links)
                 && _continuousLinkKeys.TryGetValue(pageIndex, out var key)
-                && key.Matches(links, bitmapW, bitmapH, owner)))
+                && key.Matches(links, bitmapW, bitmapH, owner, pagination)))
             {
-                links = GetPageLinks(pageIndex, bitmapW, bitmapH);
+                links = GetPageLinks(pageIndex, bitmapW, bitmapH, out bool unresolved);
                 _continuousLinks[pageIndex] = links;
-                _continuousLinkKeys[pageIndex] = LinkCacheKey.For(bitmapW, bitmapH, owner, links);
+                _continuousLinkKeys[pageIndex] = LinkCacheKey.For(bitmapW, bitmapH, owner, links,
+                    unresolved ? pagination : null);
             }
 
             // Keyboard and screen-reader access (BF-U001). These overlays ignore the mouse, so

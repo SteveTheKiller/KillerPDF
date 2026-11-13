@@ -45,6 +45,20 @@ public sealed class LinkCacheKeyTests
         Assert.True(LinkCacheKey.For(1, 1, null, links).Matches(links, 1, 1, null));
     }
 
+    // An EPUB link read while its chapter was not paginated yet is labeled "Open link". Once pagination moves on, the
+    // list is read again so the label can name the page; a list whose labels are all final stays.
+    [Fact]
+    public void AListReadBeforePaginationReachedALinkTargetIsReadAgainOncePaginationMovesOn()
+    {
+        var book = new object();
+        var links = new List<int> { 1 };
+        var provisional = LinkCacheKey.For(300, 400, book, links, unresolvedAt: 3);
+
+        Assert.True(provisional.Matches(links, 300, 400, book, pagination: 3));
+        Assert.False(provisional.Matches(links, 300, 400, book, pagination: 4));
+        Assert.True(LinkCacheKey.For(300, 400, book, links).Matches(links, 300, 400, book, pagination: 4));
+    }
+
     // The key map outlives a document change (only the link map is cleared), so a key must not keep the old
     // document's link list reachable.
     [Fact]
