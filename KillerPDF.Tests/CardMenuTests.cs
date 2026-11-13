@@ -112,8 +112,13 @@ public sealed class CardMenuTests
         // r2 BF-004/005/009: the page menu's strips, the page list's Menu key, and the selected mark itself.
         string menu2 = Read("Shell", "ContextMenu.cs");
         Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, textStrip);", menu2);
-        // Place here is gone from the page menu (Steve); Text, Paragraph, Image and Signature keep their tools and keys.
+        // Text, Paragraph, Image and Signature stay in the page menu as a strip with no Place here label (Steve).
         Assert.DoesNotContain("Str_Card_PlaceHere", menu2);
+        Assert.Contains("_ctxMenu.Items.Add(CardSlot(placeStrip, new Thickness(0)));", menu2);
+        Assert.Contains("PlaceTextBox(pt, pageIdx);", menu2);
+        Assert.Contains("PlaceImageFromDialog(pt, pageIdx);", menu2);
+        Assert.Contains("PlaceSignature(pt, pageIdx);", menu2);
+        Assert.Contains("EditParagraph(pageIdx, pt)", menu2);
         // The selected-text strip wraps into rows of three so the page menu stays narrow.
         Assert.Contains("var textStrip = QuickStrip(_ctxMenu, 3, [.. text]);", menu2);
         Assert.Contains("var hit = target ?? AnnotationAt(pt, pageIdx);", menu2);
