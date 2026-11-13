@@ -38,6 +38,35 @@ public sealed class PdfCmykWarmUpTests
         Assert.Equal(afterPrepare, table.FitIterations);
     }
 
+    // The bundled profile's RGB to ink table ships with the engine, so neither the warm-up nor the first RGB paint
+    // into ink fits it, in any process.
+    [Fact]
+    public void TheBundledProfileUsesItsShippedTableWithoutFitting()
+    {
+        var profile = PdfCmykViewingDefault.LoadProfile();
+        var table = PdfCmykDisplayTable.For(profile);
+
+        PdfCmykWarmUp.Prepare(null);
+        using (PdfCmykDisplayTable.Use(profile))
+            _ = PdfDeviceCmyk.FromRgb(200, 120, 40);
+
+        Assert.Equal(0, table.FitIterations);
+    }
+
+    // The shipped table is exactly what the fit gives for the bundled profile. A change to the fit or to the profile
+    // fails here until the resource is fitted again.
+    [Fact]
+    public void TheShippedTableIsTheFitOfTheBundledProfile()
+    {
+        var profile = PdfCmykViewingDefault.LoadProfile();
+
+        byte[]? shipped = PdfCmykDisplayTable.ShippedInverse(profile.ContentSha256);
+
+        Assert.NotNull(shipped);
+        Assert.Equal(PdfCmykDisplayTable.FitRgbInverse(profile), shipped);
+        Assert.Null(PdfCmykDisplayTable.ShippedInverse(OwnProfile().ContentSha256));
+    }
+
     [Fact]
     public async Task ParallelPreparesShareOneFit()
     {

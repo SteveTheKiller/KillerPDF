@@ -38,7 +38,7 @@ internal sealed class PdfCmykDisplayTable
         _intent = profile.WorkingCmykForwardIntent
             ?? throw new NotSupportedException("The working CMYK profile has no usable forward transform.");
         _grid = new(BuildGrid);
-        _inverse = new(BuildInverse);
+        _inverse = new(() => ShippedInverse(ProfileSha256) ?? BuildInverse());
         _forward = profile.ForwardTransform(_intent);
         _byteInput = _forward?.PrepareByteInput();
     }
@@ -171,6 +171,24 @@ internal sealed class PdfCmykDisplayTable
 
     /// <summary>Runs the RGB to ink fit now if it has not run, so the first RGB paint into ink finds it done.</summary>
     internal void PrepareRgbInverse() => _ = _inverse.Value;
+
+    // The bundled profile's fitted RGB to ink table ships with the engine, so no process pays for its fit: the
+    // resource holds the uppercase hex SHA256 of the profile it was fitted for, then the table.
+    internal const string ShippedInverseResource = "KillerPdf.Engine.ColorProfiles.CGATS001Compat-v2-micro.rgb-inverse";
+    private const int InverseLength = 17 * 17 * 17 * 4;
+
+    /// <summary>Gets the shipped RGB to ink table for a profile, or null when none ships for its content.</summary>
+    internal static byte[]? ShippedInverse(string profileSha256)
+    {
+        using var stream = typeof(PdfCmykDisplayTable).Assembly.GetManifestResourceStream(ShippedInverseResource);
+        if (stream is null || stream.Length != 64 + InverseLength) return null;
+        var data = new byte[64 + InverseLength];
+        stream.ReadExactly(data);
+        return System.Text.Encoding.ASCII.GetString(data, 0, 64) == profileSha256 ? data[64..] : null;
+    }
+
+    /// <summary>Fits a profile's RGB to ink table from scratch, ignoring any shipped table and every shared one.</summary>
+    internal static byte[] FitRgbInverse(PdfColorProfile profile) => new PdfCmykDisplayTable(profile).BuildInverse();
 
     /// <summary>Gets the table for the render in progress, or the built-in profile's table.</summary>
     internal static PdfCmykDisplayTable Current => Active.Value ?? BuiltIn.Value;

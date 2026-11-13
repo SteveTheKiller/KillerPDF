@@ -73,6 +73,8 @@
                       LogicalName="KillerPdf.Engine.Fonts.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Resources\ColorProfiles\CGATS001Compat-v2-micro.icc"
                       LogicalName="KillerPdf.Engine.ColorProfiles.CGATS001Compat-v2-micro.icc" />
+    <EmbeddedResource Include="Resources\ColorProfiles\CGATS001Compat-v2-micro.rgb-inverse.bin"
+                      LogicalName="KillerPdf.Engine.ColorProfiles.CGATS001Compat-v2-micro.rgb-inverse" />
     <None Update="Resources\ColorProfiles\CGATS001Compat-v2-micro.icc" Pack="true"
           PackagePath="color_profiles\" />
     <None Update="Resources\ColorProfiles\COMPACT-ICC-CC0-LICENSE.txt" Pack="true"
