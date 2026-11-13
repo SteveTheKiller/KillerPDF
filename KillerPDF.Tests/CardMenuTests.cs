@@ -114,6 +114,8 @@ public sealed class CardMenuTests
         Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, textStrip);", menu2);
         // Place here is gone from the page menu (Steve); Text, Paragraph, Image and Signature keep their tools and keys.
         Assert.DoesNotContain("Str_Card_PlaceHere", menu2);
+        // The selected-text strip wraps into rows of three so the page menu stays narrow.
+        Assert.Contains("var textStrip = QuickStrip(_ctxMenu, 3, [.. text]);", menu2);
         Assert.Contains("var hit = target ?? AnnotationAt(pt, pageIdx);", menu2);
         string keys = Read("Shell", "KeyboardShortcuts.cs");
         Assert.Contains("if (!OpenPageCardFromKeyboard()) OpenContextMenuAtSelection();", keys);

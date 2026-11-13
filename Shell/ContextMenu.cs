@@ -184,7 +184,8 @@ namespace KillerPDF.Shell
                     text.Add(("\uEDE0", Loc("Str_Lbl_Strike"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Strikethrough), false, true));
                     text.Add(("\uE72E", Loc("Str_Lbl_Redact"), null, ActiveViewer.MarkTextSelectionForRedaction, false, true));
                 }
-                var textStrip = QuickStrip(_ctxMenu, [.. text]);
+                // Two rows of three keep the page menu narrow (Steve: five across was too wide).
+                var textStrip = QuickStrip(_ctxMenu, 3, [.. text]);
                 _ctxMenu.Items.Add(CardSlot(LabelledStrip(Loc("Str_Card_SelectedText"), textStrip), new Thickness(0)));
                 FocusFirstActionFromKeyboard(_ctxMenu, textStrip);
             }

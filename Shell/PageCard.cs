@@ -210,8 +210,12 @@ namespace KillerPDF.Shell
         // The card's strip of glyph-over-caption buttons between two rules. Each closes the card, then acts; the
         // tooltip carries the full name and its shortcut (the family shortcut rule).
         private FrameworkElement QuickStrip(ContextMenu menu, params (string Glyph, string Caption, string? Gesture, Action Act, bool Mirror, bool Enabled)[] buttons)
+            => QuickStrip(menu, 0, buttons);
+
+        // columns > 0 wraps the strip into rows of that many, which keeps a long strip from widening the menu.
+        private FrameworkElement QuickStrip(ContextMenu menu, int columns, params (string Glyph, string Caption, string? Gesture, Action Act, bool Mirror, bool Enabled)[] buttons)
         {
-            var grid = new UniformGrid { Rows = 1 };
+            var grid = columns > 0 && buttons.Length > columns ? new UniformGrid { Columns = columns } : new UniformGrid { Rows = 1 };
             foreach (var (glyph, caption, gesture, act, mirror, enabled) in buttons)
             {
                 var button = new Button { Content = glyph, Tag = caption, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled };
