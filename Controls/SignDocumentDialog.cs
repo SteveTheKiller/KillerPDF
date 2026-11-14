@@ -4,13 +4,15 @@ using System.IO;
 using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using KillerPDF.Services.Signing;
 using KillerPDF.Services;
-using Microsoft.Win32;
+using Layout = KillerPDF.Controls.PageWindowLayout;
+using SignLayout = KillerPDF.Controls.SignDialogLayout;
+using Kit = KillerPDF.UiKit;
 
 namespace KillerPDF
 {
@@ -18,7 +20,9 @@ namespace KillerPDF
     /// Themed modal dialog that cryptographically signs the open PDF with a certificate (a .pfx/.p12
     /// file, or one from the Windows store) and writes a NEW signed copy. This is the real digital
     /// signature - distinct from the drawn "Signature" stamp tool, which only places a picture.
-    /// Chrome and colors mirror PrintPreviewWindow so every KillerPDF dialog looks identical.
+    /// Two compact columns built from the page windows' parts (Print, Transform, Stamp): the
+    /// certificate, signer details and timestamp on the left, the visible signature and the signed
+    /// copy's path on the right, Cancel and Sign in the footer.
     /// </summary>
     internal sealed class SignDocumentDialog : Window
     {
@@ -49,10 +53,12 @@ namespace KillerPDF
         private readonly List<X509Certificate2> _storeCerts = [];
         private const string DefaultTimestampServer = "http://timestamp.digicert.com";
 
-        // Segoe MDL2 Assets close glyph, matching the main window + print dialog chrome.
-        private const string CloseGlyph = "";
+        // The sub-options of a certificate source sit indented under its radio button.
+        private const double SourceIndent = 20;
 
-        private static Brush R(string key) => (Brush)Application.Current.Resources[key];
+        // Brush, never a SolidColorBrush cast: any theme (98SE among them) may state a surface as
+        // a gradient, and a missing key becomes transparent instead of throwing.
+        private static Brush R(string key) => Layout.ThemeBrush(Application.Current?.TryFindResource(key));
 
         // Localized string from the active locale dictionary (falls back to the key if missing).
         private static string L(string key) => Application.Current.TryFindResource(key) as string ?? key;
@@ -68,60 +74,127 @@ namespace KillerPDF
             _suggestedSource = suggestedSource ?? sourcePdf;
             _suggestedName = suggestedName;
             Title = "KillerPDF - " + L("Str_Sign_Name");
-            Width = 720;
-            MaxHeight = 860;
+            // Two compact columns at a fixed opening width. The window opens exactly as tall as
+            // they are plus the buttons, and never taller or wider than the work area; the columns
+            // scroll there instead.
+            Width = Math.Min(SignLayout.OpeningWidth, SystemParameters.WorkArea.Width);
+            MaxWidth = SystemParameters.WorkArea.Width;
+            MaxHeight = SystemParameters.WorkArea.Height;
             SizeToContent = SizeToContent.Height;
             UseLayoutRounding = true;
-            DialogFrame.Configure(this, owner);
+            // Resizable from every edge like the other redesigned windows, never smaller than it
+            // opened. Nothing is remembered: there is no preview to grow, so it opens at its
+            // content's size every time.
+            DialogFrame.Configure(this, owner, resizable: true);
+            // Reuse the main window's themed scrollbar for the small-screen scroller, as Print does.
+            if (owner?.TryFindResource(typeof(System.Windows.Controls.Primitives.ScrollBar)) is Style scrollBarStyle)
+                Resources[typeof(System.Windows.Controls.Primitives.ScrollBar)] = scrollBarStyle;
             BuildUi();
         }
 
         private void BuildUi()
         {
-            var body = new StackPanel { Margin = new Thickness(20, 6, 20, 18) };
+            // Controls are created in visual order, left column top to bottom, then the right
+            // column, then the footer, so Tab follows what the eye reads.
+            var left = BuildCertificateColumn();
+            var right = BuildAppearanceColumn();
 
-            body.Children.Add(new TextBlock
+            _visibleAppearance.Checked += (_, _) => SyncAppearance();
+            _visibleAppearance.Unchecked += (_, _) => SyncAppearance();
+            _appearanceText.TextChanged += (_, _) => UpdateAppearancePreview();
+            _reasonBox.TextChanged += (_, _) => UpdateAppearancePreview();
+            _locationBox.TextChanged += (_, _) => UpdateAppearancePreview();
+
+            // --- Buttons: Cancel then Sign, the family order, Sign as the accent on the right ----
+            var cancel = MakeButton(L("Str_Sign_Cancel"), false);
+            cancel.Click += (_, _) => { DialogResult = false; Close(); };
+            cancel.IsCancel = true;   // Esc
+            var sign = MakeButton(L("Str_Sign_Sign"), true);
+            sign.Click += (_, _) => DoSign();
+            sign.IsDefault = true;    // Enter
+            var footer = Layout.Footer(null, cancel, sign);
+            footer.Margin = new Thickness(SignLayout.Inset, 12, SignLayout.Inset, 14);
+
+            SyncSource();
+            SyncTimestamp();
+            SyncAppearance();
+
+            var description = new TextBlock
             {
                 Text = string.Format(L("Str_Sign_Desc"), Path.GetFileName(_suggestedSource)),
-                Foreground = R("MutedTextBrush"), FontSize = 11, TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 14)
-            });
+                FontSize = 11, TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(SignLayout.Inset, 4, SignLayout.Inset, 6)
+            };
+            description.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+
+            var columns = SignLayout.Columns(left, right);
+            columns.Margin = new Thickness(SignLayout.Inset, 0, SignLayout.Inset, 0);
+            // Only a work area smaller than the window scrolls; the footer stays pinned under it.
+            var scroll = new ScrollViewer
+            {
+                Content = columns,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Focusable = false
+            };
+
+            var body = new Grid();
+            body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            body.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Grid.SetRow(scroll, 1);
+            Grid.SetRow(footer, 2);
+            body.Children.Add(description);
+            body.Children.Add(scroll);
+            body.Children.Add(footer);
+
+            Content = DialogFrame.Frame(this, Owner, "KillerPDF - " + L("Str_Sign_TitleSuffix"),
+                () => { DialogResult = false; Close(); }, body);
+        }
+
+        // Left: where the certificate comes from, the optional signer details, the timestamp.
+        private StackPanel BuildCertificateColumn()
+        {
+            var column = new StackPanel();
 
             // --- Certificate source --------------------------------------------------------------
-            body.Children.Add(Label(L("Str_Sign_Certificate")));
+            var certificateHeader = Header(L("Str_Sign_Certificate"));
+            certificateHeader.Margin = new Thickness(0, 0, 0, 2);
+            column.Children.Add(certificateHeader);
 
             _fileRadio = Radio(L("Str_Sign_FromFile"), true);
             _storeRadio = Radio(L("Str_Sign_FromStore"), false);
             _fileRadio.Checked += (_, _) => SyncSource();
             _storeRadio.Checked += (_, _) => SyncSource();
-            body.Children.Add(_fileRadio);
+            column.Children.Add(_fileRadio);
 
-            var fileRow = new Grid { Margin = new Thickness(20, 2, 0, 4) };
+            var fileRow = new Grid { Margin = new Thickness(SourceIndent, 2, 0, 6) };
             fileRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             fileRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            _pfxBox = Field("");
+            _pfxBox = Field("", L("Str_Sign_FromFile"));
             _pfxBox.Margin = new Thickness(0, 0, 6, 0);
             Grid.SetColumn(_pfxBox, 0);
             _browsePfx = MakeButton(L("Str_Sign_Browse"), false);
+            _browsePfx.Height = Layout.ControlHeight;
             _browsePfx.Click += (_, _) => BrowsePfx();
             Grid.SetColumn(_browsePfx, 1);
             fileRow.Children.Add(_pfxBox);
             fileRow.Children.Add(_browsePfx);
-            body.Children.Add(fileRow);
+            column.Children.Add(fileRow);
 
-            body.Children.Add(new TextBlock { Text = L("Str_Sign_Password"), Foreground = R("MutedTextBrush"), FontSize = 11, Margin = new Thickness(20, 4, 0, 2) });
-            _pwBox = new PasswordBox
-            {
-                Margin = new Thickness(20, 0, 0, 10),
-                Background = R("BgCanvas"), Foreground = R("TextBrush"),
-                BorderBrush = R("CardBorderBrush"), BorderThickness = new Thickness(1),
-                CaretBrush = R("TextBrush"), Template = MakePasswordTemplate()
-            };
-            body.Children.Add(_pwBox);
+            _pwBox = Kit.PasswordField();
+            _pwBox.Height = Layout.ControlHeight;
+            _pwBox.VerticalContentAlignment = VerticalAlignment.Center;
+            AutomationProperties.SetName(_pwBox, L("Str_Sign_Password"));
+            DimWhenDisabled(_pwBox);
+            var password = Layout.Labeled(L("Str_Sign_Password"), _pwBox);
+            password.Margin = new Thickness(SourceIndent, 0, 0, 6);
+            column.Children.Add(password);
 
-            body.Children.Add(_storeRadio);
-            _storeCombo = new ComboBox { Margin = new Thickness(20, 2, 0, 10), Height = 26 };
+            column.Children.Add(_storeRadio);
+            _storeCombo = new ComboBox { Margin = new Thickness(SourceIndent, 2, 0, 0) };
             ApplyComboStyle(_storeCombo);
+            AutomationProperties.SetName(_storeCombo, L("Str_Sign_FromStore"));
             try
             {
                 foreach (var c in WindowsCertificateStore.ListSigningCertificates())
@@ -132,97 +205,93 @@ namespace KillerPDF
             }
             catch { /* store unavailable - leave empty */ }
             if (_storeCombo.Items.Count > 0) _storeCombo.SelectedIndex = 0;
-            body.Children.Add(_storeCombo);
+            column.Children.Add(_storeCombo);
 
-            // --- Metadata ------------------------------------------------------------------------
-            body.Children.Add(Label(L("Str_Sign_Reason")));
-            _reasonBox = Field(""); body.Children.Add(_reasonBox);
-            body.Children.Add(Label(L("Str_Sign_Location")));
-            _locationBox = Field(""); body.Children.Add(_locationBox);
-            body.Children.Add(Label(L("Str_Sign_Contact")));
-            _contactBox = Field(""); body.Children.Add(_contactBox);
+            // --- Metadata: each optional field beside its label ---------------------------------
+            column.Children.Add(Layout.Divider());
+            var details = new Grid();
+            details.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            details.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            _reasonBox = DetailRow(details, 0, L("Str_Sign_Reason"));
+            _locationBox = DetailRow(details, 1, L("Str_Sign_Location"));
+            _contactBox = DetailRow(details, 2, L("Str_Sign_Contact"));
+            column.Children.Add(details);
 
-            // --- Trusted timestamp --------------------------------------------------------------
-            _timestamp = new CheckBox
-            {
-                Content = L("Str_Sign_Timestamp"),
-                IsChecked = App.GetSetting("SignTimestamp") == "1",
-                Foreground = R("TextBrush"),
-                FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 10, 0, 2)
-            };
-            if (FindOwnerStyle("ThemeCheckBox") is Style timestampStyle)
-                _timestamp.Style = timestampStyle;
-            body.Children.Add(_timestamp);
-            body.Children.Add(new TextBlock
-            {
-                Text = L("Str_Sign_TimestampHint"), Foreground = R("MutedTextBrush"), FontSize = 11,
-                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(20, 0, 0, 4)
-            });
-            body.Children.Add(new TextBlock { Text = L("Str_Sign_TimestampServer"), Foreground = R("MutedTextBrush"), FontSize = 11, Margin = new Thickness(20, 2, 0, 2) });
+            // --- Trusted timestamp: the explanation rides in the tooltip ----------------------------
+            column.Children.Add(Layout.Divider());
+            _timestamp = SectionToggle(L("Str_Sign_Timestamp"), App.GetSetting("SignTimestamp") == "1");
+            _timestamp.ToolTip = L("Str_Sign_TimestampHint");
+            AutomationProperties.SetHelpText(_timestamp, L("Str_Sign_TimestampHint"));
+            column.Children.Add(HeaderRow(_timestamp));
             _timestampServer = Field(App.GetSetting("SignTimestampServer") is { Length: > 0 } savedServer
-                ? savedServer : DefaultTimestampServer);
-            _timestampServer.Margin = new Thickness(20, 0, 0, 4);
-            body.Children.Add(_timestampServer);
+                ? savedServer : DefaultTimestampServer, L("Str_Sign_TimestampServer"));
+            _timestampServer.ToolTip = L("Str_Sign_TimestampHint");
+            ToolTipService.SetShowOnDisabled(_timestampServer, true);
+            AutomationProperties.SetHelpText(_timestampServer, L("Str_Sign_TimestampHint"));
+            var server = Layout.Labeled(L("Str_Sign_TimestampServer"), _timestampServer);
+            server.Margin = new Thickness(0);
+            column.Children.Add(server);
             _timestamp.Checked += (_, _) => SyncTimestamp();
             _timestamp.Unchecked += (_, _) => SyncTimestamp();
 
-            // --- Visible appearance -------------------------------------------------------------
-            _visibleAppearance = new CheckBox
-            {
-                Content = L("Str_Sign_VisibleAppearance"),
-                IsChecked = true,
-                Foreground = R("TextBrush"),
-                FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 10, 0, 4)
-            };
-            if (FindOwnerStyle("ThemeCheckBox") is Style checkStyle)
-                _visibleAppearance.Style = checkStyle;
-            body.Children.Add(_visibleAppearance);
+            return column;
+        }
 
-            var appearanceGrid = new Grid { Margin = new Thickness(20, 0, 0, 4) };
-            appearanceGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            appearanceGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(260) });
-            var appearanceControls = new StackPanel { Margin = new Thickness(0, 0, 14, 0) };
-            appearanceControls.Children.Add(Label(L("Str_Sign_AppearanceText")));
-            _appearanceText = Field(L("Str_Sign_AppearanceDefault"));
+        // Right: the visible signature with its placement and preview, then where the copy goes.
+        private StackPanel BuildAppearanceColumn()
+        {
+            var column = new StackPanel();
+
+            _visibleAppearance = SectionToggle(L("Str_Sign_VisibleAppearance"), true);
+            var visibleHeader = HeaderRow(_visibleAppearance);
+            visibleHeader.Margin = new Thickness(0, 0, 0, 2);
+            column.Children.Add(visibleHeader);
+
+            _appearanceText = Field(L("Str_Sign_AppearanceDefault"), L("Str_Sign_AppearanceText"));
             _appearanceText.AcceptsReturn = true;
-            _appearanceText.Height = 88;
+            _appearanceText.Height = 76;
+            _appearanceText.VerticalContentAlignment = VerticalAlignment.Top;
             _appearanceText.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-            appearanceControls.Children.Add(_appearanceText);
+            column.Children.Add(Layout.Labeled(L("Str_Sign_AppearanceText"), _appearanceText));
 
-            var placement = new Grid { Margin = new Thickness(0, 4, 0, 0) };
-            for (int i = 0; i < 4; i++)
-                placement.ColumnDefinitions.Add(new ColumnDefinition { Width = i == 1 ? new GridLength(1, GridUnitType.Star) : GridLength.Auto });
-            placement.Children.Add(new TextBlock { Text = L("Str_Sign_Page"), Foreground = R("MutedTextBrush"), VerticalAlignment = VerticalAlignment.Center });
-            _pageBox = Field("1"); _pageBox.Width = 48; _pageBox.Margin = new Thickness(6, 0, 12, 0);
-            Grid.SetColumn(_pageBox, 1); placement.Children.Add(_pageBox);
-            var positionLabel = new TextBlock { Text = L("Str_Sign_Position"), Foreground = R("MutedTextBrush"), VerticalAlignment = VerticalAlignment.Center };
-            Grid.SetColumn(positionLabel, 2); placement.Children.Add(positionLabel);
-            _positionCombo = new ComboBox { Width = 130, Height = 26, Margin = new Thickness(6, 0, 0, 0) };
+            // Page and Position on one row, label over each field.
+            var placement = new Grid();
+            placement.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
+            placement.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+            placement.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            _pageBox = Field("1", L("Str_Sign_Page"));
+            placement.Children.Add(Layout.Labeled(L("Str_Sign_Page"), _pageBox));
+            _positionCombo = new ComboBox();
             foreach (string key in new[] { "Str_Sign_BottomLeft", "Str_Sign_BottomRight", "Str_Sign_TopLeft", "Str_Sign_TopRight" })
                 _positionCombo.Items.Add(L(key));
             _positionCombo.SelectedIndex = 0; ApplyComboStyle(_positionCombo);
-            Grid.SetColumn(_positionCombo, 3); placement.Children.Add(_positionCombo);
-            appearanceControls.Children.Add(placement);
+            AutomationProperties.SetName(_positionCombo, L("Str_Sign_Position"));
+            var position = Layout.Labeled(L("Str_Sign_Position"), _positionCombo);
+            Grid.SetColumn(position, 2);
+            placement.Children.Add(position);
+            column.Children.Add(placement);
 
-            var dimensions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 5, 0, 0) };
-            dimensions.Children.Add(DimensionField(L("Str_Sign_Width"), "240", out _appearanceWidth));
-            dimensions.Children.Add(DimensionField(L("Str_Sign_Height"), "84", out _appearanceHeight));
-            dimensions.Children.Add(DimensionField(L("Str_Sign_FontSize"), "10", out _appearanceFontSize));
-            appearanceControls.Children.Add(dimensions);
-            appearanceGrid.Children.Add(appearanceControls);
+            // Width, Height and Text size share one row in three equal cells.
+            var dimensions = new Grid();
+            for (int i = 0; i < 5; i++)
+                dimensions.ColumnDefinitions.Add(new ColumnDefinition
+                    { Width = i % 2 == 1 ? new GridLength(8) : new GridLength(1, GridUnitType.Star) });
+            dimensions.Children.Add(DimensionField(L("Str_Sign_Width"), "240", 0, out _appearanceWidth));
+            dimensions.Children.Add(DimensionField(L("Str_Sign_Height"), "84", 2, out _appearanceHeight));
+            dimensions.Children.Add(DimensionField(L("Str_Sign_FontSize"), "10", 4, out _appearanceFontSize));
+            column.Children.Add(dimensions);
 
+            // The preview is paper, so it stays white with black text in every theme.
             var previewBorder = new Border
             {
                 Background = Brushes.White,
                 BorderBrush = R("AccentBrush"),
                 BorderThickness = new Thickness(2),
-                CornerRadius = new CornerRadius(2),
-                Padding = new Thickness(10),
-                Height = 122,
-                VerticalAlignment = VerticalAlignment.Bottom
+                CornerRadius = Kit.RadControl,
+                Padding = new Thickness(10, 6, 10, 6),
+                Height = 96
             };
+            previewBorder.SetResourceReference(Border.BorderBrushProperty, "AccentBrush");
             _appearancePreview = new TextBlock
             {
                 Foreground = Brushes.Black,
@@ -230,55 +299,28 @@ namespace KillerPDF
                 VerticalAlignment = VerticalAlignment.Center
             };
             previewBorder.Child = _appearancePreview;
-            Grid.SetColumn(previewBorder, 1); appearanceGrid.Children.Add(previewBorder);
-            body.Children.Add(appearanceGrid);
-
-            _visibleAppearance.Checked += (_, _) => SyncAppearance();
-            _visibleAppearance.Unchecked += (_, _) => SyncAppearance();
-            _appearanceText.TextChanged += (_, _) => UpdateAppearancePreview();
-            _reasonBox.TextChanged += (_, _) => UpdateAppearancePreview();
-            _locationBox.TextChanged += (_, _) => UpdateAppearancePreview();
+            column.Children.Add(previewBorder);
 
             // --- Output --------------------------------------------------------------------------
-            body.Children.Add(Label(L("Str_Sign_SaveAs")));
+            column.Children.Add(Layout.Divider());
+            var saveHeader = Header(L("Str_Sign_SaveAs"));
+            saveHeader.Margin = new Thickness(0, 0, 0, 4);
+            column.Children.Add(saveHeader);
             var outRow = new Grid();
             outRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             outRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            _outputBox = Field(DefaultOutputPath());
+            _outputBox = Field(DefaultOutputPath(), L("Str_Sign_SaveAs"));
             _outputBox.Margin = new Thickness(0, 0, 6, 0);
             Grid.SetColumn(_outputBox, 0);
             var browseOut = MakeButton(L("Str_Sign_Browse"), false);
+            browseOut.Height = Layout.ControlHeight;
             browseOut.Click += (_, _) => BrowseOutput();
             Grid.SetColumn(browseOut, 1);
             outRow.Children.Add(_outputBox);
             outRow.Children.Add(browseOut);
-            body.Children.Add(outRow);
+            column.Children.Add(outRow);
 
-            // --- Buttons -------------------------------------------------------------------------
-            var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
-            var sign = MakeButton(L("Str_Sign_Sign"), true);
-            sign.Click += (_, _) => DoSign();
-            sign.IsDefault = true;    // Enter
-            var cancel = MakeButton(L("Str_Sign_Cancel"), false);
-            cancel.Margin = new Thickness(8, 0, 0, 0);
-            cancel.Click += (_, _) => { DialogResult = false; Close(); };
-            cancel.IsCancel = true;   // Esc
-            btnRow.Children.Add(sign);
-            btnRow.Children.Add(cancel);
-            body.Children.Add(btnRow);
-
-            SyncSource();
-            SyncTimestamp();
-            SyncAppearance();
-
-            var scroll = new ScrollViewer
-            {
-                Content = body,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
-            };
-            Content = DialogFrame.Frame(this, Owner, "KillerPDF - " + L("Str_Sign_TitleSuffix"),
-                () => { DialogResult = false; Close(); }, scroll);
+            return column;
         }
 
         private string DefaultOutputPath()
@@ -412,13 +454,31 @@ namespace KillerPDF
 
         private void Warn(string msg) => KillerDialog.Show(this, msg, L("Str_Sign_Name"), MessageBoxButton.OK, MessageBoxImage.Warning);
 
-        private static StackPanel DimensionField(string label, string value, out TextBox box)
+        // A label over a field in one of the dimension row's cells.
+        private static StackPanel DimensionField(string label, string value, int gridColumn, out TextBox box)
         {
-            var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 10, 0) };
-            panel.Children.Add(new TextBlock { Text = label, Foreground = R("MutedTextBrush"), VerticalAlignment = VerticalAlignment.Center });
-            box = Field(value); box.Width = 48; box.Margin = new Thickness(5, 0, 0, 0);
-            panel.Children.Add(box);
-            return panel;
+            box = Field(value, label);
+            var cell = Layout.Labeled(label, box);
+            Grid.SetColumn(cell, gridColumn);
+            return cell;
+        }
+
+        // One optional detail: its label in the shared label column, the field filling the rest.
+        private static TextBox DetailRow(Grid grid, int row, string label)
+        {
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var text = Layout.Label(label);
+            text.FontSize = 12;
+            text.VerticalAlignment = VerticalAlignment.Center;
+            text.Margin = new Thickness(0, 0, 10, row < 2 ? 6 : 0);
+            Grid.SetRow(text, row);
+            var box = Field("", label);
+            box.Margin = new Thickness(0, 0, 0, row < 2 ? 6 : 0);
+            Grid.SetRow(box, row);
+            Grid.SetColumn(box, 1);
+            grid.Children.Add(text);
+            grid.Children.Add(box);
+            return box;
         }
 
         private void SyncAppearance()
@@ -479,11 +539,40 @@ namespace KillerPDF
                 && double.IsFinite(value);
         }
 
-        // ---- themed control helpers (mirroring PrintPreviewWindow) -------------------------------
+        // ---- themed control helpers (the page windows' parts) ---------------------------------
         private Style? FindOwnerStyle(string key) => Owner?.TryFindResource(key) as Style;
 
-        private static TextBlock Label(string text) => new()
-        { Text = text, Foreground = R("TextBrush"), FontSize = 12, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 6, 0, 2) };
+        // A section title in the page windows' header style: 11 semibold muted in a 28 high row.
+        private static TextBlock Header(string text)
+        {
+            var header = new TextBlock
+            {
+                Text = text, FontSize = 11, FontWeight = FontWeights.SemiBold,
+                Height = Layout.HeaderHeight, VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis, Padding = new Thickness(0, 7, 0, 0)
+            };
+            header.SetResourceReference(TextBlock.FontFamilyProperty, "UiFont");
+            header.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+            return header;
+        }
+
+        // An option that turns a whole section on, as Stamp's Page numbers and Watermark toggles.
+        private static CheckBox SectionToggle(string text, bool on)
+        {
+            var check = Kit.CheckBox(text);
+            check.IsChecked = on;
+            check.FontSize = 13;
+            check.FontWeight = FontWeights.SemiBold;
+            check.VerticalAlignment = VerticalAlignment.Center;
+            AutomationProperties.SetName(check, text);
+            return check;
+        }
+
+        // A section toggle in a 28 high header row.
+        private static Border HeaderRow(CheckBox toggle) => new()
+        {
+            Height = Layout.HeaderHeight, Margin = new Thickness(0, 0, 0, 4), Child = toggle
+        };
 
         private RadioButton Radio(string text, bool isChecked)
         {
@@ -492,60 +581,38 @@ namespace KillerPDF
             return r;
         }
 
+        // Print's combo treatment: 26 high, the owner's themed style, the field brush only as a fallback.
         private void ApplyComboStyle(ComboBox combo)
         {
-            if (FindOwnerStyle("DarkComboBox") is Style s) combo.Style = s;
-            else { combo.Foreground = R("TextBrush"); combo.BorderBrush = R("CardBorderBrush"); }
-            combo.Background = R("BgCanvas");
+            combo.Height = Layout.ControlHeight;
+            if (FindOwnerStyle("DarkComboBox") is Style s)
+            {
+                combo.Style = s;
+            }
+            else
+            {
+                combo.Foreground = R("TextBrush");
+                combo.BorderBrush = R("CardBorderBrush");
+                combo.Background = R("ComboFieldBrush");
+            }
         }
 
-        private static TextBox Field(string text)
+        // The shared themed field (98SE's sunken bevel included), 26 high, named for screen readers.
+        private static TextBox Field(string text, string accessibleName)
         {
-            var tb = new TextBox
-            {
-                Text = text, Margin = new Thickness(0, 0, 0, 4),
-                Background = R("BgCanvas"), Foreground = R("TextBrush"),
-                BorderBrush = R("CardBorderBrush"), BorderThickness = new Thickness(1),
-                Padding = new Thickness(6, 4, 6, 4), CaretBrush = R("TextBrush"),
-                SelectionBrush = R("RowSelectedBrush"), SelectionTextBrush = R("TextBrush"),
-                Template = MakeTextBoxTemplate()
-            };
+            var tb = Kit.Field();
+            tb.Text = text;
+            tb.Height = Layout.ControlHeight;
+            tb.VerticalContentAlignment = VerticalAlignment.Center;
+            AutomationProperties.SetName(tb, accessibleName);
+            DimWhenDisabled(tb);
             return tb;
         }
 
-        private static ControlTemplate MakeTextBoxTemplate()
-        {
-            var b = new FrameworkElementFactory(typeof(Border));
-            b.SetBinding(Border.BackgroundProperty, new Binding("Background") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            b.SetBinding(Border.BorderBrushProperty, new Binding("BorderBrush") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            b.SetBinding(Border.BorderThicknessProperty, new Binding("BorderThickness") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            b.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
-            var sv = new FrameworkElementFactory(typeof(ScrollViewer)) { Name = "PART_ContentHost" };
-            b.AppendChild(sv);
-            var ct = new ControlTemplate(typeof(TextBox)) { VisualTree = b };
-            var disabled = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
-            disabled.Setters.Add(new Setter(UIElement.OpacityProperty, 0.4));
-            ct.Triggers.Add(disabled);
-            return ct;
-        }
+        // The fields read as unavailable while their option is off, as they always have.
+        private static void DimWhenDisabled(Control control)
+            => control.IsEnabledChanged += (_, _) => control.Opacity = control.IsEnabled ? 1 : 0.4;
 
-        private static ControlTemplate MakePasswordTemplate()
-        {
-            var b = new FrameworkElementFactory(typeof(Border));
-            b.SetBinding(Border.BackgroundProperty, new Binding("Background") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            b.SetBinding(Border.BorderBrushProperty, new Binding("BorderBrush") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            b.SetBinding(Border.BorderThicknessProperty, new Binding("BorderThickness") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            b.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
-            b.SetValue(Border.PaddingProperty, new Thickness(6, 4, 6, 4));
-            var sv = new FrameworkElementFactory(typeof(ScrollViewer)) { Name = "PART_ContentHost" };
-            b.AppendChild(sv);
-            var ct = new ControlTemplate(typeof(PasswordBox)) { VisualTree = b };
-            var disabled = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
-            disabled.Setters.Add(new Setter(UIElement.OpacityProperty, 0.4));
-            ct.Triggers.Add(disabled);
-            return ct;
-        }
-
-        private static Button MakeButton(string label, bool accent) => UiKit.Make(label, accent);
+        private static Button MakeButton(string label, bool accent) => Kit.Make(label, accent);
     }
 }

@@ -83,6 +83,7 @@
     <Compile Include="..\Controls\ScaledDialogFit.cs" Link="Controls\ScaledDialogFit.cs" />
     <Compile Include="..\Controls\DialogScale.cs" Link="Controls\DialogScale.cs" />
     <Compile Include="..\Controls\PageWindowLayout.cs" Link="Controls\PageWindowLayout.cs" />
+    <Compile Include="..\Controls\SignDialogLayout.cs" Link="Controls\SignDialogLayout.cs" />
     <Compile Include="..\Controls\StampInput.cs" Link="Controls\StampInput.cs" />
     <Compile Include="..\Controls\NoticePlacement.cs" Link="Controls\NoticePlacement.cs" />
     <Compile Include="..\Controls\PageWindowSizing.cs" Link="Controls\PageWindowSizing.cs" />
