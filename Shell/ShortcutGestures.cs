@@ -118,7 +118,7 @@ namespace KillerPDF.Shell
             Tip(SidebarAttachmentsTab, "Str_Rail_Attachments", "Alt:D4");
             Tip(SidebarLayersTab, "Str_Rail_Layers", "Alt:D5");
             Tip(SidebarSignaturesTab, "Str_Rail_Signatures", "Alt:D6");
-            Tip(SidebarDocumentToolsTab, "Str_Rail_DocumentTools", "Alt:D7");
+            Tip(SidebarDocumentToolsTab, "Str_Rail_DocumentTools", "Alt:D7", "CtrlShift:D");
             RefreshDocumentToolsPanel(force: true);   // its rows name the Ctrl+Shift+D chord in the current language
             Tip(DeletePagesBtn, "Str_TT_DeletePages", "Del");
             Tip(FlattenBtn, "Str_Lbl_Flatten", "AltShift:F");

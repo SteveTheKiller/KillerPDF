@@ -4,7 +4,7 @@ using KillerPDF.Services;
 
 namespace KillerPDF.Shell
 {
-    // Comments (#288) from the Document tools menu: read, edit, answer and delete the PDF's own
+    // Comments (#288) from the Document tools panel: read, edit, answer and delete the PDF's own
     // review comments, and add notes to the current page.
     public partial class MainWindow
     {

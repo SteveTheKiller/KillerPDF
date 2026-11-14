@@ -107,13 +107,17 @@ public partial class MainWindow
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)FocusDocumentTools);
     }
 
-    // The first tool that can run, or the panel itself while its rows are still being laid out; either way the
-    // panel has the keyboard, so the tool letters reach HandleDocumentToolsKey.
-    private void FocusDocumentTools()
+    // The first tool that can run takes the keyboard, so the tool letters reach HandleDocumentToolsKey. While the
+    // sidebar is still sliding open the row may not take focus yet, so it is tried once more when the window idles.
+    private void FocusDocumentTools() => FocusDocumentTools(retry: true);
+
+    private void FocusDocumentTools(bool retry)
     {
         if (_sidebarPanel != SidebarPanel.DocumentTools || _documentToolsScroll is null) return;
         Button? first = _documentToolsRows.Select(row => row.Button).FirstOrDefault(button => button.IsEnabled);
-        if (first is null || !first.Focus()) _documentToolsScroll.Focus();
+        if (first is not null && !first.Focus() && retry)
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle,
+                (Action)(() => FocusDocumentTools(retry: false)));
     }
 
     /// <summary>
@@ -162,8 +166,8 @@ public partial class MainWindow
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            Focusable = true,
-            FocusVisualStyle = null,
+            // Not focusable: a click on the panel's empty space must not take the editor's letter keys.
+            Focusable = false,
             Content = sections
         };
         System.Windows.Automation.AutomationProperties.SetName(scroll, Loc("Str_Rail_DocumentTools"));
@@ -202,6 +206,14 @@ public partial class MainWindow
         row.Click += (_, _) =>
         {
             _documentToolsChordPressed = false;
+            // A click leaves the keyboard where it was before, as the menu this panel replaced did, so the
+            // single-letter editor tools (T, S, C...) stay the window's. Only a panel entered from the keyboard
+            // (Ctrl+Shift+D, Tab, the arrows) keeps the tool letters.
+            if (InputManager.Current.MostRecentInputDevice is MouseDevice or StylusDevice && row.IsKeyboardFocused)
+            {
+                Keyboard.ClearFocus();
+                Focus();
+            }
             tool.Run();
         };
         _documentToolsRows.Add((row, tool));
