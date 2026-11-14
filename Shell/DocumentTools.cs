@@ -160,8 +160,8 @@ public partial class MainWindow
             grids.Add(grid);
         }
 
-        // Rows wrap into columns across the width and the panel scrolls down only when the window is too short
-        // for them. Every section shares the column count, so the rows line up from one section to the next.
+        // Tiles wrap into columns across the width and the panel scrolls down only when the window is too short
+        // for them. Every section shares the column count, so the tiles line up from one section to the next.
         var scroll = new ScrollViewer
         {
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,

@@ -928,44 +928,43 @@
             </Setter>
         </Style>
 
-        <!-- One tool in the Document tools panel (Shell/DocumentTools.cs): the glyph in the accent, then the
-             tool's name, which may wrap once. Content is the glyph, Tag the name. Rows sit in as many columns
-             as the panel's width allows. Hover and press use the sidebar's own row brushes, as the Outline
-             tree does, so every theme (98SE included) dresses it like its other rows. No shadow. -->
+        <!-- One tool in the Document tools panel (Shell/DocumentTools.cs): a tile with the glyph in the accent
+             over the tool's name, which may wrap to two lines, as the page card's icon rows read. Content is the
+             glyph, Tag the name. Tiles sit in as many columns as the panel's width allows, three at the default
+             sidebar width. Hover and press use the sidebar's own row brushes, as the Outline tree does, so every
+             theme (98SE included) dresses it like its other rows. No shadow. The tooltip waits for the mouse, so
+             moving through the tiles with the keyboard does not cover the next row. -->
         <Style x:Key="DocumentToolRowBtn" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="MinHeight" Value="26"/>
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="MinHeight" Value="50"/>
             <Setter Property="Margin" Value="1"/>
-            <Setter Property="Padding" Value="5,3,4,3"/>
+            <Setter Property="Padding" Value="1,5,1,3"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="AutomationProperties.Name" Value="{Binding Tag, RelativeSource={RelativeSource Self}}"/>
             <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+            <Setter Property="ToolTipService.ShowsToolTipOnKeyboardFocus" Value="False"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
                                 BorderThickness="1" BorderBrush="Transparent"
                                 CornerRadius="{DynamicResource ControlCornerRadius}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Top">
                                 <TextBlock x:Name="Glyph" kl:GlyphInk.Center="True" Text="{TemplateBinding Content}"
-                                           FontFamily="Segoe MDL2 Assets" FontSize="13" Width="16"
-                                           Margin="0,0,6,0" VerticalAlignment="Center"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="16" Height="18"
+                                           HorizontalAlignment="Center" Margin="0,0,0,3"
                                            Foreground="{DynamicResource PrimaryBrush}"/>
-                                <TextBlock x:Name="Caption" Grid.Column="1" Text="{TemplateBinding Tag}"
+                                <TextBlock x:Name="Caption" Text="{TemplateBinding Tag}"
                                            Foreground="{TemplateBinding Foreground}"
-                                           TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
-                                           LineStackingStrategy="BlockLineHeight" LineHeight="13" MaxHeight="26"
-                                           VerticalAlignment="Center"/>
-                            </Grid>
+                                           TextAlignment="Center" HorizontalAlignment="Stretch"
+                                           TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis"
+                                           LineStackingStrategy="BlockLineHeight" LineHeight="12.5" MaxHeight="25"/>
+                            </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">

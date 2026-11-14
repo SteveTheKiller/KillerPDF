@@ -13,8 +13,11 @@ internal static class DocumentToolsLayout
     internal const string EditKey = "Str_DocTools_GroupEdit";
     internal const string AutomationKey = "Str_DocTools_GroupAutomation";
 
-    /// <summary>The narrowest column a tool row reads well in: a glyph and a label that may wrap once.</summary>
-    internal const double MinColumnWidth = 118;
+    /// <summary>
+    /// The narrowest column a tool tile reads well in: a glyph over a name that may wrap to two lines. Three fit
+    /// across the default sidebar, even with its scroll bar showing.
+    /// </summary>
+    internal const double MinColumnWidth = 60;
 
     private static readonly string[] SectionOrder = [ReportsKey, EditKey, AutomationKey];
 

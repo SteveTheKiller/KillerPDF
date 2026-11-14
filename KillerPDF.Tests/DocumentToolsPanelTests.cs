@@ -91,11 +91,13 @@ public sealed class DocumentToolsPanelTests
 
     [Theory]
     [InlineData(0, 1)]
-    [InlineData(120, 1)]
-    [InlineData(236, 2)]
-    [InlineData(244, 2)]
-    [InlineData(360, 3)]
-    [InlineData(480, 4)]
+    [InlineData(59, 1)]
+    [InlineData(120, 2)]
+    // The default sidebar, with and without its scroll bar, holds three tiles across.
+    [InlineData(184, 3)]
+    [InlineData(208, 3)]
+    [InlineData(240, 4)]
+    [InlineData(360, 6)]
     public void ColumnsFollowThePanelWidth(double width, int columns)
         => Assert.Equal(columns, DocumentToolsLayout.Columns(width));
 
