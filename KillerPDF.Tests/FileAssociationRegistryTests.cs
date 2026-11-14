@@ -169,6 +169,20 @@ public sealed class FileAssociationRegistryTests : IDisposable
         }
     }
 
+    // A per-user install often starts without any of these keys, so none of them may outlive Unregister.
+    [Fact]
+    public void UnregisterLeavesNoImageKeyOnAFreshRoot()
+    {
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        FileAssociationRegistry.Unregister(_root, "KillerPDF");
+
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\SystemFileAssociations"));
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\KillerPDF.image"));
+        foreach (string extension in new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff" })
+            Assert.Null(_root.OpenSubKey(@"Software\Classes\" + extension));
+    }
+
     public void Dispose()
     {
         _root.Dispose();

@@ -1938,13 +1938,30 @@ namespace KillerPDF
                 ? $"\"{iconPath}\",0"
                 : $"{exePath},0";
 
-            // The image verb's label is plain registry text, so it carries setup's language.
+            // The image verb's label is plain registry text, written in the user's language.
             Services.FileAssociationRegistry.Register(root, exePath, iconRef, AppName,
                 Services.ProtocolRegistrar.Scheme,
-                SetupText("Str_Shell_SaveAsKillerPdf", Services.FileAssociationRegistry.ImageVerbEnglishLabel));
+                InstallLanguageText("Str_Shell_SaveAsKillerPdf", Services.FileAssociationRegistry.ImageVerbEnglishLabel));
 
             // Tell the shell file associations have changed
             SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
+        }
+
+        // Setup's registration pass runs before the language dictionary loads, so text it writes to
+        // the registry is read from the language file directly: the saved language, else the Windows
+        // display language. No language choice is saved here; the first normal start does that.
+        private static string InstallLanguageText(string key, string english)
+        {
+            try
+            {
+                Locale locale = Enum.TryParse(ThemeManager.GetSetting("Locale"), out Locale saved) && Enum.IsDefined(saved)
+                    ? saved
+                    : LocaleManager.LocaleForCulture(CultureInfo.CurrentUICulture);
+                if (LocaleManager.FileFor(locale) is not { } file) return english;
+                var strings = new ResourceDictionary { Source = new Uri($"pack://application:,,,/Strings/{file}.xaml") };
+                return strings[key] is string { Length: > 0 } text ? text : english;
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException) { return english; }
         }
 
         private static void UnregisterFileHandler(RegistryKey root) =>

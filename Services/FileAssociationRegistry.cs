@@ -165,6 +165,7 @@ internal static class FileAssociationRegistry
             }
             catch { }
         }
+        try { DeleteEmptyKeys(root, @"Software\Classes\SystemFileAssociations"); } catch { }
         try { root.DeleteSubKeyTree(@"Software\Classes\Applications\KillerPDF.App.exe", false); } catch { }
         try { root.DeleteSubKeyTree(@"Software\Classes\Applications\KillerPDF.exe", false); } catch { }
         try { root.DeleteSubKeyTree(@"Software\KillerPDF\Capabilities", false); } catch { }
