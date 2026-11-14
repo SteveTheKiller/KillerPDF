@@ -29,22 +29,45 @@ internal sealed class FormRecognitionReviewDialog : Window
         MinHeight = 420;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
-        var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
         var cancel = UiKit.Make(L("Str_Btn_Cancel"), accent: false);
         cancel.IsCancel = true;
         cancel.Click += (_, _) => Close();
         var apply = UiKit.Make(L("Str_AutoBookmarks_AddSelected"), accent: true);
         apply.IsDefault = true;
         apply.Click += (_, _) => Commit();
-        var buttons = UiKit.ButtonRow(cancel, apply);
-        buttons.Margin = new Thickness(0, 12, 0, 0);
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        body.Children.Add(buttons);
-        var columns = new Grid();
-        columns.ColumnDefinitions.Add(new ColumnDefinition());
+        var footer = DialogParts.Footer([cancel, apply]);
+
+        // The page on the left in a framed pane like Transform; the proposals on the right in a well, over the footer.
+        var pane = new Border
+        {
+            BorderThickness = new Thickness(1),
+            CornerRadius = UiKit.RadCard,
+            Margin = new Thickness(8),
+            ClipToBounds = true
+        };
+        pane.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
+        pane.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
+        var pageHost = new Grid();
+        if ((owner as KillerPDF.Shell.MainWindow)?.GrainTextureSource is { } grain)
+        {
+            double opacity = Application.Current.Resources["GrainOpacity"] is double value ? value : 0.05;
+            pageHost.Children.Add(new Border
+            {
+                IsHitTestVisible = false, Opacity = opacity,
+                Background = new ImageBrush(grain) { TileMode = TileMode.Tile, ViewportUnits = BrushMappingMode.Absolute, Viewport = new Rect(0, 0, 256, 256), Stretch = Stretch.None }
+            });
+        }
+        pageHost.Children.Add(new Viewbox
+        {
+            Child = _preview, Stretch = Stretch.Uniform,
+            Margin = new Thickness(KillerPDF.Controls.PageWindowLayout.PageMargin)
+        });
+        pane.Child = pageHost;
+        var columns = new Grid { Margin = new Thickness(12, 0, 20, 16) };
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
         columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
-        columns.ColumnDefinitions.Add(new ColumnDefinition());
-        columns.Children.Add(new Viewbox { Child = _preview, Stretch = Stretch.Uniform });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
+        columns.Children.Add(UiKit.PaneWithShadow(pane));
         var list = new StackPanel();
         foreach (PdfFormFieldProposal proposal in review.Proposals)
         {
@@ -79,8 +102,11 @@ internal sealed class FormRecognitionReviewDialog : Window
             _rows.Add((proposal, include, name));
         }
         var scroll = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-        var reviewPanel = new DockPanel();
-        var header = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+        var reviewPanel = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
+        DockPanel.SetDock(footer, Dock.Bottom);
+        reviewPanel.Children.Add(footer);
+        // The column headings line up with the rows inside the well's 3 DIP padding.
+        var header = new Grid { Margin = new Thickness(3, 0, 3, 4) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(34) });
         header.ColumnDefinitions.Add(new ColumnDefinition());
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
@@ -99,11 +125,10 @@ internal sealed class FormRecognitionReviewDialog : Window
         }
         DockPanel.SetDock(header, Dock.Top);
         reviewPanel.Children.Add(header);
-        reviewPanel.Children.Add(scroll);
+        reviewPanel.Children.Add(DialogParts.Well(scroll));
         Grid.SetColumn(reviewPanel, 2);
         columns.Children.Add(reviewPanel);
-        body.Children.Add(columns);
-        Content = DialogFrame.Frame(this, owner, Title, Close, body);
+        Content = DialogFrame.Frame(this, owner, Title, Close, columns);
         Loaded += (_, _) =>
         {
             if (_rows.Count > 0) { _rows[0].Name.Focus(); ShowProposal(_rows[0].Proposal); }
