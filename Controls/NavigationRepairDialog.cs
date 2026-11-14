@@ -78,7 +78,7 @@ internal sealed class NavigationRepairDialog : Window
             // Nothing to list: the count as the well's muted, centered hint instead of an empty report box.
             var hint = new TextBlock
             {
-                Text = report.Trim(),
+                Text = L("Str_Navigation_None"),
                 TextWrapping = TextWrapping.Wrap,
                 TextAlignment = TextAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,

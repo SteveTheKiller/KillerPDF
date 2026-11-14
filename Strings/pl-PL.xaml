@@ -736,6 +736,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Usuń linki z niebezpiecznymi lub nieprawidłowymi adresami internetowymi</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Usuń linki do miejsc docelowych, których nie można znaleźć</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Napraw wybrane</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Nie znaleziono uszkodzonych ani niebezpiecznych łączy lub zakładek.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Linki nawigacyjne naprawione</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Nie można sprawdzić ani naprawić nawigacji:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Wybierz dane do scalenia</sys:String>

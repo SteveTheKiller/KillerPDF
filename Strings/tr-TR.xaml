@@ -667,6 +667,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Güvenli olmayan veya geçersiz web adresleri içeren bağlantıları kaldır</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Hedefi bulunamayan bağlantıları kaldır</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Seçilenleri onar</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Bozuk veya güvensiz bağlantı ya da yer işareti bulunmadı.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Gezinti bağlantıları onarıldı</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Gezinti denetlenemedi veya onarılamadı:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Birleştirme verilerini seç</sys:String>

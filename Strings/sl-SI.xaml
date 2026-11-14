@@ -695,6 +695,7 @@
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Odstrani povezave z nevarnimi ali neveljavnimi spletnimi naslovi</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Odstrani povezave s cilji, ki jih ni mogoče najti</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Popravi izbrano</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Ni bilo najdenih nedelujočih ali nevarnih povezav ali zaznamkov.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Povezave za krmarjenje so popravljene</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Krmarjenja ni bilo mogoče pregledati ali popraviti:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Izberi podatke za spajanje</sys:String>

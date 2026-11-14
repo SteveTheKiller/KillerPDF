@@ -669,6 +669,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">移除網址不安全或無效的連結</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">移除找不到目標的連結</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">修復所選項目</sys:String>
+    <sys:String x:Key="Str_Navigation_None">未找到損壞或不安全的連結或書籤。</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">導覽連結已修復</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">無法稽核或修復導覽:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">選取合併資料</sys:String>

@@ -754,6 +754,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Nem biztonságos vagy érvénytelen webcímet tartalmazó hivatkozások eltávolítása</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Nem található célú hivatkozások eltávolítása</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Kijelöltek javítása</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Nem található hibás vagy nem biztonságos hivatkozás vagy könyvjelző.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Navigációs hivatkozások javítva</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">A navigáció ellenőrzése vagy javítása nem sikerült:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Egyesítési adatok kiválasztása</sys:String>

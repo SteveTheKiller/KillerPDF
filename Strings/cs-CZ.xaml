@@ -745,6 +745,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Odebrat odkazy s nebezpečnými nebo neplatnými webovými adresami</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Odebrat odkazy s cíli, které nelze najít</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Opravit vybrané</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Nebyly nalezeny žádné nefunkční ani nebezpečné odkazy či záložky.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Navigační odkazy byly opraveny</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Navigaci se nepodařilo zkontrolovat nebo opravit:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Vybrat data pro sloučení</sys:String>

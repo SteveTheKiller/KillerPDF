@@ -754,6 +754,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Xóa các liên kết có địa chỉ web không an toàn hoặc không hợp lệ</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Xóa các liên kết có đích không tìm thấy</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Sửa mục đã chọn</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Không tìm thấy liên kết hoặc dấu trang bị hỏng hay không an toàn.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Đã sửa các liên kết điều hướng</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Không thể kiểm tra hoặc sửa điều hướng:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Chọn dữ liệu trộn</sys:String>

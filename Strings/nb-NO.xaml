@@ -754,6 +754,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Fjern lenker med utrygge eller ugyldige nettadresser</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Fjern lenker med mål som ikke finnes</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Reparer valgte</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Fant ingen ødelagte eller usikre lenker eller bokmerker.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Navigasjonslenkene er reparert</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Kunne ikke revidere eller reparere navigasjonen:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Velg flettedata</sys:String>

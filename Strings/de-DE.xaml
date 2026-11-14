@@ -667,6 +667,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Links mit unsicheren oder ungültigen Webadressen entfernen</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Links mit nicht auffindbaren Zielen entfernen</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Auswahl reparieren</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Es wurden keine defekten oder unsicheren Links oder Lesezeichen gefunden.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Navigationslinks repariert</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Die Navigation konnte nicht geprüft oder repariert werden:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Zusammenführungsdaten auswählen</sys:String>

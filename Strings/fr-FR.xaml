@@ -754,6 +754,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Supprimer les liens dont l'adresse web est dangereuse ou non valide</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Supprimer les liens dont la destination est introuvable</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Réparer la sélection</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Aucun lien ni signet rompu ou dangereux n’a été trouvé.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Liens de navigation réparés</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Impossible d'auditer ou de réparer la navigation :</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Sélectionner les données de fusion</sys:String>

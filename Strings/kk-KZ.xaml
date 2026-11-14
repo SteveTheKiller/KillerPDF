@@ -674,6 +674,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Қауіпті немесе жарамсыз веб-мекенжайлары бар сілтемелерді жою</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Межелі орны табылмаған сілтемелерді жою</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Таңдалғандарды жөндеу</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Бұзылған немесе қауіпті сілтемелер мен бетбелгілер табылмады.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Навигация сілтемелері жөнделді</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Навигацияны тексеру немесе жөндеу мүмкін болмады:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Біріктіру деректерін таңдау</sys:String>

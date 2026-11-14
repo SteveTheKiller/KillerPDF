@@ -754,6 +754,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Remover links com endereços da web inseguros ou inválidos</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Remover links com destinos que não podem ser encontrados</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Reparar selecionados</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Nenhum link ou marcador quebrado ou inseguro foi encontrado.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Links de navegação reparados</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Não foi possível auditar ou reparar a navegação:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Selecionar dados da mala direta</sys:String>

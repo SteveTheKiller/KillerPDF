@@ -754,6 +754,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Rimuovi i collegamenti con indirizzi web non sicuri o non validi</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Rimuovi i collegamenti con destinazioni non trovate</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Ripara selezionati</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Non sono stati trovati collegamenti o segnalibri interrotti o non sicuri.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Collegamenti di navigazione riparati</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Impossibile verificare o riparare la navigazione:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Seleziona i dati per l'unione</sys:String>

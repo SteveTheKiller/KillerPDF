@@ -754,6 +754,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">Удалить ссылки с небезопасными или недопустимыми веб-адресами</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">Удалить ссылки на назначения, которые не найдены</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">Исправить выбранные</sys:String>
+    <sys:String x:Key="Str_Navigation_None">Неработающих или небезопасных ссылок и закладок не найдено.</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">Навигационные ссылки исправлены</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">Не удалось проверить или исправить навигацию:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Выбор данных для слияния</sys:String>

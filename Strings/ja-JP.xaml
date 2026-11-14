@@ -754,6 +754,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnsafe">安全でない、または無効な Web アドレスのリンクを削除</sys:String>
     <sys:String x:Key="Str_Navigation_RemoveUnresolved">リンク先が見つからないリンクを削除</sys:String>
     <sys:String x:Key="Str_Navigation_Repair">選択項目を修復</sys:String>
+    <sys:String x:Key="Str_Navigation_None">壊れたリンクや安全でないリンク、しおりは見つかりませんでした。</sys:String>
     <sys:String x:Key="Str_Navigation_Updated">ナビゲーションリンクを修復しました</sys:String>
     <sys:String x:Key="Str_Navigation_Failed">ナビゲーションを監査または修復できませんでした :</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">差し込みデータを選択</sys:String>
