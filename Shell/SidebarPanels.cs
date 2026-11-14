@@ -196,7 +196,6 @@ namespace KillerPDF.Shell
             for (var node = source; node is not null; node = VisualTreeHelper.GetParent(node))
                 if (node is TreeViewItem item) { clicked = item; break; }
             if (clicked is not null) clicked.IsSelected = true;
-            void Add(string key, Action action) => menu.Items.Add(MakeMenuItem(Loc(key), (_, _) => action()));
             // A panel's own actions are one icon strip on the card frame, as the page and bookmark menus show them.
             void Strip(params (string Glyph, string Caption, string? Gesture, Action Act, bool Mirror, bool Enabled)[] actions)
             {
