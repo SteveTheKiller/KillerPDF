@@ -22,7 +22,15 @@ internal static class SidebarActionsSmoke
         string? original = pages.Tag as string;
         pages.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
         // Clicking the open panel's icon offers the four sidebar positions instead of closing it.
-        int positions = Menus().SingleOrDefault()?.Items.OfType<MenuItem>().Count(item => item.IsCheckable) ?? 0;
+        // Since c8399f5 the four sides are nested under the Sidebar row, so open its submenu and count them there.
+        ContextMenu? clickMenu = Menus().SingleOrDefault();
+        int positions = 0;
+        if (clickMenu?.Items.OfType<MenuItem>().SingleOrDefault(item => item.Name == "SidebarMenuItem") is { } sidebarRow)
+        {
+            sidebarRow.IsSubmenuOpen = true;
+            clickMenu.UpdateLayout(); Pump();
+            positions = sidebarRow.Items.OfType<MenuItem>().Count(item => item.IsCheckable);
+        }
         CloseMenus();
         if (original != "on" || !Equals(pages.Tag, "on")) throw new InvalidOperationException("Pages click closed its panel.");
         if (positions != 4) throw new InvalidOperationException("Pages click did not offer the four sidebar positions.");
@@ -51,7 +59,11 @@ internal static class SidebarActionsSmoke
                 if (buttonName == "SidebarPagesTab")
                 {
                     // The page menu's own view items are checkable too, so match the four sides by name.
-                    MenuItem[] sides = [.. menu.Items.OfType<MenuItem>().Where(item => new[] { "Left", "Right", "Top", "Bottom" }
+                    // They now sit in the Sidebar row's flyout, so open it first.
+                    MenuItem railSidebarRow = menu.Items.OfType<MenuItem>().Single(item => item.Name == "SidebarMenuItem");
+                    railSidebarRow.IsSubmenuOpen = true;
+                    menu.UpdateLayout(); Pump();
+                    MenuItem[] sides = [.. railSidebarRow.Items.OfType<MenuItem>().Where(item => new[] { "Left", "Right", "Top", "Bottom" }
                         .Any(side => Equals(item.Header, Application.Current.FindResource("Str_Sidebar_" + side))))];
                     if (sides.Length != 4 || sides.Count(item => item.IsChecked) != 1)
                         throw new InvalidOperationException("Pages rail menu lacks the four sidebar positions.");
