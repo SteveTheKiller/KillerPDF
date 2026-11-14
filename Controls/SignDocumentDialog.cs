@@ -82,14 +82,38 @@ namespace KillerPDF
             MaxHeight = SystemParameters.WorkArea.Height;
             SizeToContent = SizeToContent.Height;
             UseLayoutRounding = true;
-            // Resizable from every edge like the other redesigned windows, never smaller than it
-            // opened. Nothing is remembered: there is no preview to grow, so it opens at its
-            // content's size every time.
+            // Resizable from every edge like the other redesigned windows, and it remembers its
+            // size and position the way they do. The minimum is set from the content below, not
+            // from the size it opened at, so a remembered larger size can still be made smaller.
             DialogFrame.Configure(this, owner, resizable: true);
+            DialogFrame.KeepDeclaredMinimum(this);
             // Reuse the main window's themed scrollbar for the small-screen scroller, as Print does.
             if (owner?.TryFindResource(typeof(System.Windows.Controls.Primitives.ScrollBar)) is Style scrollBarStyle)
                 Resources[typeof(System.Windows.Controls.Primitives.ScrollBar)] = scrollBarStyle;
             BuildUi();
+            SourceInitialized += (_, _) => SizeFromContent();
+            Closing += (_, _) => Controls.PageWindowSizing.Save(this, PlacementType, App.SetSetting);
+        }
+
+        // The settings name its remembered placement is stored under.
+        private const string PlacementType = "Sign";
+
+        // Before the first show: the content's height at the opening width is the window's height
+        // and its minimum, as for the page windows. A remembered placement is then restored, raised
+        // to that minimum, and kept on its monitor's work area.
+        private void SizeFromContent()
+        {
+            if (Content is not FrameworkElement content) return;
+            double width = Width;
+            content.Measure(new Size(width, double.PositiveInfinity));
+            double height = Math.Ceiling(Math.Min(content.DesiredSize.Height, SystemParameters.WorkArea.Height));
+            SizeToContent = SizeToContent.Manual;
+            MinWidth = width;
+            MinHeight = height;
+            Width = width;
+            Height = height;
+            if (Controls.PageWindowSizing.Restore(this, PlacementType, App.GetSetting))
+                KillerFamily.Windowing.WorkAreaFit.Fit(this, keepMargin: false);
         }
 
         private void BuildUi()
