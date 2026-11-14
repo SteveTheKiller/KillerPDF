@@ -312,6 +312,9 @@ namespace KillerPDF.Shell
         private readonly KillerFamily.Shell.CloseToTray _tray;
         private readonly bool _ownsWindowGeometry;
 
+        /// <summary>The footer version label, which lives in the kit's FooterCorner.</summary>
+        private System.Windows.Controls.TextBlock VersionLabel => FooterVersionCell.VersionText;
+
         public MainWindow() : this(null)
         {
         }
@@ -320,6 +323,8 @@ namespace KillerPDF.Shell
         {
             _startupTearOutSession = startupTearOutSession;
             InitializeComponent();
+            // The footer version is the kit FooterCorner's; the name keeps FindName("VersionLabel") working.
+            RegisterName("VersionLabel", VersionLabel);
             RestoreWindowBounds();
             _about = new Features.About.AboutController(this);
             _ownsWindowGeometry = App.RegisterDocumentWindow(this);

@@ -29,9 +29,9 @@ public sealed class FooterContrastTests
             (string?)element.Attribute(x + "Name") == "StatusText");
         Assert.Equal("{DynamicResource TextBrush}", (string?)status.Attribute("Foreground"));
 
-        XElement version = document.Descendants().Single(element =>
-            (string?)element.Attribute(x + "Name") == "VersionLabel");
-        Assert.Equal("{DynamicResource TextFooter}", (string?)version.Attribute("Foreground"));
+        // The version and copyright are the kit's FooterCorner, which keeps them in the dim footer color.
+        Assert.Contains("text.SetResourceReference(TextBlock.ForegroundProperty, \"TextFooter\");",
+            File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Controls", "FooterCorner.cs")));
     }
 
     private static string FindRepositoryRoot()

@@ -10,6 +10,7 @@
         xmlns:local="clr-namespace:KillerPDF"
         xmlns:ctrl="clr-namespace:KillerPDF.Controls"
         xmlns:snap="clr-namespace:KillerFamily.Windowing"
+        xmlns:kfc="clr-namespace:KillerFamily.Controls"
         mc:Ignorable="d"
         Title="KillerPDF" Height="700" Width="1000" MinHeight="480" MinWidth="620"
         WindowStartupLocation="CenterScreen"
@@ -2762,32 +2763,9 @@
                                 Visibility="Collapsed" Click="FooterToolsNext_Click" ToolTip="{DynamicResource Str_Scroll_Right}"/>
                     </Grid>
                 </Grid>
-                <Grid x:Name="FooterVersionCell" Grid.Column="3"
-                      HorizontalAlignment="Right" Margin="{DynamicResource FooterCellMargin}" SizeChanged="FooterAnchor_SizeChanged">
-                    <Border IsHitTestVisible="False" BorderBrush="{DynamicResource FooterBevelDarkBrush}" BorderThickness="{DynamicResource FooterCellLightThickness}" Panel.ZIndex="2"/>
-                    <Border IsHitTestVisible="False" BorderBrush="{DynamicResource FooterBevelLightBrush}" BorderThickness="{DynamicResource FooterCellDarkThickness}" Panel.ZIndex="2"/>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
-                            Margin="{DynamicResource FooterCellPadding}">
-                    <Border Width="1" Height="14" Background="{DynamicResource CardBorderBrush}"
-                            Margin="5,0,8,0" IsHitTestVisible="False"
-                            Visibility="{DynamicResource FooterVersionDividerVisibility}"/>
-                    <TextBlock x:Name="VersionLabel" Opacity="0.75" Text="v1.6.3"
-                               Foreground="{DynamicResource TextFooter}" FontFamily="{DynamicResource BrandSansFont}"
-                               FontSize="16" TextOptions.TextFormattingMode="Ideal" VerticalAlignment="Center" Margin="0,0,12,0"
-                               Cursor="Hand" ToolTip="{DynamicResource Str_TT_About}"
-                               MouseLeftButtonDown="VersionLabel_Click"/>
-                    <!-- 20px trailing margin keeps the copyright clear of the corner grip (family standard) -->
-                    <TextBlock Opacity="0.75" FontSize="16" TextOptions.TextFormattingMode="Ideal" VerticalAlignment="Center"
-                               FontFamily="{DynamicResource BrandSansFont}" Margin="0,0,20,0">
-                        <Run Text="&#x00A9; 2026 " Foreground="{DynamicResource TextFooter}"/>
-                        <Hyperlink NavigateUri="https://thekiller.net"
-                                   RequestNavigate="Hyperlink_RequestNavigate"
-                                   Foreground="{DynamicResource TextFooter}" TextDecorations="None">
-                            <Run Text="Steve the Killer"/>
-                        </Hyperlink>
-                    </TextBlock>
-                </StackPanel>
-                </Grid>
+                <!-- The version and copyright are the KillerUI kit's footer corner, at the family spacing from the grip. -->
+                <kfc:FooterCorner x:Name="FooterVersionCell" Grid.Column="3"
+                                  SizeChanged="FooterAnchor_SizeChanged" VersionClick="VersionLabel_Click"/>
             </Grid>
             </Grid>
         </Border>
