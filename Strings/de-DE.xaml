@@ -1205,6 +1205,9 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Sign_ChooseCert">Signaturzertifikat wählen</sys:String>
     <sys:String x:Key="Str_Sign_ImportImage">Signaturbild importieren</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">PDF-Dateien</sys:String>
+    <sys:String x:Key="Str_Filter_Openable">PDF-Dateien und Bücher</sys:String>
+    <sys:String x:Key="Str_Filter_Epub">EPUB-Bücher</sys:String>
+    <sys:String x:Key="Str_Filter_Djvu">DjVu-Dokumente</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Zertifikatdateien</sys:String>
     <sys:String x:Key="Str_Filter_Text">Textdatei</sys:String>
     <sys:String x:Key="Str_Print_Sending">Wird an den Drucker gesendet…</sys:String>

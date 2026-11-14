@@ -1199,6 +1199,9 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Sign_ChooseCert">İmzalama sertifikası seçin</sys:String>
     <sys:String x:Key="Str_Sign_ImportImage">İmza görüntüsünü içe aktar</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">PDF dosyaları</sys:String>
+    <sys:String x:Key="Str_Filter_Openable">PDF dosyaları ve kitaplar</sys:String>
+    <sys:String x:Key="Str_Filter_Epub">EPUB kitapları</sys:String>
+    <sys:String x:Key="Str_Filter_Djvu">DjVu belgeleri</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Sertifika dosyaları</sys:String>
     <sys:String x:Key="Str_Filter_Text">Metin dosyası</sys:String>
     <sys:String x:Key="Str_Print_Sending">Yazıcıya gönderiliyor…</sys:String>

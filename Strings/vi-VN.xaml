@@ -1210,6 +1210,9 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Sign_ChooseCert">Chọn chứng chỉ ký</sys:String>
     <sys:String x:Key="Str_Sign_ImportImage">Nhập hình ảnh chữ ký</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">Tệp PDF</sys:String>
+    <sys:String x:Key="Str_Filter_Openable">Tệp PDF và sách</sys:String>
+    <sys:String x:Key="Str_Filter_Epub">Sách EPUB</sys:String>
+    <sys:String x:Key="Str_Filter_Djvu">Tài liệu DjVu</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Tệp chứng chỉ</sys:String>
     <sys:String x:Key="Str_Filter_Text">Tệp văn bản</sys:String>
     <sys:String x:Key="Str_Print_Sending">Đang gửi đến máy in…</sys:String>

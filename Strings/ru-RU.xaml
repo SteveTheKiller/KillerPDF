@@ -1210,6 +1210,9 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Sign_ChooseCert">Выберите сертификат для подписи</sys:String>
     <sys:String x:Key="Str_Sign_ImportImage">Импорт Изображения подписи</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">PDF файлы</sys:String>
+    <sys:String x:Key="Str_Filter_Openable">PDF файлы и книги</sys:String>
+    <sys:String x:Key="Str_Filter_Epub">Книги EPUB</sys:String>
+    <sys:String x:Key="Str_Filter_Djvu">Документы DjVu</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Файлы сертификатов</sys:String>
     <sys:String x:Key="Str_Filter_Text">Текстовый файл</sys:String>
     <sys:String x:Key="Str_Print_Sending">Отправка на принтер…</sys:String>

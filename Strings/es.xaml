@@ -1199,6 +1199,9 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Sign_ChooseCert">Elija un certificado de firma</sys:String>
     <sys:String x:Key="Str_Sign_ImportImage">Importar imagen de firma</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">Archivos PDF</sys:String>
+    <sys:String x:Key="Str_Filter_Openable">Archivos PDF y libros</sys:String>
+    <sys:String x:Key="Str_Filter_Epub">Libros EPUB</sys:String>
+    <sys:String x:Key="Str_Filter_Djvu">Documentos DjVu</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Archivos de certificado</sys:String>
     <sys:String x:Key="Str_Filter_Text">Archivo de texto</sys:String>
     <sys:String x:Key="Str_Print_Sending">Enviando a la impresora…</sys:String>

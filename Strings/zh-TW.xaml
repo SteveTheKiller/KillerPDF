@@ -1201,6 +1201,9 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Sign_ChooseCert">選擇簽名憑證</sys:String>
     <sys:String x:Key="Str_Sign_ImportImage">匯入簽名圖片</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">PDF 檔案</sys:String>
+    <sys:String x:Key="Str_Filter_Openable">PDF 檔案和書籍</sys:String>
+    <sys:String x:Key="Str_Filter_Epub">EPUB 書籍</sys:String>
+    <sys:String x:Key="Str_Filter_Djvu">DjVu 文件</sys:String>
     <sys:String x:Key="Str_Filter_Cert">憑證檔案</sys:String>
     <sys:String x:Key="Str_Filter_Text">文字檔</sys:String>
     <sys:String x:Key="Str_Print_Sending">正在傳送到印表機…</sys:String>

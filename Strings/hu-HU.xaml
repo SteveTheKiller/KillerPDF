@@ -1206,6 +1206,9 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Sign_ChooseCert">Válasszon aláíró tanúsítványt</sys:String>
     <sys:String x:Key="Str_Sign_ImportImage">Aláíráskép importálása</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">PDF fájlok</sys:String>
+    <sys:String x:Key="Str_Filter_Openable">PDF fájlok és könyvek</sys:String>
+    <sys:String x:Key="Str_Filter_Epub">EPUB könyvek</sys:String>
+    <sys:String x:Key="Str_Filter_Djvu">DjVu dokumentumok</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Tanúsítványfájlok</sys:String>
     <sys:String x:Key="Str_Filter_Text">Szövegfájl</sys:String>
     <sys:String x:Key="Str_Print_Sending">Küldés a nyomtatóra…</sys:String>

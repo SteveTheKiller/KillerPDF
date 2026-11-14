@@ -1030,7 +1030,7 @@ namespace KillerPDF.Shell
         private void Open_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new Controls.FileDialog(Controls.FileDialogMode.Open)
-                          { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_OpenPdf") };
+                          { Filter = Services.OpenDialogFilter.For(Loc), Title = Loc("Str_Dlg_OpenPdf") };
             if (dlg.ShowDialog(this) == true) OpenInNewTab(dlg.FileName);
         }
 
@@ -1117,7 +1117,10 @@ namespace KillerPDF.Shell
                     };
                     RenderOptions.SetBitmapScalingMode(fileIcon, BitmapScalingMode.HighQuality);
                     fileIcon.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = System.Windows.Media.Colors.Black, BlurRadius = 4, ShadowDepth = 2, Direction = 270, Opacity = TryFindResource("IconShadowOpacity") is double so2 ? so2 : 0.5 };
-                    var hdr = new Grid { Width = 348, Margin = new Thickness(0, 0, 0, 0) };   // no negative right margin - it pushed the remove X past the menu's right edge, clipping it out of frame
+                    // Sized to the name, up to 348 so a long name still trims; stretched so every row's remove X lines up
+                    // at the widest row. A fixed width kept the menu wide when every name was short. No negative right
+                    // margin: it pushed the remove X past the menu's right edge, clipping it out of frame.
+                    var hdr = new Grid { MaxWidth = 348, HorizontalAlignment = HorizontalAlignment.Stretch };
                     hdr.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                    // icon
                     hdr.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // name
                     hdr.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                    // remove X

@@ -1204,6 +1204,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Sign_ChooseCert">Vyberte podpisový certifikát</sys:String>
     <sys:String x:Key="Str_Sign_ImportImage">Importovat obrázek podpisu</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">Soubory PDF</sys:String>
+    <sys:String x:Key="Str_Filter_Openable">Soubory PDF a knihy</sys:String>
+    <sys:String x:Key="Str_Filter_Epub">Knihy EPUB</sys:String>
+    <sys:String x:Key="Str_Filter_Djvu">Dokumenty DjVu</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Soubory certifikátů</sys:String>
     <sys:String x:Key="Str_Filter_Text">Textový soubor</sys:String>
     <sys:String x:Key="Str_Print_Sending">Odesílání do tiskárny…</sys:String>

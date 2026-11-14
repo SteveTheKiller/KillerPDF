@@ -1211,6 +1211,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Sign_ChooseCert">Choose a signing certificate</sys:String>
     <sys:String x:Key="Str_Sign_ImportImage">Import Signature Image</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">PDF files</sys:String>
+    <sys:String x:Key="Str_Filter_Openable">PDF files and books</sys:String>
+    <sys:String x:Key="Str_Filter_Epub">EPUB books</sys:String>
+    <sys:String x:Key="Str_Filter_Djvu">DjVu documents</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Certificate files</sys:String>
     <sys:String x:Key="Str_Filter_Text">Text file</sys:String>
     <sys:String x:Key="Str_Filter_Word">Word document</sys:String>
