@@ -84,6 +84,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Selecting a highlight, drawing, filled rectangle or measurement no longer changes the color, opacity or width of the next mark you draw: the bar shows the selected mark's look while it is selected and returns to its own when it is not. A change you make on the bar meanwhile stays.
 - A right-click menu taller than the screen scrolls instead of cutting off its last items.
 - Alt+Shift+V opens the Compare PDFs menu under its toolbar button, or in the middle of the page when the button is in the More menu, instead of below the window, where a maximized window put it off the screen.
+- Protect Document's certificate recipients list no longer shows as a bright white box on dark themes, and its buttons read Cancel then Protect like every other dialog.
+- The bookmark menu shows an icon for each action; its rows had none.
 
 ### Changed
 
@@ -110,6 +112,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Document tools have their own sidebar panel on the rail (Alt+7, or Ctrl+Shift+D and a tool's letter), shown as icon tiles under Reports, Edit document and Automation and data, three across at the default sidebar width so every tool fits without scrolling, instead of a long submenu under Save.
 - The Macros window is redesigned: list actions are icons beside the list they act on, New offers the starter macros as a menu, the lists sit on the window's texture, and an empty saved list says how to fill it. Starter macro names follow the app's language.
 - Macros and Guided tasks have their own keys, Ctrl+Shift+M and Ctrl+Shift+X, and still answer to their Document tools letters.
+- The document tool windows follow the Macros window's style: list actions are icons beside what they act on, lists and reports sit on the window's texture, and Cancel and the main action share one footer row with any options.
+- Separation preview, Export table, Divide spreads, Rasterize region and Form recognition review show the page on the left and the options on the right.
+- Protect Document, Automatic folders, Color Management, Initial view settings, the certificate catalog and Customize toolbar use two columns, so they fit without scrolling.
+- The menus around the page, on a bookmark and in the Comments, Attachments and Signatures panels show their actions as icon strips, like the page card.
 
 ### Added
 
