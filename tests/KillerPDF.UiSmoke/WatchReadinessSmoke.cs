@@ -39,7 +39,8 @@ internal static class WatchReadinessSmoke
         var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(25) };
         void Queue(Button button, Action? after = null) => owner.Dispatcher.BeginInvoke(DispatcherPriority.Input,
             (Action)(() => { button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); after?.Invoke(); }));
-        Button Named(Window window, string key) => Descendants<Button>(window).Single(button => Equals(button.Content, owner.FindResource(key)));
+        Button Named(Window window, string key) => Descendants<Button>(window).Single(button => Equals(button.Content, owner.FindResource(key))
+            || AutomationProperties.GetAutomationId(button) == key);
         T Id<T>(Window window, string id) where T : DependencyObject => Descendants<T>(window).Single(item => AutomationProperties.GetAutomationId(item) == id);
         timer.Tick += (_, _) =>
         {

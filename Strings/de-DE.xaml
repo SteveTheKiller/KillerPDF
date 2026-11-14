@@ -1679,6 +1679,11 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Macro_Saved">Gespeicherte Makros</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Geordnete Schritte</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Duplizieren</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Archivierung</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Weitergabe</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Scannen</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Datenschutz</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Noch keine gespeicherten Makros. Speichern Sie das Makro rechts, um es hier aufzubewahren.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">Kopie</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">nicht verfügbar</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Alle Schritte sind verfügbar und startbereit.</sys:String>

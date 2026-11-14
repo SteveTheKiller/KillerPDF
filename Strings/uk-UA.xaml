@@ -1690,6 +1690,11 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Macro_Saved">Збережені макроси</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Впорядковані кроки</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Дублювати</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Архівування</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Спільний доступ</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Сканування</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Конфіденційність</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Збережених макросів поки немає. Збережіть макрос праворуч, щоб він залишився тут.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">копія</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">недоступно</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Усі кроки доступні та готові до виконання.</sys:String>

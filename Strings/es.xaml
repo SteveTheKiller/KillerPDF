@@ -1670,6 +1670,11 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Macro_Saved">Macros guardadas</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Pasos ordenados</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Duplicar</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Archivo</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Compartir</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Escaneo</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Privacidad</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Todavía no hay macros guardadas. Guarde la de la derecha para conservarla aquí.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">copia</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">no disponible</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Todos los pasos están disponibles y listos para ejecutarse.</sys:String>

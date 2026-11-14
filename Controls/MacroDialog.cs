@@ -2,6 +2,7 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using KillerPdf.Engine.Documents;
 using KillerPDF.Services;
 
@@ -14,9 +15,17 @@ internal sealed class MacroDialog : Window
     private readonly ListBox _saved = new() { MinWidth = 220 };
     private readonly ListBox _steps = new() { MinWidth = 320 };
     private readonly TextBox _name = UiKit.Field();
-    private readonly ComboBox _starter = Combo();
     private readonly ComboBox _operation = Combo();
     private readonly TextBlock _availability = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _savedHint = new()
+    {
+        Text = L("Str_Macro_NoneSaved"),
+        TextWrapping = TextWrapping.Wrap,
+        TextAlignment = TextAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center,
+        Margin = new Thickness(18),
+        IsHitTestVisible = false
+    };
     private readonly Button _run;
     private readonly RadioButton _currentDocument = new() { GroupName = "MacroSource", IsChecked = true };
     private readonly RadioButton _batchFiles = new() { GroupName = "MacroSource" };
@@ -37,16 +46,13 @@ internal sealed class MacroDialog : Window
         ArgumentNullException.ThrowIfNull(addableOperations);
         _supported = [.. supportedOperations];
         Title = "KillerPDF - " + L("Str_DocumentTools_Macros");
-        Width = 900;
-        Height = 610;
-        MinWidth = 760;
-        MinHeight = 480;
+        Width = 820;
+        Height = 560;
+        MinWidth = 680;
+        MinHeight = 460;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
 
-        _starter.ItemsSource = Enum.GetValues<PdfMacroStarterKind>()
-            .Select(kind => new StarterChoice(Display(kind), kind));
-        _starter.SelectedIndex = 0;
         _operation.ItemsSource = addableOperations.Distinct()
             .Where(_supported.Contains).OrderBy(operation => Display(operation))
             .Select(operation => new OperationChoice(Display(operation), operation));
@@ -56,23 +62,26 @@ internal sealed class MacroDialog : Window
         _steps.SelectionChanged += (_, _) => UpdateButtons();
         foreach (ListBox list in new[] { _saved, _steps })
         {
-            list.SetResourceReference(Control.BackgroundProperty, "PaneBrush");
+            list.Background = Brushes.Transparent;
+            list.BorderThickness = new Thickness(0);
+            list.Padding = new Thickness(3);
             list.SetResourceReference(Control.ForegroundProperty, "TextBrush");
-            list.SetResourceReference(Control.BorderBrushProperty, "CardBorderBrush");
         }
+        _savedHint.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
         _name.TextChanged += (_, _) => UpdateButtons();
 
-        Button create = Button("Str_Lbl_New", (_, _) => CreateStarter());
-        Button duplicate = Button("Str_Macro_Duplicate", (_, _) => Duplicate());
-        Button import = Button("Str_Exchange_Import", (_, _) => Import());
-        Button export = Button("Str_ExportImg_Export", (_, _) => Export());
-        Button delete = Button("Str_Ctx_BmDelete", (_, _) => Delete());
-        Button save = Button("Str_DocInfo_Save", (_, _) => SaveCurrent(), accent: true);
-        Button add = Button("Str_AutoBookmarks_Include", (_, _) => AddStep());
-        Button settings = Button("Str_Redact_Properties", (_, _) => EditStep());
-        Button remove = Button("Str_Portfolio_Remove", (_, _) => RemoveStep());
-        Button up = Button("Str_Ctx_BmMoveUp", (_, _) => MoveStep(-1));
-        Button down = Button("Str_Ctx_BmMoveDown", (_, _) => MoveStep(1));
+        // List actions are icons beside the list they act on, named in their tooltips (and to screen readers).
+        Button create = IconAction("Str_Lbl_New", 0xE710, (sender, _) => ShowStarterMenu((Button)sender));
+        Button duplicate = IconAction("Str_Macro_Duplicate", 0xE8C8, (_, _) => Duplicate());
+        Button import = IconAction("Str_Exchange_Import", 0xE896, (_, _) => Import());
+        Button export = IconAction("Str_ExportImg_Export", 0xE898, (_, _) => Export());
+        Button delete = IconAction("Str_Ctx_BmDelete", 0xE74D, (_, _) => Delete());
+        Button save = IconAction("Str_DocInfo_Save", 0xE74E, (_, _) => SaveCurrent());
+        Button add = IconAction("Str_AutoBookmarks_Include", 0xE710, (_, _) => AddStep());
+        Button settings = IconAction("Str_Redact_Properties", 0xE713, (_, _) => EditStep());
+        Button up = IconAction("Str_Ctx_BmMoveUp", 0xE74A, (_, _) => MoveStep(-1));
+        Button down = IconAction("Str_Ctx_BmMoveDown", 0xE74B, (_, _) => MoveStep(1));
+        Button remove = IconAction("Str_Portfolio_Remove", 0xE711, (_, _) => RemoveStep());
         Button cancel = Button("Str_Btn_Cancel", (_, _) => Close());
         cancel.IsCancel = true;
         _run = Button("Str_Btn_Run", (_, _) => Run(), accent: true);
@@ -81,9 +90,10 @@ internal sealed class MacroDialog : Window
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
         var bottom = new StackPanel();
         DockPanel.SetDock(bottom, Dock.Bottom);
-        _availability.Margin = new Thickness(0, 8, 0, 4);
+        _availability.Margin = new Thickness(0, 10, 0, 6);
+        _availability.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
         bottom.Children.Add(_availability);
-        var sourceChoices = new WrapPanel { Margin = new Thickness(0, 4, 0, 8) };
+        var sourceChoices = new WrapPanel { Margin = new Thickness(0, 0, 0, 12) };
         _currentDocument.Content = L("Str_Macro_Current");
         _batchFiles.Content = L("Str_Macro_Batch");
         foreach (RadioButton choice in new[] { _currentDocument, _batchFiles })
@@ -93,24 +103,28 @@ internal sealed class MacroDialog : Window
             sourceChoices.Children.Add(choice);
         }
         bottom.Children.Add(sourceChoices);
+        var footer = new DockPanel { LastChildFill = false };
+        StackPanel confirm = UiKit.ButtonRow(cancel, _run);
+        DockPanel.SetDock(confirm, Dock.Right);
+        footer.Children.Add(confirm);
         if (openWatchedFolders is not null)
         {
-            Button folders = Button("Str_Watch_Title", (_, _) => openWatchedFolders(this));
-            folders.HorizontalAlignment = HorizontalAlignment.Left;
+            Button folders = Labeled("Str_Watch_Title", 0xE838,(_, _) => openWatchedFolders(this));
             System.Windows.Automation.AutomationProperties.SetAutomationId(folders, "OpenWatchedFolders");
-            bottom.Children.Add(folders);
+            DockPanel.SetDock(folders, Dock.Left);
+            footer.Children.Add(folders);
         }
-        bottom.Children.Add(UiKit.ButtonRow(cancel, _run));
+        bottom.Children.Add(footer);
         body.Children.Add(bottom);
 
         var columns = new Grid();
-        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(260) });
-        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(18) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(240) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
         columns.ColumnDefinitions.Add(new ColumnDefinition());
         UIElement saved = BuildSavedPanel(create, duplicate, import, export, delete);
         Grid.SetColumn(saved, 0);
         columns.Children.Add(saved);
-        UIElement editor = BuildEditorPanel(save, add, remove, up, down, settings);
+        UIElement editor = BuildEditorPanel(save, add, settings, up, down, remove);
         Grid.SetColumn(editor, 2);
         columns.Children.Add(editor);
         body.Children.Add(columns);
@@ -119,58 +133,103 @@ internal sealed class MacroDialog : Window
         Reload();
     }
 
-    private DockPanel BuildSavedPanel(params Button[] buttons)
+    private DockPanel BuildSavedPanel(params Button[] icons)
     {
         var panel = new DockPanel();
-        var actions = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
-        foreach (Button button in buttons)
-        {
-            button.Margin = new Thickness(0, 0, 6, 6);
-            actions.Children.Add(button);
-        }
-        DockPanel.SetDock(actions, Dock.Bottom);
-        panel.Children.Add(actions);
-        DockPanel.SetDock(_starter, Dock.Bottom);
-        _starter.Margin = new Thickness(0, 0, 0, 8);
-        panel.Children.Add(_starter);
-        TextBlock label = UiKit.GroupLabel(L("Str_Macro_Saved"));
-        DockPanel.SetDock(label, Dock.Top);
-        panel.Children.Add(label);
-        panel.Children.Add(_saved);
+        UIElement header = Header(L("Str_Macro_Saved"), icons);
+        DockPanel.SetDock(header, Dock.Top);
+        panel.Children.Add(header);
+        panel.Children.Add(Well(_saved, _savedHint));
         return panel;
     }
 
-    private DockPanel BuildEditorPanel(Button save, Button add, Button remove,
-        Button up, Button down, Button settings)
+    private DockPanel BuildEditorPanel(Button save, Button add, params Button[] stepIcons)
     {
         var panel = new DockPanel();
-        var actions = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
-        foreach (Button button in new[] { save, settings, remove, up, down })
-        {
-            button.Margin = new Thickness(0, 0, 6, 6);
-            actions.Children.Add(button);
-        }
-        DockPanel.SetDock(actions, Dock.Bottom);
-        panel.Children.Add(actions);
 
-        var addRow = new DockPanel { Margin = new Thickness(0, 8, 0, 8) };
+        // The new step's kind and its add icon, under the list it adds to.
+        var addRow = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
         DockPanel.SetDock(add, Dock.Right);
-        add.Margin = new Thickness(8, 0, 0, 0);
+        add.Margin = new Thickness(6, 0, 0, 0);
         addRow.Children.Add(add);
         addRow.Children.Add(_operation);
         DockPanel.SetDock(addRow, Dock.Bottom);
         panel.Children.Add(addRow);
 
-        var heading = new StackPanel();
-        heading.Children.Add(UiKit.GroupLabel(L("Str_Attachment_Name")));
-        _name.Margin = new Thickness(0, 2, 0, 8);
-        heading.Children.Add(_name);
-        heading.Children.Add(UiKit.GroupLabel(L("Str_Macro_Steps")));
-        DockPanel.SetDock(heading, Dock.Top);
-        panel.Children.Add(heading);
-        panel.Children.Add(_steps);
+        var top = new StackPanel();
+        top.Children.Add(UiKit.GroupLabel(L("Str_Attachment_Name")));
+        var nameRow = new DockPanel { Margin = new Thickness(0, 2, 0, 12) };
+        DockPanel.SetDock(save, Dock.Right);
+        save.Margin = new Thickness(6, 0, 0, 0);
+        nameRow.Children.Add(save);
+        nameRow.Children.Add(_name);
+        top.Children.Add(nameRow);
+        top.Children.Add(Header(L("Str_Macro_Steps"), stepIcons));
+        DockPanel.SetDock(top, Dock.Top);
+        panel.Children.Add(top);
+        panel.Children.Add(Well(_steps, null));
         return panel;
     }
+
+    // A list sits in a well: the pane fill at half strength with the pane's edge, so the area reads on every
+    // theme (Light's card edge alone is invisible) while the window's texture still shows through it.
+    private static Grid Well(ListBox list, TextBlock? emptyHint)
+    {
+        var well = new Grid();
+        var fill = new Border { Opacity = 0.5, IsHitTestVisible = false };
+        fill.SetResourceReference(Border.BackgroundProperty, "PaneBrush");
+        fill.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
+        var edge = new Border { BorderThickness = new Thickness(1), IsHitTestVisible = false };
+        edge.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
+        edge.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
+        well.Children.Add(fill);
+        well.Children.Add(list);
+        if (emptyHint is not null) well.Children.Add(emptyHint);
+        well.Children.Add(edge);
+        return well;
+    }
+
+    // A list's heading on the left and its action icons on the right, on one line above the list.
+    private static UIElement Header(string title, Button[] icons)
+    {
+        var row = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
+        var strip = new StackPanel { Orientation = Orientation.Horizontal };
+        foreach (Button icon in icons) strip.Children.Add(icon);
+        DockPanel.SetDock(strip, Dock.Right);
+        row.Children.Add(strip);
+        TextBlock label = UiKit.GroupLabel(title);
+        label.VerticalAlignment = VerticalAlignment.Bottom;
+        label.Margin = new Thickness(0, 0, 8, 4);
+        row.Children.Add(label);
+        return row;
+    }
+
+    // New offers the starter macros as a menu at the button, replacing the starter list that sat under
+    // the saved macros and read like a second list of macros.
+    private void ShowStarterMenu(Button anchor)
+    {
+        var menu = new ContextMenu
+        {
+            PlacementTarget = anchor,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom
+        };
+        foreach (PdfMacroStarterKind kind in Enum.GetValues<PdfMacroStarterKind>())
+        {
+            var item = new MenuItem { Header = L(StarterKey(kind)) };
+            System.Windows.Automation.AutomationProperties.SetAutomationId(item, "Starter" + kind);
+            item.Click += (_, _) => CreateStarter(kind);
+            menu.Items.Add(item);
+        }
+        menu.IsOpen = true;
+    }
+
+    internal static string StarterKey(PdfMacroStarterKind kind) => kind switch
+    {
+        PdfMacroStarterKind.Archival => "Str_Macro_StarterArchival",
+        PdfMacroStarterKind.Scanning => "Str_Macro_StarterScanning",
+        PdfMacroStarterKind.Privacy => "Str_Macro_StarterPrivacy",
+        _ => "Str_Macro_StarterSharing",
+    };
 
     private void Reload(string? selectName = null)
     {
@@ -179,6 +238,7 @@ internal sealed class MacroDialog : Window
             IReadOnlyList<PdfMacro> macros = _store.LoadAll();
             _saved.ItemsSource = macros;
             _saved.DisplayMemberPath = nameof(PdfMacro.Name);
+            _savedHint.Visibility = macros.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             _saved.SelectedItem = macros.FirstOrDefault(macro => string.Equals(
                 macro.Name, selectName, StringComparison.OrdinalIgnoreCase))
                 ?? (macros.Count > 0 ? macros[0] : null);
@@ -200,13 +260,12 @@ internal sealed class MacroDialog : Window
         RefreshSteps();
     }
 
-    private void CreateStarter()
+    private void CreateStarter(PdfMacroStarterKind kind = PdfMacroStarterKind.Sharing)
     {
-        PdfMacroStarterKind kind = (_starter.SelectedItem as StarterChoice)?.Kind
-            ?? PdfMacroStarterKind.Sharing;
         PdfMacro macro = PdfMacro.CreateStarter(kind);
         _originalName = null;
-        _name.Text = UniqueName(macro.Name);
+        // Named in the window's language; the engine's starter names are English.
+        _name.Text = UniqueName(L(StarterKey(kind)));
         _currentSteps = [.. macro.Steps.Select(Copy)];
         _saved.SelectedItem = null;
         RefreshSteps();
@@ -441,16 +500,53 @@ internal sealed class MacroDialog : Window
         return button;
     }
 
+    // An icon action: bare until hover (the family's BareButton), named by its tooltip, which the style also
+    // gives screen readers. The automation id is the label key, so tests find it in any language.
+    private static Button IconAction(string key, int glyph, RoutedEventHandler click)
+    {
+        var button = new Button
+        {
+            Content = Glyph(glyph),
+            ToolTip = L(key),
+            Padding = new Thickness(7, 5, 7, 5),
+            Margin = new Thickness(2, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        button.SetResourceReference(StyleProperty, "BareButton");
+        System.Windows.Automation.AutomationProperties.SetAutomationId(button, key);
+        button.Click += click;
+        return button;
+    }
+
+    // An icon with its words beside it, for an action that opens another window rather than acting on a list.
+    private static Button Labeled(string key, int glyph, RoutedEventHandler click)
+    {
+        var content = new StackPanel { Orientation = Orientation.Horizontal };
+        TextBlock icon = Glyph(glyph);
+        icon.Margin = new Thickness(0, 0, 8, 0);
+        icon.VerticalAlignment = VerticalAlignment.Center;
+        content.Children.Add(icon);
+        content.Children.Add(new TextBlock { Text = L(key), VerticalAlignment = VerticalAlignment.Center });
+        var button = new Button { Content = content, ToolTip = L(key), Padding = new Thickness(8, 5, 10, 5) };
+        button.SetResourceReference(StyleProperty, "BareButton");
+        button.Click += click;
+        return button;
+    }
+
+    private static TextBlock Glyph(int codePoint) => new()
+    {
+        Text = char.ConvertFromUtf32(codePoint),
+        FontFamily = new FontFamily("Segoe MDL2 Assets"),
+        FontSize = 14,
+        HorizontalAlignment = HorizontalAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center
+    };
+
     private static bool Recoverable(Exception exception) => exception is not OutOfMemoryException
         and not StackOverflowException and not AccessViolationException;
 
     private static string L(string key) =>
         Application.Current?.TryFindResource(key) as string ?? key;
-
-    private sealed record StarterChoice(string Label, PdfMacroStarterKind Kind)
-    {
-        public override string ToString() => Label;
-    }
 
     private sealed record OperationChoice(string Label, PdfMacroOperation Operation)
     {

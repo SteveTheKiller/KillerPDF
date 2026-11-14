@@ -1678,6 +1678,11 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Macro_Saved">Zapisane makra</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Kolejność kroków</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Duplikuj</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Archiwizacja</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Udostępnianie</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Skanowanie</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Prywatność</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Brak zapisanych makr. Zapisz makro po prawej, aby zachować je tutaj.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">kopia</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">niedostępne</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Wszystkie kroki są dostępne i gotowe do uruchomienia.</sys:String>

@@ -1672,6 +1672,11 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Macro_Saved">已儲存的巨集</sys:String>
     <sys:String x:Key="Str_Macro_Steps">步驟順序</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">建立副本</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">封存</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">分享</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">掃描</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">隱私</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">尚未儲存任何巨集。儲存右側的巨集即可保留在這裡。</sys:String>
     <sys:String x:Key="Str_Macro_Copy">副本</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">無法使用</sys:String>
     <sys:String x:Key="Str_Macro_Ready">所有步驟都可使用並已準備執行。</sys:String>

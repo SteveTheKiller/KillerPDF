@@ -1690,6 +1690,11 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Macro_Saved">Lagrede makroer</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Ordnede trinn</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Dupliser</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Arkivering</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Deling</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Skanning</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Personvern</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Ingen lagrede makroer ennå. Lagre makroen til høyre for å beholde den her.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">kopi</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">ikke tilgjengelig</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Alle trinn er tilgjengelige og klare til å kjøres.</sys:String>

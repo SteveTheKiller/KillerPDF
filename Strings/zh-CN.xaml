@@ -1674,6 +1674,11 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Macro_Saved">已保存的宏</sys:String>
     <sys:String x:Key="Str_Macro_Steps">步骤顺序</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">创建副本</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">归档</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">共享</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">扫描</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">隐私</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">尚未保存任何宏。保存右侧的宏即可保留在这里。</sys:String>
     <sys:String x:Key="Str_Macro_Copy">副本</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">不可用</sys:String>
     <sys:String x:Key="Str_Macro_Ready">所有步骤均可用并已准备运行。</sys:String>

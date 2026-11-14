@@ -1690,6 +1690,11 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Macro_Saved">Macros salvas</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Etapas em ordem</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Duplicar</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Arquivamento</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Compartilhamento</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Digitalização</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Privacidade</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Ainda não há macros salvas. Salve a da direita para mantê-la aqui.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">cópia</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">indisponível</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Todas as etapas estão disponíveis e prontas para execução.</sys:String>

@@ -1677,6 +1677,11 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Macro_Saved">Mentett makrók</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Lépések sorrendje</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Másolat készítése</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Archiválás</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Megosztás</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Szkennelés</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Adatvédelem</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Még nincs mentett makró. Mentse a jobb oldalit, és itt marad.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">másolat</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">nem érhető el</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Minden lépés elérhető és futtatásra kész.</sys:String>

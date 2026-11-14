@@ -1693,6 +1693,11 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Macro_Saved">Сохраненные макросы</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Порядок шагов</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Дублировать</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Архивирование</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Общий доступ</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Сканирование</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Конфиденциальность</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Сохранённых макросов пока нет. Сохраните макрос справа, чтобы он остался здесь.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">копия</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">недоступно</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Все шаги доступны и готовы к запуску.</sys:String>

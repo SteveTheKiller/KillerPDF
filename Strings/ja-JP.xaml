@@ -1690,6 +1690,11 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Macro_Saved">保存済みマクロ</sys:String>
     <sys:String x:Key="Str_Macro_Steps">ステップの順序</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">複製</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">アーカイブ</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">共有</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">スキャン</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">プライバシー</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">保存したマクロはまだありません。右のマクロを保存すると、ここに残ります。</sys:String>
     <sys:String x:Key="Str_Macro_Copy">コピー</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">利用不可</sys:String>
     <sys:String x:Key="Str_Macro_Ready">すべてのステップを実行できます。</sys:String>

@@ -1690,6 +1690,11 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Macro_Saved">Macro đã lưu</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Thứ tự bước</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Nhân bản</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Lưu trữ</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Chia sẻ</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Quét</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Quyền riêng tư</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Chưa có macro nào được lưu. Lưu macro ở bên phải để giữ nó tại đây.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">bản sao</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">không khả dụng</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Mọi bước đều khả dụng và sẵn sàng chạy.</sys:String>

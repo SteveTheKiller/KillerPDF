@@ -1670,6 +1670,11 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Macro_Saved">Kaydedilmiş makrolar</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Sıralı adımlar</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Çoğalt</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Arşivleme</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Paylaşım</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Tarama</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Gizlilik</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Henüz kayıtlı makro yok. Burada tutmak için sağdakini kaydedin.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">kopya</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">kullanılamıyor</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Tüm adımlar kullanılabilir ve çalıştırılmaya hazır.</sys:String>

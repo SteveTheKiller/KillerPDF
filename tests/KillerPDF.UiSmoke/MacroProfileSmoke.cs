@@ -52,7 +52,8 @@ internal static class MacroProfileSmoke
         var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(25) };
         void Queue(Button button) => Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Input,
             (Action)(() => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent))));
-        Button Named(Window window, string key) => Descendants<Button>(window).Single(button => Equals(button.Content, owner.FindResource(key)));
+        Button Named(Window window, string key) => Descendants<Button>(window).Single(button => Equals(button.Content, owner.FindResource(key))
+            || System.Windows.Automation.AutomationProperties.GetAutomationId(button) == key);
         timer.Tick += (_, _) =>
         {
             Window? dialog = Application.Current.Windows.Cast<Window>().LastOrDefault(window => window != owner && window.IsVisible);

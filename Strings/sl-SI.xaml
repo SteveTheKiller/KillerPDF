@@ -1583,6 +1583,11 @@
     <sys:String x:Key="Str_Macro_Saved">Shranjeni makri</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Zaporedje korakov</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Podvoji</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Arhiviranje</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Deljenje</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Skeniranje</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Zasebnost</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Shranjenih makrov še ni. Shranite makro na desni, da ostane tukaj.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">kopija</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">ni na voljo</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Vsi koraki so na voljo in pripravljeni za zagon.</sys:String>

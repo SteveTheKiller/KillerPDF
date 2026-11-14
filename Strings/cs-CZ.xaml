@@ -1675,6 +1675,11 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Macro_Saved">Uložená makra</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Pořadí kroků</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Duplikovat</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Archivace</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Sdílení</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Skenování</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Soukromí</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Zatím nejsou uložena žádná makra. Uložte makro vpravo a zůstane zde.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">kopie</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">není k dispozici</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Všechny kroky jsou k dispozici a připraveny ke spuštění.</sys:String>

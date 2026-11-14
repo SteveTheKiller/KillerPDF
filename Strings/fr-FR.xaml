@@ -1690,6 +1690,11 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Macro_Saved">Macros enregistrées</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Étapes ordonnées</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Dupliquer</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Archivage</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Partage</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Numérisation</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Confidentialité</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Aucune macro enregistrée pour le moment. Enregistrez celle de droite pour la conserver ici.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">copie</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">indisponible</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Toutes les étapes sont disponibles et prêtes à être exécutées.</sys:String>

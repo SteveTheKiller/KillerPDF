@@ -1693,6 +1693,11 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Macro_Saved">Сақталған макростар</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Қадамдар реті</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Көшірмесін жасау</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Мұрағаттау</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Бөлісу</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Сканерлеу</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Құпиялылық</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">Сақталған макростар әлі жоқ. Оң жақтағы макросты сақтасаңыз, ол осында тұрады.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">көшірме</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">қолжетімсіз</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Барлық қадам қолжетімді және іске қосуға дайын.</sys:String>

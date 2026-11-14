@@ -1700,6 +1700,11 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Macro_Saved">Saved macros</sys:String>
     <sys:String x:Key="Str_Macro_Steps">Ordered steps</sys:String>
     <sys:String x:Key="Str_Macro_Duplicate">Duplicate</sys:String>
+    <sys:String x:Key="Str_Macro_StarterArchival">Archival</sys:String>
+    <sys:String x:Key="Str_Macro_StarterSharing">Sharing</sys:String>
+    <sys:String x:Key="Str_Macro_StarterScanning">Scanning</sys:String>
+    <sys:String x:Key="Str_Macro_StarterPrivacy">Privacy</sys:String>
+    <sys:String x:Key="Str_Macro_NoneSaved">No saved macros yet. Save the one on the right to keep it here.</sys:String>
     <sys:String x:Key="Str_Macro_Copy">copy</sys:String>
     <sys:String x:Key="Str_Macro_NotAvailable">not available</sys:String>
     <sys:String x:Key="Str_Macro_Ready">Every step is available and ready to run.</sys:String>
