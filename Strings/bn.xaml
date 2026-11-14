@@ -196,6 +196,8 @@
     <sys:String x:Key="Str_KS_DeleteAnnot">নির্বাচিত অ্যানোটেশন বা পৃষ্ঠা মুছুন</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">ক্রপ বা পরিমাপ নিশ্চিত / বাতিল করুন</sys:String>
     <sys:String x:Key="Str_KS_CommitText">টেক্সট সংরক্ষণ (Enter নতুন লাইন যোগ করে)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">টেক্সট সংরক্ষণ (Shift+Enter নতুন লাইন যোগ করে)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter টেক্সট সংরক্ষণ করে (Shift+Enter নতুন লাইন যোগ করে)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">শেষ বিন্দু সরান</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">বড় ও ছোট হাতের অক্ষর মেলান / সম্পূর্ণ শব্দ (লেখা খুঁজুন)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">মূল</sys:String>

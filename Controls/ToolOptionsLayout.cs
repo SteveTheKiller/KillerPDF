@@ -46,7 +46,8 @@ namespace KillerPDF.Controls
             Style = "style", Fill = "fill", FillOpacity = "fillopacity", Spacing = "spacing", Blur = "blur",
             Paragraph = "paragraph", Layers = "layers", Eraser = "eraser", Kinds = "kinds",
             Position = "position", Pages = "pages", Apply = "apply", Count = "count", Find = "find",
-            MarkSearch = "marksearch", MarkPages = "markpages", Properties = "properties", Clear = "clear";
+            MarkSearch = "marksearch", MarkPages = "markpages", Properties = "properties", Clear = "clear",
+            EnterKey = "enterkey";
     }
 
     /// <summary>One group as the row measured it: its frozen width, the narrower width of its

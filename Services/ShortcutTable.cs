@@ -168,6 +168,21 @@ namespace KillerPDF
         internal static string DocumentToolGesture(string labelKey)
             => DocumentToolsChord + ", " + DocumentToolKey(labelKey);
 
+        // ── Saving a text box (#486) ───────────────────────────────────────────────────────────
+        // The text bar chooses between Enter adds a line (Ctrl+Enter saves) and Enter saves
+        // (Shift+Enter adds a line). Ctrl+Enter saves in both, so the row lights the same cap either
+        // way: base Enter already belongs to Confirm and Shift+Enter to the previous search result.
+        // KsAll holds the default row, which is also what the website prints.
+        internal const string CommitTextLabel = "Str_KS_CommitText";
+
+        internal static KsBinding CommitTextRow(bool enterCommits) => enterCommits
+            ? B("%enter% / %ctrl%+%enter%", "Str_KS_CommitTextEnter", "Edit", Cap("Ctrl:Enter"))
+            : B("%ctrl%+%enter%", CommitTextLabel, "Edit", Cap("Ctrl:Enter"));
+
+        /// <summary>The overlay's rows for the current Enter choice: KsAll with the save row swapped.</summary>
+        internal static IEnumerable<KsBinding> Rows(bool enterCommits) =>
+            KsAll.Select(binding => binding.LabelKey == CommitTextLabel ? CommitTextRow(enterCommits) : binding);
+
         // Declaration order is display order. Column and section title come from KsGroups below.
         // A binding with no caps is a mouse gesture and correctly lights nothing on the board.
         internal static readonly KsBinding[] KsAll =
@@ -250,8 +265,9 @@ namespace KillerPDF
                                                                 Cap("Ctrl:I", "Str_Lbl_Italic"),
                                                                 Cap("Ctrl:U", "Str_Lbl_Underline")),
             B("%del%",            "Str_KS_DeleteAnnot", "Edit", Cap("Del")),
-            // Enter adds a line in a text box, so the box is saved with Ctrl+Enter.
-            B("%ctrl%+%enter%",   "Str_KS_CommitText",  "Edit", Cap("Ctrl:Enter")),
+            // Enter adds a line in a text box, so the box is saved with Ctrl+Enter. The text bar can
+            // make Enter save instead (#486); CommitTextRow and Rows give the overlay that row.
+            CommitTextRow(enterCommits: false),
             B("F2",               "Str_Ctx_BmRename",   "Edit", Cap("F2")),
             B("%enter% / %esc%",  "Str_KS_ConfirmCancel","Edit", Cap("Enter", "Str_Kb_Confirm"),
                                                                  Cap("Esc",   "Str_Kb_Cancel")),

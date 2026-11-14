@@ -200,6 +200,8 @@
     <sys:String x:Key="Str_KS_DeleteAnnot">Удалить выбранную аннотацию или страницы</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Подтверждение / отмена обрезки или измерения</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Сохранить текст (Enter добавляет строку)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Сохранить текст (Shift+Enter добавляет строку)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter сохраняет текст (Shift+Enter добавляет строку)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Удалить последнюю точку</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Учитывать регистр / только слово целиком (Найти текст)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Основная</sys:String>

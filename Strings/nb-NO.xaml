@@ -200,6 +200,8 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_KS_DeleteAnnot">Slett valgt merknad eller valgte sider</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Bekreft / avbryt beskjæring eller måling</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Lagre tekst (Enter legger til en linje)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Lagre tekst (Shift+Enter legger til en linje)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter lagrer teksten (Shift+Enter legger til en linje)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Fjern siste punkt</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Skill mellom store og små bokstaver / bare hele ord (Finn tekst)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Grunn</sys:String>

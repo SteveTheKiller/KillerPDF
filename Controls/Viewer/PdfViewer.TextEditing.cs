@@ -227,6 +227,7 @@ namespace KillerPDF.Controls
                     StyleEditBox(ptb);   // restore the box's typeface + B/I/S
                     ptb.PreviewKeyDown += TextBox_PreviewKeyDown;
                     ptb.LostFocus += TextBox_LostFocus;
+                    ListenForClickAway();
                     ptb.Loaded += (_, _) => QueueTextEditorFocus(ptb, selectAll: true);
                     ptb.PreviewMouseLeftButtonDown += (_, _) => QueueTextEditorFocus(ptb);
                     QueueTextEditorFocus(ptb, selectAll: true);
@@ -587,6 +588,7 @@ namespace KillerPDF.Controls
             StyleEditBox(tb);
             tb.PreviewKeyDown += TextBox_PreviewKeyDown;
             tb.LostFocus += TextBox_LostFocus;
+            ListenForClickAway();
             tb.Loaded += (_, _) => QueueTextEditorFocus(tb, selectAll: true);
             tb.PreviewMouseLeftButtonDown += (_, _) => QueueTextEditorFocus(tb);
             QueueTextEditorFocus(tb, selectAll: true);
@@ -701,6 +703,7 @@ namespace KillerPDF.Controls
             StyleEditBox(tb);
             tb.PreviewKeyDown += TextBox_PreviewKeyDown;
             tb.LostFocus += TextBox_LostFocus;
+            ListenForClickAway();
             tb.Loaded += (_, _) => QueueTextEditorFocus(tb, selectAll: true);
             tb.PreviewMouseLeftButtonDown += (_, _) => QueueTextEditorFocus(tb);
             QueueTextEditorFocus(tb, selectAll: true);
@@ -917,6 +920,7 @@ namespace KillerPDF.Controls
             StyleEditBox(tb);   // current typeface + B/I/S
             tb.PreviewKeyDown += TextBox_PreviewKeyDown;
             tb.LostFocus += TextBox_LostFocus;
+            ListenForClickAway();
             // Input priority runs after the placement click has completed, so that click cannot
             // immediately take focus back from the new editor.
             tb.Loaded += (_, _) => QueueTextEditorFocus(tb);
@@ -1015,7 +1019,12 @@ namespace KillerPDF.Controls
             return null;
         }
 
-        // Enter inserts a line break. Ctrl+Enter commits the text box without requiring a pointer click.
+        // #486: the text bar chooses which key saves. By default Enter inserts a line break and
+        // Ctrl+Enter commits; the other choice makes Enter commit. Shift+Enter always adds a line and
+        // Ctrl+Enter always saves. One choice for the whole app, kept in the settings.
+        internal static readonly TextEnterModeStore TextEnterMode = new(
+            () => App.GetSetting(TextEnterKeys.SettingKey), value => App.SetSetting(TextEnterKeys.SettingKey, value));
+
         private void TextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Escape)
@@ -1032,11 +1041,12 @@ namespace KillerPDF.Controls
                 CancelActiveTextEdit();
                 e.Handled = true;
             }
-            else if (EditableTextShortcutPolicy.CommitsTextBox(e.Key, Keyboard.Modifiers))
+            else if (TextEnterKeys.Decide(e.Key, Keyboard.Modifiers, TextEnterMode.EnterCommits) == TextEnterAction.Commit)
             {
                 CommitActiveTextBox();
                 e.Handled = true;
             }
+            // A new line (Enter, or Shift+Enter) is left to the box, which inserts the break itself.
             else if (Keyboard.Modifiers == ModifierKeys.Control
                      && (e.Key == Key.B || e.Key == Key.I || e.Key == Key.U))
             {
@@ -1086,11 +1096,15 @@ namespace KillerPDF.Controls
             if (_draggingTextEditHandle) return;
             // Commit if the box has content, or (for an existing-text edit) even when emptied, so the
             // pending cover is resolved instead of lingering when the user clicks away from a blank edit.
-            if (_activeTextBox is not null && (!string.IsNullOrWhiteSpace(_activeTextBox.Text) || _pendingCover is not null
-                || _pendingDirectEdit is not null))
+            if (_activeTextBox is not null && ReferenceEquals(_activeTextBox, sender)
+                && TextEnterKeys.CommitsOnLeave(!string.IsNullOrWhiteSpace(_activeTextBox.Text),
+                    _pendingCover is not null, _pendingDirectEdit is not null))
             {
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
+                    // The click that moved the focus may already have saved this box and opened
+                    // another one. This commit belongs to the box that lost focus, never the new one.
+                    if (!TextEnterKeys.LateCommitStillApplies(_activeTextBox, sender)) return;
                     // A ComboBox popup has its own visual tree, so its focused item is not a
                     // descendant of the settings bar. Check the owning ComboBox as well.
                     if (_textSettingsBar is not null)
@@ -1113,6 +1127,64 @@ namespace KillerPDF.Controls
                 if (ContainsOpenComboBox(VisualTreeHelper.GetChild(root, i))) return true;
             return false;
         }
+
+        // ── Click-away saves (#486) ──────────────────────────────────────────────────────────
+        // LostFocus alone missed most clicks away. A press that moves no keyboard focus never raises
+        // it: the page in the Select tool (the canvas only clears keyboard focus, which leaves the box
+        // logically focused), a scroll bar, a toolbar button that takes no focus, a recycled tile.
+        // The box then stayed open, and the Escape that usually followed threw the typing away. A
+        // press anywhere else in the window now saves the box before that press does anything else.
+        private Window? _clickAwayWindow;
+
+        private void ListenForClickAway()
+        {
+            Window? window = Window.GetWindow(this);
+            if (ReferenceEquals(window, _clickAwayWindow)) return;
+            _clickAwayWindow?.RemoveHandler(PreviewMouseDownEvent, new MouseButtonEventHandler(Window_PreviewMouseDownWhileEditing));
+            _clickAwayWindow = window;
+            window?.AddHandler(PreviewMouseDownEvent, new MouseButtonEventHandler(Window_PreviewMouseDownWhileEditing), true);
+        }
+
+        private void Window_PreviewMouseDownWhileEditing(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.Left || _activeTextBox is not { } box) return;
+            var source = e.OriginalSource as DependencyObject;
+            bool On(FrameworkElement element) =>
+                (source is not null && IsDescendantOf(source, element)) || PressInside(e, element);
+            // Grid tiles can lay an overlay over the box, so a press on the box is also found by position.
+            bool onBox = On(box);
+            bool onCorner = _textEditHandles.Any(On);
+            bool onBar = _textSettingsBar is not null && source is not null && IsDescendantOf(source, _textSettingsBar);
+            bool inPopup = source is not null && !InWindowTree(source, sender as Window);
+            bool dropDownOpen = _textSettingsBar is not null && ContainsOpenComboBox(_textSettingsBar);
+            if (!TextEnterKeys.PressLeavesEdit(onBox, onCorner, onBar, inPopup, dropDownOpen, _draggingTextEditHandle))
+                return;
+            if (!TextEnterKeys.CommitsOnLeave(!string.IsNullOrWhiteSpace(box.Text),
+                    _pendingCover is not null, _pendingDirectEdit is not null))
+                return;
+            CommitActiveTextBox();
+        }
+
+        private static bool PressInside(MouseButtonEventArgs e, FrameworkElement element)
+        {
+            if (!element.IsVisible || element.ActualWidth <= 0 || element.ActualHeight <= 0) return false;
+            Point at = e.GetPosition(element);
+            return at.X >= 0 && at.Y >= 0 && at.X <= element.ActualWidth && at.Y <= element.ActualHeight;
+        }
+
+        // A dropdown or menu draws in a popup, whose tree ends at its own root, not the window.
+        private static bool InWindowTree(DependencyObject source, Window? window)
+        {
+            DependencyObject? current = source, top = source;
+            while (current is not null)
+            {
+                top = current;
+                current = current is Visual or System.Windows.Media.Media3D.Visual3D
+                    ? VisualTreeHelper.GetParent(current) : LogicalTreeHelper.GetParent(current);
+            }
+            return window is null || ReferenceEquals(top, window);
+        }
+        // End of click-away.
 
         // A turned box keeps its first line where the editor showed it, even when the committed
         // height differs from the editor's.

@@ -196,6 +196,8 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_KS_DeleteAnnot">Seçili açıklamayı veya sayfaları sil</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Kırpmayı veya ölçümü onayla / iptal et</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Metni kaydet (Enter yeni satır ekler)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Metni kaydet (Shift+Enter yeni satır ekler)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter metni kaydeder (Shift+Enter yeni satır ekler)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Son noktayı kaldır</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Büyük/küçük harf eşleştir / tam sözcük (Metin bul)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Temel</sys:String>

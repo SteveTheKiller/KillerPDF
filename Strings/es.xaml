@@ -196,6 +196,8 @@ La página se puede sustituir por una imagen de sí misma con las áreas marcada
     <sys:String x:Key="Str_KS_DeleteAnnot">Eliminar la anotación o las páginas seleccionadas</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Confirmar / cancelar recorte o medición</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Guardar texto (Intro añade una línea)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Guardar texto (Mayús+Intro añade una línea)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Intro guarda el texto (Mayús+Intro añade una línea)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Quitar el último punto</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Coincidir mayúsculas y minúsculas / solo palabras completas (Buscar texto)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Base</sys:String>

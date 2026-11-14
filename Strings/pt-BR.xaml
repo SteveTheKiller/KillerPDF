@@ -200,6 +200,8 @@ A página pode ser substituída por uma imagem dela mesma com as áreas marcadas
     <sys:String x:Key="Str_KS_DeleteAnnot">Excluir anotação ou páginas selecionadas</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Confirmar / cancelar corte ou medição</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Salvar texto (Enter adiciona uma linha)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Salvar texto (Shift+Enter adiciona uma linha)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter salva o texto (Shift+Enter adiciona uma linha)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Remover o último ponto</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Diferenciar maiúsculas e minúsculas / palavra inteira (Localizar texto)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Base</sys:String>

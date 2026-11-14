@@ -200,6 +200,8 @@
     <sys:String x:Key="Str_KS_DeleteAnnot">Видалити вибрану анотацію або сторінки</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Підтвердити / скасувати обрізання або вимірювання</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Зберегти текст (Enter додає рядок)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Зберегти текст (Shift+Enter додає рядок)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter зберігає текст (Shift+Enter додає рядок)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Видалити останню точку</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Враховувати регістр / лише ціле слово (Знайти текст)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Основна</sys:String>

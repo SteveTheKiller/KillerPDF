@@ -42,7 +42,9 @@ namespace KillerPDF.Shell
                 {
                     TitleKey = g.TitleKey,
                     Cat = g.Cat,
-                    Rows = [.. ShortcutTable.KsAll.Where(b => b.Cat == g.Cat).Select(b => new KsRow(b.Keys, b.LabelKey, b.Caps))],
+                    // The save-text row follows the text bar's Enter choice (#486).
+                    Rows = [.. ShortcutTable.Rows(Controls.PdfViewer.TextEnterMode.EnterCommits)
+                        .Where(b => b.Cat == g.Cat).Select(b => new KsRow(b.Keys, b.LabelKey, b.Caps))],
                 })];
 
         // #153: the zoom keys are spelled differently per keyboard layout - "=" is a plain keypress
@@ -108,6 +110,17 @@ namespace KillerPDF.Shell
             BuildShortcutsColumn(ShortcutLeftColumn,  KsColumn(right: false));
             BuildShortcutsColumn(ShortcutRightColumn, KsColumn(right: true));
             AddShortcutCustomizeButton();
+            Controls.PdfViewer.TextEnterMode.Changed += FollowTextEnterMode;
+            Closed += (_, _) => Controls.PdfViewer.TextEnterMode.Changed -= FollowTextEnterMode;
+        }
+
+        // Another window's text bar can change the Enter choice, so every window redraws its list
+        // and, when it shows the text bar, the bar's toggle.
+        private void FollowTextEnterMode()
+        {
+            BuildShortcutsColumn(ShortcutLeftColumn, KsColumn(right: false));
+            BuildShortcutsColumn(ShortcutRightColumn, KsColumn(right: true));
+            if (_annotBarTool == EditTool.Text && _textSettingsBar is not null) ShowTextSettings();
         }
 
         private void BuildShortcutsColumn(StackPanel host, KsSection[] sections)

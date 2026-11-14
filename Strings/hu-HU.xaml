@@ -200,6 +200,8 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_KS_DeleteAnnot">Kijelölt jegyzet vagy oldalak törlése</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Vágás vagy mérés megerősítése / megszakítása</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Szöveg mentése (az Enter új sort szúr be)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Szöveg mentése (a Shift+Enter új sort szúr be)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Az Enter menti a szöveget (a Shift+Enter új sort szúr be)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Utolsó pont eltávolítása</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Kis- és nagybetűk megkülönböztetése / csak teljes szó (Szöveg keresése)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Alap</sys:String>
