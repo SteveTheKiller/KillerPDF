@@ -21,6 +21,13 @@ internal static class PageSizeFormatter
         new("ANSI C", 1224, 1584, false),
         new("ANSI D", 1584, 2448, false),
         new("ANSI E", 2448, 3168, false),
+        // Architectural sheets: 9 x 12 in through 36 x 48 in.
+        new("ARCH A", 648, 864, false),
+        new("ARCH B", 864, 1296, false),
+        new("ARCH C", 1296, 1728, false),
+        new("ARCH D", 1728, 2592, false),
+        new("ARCH E1", 2160, 3024, false),
+        new("ARCH E", 2592, 3456, false),
     ];
 
     internal static (string Label, string Details, bool Metric, string Pixels, string Inches,
