@@ -64,8 +64,8 @@ internal sealed class ShortcutCustomizeDialog : Window
         cancel.Click += (_, _) => Close();
         var save = UiKit.Make(L("Str_Btn_Save"), accent: true);
         save.Click += (_, _) => { Saved = true; Close(); };
-        var buttons = UiKit.ButtonRow(resetAll, cancel, save);
-        buttons.Margin = new Thickness(0, 10, 0, 0);
+        // One footer row: Reset all on the left, Cancel and Save on the right.
+        DockPanel buttons = DialogParts.Footer([cancel, save], resetAll);
         DockPanel.SetDock(buttons, Dock.Bottom);
         body.Children.Add(buttons);
         DockPanel.SetDock(_status, Dock.Bottom);
@@ -94,9 +94,9 @@ internal sealed class ShortcutCustomizeDialog : Window
             Content = list,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            Padding = new Thickness(0, 0, 6, 0)
+            Padding = new Thickness(8, 6, 6, 6)
         };
-        body.Children.Add(scroll);
+        body.Children.Add(DialogParts.Well(scroll));
 
         PreviewKeyDown += CaptureKey;
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
@@ -130,14 +130,15 @@ internal sealed class ShortcutCustomizeDialog : Window
         row.Children.Add(key);
         _keyButtons[ShortcutRemap.Name(command.Original)] = key;
 
-        var reset = UiKit.Make(L("Str_KS_Reset"), accent: false);
-        reset.ToolTip = L("Str_KS_ResetTT");
-        reset.Margin = new Thickness(6, 0, 0, 0);
-        reset.Click += (_, _) =>
+        // Each row's reset is an icon beside the key it puts back, explained in its tooltip.
+        Button reset = DialogParts.IconAction("Str_KS_Reset", 0xE7A7, (_, _) =>
         {
             _remap.Reset(command.Original);
             RefreshKeys();
-        };
+        });
+        reset.ToolTip = L("Str_KS_ResetTT");
+        System.Windows.Automation.AutomationProperties.SetName(reset, L("Str_KS_Reset"));
+        reset.Margin = new Thickness(4, 0, 0, 0);
         Grid.SetColumn(reset, 2);
         row.Children.Add(reset);
         return row;

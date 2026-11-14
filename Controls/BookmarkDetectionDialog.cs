@@ -20,15 +20,25 @@ internal sealed class BookmarkDetectionDialog : Window
     internal BookmarkDetectionDialog(Window owner)
     {
         Title = "KillerPDF - " + L("Str_DocumentTools_AutoBookmarks");
-        Width = 470;
+        Width = 540;
         SizeToContent = SizeToContent.Height;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
 
         var body = new StackPanel { Margin = new Thickness(20, 6, 20, 16) };
-        _minimumSize = AddField(body, "Str_AutoBookmarks_MinimumSize", "14");
-        _maximumLength = AddField(body, "Str_AutoBookmarks_MaximumLength", "160");
-        _maximumDepth = AddField(body, "Str_AutoBookmarks_MaximumDepth", "6");
+        // The three limits share one row; each label sits on its field even when a translation wraps.
+        var limits = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+        foreach (int column in new[] { 0, 2, 4 })
+        {
+            if (column > 0) limits.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
+            limits.ColumnDefinitions.Add(new ColumnDefinition());
+        }
+        limits.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        limits.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        _minimumSize = AddField(limits, 0, "Str_AutoBookmarks_MinimumSize", "14");
+        _maximumLength = AddField(limits, 2, "Str_AutoBookmarks_MaximumLength", "160");
+        _maximumDepth = AddField(limits, 4, "Str_AutoBookmarks_MaximumDepth", "6");
+        body.Children.Add(limits);
         _titlePattern = AddField(body, "Str_AutoBookmarks_TitlePattern", string.Empty);
         _useTags = AddOption(body, "Str_AutoBookmarks_UseTags");
         _styledHeadings = AddOption(body, "Str_AutoBookmarks_StyledHeadings");
@@ -40,9 +50,7 @@ internal sealed class BookmarkDetectionDialog : Window
         var detect = UiKit.Make(L("Str_AutoBookmarks_Detect"), accent: true);
         detect.IsDefault = true;
         detect.Click += (_, _) => Commit();
-        var buttons = UiKit.ButtonRow(cancel, detect);
-        buttons.Margin = new Thickness(0, 14, 0, 0);
-        body.Children.Add(buttons);
+        body.Children.Add(DialogParts.Footer([cancel, detect]));
 
         Content = DialogFrame.Frame(this, owner, Title,
             () => { DialogResult = false; Close(); }, body);
@@ -100,6 +108,22 @@ internal sealed class BookmarkDetectionDialog : Window
         field.Text = value;
         field.Margin = new Thickness(0, 0, 0, 10);
         body.Children.Add(field);
+        return field;
+    }
+
+    private static TextBox AddField(Grid row, int column, string labelKey, string value)
+    {
+        TextBlock label = UiKit.GroupLabel(L(labelKey));
+        label.TextWrapping = TextWrapping.Wrap;
+        label.VerticalAlignment = VerticalAlignment.Bottom;
+        Grid.SetColumn(label, column);
+        row.Children.Add(label);
+        TextBox field = UiKit.Field();
+        field.Text = value;
+        System.Windows.Automation.AutomationProperties.SetName(field, label.Text);
+        Grid.SetColumn(field, column);
+        Grid.SetRow(field, 1);
+        row.Children.Add(field);
         return field;
     }
 

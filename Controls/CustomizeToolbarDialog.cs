@@ -73,26 +73,26 @@ internal sealed class CustomizeToolbarDialog : Window
         var ok = UiKit.Make(L("Str_Btn_OK"), accent: true);
         ok.IsDefault = true;
         ok.Click += (_, _) => { Result = BuildLayout(); DialogResult = true; Close(); };
-        var buttons = new DockPanel { LastChildFill = false, Margin = new Thickness(0, 12, 0, 0) };
-        DockPanel.SetDock(reset, Dock.Left);
-        buttons.Children.Add(reset);
-        var right = UiKit.ButtonRow(cancel, ok);
-        DockPanel.SetDock(right, Dock.Right);
-        buttons.Children.Add(right);
+        // One footer row: Reset on the left, Cancel and OK on the right.
+        DockPanel buttons = DialogParts.Footer([cancel, ok], reset);
         DockPanel.SetDock(buttons, Dock.Bottom);
         body.Children.Add(buttons);
 
-        _toMore = SideButton("Str_CustomizeToolbar_ToMore", () => MoveAcross(_bar, _more));
-        _toBar = SideButton("Str_CustomizeToolbar_ToBar", () => MoveAcross(_more, _bar));
-        _up = SideButton("Str_Ctx_BmMoveUp", () => MoveSelected(-1));
-        _down = SideButton("Str_Ctx_BmMoveDown", () => MoveSelected(+1));
-        _addSeparator = SideButton("Str_CustomizeToolbar_AddSeparator", AddSeparator);
-        _removeSeparator = SideButton("Str_CustomizeToolbar_RemoveSeparator", RemoveSeparator);
-        var side = new StackPanel { Margin = new Thickness(10, 22, 10, 0), Width = 170 };
+        // The moves between and within the lists are a strip of icons between them, named in their tooltips.
+        _toMore = SideButton("Str_CustomizeToolbar_ToMore", 0xE72A, () => MoveAcross(_bar, _more));
+        _toBar = SideButton("Str_CustomizeToolbar_ToBar", 0xE72B, () => MoveAcross(_more, _bar));
+        _up = SideButton("Str_Ctx_BmMoveUp", 0xE74A, () => MoveSelected(-1));
+        _down = SideButton("Str_Ctx_BmMoveDown", 0xE74B, () => MoveSelected(+1));
+        _addSeparator = SideButton("Str_CustomizeToolbar_AddSeparator", 0xE710, AddSeparator);
+        _removeSeparator = SideButton("Str_CustomizeToolbar_RemoveSeparator", 0xE711, RemoveSeparator);
+        var side = new StackPanel { Margin = new Thickness(8, 26, 8, 0) };
         foreach (Button button in new[] { _toMore, _toBar })
             side.Children.Add(button);
         side.Children.Add(new Border { Height = 14 });
-        foreach (Button button in new[] { _up, _down, _addSeparator, _removeSeparator })
+        foreach (Button button in new[] { _up, _down })
+            side.Children.Add(button);
+        side.Children.Add(new Border { Height = 14 });
+        foreach (Button button in new[] { _addSeparator, _removeSeparator })
             side.Children.Add(button);
 
         var lists = new Grid();
@@ -164,36 +164,23 @@ internal sealed class CustomizeToolbarDialog : Window
         return hover;
     }
 
-    private static Button SideButton(string key, Action click)
+    private static Button SideButton(string key, int glyph, Action click)
     {
-        var button = UiKit.Make(L(key), accent: false);
-        button.Margin = new Thickness(0, 0, 0, 6);
-        button.HorizontalAlignment = HorizontalAlignment.Stretch;
-        button.Click += (_, _) => click();
+        Button button = DialogParts.IconAction(key, glyph, (_, _) => click());
+        button.Margin = new Thickness(0, 0, 0, 4);
+        button.HorizontalAlignment = HorizontalAlignment.Center;
         return button;
     }
 
     private FrameworkElement ListColumn(string headerKey, ListBox list)
     {
         var column = new DockPanel();
-        var header = new TextBlock
-        {
-            Text = L(headerKey),
-            FontFamily = UiKit.UiFont,
-            FontSize = 12,
-            FontWeight = FontWeights.SemiBold,
-            Margin = new Thickness(0, 0, 0, 6)
-        };
-        header.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+        DockPanel header = DialogParts.Header(L(headerKey));
         DockPanel.SetDock(header, Dock.Top);
         column.Children.Add(header);
 
-        // Each list sits in a content pane like the main window's: rounded, grained and raised
-        // on the family pane shadow. The list itself is transparent so the pane shows through.
-        list.Background = Brushes.Transparent;
-        list.BorderThickness = new Thickness(0);
+        // Each list sits in a well, so the window's texture shows through it.
         list.Padding = new Thickness(2, 4, 2, 4);
-        list.SetResourceReference(Control.ForegroundProperty, "TextBrush");
         list.AllowDrop = true;
         // Rows fit the list's width: long captions wrap or trim instead of scrolling sideways.
         ScrollViewer.SetHorizontalScrollBarVisibility(list, ScrollBarVisibility.Disabled);
@@ -246,21 +233,7 @@ internal sealed class CustomizeToolbarDialog : Window
             Activate(list);
             SyncButtons();
         };
-        var grain = new Border { IsHitTestVisible = false };
-        grain.SetResourceReference(Border.BackgroundProperty, "GrainTileBrush");
-        grain.SetResourceReference(UIElement.OpacityProperty, "GrainOpacity");
-        var layers = new Grid();
-        layers.Children.Add(grain);
-        layers.Children.Add(list);
-        var pane = new Border { CornerRadius = UiKit.RadCard, BorderThickness = new Thickness(1), Child = layers };
-        pane.SetResourceReference(Border.BackgroundProperty, "PaneBrush");
-        pane.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
-        Grid host = UiKit.PaneWithShadow(pane);
-        // The grain sits inside the 1px edge, so its corners are one pixel tighter than the pane's.
-        CornerRadius outer = pane.CornerRadius;
-        grain.CornerRadius = new CornerRadius(Math.Max(0, outer.TopLeft - 1), Math.Max(0, outer.TopRight - 1),
-            Math.Max(0, outer.BottomRight - 1), Math.Max(0, outer.BottomLeft - 1));
-        column.Children.Add(host);
+        column.Children.Add(DialogParts.Well(list));
         return column;
     }
 
