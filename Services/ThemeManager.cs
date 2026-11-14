@@ -566,6 +566,7 @@ namespace KillerPDF.Services
             SetIfAbsent("FooterCellLightThickness", new Thickness(0));
             SetIfAbsent("FooterCellMargin", new Thickness(0));
             SetIfAbsent("FooterCellPadding", new Thickness(0));
+            SetIfAbsent("FooterCornerPadding", new Thickness(0));   // 98SE: 4,0,-2,0 keeps the copyright 8px from the grip
             SetIfAbsent("FooterPadding", new Thickness(0));
             SetIfAbsent("FrameInnerDarkBrush", Transparent);
             SetIfAbsent("FrameInnerDarkThickness", new Thickness(0));

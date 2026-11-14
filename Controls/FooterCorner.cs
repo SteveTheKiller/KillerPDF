@@ -15,7 +15,7 @@ namespace KillerFamily.Controls
     /// copyright with its link to thekiller.net. The spacing lives here so no app can drift from it: 12 px
     /// after the version and 25 px after the copyright, which ends the text 8 px before the corner grip's
     /// 13 px canvas, set 4 px in from the edge (steve-rules: the same 8 px in every app). The cell margin, its padding and
-    /// the 98SE bevel come from the theme (FooterCellMargin, FooterCellPadding, FooterBevel*). The app sets
+    /// the 98SE bevel come from the theme (FooterCellMargin, FooterCornerPadding, FooterBevel*). The app sets
     /// <see cref="VersionText"/>'s text and handles <see cref="VersionClick"/>.
     /// </summary>
     public sealed class FooterCorner : Grid
@@ -53,7 +53,7 @@ namespace KillerFamily.Controls
             Children.Add(light);
 
             var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
-            row.SetResourceReference(MarginProperty, "FooterCellPadding");
+            row.SetResourceReference(MarginProperty, "FooterCornerPadding");
 
             var divider = new Border { Width = 1, Height = 14, Margin = new Thickness(5, 0, 8, 0), IsHitTestVisible = false };
             divider.SetResourceReference(Border.BackgroundProperty, "CardBorderBrush");
