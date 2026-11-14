@@ -13,8 +13,8 @@ namespace KillerFamily.Controls
     /// <summary>
     /// The right end of every app's footer: the version label, which opens the app's About card, and the
     /// copyright with its link to thekiller.net. The spacing lives here so no app can drift from it: 12 px
-    /// after the version and 20 px after the copyright, which keeps the text clear of the corner grip
-    /// (steve-rules: 14 px until 2026-10-19 ran the text into the grip). The cell margin, its padding and
+    /// after the version and 25 px after the copyright, which ends the text 8 px before the corner grip's
+    /// 13 px canvas, set 4 px in from the edge (steve-rules: the same 8 px in every app). The cell margin, its padding and
     /// the 98SE bevel come from the theme (FooterCellMargin, FooterCellPadding, FooterBevel*). The app sets
     /// <see cref="VersionText"/>'s text and handles <see cref="VersionClick"/>.
     /// </summary>
@@ -23,8 +23,8 @@ namespace KillerFamily.Controls
         /// <summary>Space between the version label and the copyright.</summary>
         public const double VersionGap = 12;
 
-        /// <summary>Space between the copyright and the corner grip.</summary>
-        public const double CornerGap = 20;
+        /// <summary>Space after the copyright: 8 px of it is clear of the 17 px the corner grip takes.</summary>
+        public const double CornerGap = 25;
 
         /// <summary>The version label. The app sets its text, such as "v1.9.3".</summary>
         public TextBlock VersionText { get; }

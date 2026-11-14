@@ -116,6 +116,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Separation preview, Export table, Divide spreads, Rasterize region and Form recognition review show the page on the left and the options on the right.
 - Protect Document, Automatic folders, Color Management, Initial view settings, the certificate catalog and Customize toolbar use two columns, so they fit without scrolling.
 - The menus around the page, on a bookmark and in the Comments, Attachments and Signatures panels show their actions as icon strips, like the page card.
+- The copyright at the right end of the footer ends 8 px before the corner grip, the same gap in every Killer app.
 
 ### Added
 

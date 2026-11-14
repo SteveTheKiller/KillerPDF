@@ -5,7 +5,8 @@ namespace KillerPDF.Tests;
 
 /// <summary>
 /// The version and copyright at the right end of the footer are the KillerUI kit's FooterCorner, so their spacing
-/// from the corner grip (12 px after the version, 20 px after the copyright) cannot drift from the family again.
+/// from the corner grip (12 px after the version, 25 px after the copyright, 8 px clear of the grip) cannot drift
+/// from the family again.
 /// Each app used to carry its own copy of that markup, and the copies moved apart one hand edit at a time.
 /// </summary>
 public sealed class FooterCornerTests
@@ -24,6 +25,7 @@ public sealed class FooterCornerTests
         Assert.Contains("<kfc:FooterCorner x:Name=\"FooterVersionCell\"", window);
         Assert.DoesNotContain("x:Name=\"VersionLabel\"", window);
         Assert.DoesNotContain("Steve the Killer", window);
-        Assert.Contains("public const double CornerGap = 20;", Read("Controls", "FooterCorner.cs"));
+        // 25 puts the copyright 8 px clear of the grip, whose dots start 17 px in from the window's edge.
+        Assert.Contains("public const double CornerGap = 25;", Read("Controls", "FooterCorner.cs"));
     }
 }
