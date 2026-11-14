@@ -1073,22 +1073,10 @@ namespace KillerPDF
             navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             navigation.ColumnDefinitions.Add(new ColumnDefinition());
             navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            _previousPage = MakeButton("‹", false);
-            _previousPage.Width = 32;
-            _previousPage.Height = PageWindowLayout.ControlHeight;
-            _previousPage.Padding = new Thickness(0);
-            _previousPage.ToolTip = S("Str_Kb_PrevPage");
-            System.Windows.Automation.AutomationProperties.SetName(_previousPage, S("Str_Kb_PrevPage"));
-            _previousPage.Click += (_, _) => StepSpread(-1);
+            _previousPage = PageNavButtons.Previous(() => StepSpread(-1));
             Grid.SetColumn(_previousPage, 0);
             navigation.Children.Add(_previousPage);
-            _nextPage = MakeButton("›", false);
-            _nextPage.Width = 32;
-            _nextPage.Height = PageWindowLayout.ControlHeight;
-            _nextPage.Padding = new Thickness(0);
-            _nextPage.ToolTip = S("Str_Kb_NextPage");
-            System.Windows.Automation.AutomationProperties.SetName(_nextPage, S("Str_Kb_NextPage"));
-            _nextPage.Click += (_, _) => StepSpread(+1);
+            _nextPage = PageNavButtons.Next(() => StepSpread(+1));
             Grid.SetColumn(_nextPage, 2);
             navigation.Children.Add(_nextPage);
 

@@ -529,10 +529,8 @@ namespace KillerPDF
         // The nav row under the frame (spec 2.2): 36 high, 32 x 26 arrows at the frame's edges.
         private Grid BuildPageNav()
         {
-            _prevArrow = MakeNavArrow("", S("Str_Kb_PrevPage"), () => GoToPage(_pageIndex - 1));   // ChevronLeft
-            _nextArrow = MakeNavArrow("", S("Str_Kb_NextPage"), () => GoToPage(_pageIndex + 1));   // ChevronRight
-            _prevArrow.ToolTip = S("Str_Kb_PrevPage");
-            _nextArrow.ToolTip = S("Str_Kb_NextPage");
+            _prevArrow = PageNavButtons.Previous(() => GoToPage(_pageIndex - 1));
+            _nextArrow = PageNavButtons.Next(() => GoToPage(_pageIndex + 1));
             _pageNavLabel = new TextBlock
             {
                 FontFamily = UiKit.MonoFont, FontSize = 12,
@@ -550,21 +548,6 @@ namespace KillerPDF
             row.Children.Add(_nextArrow);
             UpdatePageNav();
             return row;
-        }
-
-        // Same chrome as the print preview stepper (UiKit.Make), so the two windows share one button style.
-        private static Button MakeNavArrow(string glyph, string name, Action onClick)
-        {
-            var b = UiKit.Make(glyph, false);
-            b.FontFamily = UiKit.IconFont;
-            b.FontSize = 12;
-            b.Width = 32;
-            b.Height = PageWindowLayout.ControlHeight;
-            b.Padding = new Thickness(0);
-            // The glyph is a private-use icon character, so name the button for a screen reader.
-            System.Windows.Automation.AutomationProperties.SetName(b, name);
-            b.Click += (_, _2) => onClick();
-            return b;
         }
 
         // Button clicks step one page and render immediately.

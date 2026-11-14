@@ -34,12 +34,32 @@ public sealed class StampWindowSourceTests
     [Fact]
     public void TheStampPreviewArrowsAreNamedPreviousAndNextPage()
     {
-        string source = Source("StampWindow.cs");
-        string nav = Body(source, "private Grid BuildPageNav()");
-        Assert.Contains("S(\"Str_Kb_PrevPage\"), () => GoToPage(_pageIndex - 1)", nav, StringComparison.Ordinal);
-        Assert.Contains("S(\"Str_Kb_NextPage\"), () => GoToPage(_pageIndex + 1)", nav, StringComparison.Ordinal);
-        string arrow = Body(source, "private static Button MakeNavArrow(");
-        Assert.Contains("AutomationProperties.SetName(b, name)", arrow, StringComparison.Ordinal);
+        string nav = Body(Source("StampWindow.cs"), "private Grid BuildPageNav()");
+        Assert.Contains("PageNavButtons.Previous(() => GoToPage(_pageIndex - 1))", nav, StringComparison.Ordinal);
+        Assert.Contains("PageNavButtons.Next(() => GoToPage(_pageIndex + 1))", nav, StringComparison.Ordinal);
+    }
+
+    // Every page strip uses the one shared button: a centered chevron named for screen readers and tests, with the
+    // family's accent hover (OutlineButton) and no shadow.
+    [Fact]
+    public void ThePageStripButtonsAreNamedCenteredChevronsWithTheAccentHover()
+    {
+        string source = Source("PageNavButtons.cs");
+        Assert.Contains("Make(\"Str_Kb_PrevPage\", ChevronLeft, onClick)", source, StringComparison.Ordinal);
+        Assert.Contains("Make(\"Str_Kb_NextPage\", ChevronRight, onClick)", source, StringComparison.Ordinal);
+        Assert.Contains("ChevronLeft = 0xE76B", source, StringComparison.Ordinal);
+        Assert.Contains("ChevronRight = 0xE76C", source, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.SetName(button, name)", source, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.SetAutomationId(button, labelKey)", source, StringComparison.Ordinal);
+        Assert.Contains("SetResourceReference(StyleProperty, \"OutlineButton\")", source, StringComparison.Ordinal);
+        Assert.Contains("\"OutlineHoverTextBrush\"", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Shadow", source, StringComparison.Ordinal);
+        foreach (string file in new[] { "TransformWindow.cs", "StampWindow.cs", "PrintPreviewWindow.cs", "SeparationPreviewDialog.cs" })
+        {
+            string window = Source(file);
+            Assert.Contains("PageNavButtons.Previous(", window, StringComparison.Ordinal);
+            Assert.Contains("PageNavButtons.Next(", window, StringComparison.Ordinal);
+        }
     }
 
     // controls BF-010: Enter closed the window as Apply while Apply was disabled.
@@ -93,10 +113,8 @@ public sealed class StampWindowSourceTests
     public void TheTransformPreviewArrowsAreNamedPreviousAndNextPage()
     {
         string source = Source("TransformWindow.cs");
-        string arrow = Body(source, "private static Button NavArrow(");
-        Assert.Contains("AutomationProperties.SetName(button, name)", arrow, StringComparison.Ordinal);
-        Assert.Contains("NavArrow(\"\u2039\", S(\"Str_Kb_PrevPage\"))", source, StringComparison.Ordinal);
-        Assert.Contains("NavArrow(\"\u203A\", S(\"Str_Kb_NextPage\"))", source, StringComparison.Ordinal);
+        Assert.Contains("PageNavButtons.Previous(() => ShowPreviewPage(_previewPageIndex - 1))", source, StringComparison.Ordinal);
+        Assert.Contains("PageNavButtons.Next(() => ShowPreviewPage(_previewPageIndex + 1))", source, StringComparison.Ordinal);
     }
 
     // controls BF-022: a capture lost mid-drag left the level line following the pointer.

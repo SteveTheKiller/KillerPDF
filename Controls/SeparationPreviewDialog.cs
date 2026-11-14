@@ -51,7 +51,7 @@ internal sealed class SeparationPreviewDialog : Window
         };
         hint.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
 
-        var report = DialogParts.LabeledAction("Str_Sep_Report", 0xE8A5, (_, _) => showReport());
+        var report = DialogParts.LabeledAction("Str_Sep_Report", 0xE9F9, (_, _) => showReport());
         var close = UiKit.Make(L("Str_Lbl_Close"), accent: true);
         close.IsCancel = true;
         close.Click += (_, _) => Close();
@@ -60,12 +60,8 @@ internal sealed class SeparationPreviewDialog : Window
         _status = new TextBlock { FontFamily = UiKit.UiFont, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
         _status.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
 
-        _previous = UiKit.Make(new Glyph { Text = "", FontFamily = UiKit.IconFont, FontSize = 12 }, accent: false);
-        _previous.ToolTip = L("Str_Kb_PrevPage");
-        _previous.Click += (_, _) => ShowPage(_page - 1);
-        _next = UiKit.Make(new Glyph { Text = "", FontFamily = UiKit.IconFont, FontSize = 12 }, accent: false);
-        _next.ToolTip = L("Str_Kb_NextPage");
-        _next.Click += (_, _) => ShowPage(_page + 1);
+        _previous = PageNavButtons.Previous(() => ShowPage(_page - 1));
+        _next = PageNavButtons.Next(() => ShowPage(_page + 1));
         _pageLabel = new TextBlock
         {
             FontFamily = UiKit.MonoFont,
@@ -79,13 +75,6 @@ internal sealed class SeparationPreviewDialog : Window
         pager.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         pager.ColumnDefinitions.Add(new ColumnDefinition());
         pager.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        foreach (Button arrow in new[] { _previous, _next })
-        {
-            arrow.Width = 32;
-            arrow.Height = KillerPDF.Controls.PageWindowLayout.ControlHeight;
-            arrow.Padding = new Thickness(0);
-            System.Windows.Automation.AutomationProperties.SetName(arrow, (string)arrow.ToolTip);
-        }
         Grid.SetColumn(_pageLabel, 1);
         Grid.SetColumn(_next, 2);
         pager.Children.Add(_previous);
