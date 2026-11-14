@@ -18,13 +18,12 @@ internal sealed class PortfolioEditorDialog : Window
         Window owner, PdfCollectionInfo? collection, IReadOnlyList<string> attachmentNames)
     {
         Title = "KillerPDF - " + L("Str_DocumentTools_EditPortfolio");
-        Width = 470;
+        Width = 600;
         SizeToContent = SizeToContent.Height;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
 
         var body = new StackPanel { Margin = new Thickness(20, 6, 20, 16) };
-        body.Children.Add(UiKit.GroupLabel(L("Str_Portfolio_View")));
         Choice[] views =
         [
             new(L("Str_Portfolio_Details"), PdfCollectionView.Details),
@@ -34,23 +33,34 @@ internal sealed class PortfolioEditorDialog : Window
         _view = Combo(views);
         _view.SelectedItem = views.FirstOrDefault(choice => choice.Value == collection?.View)
             ?? views[0];
-        body.Children.Add(_view);
 
-        body.Children.Add(UiKit.GroupLabel(L("Str_Portfolio_InitialDocument")));
         string none = L("Str_Portfolio_None");
         string[] documents = [none, .. attachmentNames];
         _initialDocument = Combo(documents);
         _initialDocument.SelectedItem = collection?.InitialDocument is string selected
             && documents.Contains(selected, StringComparer.Ordinal)
                 ? selected : none;
-        body.Children.Add(_initialDocument);
+
+        // The view and the initial document side by side on one row.
+        var choices = new Grid();
+        choices.ColumnDefinitions.Add(new ColumnDefinition());
+        choices.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+        choices.ColumnDefinitions.Add(new ColumnDefinition());
+        var viewColumn = new StackPanel();
+        viewColumn.Children.Add(UiKit.GroupLabel(L("Str_Portfolio_View")));
+        viewColumn.Children.Add(_view);
+        choices.Children.Add(viewColumn);
+        var documentColumn = new StackPanel();
+        documentColumn.Children.Add(UiKit.GroupLabel(L("Str_Portfolio_InitialDocument")));
+        documentColumn.Children.Add(_initialDocument);
+        Grid.SetColumn(documentColumn, 2);
+        choices.Children.Add(documentColumn);
+        body.Children.Add(choices);
 
         _removeMetadata = UiKit.CheckBox(L("Str_Portfolio_RemoveMetadata"));
-        _removeMetadata.Margin = new Thickness(0, 4, 0, 4);
         _removeMetadata.IsEnabled = collection is not null;
         _removeMetadata.Checked += (_, _) => SetEditorsEnabled(false);
         _removeMetadata.Unchecked += (_, _) => SetEditorsEnabled(true);
-        body.Children.Add(_removeMetadata);
 
         var cancel = UiKit.Make(L("Str_Btn_Cancel"), accent: false);
         cancel.IsCancel = true;
@@ -58,9 +68,8 @@ internal sealed class PortfolioEditorDialog : Window
         var save = UiKit.Make(L("Str_DocInfo_Save"), accent: true);
         save.IsDefault = true;
         save.Click += (_, _) => Commit(none);
-        var buttons = UiKit.ButtonRow(cancel, save);
-        buttons.Margin = new Thickness(0, 14, 0, 0);
-        body.Children.Add(buttons);
+        // One footer row: the metadata choice on the left, Cancel and Save on the right.
+        body.Children.Add(DialogParts.Footer([cancel, save], _removeMetadata));
 
         Content = DialogFrame.Frame(this, owner, Title,
             () => { DialogResult = false; Close(); }, body);
@@ -86,7 +95,7 @@ internal sealed class PortfolioEditorDialog : Window
     private static ComboBox Combo(System.Collections.IEnumerable items) => new()
     {
         Height = 28,
-        Margin = new Thickness(0, 0, 0, 10),
+        Margin = new Thickness(0, 0, 0, 4),
         ItemsSource = items,
         Style = UiKit.DarkComboStyle
     };

@@ -75,34 +75,24 @@ internal sealed class CommentsDialog : Window
         cancel.Click += (_, _) => Close();
         var save = UiKit.Make(L("Str_Btn_Save"), accent: true);
         save.Click += (_, _) => { Saved = true; Close(); };
-        var buttons = UiKit.ButtonRow(cancel, save);
-        buttons.Margin = new Thickness(0, 12, 0, 0);
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        body.Children.Add(buttons);
+        DockPanel footer = DialogParts.Footer([cancel, save]);
+        DockPanel.SetDock(footer, Dock.Bottom);
+        body.Children.Add(footer);
 
-        var add = UiKit.Make(L("Str_Comments_Add"), accent: false);
-        add.Click += (_, _) => AddComment();
-        _reply = UiKit.Make(L("Str_Comments_Reply"), accent: false);
-        _reply.Click += (_, _) => AddReply();
-        _delete = UiKit.Make(L("Str_Ctx_BmDelete"), accent: false);
-        _delete.Click += (_, _) => DeleteSelected();
-        _goTo = UiKit.Make(L("Str_Comments_GoTo"), accent: false);
-        _goTo.Click += (_, _) => { if (Selected is Node node) _navigate(node.PageIndex); };
-        var actions = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
-        foreach (Button button in new[] { add, _reply, _delete, _goTo })
-        {
-            button.Margin = new Thickness(0, 0, 8, 0);
-            actions.Children.Add(button);
-        }
-        DockPanel.SetDock(actions, Dock.Bottom);
-        body.Children.Add(actions);
+        // The list's actions are icons in its heading, named in their tooltips.
+        Button add = DialogParts.IconAction("Str_Comments_Add", 0xE710, (_, _) => AddComment());
+        _reply = DialogParts.IconAction("Str_Comments_Reply", 0xE97A, (_, _) => AddReply());
+        _delete = DialogParts.IconAction("Str_Ctx_BmDelete", 0xE74D, (_, _) => DeleteSelected());
+        _goTo = DialogParts.IconAction("Str_Comments_GoTo", 0xE72A,
+            (_, _) => { if (Selected is Node node) _navigate(node.PageIndex); });
+        DockPanel listHeader = DialogParts.Header(L("Str_DocumentTools_Comments"), add, _reply, _delete, _goTo);
+        DockPanel.SetDock(listHeader, Dock.Top);
+        body.Children.Add(listHeader);
 
         _text.AcceptsReturn = true;
         _text.TextWrapping = TextWrapping.Wrap;
         _text.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
         _text.VerticalContentAlignment = VerticalAlignment.Top;
-        _text.Height = 96;
-        _text.Margin = new Thickness(0, 10, 0, 0);
         System.Windows.Automation.AutomationProperties.SetName(_text, L("Str_Comments_Text"));
         _text.TextChanged += (_, _) =>
         {
@@ -112,28 +102,21 @@ internal sealed class CommentsDialog : Window
                 && row.Children.Count > 1 && row.Children[1] is TextBlock preview)
                 preview.Text = Preview(node.Contents);
         };
-        DockPanel.SetDock(_text, Dock.Bottom);
-        body.Children.Add(_text);
+        // The selected comment's text in its own well under the list.
+        var editor = new DockPanel { Margin = new Thickness(0, 10, 0, 0) };
+        DockPanel textHeader = DialogParts.Header(L("Str_Comments_Text"));
+        DockPanel.SetDock(textHeader, Dock.Top);
+        editor.Children.Add(textHeader);
+        Grid textWell = DialogParts.Well(_text);
+        textWell.Height = 104;
+        editor.Children.Add(textWell);
+        DockPanel.SetDock(editor, Dock.Bottom);
+        body.Children.Add(editor);
 
-        _list.SetResourceReference(Control.BackgroundProperty, "PaneBrush");
-        _list.SetResourceReference(Control.ForegroundProperty, "TextBrush");
-        _list.SetResourceReference(Control.BorderBrushProperty, "CardBorderBrush");
         ScrollViewer.SetHorizontalScrollBarVisibility(_list, ScrollBarVisibility.Disabled);
         _list.SelectionChanged += (_, _) => SelectionChanged();
-        _empty = new TextBlock
-        {
-            Text = L("Str_Comments_None"),
-            TextWrapping = TextWrapping.Wrap,
-            FontFamily = UiKit.UiFont,
-            FontSize = 12,
-            Margin = new Thickness(12),
-            IsHitTestVisible = false
-        };
-        _empty.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-        var listHost = new Grid();
-        listHost.Children.Add(_list);
-        listHost.Children.Add(_empty);
-        body.Children.Add(listHost);
+        _empty = DialogParts.EmptyHint("Str_Comments_None");
+        body.Children.Add(DialogParts.Well(_list, _empty));
 
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         Reload(null);
@@ -237,7 +220,8 @@ internal sealed class CommentsDialog : Window
         // A reply points at its comment by name, so a comment saved without one cannot take replies.
         bool canReply = node is not null && !string.IsNullOrEmpty(node.Name);
         _reply.IsEnabled = canReply;
-        _reply.ToolTip = node is not null && !canReply ? L("Str_Comments_NoReply") : null;
+        // The icon's tooltip is its name, so it goes back to Reply rather than empty.
+        _reply.ToolTip = node is not null && !canReply ? L("Str_Comments_NoReply") : L("Str_Comments_Reply");
     }
 
     internal void AddComment()

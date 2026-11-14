@@ -23,7 +23,12 @@ internal sealed class AccessibilityReviewDialog : Window
     private readonly IReadOnlyDictionary<int, int>? _rotations;
     // The tab's protection: a tab that reads its encrypted original is reviewed under its key.
     private readonly OpenedProtection? _protection;
-    private readonly ComboBox _findings;
+    private readonly ListBox _findings;
+    private readonly DockPanel _listPanel;
+    private readonly StackPanel _detail;
+    private readonly ScrollViewer _detailScroll;
+    private readonly Grid _columns;
+    private bool? _wide;
     private readonly TextBox _input;
     private readonly TextBlock _count, _explanation, _label, _location, _status;
     private readonly Image _image;
@@ -48,25 +53,42 @@ internal sealed class AccessibilityReviewDialog : Window
         Title = "KillerPDF - " + L("Str_DocumentTools_Accessibility");
         scale = Math.Clamp(scale, .7, 2.5);
         Width = Math.Min(720 * scale, SystemParameters.WorkArea.Width - 40);
-        MaxHeight = SystemParameters.WorkArea.Height - 40; SizeToContent = SizeToContent.Height;
+        Height = Math.Min(520 * scale, SystemParameters.WorkArea.Height - 40);
+        MaxHeight = SystemParameters.WorkArea.Height - 40;
         MinWidth = 460; MinHeight = 360; UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
         // It opens 720 DIP times the app scale wide and its content scrolls, so 460 x 360 stays its minimum rather than
         // the opening size, which at a large scale is most of the screen.
         DialogFrame.KeepDeclaredMinimum(this);
         Id(this, "AccessibilityReviewDialog");
-        var body = new DockPanel { Margin = new Thickness(16, 4, 16, 14),
+        var body = new DockPanel { Margin = new Thickness(12, 4, 12, 12),
             LayoutTransform = new ScaleTransform(scale, scale) };
-        var close = Button("Str_DocumentTools_Close", "A11yClose");
-        close.HorizontalAlignment = HorizontalAlignment.Right; close.IsCancel = true;
-        close.Click += (_, _) => Close(); DockPanel.SetDock(close, Dock.Bottom); body.Children.Add(close);
-        var content = new StackPanel();
-        content.Children.Add(Note("Str_A11y_Intro"));
-        _count = Note(""); Id(_count, "A11yCount"); content.Children.Add(_count);
-        _findings = new ComboBox { Style = UiKit.DarkComboStyle, Margin = new Thickness(0, 6, 0, 6) };
-        Id(_findings, "A11yFindings", "Str_DocumentTools_Accessibility"); content.Children.Add(_findings);
-        _explanation = Note(""); content.Children.Add(_explanation);
-        _location = Note(""); Id(_location, "A11yLocation"); content.Children.Add(_location);
+
+        // Close alone on the footer row; everything else sits beside the problem it acts on.
+        Button close = UiKit.Make(L("Str_DocumentTools_Close"), false);
+        Id(close, "A11yClose"); close.IsCancel = true; close.Click += (_, _) => Close();
+        DockPanel footer = DialogParts.Footer([close]);
+        DockPanel.SetDock(footer, Dock.Bottom); body.Children.Add(footer);
+
+        // Left: the problems in a well, the remaining count as its heading, and the list-wide actions as icons.
+        _undo = IconButton("Str_Lbl_Undo", 0xE7A7, "A11yUndo"); _undo.Click += (_, _) => Undo();
+        _recheck = IconButton("Str_A11y_Recheck", 0xE72C, "A11yRecheck"); _recheck.Click += (_, _) => Recheck();
+        Button copy = IconButton("Str_DocumentTools_Copy", 0xE8C8, "A11yCopy");
+        DockPanel listHeader = DialogParts.Header("", _undo, _recheck, copy);
+        _count = listHeader.Children.OfType<TextBlock>().First();
+        _count.TextWrapping = TextWrapping.Wrap; Id(_count, "A11yCount");
+        _findings = new ListBox();
+        ScrollViewer.SetHorizontalScrollBarVisibility(_findings, ScrollBarVisibility.Disabled);
+        Id(_findings, "A11yFindings", "Str_DocumentTools_Accessibility");
+        _listPanel = new DockPanel();
+        DockPanel.SetDock(listHeader, Dock.Top); _listPanel.Children.Add(listHeader);
+        _listPanel.Children.Add(DialogParts.Well(_findings));
+
+        // Right: the selected problem, the affected page and its fix.
+        _detail = new StackPanel();
+        _detail.Children.Add(Note("Str_A11y_Intro", muted: true));
+        _explanation = Note(""); _explanation.Margin = new Thickness(0, 6, 0, 2); _detail.Children.Add(_explanation);
+        _location = Note("", muted: true); Id(_location, "A11yLocation"); _detail.Children.Add(_location);
         _image = new Image { Stretch = Stretch.Uniform };
         Id(_image, "A11yPreview", "Str_Dlg_Preview");
         _pageGrid = new Grid(); _pageGrid.Children.Add(_image);
@@ -76,38 +98,51 @@ internal sealed class AccessibilityReviewDialog : Window
         _overlay.Children.Add(_highlight); _pageGrid.Children.Add(_overlay);
         _pageView = new Viewbox { Child = _pageGrid, Stretch = Stretch.Uniform, MaxHeight = 230,
             Margin = new Thickness(0, 6, 0, 6), HorizontalAlignment = HorizontalAlignment.Center };
-        content.Children.Add(_pageView);
-        _label = Note(""); content.Children.Add(_label);
+        _detail.Children.Add(_pageView);
+        _label = UiKit.GroupLabel(""); _label.TextWrapping = TextWrapping.Wrap;
+        _label.Margin = new Thickness(0, 6, 0, 2); _detail.Children.Add(_label);
         _input = UiKit.Field(); _input.FontSize = 13; _input.AcceptsReturn = true;
         _input.TextWrapping = TextWrapping.Wrap; _input.Height = 56;
         _input.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-        Id(_input, "A11yInput", "Str_Attachment_Description"); content.Children.Add(_input);
-        _apply = Button("Str_A11y_Fix", "A11yApply", true); _apply.Click += async (_, _) => await Apply();
-        _undo = Button("Str_Lbl_Undo", "A11yUndo"); _undo.Click += (_, _) => Undo();
-        _recheck = Button("Str_A11y_Recheck", "A11yRecheck"); _recheck.Click += (_, _) => Recheck();
-        content.Children.Add(Row(_apply, _undo, _recheck));
+        Id(_input, "A11yInput", "Str_Attachment_Description");
+        // Apply fix stays a worded button, beside the field it applies.
+        _apply = UiKit.Make(L("Str_A11y_Fix"), true); Id(_apply, "A11yApply");
+        _apply.VerticalAlignment = VerticalAlignment.Top; _apply.Margin = new Thickness(8, 0, 0, 0);
+        _apply.Click += async (_, _) => await Apply();
+        var fixRow = new Grid();
+        fixRow.ColumnDefinitions.Add(new ColumnDefinition());
+        fixRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        fixRow.Children.Add(_input); Grid.SetColumn(_apply, 1); fixRow.Children.Add(_apply);
+        _detail.Children.Add(fixRow);
         _status = Note(canRepair ? "" : "Str_A11y_ReadOnly"); Id(_status, "A11yStatus");
-        AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite); content.Children.Add(_status);
-        _readingOrder = Button("Str_Repair_ReadingOrder", "A11yReadingOrder");
-        _tableHeader = Button("Str_Repair_TableHeader", "A11yTableHeader");
-        _readingOrder.Click += (_, _) => MoreTools("Str_Repair_ReadingOrder");
-        _tableHeader.Click += (_, _) => MoreTools("Str_Repair_TableHeader");
-        var copy = Button("Str_DocumentTools_Copy", "A11yCopy");
+        AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite); _detail.Children.Add(_status);
         copy.Click += (_, _) =>
         {
             try { Clipboard.SetText(L("Str_A11y_Limit") + "\n\n" + _report.ToText()); _status.Text = L("Str_DocumentTools_Copied"); }
             catch (Exception error) when (error is not OutOfMemoryException) { _status.Text = L("Str_DocumentTools_Failed"); }
         };
-        content.Children.Add(Row(_readingOrder, _tableHeader, copy));
-        content.Children.Add(Note("Str_A11y_Limit"));
-        var scroll = new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(0, 0, 0, 6) };
-        scroll.SizeChanged += (_, _) =>
-        {
-            content.Width = Math.Max(1, scroll.ActualWidth - SystemParameters.VerticalScrollBarWidth);
-            _pageView.MaxHeight = Math.Clamp(scroll.ActualHeight - 8, 40, 230);
-        };
-        body.Children.Add(scroll);
+        // These two open another window, so their names stay in view.
+        _readingOrder = DialogParts.LabeledAction("Str_Repair_ReadingOrder", 0xE70F, (_, _) => MoreTools("Str_Repair_ReadingOrder"));
+        _tableHeader = DialogParts.LabeledAction("Str_Repair_TableHeader", 0xE80A, (_, _) => MoreTools("Str_Repair_TableHeader"));
+        Id(_readingOrder, "A11yReadingOrder"); Id(_tableHeader, "A11yTableHeader");
+        var tools = new WrapPanel { Margin = new Thickness(0, 4, 0, 4) };
+        tools.Children.Add(_readingOrder); tools.Children.Add(_tableHeader);
+        _detail.Children.Add(tools);
+        _detail.Children.Add(Note("Str_A11y_Limit", muted: true));
+        _detailScroll = new ScrollViewer { Content = _detail, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        _detail.Margin = new Thickness(0, 0, 4, 0);
+
+        // Two columns when there is room; at a large scale in a small window the list joins the scrolling column.
+        _columns = new Grid();
+        _columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
+        _columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(18) });
+        _columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
+        Grid.SetColumn(_detailScroll, 2); _columns.Children.Add(_detailScroll);
+        _columns.SizeChanged += (_, _) => Arrange(_columns.ActualWidth >= 540);
+        _detailScroll.SizeChanged += (_, _) => FitToViewport();
+        Arrange(true);
+        body.Children.Add(_columns);
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         _findings.SelectionChanged += async (_, _) => await SelectFinding();
         _input.TextChanged += (_, _) => UpdateButtons();
@@ -128,8 +163,8 @@ internal sealed class AccessibilityReviewDialog : Window
             string label = Explain(finding);
             if (finding.PageIndex is int page) label = L("Str_AutoBookmarks_Page") + " " + (page + 1) + ": " + label;
             if (!string.IsNullOrWhiteSpace(finding.FieldName)) label += " (" + finding.FieldName + ")";
-            var item = new ComboBoxItem { Content = new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap },
-                Tag = finding.Code.ToString() };
+            var item = new ListBoxItem { Content = new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap },
+                Tag = finding.Code.ToString(), Padding = new Thickness(6, 4, 6, 4) };
             AutomationProperties.SetName(item, label); _findings.Items.Add(item);
         }
         _count.Text = _report.Findings.Count == 0 ? L("Str_A11y_Ready")
@@ -326,20 +361,49 @@ internal sealed class AccessibilityReviewDialog : Window
         PdfAccessibilityFindingCode.DocumentNotMarked => "Str_A11y_MarkedIssue",
         _ => "Str_A11y_StructureIssue"
     });
-    private static Button Button(string key, string id, bool accent = false)
+    // Wide: the list in its own column. Narrow (a large scale in a small window): the list sits under the intro in
+    // the scrolling column, no taller than the viewport, so every control can still be scrolled fully into view.
+    private void Arrange(bool wide)
     {
-        Button button = UiKit.Make(L(key), accent); button.MinHeight = 30;
-        button.Padding = new Thickness(6, 3, 6, 3); button.Margin = new Thickness(0, 4, 8, 4);
+        if (_wide == wide) return;
+        _wide = wide;
+        if (_listPanel.Parent is Panel parent) parent.Children.Remove(_listPanel);
+        if (wide)
+        {
+            Grid.SetColumn(_listPanel, 0); _columns.Children.Add(_listPanel);
+            _columns.ColumnDefinitions[0].Width = new GridLength(2, GridUnitType.Star);
+            _columns.ColumnDefinitions[1].Width = new GridLength(18);
+            _listPanel.Margin = new Thickness(0);
+        }
+        else
+        {
+            _columns.ColumnDefinitions[0].Width = new GridLength(0);
+            _columns.ColumnDefinitions[1].Width = new GridLength(0);
+            _listPanel.Margin = new Thickness(0, 6, 0, 4);
+            _detail.Children.Insert(1, _listPanel);
+        }
+        FitToViewport();
+    }
+
+    private void FitToViewport()
+    {
+        double height = _detailScroll.ActualHeight;
+        if (height <= 0) return;
+        _pageView.MaxHeight = Math.Clamp(height - 8, 40, 230);
+        _findings.MaxHeight = _wide == false ? Math.Clamp(height - 8, 40, 220) : double.PositiveInfinity;
+    }
+
+    private static Button IconButton(string key, int glyph, string id)
+    {
+        Button button = DialogParts.IconAction(key, glyph, (_, _) => { });
         Id(button, id); return button;
     }
-    private static WrapPanel Row(params Button[] buttons)
-    { var row = new WrapPanel(); foreach (Button button in buttons) row.Children.Add(button); return row; }
-    private static TextBlock Note(string key)
+    private static TextBlock Note(string key, bool muted = false)
     {
         var text = new TextBlock { Text = key.Length == 0 ? "" : L(key), FontSize = 13, TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 2, 0, 2) };
         text.SetResourceReference(TextBlock.FontFamilyProperty, "UiFont");
-        text.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush"); return text;
+        text.SetResourceReference(TextBlock.ForegroundProperty, muted ? "MutedTextBrush" : "TextBrush"); return text;
     }
     private static void Id(DependencyObject element, string id, string? label = null)
     { AutomationProperties.SetAutomationId(element, id); if (label is not null) AutomationProperties.SetName(element, L(label)); }

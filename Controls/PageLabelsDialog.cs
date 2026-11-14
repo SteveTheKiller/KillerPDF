@@ -26,39 +26,42 @@ internal sealed class PageLabelsDialog : Window
         _pageCount = pageCount;
 
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
-        var buttonsPanel = new StackPanel();
-        DockPanel.SetDock(buttonsPanel, Dock.Bottom);
-        Button addRange = UiKit.Make(L("Str_PageLabels_AddRange"), accent: false);
-        addRange.HorizontalAlignment = HorizontalAlignment.Left;
-        addRange.Margin = new Thickness(0, 10, 0, 6);
-        addRange.Click += (_, _) => AddRow(null);
-        buttonsPanel.Children.Add(addRange);
         var cancel = UiKit.Make(L("Str_Btn_Cancel"), accent: false);
         cancel.IsCancel = true;
         cancel.Click += (_, _) => { DialogResult = false; Close(); };
         var save = UiKit.Make(L("Str_DocInfo_Save"), accent: true);
         save.IsDefault = true;
         save.Click += (_, _) => Commit();
-        buttonsPanel.Children.Add(UiKit.ButtonRow(cancel, save));
-        body.Children.Add(buttonsPanel);
+        DockPanel footer = DialogParts.Footer([cancel, save]);
+        DockPanel.SetDock(footer, Dock.Bottom);
+        body.Children.Add(footer);
 
-        var content = new StackPanel();
-        content.Children.Add(new TextBlock
+        var help = new TextBlock
         {
             Text = L("Str_PageLabels_Help"),
-            Foreground = UiKit.Brush("MutedTextBrush"),
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 0, 0, 10)
-        });
-        content.Children.Add(Header());
-        content.Children.Add(_rowsPanel);
+        };
+        help.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+        DockPanel.SetDock(help, Dock.Top);
+        body.Children.Add(help);
+
+        // Add range is an icon over the ranges; each range has its own remove icon.
+        Button addRange = DialogParts.IconAction("Str_PageLabels_AddRange", 0xE710, (_, _) => AddRow(null));
+        DockPanel header = DialogParts.Header(string.Empty, addRange);
+        header.Children.Remove(header.Children.OfType<TextBlock>().First());
+        header.Children.Add(ColumnLabels());
+        DockPanel.SetDock(header, Dock.Top);
+        body.Children.Add(header);
+
+        _rowsPanel.Margin = new Thickness(8, 6, 4, 6);
         foreach (PdfPageLabelMacroRange range in ranges ?? [new(0, PdfPageLabelStyle.Decimal)])
             AddRow(range);
-        body.Children.Add(new ScrollViewer
+        body.Children.Add(DialogParts.Well(new ScrollViewer
         {
-            Content = content,
+            Content = _rowsPanel,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-        });
+        }));
 
         Content = DialogFrame.Frame(this, owner, Title,
             () => { DialogResult = false; Close(); }, body);
@@ -83,18 +86,25 @@ internal sealed class PageLabelsDialog : Window
             (range?.Style ?? PdfPageLabelStyle.Decimal));
         TextBox prefix = Field(range?.Prefix ?? string.Empty);
         TextBox start = Field((range?.StartNumber ?? 1).ToString(CultureInfo.CurrentCulture));
-        CheckBox remove = UiKit.CheckBox(string.Empty);
+        LabelRow? row = null;
+        // Removing a range drops it from what Save writes, as the old Remove check box did.
+        Button remove = DialogParts.IconAction("Str_Portfolio_Remove", 0xE711, (_, _) =>
+        {
+            _rows.Remove(row!);
+            _rowsPanel.Children.Remove(grid);
+        });
         remove.HorizontalAlignment = HorizontalAlignment.Center;
         Add(grid, page, 0); Add(grid, style, 1); Add(grid, prefix, 2);
         Add(grid, start, 3); Add(grid, remove, 4);
         _rowsPanel.Children.Add(grid);
-        _rows.Add(new(page, style, prefix, start, remove));
+        row = new(page, style, prefix, start);
+        _rows.Add(row);
     }
 
     private void Commit()
     {
         var ranges = new List<PdfPageLabelMacroRange>();
-        foreach (LabelRow row in _rows.Where(row => row.Remove.IsChecked != true))
+        foreach (LabelRow row in _rows)
         {
             if (!int.TryParse(row.Page.Text, NumberStyles.Integer, CultureInfo.CurrentCulture,
                     out int page) || page < 1 || page > _pageCount
@@ -128,21 +138,21 @@ internal sealed class PageLabelsDialog : Window
         string.Format(L("Str_PageLabels_Invalid"), _pageCount),
         "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
 
-    private static Grid Header()
+    // The column names over the ranges; the Add icon takes the remove column's place on the right.
+    private static Grid ColumnLabels()
     {
-        Grid grid = CreateGrid();
+        var grid = new Grid { Margin = new Thickness(12, 0, 12, 0), VerticalAlignment = VerticalAlignment.Bottom };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(180) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition());
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
         string[] labels =
         [
             "Str_PageLabels_FirstPage", "Str_PageLabels_Style", "Str_PageLabels_Prefix",
-            "Str_PageLabels_Start", "Str_Portfolio_Remove"
+            "Str_PageLabels_Start"
         ];
         for (int index = 0; index < labels.Length; index++)
-        {
-            TextBlock label = UiKit.GroupLabel(L(labels[index]));
-            if (index == labels.Length - 1)
-                label.HorizontalAlignment = HorizontalAlignment.Center;
-            Add(grid, label, index);
-        }
+            Add(grid, UiKit.GroupLabel(L(labels[index])), index);
         return grid;
     }
 
@@ -153,7 +163,7 @@ internal sealed class PageLabelsDialog : Window
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(180) });
         grid.ColumnDefinitions.Add(new ColumnDefinition());
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(74) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(36) });
         return grid;
     }
 
@@ -185,7 +195,7 @@ internal sealed class PageLabelsDialog : Window
     }
 
     private sealed record LabelRow(TextBox Page, ComboBox Style,
-        TextBox Prefix, TextBox Start, CheckBox Remove);
+        TextBox Prefix, TextBox Start);
     private sealed record Choice(string Label, PdfPageLabelStyle Value)
     {
         public override string ToString() => Label;

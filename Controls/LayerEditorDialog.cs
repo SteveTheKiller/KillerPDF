@@ -23,13 +23,15 @@ internal sealed class LayerEditorDialog : Window
         DialogFrame.Configure(this, owner);
 
         var body = new StackPanel { Margin = new Thickness(20, 6, 20, 16) };
+        // The column names, then the layers in a well.
         var header = CreateGrid();
+        header.Margin = new Thickness(11, 0, 7, 2);
         AddLabel(header, L("Str_DocumentTools_LayerName"), 0);
         AddLabel(header, L("Str_DocumentTools_LayerVisible"), 1);
         AddLabel(header, L("Str_DocumentTools_LayerLocked"), 2);
         body.Children.Add(header);
 
-        var rows = new StackPanel();
+        var rows = new StackPanel { Margin = new Thickness(8, 5, 4, 5) };
         foreach (PdfOptionalContentGroupInfo group in layers.Groups)
         {
             var grid = CreateGrid();
@@ -51,12 +53,13 @@ internal sealed class LayerEditorDialog : Window
             rows.Children.Add(grid);
             _rows.Add(new LayerRow(group.ObjectNumber, name, visible, locked));
         }
-        body.Children.Add(new ScrollViewer
+        var scroll = new ScrollViewer
         {
             Content = rows,
             MaxHeight = 390,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-        });
+        };
+        body.Children.Add(DialogParts.Well(scroll));
 
         var cancel = UiKit.Make(L("Str_Btn_Cancel"), accent: false);
         cancel.IsCancel = true;
@@ -64,9 +67,7 @@ internal sealed class LayerEditorDialog : Window
         var save = UiKit.Make(L("Str_DocInfo_Save"), accent: true);
         save.IsDefault = true;
         save.Click += (_, _) => Commit();
-        var buttons = UiKit.ButtonRow(cancel, save);
-        buttons.Margin = new Thickness(0, 16, 0, 0);
-        body.Children.Add(buttons);
+        body.Children.Add(DialogParts.Footer([cancel, save]));
 
         Content = DialogFrame.Frame(this, owner, Title,
             () => { DialogResult = false; Close(); }, body);
