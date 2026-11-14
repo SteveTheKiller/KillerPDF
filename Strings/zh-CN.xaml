@@ -1204,6 +1204,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Sign_ImportImage">导入签名图片</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">PDF 文件</sys:String>
     <sys:String x:Key="Str_Filter_Openable">PDF 文件和图书</sys:String>
+    <sys:String x:Key="Str_Ctx_UpsideDown">上下颠倒</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB 图书</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu 文档</sys:String>
     <sys:String x:Key="Str_Filter_Cert">证书文件</sys:String>

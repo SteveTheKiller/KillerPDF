@@ -564,8 +564,10 @@ namespace KillerPDF.Shell
             }
 
             // Section = header + saved tiles (or a "none yet" hint) + Create/Import for that Kind.
-            void AddSigSection(string sectionTitle, SignatureKind kind)
+            void AddSigSection(string? sectionTitle, SignatureKind kind)
             {
+                // The window's title already says Signatures, so the first section has no heading of its own.
+                if (sectionTitle is not null)
                 stack.Children.Add(new TextBlock
                 {
                     Text = sectionTitle,
@@ -623,7 +625,7 @@ namespace KillerPDF.Shell
                 stack.Children.Add(rowBtns);
             }
 
-            AddSigSection(Loc("Str_Sig_Signatures"), SignatureKind.Signature);
+            AddSigSection(null, SignatureKind.Signature);
 
             stack.Children.Add(new Rectangle
             {

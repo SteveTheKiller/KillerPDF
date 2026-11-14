@@ -1211,6 +1211,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Sign_ImportImage">Імпортувати зображення підпису</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">Файли PDF</sys:String>
     <sys:String x:Key="Str_Filter_Openable">Файли PDF і книги</sys:String>
+    <sys:String x:Key="Str_Ctx_UpsideDown">Догори дриґом</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Книги EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Документи DjVu</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Файли сертифікатів</sys:String>

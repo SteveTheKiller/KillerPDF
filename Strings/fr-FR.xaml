@@ -1211,6 +1211,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Sign_ImportImage">Importer une image de signature</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">Fichiers PDF</sys:String>
     <sys:String x:Key="Str_Filter_Openable">Fichiers PDF et livres</sys:String>
+    <sys:String x:Key="Str_Ctx_UpsideDown">À l'envers</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Livres EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Documents DjVu</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Fichiers de certificat</sys:String>

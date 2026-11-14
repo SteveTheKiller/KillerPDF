@@ -82,12 +82,19 @@ public sealed class CardMenuTests
         string strip = Between(card, "var strip = QuickStrip(menu,", "menu.Items.Add(CardSlot(strip");
         // Three tiles; Blank page is an icon in the header and rotation sits under the tiles (Steve: narrower card).
         Assert.Equal(3, Count(strip, "Loc(\"Str_"));
-        Assert.Contains("header.Children.Add(insert);", card);
+        Assert.Contains("header.Children.Add(insertIcon);", card);
         Assert.Contains("menu.MinWidth = menu.MaxWidth = 320;", card);
-        string rotate = Between(card, "private FrameworkElement RotateRow(", "private Button CompactCardButton(");
+        // Rotation is a second tile row matching the first (Steve 2026-11-14: the outline buttons stuck out): Rotate CCW,
+        // Upside Down (a half turn) and Rotate CW.
+        string rotate = Between(card, "var turns = QuickStrip(menu,", "menu.Items.Add(CardSlot(turns");
+        Assert.Equal(3, Count(rotate, "Loc(\"Str_"));
         Assert.Contains("Str_Ctx_RotateCCWShort", rotate);
+        Assert.Contains("Str_Ctx_UpsideDown", rotate);
+        Assert.Contains("RotatePages_Click(180", rotate);
         Assert.Contains("Str_Ctx_RotateCWShort", rotate);
-        Assert.Contains("menu.Items.Add(CardSlot(RotateRow(menu)", card);
+        Assert.DoesNotContain("RotateRow(", card);
+        // The add-page icon in the header carries a plus.
+        Assert.Contains("insertPlus", Between(card, "private FrameworkElement PageCardHeader(", "private string PageCardMeta("));
         // The sidebar side and two-page thumbnails sit in one Sidebar row's flyout, not four rows at the foot.
         string side = Between(Read("Shell", "ContextMenu.cs"), "private void AppendSidebarSideSection(", "private ContextMenu MakeThemedMenu(");
         Assert.Contains("Header = Loc(\"Str_Card_Sidebar\")", side);

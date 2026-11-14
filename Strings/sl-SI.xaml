@@ -1116,6 +1116,7 @@
     <sys:String x:Key="Str_Sign_ImportImage">Uvozi sliko podpisa</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">Datoteke PDF</sys:String>
     <sys:String x:Key="Str_Filter_Openable">Datoteke PDF in knjige</sys:String>
+    <sys:String x:Key="Str_Ctx_UpsideDown">Na glavo</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Knjige EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Dokumenti DjVu</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Datoteke s potrdili</sys:String>

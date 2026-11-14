@@ -1211,6 +1211,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Sign_ImportImage">Importer signaturbilde</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">PDF-filer</sys:String>
     <sys:String x:Key="Str_Filter_Openable">PDF-filer og bøker</sys:String>
+    <sys:String x:Key="Str_Ctx_UpsideDown">Opp ned</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB-bøker</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu-dokumenter</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Sertifikatfiler</sys:String>

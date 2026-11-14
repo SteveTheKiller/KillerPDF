@@ -1211,6 +1211,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Sign_ImportImage">Importa immagine firma</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">File PDF</sys:String>
     <sys:String x:Key="Str_Filter_Openable">File PDF e libri</sys:String>
+    <sys:String x:Key="Str_Ctx_UpsideDown">Capovolgi</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Libri EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Documenti DjVu</sys:String>
     <sys:String x:Key="Str_Filter_Cert">File certificati</sys:String>

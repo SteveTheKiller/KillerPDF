@@ -1200,6 +1200,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Sign_ImportImage">İmza görüntüsünü içe aktar</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">PDF dosyaları</sys:String>
     <sys:String x:Key="Str_Filter_Openable">PDF dosyaları ve kitaplar</sys:String>
+    <sys:String x:Key="Str_Ctx_UpsideDown">Baş Aşağı</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB kitapları</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu belgeleri</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Sertifika dosyaları</sys:String>

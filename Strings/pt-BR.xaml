@@ -1211,6 +1211,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Sign_ImportImage">Importar imagem de assinatura</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">Arquivos PDF</sys:String>
     <sys:String x:Key="Str_Filter_Openable">Arquivos PDF e livros</sys:String>
+    <sys:String x:Key="Str_Ctx_UpsideDown">De cabeça para baixo</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Livros EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Documentos DjVu</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Arquivos de certificado</sys:String>

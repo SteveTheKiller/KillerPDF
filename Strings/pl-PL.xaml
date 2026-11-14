@@ -1208,6 +1208,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Sign_ImportImage">Importuj obraz podpisu</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">Pliki PDF</sys:String>
     <sys:String x:Key="Str_Filter_Openable">Pliki PDF i książki</sys:String>
+    <sys:String x:Key="Str_Ctx_UpsideDown">Do góry nogami</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Książki EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Dokumenty DjVu</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Pliki certyfikatów</sys:String>

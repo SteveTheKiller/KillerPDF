@@ -1211,6 +1211,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Sign_ImportImage">署名画像をインポート</sys:String>
     <sys:String x:Key="Str_Filter_Pdf">PDF ファイル</sys:String>
     <sys:String x:Key="Str_Filter_Openable">PDF ファイルと電子書籍</sys:String>
+    <sys:String x:Key="Str_Ctx_UpsideDown">上下反転</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB 電子書籍</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu 文書</sys:String>
     <sys:String x:Key="Str_Filter_Cert">証明書ファイル</sys:String>

@@ -31,7 +31,12 @@ namespace KillerPDF.Shell
                 ("\uE74D", Loc("Str_Ctx_DeletePages"), "Del", () => Delete_Click(this, new RoutedEventArgs()), false, true));
             menu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, strip);
-            menu.Items.Add(CardSlot(RotateRow(menu), new Thickness(6, 6, 6, 2)));
+            // Rotation is a second row of the same tiles: the outline buttons stuck out (Steve 2026-11-14).
+            var turns = QuickStrip(menu,
+                (GlyphText(0xE7AD), Loc("Str_Ctx_RotateCCWShort"), "CtrlShift:R", () => RotatePages_Click(-90), true, true),
+                (GlyphText(0xE895), Loc("Str_Ctx_UpsideDown"), null, () => RotatePages_Click(180), false, true),
+                (GlyphText(0xE7AD), Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90), false, true));
+            menu.Items.Add(CardSlot(turns, new Thickness(0)));
 
             menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Merge"), async (_, _) => await MergeAtIndex(page + 1), gesture: "", glyph: "\uE710"));
             menu.Items.Add(MakeTransformMenuItem(Loc("Str_Tf_Suffix"), (_, _) => OpenTransformWindow(), GestureFor("R")));
@@ -107,8 +112,19 @@ namespace KillerPDF.Shell
             insert.Padding = new Thickness(0, 6, 0, 0);
             System.Windows.Automation.AutomationProperties.SetName(insert, Loc("Str_Ctx_InsertBlank"));
             insert.Click += (_, _) => { menu.IsOpen = false; InsertBlankPage(page); };
-            DockPanel.SetDock(insert, Dock.Right);
-            header.Children.Add(insert);
+            // A plus inside the page glyph, so the icon reads as "add page". The quick-button template draws its content
+            // as one glyph, so the plus is laid over it and lets clicks through to the button.
+            var insertPlus = new TextBlock
+            {
+                Text = GlyphText(0xE710), FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 8, IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 7, 0, 0)
+            };
+            insertPlus.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryBrush");
+            var insertIcon = new Grid { VerticalAlignment = VerticalAlignment.Center };
+            insertIcon.Children.Add(insert);
+            insertIcon.Children.Add(insertPlus);
+            DockPanel.SetDock(insertIcon, Dock.Right);
+            header.Children.Add(insertIcon);
             header.Children.Add(text);
             System.Windows.Automation.AutomationProperties.SetName(header, title.Text);
             return header;
@@ -162,41 +178,8 @@ namespace KillerPDF.Shell
             return false;
         }
 
-        // Rotation sits under the four quick actions as two half-width buttons: six tiles made the strip too wide.
-        private FrameworkElement RotateRow(ContextMenu menu)
-        {
-            var row = new UniformGrid { Rows = 1, Columns = 2 };
-            row.Children.Add(CompactCardButton(menu, "\uE7AD", Loc("Str_Ctx_RotateCCWShort"), "CtrlShift:R", () => RotatePages_Click(-90), mirror: true));
-            row.Children.Add(CompactCardButton(menu, "\uE7AD", Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90), mirror: false));
-            return row;
-        }
-
-        // A small outline button with its glyph beside the caption. It closes the card, then acts.
-        private Button CompactCardButton(ContextMenu menu, string glyph, string caption, string gesture, Action act, bool mirror)
-        {
-            var icon = new TextBlock
-            {
-                Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 7, 0)
-            };
-            if (mirror)
-            {
-                icon.RenderTransformOrigin = new Point(0.5, 0.5);
-                icon.RenderTransform = new ScaleTransform(-1, 1);
-            }
-            var content = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-            content.Children.Add(icon);
-            content.Children.Add(new TextBlock { Text = caption, VerticalAlignment = VerticalAlignment.Center });
-            var button = new Button
-            {
-                Content = content, ToolTip = WithGesture(caption, gesture), Margin = new Thickness(3, 0, 3, 0),
-                Padding = new Thickness(8, 4, 8, 4), HorizontalContentAlignment = HorizontalAlignment.Center
-            };
-            if (TryFindResource("OutlineButton") is Style style) button.Style = style;
-            System.Windows.Automation.AutomationProperties.SetName(button, caption);
-            button.Click += (_, _) => { menu.IsOpen = false; act(); };
-            return button;
-        }
+        // An icon-font glyph from its code point, so no private-use character is written into the source.
+        private static string GlyphText(int codePoint) => char.ConvertFromUtf32(codePoint);
 
         // A card row that holds controls rather than being a command (KillerUI CardSlot).
         private MenuItem CardSlot(object content, Thickness padding)
@@ -219,6 +202,8 @@ namespace KillerPDF.Shell
             foreach (var (glyph, caption, gesture, act, mirror, enabled) in buttons)
             {
                 var button = new Button { Content = glyph, Tag = caption, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled };
+                // The caption alone is the accessible name; the tooltip adds the shortcut.
+                System.Windows.Automation.AutomationProperties.SetName(button, caption);
                 ToolTipService.SetShowOnDisabled(button, true);
                 if (TryFindResource("CardQuickButton") is Style style) button.Style = style;
                 if (mirror)
