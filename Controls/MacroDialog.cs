@@ -90,30 +90,34 @@ internal sealed class MacroDialog : Window
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
         var bottom = new StackPanel();
         DockPanel.SetDock(bottom, Dock.Bottom);
-        _availability.Margin = new Thickness(0, 10, 0, 6);
+        _availability.Margin = new Thickness(0, 8, 0, 8);
         _availability.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
         bottom.Children.Add(_availability);
-        var sourceChoices = new WrapPanel { Margin = new Thickness(0, 0, 0, 12) };
+        // One footer row: where the macro runs and Automatic folders on the left, Cancel and Run on the right.
+        var footer = new DockPanel();
+        StackPanel confirm = UiKit.ButtonRow(cancel, _run);
+        confirm.VerticalAlignment = VerticalAlignment.Center;
+        confirm.Margin = new Thickness(12, 0, 0, 0);
+        DockPanel.SetDock(confirm, Dock.Right);
+        footer.Children.Add(confirm);
+        var sourceChoices = new WrapPanel { VerticalAlignment = VerticalAlignment.Center };
         _currentDocument.Content = L("Str_Macro_Current");
         _batchFiles.Content = L("Str_Macro_Batch");
         foreach (RadioButton choice in new[] { _currentDocument, _batchFiles })
         {
-            choice.Margin = new Thickness(0, 0, 20, 0);
+            choice.Margin = new Thickness(0, 0, 18, 0);
+            choice.VerticalAlignment = VerticalAlignment.Center;
             choice.SetResourceReference(Control.ForegroundProperty, "TextBrush");
             sourceChoices.Children.Add(choice);
         }
-        bottom.Children.Add(sourceChoices);
-        var footer = new DockPanel { LastChildFill = false };
-        StackPanel confirm = UiKit.ButtonRow(cancel, _run);
-        DockPanel.SetDock(confirm, Dock.Right);
-        footer.Children.Add(confirm);
         if (openWatchedFolders is not null)
         {
-            Button folders = Labeled("Str_Watch_Title", 0xE838,(_, _) => openWatchedFolders(this));
+            Button folders = Labeled("Str_Watch_Title", 0xE838, (_, _) => openWatchedFolders(this));
             System.Windows.Automation.AutomationProperties.SetAutomationId(folders, "OpenWatchedFolders");
-            DockPanel.SetDock(folders, Dock.Left);
-            footer.Children.Add(folders);
+            folders.VerticalAlignment = VerticalAlignment.Center;
+            sourceChoices.Children.Add(folders);
         }
+        footer.Children.Add(sourceChoices);
         bottom.Children.Add(footer);
         body.Children.Add(bottom);
 
