@@ -158,11 +158,13 @@ public sealed partial class DjvuDocument
     }
 
     // Every chunk id the reader or the format's own rules give a meaning: the file's structure, page layers, text,
-    // annotations, navigation and thumbnails.
+    // annotations, navigation and thumbnails, plus CIDa, the producer metadata LizardTech encoders and the Internet
+    // Archive write into most real books, which holds no picture or text and is skipped silently as DjVuLibre does.
     private static readonly HashSet<uint> KnownChunks =
     [
         0x464f524d, 0x4449524d, 0x4e41564d, 0x494e464f, 0x536a627a, 0x446a627a, 0x536d6d72, 0x42473434, 0x46473434,
-        0x4647627a, 0x42476a70, 0x46476a70, 0x54483434, 0x494e434c, 0x414e5461, 0x414e547a, 0x54585461, 0x5458547a
+        0x4647627a, 0x42476a70, 0x46476a70, 0x54483434, 0x494e434c, 0x414e5461, 0x414e547a, 0x54585461, 0x5458547a,
+        0x43494461
     ];
 
     private static string ChunkName(uint id)

@@ -38,7 +38,7 @@ public sealed class DjvuUnrecognizedChunkTests
     public void AnUnrecognizedChunkIsSkippedWithANoticeAndThePageDrawsAsWithoutIt(string kind)
     {
         var plain = Page(kind);
-        var extra = WithExtraChunk(plain, "CIDa", Producer);
+        var extra = WithExtraChunk(plain, "XXXX", Producer);
         var expected = DjvuDocument.Open(plain).RenderPage(0);
 
         var document = DjvuDocument.Open(extra);
@@ -47,10 +47,24 @@ public sealed class DjvuUnrecognizedChunkTests
         Assert.Equal(expected.Width, drawn.Width);
         Assert.Equal(expected.Pixels.ToArray(), drawn.Pixels.ToArray());
         var notice = Assert.Single(document.Diagnostics, d => d.Code == "UnrecognizedChunkSkipped");
-        Assert.Contains("'CIDa'", notice.Message, StringComparison.Ordinal);
+        Assert.Contains("'XXXX'", notice.Message, StringComparison.Ordinal);
         var converted = new List<DjvuDiagnostic>();
         Assert.Single(PdfPageInformation.Read(PdfDocument.Open(document.ConvertToPdf(converted))));
         Assert.DoesNotContain(converted, d => d.Code == "PageNotConverted");
+    }
+
+    // CIDa is the producer metadata LizardTech encoders and the Internet Archive put in their DjVu files, so most real
+    // books carry it. It holds no picture or text, the reference viewer skips it silently, and so does this reader:
+    // a page with one draws as without it and raises no notice.
+    [Theory]
+    [MemberData(nameof(Pages))]
+    public void TheProducerMetadataChunkIsSkippedWithoutANotice(string kind)
+    {
+        var plain = Page(kind);
+        var document = DjvuDocument.Open(WithExtraChunk(plain, "CIDa", Producer));
+
+        Assert.Equal(DjvuDocument.Open(plain).RenderPage(0).Pixels.ToArray(), document.RenderPage(0).Pixels.ToArray());
+        Assert.DoesNotContain(document.Diagnostics, d => d.Code == "UnrecognizedChunkSkipped");
     }
 
     // A chunk inside a thumbnail component belongs to no page, so its notice must not claim a page was drawn without it.
