@@ -135,12 +135,13 @@ public sealed class PdfRenderCompletenessTests
     public void PageThumbnailsRenderThroughThePreview()
     {
         string root = Path.GetDirectoryName(Path.GetDirectoryName(SourcePath()))!;
-        foreach (string file in new[] { Path.Combine("Models", "PageThumbnailVm.cs"), Path.Combine("Shell", "PageOperations.cs") })
-        {
-            string source = File.ReadAllText(Path.Combine(root, file));
-            Assert.Contains("renderSession.RenderPreview(", source);
-            Assert.DoesNotContain("renderSession.RenderPage(", source);
-        }
+        string thumbnails = File.ReadAllText(Path.Combine(root, "Models", "PageThumbnailVm.cs"));
+        Assert.Contains("renderSession.RenderPreview(", thumbnails);
+        Assert.DoesNotContain("renderSession.RenderPage(", thumbnails);
+        // The page list draws PDF thumbnails through the thumbnail model's preview seam.
+        string pageList = File.ReadAllText(Path.Combine(root, "Shell", "PageOperations.cs"));
+        Assert.Contains("PageThumbnailVm.RenderPdfThumbPixels(renderSession,", pageList);
+        Assert.DoesNotContain("renderSession.RenderPage(", pageList);
     }
 
     // Release-gate corpus runs compare every page against the accepted baseline, so batch render
