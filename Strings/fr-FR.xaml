@@ -1613,6 +1613,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_SourceImage_Turned">Cette image est pivotée ou inclinée sur la page, elle ne peut donc pas être déplacée ni redimensionnée ici. Extraire une image peut copier ses pixels.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">Cette image est en partie masquée par une forme de découpe, elle ne peut donc pas être déplacée ni redimensionnée ici. Extraire une image peut copier ses pixels.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">L'emplacement de cette image est illisible, elle ne peut donc pas être déplacée ni redimensionnée. Extraire une image peut copier ses pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">Cette image ne peut pas être extraite du PDF telle quelle, elle ne peut donc pas être sélectionnée, déplacée ni redimensionnée.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Chaque plaque montre la quantité de cette encre déposée par la page : noir pour une couverture totale, blanc pour aucune. Les plaques sans encre sur cette page sont estompées.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Toutes les encres</sys:String>
     <sys:String x:Key="Str_Sep_Report">Rapport...</sys:String>

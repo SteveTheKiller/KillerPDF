@@ -1601,6 +1601,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_SourceImage_Turned">Ten obraz jest na stronie obrócony lub pochylony, więc nie można go tutaj przesuwać ani zmieniać jego rozmiaru. Polecenie Wyodrębnij obraz może skopiować jego piksele.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">Ten obraz jest częściowo ukryty przez kształt przycinający, więc nie można go tutaj przesuwać ani zmieniać jego rozmiaru. Polecenie Wyodrębnij obraz może skopiować jego piksele.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">Nie można odczytać położenia tego obrazu, więc nie można go przesuwać ani zmieniać jego rozmiaru. Polecenie Wyodrębnij obraz może skopiować jego piksele.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">Tego obrazu nie można wyodrębnić z pliku PDF w obecnej postaci, więc nie można go zaznaczać, przesuwać ani zmieniać jego rozmiaru.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Każda płyta pokazuje, ile danej farby nakłada strona: czarny to pełne krycie, biały brak. Płyty bez farby na tej stronie są przygaszone.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Wszystkie farby</sys:String>
     <sys:String x:Key="Str_Sep_Report">Raport...</sys:String>

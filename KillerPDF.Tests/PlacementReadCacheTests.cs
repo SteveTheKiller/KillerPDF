@@ -117,6 +117,37 @@ public sealed class PlacementReadCacheTests
         Assert.NotNull(cache.AssetForPlacement(scope.Document, 0, 0, again));
     }
 
+    // A picture extraction refuses (a format the editor cannot keep, or a PDF that forbids copying) is remembered as
+    // refused, so the click can say why instead of doing nothing; a parse that was merely dropped is not a refusal.
+    [Fact]
+    public void ARefusedPictureIsRememberedAsRefused()
+    {
+        using var scope = new Scope("/Filter /LZWDecode");
+        var cache = new PlacementReadCache();
+        var picture = Assert.Single(cache.PlacementsForPage(scope.Document, 0)!);
+
+        Assert.Null(cache.AssetForPlacement(scope.Document, 0, 0, picture));
+
+        Assert.True(cache.WasRefused(0, 0));
+    }
+
+    [Fact]
+    public void AnAvailablePictureOrADroppedParseIsNotRefused()
+    {
+        using var scope = new Scope();
+        var cache = new PlacementReadCache();
+        var picture = Assert.Single(cache.PlacementsForPage(scope.Document, 0)!);
+        Assert.NotNull(cache.AssetForPlacement(scope.Document, 0, 0, picture));
+        Assert.False(cache.WasRefused(0, 0));
+
+        using var dropped = new Scope();
+        var other = new PlacementReadCache();
+        var held = Assert.Single(other.PlacementsForPage(dropped.Document, 0)!);
+        dropped.Clock.Advance(PdfWorkingDocument.ContentCopyIdleLimit);
+        Assert.Null(other.AssetForPlacement(dropped.Document, 0, 0, held));
+        Assert.False(other.WasRefused(0, 0));
+    }
+
     [Fact]
     public void AnOverdueParseReplacedInlineRaisesTheDropEvent()
     {
@@ -241,11 +272,11 @@ public sealed class PlacementReadCacheTests
         internal ManualClock Clock { get; } = new();
         internal PdfWorkingDocument Document { get; }
 
-        internal Scope()
+        internal Scope(string imageExtra = "")
         {
             Directory.CreateDirectory(_folder);
             string path = Path.Combine(_folder, "pictures.pdf");
-            File.WriteAllBytes(path, TwoPagePdf());
+            File.WriteAllBytes(path, TwoPagePdf(imageExtra));
             Document = PdfWorkingDocument.Open(path, null);
             Document.ContentCopyClock = Clock;
         }
@@ -305,7 +336,7 @@ public sealed class PlacementReadCacheTests
     }
 
     // Two pages that each draw the same 2 by 2 picture.
-    private static byte[] TwoPagePdf()
+    private static byte[] TwoPagePdf(string imageExtra = "")
     {
         var objects = new List<byte[]>
         {
@@ -315,7 +346,7 @@ public sealed class PlacementReadCacheTests
             Ascii("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Im1 7 0 R >> >> /Contents 6 0 R >>"),
             Stream("", Ascii("q 50 0 0 50 120 120 cm /Im1 Do Q")),
             Stream("", Ascii("q 50 0 0 50 20 20 cm /Im1 Do Q")),
-            Stream("/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8",
+            Stream("/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 " + imageExtra,
                 [255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0])
         };
         using var output = new MemoryStream();

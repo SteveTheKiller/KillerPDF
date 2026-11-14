@@ -1602,6 +1602,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_SourceImage_Turned">Dieses Bild ist auf der Seite gedreht oder geneigt und kann hier daher nicht verschoben oder in der Größe geändert werden. Mit „Bild extrahieren“ können Sie seine Pixel kopieren.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">Dieses Bild wird teilweise von einer Beschnittform verdeckt und kann hier daher nicht verschoben oder in der Größe geändert werden. Mit „Bild extrahieren“ können Sie seine Pixel kopieren.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">Die Position dieses Bildes kann nicht gelesen werden, daher kann es nicht verschoben oder in der Größe geändert werden. Mit „Bild extrahieren“ können Sie seine Pixel kopieren.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">Dieses Bild kann nicht so, wie es ist, aus dem PDF herausgelöst werden und kann daher nicht ausgewählt, verschoben oder in der Größe geändert werden.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Jeder Farbauszug zeigt, wie viel dieser Farbe die Seite aufträgt: Schwarz für volle Deckung, Weiß für keine. Auszüge ohne Farbe auf dieser Seite sind abgeblendet.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Alle Farben</sys:String>
     <sys:String x:Key="Str_Sep_Report">Bericht...</sys:String>

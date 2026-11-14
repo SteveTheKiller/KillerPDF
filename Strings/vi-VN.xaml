@@ -1613,6 +1613,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_SourceImage_Turned">Ảnh này bị xoay hoặc nghiêng trên trang nên không thể di chuyển hoặc đổi kích thước tại đây. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của nó.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">Ảnh này bị một hình cắt che khuất một phần nên không thể di chuyển hoặc đổi kích thước tại đây. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của nó.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">Không đọc được vị trí của ảnh này nên không thể di chuyển hoặc đổi kích thước. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của nó.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">Ảnh này không thể được tách khỏi PDF ở dạng hiện tại nên không thể chọn, di chuyển hoặc đổi kích thước.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Mỗi bản in cho thấy trang phủ bao nhiêu mực màu đó, đen là phủ kín và trắng là không có. Các bản không có mực trên trang này được làm mờ.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Tất cả các mực</sys:String>
     <sys:String x:Key="Str_Sep_Report">Báo cáo...</sys:String>

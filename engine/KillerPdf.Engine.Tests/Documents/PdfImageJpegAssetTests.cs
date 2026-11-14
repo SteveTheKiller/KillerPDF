@@ -87,15 +87,57 @@ public sealed class PdfImageJpegAssetTests
         Assert.Equal(jpeg, Image(source).EncodedData.ToArray());
     }
 
+    // Standard baseline JPEGs from cameras, scanners and producers such as ReportLab carry a JFIF or Adobe header, an ICC
+    // profile or YCbCr component ids. The asset keeps the JPEG's bytes exactly under the same DCTDecode and DeviceRGB,
+    // so those travel inside the data and the asset draws the same pixels the source page drew.
     [Theory]
-    [InlineData("progressive")]
-    [InlineData("arithmetic")]
-    [InlineData("twelve-bit")]
     [InlineData("ycbcr-identifiers")]
     [InlineData("jfif")]
     [InlineData("adobe")]
     [InlineData("profile")]
+    public void StandardBaselineJpegHeadersExtractAndDrawTheSamePixels(string kind)
+    {
+        byte[] jpeg = Variant(kind);
+        var source = PdfDocument.Open(Fixture(jpeg));
+
+        var asset = PdfImagePlacementExtractor.Extract(source, Assert.Single(new PdfPageContentReader(source).ReadImagePlacements(0)));
+
+        var detached = PdfDocument.Open(asset.ToPdfBytes());
+        Assert.Equal(jpeg, Image(detached).EncodedData.ToArray());
+        Assert.Equal(new PdfPageRenderer(source).Render(0, new PdfRenderOptions(8, 16)).Pixels.ToArray(),
+            new PdfPageRenderer(detached).Render(0, new PdfRenderOptions(8, 16)).Pixels.ToArray());
+    }
+
+    private static byte[] Variant(string kind)
+    {
+        byte[] jpeg = Convert.FromBase64String(Jpeg);
+        int frame = jpeg.AsSpan().IndexOf(new byte[] { 0xff, 0xc0 });
+        if (kind == "ycbcr-identifiers")
+        {
+            int scan = jpeg.AsSpan().IndexOf(new byte[] { 0xff, 0xda });
+            for (int c = 0; c < 3; c++)
+            {
+                jpeg[frame + 10 + c * 3] = (byte)(c + 1);
+                jpeg[scan + 5 + c * 2] = (byte)(c + 1);
+            }
+            return jpeg;
+        }
+        byte marker = kind == "jfif" ? (byte)0xe0 : kind == "adobe" ? (byte)0xee : (byte)0xe2;
+        byte[] payload = kind switch
+        {
+            "jfif" => [74, 70, 73, 70, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0],
+            "adobe" => [65, 100, 111, 98, 101, 0, 100, 0, 0, 0, 0, 0],
+            _ => [73, 67, 67, 95, 80, 82, 79, 70, 73, 76, 69, 0, 1, 1]
+        };
+        return [0xff, 0xd8, 0xff, marker, 0, (byte)(payload.Length + 2), .. payload, .. jpeg[2..]];
+    }
+
+    [Theory]
+    [InlineData("progressive")]
+    [InlineData("arithmetic")]
+    [InlineData("twelve-bit")]
     [InlineData("second-scan")]
+    [InlineData("scan-ids-mismatch")]
     public void OtherJpegProcessesTransformsAndMetadataRemainRefused(string kind)
     {
         byte[] jpeg = Convert.FromBase64String(Jpeg);
@@ -103,8 +145,9 @@ public sealed class PdfImageJpegAssetTests
         if (kind == "progressive") jpeg[frame + 1] = 0xc2;
         else if (kind == "arithmetic") jpeg[frame + 1] = 0xc9;
         else if (kind == "twelve-bit") jpeg[frame + 4] = 12;
-        else if (kind == "ycbcr-identifiers")
+        else if (kind == "scan-ids-mismatch")
         {
+            // The frame's components renamed but the scan still naming R, G and B: the scan no longer matches its frame.
             jpeg[frame + 10] = 1;
             jpeg[frame + 13] = 2;
             jpeg[frame + 16] = 3;
@@ -113,17 +156,6 @@ public sealed class PdfImageJpegAssetTests
         {
             int scan = jpeg.AsSpan().IndexOf(new byte[] { 0xff, 0xda });
             jpeg = [.. jpeg[..^2], .. jpeg.AsSpan(scan, 14), 0xff, 0xd9];
-        }
-        else
-        {
-            byte marker = kind == "jfif" ? (byte)0xe0 : kind == "adobe" ? (byte)0xee : (byte)0xe2;
-            byte[] payload = kind switch
-            {
-                "jfif" => [74, 70, 73, 70, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0],
-                "adobe" => [65, 100, 111, 98, 101, 0, 100, 0, 0, 0, 0, 0],
-                _ => [73, 67, 67, 95, 80, 82, 79, 70, 73, 76, 69, 0, 1, 1]
-            };
-            jpeg = [0xff, 0xd8, 0xff, marker, 0, (byte)(payload.Length + 2), .. payload, .. jpeg[2..]];
         }
         byte[] bytes = Fixture(jpeg), original = bytes.ToArray();
         var source = PdfDocument.Open(bytes);
@@ -191,6 +223,24 @@ public sealed class PdfImageJpegAssetTests
         Assert.Equal(PdfVersion.Pdf10, target.Header.Version);
         AssertGraph(target, Convert.FromBase64String(Jpeg));
         AssertIndependentColors(target);
+    }
+
+    // ReportLab, one of the most common PDF producers, writes every JPEG as [/ASCII85Decode /DCTDecode]. The text layer
+    // only spells the bytes out in ASCII, so the picture extracts as the JPEG under it, byte for byte.
+    [Theory]
+    [InlineData("ASCII85Decode")]
+    [InlineData("ASCIIHexDecode")]
+    public void AJpegInsideAnAsciiTextLayerExtractsAsTheJpegUnderIt(string layer)
+    {
+        byte[] jpeg = Convert.FromBase64String(Jpeg);
+        byte[] wrapped = layer == "ASCII85Decode" ? AsciiText.Ascii85(jpeg) : AsciiText.Hex(jpeg);
+        var source = PdfDocument.Open(Fixture(wrapped, entries => entries[N("Filter")] = new PdfArray([N(layer), N("DCTDecode")])));
+
+        var asset = PdfImagePlacementExtractor.Extract(source, Assert.Single(new PdfPageContentReader(source).ReadImagePlacements(0)));
+
+        var detached = PdfDocument.Open(asset.ToPdfBytes());
+        AssertGraph(detached, jpeg);
+        AssertIndependentColors(detached);
     }
 
     private static byte[] Fixture(byte[] jpeg, Action<Dictionary<PdfName, PdfObject>>? configure = null)

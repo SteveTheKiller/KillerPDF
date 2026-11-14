@@ -1613,6 +1613,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_SourceImage_Turned">Questa immagine è ruotata o inclinata sulla pagina, quindi non può essere spostata o ridimensionata qui. Estrai immagine può copiarne i pixel.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">Questa immagine è in parte nascosta da una forma di ritaglio, quindi non può essere spostata o ridimensionata qui. Estrai immagine può copiarne i pixel.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">La posizione di questa immagine non può essere letta, quindi non può essere spostata o ridimensionata. Estrai immagine può copiarne i pixel.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">Questa immagine non può essere estratta dal PDF così com'è, quindi non può essere selezionata, spostata o ridimensionata.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Ogni lastra mostra quanto di quell'inchiostro deposita la pagina: nero per copertura piena, bianco per nessuna. Le lastre senza inchiostro in questa pagina sono attenuate.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Tutti gli inchiostri</sys:String>
     <sys:String x:Key="Str_Sep_Report">Resoconto...</sys:String>

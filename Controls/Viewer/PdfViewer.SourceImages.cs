@@ -262,7 +262,12 @@ public partial class PdfViewer
             // Extraction enforces copying restrictions and keeps the original resource graph. It runs once per page and
             // picture, so a picture it refuses stays page content (no raster substitute is copied) at no cost on a
             // repeat press. The base-64 copy waits for copy or cut (MaterializedSourceImage).
-            if (AssetForPlacement(page, ordinal, image) is not { } asset) return false;
+            if (AssetForPlacement(page, ordinal, image) is not { } asset)
+            {
+                // A click on a picture the editor cannot lift out says so instead of doing nothing.
+                if (_placementCache.WasRefused(page, ordinal)) SetStatus(Loc("Str_SourceImage_CannotLift"));
+                return false;
+            }
             {
                 var bounds = RedactionGeometry.PageToCanvas(box.Left, box.Bottom, box.Right, box.Top,
                     pw, ph, cw, ch, rotation);

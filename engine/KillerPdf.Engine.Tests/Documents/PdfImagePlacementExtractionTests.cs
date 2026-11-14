@@ -96,6 +96,39 @@ public sealed class PdfImagePlacementExtractionTests
         Assert.Contains("size limit", error.Message);
     }
 
+    // An ASCII text layer over Flate only spells the compressed bytes out; the picture extracts as that Flate data.
+    [Theory]
+    [InlineData("ASCII85Decode")]
+    [InlineData("ASCIIHexDecode")]
+    [InlineData("A85")]
+    [InlineData("AHx")]
+    public void FlateInsideAnAsciiTextLayerExtractsAsTheFlateUnderIt(string layer)
+    {
+        byte[] payload = Compress([255, 0, 0, 0, 255, 0]);
+        byte[] wrapped = layer is "ASCII85Decode" or "A85" ? AsciiText.Ascii85(payload) : AsciiText.Hex(payload);
+        var source = PdfDocument.Open(FlateFixture(wrapped, new PdfArray([Name(layer), Name("FlateDecode")])));
+
+        var asset = PdfImagePlacementExtractor.Extract(source, new PdfPageContentReader(source).ReadImagePlacements(0)[1]);
+
+        var detached = PdfDocument.Open(asset.ToPdfBytes());
+        var image = DetachedImage(detached);
+        Assert.Equal("FlateDecode", Assert.IsType<PdfName>(image.Dictionary[Name("Filter")]).ValueAsLatin1());
+        Assert.Equal(payload, image.EncodedData.ToArray());
+        Assert.Equal(new byte[] { 0, 0, 255, 255, 0, 255, 0, 255 },
+            new PdfPageRenderer(detached).Render(0, new PdfRenderOptions(2, 1)).Pixels.ToArray());
+    }
+
+    // A text layer under the image filter, or two text layers, is not the producer pattern and stays refused.
+    [Theory]
+    [InlineData("FlateDecode", "ASCII85Decode")]
+    [InlineData("ASCII85Decode", "ASCIIHexDecode")]
+    public void OtherAsciiArrangementsStayRefused(string first, string second)
+    {
+        var source = PdfDocument.Open(FlateFixture(Compress([255, 0, 0, 0, 255, 0]), new PdfArray([Name(first), Name(second)])));
+        Assert.Throws<NotSupportedException>(() =>
+            PdfImagePlacementExtractor.Extract(source, new PdfPageContentReader(source).ReadImagePlacements(0)[1]));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

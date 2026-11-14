@@ -1623,6 +1623,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_SourceImage_Turned">This picture is rotated or slanted on the page, so it can't be moved or resized here. Extract Image can copy its pixels.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">This picture is partly hidden by a clipping shape, so it can't be moved or resized here. Extract Image can copy its pixels.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">This picture's placement can't be read, so it can't be moved or resized. Extract Image can copy its pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">This picture can't be lifted out of the PDF as it is, so it can't be selected, moved or resized.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Each ink plate shows how much of that ink the page puts down, black for full coverage and white for none. Plates with no ink on this page are dimmed.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">All inks</sys:String>
     <sys:String x:Key="Str_Sep_Report">Report...</sys:String>

@@ -1613,6 +1613,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_SourceImage_Turned">Dette bildet er rotert eller skråstilt på siden, så det kan ikke flyttes eller endres i størrelse her. Trekk ut bilde kan kopiere pikslene.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">Dette bildet er delvis skjult av en klippeform, så det kan ikke flyttes eller endres i størrelse her. Trekk ut bilde kan kopiere pikslene.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">Plasseringen til dette bildet kan ikke leses, så det kan ikke flyttes eller endres i størrelse. Trekk ut bilde kan kopiere pikslene.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">Dette bildet kan ikke trekkes ut av PDF-en slik det er, så det kan ikke markeres, flyttes eller endres i størrelse.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Hver trykkplate viser hvor mye av fargen siden legger på, svart for full dekning og hvitt for ingen. Plater uten farge på denne siden er nedtonet.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Alle farger</sys:String>
     <sys:String x:Key="Str_Sep_Report">Rapport...</sys:String>

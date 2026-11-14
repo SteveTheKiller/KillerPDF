@@ -1598,6 +1598,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_SourceImage_Turned">Tento obrázek je na stránce otočený nebo zkosený, proto ho zde nelze přesunout ani změnit jeho velikost. Příkaz Extrahovat obrázek může zkopírovat jeho pixely.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">Tento obrázek je částečně skrytý ořezovým tvarem, proto ho zde nelze přesunout ani změnit jeho velikost. Příkaz Extrahovat obrázek může zkopírovat jeho pixely.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">Umístění tohoto obrázku nelze přečíst, proto ho nelze přesunout ani změnit jeho velikost. Příkaz Extrahovat obrázek může zkopírovat jeho pixely.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">Tento obrázek nelze v současném stavu vyjmout z PDF, proto ho nelze vybrat, přesunout ani změnit jeho velikost.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Každá tisková deska ukazuje, kolik dané barvy stránka nanese: černá znamená plné krytí, bílá žádné. Desky bez barvy na této stránce jsou ztlumené.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Všechny barvy</sys:String>
     <sys:String x:Key="Str_Sep_Report">Zpráva...</sys:String>

@@ -20,6 +20,9 @@ internal static class PdfImageAssetJpegValidator
         int position = 2, restartInterval = 0, expectedRestarts = 0;
         bool frame = false, scan = false, complete = false;
         int maxHorizontal = 0, maxVertical = 0;
+        // The frame's component ids, which the one scan must name in the same order. Standard JPEGs use 1, 2 and 3
+        // (YCbCr), KillerPDF's own use 'R', 'G' and 'B'; the asset keeps the bytes, so either draws as the source did.
+        Span<byte> components = stackalloc byte[3];
         while (position < data.Length)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -39,20 +42,27 @@ internal static class PdfImageAssetJpegValidator
                 complete = true;
                 break;
             }
-            if (marker is not (0xc0 or 0xc4 or 0xdb or 0xdd or 0xda))
-                throw new NotSupportedException("Detached JPEG assets require baseline RGB without application metadata.");
+            // Application segments (JFIF, Exif, Adobe, ICC) and comments travel inside the kept bytes and are skipped.
+            bool metadata = marker is >= 0xe0 and <= 0xef or 0xfe;
+            if (!metadata && marker is not (0xc0 or 0xc4 or 0xdb or 0xdd or 0xda))
+                throw new NotSupportedException("Detached JPEG assets require one baseline eight-bit three-component scan.");
             if (position + 2 > data.Length)
                 throw new FormatException("The detached JPEG segment length is truncated.");
             int length = BinaryPrimitives.ReadUInt16BigEndian(data[position..]);
             if (length < 2 || length > data.Length - position)
                 throw new FormatException("The detached JPEG segment is truncated.");
             int payload = position + 2, end = position + length;
-            if (marker == 0xc0)
+            if (metadata)
             {
-                if (frame || scan || length != 17 || data[payload] != 8 || data[payload + 5] != 3
-                    || data[payload + 6] != (byte)'R' || data[payload + 9] != (byte)'G'
-                    || data[payload + 12] != (byte)'B')
-                    throw new NotSupportedException("Detached JPEG assets require one eight-bit direct RGB frame.");
+                if (scan) throw new NotSupportedException("Detached JPEG assets require their metadata before the scan.");
+            }
+            else if (marker == 0xc0)
+            {
+                if (frame || scan || length != 17 || data[payload] != 8 || data[payload + 5] != 3)
+                    throw new NotSupportedException("Detached JPEG assets require one eight-bit three-component frame.");
+                for (int component = 0; component < 3; component++) components[component] = data[payload + 6 + component * 3];
+                if (components[0] == components[1] || components[1] == components[2] || components[0] == components[2])
+                    throw new FormatException("The detached JPEG frame repeats a component id.");
                 if (BinaryPrimitives.ReadUInt16BigEndian(data[(payload + 1)..]) != height
                     || BinaryPrimitives.ReadUInt16BigEndian(data[(payload + 3)..]) != width)
                     throw new FormatException("The JPEG frame dimensions do not match the PDF image.");
@@ -76,8 +86,8 @@ internal static class PdfImageAssetJpegValidator
             else if (marker == 0xda)
             {
                 if (!frame || scan || length != 12 || data[payload] != 3
-                    || data[payload + 1] != (byte)'R' || data[payload + 3] != (byte)'G'
-                    || data[payload + 5] != (byte)'B' || data[payload + 7] != 0
+                    || data[payload + 1] != components[0] || data[payload + 3] != components[1]
+                    || data[payload + 5] != components[2] || data[payload + 7] != 0
                     || data[payload + 8] != 63 || data[payload + 9] != 0)
                     throw new NotSupportedException("Detached JPEG assets require one full interleaved baseline scan.");
                 scan = true;

@@ -58,14 +58,38 @@ public static class PdfImagePlacementExtractor
             if (dictionary.ContainsKey(Name(key)))
                 throw new NotSupportedException("Image extraction does not yet preserve image property: " + key + ".");
         bool flate = false, jpeg = false;
+        // The encoded bytes the asset keeps. Usually the image's own; for an ASCII text layer, the data under it.
+        PdfStream source = image;
         if (dictionary.TryGetValue(Name("Filter"), out var filterValue))
         {
-            var filter = Resolve(filterValue);
-            if (filter is PdfArray { Count: 1 } filters) filter = Resolve(filters[0]);
-            if (filter is not PdfName filterName || filterName.ValueAsLatin1() is not ("FlateDecode" or "DCTDecode"))
+            var filters = Resolve(filterValue) is PdfArray array ? array.Select(Resolve).ToList() : [Resolve(filterValue)];
+            // ReportLab and other producers spell the compressed bytes out in ASCII first ([/ASCII85Decode /DCTDecode]).
+            // That layer changes no pixel, so it is decoded here and the Flate or JPEG data under it is kept as it is.
+            PdfName? text = null;
+            if (filters.Count == 2 && filters[0] is PdfName outer
+                && outer.ValueAsLatin1() is "ASCII85Decode" or "A85" or "ASCIIHexDecode" or "AHx")
+            {
+                text = outer;
+                filters.RemoveAt(0);
+            }
+            if (filters.Count != 1 || filters[0] is not PdfName filterName
+                || filterName.ValueAsLatin1() is not ("FlateDecode" or "DCTDecode"))
                 throw new NotSupportedException("Image extraction supports only single FlateDecode or supported DCTDecode data.");
             jpeg = filterName.ValueAsLatin1() == "DCTDecode";
             flate = !jpeg;
+            if (text is not null)
+            {
+                // ASCII85 spends five characters on four bytes and ASCIIHex two on one, so the text is bounded first.
+                if (image.EncodedData.Length > (long)MaximumAssetBytes * 2 + 64)
+                    throw new NotSupportedException("The encoded image exceeds the detached asset size limit.");
+                byte[] inner = Filters.PdfStreamDecoder.Decode(
+                    new PdfStream(new PdfDictionary([new(Name("Filter"), text)]), image.EncodedData.Span), MaximumAssetBytes);
+                cancellationToken.ThrowIfCancellationRequested();
+                var innerEntries = dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
+                innerEntries[Name("Filter")] = Name(filterName.ValueAsLatin1());
+                innerEntries[Name("Length")] = new PdfInteger(inner.Length);
+                source = new PdfStream(new PdfDictionary(innerEntries), inner);
+            }
         }
         if (jpeg && dictionary.ContainsKey(Name("SMask")))
             throw new NotSupportedException("Detached JPEG soft masks are not implemented.");
@@ -139,7 +163,7 @@ public static class PdfImagePlacementExtractor
                 || maskEntries.TryGetValue(Name("Interpolate"), out var interpolation) && interpolation is not PdfBoolean)
                 throw new NotSupportedException("Image extraction requires a matching eight-bit DeviceGray soft mask.");
             if (pixels > MaximumAssetBytes / 4
-                || (long)image.EncodedData.Length + mask.EncodedData.Length > MaximumAssetBytes)
+                || (long)source.EncodedData.Length + mask.EncodedData.Length > MaximumAssetBytes)
                 throw new NotSupportedException("The image and soft mask exceed the detached asset size limit.");
             byte[]? maskSamples = maskFlate
                 ? document.DecodeImageSamples(mask, MaximumAssetBytes, (int)pixels) : null;
@@ -164,19 +188,19 @@ public static class PdfImagePlacementExtractor
         }
         if (pixels > MaximumAssetBytes / (softMask is null ? 3 : 4))
             throw new NotSupportedException("The image exceeds the detached asset size limit.");
-        if (image.EncodedData.Length > MaximumAssetBytes)
+        if (source.EncodedData.Length > MaximumAssetBytes)
             throw new NotSupportedException("The encoded image exceeds the detached asset size limit.");
-        if (jpeg) PdfImageAssetJpegValidator.Validate(image.EncodedData, width, height, cancellationToken);
+        if (jpeg) PdfImageAssetJpegValidator.Validate(source.EncodedData, width, height, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         byte[]? samples = flate
-            ? document.DecodeImageSamples(image, MaximumAssetBytes, (int)(pixels * 3)) : null;
-        int sampleCount = samples?.Length ?? image.EncodedData.Length;
+            ? document.DecodeImageSamples(source, MaximumAssetBytes, (int)(pixels * 3)) : null;
+        int sampleCount = samples?.Length ?? source.EncodedData.Length;
         cancellationToken.ThrowIfCancellationRequested();
         if (!jpeg && sampleCount != pixels * 3)
             throw new FormatException("The image payload does not match its dimensions.");
         if (samples is not null)
         {
-            if (image.EncodedData.Length < 6)
+            if (source.EncodedData.Length < 6)
                 throw new FormatException("The Flate image payload has no complete zlib trailer.");
             uint first = 1, second = 0;
             for (int index = 0; index < samples.Length; index++)
@@ -185,7 +209,7 @@ public static class PdfImagePlacementExtractor
                 first = (first + samples[index]) % 65521;
                 second = (second + first) % 65521;
             }
-            if (BinaryPrimitives.ReadUInt32BigEndian(image.EncodedData.Span[^4..]) != ((second << 16) | first))
+            if (BinaryPrimitives.ReadUInt32BigEndian(source.EncodedData.Span[^4..]) != ((second << 16) | first))
                 throw new FormatException("The Flate image payload has an invalid or incomplete zlib checksum.");
         }
         var entries = new Dictionary<PdfName, PdfObject>
@@ -212,7 +236,7 @@ public static class PdfImagePlacementExtractor
             entries[Name("ColorSpace")] = new PdfArray([Name("ICCBased"), update.AddObject(profile)]);
             entries[Name("Intent")] = Name(renderingIntent.ValueAsLatin1());
         }
-        var imageReference = update.AddObject(new PdfStream(new PdfDictionary(entries), image.EncodedData.Span));
+        var imageReference = update.AddObject(new PdfStream(new PdfDictionary(entries), source.EncodedData.Span));
         // The asset page shows the picture the way the source page did, so a copy kept as these bytes stays mirrored or flipped.
         bool mirrored = selection.Placement is { A: < 0 }, flipped = selection.Placement is { D: < 0 };
         var content = string.Create(CultureInfo.InvariantCulture,

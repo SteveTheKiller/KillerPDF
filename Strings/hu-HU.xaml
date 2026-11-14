@@ -1600,6 +1600,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_SourceImage_Turned">Ez a kép el van forgatva vagy ferdítve az oldalon, ezért itt nem mozgatható és nem méretezhető át. A Kép kinyerése parancs átmásolhatja a pixeleit.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">Ezt a képet részben eltakarja egy vágóalakzat, ezért itt nem mozgatható és nem méretezhető át. A Kép kinyerése parancs átmásolhatja a pixeleit.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">Ennek a képnek a helye nem olvasható ki, ezért nem mozgatható és nem méretezhető át. A Kép kinyerése parancs átmásolhatja a pixeleit.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">Ez a kép nem emelhető ki a PDF-ből ebben a formában, ezért nem jelölhető ki, nem mozgatható és nem méretezhető át.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Minden nyomólemez megmutatja, mennyi festéket visz fel az oldal: fekete a teljes fedés, fehér a semmi. Az oldalon festéket nem tartalmazó lemezek halványak.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Minden festék</sys:String>
     <sys:String x:Key="Str_Sep_Report">Jelentés...</sys:String>

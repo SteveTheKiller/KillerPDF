@@ -1613,6 +1613,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_SourceImage_Turned">Esta imagem está girada ou inclinada na página, por isso não pode ser movida nem redimensionada aqui. Extrair imagem pode copiar seus pixels.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">Esta imagem está parcialmente oculta por uma forma de recorte, por isso não pode ser movida nem redimensionada aqui. Extrair imagem pode copiar seus pixels.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">A posição desta imagem não pode ser lida, por isso ela não pode ser movida nem redimensionada. Extrair imagem pode copiar seus pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">Esta imagem não pode ser extraída do PDF como está, por isso não pode ser selecionada, movida nem redimensionada.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Cada chapa mostra quanto daquela tinta a página aplica, preto para cobertura total e branco para nenhuma. Chapas sem tinta nesta página aparecem esmaecidas.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Todas as tintas</sys:String>
     <sys:String x:Key="Str_Sep_Report">Relatório...</sys:String>

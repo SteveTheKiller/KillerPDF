@@ -92,6 +92,13 @@ internal sealed class PlacementReadCache
         }
     }
 
+    /// <summary>True when extraction refused this picture (a format the editor cannot keep, or a PDF that forbids
+    /// copying content), as opposed to a picture not asked for yet or a parse that was dropped before asking.</summary>
+    internal bool WasRefused(int page, int ordinal)
+    {
+        lock (_sync) return _assets.TryGetValue((page, ordinal), out var asset) && asset is null;
+    }
+
     /// <summary>Drops every placement read, extracted asset and the reader behind them.</summary>
     internal void Release()
     {

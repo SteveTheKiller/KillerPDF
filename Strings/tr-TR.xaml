@@ -1593,6 +1593,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_SourceImage_Turned">Bu görüntü sayfada döndürülmüş veya eğik olduğundan burada taşınamaz veya yeniden boyutlandırılamaz. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">Bu görüntü bir kırpma şekliyle kısmen gizlendiğinden burada taşınamaz veya yeniden boyutlandırılamaz. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">Bu görüntünün konumu okunamadığından taşınamaz veya yeniden boyutlandırılamaz. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">Bu görüntü mevcut haliyle PDF'ten çıkarılamadığından seçilemez, taşınamaz veya yeniden boyutlandırılamaz.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Her kalıp, sayfanın o mürekkepten ne kadar bastığını gösterir: tam kaplama siyah, hiç yoksa beyaz. Bu sayfada mürekkebi olmayan kalıplar soluk görünür.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Tüm mürekkepler</sys:String>
     <sys:String x:Key="Str_Sep_Report">Rapor...</sys:String>

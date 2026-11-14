@@ -1595,6 +1595,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_SourceImage_Turned">這張圖片在頁面上被旋轉或傾斜，因此無法在此處移動或調整大小。「擷取影像」可以複製它的像素。</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">這張圖片被剪裁形狀遮住了一部分，因此無法在此處移動或調整大小。「擷取影像」可以複製它的像素。</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">無法讀取這張圖片的位置，因此無法移動或調整大小。「擷取影像」可以複製它的像素。</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">這張圖片無法依現狀從PDF中取出，因此無法選取、移動或調整大小。</sys:String>
     <sys:String x:Key="Str_Sep_Hint">每個印版顯示頁面上該油墨的用量，黑色為滿版，白色為無。此頁上沒有油墨的印版會以淡色顯示。</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">所有油墨</sys:String>
     <sys:String x:Key="Str_Sep_Report">報告...</sys:String>

@@ -1593,6 +1593,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_SourceImage_Turned">Esta imagen está girada o inclinada en la página, por lo que no se puede mover ni cambiar de tamaño aquí. Extraer imagen puede copiar sus píxeles.</sys:String>
     <sys:String x:Key="Str_SourceImage_Clipped">Esta imagen está parcialmente oculta por una forma de recorte, por lo que no se puede mover ni cambiar de tamaño aquí. Extraer imagen puede copiar sus píxeles.</sys:String>
     <sys:String x:Key="Str_SourceImage_Unreadable">No se puede leer la posición de esta imagen, por lo que no se puede mover ni cambiar de tamaño. Extraer imagen puede copiar sus píxeles.</sys:String>
+    <sys:String x:Key="Str_SourceImage_CannotLift">Esta imagen no se puede extraer del PDF tal como está, por lo que no se puede seleccionar, mover ni cambiar de tamaño.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Cada plancha muestra cuánta tinta de ese color deposita la página: negro para cobertura total y blanco para ninguna. Las planchas sin tinta en esta página aparecen atenuadas.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Todas las tintas</sys:String>
     <sys:String x:Key="Str_Sep_Report">Informe...</sys:String>

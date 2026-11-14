@@ -31,7 +31,8 @@ public sealed class SourceImageLookupPinTests
         string select = Between(images, "private bool TrySelectSourceImage(int page, Point point, out bool wasSelected)", "private ImageAnnotation? MaterializedSourceImage()");
         string asset = Source("Services", "PlacementReadCache.cs");
 
-        Assert.Contains("AssetForPlacement(page, ordinal, image) is not { } asset) return false;", select);
+        Assert.Contains("AssetForPlacement(page, ordinal, image) is not { } asset)", select);
+        Assert.Contains("_placementCache.WasRefused(page, ordinal)", select);
         Assert.DoesNotContain("PdfImagePlacementExtractor.Extract(", select);
         Assert.DoesNotContain("Convert.ToBase64String(", select);
         Assert.DoesNotContain("new PdfPageContentReader(", select);
