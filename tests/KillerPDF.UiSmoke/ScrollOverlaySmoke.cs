@@ -416,17 +416,17 @@ internal static class ScrollOverlaySmoke
         double originalBrightness = Brightness((BitmapSource)renderPage.Invoke(window, [0, 100, null])!);
         Type settingsType = type.Assembly.GetType("KillerPDF.Services.ColorCorrectionSettings", true)!;
         object settings = Activator.CreateInstance(settingsType, -1d, 1d, 0d, 0d)!;
-        type.GetMethod("ApplyPageTransforms", Members)!.Invoke(window,
+        var applyTask = (Task<bool>)type.GetMethod("ApplyPageTransformsAsync", Members)!.Invoke(window,
             [new[] { 0 }, 0d, 1d, false, false, false,
                 new Point[] { new(0, 0), new(1, 0), new(1, 1), new(0, 1) }, 0, 255, 1d,
                 Enum.Parse(type.Assembly.GetType("KillerPDF.Services.PageColorMode", true)!, "Color"),
-                160, 72, false, 85, settings]);
+                160, 72, false, 85, settings])!;
         var frame = new DispatcherFrame();
         DateTime deadline = DateTime.UtcNow.AddSeconds(15);
         var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(10) };
         timer.Tick += (_, _) =>
         {
-            if ((bool)type.GetProperty("_isDirty", Members)!.GetValue(window)! || DateTime.UtcNow >= deadline)
+            if ((applyTask.IsCompleted && (bool)type.GetProperty("_isDirty", Members)!.GetValue(window)!) || DateTime.UtcNow >= deadline)
                 frame.Continue = false;
         };
         timer.Start();

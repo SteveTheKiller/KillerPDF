@@ -299,8 +299,10 @@ internal static class PairedThumbnailSmoke
                 Stage("sidebar-side-" + side);
                 OpenSidebarMenu();
                 string caption = (string)app.FindResource("Str_Sidebar_" + side);
-                var sideOption = Descendants(openedMenu!).OfType<MenuItem>()
-                    .Single(item => Equals(item.Header, caption));
+                var sidebarRow = Descendants(openedMenu!).OfType<MenuItem>().Single(item => item.Name == "SidebarMenuItem");
+                sidebarRow.IsSubmenuOpen = true;
+                openedMenu!.UpdateLayout(); Pump();
+                var sideOption = sidebarRow.Items.OfType<MenuItem>().Single(item => Equals(item.Header, caption));
                 Pattern<IInvokeProvider>(new MenuItemAutomationPeer(sideOption), PatternInterface.Invoke).Invoke();
                 Wait(() => !openedMenu!.IsOpen);
                 Stable();

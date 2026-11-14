@@ -49,8 +49,13 @@ internal static class FlattenScaleSmoke
             SetForegroundWindow(dialogHandle);
             Stable();
             CheckBox keep = Descendants(dialog).OfType<CheckBox>().Single(c => c.Content is TextBlock text && Equals(text.Text, app.TryFindResource("Str_Output_KeepResolution")));
-            TextBox dpi = Descendants(dialog).OfType<TextBox>().Single();
             Panel body = keep.Parent as Panel ?? throw new InvalidOperationException("Keep Resolution parent absent.");
+            // The DPI field is the TextBox in the row directly under the DPI group label, right before Keep Resolution.
+            TextBlock dpiLabel = body.Children.OfType<TextBlock>().Single(t => Equals(t.Text, app.TryFindResource("Str_ExportImg_Dpi")));
+            TextBox dpi = body.Children[body.Children.IndexOf(dpiLabel) + 1] as TextBox
+                ?? throw new InvalidOperationException("DPI field absent after its label.");
+            if (body.Children.IndexOf(keep) != body.Children.IndexOf(dpi) + 1)
+                throw new InvalidOperationException("Keep Resolution is not directly under the DPI field.");
             TextBlock label = body.Children[body.Children.IndexOf(keep) + 1] as TextBlock
                 ?? throw new InvalidOperationException("Output dimension label absent after Keep Resolution.");
             Check("keep-resolution", "500", "500", "x1", true);
