@@ -54,7 +54,7 @@ namespace KillerPDF
             _sourcePdf = sourcePdf;
             _displayPath = displayPath;
             Title = "KillerPDF - " + L("Str_Protect_Name");
-            Width = 620;
+            Width = KillerPDF.Controls.SignDialogLayout.OpeningWidth;
             MaxHeight = 860;
             SizeToContent = SizeToContent.Height;
             UseLayoutRounding = true;
@@ -64,43 +64,58 @@ namespace KillerPDF
 
         private void BuildUi()
         {
-            var body = new StackPanel { Margin = new Thickness(20, 6, 20, 18) };
+            var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
 
-            body.Children.Add(new TextBlock
+            var description = new TextBlock
             {
                 Text = string.Format(L("Str_Protect_Desc"), Path.GetFileName(_displayPath)),
                 Foreground = R("MutedTextBrush"), FontSize = 11, TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 14)
-            });
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+            DockPanel.SetDock(description, Dock.Top);
+            body.Children.Add(description);
+
+            // Two columns: how the copy is protected on the left, what it allows and where it goes on the right.
+            var left = new StackPanel();
+            var right = new StackPanel();
 
             // --- Passwords -----------------------------------------------------------------------
-            body.Children.Add(Label(L("Str_Protect_Method")));
+            left.Children.Add(Label(L("Str_Protect_Method")));
             _passwordRadio = Radio(L("Str_Protect_WithPassword"), true);
             _recipientRadio = Radio(L("Str_Protect_ForRecipients"), false);
             _passwordRadio.Checked += (_, _) => SyncMode();
             _recipientRadio.Checked += (_, _) => SyncMode();
-            body.Children.Add(_passwordRadio);
+            left.Children.Add(_passwordRadio);
 
-            body.Children.Add(Hint(L("Str_Protect_Password"), new Thickness(20, 4, 0, 2)));
-            _passwordBox = Password(); body.Children.Add(_passwordBox);
-            body.Children.Add(Hint(L("Str_Protect_Confirm"), new Thickness(20, 2, 0, 2)));
-            _confirmBox = Password(); body.Children.Add(_confirmBox);
-            body.Children.Add(Hint(L("Str_Protect_OwnerPassword"), new Thickness(20, 2, 0, 2)));
-            _ownerBox = Password(); body.Children.Add(_ownerBox);
+            left.Children.Add(Hint(L("Str_Protect_Password"), new Thickness(20, 4, 0, 2)));
+            _passwordBox = Password(); left.Children.Add(_passwordBox);
+            left.Children.Add(Hint(L("Str_Protect_Confirm"), new Thickness(20, 2, 0, 2)));
+            _confirmBox = Password(); left.Children.Add(_confirmBox);
+            left.Children.Add(Hint(L("Str_Protect_OwnerPassword"), new Thickness(20, 2, 0, 2)));
+            _ownerBox = Password(); left.Children.Add(_ownerBox);
             var ownerHint = Hint(L("Str_Protect_OwnerHint"), new Thickness(20, 0, 0, 10));
             ownerHint.TextWrapping = TextWrapping.Wrap;
-            body.Children.Add(ownerHint);
+            left.Children.Add(ownerHint);
 
             // --- Certificate recipients ----------------------------------------------------------
-            body.Children.Add(_recipientRadio);
+            // The recipient list's actions are icons on the choice's own line, beside the list they act on.
+            _addFile = DialogParts.IconAction("Str_Protect_AddFile", 0xE8E5, (_, _) => AddCertificateFile());
+            _remove = DialogParts.IconAction("Str_Protect_Remove", 0xE711, (_, _) => RemoveRecipient());
+            var recipientHeader = new DockPanel();
+            var recipientIcons = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            recipientIcons.Children.Add(_addFile);
+            recipientIcons.Children.Add(_remove);
+            DockPanel.SetDock(recipientIcons, Dock.Right);
+            recipientHeader.Children.Add(recipientIcons);
+            _recipientRadio.VerticalAlignment = VerticalAlignment.Center;
+            recipientHeader.Children.Add(_recipientRadio);
+            left.Children.Add(recipientHeader);
             var recipientHint = Hint(L("Str_Protect_RecipientHint"), new Thickness(20, 2, 0, 4));
             recipientHint.TextWrapping = TextWrapping.Wrap;
-            body.Children.Add(recipientHint);
+            left.Children.Add(recipientHint);
 
-            var storeRow = new Grid { Margin = new Thickness(20, 2, 0, 4) };
-            storeRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            storeRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            _storeCombo = new ComboBox { Height = 26, Margin = new Thickness(0, 0, 6, 0) };
+            var storeRow = new DockPanel { Margin = new Thickness(20, 2, 0, 4) };
+            _storeCombo = new ComboBox { Height = 26 };
             ApplyComboStyle(_storeCombo);
             try
             {
@@ -112,81 +127,65 @@ namespace KillerPDF
             }
             catch { /* store unavailable - certificate files still work */ }
             if (_storeCombo.Items.Count > 0) _storeCombo.SelectedIndex = 0;
-            Grid.SetColumn(_storeCombo, 0);
-            _addStore = MakeButton(L("Str_Protect_AddMine"), false);
-            _addStore.Click += (_, _) => AddStoreCertificate();
-            Grid.SetColumn(_addStore, 1);
-            storeRow.Children.Add(_storeCombo);
+            _addStore = DialogParts.IconAction("Str_Protect_AddMine", 0xE710, (_, _) => AddStoreCertificate());
+            _addStore.Margin = new Thickness(4, 0, 0, 0);
+            DockPanel.SetDock(_addStore, Dock.Right);
             storeRow.Children.Add(_addStore);
-            body.Children.Add(storeRow);
+            storeRow.Children.Add(_storeCombo);
+            left.Children.Add(storeRow);
 
-            _recipientList = new ListBox
-            {
-                Height = 86, Margin = new Thickness(20, 2, 0, 4),
-                Background = R("BgCanvas"), Foreground = R("TextBrush"),
-                BorderBrush = R("CardBorderBrush"), BorderThickness = new Thickness(1)
-            };
+            _recipientList = new ListBox { Height = 86 };
             _recipientList.SelectionChanged += (_, _) => SyncMode();
-            body.Children.Add(_recipientList);
-
-            var listButtons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(20, 2, 0, 10) };
-            _addFile = MakeButton(L("Str_Protect_AddFile"), false);
-            _addFile.Click += (_, _) => AddCertificateFile();
-            _remove = MakeButton(L("Str_Protect_Remove"), false);
-            _remove.Margin = new Thickness(8, 0, 0, 0);
-            _remove.Click += (_, _) => RemoveRecipient();
-            listButtons.Children.Add(_addFile);
-            listButtons.Children.Add(_remove);
-            body.Children.Add(listButtons);
+            Grid recipientWell = DialogParts.Well(_recipientList);
+            recipientWell.Margin = new Thickness(20, 2, 0, 0);
+            left.Children.Add(recipientWell);
 
             // --- Permissions ---------------------------------------------------------------------
-            body.Children.Add(Label(L("Str_Protect_Allow")));
+            right.Children.Add(Label(L("Str_Protect_Allow")));
             _allowPrint = Check(L("Str_Protect_AllowPrint"));
             _allowCopy = Check(L("Str_Protect_AllowCopy"));
             _allowEdit = Check(L("Str_Protect_AllowEdit"));
-            body.Children.Add(_allowPrint);
-            body.Children.Add(_allowCopy);
-            body.Children.Add(_allowEdit);
+            right.Children.Add(_allowPrint);
+            right.Children.Add(_allowCopy);
+            right.Children.Add(_allowEdit);
 
             // --- Output --------------------------------------------------------------------------
-            body.Children.Add(Label(L("Str_Protect_SaveAs")));
-            var outRow = new Grid();
-            outRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            outRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            TextBlock saveAs = Label(L("Str_Protect_SaveAs"));
+            saveAs.Margin = new Thickness(0, 16, 0, 2);
+            right.Children.Add(saveAs);
+            var outRow = new DockPanel();
             _outputBox = Field(DefaultOutputPath());
-            _outputBox.Margin = new Thickness(0, 0, 6, 0);
-            Grid.SetColumn(_outputBox, 0);
-            var browseOut = MakeButton(L("Str_Sign_Browse"), false);
-            browseOut.Click += (_, _) => BrowseOutput();
-            Grid.SetColumn(browseOut, 1);
-            outRow.Children.Add(_outputBox);
+            _outputBox.Margin = new Thickness(0);
+            Button browseOut = DialogParts.IconAction("Str_Sign_Browse", 0xE838, (_, _) => BrowseOutput());
+            browseOut.Margin = new Thickness(4, 0, 0, 0);
+            DockPanel.SetDock(browseOut, Dock.Right);
             outRow.Children.Add(browseOut);
-            body.Children.Add(outRow);
+            outRow.Children.Add(_outputBox);
+            right.Children.Add(outRow);
 
             // --- Buttons -------------------------------------------------------------------------
-            var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
+            var cancel = MakeButton(L("Str_Sign_Cancel"), false);
+            cancel.Click += (_, _) => { DialogResult = false; Close(); };
+            cancel.IsCancel = true;   // Esc
             var protect = MakeButton(L("Str_Protect_Protect"), true);
             protect.Click += (_, _) => DoProtect();
             protect.IsDefault = true;    // Enter
-            var cancel = MakeButton(L("Str_Sign_Cancel"), false);
-            cancel.Margin = new Thickness(8, 0, 0, 0);
-            cancel.Click += (_, _) => { DialogResult = false; Close(); };
-            cancel.IsCancel = true;   // Esc
-            btnRow.Children.Add(protect);
-            btnRow.Children.Add(cancel);
-            body.Children.Add(btnRow);
+            DockPanel footer = DialogParts.Footer([cancel, protect]);
+            DockPanel.SetDock(footer, Dock.Bottom);
+            body.Children.Add(footer);
 
             SyncMode();
             Loaded += (_, _) => _passwordBox.Focus();
 
             var scroll = new ScrollViewer
             {
-                Content = body,
+                Content = KillerPDF.Controls.SignDialogLayout.Columns(left, right),
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
             };
+            body.Children.Add(scroll);
             Content = DialogFrame.Frame(this, Owner, "KillerPDF - " + L("Str_Protect_Name"),
-                () => { DialogResult = false; Close(); }, scroll);
+                () => { DialogResult = false; Close(); }, body);
         }
 
         private string DefaultOutputPath()

@@ -37,18 +37,18 @@ internal sealed class DataMergeDialog : Window
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
-        var buttons = new WrapPanel();
-        AddButton("Str_Merge_AddField", () => AddField());
-        AddButton("Str_Merge_AddImage", () => AddImage());
-        AddButton("Str_Redact_Properties", EditSelected);
-        AddButton("Str_Portfolio_Remove", RemoveSelected);
-        AddButton("Str_Merge_Profile", EditProfile);
-        AddButton("Str_Merge_LoadProfile", ImportProfile);
-        AddButton("Str_Merge_SaveProfile", ExportProfile);
-        DockPanel.SetDock(buttons, Dock.Top); body.Children.Add(buttons);
-        var bottom = new StackPanel();
+        // The mapping list's actions are icons in its header; Profile settings opens its own window, so it keeps its
+        // words, on the footer's left beside the output choice.
+        DockPanel header = DialogParts.Header(L("Str_DocumentTools_DataMerge"),
+            Icon("Str_Merge_AddField", 0xE710, () => AddField()),
+            Icon("Str_Merge_AddImage", 0xEB9F, () => AddImage()),
+            Icon("Str_Redact_Properties", 0xE713, EditSelected),
+            Icon("Str_Portfolio_Remove", 0xE711, RemoveSelected),
+            Icon("Str_Merge_LoadProfile", 0xE896, ImportProfile),
+            Icon("Str_Merge_SaveProfile", 0xE898, ExportProfile));
+        DockPanel.SetDock(header, Dock.Top); body.Children.Add(header);
         _flatten = UiKit.CheckBox(L("Str_FormTools_Flatten"));
-        _flatten.Margin = new Thickness(0, 12, 0, 8); bottom.Children.Add(_flatten);
+        Button profileSettings = DialogParts.LabeledAction("Str_Merge_Profile", 0xE713, (_, _) => Safely(EditProfile));
         var cancel = UiKit.Make(L("Str_Btn_Cancel"), accent: false);
         cancel.IsCancel = true; cancel.Click += (_, _) => Close();
         var run = UiKit.Make(L("Str_Btn_Run"), accent: true);
@@ -59,22 +59,13 @@ internal sealed class DataMergeDialog : Window
             _ = PdfDataMergeWorkflow.CreatePlan(template, records, outputName, profile);
             Profile = profile; DialogResult = true;
         });
-        bottom.Children.Add(UiKit.ButtonRow(cancel, run));
+        DockPanel bottom = DialogParts.Footer([cancel, run], _flatten, profileSettings);
         DockPanel.SetDock(bottom, Dock.Bottom); body.Children.Add(bottom);
-        _list.SetResourceReference(Control.BackgroundProperty, "PaneBrush");
-        _list.SetResourceReference(Control.ForegroundProperty, "TextBrush");
-        _list.SetResourceReference(Control.BorderBrushProperty, "CardBorderBrush");
         System.Windows.Automation.AutomationProperties.SetName(_list, L("Str_DocumentTools_DataMerge"));
-        body.Children.Add(_list); Refresh();
+        body.Children.Add(DialogParts.Well(_list)); Refresh();
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
 
-        void AddButton(string key, Action action)
-        {
-            var button = UiKit.Make(L(key), accent: false);
-            button.Margin = new Thickness(0, 0, 6, 8);
-            button.Click += (_, _) => Safely(action);
-            buttons.Children.Add(button);
-        }
+        Button Icon(string key, int glyph, Action action) => DialogParts.IconAction(key, glyph, (_, _) => Safely(action));
     }
 
     private void Refresh(int selected = 0)

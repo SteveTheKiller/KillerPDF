@@ -19,9 +19,9 @@ internal sealed class ColorManagementDialog : Window
         IReadOnlyList<DocumentProofReview>? previousProof = null)
     {
         Title = "KillerPDF - " + L("Str_CM_Title");
-        Width = 560;
-        Height = 560;
-        MinWidth = 420;
+        Width = SignDialogLayout.OpeningWidth;
+        Height = 580;
+        MinWidth = 600;
         MinHeight = 360;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
@@ -34,11 +34,14 @@ internal sealed class ColorManagementDialog : Window
         var apply = UiKit.Make(L("Str_Tf_Apply"), accent: true);
         AutomationProperties.SetAutomationId(apply, "ColorManagementApply");
         apply.IsDefault = true;
-        var footer = UiKit.ButtonRow(close, apply);
-        footer.Margin = new Thickness(0, 12, 0, 0);
+        var footer = DialogParts.Footer([close, apply]);
         DockPanel.SetDock(footer, Dock.Bottom);
         body.Children.Add(footer);
         var fields = new StackPanel();
+        // Two columns: this document's proof (printer profile and presets) on the left, how colors convert
+        // (working CMYK, intent and the simulation choices) on the right.
+        var left = new StackPanel();
+        var right = new StackPanel();
         if (preferenceNoticeKey is not null)
         {
             var notice = Label(preferenceNoticeKey, 4);
@@ -47,8 +50,9 @@ internal sealed class ColorManagementDialog : Window
         }
         fields.Children.Add(Label("Str_CM_Hint", 12));
         var enabled = Toggle("Str_CM_Enable", "ProofEnabled", settings.Enabled);
-        fields.Children.Add(enabled);
-        fields.Children.Add(Label("Str_CM_Profile", 4));
+        enabled.Margin = new Thickness(0);
+        left.Children.Add(enabled);
+        left.Children.Add(Label("Str_CM_Profile", 4));
         var library = new ProofProfileLibrary();
         List<ProofProfileEntry> entries;
         bool libraryReadable = true;
@@ -66,34 +70,35 @@ internal sealed class ColorManagementDialog : Window
         profile.IsEnabled = libraryReadable;
         // Apply stays available with an unreadable library, so proofing can still be turned off.
         apply.IsEnabled = true;
-        fields.Children.Add(profile);
+        var profileRow = new DockPanel();
+        left.Children.Add(profileRow);
         var profileStatus = Label(libraryReadable ? "Str_CM_ProfileUnavailable" : "Str_CM_LibraryUnavailable", 4);
         AutomationProperties.SetAutomationId(profileStatus, "ProofProfileStatus");
-        fields.Children.Add(profileStatus);
+        left.Children.Add(profileStatus);
         bool importBusy = false;
         bool closed = false;
         var resolvedKinds = new Dictionary<string, ProofProfileResolutionKind>(StringComparer.Ordinal);
         // Profiles being resolved off the UI thread. Apply waits for them, so it never reads a half answer.
         int resolving = 0;
         Closed += (_, _) => closed = true;
-        var import = UiKit.Make(L("Str_CM_ImportProfile"), accent: false);
+        // Import is an icon beside the profile list it adds to.
+        var import = IconButton("Str_CM_ImportProfile", "ProofImportProfile", 0xE8E5);
         import.IsEnabled = libraryReadable;
-        import.HorizontalAlignment = HorizontalAlignment.Left;
-        import.Margin = new Thickness(0, 4, 0, 0);
-        AutomationProperties.SetAutomationId(import, "ProofImportProfile");
-        fields.Children.Add(import);
+        Beside(profileRow, profile, import);
         var importStatus = Label("Str_CM_ImportFailed", 4);
         importStatus.Text = "";
         importStatus.Visibility = Visibility.Collapsed;
         AutomationProperties.SetAutomationId(importStatus, "ProofImportStatus");
-        fields.Children.Add(importStatus);
+        left.Children.Add(importStatus);
         // The working CMYK profile is an application setting kept with the profile library.
-        fields.Children.Add(Label("Str_CM_WorkingCmyk", 4));
+        var workingLabel = Label("Str_CM_WorkingCmyk", 4);
+        workingLabel.Margin = new Thickness(0, 0, 0, 4);
+        right.Children.Add(workingLabel);
         List<ProofProfileEntry> workingEntries = [];
         string? savedWorking = null;
         var workingCmyk = Choice("Str_CM_WorkingCmyk", "ProofWorkingCmyk", [L("Str_CM_WorkingCmykBuiltIn")], 0);
-        fields.Children.Add(workingCmyk);
-        fields.Children.Add(Label("Str_CM_WorkingCmykHint", 4));
+        right.Children.Add(workingCmyk);
+        right.Children.Add(Label("Str_CM_WorkingCmykHint", 4));
         RefreshWorkingCmyk();
 
         void RefreshWorkingCmyk()
@@ -132,10 +137,9 @@ internal sealed class ColorManagementDialog : Window
         presetName.Margin = new Thickness(0, 0, 0, 4);
         AutomationProperties.SetAutomationId(presetName, "ProofPresetName");
         AutomationProperties.SetName(presetName, L("Str_CM_PresetName"));
-        var loadPreset = UiKit.Make(L("Str_CM_LoadPreset"), accent: false);
-        var savePreset = UiKit.Make(L("Str_CM_SavePreset"), accent: false);
-        AutomationProperties.SetAutomationId(loadPreset, "ProofLoadPreset");
-        AutomationProperties.SetAutomationId(savePreset, "ProofSavePreset");
+        // Load and Save are icons beside the preset list and the name they act on.
+        var loadPreset = IconButton("Str_CM_LoadPreset", "ProofLoadPreset", 0xE896);
+        var savePreset = IconButton("Str_CM_SavePreset", "ProofSavePreset", 0xE74E);
         // Enter in the name box saves the preset. Left alone it would press the default Apply button,
         // close the dialog and drop the typed name.
         presetName.PreviewKeyDown += (_, e) =>
@@ -260,7 +264,7 @@ internal sealed class ColorManagementDialog : Window
             }
             profileStatus.Visibility = kind != ProofProfileResolutionKind.Matched ? Visibility.Visible : Visibility.Collapsed;
         }
-        fields.Children.Add(Label("Str_CM_Intent", 4));
+        right.Children.Add(Label("Str_CM_Intent", 4));
         var intent = Choice("Str_CM_Intent", "ProofIntent",
             [L("Str_CM_Perceptual"), L("Str_CM_Relative"), L("Str_CM_Saturation"), L("Str_CM_Absolute")],
             settings.Options.RenderingIntent switch
@@ -271,16 +275,16 @@ internal sealed class ColorManagementDialog : Window
                 PdfRenderingIntent.AbsoluteColorimetric => 3,
                 _ => throw new ArgumentOutOfRangeException(nameof(settings))
             });
-        fields.Children.Add(intent);
+        right.Children.Add(intent);
         var bpc = Toggle("Str_CM_Bpc", "ProofBpc", settings.Options.BlackPointCompensation);
         var paper = Toggle("Str_CM_Paper", "ProofPaper", settings.Options.SimulatePaper);
         var black = Toggle("Str_CM_Black", "ProofBlack", settings.Options.SimulateBlack);
         var gamut = Toggle("Str_CM_Gamut", "ProofGamut", settings.GamutWarnings);
-        foreach (var toggle in new[] { bpc, paper, black, gamut }) fields.Children.Add(toggle);
+        foreach (var toggle in new[] { bpc, paper, black, gamut }) right.Children.Add(toggle);
         if (previousProof is { Count: > 0 })
         {
-            var previousFields = new StackPanel();
-            fields.Children.Insert(0, previousFields);
+            var previousFields = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
+            left.Children.Insert(0, previousFields);
             previousFields.Children.Add(Label("Str_CM_PreviousFileHint", 4));
             previousFields.Children.Add(Label("Str_CM_PreviousFileSettings", 4));
             previousChoice = Choice("Str_CM_PreviousFileSettings", "ProofPreviousSettings",
@@ -316,13 +320,16 @@ internal sealed class ColorManagementDialog : Window
                 UpdateProfileAvailability();
             };
         }
-        fields.Children.Add(Label("Str_CM_Preset", 4));
-        fields.Children.Add(presetChoice);
-        fields.Children.Add(Label("Str_CM_PresetName", 4));
-        fields.Children.Add(presetName);
-        fields.Children.Add(UiKit.ButtonRow(loadPreset, savePreset));
-        fields.Children.Add(Label("Str_CM_PresetHint", 4));
-        fields.Children.Add(presetStatus);
+        left.Children.Add(Label("Str_CM_Preset", 4));
+        var presetRow = new DockPanel();
+        Beside(presetRow, presetChoice, loadPreset);
+        left.Children.Add(presetRow);
+        left.Children.Add(Label("Str_CM_PresetName", 4));
+        var nameRow = new DockPanel();
+        Beside(nameRow, presetName, savePreset);
+        left.Children.Add(nameRow);
+        left.Children.Add(Label("Str_CM_PresetHint", 4));
+        left.Children.Add(presetStatus);
         loadPreset.Click += (_, _) =>
         {
             if (importBusy || !presetsReadable || presetChoice.SelectedIndex <= 0) return;
@@ -437,9 +444,29 @@ internal sealed class ColorManagementDialog : Window
             if (previousChoice is not null) previousChoice.IsEnabled = !busy;
             if (reviewPrevious is not null) reviewPrevious.IsEnabled = !busy;
         }
-        body.Children.Add(new ScrollViewer { Content = fields, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
+        fields.Children.Add(SignDialogLayout.Columns(left, right));
+        body.Children.Add(new ScrollViewer { Content = fields, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
-        Loaded += (_, _) => fields.Children.OfType<CheckBox>().First().Focus();
+        Loaded += (_, _) => enabled.Focus();
+    }
+
+    // A field with its icon action docked on its right, on one line.
+    private static void Beside(DockPanel row, FrameworkElement field, Button icon)
+    {
+        icon.Margin = new Thickness(4, 0, 0, field.Margin.Bottom);
+        DockPanel.SetDock(icon, Dock.Right);
+        row.Children.Add(icon);
+        row.Children.Add(field);
+    }
+
+    // An icon action that keeps the panel's existing automation id, so the window steps still find it.
+    private static Button IconButton(string key, string id, int glyph)
+    {
+        Button button = DialogParts.IconAction(key, glyph, (_, _) => { });
+        AutomationProperties.SetAutomationId(button, id);
+        AutomationProperties.SetName(button, L(key));
+        return button;
     }
 
     private static CheckBox Toggle(string key, string id, bool value)

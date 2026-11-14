@@ -34,29 +34,32 @@ internal sealed class WatchedFolderDialog : Window
         _service = service;
         _filter.Text = "*.pdf";
         Title = "KillerPDF - " + L("Str_Watch_Title");
-        Width = Math.Min(820, SystemParameters.WorkArea.Width - 40);
-        Height = Math.Min(760, SystemParameters.WorkArea.Height - 40);
+        Width = Math.Min(900, SystemParameters.WorkArea.Width - 40);
+        Height = Math.Min(660, SystemParameters.WorkArea.Height - 40);
         MinWidth = 480; MinHeight = 380; UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
         AutomationProperties.SetAutomationId(this, "WatchedFolderDialog");
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16),
             LayoutTransform = new ScaleTransform(Math.Clamp(scale, .7, 2.5), Math.Clamp(scale, .7, 2.5)) };
-        var footer = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
-        _status.Margin = new Thickness(0, 0, 0, 6);
+        // One footer row: whether the task runs on the left, Close on the right. Pause, Resume and Retry
+        // are icons on the results they act on.
+        _status.Margin = new Thickness(0);
         AutomationProperties.SetAutomationId(_status, "WatchStatus");
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
-        footer.Children.Add(_status);
-        var actions = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right };
-        _pause = Button("Str_Watch_Pause", "WatchPause", () => Change(_service.Pause));
-        _resume = Button("Str_Watch_Resume", "WatchResume", ResumeSavedSetup);
-        _retry = Button("Str_Watch_Retry", "WatchRetry", () => Change(_service.RetryFailed));
+        _pause = IconButton("Str_Watch_Pause", "WatchPause", 0xE769, () => Change(_service.Pause));
+        _resume = IconButton("Str_Watch_Resume", "WatchResume", 0xE768, ResumeSavedSetup);
+        _retry = IconButton("Str_Watch_Retry", "WatchRetry", 0xE72C, () => Change(_service.RetryFailed));
         var close = Button("Str_Lbl_Close", "WatchClose", Close); close.IsCancel = true;
-        foreach (Button button in new[] { _pause, _resume, _retry, close }) actions.Children.Add(button);
-        footer.Children.Add(actions); DockPanel.SetDock(footer, Dock.Bottom); body.Children.Add(footer);
+        close.Margin = new Thickness(0);
+        DockPanel footer = DialogParts.Footer([close], _status);
+        DockPanel.SetDock(footer, Dock.Bottom); body.Children.Add(footer);
         var content = new StackPanel();
         content.Children.Add(Note("Str_Watch_Intro"));
         content.Children.Add(Note("Str_Watch_RunningNote"));
-        content.Children.Add(UiKit.GroupLabel(L("Str_Watch_Configuration")));
+        var left = new StackPanel();
+        left.Children.Add(UiKit.GroupLabel(L("Str_Watch_Configuration")));
+        left.Children.Add(_settings);
+        var right = new StackPanel();
         AddPath("Str_Watch_Input", _input, "WatchInput");
         AddPath("Str_Watch_Output", _output, "WatchOutput");
         _settings.Children.Add(UiKit.GroupLabel(L("Str_Watch_Filter")));
@@ -73,29 +76,31 @@ internal sealed class WatchedFolderDialog : Window
         _pauseOnError.Margin = new Thickness(0, 6, 0, 6);
         Identify(_pauseOnError, "WatchPauseOnError", "Str_Watch_StopOnError");
         _settings.Children.Add(_pauseOnError);
-        _settings.Children.Add(UiKit.GroupLabel(L("Str_Watch_Preview")));
-        _settings.Children.Add(_preview);
         _settings.Children.Add(Note("Str_Watch_Changed"));
-        _settings.Children.Add(Note("Str_Watch_Signatures"));
         _start = Button("Str_Watch_Start", "WatchStart", SaveAndStart, accent: true);
         _start.HorizontalAlignment = HorizontalAlignment.Right; _settings.Children.Add(_start);
-        content.Children.Add(_settings);
-        content.Children.Add(_error);
+
+        // The right column: what the task does and what it has done, both in wells.
+        right.Children.Add(UiKit.GroupLabel(L("Str_Watch_Preview")));
+        _preview.Margin = new Thickness(8, 6, 8, 6);
+        Grid previewWell = DialogParts.Well(_preview);
+        previewWell.Margin = new Thickness(0, 2, 0, 4);
+        right.Children.Add(previewWell);
+        right.Children.Add(Note("Str_Watch_Signatures"));
+        right.Children.Add(_error);
         AutomationProperties.SetAutomationId(_error, "WatchError");
         AutomationProperties.SetLiveSetting(_error, AutomationLiveSetting.Polite);
-        content.Children.Add(UiKit.GroupLabel(L("Str_Watch_Results")));
-        _results.SetResourceReference(Control.BackgroundProperty, "PaneBrush");
-        _results.SetResourceReference(Control.ForegroundProperty, "TextBrush");
-        _results.SetResourceReference(Control.BorderBrushProperty, "CardBorderBrush");
+        right.Children.Add(DialogParts.Header(L("Str_Watch_Results"), _pause, _resume, _retry));
         ScrollViewer.SetHorizontalScrollBarVisibility(_results, ScrollBarVisibility.Disabled);
         var row = new FrameworkElementFactory(typeof(TextBlock));
         row.SetBinding(TextBlock.TextProperty, new Binding("."));
         row.SetValue(TextBlock.TextWrappingProperty, TextWrapping.Wrap);
         _results.ItemTemplate = new DataTemplate { VisualTree = row };
         Identify(_results, "WatchResults", "Str_Watch_Results");
-        content.Children.Add(_results);
-        content.Children.Add(Note("Str_Watch_Limits"));
-        content.Children.Add(Note("Str_Watch_QueueLimit"));
+        right.Children.Add(DialogParts.Well(_results));
+        right.Children.Add(Note("Str_Watch_Limits"));
+        right.Children.Add(Note("Str_Watch_QueueLimit"));
+        content.Children.Add(Columns(left, right));
         body.Children.Add(new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, CanContentScroll = false });
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
@@ -126,14 +131,50 @@ internal sealed class WatchedFolderDialog : Window
     {
         _settings.Children.Add(UiKit.GroupLabel(L(key))); Identify(field, id, key);
         var row = new DockPanel { Margin = new Thickness(0, 2, 0, 8) };
-        Button browse = Button("Str_Sign_Browse", id + "Browse", () =>
+        Button browse = IconButton("Str_Sign_Browse", id + "Browse", 0xE838, () =>
         {
             var picker = new Controls.FileDialog(Controls.FileDialogMode.Folder)
                 { Title = L(key), InitialDirectory = field.Text, HideFilesInFolderMode = true, AcceptHighlightedFolder = true };
             if (picker.ShowDialog(this) == true) field.Text = picker.FileName;
         });
+        browse.Margin = new Thickness(4, 0, 0, 0);
         DockPanel.SetDock(browse, Dock.Right); row.Children.Add(browse); row.Children.Add(field);
         _settings.Children.Add(row);
+    }
+
+    // Folder setup on the left, the task preview and file results on the right. A window narrowed below
+    // two readable columns stacks them instead, so nothing is squeezed out of reach.
+    private static Grid Columns(FrameworkElement left, FrameworkElement right)
+    {
+        const double gap = 24, stackBelow = 600;
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(gap) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        left.VerticalAlignment = right.VerticalAlignment = VerticalAlignment.Top;
+        grid.Children.Add(left);
+        grid.Children.Add(right);
+        void Arrange(double width)
+        {
+            bool stacked = width > 0 && width < stackBelow;
+            Grid.SetColumnSpan(left, stacked ? 3 : 1);
+            Grid.SetColumn(right, stacked ? 0 : 2);
+            Grid.SetColumnSpan(right, stacked ? 3 : 1);
+            Grid.SetRow(right, stacked ? 1 : 0);
+            right.Margin = new Thickness(0, stacked ? 8 : 0, 0, 0);
+        }
+        Arrange(0);
+        grid.SizeChanged += (_, e) => { if (e.WidthChanged) Arrange(e.NewSize.Width); };
+        return grid;
+    }
+
+    private static Button IconButton(string key, string id, int glyph, Action action)
+    {
+        Button button = DialogParts.IconAction(key, glyph, (_, _) => action());
+        Identify(button, id, key);
+        return button;
     }
 
     private void SaveAndStart() => Change(() =>

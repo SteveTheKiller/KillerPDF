@@ -30,7 +30,7 @@ internal sealed class InitialViewDialog : Window
         _current = current;
         _pageCount = pageCount;
         Title = "KillerPDF - " + L("Str_DocumentTools_InitialView");
-        Width = 470;
+        Width = 600;
         SizeToContent = SizeToContent.Height;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
@@ -53,13 +53,24 @@ internal sealed class InitialViewDialog : Window
 
         _zoom = AddCombo(body, L("Str_InitialView_Zoom"), ZoomChoices(),
             choice => choice.Value == CurrentZoom(current));
-        _hideToolbar = AddCheck(body, "Str_InitialView_HideToolbar", current.ViewerPreferences.HideToolbar);
-        _hideMenu = AddCheck(body, "Str_InitialView_HideMenu", current.ViewerPreferences.HideMenuBar);
-        _hideWindowUi = AddCheck(body, "Str_InitialView_HideWindowUi", current.ViewerPreferences.HideWindowUi);
-        _fitWindow = AddCheck(body, "Str_InitialView_FitWindow", current.ViewerPreferences.FitWindow);
-        _centerWindow = AddCheck(body, "Str_InitialView_CenterWindow", current.ViewerPreferences.CenterWindow);
-        _displayTitle = AddCheck(body, "Str_InitialView_DisplayTitle", current.ViewerPreferences.DisplayDocumentTitle);
-        _pickTray = AddCheck(body, "Str_InitialView_PickTray", current.ViewerPreferences.PickTrayByPdfSize);
+        // The viewer choices in two columns: what the viewer hides on the left, how its window opens on the right.
+        var checks = new Grid();
+        checks.ColumnDefinitions.Add(new ColumnDefinition());
+        checks.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+        checks.ColumnDefinitions.Add(new ColumnDefinition());
+        var hiding = new StackPanel();
+        var window = new StackPanel();
+        Grid.SetColumn(window, 2);
+        checks.Children.Add(hiding);
+        checks.Children.Add(window);
+        body.Children.Add(checks);
+        _hideToolbar = AddCheck(hiding, "Str_InitialView_HideToolbar", current.ViewerPreferences.HideToolbar);
+        _hideMenu = AddCheck(hiding, "Str_InitialView_HideMenu", current.ViewerPreferences.HideMenuBar);
+        _hideWindowUi = AddCheck(hiding, "Str_InitialView_HideWindowUi", current.ViewerPreferences.HideWindowUi);
+        _displayTitle = AddCheck(hiding, "Str_InitialView_DisplayTitle", current.ViewerPreferences.DisplayDocumentTitle);
+        _fitWindow = AddCheck(window, "Str_InitialView_FitWindow", current.ViewerPreferences.FitWindow);
+        _centerWindow = AddCheck(window, "Str_InitialView_CenterWindow", current.ViewerPreferences.CenterWindow);
+        _pickTray = AddCheck(window, "Str_InitialView_PickTray", current.ViewerPreferences.PickTrayByPdfSize);
 
         var cancel = UiKit.Make(L("Str_Btn_Cancel"), accent: false);
         cancel.IsCancel = true;
@@ -67,9 +78,7 @@ internal sealed class InitialViewDialog : Window
         var save = UiKit.Make(L("Str_DocInfo_Save"), accent: true);
         save.IsDefault = true;
         save.Click += (_, _) => Commit();
-        var buttons = UiKit.ButtonRow(cancel, save);
-        buttons.Margin = new Thickness(0, 14, 0, 0);
-        body.Children.Add(buttons);
+        body.Children.Add(DialogParts.Footer([cancel, save]));
 
         Content = DialogFrame.Frame(this, owner, Title,
             () => { DialogResult = false; Close(); }, body);

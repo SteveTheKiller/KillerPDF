@@ -368,10 +368,10 @@ internal static class WatchedFolderSmoke
                 if (scroll.ViewportHeight < 24) throw new InvalidOperationException($"Scrollable settings viewport is only {scroll.ViewportHeight:F2} logical pixels high.");
                 scroll.ScrollToTop(); Pump();
                 Capture(dialog, Path.Combine(folder, name + "-top.png"));
-                foreach (string id in new[] { "WatchPause", "WatchResume", "WatchRetry", "WatchClose" })
-                    AssertControl(dialog, Find<Button>(dialog, id));
+                // Close is in the footer row; Pause, Resume and Retry are icons on the file results, inside the scroll.
+                AssertControl(dialog, Find<Button>(dialog, "WatchClose"));
                 foreach (string id in new[] { "WatchInput", "WatchInputBrowse", "WatchOutput", "WatchOutputBrowse",
-                    "WatchFilter", "WatchMacro", "WatchPauseOnError", "WatchStart" })
+                    "WatchFilter", "WatchMacro", "WatchPauseOnError", "WatchStart", "WatchPause", "WatchResume", "WatchRetry" })
                 {
                     Control control = Find<Control>(dialog, id);
                     control.BringIntoView(); Pump();

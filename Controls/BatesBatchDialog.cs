@@ -14,7 +14,7 @@ internal sealed class BatesBatchDialog : Window
     internal PdfBatesMacroOptions? Options { get; private set; }
     internal BatesBatchDialog(Window owner)
     {
-        Title = "KillerPDF - " + L("Str_Production_Bates"); Width = 620; Height = 420; MinWidth = 500; MinHeight = 360;
+        Title = "KillerPDF - " + L("Str_Production_Bates"); Width = 620; SizeToContent = SizeToContent.Height; MinWidth = 500;
         MaxHeight = Math.Max(400, SystemParameters.WorkArea.Height - 60);
         UseLayoutRounding = true; DialogFrame.Configure(this, owner);
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
@@ -22,8 +22,9 @@ internal sealed class BatesBatchDialog : Window
         cancel.IsCancel = true; cancel.Click += (_, _) => Close();
         var apply = UiKit.Make(L("Str_Tf_Apply"), accent: true);
         apply.IsDefault = true; apply.Click += (_, _) => Apply();
-        var buttons = UiKit.ButtonRow(cancel, apply);
-        buttons.Margin = new Thickness(0, 14, 0, 0);
+        // One footer row: the overlap choice on the left, Cancel and Apply on the right.
+        _overlap = UiKit.CheckBox(L("Str_Production_AllowOverlap"));
+        DockPanel buttons = DialogParts.Footer([cancel, apply], _overlap);
         DockPanel.SetDock(buttons, Dock.Bottom); body.Children.Add(buttons);
         var fields = new StackPanel();
         var pairs = new Grid();
@@ -51,9 +52,9 @@ internal sealed class BatesBatchDialog : Window
         fields.Children.Add(UiKit.GroupLabel(L("Str_Stamp_Position")));
         _position.ItemsSource = new[] { "Str_Pos_BottomRight", "Str_Pos_BottomCenter", "Str_Pos_BottomLeft",
             "Str_Pos_TopRight", "Str_Pos_TopCenter", "Str_Pos_TopLeft" }.Select(L).ToArray();
-        _position.SelectedIndex = 0; _position.Margin = new Thickness(0, 5, 0, 14); fields.Children.Add(_position);
-        _overlap = UiKit.CheckBox(L("Str_Production_AllowOverlap")); fields.Children.Add(_overlap);
-        body.Children.Add(new ScrollViewer { Content = fields, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
+        _position.SelectedIndex = 0; _position.Margin = new Thickness(0, 5, 0, 0); fields.Children.Add(_position);
+        body.Children.Add(new ScrollViewer { Content = fields, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
     }
 

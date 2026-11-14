@@ -47,12 +47,15 @@ internal sealed class GuidedTasksDialog : Window
         _run = Button("Str_Btn_Run", "GuidedRun", true); _run.IsDefault = true;
         _cancel = Button("Str_Btn_Cancel", "GuidedCancel");
         _open = Button("Str_Btn_Open", "GuidedOpen"); _open.Visibility = Visibility.Collapsed;
-        var footer = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right };
-        foreach (Button button in new[] { _open, _cancel, _run }) footer.Children.Add(button);
+        // One footer row: Save as macro on the left (what it saves is named in its tooltip), Open, Cancel and Run on the right.
+        _macro = Button("Str_Guided_SaveMacro", "GuidedSaveMacro"); _macro.ToolTip = L("Str_Guided_MacroHint");
+        ToolTipService.SetShowOnDisabled(_macro, true); // it explains why the review tasks cannot be saved
+        foreach (Button button in new[] { _macro, _open, _cancel, _run }) button.Margin = new Thickness(0, 4, 0, 4);
+        DockPanel footer = DialogParts.Footer([_open, _cancel, _run], _macro);
         DockPanel.SetDock(footer, Dock.Bottom); body.Children.Add(footer);
         var content = new StackPanel();
         content.Children.Add(Note(Path.GetFileName(source)));
-        _choice = new ComboBox { Style = UiKit.DarkComboStyle, Margin = new Thickness(0, 6, 0, 6) };
+        _choice = new ComboBox { Style = UiKit.DarkComboStyle, Margin = new Thickness(0, 4, 0, 4) };
         Id(_choice, "GuidedTaskChoice", "Str_Guided_Title");
         foreach (string key in Names) _choice.Items.Add(new ComboBoxItem { Content = L(key) });
         content.Children.Add(_choice);
@@ -61,21 +64,40 @@ internal sealed class GuidedTasksDialog : Window
         _ocr = Check("Str_Guided_Ocr", "GuidedOcr"); _ocr.IsChecked = true; content.Children.Add(_ocr);
         _search = Check("Str_Guided_Search", "GuidedSearch"); _search.IsChecked = marks == 0; content.Children.Add(_search);
         _marks = Note(string.Format(CultureInfo.CurrentCulture, L("Str_Guided_Marks"), marks)); content.Children.Add(_marks);
-        content.Children.Add(Note(L("Str_Guided_CopyHint")));
-        content.Children.Add(Note(L("Str_Guided_Output")));
+        TextBlock outputLabel = UiKit.GroupLabel(L("Str_Guided_Output")); outputLabel.Margin = new Thickness(0, 8, 0, 0);
+        content.Children.Add(outputLabel);
         var destination = new DockPanel();
-        _browse = Button("Str_Sign_Browse", "GuidedBrowse"); DockPanel.SetDock(_browse, Dock.Right); destination.Children.Add(_browse);
+        _browse = DialogParts.IconAction("Str_Sign_Browse", 0xE838, (_, _) => { }); Id(_browse, "GuidedBrowse", "Str_Sign_Browse");
+        _browse.Margin = new Thickness(4, 0, 0, 0); DockPanel.SetDock(_browse, Dock.Right); destination.Children.Add(_browse);
         _output = UiKit.Field(); _output.IsReadOnly = true; _output.VerticalContentAlignment = VerticalAlignment.Center;
-        _output.Margin = new Thickness(0, 4, 6, 4); Id(_output, "GuidedOutput", "Str_Guided_Output"); destination.Children.Add(_output);
+        _output.Margin = new Thickness(0, 2, 0, 2); Id(_output, "GuidedOutput", "Str_Guided_Output"); destination.Children.Add(_output);
         content.Children.Add(destination);
+        TextBlock copyHint = Note(L("Str_Guided_CopyHint")); copyHint.FontSize = 11; copyHint.Margin = new Thickness(0, 0, 0, 2);
+        copyHint.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+        content.Children.Add(copyHint);
         _progress = new ProgressBar { Height = 4, IsIndeterminate = true, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 6, 0, 6) };
         content.Children.Add(_progress);
         _status = Note(""); Id(_status, "GuidedStatus"); AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite); content.Children.Add(_status);
-        _macro = Button("Str_Guided_SaveMacro", "GuidedSaveMacro"); _macro.HorizontalAlignment = HorizontalAlignment.Left; content.Children.Add(_macro);
-        content.Children.Add(Note(L("Str_Guided_MacroHint")));
         var scroll = new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Margin = new Thickness(0, 0, 0, 4) };
         body.Children.Add(scroll);
+        // A window too narrow for Save as macro beside the confirm buttons (a large app scale) moves it to the end of the
+        // content, still in reach; it returns to the footer when the row has room again.
+        var confirmButtons = (FrameworkElement)footer.Children[0];
+        void FitMacro()
+        {
+            _macro.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            bool fits = footer.ActualWidth <= 0
+                || footer.ActualWidth >= confirmButtons.ActualWidth + 12 + _macro.DesiredSize.Width + 18;
+            Panel? home = _macro.Parent as Panel;
+            Panel target = fits ? (Panel)footer.Children[1] : content;
+            if (ReferenceEquals(home, target)) return;
+            home?.Children.Remove(_macro);
+            _macro.HorizontalAlignment = HorizontalAlignment.Left;
+            target.Children.Add(_macro);
+        }
+        footer.SizeChanged += (_, _) => FitMacro();
+        confirmButtons.SizeChanged += (_, _) => FitMacro();
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         _choice.SelectionChanged += (_, _) => { _hint.Text = L(Hints[_choice.SelectedIndex]); ResetResult(); Update(); };
         _choice.SelectedIndex = 0;
@@ -170,7 +192,7 @@ internal sealed class GuidedTasksDialog : Window
     { CheckBox box = UiKit.CheckBox(L(key)); box.Margin = new Thickness(0, 5, 0, 5); Id(box, id, key); return box; }
     private static TextBlock Note(string text)
     {
-        var block = new TextBlock { Text = text, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 3) };
+        var block = new TextBlock { Text = text, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 2) };
         block.SetResourceReference(TextBlock.FontFamilyProperty, "UiFont"); block.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush"); return block;
     }
     private static void Id(DependencyObject item, string id, string? key = null)
