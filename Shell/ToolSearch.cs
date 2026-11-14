@@ -432,6 +432,8 @@ namespace KillerPDF.Shell
 
             foreach (KsBinding binding in ShortcutTable.KsAll)
             {
+                // Document tools are listed below with both their keys and run through the tool list.
+                if (ShortcutTable.DocumentToolKeys.Any(tool => tool.LabelKey == binding.LabelKey)) continue;
                 // A cap with its own label is its own command ("Fit width" on Ctrl+2); caps that
                 // share the row's label are one command with several keys ("Line" on L or U).
                 var commands = binding.Caps
@@ -447,7 +449,7 @@ namespace KillerPDF.Shell
             }
 
             foreach (var (letter, labelKey) in ShortcutTable.DocumentToolKeys)
-                Add(labelKey, "Docs", GestureFor("CtrlShift:D") + ", " + letter, () => RunDocumentTool(letter));
+                Add(labelKey, "Docs", DocumentToolGestureText(letter, labelKey), () => RunDocumentTool(letter));
 
             foreach (OpenMenuCommand command in DocumentCreationCommands())
                 Add(command.LabelKey, "File", "", command.Run, command.RequiresDocument);

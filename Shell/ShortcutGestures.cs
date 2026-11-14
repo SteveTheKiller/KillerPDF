@@ -32,6 +32,15 @@ namespace KillerPDF.Shell
             return null;
         }
 
+        /// <summary>A document tool's keys as display text: "Ctrl+Shift+D, P", or for a tool with a direct key
+        /// "Ctrl+Shift+M or Ctrl+Shift+D, M".</summary>
+        internal string DocumentToolGestureText(char letter, string labelKey)
+        {
+            string chord = GestureFor("CtrlShift:D") + ", " + letter;
+            string? direct = ShortcutTable.DocumentToolDirectKeys.FirstOrDefault(t => t.LabelKey == labelKey).Cap;
+            return direct is null ? chord : GestureFor(direct) + " " + Loc("Str_Key_Or") + " " + chord;
+        }
+
         /// <summary>Several keys for one command, joined the way the overlay joins them: "1 or T".</summary>
         private string GesturesFor(params string[] caps)
             => string.Join(" " + Loc("Str_Key_Or") + " ", caps.Select(GestureFor));

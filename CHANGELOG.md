@@ -108,6 +108,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Production layouts, Form data, Preflight and the other document tool launchers show each command as an icon tile in a grid instead of a column of identical buttons.
 - The Digital Signature window is redesigned into two compact columns, with the certificate, details and timestamp on the left and the visible signature and save location on the right.
 - Document tools have their own sidebar panel on the rail (Alt+7, or Ctrl+Shift+D and a tool's letter), shown as icon tiles under Reports, Edit document and Automation and data, three across at the default sidebar width so every tool fits without scrolling, instead of a long submenu under Save.
+- Macros and Guided tasks have their own keys, Ctrl+Shift+M and Ctrl+Shift+X, and still answer to their Document tools letters.
 
 ### Added
 

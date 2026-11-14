@@ -131,6 +131,17 @@ public sealed class DocumentToolsPanelTests
         Assert.False(ExpandedShortcutGate.Runs(hasPdf: false, hasReadingDocument: false, railButtonEnabled: true, Key.D7, ModifierKeys.Alt | ModifierKeys.Shift));
     }
 
+    // Ctrl+Shift+M and Ctrl+Shift+X reach the window with nothing open; the tool list for what is open decides
+    // whether Macros or Guided tasks runs, as the panel letters do.
+    [Theory]
+    [InlineData(Key.M)]
+    [InlineData(Key.X)]
+    public void DirectDocumentToolKeysReachTheToolListWithNothingOpen(Key key)
+    {
+        Assert.True(ExpandedShortcutGate.Runs(hasPdf: false, hasReadingDocument: false, railButtonEnabled: false, key, ModifierKeys.Control | ModifierKeys.Shift));
+        Assert.False(ExpandedShortcutGate.Runs(hasPdf: false, hasReadingDocument: false, railButtonEnabled: false, Key.P, ModifierKeys.Control | ModifierKeys.Shift));
+    }
+
     [Fact]
     public void AltSevenIsOnTheShortcutTableAsTheDocumentToolsPanel()
     {

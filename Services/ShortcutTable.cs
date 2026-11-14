@@ -136,6 +136,30 @@ namespace KillerPDF
             ('0', "Str_CM_Title"),
         ];
 
+        /// <summary>
+        /// The document tools used often enough to have a key of their own as well as their panel letter. Each is a
+        /// free Ctrl+Shift letter matching its panel letter, so Ctrl+Shift+M and Ctrl+Shift+D, M are the same tool.
+        /// The overlay shows both on one row, and only the direct key lights a cap on the map.
+        /// </summary>
+        internal static readonly (string LabelKey, string Cap)[] DocumentToolDirectKeys =
+        [
+            ("Str_Guided_Title", "CtrlShift:X"),
+            ("Str_DocumentTools_Macros", "CtrlShift:M"),
+        ];
+
+        /// <summary>The document tool a Ctrl+Shift key (a map id such as "M") runs directly, or null.</summary>
+        internal static string? DocumentToolForDirectKey(string id)
+            => DocumentToolDirectKeys.FirstOrDefault(t => t.Cap == "CtrlShift:" + id).LabelKey;
+
+        private static KsBinding DocumentToolRow((char Key, string LabelKey) tool)
+        {
+            string chord = "%ctrl%+%shift%+D, " + tool.Key;
+            string? cap = DocumentToolDirectKeys.FirstOrDefault(t => t.LabelKey == tool.LabelKey).Cap;
+            return cap is null
+                ? B(chord, tool.LabelKey, "Docs")
+                : B("%ctrl%+%shift%+" + cap["CtrlShift:".Length..] + " / " + chord, tool.LabelKey, "Docs", Cap(cap));
+        }
+
         /// <summary>The key that runs a document tool while the Document tools panel has the keyboard.</summary>
         internal static char DocumentToolKey(string labelKey)
             => DocumentToolKeys.First(t => t.LabelKey == labelKey).Key;
@@ -304,7 +328,7 @@ namespace KillerPDF
             B("%shift%+%click%",           "Str_KS_MultiSelect",    "Search"),
 
             B("%ctrl%+%shift%+D",          "Str_DocumentTools",     "Docs", Cap("CtrlShift:D")),
-            .. DocumentToolKeys.Select(t => B("%ctrl%+%shift%+D, " + t.Key, t.LabelKey, "Docs")),
+            .. DocumentToolKeys.Select(DocumentToolRow),
         ];
 
         // Section title and column for each category. Order here is the order sections appear.

@@ -2,13 +2,16 @@ using System.Windows.Input;
 
 namespace KillerPDF.Services;
 
-/// <summary>Whether the Alt+1 to Alt+7 and Alt+Shift+W/N keys act, given what is open. Alt+7 is the Document
-/// tools panel, whose rail button stays enabled with nothing open, so its key follows the button alone.</summary>
+/// <summary>Whether the Alt+1 to Alt+7, Alt+Shift+W/N and direct document tool keys act, given what is open. Alt+7
+/// is the Document tools panel, whose rail button stays enabled with nothing open, so its key follows the button
+/// alone. A direct document tool key (Ctrl+Shift+M, Ctrl+Shift+X) always reaches the tool list, which offers only
+/// the tools that work for what is open, as the panel does.</summary>
 internal static class ExpandedShortcutGate
 {
     internal static bool Runs(bool hasPdf, bool hasReadingDocument, bool railButtonEnabled, Key key, ModifierKeys modifiers)
         => hasPdf
             || (key is Key.W or Key.N) && modifiers == (ModifierKeys.Alt | ModifierKeys.Shift)
+            || modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && ShortcutTable.DocumentToolForDirectKey(key.ToString()) is not null
             || railButtonEnabled && modifiers == ModifierKeys.Alt && key == Key.D7
             || hasReadingDocument && railButtonEnabled && modifiers == ModifierKeys.Alt && key is >= Key.D1 and <= Key.D6;
 }

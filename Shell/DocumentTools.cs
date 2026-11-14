@@ -201,7 +201,7 @@ public partial class MainWindow
         System.Windows.Automation.AutomationProperties.SetAutomationId(row, tool.LabelKey);
         string name = Loc(tool.LabelKey);
         row.ToolTip = tool.Key is char key
-            ? KillerFamily.Layout.ShortcutHints.WithHint(name, GestureFor("CtrlShift:D") + ", " + key)
+            ? KillerFamily.Layout.ShortcutHints.WithHint(name, DocumentToolGestureText(key, tool.LabelKey))
             : name;
         row.Click += (_, _) =>
         {

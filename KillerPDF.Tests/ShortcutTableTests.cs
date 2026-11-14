@@ -259,10 +259,32 @@ namespace KillerPDF.Tests
             var letters = ShortcutTable.DocumentToolKeys.Select(t => t.Key).ToList();
             Assert.Equal(letters.Count, letters.Distinct().Count());
             Assert.All(letters, c => Assert.True(c is >= 'A' and <= 'Z' or '0', $"{c} is not an allowed document-tool key"));
+            // One row per tool. A tool with a direct key lights it on the map; the rest are chord-only rows.
+            var toolLabels = ShortcutTable.DocumentToolKeys.Select(t => t.LabelKey).ToHashSet();
             Assert.Equal(ShortcutTable.DocumentToolKeys.Length,
+                ShortcutTable.KsAll.Count(b => b.Cat == "Docs" && toolLabels.Contains(b.LabelKey)));
+            Assert.Equal(ShortcutTable.DocumentToolKeys.Length - ShortcutTable.DocumentToolDirectKeys.Length,
                 ShortcutTable.KsAll.Count(b => b.Cat == "Docs" && b.Caps.Length == 0));
             Assert.Equal("Ctrl+Shift+D, P", ShortcutTable.DocumentToolGesture("Str_DocumentTools_Preflight"));
             Assert.Equal("Ctrl+Shift+D, 0", ShortcutTable.DocumentToolGesture("Str_CM_Title"));
+        }
+
+        /// <summary>Macros and Guided tasks are used often enough to have their own keys as well as their
+        /// panel letters, so the map, the overlay and the menus show Ctrl+Shift+M and Ctrl+Shift+X.</summary>
+        [Fact]
+        public void MacrosAndGuidedTasksHaveDirectKeys()
+        {
+            var map = ShortcutTable.BuildMap();
+            Assert.Equal("Str_DocumentTools_Macros", map[KbLayer.CtrlShift]["M"].Label);
+            Assert.Equal("Str_Guided_Title", map[KbLayer.CtrlShift]["X"].Label);
+            Assert.Equal("Str_DocumentTools_Macros", ShortcutTable.DocumentToolForDirectKey("M"));
+            Assert.Equal("Str_Guided_Title", ShortcutTable.DocumentToolForDirectKey("X"));
+            Assert.Null(ShortcutTable.DocumentToolForDirectKey("P"));
+            var macros = Assert.Single(ShortcutTable.KsAll, b => b.LabelKey == "Str_DocumentTools_Macros");
+            Assert.Equal("%ctrl%+%shift%+M / %ctrl%+%shift%+D, M", macros.Keys);
+            // The panel letter still works, so both keys are the same tool.
+            Assert.Equal('M', ShortcutTable.DocumentToolKey("Str_DocumentTools_Macros"));
+            Assert.Equal('X', ShortcutTable.DocumentToolKey("Str_Guided_Title"));
         }
 
         /// <summary>Every tool in the Document tools panel takes its letter from the table, so the

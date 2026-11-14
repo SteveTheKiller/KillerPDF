@@ -11,6 +11,9 @@ public partial class MainWindow
         Action? run = null;
         if (modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && key == Key.G)
             run = OpenSidebarSigning;
+        else if (modifiers == (ModifierKeys.Control | ModifierKeys.Shift)
+                 && ShortcutTable.DocumentToolForDirectKey(key.ToString()) is string tool)
+            run = () => RunDocumentTool(ShortcutTable.DocumentToolKey(tool));
         else if (modifiers == ModifierKeys.Alt && key is >= Key.D1 and <= Key.D7)
         {
             SidebarPanel panel = (SidebarPanel)(key - Key.D1);
