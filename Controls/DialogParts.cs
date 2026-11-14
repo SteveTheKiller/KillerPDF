@@ -88,6 +88,9 @@ internal static class DialogParts
     /// </summary>
     internal static Grid Well(FrameworkElement content, UIElement? overlay = null)
     {
+        // WPF's own ListBox template paints a solid system background while the list is disabled, which showed as a
+        // white box in Protect Document until Certificate recipients was chosen. A list in a well dims instead.
+        if (content is ListBox list) list.Template = SeeThroughList;
         if (content is Control control)
         {
             control.Background = Brushes.Transparent;
@@ -111,6 +114,25 @@ internal static class DialogParts
         }
         well.Children.Add(edge);
         return well;
+    }
+
+    private static readonly ControlTemplate SeeThroughList = BuildSeeThroughList();
+
+    private static ControlTemplate BuildSeeThroughList()
+    {
+        var border = new FrameworkElementFactory(typeof(Border), "Bd");
+        border.SetValue(Border.BackgroundProperty, Brushes.Transparent);
+        border.SetValue(Border.PaddingProperty, new TemplateBindingExtension(Control.PaddingProperty));
+        var scroll = new FrameworkElementFactory(typeof(ScrollViewer));
+        scroll.SetValue(ScrollViewer.FocusableProperty, false);
+        scroll.AppendChild(new FrameworkElementFactory(typeof(ItemsPresenter)));
+        border.AppendChild(scroll);
+        var template = new ControlTemplate(typeof(ListBox)) { VisualTree = border };
+        var disabled = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
+        disabled.Setters.Add(new Setter(UIElement.OpacityProperty, 0.5, "Bd"));
+        template.Triggers.Add(disabled);
+        template.Seal();
+        return template;
     }
 
     /// <summary>A centered, muted line for an empty well ("No saved macros yet...").</summary>
