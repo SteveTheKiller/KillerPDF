@@ -874,14 +874,19 @@ namespace KillerPDF.Shell
         // area below the thumbnails, or the gray area around the page in the document pane.
         private void FillPageAgnosticMenu(ContextMenu menu)
         {
+            // The card frame and icon strips the page menu and the thumbnail card use, so the menu around the
+            // page reads like the menu on it. Every action and shortcut the old flat list had is still here.
+            if (TryFindResource("CardMenu") is Style card) menu.Style = card;
             AddOwnerPasswordItem(menu);
             AddNavRow(menu);
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_AddBlankPage"), (s, e) => AddBlankPageAtEnd(), glyph: ""));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Pages_Reverse"), (s, e) => ReversePageOrder(), glyph: "\uE8CB"));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Pages_FixOrientation"), (s, e) => FixPageOrientation(),
-                GestureFor("AltShift:O"), "\uE7AD"));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Pages_Straighten"), (s, e) => StraightenScannedPages(), glyph: "\uE809"));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Pages_DivideSpreads"), (s, e) => DivideSpreads(), glyph: "\uE89F"));
+            var pages = QuickStrip(menu, 3,
+                ("\uE7C3", Loc("Str_Ctx_AddBlankPage"), "AltShift:A", AddBlankPageAtEnd, false, true),
+                ("\uE8CB", Loc("Str_Pages_Reverse"), "AltShift:R", ReversePageOrder, false, true),
+                ("\uE7AD", Loc("Str_Pages_FixOrientation"), "AltShift:O", FixPageOrientation, false, true),
+                ("\uE809", Loc("Str_Pages_Straighten"), "AltShift:S", StraightenScannedPages, false, true),
+                ("\uE89F", Loc("Str_Pages_DivideSpreads"), "AltShift:D", DivideSpreads, false, true));
+            menu.Items.Add(CardSlot(LabelledStrip(Loc("Str_Card_PageTools"), pages), new Thickness(0)));
+            FocusFirstActionFromKeyboard(menu, pages);
             menu.Items.Add(new Separator());
             menu.Items.Add(BuildComparisonContextItem());
             menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_ZoomIn"), (s, e) => ZoomIn_Click(s!, e), GestureFor("Ctrl:Equals"), ""));

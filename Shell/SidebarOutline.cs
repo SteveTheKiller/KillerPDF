@@ -912,20 +912,19 @@ namespace KillerPDF.Shell
                 }
                 else
                 {
-                    menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_BmRename"), (_, _2) => BeginInlineRename(tvi, nref), GestureFor("F2"), ""));
-                    menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_BmAddChild"), (_, _2) => AddBookmarkInto(nref), glyph: ""));
-                    menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_BmSetDest"), (_, _2) => SetBookmarkDestination(nref), glyph: ""));
-                    menu.Items.Add(new Separator());
+                    // The bookmark's actions as one icon strip, the card the page and markup menus use.
                     (int idx, int siblingCount) = FindBookmarkSiblingPosition(
                         ReadEngineBookmarks(), nref.Identity);
-                    var up = MakeMenuItem(Loc("Str_Ctx_BmMoveUp"), (_, _2) => MoveBookmark(nref, -1), glyph: "");
-                    up.IsEnabled = idx > 0;
-                    menu.Items.Add(up);
-                    var down = MakeMenuItem(Loc("Str_Ctx_BmMoveDown"), (_, _2) => MoveBookmark(nref, +1), glyph: "");
-                    down.IsEnabled = idx >= 0 && idx < siblingCount - 1;
-                    menu.Items.Add(down);
-                    menu.Items.Add(new Separator());
-                    menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_BmDelete"), (_, _2) => DeleteSelectedBookmarks(nref), GestureFor("Del"), ""));
+                    if (TryFindResource("CardMenu") is Style card) menu.Style = card;
+                    var actions = QuickStrip(menu, 3,
+                        ("\uE8AC", Loc("Str_Ctx_BmRename"), "F2", () => BeginInlineRename(tvi, nref), false, true),
+                        ("\uE710", Loc("Str_Ctx_BmAddChild"), null, () => AddBookmarkInto(nref), false, true),
+                        ("\uE7B3", Loc("Str_Ctx_BmSetDest"), null, () => SetBookmarkDestination(nref), false, true),
+                        ("\uE74A", Loc("Str_Ctx_BmMoveUp"), null, () => MoveBookmark(nref, -1), false, idx > 0),
+                        ("\uE74B", Loc("Str_Ctx_BmMoveDown"), null, () => MoveBookmark(nref, +1), false, idx >= 0 && idx < siblingCount - 1),
+                        ("\uE74D", Loc("Str_Ctx_BmDelete"), "Del", () => DeleteSelectedBookmarks(nref), false, true));
+                    menu.Items.Add(CardSlot(actions, new Thickness(0)));
+                    FocusFirstActionFromKeyboard(menu, actions);
                 }
             }
             else

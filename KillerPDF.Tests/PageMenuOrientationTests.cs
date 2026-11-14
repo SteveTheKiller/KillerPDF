@@ -30,7 +30,8 @@ public sealed class PageMenuOrientationTests
         {
             at = menu.IndexOf("Loc(\"Str_Pages_FixOrientation\")", at, StringComparison.Ordinal);
             string call = menu[at..menu.IndexOf("));", at, StringComparison.Ordinal)];
-            Assert.Contains("GestureFor(\"AltShift:O\")", call, StringComparison.Ordinal);
+            // A menu row names it through GestureFor; an icon strip carries the cap and shows it in the tooltip.
+            Assert.Contains("\"AltShift:O\"", call, StringComparison.Ordinal);
             at += 10;
         }
     }
