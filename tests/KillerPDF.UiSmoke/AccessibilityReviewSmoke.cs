@@ -68,8 +68,8 @@ internal static class AccessibilityReviewSmoke
                 }
                 if (stage == 1 && dialog is not null)
                 {
-                    ComboBox findings = Find<ComboBox>(dialog, "A11yFindings");
-                    findings.SelectedItem = findings.Items.Cast<ComboBoxItem>().Single(item => Equals(item.Tag, missingLanguage));
+                    ListBox findings =Find<ListBox>(dialog, "A11yFindings");
+                    findings.SelectedItem = findings.Items.Cast<ListBoxItem>().Single(item => Equals(item.Tag, missingLanguage));
                     Find<TextBox>(dialog, "A11yInput").Text = "en-US";
                     stage = 2;
                     return;
@@ -82,7 +82,7 @@ internal static class AccessibilityReviewSmoke
                 }
                 if (stage == 3 && dialog is not null)
                 {
-                    if (Find<ComboBox>(dialog, "A11yFindings").Items.Cast<ComboBoxItem>().Any(item => Equals(item.Tag, missingLanguage))) return;
+                    if (Find<ListBox>(dialog, "A11yFindings").Items.Cast<ListBoxItem>().Any(item => Equals(item.Tag, missingLanguage))) return;
                     stage = 4;
                     Click(Find<Button>(dialog, "A11yClose"));
                     return;
@@ -149,13 +149,13 @@ internal static class AccessibilityReviewSmoke
         try
         {
             dialog.Show(); Pump();
-            ComboBox findings = Find<ComboBox>(dialog, "A11yFindings");
-            findings.SelectedItem = findings.Items.Cast<ComboBoxItem>().Single(item => Equals(item.Tag, "MissingDocumentLanguage"));
+            ListBox findings =Find<ListBox>(dialog, "A11yFindings");
+            findings.SelectedItem = findings.Items.Cast<ListBoxItem>().Single(item => Equals(item.Tag, "MissingDocumentLanguage"));
             Find<TextBox>(dialog, "A11yInput").Text = "en-US";
             Click(Find<Button>(dialog, "A11yApply"));
             if (undoFailure)
             {
-                Wait(() => !findings.Items.Cast<ComboBoxItem>().Any(item => Equals(item.Tag, "MissingDocumentLanguage")), "before failing Undo");
+                Wait(() => !findings.Items.Cast<ListBoxItem>().Any(item => Equals(item.Tag, "MissingDocumentLanguage")), "before failing Undo");
                 Click(Find<Button>(dialog, "A11yUndo"));
             }
             Wait(() => Find<TextBlock>(dialog, "A11yStatus").Text.Length != 0, "host snapshot failure");
@@ -350,10 +350,10 @@ internal static class AccessibilityReviewSmoke
         string source = Path.Combine(folder, "manual-source.pdf"); File.WriteAllBytes(source, original); Open(owner, source);
         DriveReview(owner, dialog =>
         {
-            ComboBox findings = Find<ComboBox>(dialog, "A11yFindings");
+            ListBox findings =Find<ListBox>(dialog, "A11yFindings");
             foreach (string code in expected)
             {
-                findings.SelectedItem = findings.Items.Cast<ComboBoxItem>().Single(item => Equals(item.Tag, code)); Pump();
+                findings.SelectedItem = findings.Items.Cast<ListBoxItem>().Single(item => Equals(item.Tag, code)); Pump();
                 string manual = (string)Application.Current.FindResource("Str_A11y_Manual");
                 if (Find<TextBox>(dialog, "A11yInput").IsEnabled || Find<Button>(dialog, "A11yApply").IsEnabled
                     || !Children(dialog).OfType<TextBlock>().Any(block => block.Text.Contains(manual, StringComparison.Ordinal)))
@@ -417,15 +417,15 @@ internal static class AccessibilityReviewSmoke
         string source = Path.Combine(folder, "safety-" + mode + "-source.pdf"); File.WriteAllBytes(source, original); Open(owner, source);
         DriveReview(owner, dialog =>
         {
-            var findings = Find<ComboBox>(dialog, "A11yFindings");
-            findings.SelectedItem = findings.Items.Cast<ComboBoxItem>().Single(item => Equals(item.Tag, "MissingDocumentLanguage"));
+            var findings = Find<ListBox>(dialog, "A11yFindings");
+            findings.SelectedItem = findings.Items.Cast<ListBoxItem>().Single(item => Equals(item.Tag, "MissingDocumentLanguage"));
             Find<TextBox>(dialog, "A11yInput").Text = "en-US";
             if (mode == "invalid-language")
             {
                 Find<TextBox>(dialog, "A11yInput").Text = "not_a_language";
                 Click(Find<Button>(dialog, "A11yApply"));
                 Wait(() => Find<Button>(dialog, "A11yApply").IsEnabled && Find<TextBlock>(dialog, "A11yStatus").Text.Length != 0, "invalid language rejected");
-                if (!findings.Items.Cast<ComboBoxItem>().Any(item => Equals(item.Tag, "MissingDocumentLanguage"))
+                if (!findings.Items.Cast<ListBoxItem>().Any(item => Equals(item.Tag, "MissingDocumentLanguage"))
                     || Find<Button>(dialog, "A11yUndo").IsEnabled)
                     throw new InvalidOperationException("Invalid language changed review findings or created an Undo entry.");
                 Find<TextBox>(dialog, "A11yInput").Text = "en-US";
@@ -435,9 +435,9 @@ internal static class AccessibilityReviewSmoke
             {
                 if (Find<Button>(dialog, "A11yUndo").IsEnabled) throw new InvalidOperationException("Dialog Undo enabled before its own fix.");
                 Click(Find<Button>(dialog, "A11yApply"));
-                Wait(() => !findings.Items.Cast<ComboBoxItem>().Any(item => Equals(item.Tag, "MissingDocumentLanguage")), "dialog fix before Undo");
+                Wait(() => !findings.Items.Cast<ListBoxItem>().Any(item => Equals(item.Tag, "MissingDocumentLanguage")), "dialog fix before Undo");
                 Click(Find<Button>(dialog, "A11yUndo"));
-                Wait(() => findings.Items.Cast<ComboBoxItem>().Any(item => Equals(item.Tag, "MissingDocumentLanguage")), "dialog Undo restores finding");
+                Wait(() => findings.Items.Cast<ListBoxItem>().Any(item => Equals(item.Tag, "MissingDocumentLanguage")), "dialog Undo restores finding");
                 if (Find<Button>(dialog, "A11yUndo").IsEnabled) throw new InvalidOperationException("Dialog Undo escaped its own fix history.");
             }
             else if (mode == "source-changed")
@@ -449,7 +449,7 @@ internal static class AccessibilityReviewSmoke
                 expectedSource = original.Concat(Encoding.ASCII.GetBytes("\n% owned external change\n")).ToArray();
                 File.WriteAllBytes(source, expectedSource);
                 Click(Find<Button>(dialog, "A11yApply"));
-                Wait(() => !findings.Items.Cast<ComboBoxItem>().Any(item => Equals(item.Tag, "MissingDocumentLanguage")), "fix applied after an outside change");
+                Wait(() => !findings.Items.Cast<ListBoxItem>().Any(item => Equals(item.Tag, "MissingDocumentLanguage")), "fix applied after an outside change");
             }
             else if (mode == "source-switched")
             {
@@ -498,8 +498,8 @@ internal static class AccessibilityReviewSmoke
                 if (stage == 0) { stage = 1; owner.Dispatcher.BeginInvoke(() => RunSearchAction(owner)); return; }
                 if (stage == 1 && dialog is not null)
                 {
-                    ComboBox findings = Find<ComboBox>(dialog, "A11yFindings");
-                    findings.SelectedItem = findings.Items.Cast<ComboBoxItem>().Single(item => Equals(item.Tag, codes[target]));
+                    ListBox findings =Find<ListBox>(dialog, "A11yFindings");
+                    findings.SelectedItem = findings.Items.Cast<ListBoxItem>().Single(item => Equals(item.Tag, codes[target]));
                     if (!Find<TextBox>(dialog, "A11yInput").IsEnabled)
                         throw new InvalidOperationException("Supported description finding is not editable: " + codes[target]);
                     Find<TextBox>(dialog, "A11yInput").Text = descriptions[target]; stage = 2; return;
@@ -523,7 +523,7 @@ internal static class AccessibilityReviewSmoke
                 }
                 if (stage == 3 && dialog is not null)
                 {
-                    if (Find<ComboBox>(dialog, "A11yFindings").Items.Cast<ComboBoxItem>().Any(item => Equals(item.Tag, codes[target]))) return;
+                    if (Find<ListBox>(dialog, "A11yFindings").Items.Cast<ListBoxItem>().Any(item => Equals(item.Tag, codes[target]))) return;
                     if (++target < codes.Length) { stage = 1; return; }
                     stage = 4; Click(Find<Button>(dialog, "A11yClose")); return;
                 }

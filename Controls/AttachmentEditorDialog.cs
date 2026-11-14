@@ -24,15 +24,18 @@ internal sealed class AttachmentEditorDialog : Window
         DialogFrame.Configure(this, owner);
 
         var body = new StackPanel { Margin = new Thickness(20, 6, 20, 16) };
+        // The column names over the well; the remove column needs none, its icons name themselves.
         var header = CreateGrid();
+        header.Margin = new Thickness(11, 0, 7, 2);
         AddLabel(header, L("Str_Attachment_Name"), 0);
         AddLabel(header, L("Str_Attachment_Description"), 1);
         AddLabel(header, L("Str_Attachment_MimeType"), 2);
         AddLabel(header, L("Str_Attachment_Relationship"), 3);
-        AddLabel(header, L("Str_Attachment_Remove"), 4);
         body.Children.Add(header);
 
-        var rows = new StackPanel();
+        var rows = new StackPanel { Margin = new Thickness(8, 5, 4, 5) };
+        TextBlock empty = DialogParts.EmptyHint("Str_Attachment_None");
+        empty.Visibility = Visibility.Collapsed;
         foreach (PdfEngineIntegration.AttachmentEditorItem attachment in attachments)
         {
             var grid = CreateGrid();
@@ -44,11 +47,16 @@ internal sealed class AttachmentEditorDialog : Window
             relationship.ItemsSource = System.Enum.GetValues<PdfAssociatedFileRelationship>();
             relationship.SelectedItem = attachment.Relationship;
             relationship.Margin = new Thickness(0, 3, 8, 3);
-            CheckBox remove = UiKit.CheckBox(string.Empty);
+            var row = new AttachmentRow(attachment, name, description, mimeType, relationship);
+            // The remove icon takes the row out of the list; Save still reports it as removed, as the
+            // checked Remove box did, and Cancel keeps every attachment.
+            Button remove = DialogParts.IconAction("Str_Attachment_Remove", 0xE74D, (_, _) =>
+            {
+                row.Remove = true;
+                grid.Visibility = Visibility.Collapsed;
+                if (_rows.All(item => item.Remove)) empty.Visibility = Visibility.Visible;
+            });
             remove.HorizontalAlignment = HorizontalAlignment.Center;
-            remove.VerticalAlignment = VerticalAlignment.Center;
-            remove.Checked += (_, _) => SetEnabled(false, name, description, mimeType, relationship);
-            remove.Unchecked += (_, _) => SetEnabled(true, name, description, mimeType, relationship);
 
             Add(grid, name, 0);
             Add(grid, description, 1);
@@ -56,15 +64,15 @@ internal sealed class AttachmentEditorDialog : Window
             Add(grid, relationship, 3);
             Add(grid, remove, 4);
             rows.Children.Add(grid);
-            _rows.Add(new AttachmentRow(attachment, name, description, mimeType,
-                relationship, remove));
+            _rows.Add(row);
         }
-        body.Children.Add(new ScrollViewer
+        body.Children.Add(DialogParts.Well(new ScrollViewer
         {
             Content = rows,
             MaxHeight = 420,
+            MinHeight = 44,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-        });
+        }, empty));
 
         var cancel = UiKit.Make(L("Str_Btn_Cancel"), accent: false);
         cancel.IsCancel = true;
@@ -72,9 +80,7 @@ internal sealed class AttachmentEditorDialog : Window
         var save = UiKit.Make(L("Str_DocInfo_Save"), accent: true);
         save.IsDefault = true;
         save.Click += (_, _) => Commit();
-        var buttons = UiKit.ButtonRow(cancel, save);
-        buttons.Margin = new Thickness(0, 16, 0, 0);
-        body.Children.Add(buttons);
+        body.Children.Add(DialogParts.Footer([cancel, save]));
 
         Content = DialogFrame.Frame(this, owner, Title,
             () => { DialogResult = false; Close(); }, body);
@@ -90,7 +96,7 @@ internal sealed class AttachmentEditorDialog : Window
                 Description = EmptyToNull(row.Description.Text),
                 MimeType = row.MimeType.Text.Trim(),
                 Relationship = (PdfAssociatedFileRelationship)row.Relationship.SelectedItem,
-                Remove = row.Remove.IsChecked == true
+                Remove = row.Remove
             })];
         PdfEngineIntegration.AttachmentEditorItem[] remaining =
             [.. edits.Where(edit => !edit.Remove)];
@@ -139,7 +145,7 @@ internal sealed class AttachmentEditorDialog : Window
         grid.ColumnDefinitions.Add(new ColumnDefinition());
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(190) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
         return grid;
     }
 
@@ -157,18 +163,20 @@ internal sealed class AttachmentEditorDialog : Window
         grid.Children.Add(element);
     }
 
-    private static void SetEnabled(bool enabled, params Control[] controls)
+    private sealed class AttachmentRow(
+        PdfEngineIntegration.AttachmentEditorItem original,
+        TextBox name,
+        TextBox description,
+        TextBox mimeType,
+        ComboBox relationship)
     {
-        foreach (Control control in controls) control.IsEnabled = enabled;
+        public PdfEngineIntegration.AttachmentEditorItem Original { get; } = original;
+        public TextBox Name { get; } = name;
+        public TextBox Description { get; } = description;
+        public TextBox MimeType { get; } = mimeType;
+        public ComboBox Relationship { get; } = relationship;
+        public bool Remove { get; set; }
     }
-
-    private sealed record AttachmentRow(
-        PdfEngineIntegration.AttachmentEditorItem Original,
-        TextBox Name,
-        TextBox Description,
-        TextBox MimeType,
-        ComboBox Relationship,
-        CheckBox Remove);
 
     private static string L(string key) =>
         Application.Current?.TryFindResource(key) as string ?? key;

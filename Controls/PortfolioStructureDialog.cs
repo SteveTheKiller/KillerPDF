@@ -33,45 +33,49 @@ internal sealed class PortfolioStructureDialog : Window
     {
         Title = "KillerPDF - " + L("Str_DocumentTools_EditPortfolioStructure");
         // As tall as the sections need, up to most of the screen, where they start scrolling.
-        Width = 1040;
+        Width = Math.Min(1100, SystemParameters.WorkArea.Width - 40);
         SizeToContent = SizeToContent.Height;
         MaxHeight = Math.Max(360, SystemParameters.WorkArea.Height * 0.85);
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
         _attachmentNames = [.. attachments.Select(item => item.FileName)];
 
-        var content = new StackPanel();
-        AddSection(content, "Str_Portfolio_Fields", FieldHeader(), _fieldsPanel,
-            () => AddField(null));
+        // Fields and Sort rules side by side, Folders and Attachment values full width under them, each a well
+        // with its column names and an Add icon in its heading.
+        var top = new Grid();
+        top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(63, GridUnitType.Star) });
+        top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+        top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(37, GridUnitType.Star) });
+        UIElement fields = Section("Str_Portfolio_Fields", FieldHeader(), _fieldsPanel, () => AddField(null));
         foreach (PdfCollectionFieldInfo field in collection?.Fields ?? []) AddField(field);
-
-        AddSection(content, "Str_Portfolio_Sort", SortHeader(), _sortPanel,
-            () => AddSort(null));
+        top.Children.Add(fields);
+        UIElement sort = Section("Str_Portfolio_Sort", SortHeader(), _sortPanel, () => AddSort(null));
         foreach (PdfCollectionSortInfo rule in collection?.Sort ?? []) AddSort(rule);
+        Grid.SetColumn(sort, 2);
+        top.Children.Add(sort);
 
-        AddSection(content, "Str_Portfolio_Folders", FolderHeader(), _foldersPanel,
-            () => AddFolder(null));
+        var content = new StackPanel();
+        content.Children.Add(top);
+        content.Children.Add(Section("Str_Portfolio_Folders", FolderHeader(), _foldersPanel,
+            () => AddFolder(null)));
         foreach (PdfCollectionFolderInfo folder in collection?.Folders ?? []) AddFolder(folder);
 
-        AddSection(content, "Str_Portfolio_ItemValues", ValueHeader(), _valuesPanel,
-            () => AddValue(null, null));
+        content.Children.Add(Section("Str_Portfolio_ItemValues", ValueHeader(), _valuesPanel,
+            () => AddValue(null, null), canAdd: _attachmentNames.Length > 0));
         foreach (PdfEngineIntegration.PortfolioAttachmentItem attachment in attachments)
             foreach (PdfCollectionItemValue value in attachment.Values)
                 AddValue(attachment.FileName, value);
 
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
-        var buttons = new StackPanel();
-        DockPanel.SetDock(buttons, Dock.Bottom);
         var cancel = UiKit.Make(L("Str_Btn_Cancel"), accent: false);
         cancel.IsCancel = true;
         cancel.Click += (_, _) => { DialogResult = false; Close(); };
         var save = UiKit.Make(L("Str_DocInfo_Save"), accent: true);
         save.IsDefault = true;
         save.Click += (_, _) => Commit();
-        var row = UiKit.ButtonRow(cancel, save);
-        row.Margin = new Thickness(0, 14, 0, 0);
-        buttons.Children.Add(row);
-        body.Children.Add(buttons);
+        DockPanel footer = DialogParts.Footer([cancel, save]);
+        DockPanel.SetDock(footer, Dock.Bottom);
+        body.Children.Add(footer);
         body.Children.Add(new ScrollViewer
         {
             Content = content,
@@ -82,10 +86,21 @@ internal sealed class PortfolioStructureDialog : Window
             () => { DialogResult = false; Close(); }, body);
     }
 
+    private static readonly double[] FieldWidths = [130, 0, 110, 60, 64, 68, 36];
+    private static readonly double[] SortWidths = [0, 90, 36];
+    private static readonly double[] FolderWidths = [80, 220, 100, 0, 36];
+    private static readonly double[] ValueWidths = [220, 150, 0, 80, 130, 36];
+
+    // New rows take names and IDs no earlier row used, removed ones included, as when removed rows stayed
+    // in the list with their Remove box checked.
+    private int _fieldsAdded;
+    private readonly List<long> _removedFolderIds = [];
+
     private void AddField(PdfCollectionFieldInfo? field)
     {
-        var grid = GridWith([150, 220, 120, 80, 74, 74, 74]);
-        TextBox key = Field(field?.Key ?? $"field{_fieldRows.Count + 1}");
+        _fieldsAdded++;
+        var grid = GridWith(FieldWidths);
+        TextBox key = Field(field?.Key ?? $"field{_fieldsAdded}");
         TextBox name = Field(field?.DisplayName ?? L("Str_Portfolio_CustomField"));
         ComboBox subtype = Combo(Subtypes);
         subtype.SelectedItem = field?.Subtype is string value && Subtypes.Contains(value)
@@ -93,44 +108,53 @@ internal sealed class PortfolioStructureDialog : Window
         TextBox order = Field(field?.Order?.ToString(CultureInfo.CurrentCulture) ?? string.Empty);
         CheckBox visible = Check(field?.IsVisible ?? true);
         CheckBox editable = Check(field?.IsEditable ?? true);
-        CheckBox remove = Check(false);
+        FieldRow row = new(key, name, subtype, order, visible, editable);
+        Button remove = RemoveIcon(() => { _fieldRows.Remove(row); _fieldsPanel.Children.Remove(grid); });
         Add(grid, key, 0); Add(grid, name, 1); Add(grid, subtype, 2); Add(grid, order, 3);
         Add(grid, visible, 4); Add(grid, editable, 5); Add(grid, remove, 6);
         _fieldsPanel.Children.Add(grid);
-        _fieldRows.Add(new(key, name, subtype, order, visible, editable, remove));
+        _fieldRows.Add(row);
     }
 
     private void AddSort(PdfCollectionSortInfo? rule)
     {
-        var grid = GridWith([300, 120, 74]);
+        var grid = GridWith(SortWidths);
         TextBox key = Field(rule?.Key ?? string.Empty);
         CheckBox ascending = Check(rule?.Ascending ?? true);
-        CheckBox remove = Check(false);
+        SortRow row = new(key, ascending);
+        Button remove = RemoveIcon(() => { _sortRows.Remove(row); _sortPanel.Children.Remove(grid); });
         Add(grid, key, 0); Add(grid, ascending, 1); Add(grid, remove, 2);
         _sortPanel.Children.Add(grid);
-        _sortRows.Add(new(key, ascending, remove));
+        _sortRows.Add(row);
     }
 
     private void AddFolder(PdfCollectionFolderInfo? folder)
     {
-        var grid = GridWith([90, 220, 100, 0, 74]);
-        long nextId = _folderRows.Count == 0 ? 1 : _folderRows
-            .Select(row => long.TryParse(row.Id.Text, out long id) ? id : 0).Max() + 1;
+        var grid = GridWith(FolderWidths);
+        long nextId = _folderRows.Count == 0 && _removedFolderIds.Count == 0 ? 1 : _folderRows
+            .Select(row => long.TryParse(row.Id.Text, out long id) ? id : 0)
+            .Concat(_removedFolderIds).Max() + 1;
         TextBox id = Field((folder?.Id ?? nextId).ToString(CultureInfo.CurrentCulture));
         TextBox name = Field(folder?.Name ?? L("Str_Portfolio_NewFolder"));
         TextBox parent = Field(folder?.ParentId?.ToString(CultureInfo.CurrentCulture) ?? string.Empty);
         TextBox description = Field(folder?.Description ?? string.Empty);
-        CheckBox remove = Check(false);
+        FolderRow row = new(id, name, parent, description);
+        Button remove = RemoveIcon(() =>
+        {
+            _removedFolderIds.Add(long.TryParse(id.Text, out long removed) ? removed : 0);
+            _folderRows.Remove(row);
+            _foldersPanel.Children.Remove(grid);
+        });
         Add(grid, id, 0); Add(grid, name, 1); Add(grid, parent, 2);
         Add(grid, description, 3); Add(grid, remove, 4);
         _foldersPanel.Children.Add(grid);
-        _folderRows.Add(new(id, name, parent, description, remove));
+        _folderRows.Add(row);
     }
 
     private void AddValue(string? attachmentName, PdfCollectionItemValue? value)
     {
         if (_attachmentNames.Length == 0) return;
-        var grid = GridWith([190, 150, 0, 80, 130, 74]);
+        var grid = GridWith(ValueWidths);
         ComboBox attachment = Combo(_attachmentNames);
         attachment.SelectedItem = attachmentName is not null
             && _attachmentNames.Contains(attachmentName, StringComparer.Ordinal)
@@ -142,11 +166,20 @@ internal sealed class PortfolioStructureDialog : Window
             : value?.Text ?? string.Empty);
         CheckBox number = Check(isNumber);
         TextBox prefix = Field(value?.Prefix ?? string.Empty);
-        CheckBox remove = Check(false);
+        ValueRow row = new(attachment, key, data, number, prefix);
+        Button remove = RemoveIcon(() => { _valueRows.Remove(row); _valuesPanel.Children.Remove(grid); });
         Add(grid, attachment, 0); Add(grid, key, 1); Add(grid, data, 2);
         Add(grid, number, 3); Add(grid, prefix, 4); Add(grid, remove, 5);
         _valuesPanel.Children.Add(grid);
-        _valueRows.Add(new(attachment, key, data, number, prefix, remove));
+        _valueRows.Add(row);
+    }
+
+    // A row's remove icon drops the row from what Save writes, as its Remove check box did.
+    private static Button RemoveIcon(Action remove)
+    {
+        Button button = DialogParts.IconAction("Str_Portfolio_Remove", 0xE711, (_, _) => remove());
+        button.HorizontalAlignment = HorizontalAlignment.Center;
+        return button;
     }
 
     private void Commit()
@@ -154,7 +187,6 @@ internal sealed class PortfolioStructureDialog : Window
         try
         {
             PdfCollectionFieldInfo[] fields = [.. _fieldRows
-                .Where(row => row.Remove.IsChecked != true)
                 .Select(row => new PdfCollectionFieldInfo
                 {
                     Key = Required(row.Key.Text),
@@ -172,7 +204,6 @@ internal sealed class PortfolioStructureDialog : Window
                 .ToHashSet(StringComparer.Ordinal);
 
             PdfCollectionSortInfo[] sort = [.. _sortRows
-                .Where(row => row.Remove.IsChecked != true)
                 .Select(row => new PdfCollectionSortInfo(
                     Required(row.Key.Text), row.Ascending.IsChecked == true))];
             if (sort.Any(rule => !fieldKeys.Contains(rule.Key))
@@ -181,7 +212,6 @@ internal sealed class PortfolioStructureDialog : Window
                 throw new FormatException();
 
             PdfCollectionFolder[] folders = [.. _folderRows
-                .Where(row => row.Remove.IsChecked != true)
                 .Select(row => new PdfCollectionFolder(
                     RequiredLong(row.Id.Text), Required(row.Name.Text),
                     OptionalLong(row.Parent.Text), EmptyToNull(row.Description.Text)))];
@@ -199,9 +229,8 @@ internal sealed class PortfolioStructureDialog : Window
             var values = _attachmentNames.ToDictionary(
                 name => name,
                 name => (IReadOnlyList<PdfCollectionItemValue>)[.. _valueRows
-                    .Where(row => row.Remove.IsChecked != true
-                        && string.Equals(row.Attachment.SelectedItem as string, name,
-                            StringComparison.Ordinal))
+                    .Where(row => string.Equals(row.Attachment.SelectedItem as string, name,
+                        StringComparison.Ordinal))
                     .Select(row => BuildValue(row, fieldKeys))],
                 StringComparer.Ordinal);
             if (values.Values.Any(items => items.Select(item => item.Key)
@@ -236,45 +265,49 @@ internal sealed class PortfolioStructureDialog : Window
         return new PdfCollectionItemValue(key, null, number, prefix);
     }
 
-    private static void AddSection(
-        StackPanel body, string titleKey, Grid header, StackPanel rows, Action addRow)
+    // A section: its title with an Add icon, then its column names and rows in a well.
+    private static DockPanel Section(string titleKey, Grid header, StackPanel rows, Action addRow,
+        bool canAdd = true)
     {
-        TextBlock title = UiKit.GroupLabel(L(titleKey));
-        title.Margin = new Thickness(0, 12, 0, 4);
-        body.Children.Add(title);
-        body.Children.Add(header);
-        body.Children.Add(rows);
-        Button add = UiKit.Make(L("Str_Portfolio_AddRow"), accent: false);
-        add.HorizontalAlignment = HorizontalAlignment.Left;
-        add.Margin = new Thickness(0, 4, 0, 2);
-        add.Click += (_, _) => addRow();
-        body.Children.Add(add);
+        Button add = DialogParts.IconAction("Str_Portfolio_AddRow", 0xE710, (_, _) => addRow());
+        add.IsEnabled = canAdd;
+        var section = new DockPanel { Margin = new Thickness(0, 10, 0, 0) };
+        DockPanel heading = DialogParts.Header(L(titleKey), add);
+        DockPanel.SetDock(heading, Dock.Top);
+        section.Children.Add(heading);
+        var inside = new StackPanel { Margin = new Thickness(8, 6, 4, 6) };
+        inside.Children.Add(header);
+        inside.Children.Add(rows);
+        section.Children.Add(DialogParts.Well(inside));
+        return section;
     }
 
-    private static Grid FieldHeader() => Header(
-        [150, 220, 120, 80, 74, 74, 74],
+    private static Grid FieldHeader() => Header(FieldWidths,
         ["Str_Portfolio_Key", "Str_Portfolio_DisplayName", "Str_Portfolio_Type",
-         "Str_Portfolio_Order", "Str_Portfolio_Visible", "Str_Portfolio_Editable",
-         "Str_Portfolio_Remove"]);
+         "Str_Portfolio_Order", "Str_Portfolio_Visible", "Str_Portfolio_Editable"]);
 
-    private static Grid SortHeader() => Header([300, 120, 74],
-        ["Str_Portfolio_Key", "Str_Portfolio_Ascending", "Str_Portfolio_Remove"]);
+    private static Grid SortHeader() => Header(SortWidths,
+        ["Str_Portfolio_Key", "Str_Portfolio_Ascending"]);
 
-    private static Grid FolderHeader() => Header([90, 220, 100, 0, 74],
+    private static Grid FolderHeader() => Header(FolderWidths,
         ["Str_Portfolio_Id", "Str_Attachment_Name", "Str_Portfolio_Parent",
-         "Str_Attachment_Description", "Str_Portfolio_Remove"]);
+         "Str_Attachment_Description"]);
 
-    private static Grid ValueHeader() => Header([190, 150, 0, 80, 130, 74],
+    private static Grid ValueHeader() => Header(ValueWidths,
         ["Str_Portfolio_Attachment", "Str_Portfolio_Key", "Str_Portfolio_Value",
-         "Str_Portfolio_Number", "Str_Portfolio_Prefix", "Str_Portfolio_Remove"]);
+         "Str_Portfolio_Number", "Str_Portfolio_Prefix"]);
 
+    // Column names; check box columns are centered over their boxes. The remove column has no name, since
+    // each row's remove icon says what it does.
     private static Grid Header(double[] widths, string[] labels)
     {
         Grid grid = GridWith(widths);
         for (int index = 0; index < labels.Length; index++)
         {
             TextBlock label = UiKit.GroupLabel(L(labels[index]));
-            label.HorizontalAlignment = index == labels.Length - 1
+            label.TextTrimming = TextTrimming.CharacterEllipsis;
+            label.HorizontalAlignment = labels[index] is "Str_Portfolio_Visible" or "Str_Portfolio_Editable"
+                or "Str_Portfolio_Ascending" or "Str_Portfolio_Number"
                 ? HorizontalAlignment.Center : HorizontalAlignment.Left;
             Add(grid, label, index);
         }
@@ -346,12 +379,12 @@ internal sealed class PortfolioStructureDialog : Window
         ? null : RequiredLong(value);
 
     private sealed record FieldRow(TextBox Key, TextBox Name, ComboBox Subtype,
-        TextBox Order, CheckBox Visible, CheckBox Editable, CheckBox Remove);
-    private sealed record SortRow(TextBox Key, CheckBox Ascending, CheckBox Remove);
+        TextBox Order, CheckBox Visible, CheckBox Editable);
+    private sealed record SortRow(TextBox Key, CheckBox Ascending);
     private sealed record FolderRow(TextBox Id, TextBox Name, TextBox Parent,
-        TextBox Description, CheckBox Remove);
+        TextBox Description);
     private sealed record ValueRow(ComboBox Attachment, TextBox Key, TextBox Value,
-        CheckBox Number, TextBox Prefix, CheckBox Remove);
+        CheckBox Number, TextBox Prefix);
 
     private static string L(string key) =>
         Application.Current?.TryFindResource(key) as string ?? key;

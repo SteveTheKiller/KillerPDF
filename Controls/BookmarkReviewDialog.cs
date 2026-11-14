@@ -25,25 +25,28 @@ internal sealed class BookmarkReviewDialog : Window
         DialogFrame.Configure(this, owner);
 
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
-        var buttonsPanel = new StackPanel();
-        DockPanel.SetDock(buttonsPanel, Dock.Bottom);
-        buttonsPanel.Children.Add(new TextBlock
-        {
-            Text = L("Str_AutoBookmarks_ReviewHelp"),
-            Foreground = UiKit.Brush("MutedTextBrush"),
-            TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(0, 10, 0, 4)
-        });
         var cancel = UiKit.Make(L("Str_Btn_Cancel"), accent: false);
         cancel.IsCancel = true;
         cancel.Click += (_, _) => { DialogResult = false; Close(); };
         var add = UiKit.Make(L("Str_AutoBookmarks_AddSelected"), accent: true);
         add.IsDefault = true;
         add.Click += (_, _) => Commit();
-        buttonsPanel.Children.Add(UiKit.ButtonRow(cancel, add));
-        body.Children.Add(buttonsPanel);
+        DockPanel footer = DialogParts.Footer([cancel, add]);
+        DockPanel.SetDock(footer, Dock.Bottom);
+        body.Children.Add(footer);
 
-        var list = new StackPanel();
+        // What the review does, above the list it describes.
+        var help = new TextBlock
+        {
+            Text = L("Str_AutoBookmarks_ReviewHelp"),
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+        help.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+        DockPanel.SetDock(help, Dock.Top);
+        body.Children.Add(help);
+
+        var list = new StackPanel { Margin = new Thickness(4, 5, 4, 5) };
         foreach (PdfBookmarkProposal proposal in proposals)
         {
             var grid = new Grid { Margin = new Thickness(0, 2, 0, 2) };
@@ -75,7 +78,7 @@ internal sealed class BookmarkReviewDialog : Window
             _rows.Add(new ProposalRow(proposal, include, title, level));
         }
 
-        var header = new Grid();
+        var header = new Grid { Margin = new Thickness(7, 0, 7, 2) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(42) });
         header.ColumnDefinitions.Add(new ColumnDefinition());
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
@@ -90,11 +93,11 @@ internal sealed class BookmarkReviewDialog : Window
         var center = new DockPanel();
         DockPanel.SetDock(header, Dock.Top);
         center.Children.Add(header);
-        center.Children.Add(new ScrollViewer
+        center.Children.Add(DialogParts.Well(new ScrollViewer
         {
             Content = list,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-        });
+        }));
         body.Children.Add(center);
 
         Content = DialogFrame.Frame(this, owner, Title,
@@ -141,13 +144,17 @@ internal sealed class BookmarkReviewDialog : Window
         int.TryParse(text.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out level)
         && level is >= 1 and <= 256;
 
-    private static TextBlock Value(string text) => new()
+    private static TextBlock Value(string text)
     {
-        Text = text,
-        Foreground = UiKit.Brush("TextBrush"),
-        VerticalAlignment = VerticalAlignment.Center,
-        HorizontalAlignment = HorizontalAlignment.Center
-    };
+        var value = new TextBlock
+        {
+            Text = text,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        value.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+        return value;
+    }
 
     private static void Add(Grid grid, UIElement element, int column)
     {
