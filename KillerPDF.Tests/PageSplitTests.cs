@@ -132,6 +132,21 @@ public sealed class PageSplitTests : IDisposable
     }
 
     [Fact]
+    public void AFolderWithAFilesNameStopsTheSplitBeforeAnythingIsReplaced()
+    {
+        string source = Document(3);
+        string output = Path.Combine(_folder, "out");
+        Directory.CreateDirectory(Path.Combine(output, "report-page-003.pdf"));
+        string first = Path.Combine(output, "report-page-001.pdf");
+        File.WriteAllText(first, "keep me");
+        IReadOnlyList<PageSplitPart> parts = PageSplit.Plan(PageSplitMode.EveryPage, 3, 1, "report");
+
+        Assert.Throws<IOException>(() => PageSplit.Write(source, output, parts, new Dictionary<int, int>(), overwrite: true));
+        Assert.Equal("keep me", File.ReadAllText(first));
+        Assert.Equal([first], Directory.GetFiles(output));
+    }
+
+    [Fact]
     public void APartThatWouldReplaceTheOpenDocumentIsFound()
     {
         IReadOnlyList<PageSplitPart> parts = PageSplit.Plan(PageSplitMode.EveryPage, 3, 1, "report");

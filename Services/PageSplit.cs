@@ -100,7 +100,8 @@ internal static class PageSplit
 
     /// <summary>
     /// Writes every part from the saved copy at <paramref name="sourcePath"/> and returns how many files were written.
-    /// Every part is finished in the folder before any planned name is touched, so a failure leaves the folder as it was.
+    /// Every part is finished in the folder before any planned name is touched, so a failed build leaves the folder as
+    /// it was; only a file another program holds while the finished parts are moved into place can stop it partway.
     /// An existing file is replaced only when <paramref name="overwrite"/> says so; otherwise nothing is written.
     /// </summary>
     internal static int Write(string sourcePath, string folder, IReadOnlyList<PageSplitPart> parts,
@@ -110,6 +111,9 @@ internal static class PageSplit
         ArgumentException.ThrowIfNullOrWhiteSpace(folder);
         ArgumentNullException.ThrowIfNull(parts);
         ArgumentNullException.ThrowIfNull(rotations);
+        // A folder never gives way to a part, as the command line's split refuses it too.
+        if (parts.Select(part => Path.Combine(folder, part.FileName)).FirstOrDefault(Directory.Exists) is string blocked)
+            throw new IOException("A folder has the name of a file to write: " + blocked);
         if (!overwrite && Existing(folder, parts) is [string first, ..])
             throw new IOException("The file already exists: " + first);
         Directory.CreateDirectory(folder);
