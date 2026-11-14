@@ -39,9 +39,9 @@ internal sealed class DocumentValuesDialog : Window
         var apply = UiKit.Make(confirmText, accent: true);
         apply.IsDefault = true;
         apply.Click += (_, _) => { DialogResult = true; };
-        var buttons = UiKit.ButtonRow(cancel, apply);
-        buttons.Margin = new Thickness(0, 12, 0, 0);
-        DockPanel.SetDock(buttons, Dock.Bottom); body.Children.Add(buttons);
+        DockPanel footer = DialogParts.Footer([cancel, apply]);
+        footer.Margin = new Thickness(0, 2, 0, 0);
+        DockPanel.SetDock(footer, Dock.Bottom); body.Children.Add(footer);
         body.Children.Add(new ScrollViewer { Content = fieldsPanel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         Loaded += (_, _) => _fields.FirstOrDefault()?.Focus();

@@ -26,17 +26,17 @@ internal sealed class DocumentListDialog : Window
         var apply = UiKit.Make(L("Str_Tf_Apply"), accent: true);
         apply.IsDefault = true; apply.IsEnabled = index > 0;
         apply.Click += (_, _) => { if (_list.SelectedIndex >= 0) DialogResult = true; };
-        var buttons = UiKit.ButtonRow(cancel, apply);
-        DockPanel.SetDock(buttons, Dock.Bottom); body.Children.Add(buttons);
+        DockPanel footer = DialogParts.Footer([cancel, apply]);
+        DockPanel.SetDock(footer, Dock.Bottom); body.Children.Add(footer);
+        // Reordering puts Move up and Move down as icons above the list they act on.
         if (reorder)
         {
-            var up = UiKit.Make(L("Str_Ctx_BmMoveUp"), accent: false);
-            var down = UiKit.Make(L("Str_Ctx_BmMoveDown"), accent: false);
-            up.Click += (_, _) => Move(-1); down.Click += (_, _) => Move(1);
-            var moves = UiKit.ButtonRow(up, down);
-            DockPanel.SetDock(moves, Dock.Bottom); body.Children.Add(moves);
+            Button up = DialogParts.IconAction("Str_Ctx_BmMoveUp", 0xE74A, (_, _) => Move(-1));
+            Button down = DialogParts.IconAction("Str_Ctx_BmMoveDown", 0xE74B, (_, _) => Move(1));
+            DockPanel header = DialogParts.Header(title, up, down);
+            DockPanel.SetDock(header, Dock.Top); body.Children.Add(header);
         }
-        body.Children.Add(_list);
+        body.Children.Add(DialogParts.Well(_list));
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         Loaded += (_, _) => _list.Focus();
     }

@@ -43,59 +43,67 @@ internal sealed class CertificateCatalogDialog : Window
         DialogFrame.Configure(this, owner, resizable: true);
         AutomationProperties.SetAutomationId(this, "CertificateCatalogDialog");
 
-        var body = new Grid { Margin = new Thickness(20, 6, 20, 16) };
-        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        body.RowDefinitions.Add(new RowDefinition());
-        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
 
+        // The hint, then the search on one row: its label on the left, the box filling the rest.
+        var top = new StackPanel();
         var hint = Label(L("Str_CertCatalog_Hint"), muted: true);
-        hint.Margin = new Thickness(0, 0, 0, 12);
-        body.Children.Add(hint);
-
-        var searchRow = new Grid { Margin = new Thickness(0, 0, 0, 12) };
-        searchRow.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        searchRow.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        hint.Margin = new Thickness(0, 0, 0, 10);
+        top.Children.Add(hint);
+        var searchRow = new DockPanel { Margin = new Thickness(0, 0, 0, 12) };
         var searchLabel = Label(L("Str_CertCatalog_Search"));
-        searchLabel.Margin = new Thickness(0, 0, 0, 4);
+        searchLabel.TextWrapping = TextWrapping.NoWrap;
+        searchLabel.VerticalAlignment = VerticalAlignment.Center;
+        searchLabel.Margin = new Thickness(0, 0, 10, 0);
+        DockPanel.SetDock(searchLabel, Dock.Left);
         searchRow.Children.Add(searchLabel);
         AutomationProperties.SetName(_search, L("Str_CertCatalog_Search"));
         AutomationProperties.SetAutomationId(_search, "CertificateCatalogSearch");
         _search.TextChanged += (_, _) => ApplyFilter(SelectedKey);
-        Grid.SetRow(_search, 1);
         searchRow.Children.Add(_search);
-        Grid.SetRow(searchRow, 1);
-        body.Children.Add(searchRow);
+        top.Children.Add(searchRow);
+        DockPanel.SetDock(top, Dock.Top);
 
         var panes = new Grid();
         panes.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        panes.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+        panes.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
         panes.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-        _list.SetResourceReference(Control.BackgroundProperty, "PaneBrush");
-        _list.SetResourceReference(Control.ForegroundProperty, "TextBrush");
-        _list.SetResourceReference(Control.BorderBrushProperty, "CardBorderBrush");
         _list.HorizontalContentAlignment = HorizontalAlignment.Stretch;
         ScrollViewer.SetHorizontalScrollBarVisibility(_list, ScrollBarVisibility.Disabled);
         ScrollViewer.SetVerticalScrollBarVisibility(_list, ScrollBarVisibility.Auto);
         AutomationProperties.SetName(_list, L("Str_CertCatalog_Title"));
         AutomationProperties.SetAutomationId(_list, "CertificateCatalogList");
         _list.SelectionChanged += (_, _) => UpdateSelection();
-        _empty = Label(L("Str_CertCatalog_Empty"), muted: true);
-        _empty.Margin = new Thickness(12);
-        _empty.IsHitTestVisible = false;
-        var listHost = new Grid();
-        listHost.Children.Add(_list);
-        listHost.Children.Add(_empty);
+        _empty = DialogParts.EmptyHint("Str_CertCatalog_Empty");
+
+        // List actions are icons in the list's header, named in their tooltips; each keeps its automation id.
+        _import = ListAction("Str_CertCatalog_Import", 0xE896, "CertificateCatalogImport");
+        _import.Click += async (_, _) => await ImportAsync();
+        _trust = ListAction("Str_CertCatalog_Trust", 0xEA18, "CertificateCatalogTrust");
+        _trust.Click += async (_, _) => await SetTrustAsync(true);
+        _untrust = ListAction("Str_CertCatalog_Untrust", 0xEA18, "CertificateCatalogUntrust");
+        _untrust.Click += async (_, _) => await SetTrustAsync(false);
+        _remove = ListAction("Str_Protect_Remove", 0xE74D, "CertificateCatalogRemove");
+        _remove.Click += async (_, _) => await RemoveAsync();
+        _refresh = ListAction("Str_CertCatalog_Refresh", 0xE72C, "CertificateCatalogRefresh");
+        _refresh.Click += async (_, _) => await ReloadAsync();
+
+        var listHost = new DockPanel();
+        DockPanel listHeader = DialogParts.Header(L("Str_CertCatalog_Title"), _import, _trust, _untrust, _remove, _refresh);
+        DockPanel.SetDock(listHeader, Dock.Top);
+        listHost.Children.Add(listHeader);
+        listHost.Children.Add(DialogParts.Well(_list, _empty));
         panes.Children.Add(listHost);
 
-        var detailsHost = new Grid();
-        detailsHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        detailsHost.RowDefinitions.Add(new RowDefinition());
-        var detailsLabel = Label(L("Str_Portfolio_Details"));
-        detailsLabel.Margin = new Thickness(0, 0, 0, 6);
-        detailsHost.Children.Add(detailsLabel);
+        var detailsHost = new DockPanel();
+        // The details heading lines up with the list's heading beside it, which its icons make taller.
+        var detailsHeader = DialogParts.Header(L("Str_Portfolio_Details"));
+        detailsHeader.MinHeight = 0;
+        detailsHeader.SetBinding(FrameworkElement.HeightProperty,
+            new Binding(nameof(ActualHeight)) { Source = listHeader });
+        DockPanel.SetDock(detailsHeader, Dock.Top);
+        detailsHost.Children.Add(detailsHeader);
         _details.IsReadOnly = true;
         _details.AcceptsReturn = true;
         _details.AcceptsTab = false;
@@ -104,12 +112,9 @@ internal sealed class CertificateCatalogDialog : Window
         _details.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
         AutomationProperties.SetName(_details, L("Str_Portfolio_Details"));
         AutomationProperties.SetAutomationId(_details, "CertificateCatalogDetails");
-        Grid.SetRow(_details, 1);
-        detailsHost.Children.Add(_details);
+        detailsHost.Children.Add(DialogParts.Well(_details));
         Grid.SetColumn(detailsHost, 2);
         panes.Children.Add(detailsHost);
-        Grid.SetRow(panes, 2);
-        body.Children.Add(panes);
 
         var feedback = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
         _progress = new ProgressBar { Height = 3, IsIndeterminate = true, Visibility = Visibility.Collapsed };
@@ -120,32 +125,20 @@ internal sealed class CertificateCatalogDialog : Window
         _message.Margin = new Thickness(0, 6, 0, 0);
         _message.Visibility = Visibility.Collapsed;
         AutomationProperties.SetLiveSetting(_message, AutomationLiveSetting.Polite);
-        feedback.Children.Add(_message);
-        Grid.SetRow(feedback, 3);
-        body.Children.Add(feedback);
-
-        _import = ActionButton("Str_CertCatalog_Import", "CertificateCatalogImport");
-        _import.Click += async (_, _) => await ImportAsync();
-        _trust = ActionButton("Str_CertCatalog_Trust", "CertificateCatalogTrust");
-        _trust.Click += async (_, _) => await SetTrustAsync(true);
-        _untrust = ActionButton("Str_CertCatalog_Untrust", "CertificateCatalogUntrust");
-        _untrust.Click += async (_, _) => await SetTrustAsync(false);
-        _remove = ActionButton("Str_Protect_Remove", "CertificateCatalogRemove");
-        _remove.Click += async (_, _) => await RemoveAsync();
-        _refresh = ActionButton("Str_CertCatalog_Refresh", "CertificateCatalogRefresh");
-        _refresh.Click += async (_, _) => await ReloadAsync();
-        _close = ActionButton("Str_DocumentTools_Close", "CertificateCatalogClose", accent: true);
+        _close = UiKit.Make(L("Str_DocumentTools_Close"), accent: true);
+        AutomationProperties.SetName(_close, L("Str_DocumentTools_Close"));
+        AutomationProperties.SetAutomationId(_close, "CertificateCatalogClose");
         _close.IsCancel = true;
         _close.Click += (_, _) => RequestClose();
 
-        var buttons = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
-        foreach (var button in new[] { _import, _trust, _untrust, _remove, _refresh, _close })
-        {
-            button.Margin = new Thickness(0, 4, 8, 0);
-            buttons.Children.Add(button);
-        }
-        Grid.SetRow(buttons, 4);
-        body.Children.Add(buttons);
+        // Progress and messages sit under the panes; Close alone on the footer row.
+        DockPanel footer = DialogParts.Footer([_close]);
+        DockPanel.SetDock(footer, Dock.Bottom);
+        body.Children.Add(footer);
+        DockPanel.SetDock(feedback, Dock.Bottom);
+        body.Children.Add(feedback);
+        body.Children.Add(top);
+        body.Children.Add(panes);
 
         Content = DialogFrame.Frame(this, owner, Title, RequestClose, body);
         Closed += (_, _) => _closed = true;
@@ -403,12 +396,10 @@ internal sealed class CertificateCatalogDialog : Window
         return label;
     }
 
-    private static Button ActionButton(string key, string automationId, bool accent = false)
+    // An icon action named by its label key, keeping the automation id the catalog's tests find it by.
+    private static Button ListAction(string key, int glyph, string automationId)
     {
-        var label = new TextBlock { Text = L(key), TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center };
-        var button = UiKit.Make(label, accent);
-        button.MaxWidth = 190;
-        button.SetResourceReference(Control.FontFamilyProperty, "UiFont");
+        Button button = DialogParts.IconAction(key, glyph, (_, _) => { });
         AutomationProperties.SetName(button, L(key));
         AutomationProperties.SetAutomationId(button, automationId);
         return button;
