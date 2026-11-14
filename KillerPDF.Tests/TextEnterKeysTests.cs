@@ -160,10 +160,27 @@ public sealed class TextEnterKeysTests
     }
 
     [Fact]
-    public void TheOverlayBuildsFromTheModeRows()
+    public void TheKeyboardMapCaptionsCtrlEnterForTheMode()
+    {
+        Assert.Equal("Str_KS_CommitText", ShortcutTable.BuildMap()[KbLayer.Ctrl]["Enter"].Label);
+        Assert.Equal("Str_KS_CommitTextEnter", ShortcutTable.BuildMap(enterCommits: true)[KbLayer.Ctrl]["Enter"].Label);
+        // Plain Enter keeps its Confirm caption on the map in both modes.
+        Assert.Equal("Str_Kb_Confirm", ShortcutTable.BuildMap(enterCommits: true)[KbLayer.Base]["Enter"].Label);
+    }
+
+    // The list, the keyboard map and Ctrl+K search all read the mode's rows, and a change redraws them.
+    [Fact]
+    public void EveryShortcutViewFollowsTheMode()
     {
         string overlay = ShellSource.Read("Shell", "ShortcutsOverlay.cs");
-        Assert.Contains("ShortcutTable.Rows(", overlay, StringComparison.Ordinal);
+        Assert.Contains("ShortcutTable.Rows(Controls.PdfViewer.TextEnterMode.EnterCommits)", overlay, StringComparison.Ordinal);
+        Assert.Contains("BuildMap(ShortcutRemaps.Effective, Controls.PdfViewer.TextEnterMode.EnterCommits)", overlay, StringComparison.Ordinal);
+        Assert.Contains("TextEnterMode.Changed += FollowTextEnterMode", overlay, StringComparison.Ordinal);
+        Assert.Contains("RefreshShortcutViews();", ShellSource.Between(overlay, "private void FollowTextEnterMode", "}"), StringComparison.Ordinal);
+        Assert.Contains("BuildMap(ShortcutRemaps.Effective, Controls.PdfViewer.TextEnterMode.EnterCommits)",
+            ShellSource.Read("Shell", "ShortcutCustomize.cs"), StringComparison.Ordinal);
+        Assert.Contains("ShortcutTable.Rows(Controls.PdfViewer.TextEnterMode.EnterCommits)",
+            ShellSource.Read("Shell", "ToolSearch.cs"), StringComparison.Ordinal);
     }
 
     [Theory]

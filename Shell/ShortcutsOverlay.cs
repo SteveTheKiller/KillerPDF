@@ -106,7 +106,7 @@ namespace KillerPDF.Shell
         {
             KeyboardShortcutsCheck.IsChecked = KeyboardShortcutsEnabled;
             FillKeyInlines(KeyboardShortcutsChordLabel, " (%ctrl%+%shift%+K)");
-            KbMap = ShortcutTable.BuildMap(ShortcutRemaps.Effective);
+            KbMap = ShortcutTable.BuildMap(ShortcutRemaps.Effective, Controls.PdfViewer.TextEnterMode.EnterCommits);
             BuildShortcutsColumn(ShortcutLeftColumn,  KsColumn(right: false));
             BuildShortcutsColumn(ShortcutRightColumn, KsColumn(right: true));
             AddShortcutCustomizeButton();
@@ -114,12 +114,11 @@ namespace KillerPDF.Shell
             Closed += (_, _) => Controls.PdfViewer.TextEnterMode.Changed -= FollowTextEnterMode;
         }
 
-        // Another window's text bar can change the Enter choice, so every window redraws its list
-        // and, when it shows the text bar, the bar's toggle.
+        // Another window's text bar can change the Enter choice, so every window redraws its list,
+        // map and tooltips and, when it shows the text bar, the bar's toggle.
         private void FollowTextEnterMode()
         {
-            BuildShortcutsColumn(ShortcutLeftColumn, KsColumn(right: false));
-            BuildShortcutsColumn(ShortcutRightColumn, KsColumn(right: true));
+            RefreshShortcutViews();
             if (_annotBarTool == EditTool.Text && _textSettingsBar is not null) ShowTextSettings();
         }
 

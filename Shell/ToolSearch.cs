@@ -430,7 +430,7 @@ namespace KillerPDF.Shell
                     ToolSearchKeywords.GetValueOrDefault(labelKey, ""), cat, gesture, run));
             }
 
-            foreach (KsBinding binding in ShortcutTable.KsAll)
+            foreach (KsBinding binding in ShortcutTable.Rows(Controls.PdfViewer.TextEnterMode.EnterCommits))
             {
                 // Document tools are listed below with both their keys and run through the tool list.
                 if (ShortcutTable.DocumentToolKeys.Any(tool => tool.LabelKey == binding.LabelKey)) continue;
