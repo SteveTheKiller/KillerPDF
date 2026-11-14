@@ -175,38 +175,9 @@ internal sealed class MacroDialog : Window
         return panel;
     }
 
-    // A list sits in a well: the pane fill at half strength with the pane's edge, so the area reads on every
-    // theme (Light's card edge alone is invisible) while the window's texture still shows through it.
-    private static Grid Well(ListBox list, TextBlock? emptyHint)
-    {
-        var well = new Grid();
-        var fill = new Border { Opacity = 0.5, IsHitTestVisible = false };
-        fill.SetResourceReference(Border.BackgroundProperty, "PaneBrush");
-        fill.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
-        var edge = new Border { BorderThickness = new Thickness(1), IsHitTestVisible = false };
-        edge.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
-        edge.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
-        well.Children.Add(fill);
-        well.Children.Add(list);
-        if (emptyHint is not null) well.Children.Add(emptyHint);
-        well.Children.Add(edge);
-        return well;
-    }
+    private static Grid Well(ListBox list, TextBlock? emptyHint) => DialogParts.Well(list, emptyHint);
 
-    // A list's heading on the left and its action icons on the right, on one line above the list.
-    private static UIElement Header(string title, Button[] icons)
-    {
-        var row = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
-        var strip = new StackPanel { Orientation = Orientation.Horizontal };
-        foreach (Button icon in icons) strip.Children.Add(icon);
-        DockPanel.SetDock(strip, Dock.Right);
-        row.Children.Add(strip);
-        TextBlock label = UiKit.GroupLabel(title);
-        label.VerticalAlignment = VerticalAlignment.Bottom;
-        label.Margin = new Thickness(0, 0, 8, 4);
-        row.Children.Add(label);
-        return row;
-    }
+    private static UIElement Header(string title, Button[] icons) => DialogParts.Header(title, icons);
 
     // New offers the starter macros as a menu at the button, replacing the starter list that sat under
     // the saved macros and read like a second list of macros.
@@ -504,47 +475,11 @@ internal sealed class MacroDialog : Window
         return button;
     }
 
-    // An icon action: bare until hover (the family's BareButton), named by its tooltip, which the style also
-    // gives screen readers. The automation id is the label key, so tests find it in any language.
     private static Button IconAction(string key, int glyph, RoutedEventHandler click)
-    {
-        var button = new Button
-        {
-            Content = Glyph(glyph),
-            ToolTip = L(key),
-            Padding = new Thickness(7, 5, 7, 5),
-            Margin = new Thickness(2, 0, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        button.SetResourceReference(StyleProperty, "BareButton");
-        System.Windows.Automation.AutomationProperties.SetAutomationId(button, key);
-        button.Click += click;
-        return button;
-    }
+        => DialogParts.IconAction(key, glyph, click);
 
-    // An icon with its words beside it, for an action that opens another window rather than acting on a list.
     private static Button Labeled(string key, int glyph, RoutedEventHandler click)
-    {
-        var content = new StackPanel { Orientation = Orientation.Horizontal };
-        TextBlock icon = Glyph(glyph);
-        icon.Margin = new Thickness(0, 0, 8, 0);
-        icon.VerticalAlignment = VerticalAlignment.Center;
-        content.Children.Add(icon);
-        content.Children.Add(new TextBlock { Text = L(key), VerticalAlignment = VerticalAlignment.Center });
-        var button = new Button { Content = content, ToolTip = L(key), Padding = new Thickness(8, 5, 10, 5) };
-        button.SetResourceReference(StyleProperty, "BareButton");
-        button.Click += click;
-        return button;
-    }
-
-    private static TextBlock Glyph(int codePoint) => new()
-    {
-        Text = char.ConvertFromUtf32(codePoint),
-        FontFamily = new FontFamily("Segoe MDL2 Assets"),
-        FontSize = 14,
-        HorizontalAlignment = HorizontalAlignment.Center,
-        VerticalAlignment = VerticalAlignment.Center
-    };
+        => DialogParts.LabeledAction(key, glyph, click);
 
     private static bool Recoverable(Exception exception) => exception is not OutOfMemoryException
         and not StackOverflowException and not AccessViolationException;
