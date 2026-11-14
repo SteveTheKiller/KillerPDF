@@ -200,6 +200,8 @@
     <sys:String x:Key="Str_KS_DeleteAnnot">選択した注釈またはページを削除</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">トリミングまたは計測を確定 / キャンセル</sys:String>
     <sys:String x:Key="Str_KS_CommitText">テキストを保存 (Enterで改行)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">テキストを保存 (Shift+Enterで改行)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enterでテキストを保存 (Shift+Enterで改行)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">最後の点を削除</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">大文字と小文字を区別 / 単語単位 (テキストを検索)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">基本</sys:String>

@@ -487,6 +487,21 @@ namespace KillerPDF.Shell
             paragraphButton.Click += (_, _) => EditParagraph(PageList.SelectedIndex);
             bar.Add(Controls.ToolOptionGroup.Paragraph, paragraphButton);
 
+            // #486: on, Enter saves the box and Shift+Enter adds a line; off, Enter adds a line and
+            // Ctrl+Enter saves. Shift+Enter and Ctrl+Enter work either way. The choice is app-wide.
+            var enterGlyph = new TextBlock
+            {
+                Text = char.ConvertFromUtf32(0xE751), FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center
+            };
+            enterGlyph.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            var enterToggle = Controls.ToolOptionsControls.IconToggle(enterGlyph,
+                Controls.PdfViewer.TextEnterMode.EnterCommits, Loc("Str_Bar_EnterSaves"),
+                // The change event redraws this bar and the shortcuts list in every window.
+                () => Controls.PdfViewer.TextEnterMode.Set(!Controls.PdfViewer.TextEnterMode.EnterCommits));
+            System.Windows.Automation.AutomationProperties.SetAutomationId(enterToggle, "TextEnterSaves");
+            bar.Add(Controls.ToolOptionGroup.EnterKey, enterToggle);
+
             // The replacement layer grid is three rows tall, so it always lives in the "..." menu.
             if (BuildReplacementLayerControls() is { } replacementLayers)
                 bar.Add(Controls.ToolOptionGroup.Layers, replacementLayers, overflowOnly: true);

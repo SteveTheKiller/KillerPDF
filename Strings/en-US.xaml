@@ -201,6 +201,8 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_KS_DeleteAnnot">Delete selected annotation or pages</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Confirm / cancel crop or measurement</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Save text (Enter adds a line)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Save text (Shift+Enter adds a line)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter saves the text (Shift+Enter adds a line)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Remove last point</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Match case / whole word (Find Text)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Base</sys:String>

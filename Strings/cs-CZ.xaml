@@ -200,6 +200,8 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_KS_DeleteAnnot">Smazat vybranou anotaci nebo stránky</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Potvrdit / zrušit ořez nebo měření</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Uložit text (Enter vloží nový řádek)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Uložit text (Shift+Enter vloží nový řádek)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter uloží text (Shift+Enter vloží nový řádek)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Odebrat poslední bod</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Rozlišovat velikost písmen / celá slova (Najít text)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Základ</sys:String>

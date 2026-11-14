@@ -198,6 +198,8 @@
     <sys:String x:Key="Str_KS_DeleteAnnot">刪除選取的注釋或頁面</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">確認 / 取消裁切或測量</sys:String>
     <sys:String x:Key="Str_KS_CommitText">儲存文字 (Enter 插入新行)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">儲存文字 (Shift+Enter 插入新行)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter 儲存文字 (Shift+Enter 插入新行)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">刪除最後一個點</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">大小寫須相符 / 全字拼寫須相符 (尋找文字)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">基本</sys:String>

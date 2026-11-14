@@ -113,7 +113,7 @@ namespace KillerPDF.Shell
         // The list, the map and the tooltips show the keys as they are now.
         private void RefreshShortcutViews()
         {
-            KbMap = ShortcutTable.BuildMap(ShortcutRemaps.Effective);
+            KbMap = ShortcutTable.BuildMap(ShortcutRemaps.Effective, Controls.PdfViewer.TextEnterMode.EnterCommits);
             BuildShortcutsColumn(ShortcutLeftColumn, KsColumn(right: false));
             BuildShortcutsColumn(ShortcutRightColumn, KsColumn(right: true));
             if (_kbBuilt && ShortcutKeyboardHost.Visibility == Visibility.Visible) BuildKeyboardView();

@@ -184,6 +184,8 @@
     <sys:String x:Key="Str_KS_DeleteAnnot">Izbriši izbrano pripombo ali strani</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Potrdi / prekliči obrezovanje ali merjenje</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Shrani besedilo (Enter doda vrstico)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Shrani besedilo (Shift+Enter doda vrstico)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter shrani besedilo (Shift+Enter doda vrstico)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Odstrani zadnjo točko</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Razlikuj velike in male črke / cela beseda (Poišči besedilo)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Osnova</sys:String>

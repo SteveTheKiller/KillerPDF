@@ -200,6 +200,8 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_KS_DeleteAnnot">Elimina annotazione o pagine selezionate</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Conferma/annulla ritaglio o misura</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Salva testo (Invio aggiunge una riga)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Salva testo (Maiusc+Invio aggiunge una riga)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Invio salva il testo (Maiusc+Invio aggiunge una riga)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Rimuovi ultimo punto</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Maiuscole/minuscole / parola intera (Trova testo)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Base</sys:String>

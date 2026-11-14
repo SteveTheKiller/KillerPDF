@@ -122,6 +122,8 @@
     <sys:String x:Key="Str_KS_DeleteAnnot">Таңдалған ескертпені немесе беттерді жою</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Қиюды немесе өлшеуді растау / болдырмау</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Мәтінді сақтау (Enter жаңа жол қосады)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Мәтінді сақтау (Shift+Enter жаңа жол қосады)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter мәтінді сақтайды (Shift+Enter жаңа жол қосады)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Соңғы нүктені жою</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Регистрді ескеру / тек тұтас сөз (Мәтінді табу)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Негізгі</sys:String>

@@ -200,6 +200,8 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_KS_DeleteAnnot">Xóa chú thích hoặc trang đã chọn</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Xác nhận / hủy vùng cắt hoặc phép đo</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Lưu văn bản (Enter thêm một dòng)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Lưu văn bản (Shift+Enter thêm một dòng)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter lưu văn bản (Shift+Enter thêm một dòng)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Xóa điểm cuối cùng</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Khớp chữ hoa/thường / khớp toàn bộ từ (Tìm văn bản)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Cơ bản</sys:String>

@@ -196,6 +196,8 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_KS_DeleteAnnot">Ausgewählte Anmerkung oder Seiten löschen</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Zuschnitt oder Messung bestätigen / abbrechen</sys:String>
     <sys:String x:Key="Str_KS_CommitText">Text speichern (Enter fügt eine Zeile ein)</sys:String>
+    <sys:String x:Key="Str_KS_CommitTextEnter">Text speichern (Umschalt+Enter fügt eine Zeile ein)</sys:String>
+    <sys:String x:Key="Str_Bar_EnterSaves">Enter speichert den Text (Umschalt+Enter fügt eine Zeile ein)</sys:String>
     <sys:String x:Key="Str_KS_RemoveLastPoint">Letzten Punkt entfernen</sys:String>
     <sys:String x:Key="Str_KS_SearchOptions">Groß-/Kleinschreibung beachten / nur ganzes Wort (Text suchen)</sys:String>
     <sys:String x:Key="Str_KS_LayerBase">Basis</sys:String>
