@@ -17,8 +17,22 @@ public sealed class NativeDiagnosticsTests
         ["Str_Epub_Diagnostics_Ignored"] = "Ignored style rules: {0}",
         ["Str_Epub_Diagnostics_Reason"] = "Why: {0}",
         ["Str_Epub_Reason_Scripting"] = "scripts",
-        ["Str_Epub_Reason_UnsupportedImageFormat"] = "image format"
+        ["Str_Epub_Reason_UnsupportedImageFormat"] = "image format",
+        ["Str_Epub_Reason_MissingGlyph"] = "missing glyph"
     };
+
+    [Fact]
+    public void AChapterThatKeepsItsTextIsNotSaidToHaveLeftSomethingOut()
+    {
+        // U+2720 (the Maltese cross Ulysses prints) is in no font the test layout has, so the chapter shows a
+        // missing-glyph box and keeps everything else; the row names the reason without claiming an item was left out.
+        using var owner = NativeWorkingDocument.OpenEpub(Book("<p>A ✠ B</p>"),
+            NativeOpenTests.Options() with { IsolateChapterFailures = true });
+        var row = Assert.Single(NativeDocumentDiagnostics.Build(owner, key => Wording[key]));
+        Assert.Equal("Chapter 1", row.Heading);
+        Assert.Equal(new[] { "Why: missing glyph" }, row.Lines);
+        Assert.Contains("U+2720", NativeDocumentDiagnostics.Report([row]));
+    }
 
     [Fact]
     public async Task TheDiagnosticsSayTheBookIsStillBeingCountedUntilItsLastPageIsKnown()

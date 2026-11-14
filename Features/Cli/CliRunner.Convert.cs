@@ -86,7 +86,9 @@ namespace KillerPDF.Features
                         with { DiagnosticReported = omitted.Add };
                     using var source = NativeOpen.Open(inPath, layout);
                     NativePdfConversion.WriteNewEpub(source, inPath, outPath, conversion, replaceExisting: replace);
-                    notices.AddRange(omitted.Select(CliEpubNotice));
+                    // The open laid the whole book out in the foreground, so its refused chapters are all known.
+                    var refused = source.ChapterDiagnostics.Select(chapter => (chapter.SpineIndex, chapter.Href)).ToHashSet();
+                    notices.AddRange(omitted.Select(notice => CliEpubNotice(notice, refused)));
                 }
                 else
                 {
@@ -167,14 +169,22 @@ namespace KillerPDF.Features
         private static bool CliMillimeters(string raw, out double value) =>
             double.TryParse(raw.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && double.IsFinite(value);
 
-        // One line per chapter or item the PDF left out: where, the app's reason, and the engine's diagnosis.
-        private static string CliEpubNotice(EpubChapterDiagnostic omitted)
+        // One line per conversion notice, worded as the app's Details list words it: a refused chapter is replaced by
+        // a notice page, a named item was left out, and any other note keeps the chapter and says what changed in the
+        // engine's diagnosis (a missing-glyph box, for one) instead of claiming something was left out.
+        private static string CliEpubNotice(EpubChapterDiagnostic notice, IReadOnlySet<(int, string)> refused)
         {
-            string where = omitted.SpineIndex >= 0
-                ? string.Format(CliText("Str_Epub_Diagnostics_Chapter"), omitted.SpineIndex + 1) + ", " + omitted.Href
-                : omitted.Href;
-            string what = string.IsNullOrEmpty(omitted.ItemHref) ? "left out." : omitted.ItemHref + " left out.";
-            return $"{where}: {what} {CliText(NativeDocumentDiagnostics.ReasonKey(omitted.Reason))} ({omitted.Message})";
+            string where = notice.SpineIndex >= 0
+                ? string.Format(CliText("Str_Epub_Diagnostics_Chapter"), notice.SpineIndex + 1)
+                : notice.Href;
+            string reason = CliText(NativeDocumentDiagnostics.ReasonKey(notice.Reason));
+            string what = refused.Contains((notice.SpineIndex, notice.Href))
+                ? string.Format(CliText("Str_Epub_Diagnostics_ChapterRefused"), notice.Href) + " "
+                : !string.IsNullOrEmpty(notice.ItemHref)
+                    ? string.Format(CliText("Str_Epub_Diagnostics_ItemOmitted"), notice.Href) + " "
+                    : notice.SpineIndex >= 0 ? notice.Href + ": " : "";
+            string item = string.IsNullOrEmpty(notice.ItemHref) ? "" : " (" + notice.ItemHref + ")";
+            return $"{where}: {what}{reason}{item} ({notice.Message})";
         }
 
         // The command line speaks the app's en-US base strings, which App.xaml merges before any command runs.

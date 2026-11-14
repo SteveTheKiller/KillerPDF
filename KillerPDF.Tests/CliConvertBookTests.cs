@@ -48,8 +48,27 @@ public sealed class CliConvertBookTests : IDisposable
         Assert.True(exit == 0, output);
         string[] lines = output.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
         Assert.Contains(pdf, lines[0], StringComparison.OrdinalIgnoreCase);
-        Assert.StartsWith("Warning: Chapter 2, EPUB/c2.xhtml: ", Assert.Single(lines[1..]), StringComparison.Ordinal);
+        Assert.Equal("Warning: Chapter 2: Not shown: EPUB/c2.xhtml. A notice page takes its place. "
+            + "It uses scripts, which the reader does not run. (Scripted EPUB XHTML text is unsupported.)",
+            Assert.Single(lines[1..]));
         Assert.Equal(2, PageCount(pdf));
+    }
+
+    [Fact]
+    public void AMissingGlyphKeepsItsChapterAndIsNotCalledLeftOut()
+    {
+        // Ulysses prints U+2720, which no font the conversion uses draws; the chapter converts with a box for it.
+        string book = Write("glyph.epub", NativeDiagnosticsTests.Book("<p>William ✠ wrote</p>"));
+        string pdf = Path.Combine(folder, "glyph.pdf");
+
+        var (exit, output) = Run("--convert-book", book, pdf);
+
+        Assert.True(exit == 0, output);
+        string[] lines = output.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal("Warning: Chapter 1: EPUB/c1.xhtml: No available font has some of its characters. "
+            + "(No available font has a glyph for U+2720, so a missing-glyph box is shown.)", Assert.Single(lines[1..]));
+        Assert.DoesNotContain("left out", output, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1, PageCount(pdf));
     }
 
     [Fact]
@@ -213,7 +232,7 @@ public sealed class CliConvertBookTests : IDisposable
         Assert.Equal(215.9, root.GetProperty("paper").GetProperty("widthMm").GetDouble());
         Assert.Equal(279.4, root.GetProperty("paper").GetProperty("heightMm").GetDouble());
         Assert.Equal(15, root.GetProperty("paper").GetProperty("marginMm").GetDouble());
-        Assert.StartsWith("Chapter 2, EPUB/c2.xhtml: ",
+        Assert.StartsWith("Chapter 2: Not shown: EPUB/c2.xhtml. ",
             Assert.Single(root.GetProperty("notices").EnumerateArray()).GetString(), StringComparison.Ordinal);
     }
 

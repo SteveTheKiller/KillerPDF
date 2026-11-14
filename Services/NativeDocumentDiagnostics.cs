@@ -120,9 +120,16 @@ internal static class NativeDocumentDiagnostics
             string reason = string.Format(loc("Str_Epub_Diagnostics_Reason"), loc(ReasonKey(diagnostic.Reason)));
             // The one omitted image or link target, when the engine names it, follows its reason.
             if (!string.IsNullOrEmpty(diagnostic.ItemHref)) reason += " (" + diagnostic.ItemHref + ")";
-            chapter.Shown.Add(what);
+            // A chapter note that names no item, such as a missing-glyph box or small capitals shown as ordinary
+            // text, keeps the chapter's content, so it gets no "left out" line; the engine's message in the
+            // copied report says what changed, including when a drawing or list marker was dropped.
+            bool namesWhat = whatKey != "Str_Epub_Diagnostics_ItemOmitted" || !string.IsNullOrEmpty(diagnostic.ItemHref);
+            if (namesWhat)
+            {
+                chapter.Shown.Add(what);
+                chapter.Report.Add(what);
+            }
             chapter.Shown.Add(reason);
-            chapter.Report.Add(what);
             chapter.Report.Add(reason + " (" + diagnostic.Message + ")");
         }
 
