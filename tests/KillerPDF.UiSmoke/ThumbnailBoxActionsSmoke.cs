@@ -54,10 +54,13 @@ internal static class ThumbnailBoxActionsSmoke
                     try
                     {
                         Button accept;
-                        if (dialog.GetType().Name == (extract ? "DocumentValuesDialog" : "DeletePagesDialog"))
+                        if (dialog.GetType().Name == (extract ? "SplitDialog" : "DeletePagesDialog"))
                         {
                             ranges++;
-                            if (Descendants<TextBox>(dialog).Single().Text != string.Join(',', selected.Select(page => page + 1)))
+                            TextBox range = extract
+                                ? Descendants<TextBox>(dialog).Single(box => System.Windows.Automation.AutomationProperties.GetAutomationId(box) == "SplitPageList")
+                                : Descendants<TextBox>(dialog).Single();
+                            if (range.Text != string.Join(',', selected.Select(page => page + 1)))
                                 throw new InvalidOperationException("The action range did not prefill the drag-selected set.");
                             accept = Descendants<Button>(dialog).Single(button => button.IsDefault);
                         }

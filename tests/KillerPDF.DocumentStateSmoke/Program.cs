@@ -692,7 +692,7 @@ internal static partial class Program
         timer.Tick += (_, _) =>
         {
             // Extract Pages asks which pages first, prefilled with the selected one.
-            Window? range = App.Windows.Cast<Window>().FirstOrDefault(w => w.GetType().Name == "DocumentValuesDialog");
+            Window? range = App.Windows.Cast<Window>().FirstOrDefault(w => w.GetType().Name == "SplitDialog");
             if (range is not null && !rangeAccepted)
             {
                 rangeAccepted = true;

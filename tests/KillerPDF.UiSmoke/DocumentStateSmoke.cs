@@ -696,10 +696,12 @@ internal static class DocumentStateSmoke
             foreach (Window dialog in Application.Current.Windows.Cast<Window>().Where(window => window != owner && window.IsVisible).ToArray())
             {
                 if (!seen.Add(dialog)) continue;
-                if (dialog.GetType().Name == "DocumentValuesDialog")
+                if (dialog.GetType().Name == "SplitDialog")
                 {
                     ranges++;
-                    if (Descendants<TextBox>(dialog).Single().Text != "1")
+                    // Extract Pages' page list keeps the selection the range prompt was prefilled with.
+                    if (Descendants<TextBox>(dialog).Single(box =>
+                            System.Windows.Automation.AutomationProperties.GetAutomationId(box) == "SplitPageList").Text != "1")
                         throw new InvalidOperationException("Pending extraction did not prefill its selected page.");
                     Button apply = Descendants<Button>(dialog).Single(button => button.IsDefault);
                     owner.Dispatcher.BeginInvoke(DispatcherPriority.Input,
