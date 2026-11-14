@@ -142,9 +142,7 @@
                     <Border x:Name="borderRing" IsHitTestVisible="False" CornerRadius="{Binding CornerRadius, ElementName=border}" BorderThickness="{Binding BorderThickness, ElementName=border}" BorderBrush="{Binding Background, ElementName=border}" Margin="{Binding Margin, ElementName=border}" Visibility="{Binding Visibility, ElementName=border}" Opacity="{Binding Opacity, ElementName=border}"/><Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{DynamicResource ControlCornerRadius}" Padding="{TemplateBinding Padding}">
-                        <!-- No stroke effect on the caption: an effect rasterizes the text and blurs it
-                             at rest. PrimaryButton strokes a copy instead, but this template also
-                             carries BareButton's icon content, which cannot appear twice. -->
+                        <!-- Keep captions and icons free of effects so they stay sharp. -->
                         <ContentPresenter x:Name="label" HorizontalAlignment="Center"
                                           VerticalAlignment="Center"/>
                     </Border>
@@ -1450,8 +1448,11 @@
                            swatch row, segmented toggle). Not focusable and never highlighted,
                            so arrow keys walk the real rows and skip it; Tab reaches its buttons.
            CardLabel     - the left label of an inline row ("Color", "Tags"). A slot that holds
-                           one gets Padding="24,..." so its label starts on the same column as
-                           the header text of the ordinary rows (8px padding + 16px gutter).
+                           one gets Padding="8,..." so its label starts on the icon column, the
+                           same edge as the header and the ordinary rows' icons. A field row that
+                           is an ordinary MenuItem (Tags, Group) pulls its header back over the
+                           16px icon gutter with Margin="-16,0,0,0" to land on that edge too.
+                           At 24, past the gutter, the labels sat in from everything else.
            CardQuickButton, CardSwatch, CardSegment - the controls those slots hold.
          Field rows that open a list (Tags, Group) are ordinary MenuItems with a richer Header,
          so their submenus keep the family submenu popup. No new theme keys: every brush here is
@@ -1508,8 +1509,10 @@
                     <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ControlCornerRadius}"
                             Padding="{TemplateBinding Padding}" BorderThickness="1" BorderBrush="Transparent">
                         <StackPanel HorizontalAlignment="Center">
+                            <!-- The glyph in the accent: the strip is the card's one splash of color,
+                                 and the caption under it stays the plain text color. -->
                             <TextBlock x:Name="Glyph" Text="{TemplateBinding Content}" FontFamily="Segoe MDL2 Assets" FontSize="16"
-                                       HorizontalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
+                                       HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryBrush}"/>
                             <TextBlock x:Name="Caption" Text="{TemplateBinding Tag}" FontSize="11" Margin="0,5,0,0"
                                        HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
                                        TextTrimming="CharacterEllipsis" MaxHeight="30"/>
@@ -1573,7 +1576,7 @@
     <!-- One option of a segmented toggle: RadioButtons sharing a GroupName inside a Border
          filled with MenuHoverBrush. The checked option lifts onto the menu surface. -->
     <Style x:Key="CardSegment" TargetType="RadioButton">
-        <Setter Property="Foreground" Value="{DynamicResource MenuTextBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Padding" Value="10,3"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -1585,13 +1588,19 @@
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
+                        <!-- On: lifted onto the menu surface with the accent for its text and edge,
+                             so the current pick reads at a glance. -->
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource MenuBackgroundBrush}"/>
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource MenuBorderBrush}"/>
-                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                        </Trigger>
+                        <!-- Dimmed like CardQuickButton: a disabled option read as live. -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -1600,7 +1609,7 @@
     </Style>
 
     <!-- An independent on/off chip on a card row ("Use for: Templates / Daily notes"). Off is an
-         outline, on takes the hover fill with the text color, so on and off read apart in every
+         outline, on takes the hover fill with its contrast text color, so on and off read apart in every
          theme without a new token. -->
     <Style x:Key="CardToggle" TargetType="ToggleButton">
         <Setter Property="Foreground" Value="{DynamicResource MenuTextBrush}"/>
@@ -1619,12 +1628,19 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource DimTextBrush}"/>
                         </Trigger>
+                        <!-- On: the hover fill with the accent for its edge and text. -->
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
-                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                        </Trigger>
+                        <!-- Dimmed like CardQuickButton: the graph's Lock chip on a note not written
+                             yet is disabled, and without this it looked like it would work. -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

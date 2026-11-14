@@ -45,6 +45,19 @@ public sealed class CardMenuTests
     }
 
     [Fact]
+    public void CardRowsAndStripsStartOnTheKitIconColumn()
+    {
+        // KillerUI 461c02a: a card's labeled rows and its action strip's rules start on the icon column (8 px), the
+        // edge the header and the ordinary rows' icons use; at 24, past the gutter, the labels sat in from everything.
+        string annotation = Read("Shell", "AnnotationCard.cs");
+        Assert.DoesNotMatch(@"CardSlot\([^;]*new Thickness\(24,", annotation);
+        Assert.Equal(4, System.Text.RegularExpressions.Regex.Matches(annotation, @"new Thickness\(8, \d, 4, \d\)").Count);
+        string page = Read("Shell", "PageCard.cs");
+        Assert.Contains("Margin = new Thickness(8, 0, 8, 0)", Between(page, "var strip = new Border", "return strip;"));
+        Assert.Contains("Padding = new Thickness(0, 4, 0, 4)", Between(page, "var strip = new Border", "return strip;"));
+    }
+
+    [Fact]
     public void TheKitCarriesTheCardStylesAndFlatButtons()
     {
         string controls = Read("Controls", "Controls.xaml");

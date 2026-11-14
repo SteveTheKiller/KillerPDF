@@ -41,18 +41,19 @@ namespace KillerPDF.Shell
             var colored = targets.Where(HasCardColor).ToList();
             if (colored.Count > 0)
             {
-                _ctxMenu.Items.Add(CardSlot(CardColorRow(colored), new Thickness(24, 8, 4, 2)));
+                // Labeled rows start on the icon column, as the kit's CardLabel slots do (KillerUI CardBuilder).
+                _ctxMenu.Items.Add(CardSlot(CardColorRow(colored), new Thickness(8, 8, 4, 2)));
                 _ctxMenu.Items.Add(CardSlot(CardSliderRow(Loc("Str_Bar_Opacity"), 10, 255, colored[0] is InkAnnotation ink ? ink.ColorA : ((HighlightAnnotation)colored[0]).ColorA,
                     value => $"{(int)Math.Round(value / 255.0 * 100)}%", (value, gesture) => ApplyCardStyle(colored, a => SetCardOpacity(a, (byte)value), gesture)),
-                    new Thickness(24, 2, 4, 2)));
+                    new Thickness(8, 2, 4, 2)));
             }
             var inks = targets.Where(a => a is InkAnnotation).ToList();
             if (inks.Count > 0)
                 _ctxMenu.Items.Add(CardSlot(CardSliderRow(Loc("Str_Bar_Size"), 1, 60, ((InkAnnotation)inks[0]).StrokeWidth, value => $"{value:F0}px",
-                    (value, gesture) => ApplyCardStyle(inks, a => ((InkAnnotation)a).StrokeWidth = Math.Round(value), gesture)), new Thickness(24, 2, 4, 2)));
+                    (value, gesture) => ApplyCardStyle(inks, a => ((InkAnnotation)a).StrokeWidth = Math.Round(value), gesture)), new Thickness(8, 2, 4, 2)));
             var marks = targets.OfType<HighlightAnnotation>().Where(h => h is not CoverAnnotation && !h.IsShape).ToList();
             if (marks.Count > 0)
-                _ctxMenu.Items.Add(CardSlot(CardStyleRow(marks), new Thickness(24, 4, 4, 6)));
+                _ctxMenu.Items.Add(CardSlot(CardStyleRow(marks), new Thickness(8, 4, 4, 6)));
 
             _ctxMenu.Items.Add(new Separator());
             if (_annotationClipboard.Count > 0)

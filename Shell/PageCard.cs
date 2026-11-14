@@ -233,7 +233,8 @@ namespace KillerPDF.Shell
                 button.Click += (_, _) => { menu.IsOpen = false; act(); };
                 grid.Children.Add(button);
             }
-            var strip = new Border { Padding = new Thickness(2, 4, 2, 4), Child = grid };
+            // Inset 8 like the kit's separators, so the strip's rules start on the icon column (KillerUI CardBuilder).
+            var strip = new Border { Margin = new Thickness(8, 0, 8, 0), Padding = new Thickness(0, 4, 0, 4), Child = grid };
             strip.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
             System.Windows.Automation.AutomationProperties.SetName(strip, Loc("Str_Card_Actions"));
             return strip;
