@@ -265,7 +265,7 @@ namespace KillerPDF.Tests
             Assert.Equal("Ctrl+Shift+D, 0", ShortcutTable.DocumentToolGesture("Str_CM_Title"));
         }
 
-        /// <summary>Every tool in the Document tools menu takes its letter from the table, so the
+        /// <summary>Every tool in the Document tools panel takes its letter from the table, so the
         /// gesture text shown in the menu, the letter handler and the overlay agree.</summary>
         [Fact]
         public void EveryDocumentToolMenuItemUsesItsTableLetter()

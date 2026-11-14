@@ -136,7 +136,7 @@ namespace KillerPDF
             ('0', "Str_CM_Title"),
         ];
 
-        /// <summary>The key that runs a document tool from the open Document tools menu.</summary>
+        /// <summary>The key that runs a document tool while the Document tools panel has the keyboard.</summary>
         internal static char DocumentToolKey(string labelKey)
             => DocumentToolKeys.First(t => t.LabelKey == labelKey).Key;
 
