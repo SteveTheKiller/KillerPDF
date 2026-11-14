@@ -72,7 +72,7 @@ namespace KillerPDF.Features
             "--regex", "--find", "--whole-pages", "--fill", "--overlay", "--sanitize",
             "--pfx", "--pfx-password", "--cert", "--reason", "--location", "--contact", "--timestamp-server",
             "--appearance", "--appearance-text", "--scanned-look", "--scanner", "--review", "--keep-scanned",
-            "--author", "--subject", "--keywords", "--creator", "--x", "--y", "--box",
+            "--author", "--subject", "--keywords", "--creator", "--x", "--y", "--box", "--paper",
         ];
 
         /// <summary>
@@ -95,7 +95,7 @@ namespace KillerPDF.Features
                 "signatures", "layers", "portfolio", "comments", "navigation-audit", "compare-structure",
                 "measurements", "separations", "repair-links", "toc", "page-labels", "initial-view",
                 "set-layer", "add-attachment", "edit-attachment", "portfolio-view", "redact", "protect",
-                "export", "convert-office", "data-merge", "replace-text", "export-form-data", "import-form-data",
+                "export", "convert-office", "convert-book", "data-merge", "replace-text", "export-form-data", "import-form-data",
                 "recognize-fields", "xfa-to-acroform", "flatten-forms", "macro", "sign", "scan",
                 "set-metadata", "set-bookmarks", "add-comment", "delete-comments", "crop"
             ], "--") ?? args;
@@ -129,7 +129,7 @@ namespace KillerPDF.Features
                 Eq(a, "--delete-comments") || Eq(a, "--crop") ||
                 Eq(a, "--initial-view") || Eq(a, "--set-layer") || Eq(a, "--add-attachment") ||
                 Eq(a, "--edit-attachment") || Eq(a, "--portfolio-view") ||
-                Eq(a, "--redact") || Eq(a, "--protect") || Eq(a, "--export") || Eq(a, "--convert-office") ||
+                Eq(a, "--redact") || Eq(a, "--protect") || Eq(a, "--export") || Eq(a, "--convert-office") || Eq(a, "--convert-book") ||
                 Eq(a, "--data-merge") || Eq(a, "--replace-text") || Eq(a, "--export-form-data") || Eq(a, "--import-form-data") ||
                 Eq(a, "--recognize-fields") || Eq(a, "--xfa-to-acroform") || Eq(a, "--flatten-forms") ||
                 Eq(a, "--macro") || Eq(a, "--sign") || Eq(a, "--scan"));
@@ -348,6 +348,9 @@ namespace KillerPDF.Features
                     case "--convert-office":
                         exitCode = CliConvertOffice(positionals, con);
                         break;
+                    case "--convert-book":
+                        exitCode = CliConvertBook(positionals, options, con);
+                        break;
                     case "--data-merge":
                         exitCode = CliDataMerge(positionals, options, con);
                         break;
@@ -543,6 +546,10 @@ namespace KillerPDF.Features
             "                                           export to Office, web and text formats",
             "  killerpdf convert-office <in.docx|.xlsx|.doc|.xls> <out.pdf>",
             "                                           convert a Word or Excel file to PDF",
+            "  killerpdf convert-book <in.epub|in.djvu|in.djv> <out.pdf> [--paper a4|letter|legal]",
+            "                                           [--width <mm> --height <mm>] [--margin <mm>] [--overwrite] [--json]",
+            "                                           convert an EPUB or DjVu book to PDF (default A4, 15 mm margin);",
+            "                                           paper, size and margin apply to EPUB only",
             "  killerpdf data-merge <template.pdf> <data.csv|.json|.xlsx> <outDir> [--name <file name>] [--flatten] [--overwrite]",
             "                                           fill one copy of the form per record",
             "  killerpdf replace-text <in.pdf> <out.pdf> <find> <replace> [--match-case] [--whole-word]",
@@ -563,6 +570,7 @@ namespace KillerPDF.Features
             "                                           crop pages in PDF points; --media resizes the page itself",
             "  killerpdf macro <in.pdf> <saved name | macro.json | starter:<name>> <out.pdf> [--lang <code>]",
             "                                           [--text <phrase>] [--terms <file>] [--rasterize] [--json] [--password <p>]",
+            "                                           [--data <records.csv|.json|.xlsx>] records for Data Merge steps",
             "                                           run a macro; --macro --list shows the saved ones",
             "  killerpdf document-info <in.pdf>                 print document details as JSON",
             "  killerpdf search-text <in.pdf> <query>            print page hits as JSON; exit 3 when pages",
