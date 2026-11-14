@@ -54,7 +54,7 @@ internal sealed class MeasurementReportDialog : Window
         System.Windows.Automation.AutomationProperties.SetName(scroller, L("Str_MeasureReport_Title"));
 
         // Copying confirms on the footer's left, where the copy icon's tooltip alone would go unseen.
-        var copied = new TextBlock { Text = L("Str_DocumentTools_Copied"), Visibility = Visibility.Collapsed };
+        var copied = new TextBlock { Text = L("Str_DocumentTools_Copied"), Visibility = Visibility.Hidden };
         copied.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
         Button copy = DialogParts.IconAction("Str_DocumentTools_Copy", 0xE8C8, (_, _) =>
         {
