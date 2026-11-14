@@ -73,7 +73,7 @@ namespace KillerPDF.Shell
 
         private double SidebarMaxFor(SidebarPanel panel) =>
             _sidebarSide.IsStrip() ? SidebarMaxStrip
-            : panel == SidebarPanel.Pages ? SidebarMaxPages : SidebarMaxOutlines;
+            : panel == SidebarPanel.Pages ? Services.SidebarPageWidth.Max(PairedThumbnailsActive) : SidebarMaxOutlines;
 
         /// <summary>Remembers <paramref name="width"/> (screen pixels) for the open panel.</summary>
         private void RememberSidebarWidth(double width)

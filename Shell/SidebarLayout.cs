@@ -464,6 +464,10 @@ namespace KillerPDF.Shell
                 }
                 desired = _pairedThumbnailPanel;
             }
+            // Two-page thumbnails can be dragged about twice as wide as one column; back to one column, the limit
+            // comes back down and the grid narrows the panel to it.
+            if (_sidebarPanel == SidebarPanel.Pages && !_sidebarCollapsed && !_sidebarStripLayout)
+                _sidebarCol.MaxWidth = SbPx(SidebarMaxFor(SidebarPanel.Pages));
             if (ReferenceEquals(PageList.ItemsPanel, desired)) return;
             EndPageBoxSelection(cancel: true);
             HidePageDropIndicator();

@@ -27,7 +27,6 @@ namespace KillerPDF.Shell
         private void SidebarPagesTab_Click(object sender, RoutedEventArgs e) => OpenSidebarPanel(SidebarPanel.Pages);
         private void SidebarOutlinesTab_Click(object sender, RoutedEventArgs e) => OpenSidebarPanel(SidebarPanel.Outlines);
 
-        private const double SidebarMaxPages = 234;   // stops when the 200px-capped thumbnail fills (200 + margins + scrollbar)
         private const double SidebarMaxOutlines = 480;
         private const double SidebarMinColumn = 120;   // narrowest readable width before labels/header clip
         // A strip's height goes to its rail and the page labels as well as the thumbnails (74px of
