@@ -1027,6 +1027,35 @@ namespace KillerPDF.Shell
             }
         }
 
+        /// <summary>
+        /// #480: images opened with KillerPDF from Explorer become one new PDF in its own tab, a page per
+        /// image in the order given. Like New it has no saved home: it opens unsaved, and the first Save
+        /// asks where to keep it, offering the first image's name with .pdf.
+        /// </summary>
+        private void OpenImagesAsNewDocument(IReadOnlyList<string> images)
+        {
+            var target = BeginTabLoad(out var prev, out bool createdNew);
+            try
+            {
+                string tempPath = App.MakeTempFile("imported");
+                AtomicFileOutput.Write(tempPath, PdfEngineIntegration.MergeFiles(images));
+                _doc = PdfWorkingDocument.Open(tempPath, null);
+                App.RememberSuggestedName(tempPath, ImagesToPdfPlan.SuggestedName(images));
+                FinishOpenFile(tempPath, tempPath);
+                MarkDirty(true);   // unsaved: the Save icon shows it and Close asks first
+                SetStatus(string.Format(Loc("Str_Status_Imported"), images.Count));
+                CaptureSessionState(_active!);
+                SetTool(_currentTool);
+                RebuildTabStrip();
+            }
+            catch (Exception ex)
+            {
+                AbortTabLoad(target, prev, createdNew);
+                KillerDialog.Show(this, Loc("Str_Err_ImportFailed") + "\n" + ex.Message,
+                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void Open_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new Controls.FileDialog(Controls.FileDialogMode.Open)

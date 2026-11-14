@@ -1215,6 +1215,8 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Ctx_UpsideDown">Capovolgi</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Libri EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Documenti DjVu</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Salva come KillerPDF</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF non è riuscito a creare un PDF da {0}.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">File certificati</sys:String>
     <sys:String x:Key="Str_Filter_Text">File testo</sys:String>
     <sys:String x:Key="Str_Print_Sending">Invio alla stampante…</sys:String>

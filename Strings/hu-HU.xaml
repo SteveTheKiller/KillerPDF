@@ -1211,6 +1211,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Ctx_UpsideDown">Fejjel lefelé</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB könyvek</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu dokumentumok</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Mentés KillerPDF-ként</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">A KillerPDF nem tudott PDF-et készíteni ebből: {0}.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Tanúsítványfájlok</sys:String>
     <sys:String x:Key="Str_Filter_Text">Szövegfájl</sys:String>
     <sys:String x:Key="Str_Print_Sending">Küldés a nyomtatóra…</sys:String>

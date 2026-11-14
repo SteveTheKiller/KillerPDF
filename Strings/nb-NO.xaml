@@ -1215,6 +1215,8 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Ctx_UpsideDown">Opp ned</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB-bøker</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu-dokumenter</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Lagre som KillerPDF</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF kunne ikke lage en PDF av {0}.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Sertifikatfiler</sys:String>
     <sys:String x:Key="Str_Filter_Text">Tekstfil</sys:String>
     <sys:String x:Key="Str_Print_Sending">Sender til skriveren…</sys:String>

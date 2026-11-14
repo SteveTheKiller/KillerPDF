@@ -1212,6 +1212,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Ctx_UpsideDown">Do góry nogami</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Książki EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Dokumenty DjVu</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Zapisz jako KillerPDF</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF nie mógł utworzyć pliku PDF z {0}.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Pliki certyfikatów</sys:String>
     <sys:String x:Key="Str_Filter_Text">Plik tekstowy</sys:String>
     <sys:String x:Key="Str_Print_Sending">Wysyłanie do drukarki…</sys:String>

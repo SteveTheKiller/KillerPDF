@@ -1215,6 +1215,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Ctx_UpsideDown">上下反転</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB 電子書籍</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu 文書</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">KillerPDF として保存</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF で {0} から PDF を作成できませんでした。</sys:String>
     <sys:String x:Key="Str_Filter_Cert">証明書ファイル</sys:String>
     <sys:String x:Key="Str_Filter_Text">テキストファイル</sys:String>
     <sys:String x:Key="Str_Print_Sending">プリンターに送信中…</sys:String>

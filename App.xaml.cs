@@ -167,6 +167,15 @@ namespace KillerPDF
                 return;
             }
 
+            // #479: Save as KillerPDF on images in Explorer. Headless like the CLI, and before the
+            // single-instance mutex, so it never forwards to an open window; the launches of one
+            // selection gather on the verb's own channel (Services/ImagesToPdfCommand.cs).
+            if (Services.ImagesToPdfPlan.VerbFiles(e.Args) is { } verbImages)
+            {
+                Shutdown(Services.ImagesToPdfCommand.Run(verbImages));
+                return;
+            }
+
             // Headless CLI commands (see Features/Cli/CliRunner.cs; --batch-resave in
             // BatchRunner.cs). Checked before the single-instance mutex so CLI runs work
             // while a GUI instance is open, never forward to it, and never show a window.
@@ -230,8 +239,15 @@ namespace KillerPDF
             catch { isPrimary = true; }
             if (!isPrimary)
             {
-                var fwd = e.Args.FirstOrDefault(a => !a.StartsWith('/'));
                 GrantPrimaryForegroundPermission();
+                // #480: every image of an Open with launch goes across, one message each, and the
+                // window gathers them into one new PDF.
+                if (Services.ImagesToPdfPlan.OpenWithImages(e.Args) is { Count: > 1 } images)
+                {
+                    Shutdown(images.All(image => InstanceChannel.Value.TrySend(Path.GetFullPath(image))) ? 0 : 1);
+                    return;
+                }
+                var fwd = e.Args.FirstOrDefault(a => !a.StartsWith('/'));
                 Shutdown(InstanceChannel.Value.ForwardLaunch(fwd));
                 return;
             }
@@ -1922,8 +1938,10 @@ namespace KillerPDF
                 ? $"\"{iconPath}\",0"
                 : $"{exePath},0";
 
+            // The image verb's label is plain registry text, so it carries setup's language.
             Services.FileAssociationRegistry.Register(root, exePath, iconRef, AppName,
-                Services.ProtocolRegistrar.Scheme);
+                Services.ProtocolRegistrar.Scheme,
+                SetupText("Str_Shell_SaveAsKillerPdf", Services.FileAssociationRegistry.ImageVerbEnglishLabel));
 
             // Tell the shell file associations have changed
             SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);

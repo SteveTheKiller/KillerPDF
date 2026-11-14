@@ -1204,6 +1204,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Ctx_UpsideDown">উল্টো করুন</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB বই</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu ডকুমেন্ট</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">KillerPDF হিসেবে সংরক্ষণ করুন</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF {0} থেকে PDF তৈরি করতে পারেনি।</sys:String>
     <sys:String x:Key="Str_Filter_Cert">সার্টিফিকেট ফাইল</sys:String>
     <sys:String x:Key="Str_Filter_Text">টেক্সট ফাইল</sys:String>
     <sys:String x:Key="Str_Print_Sending">প্রিন্টারে পাঠানো হচ্ছে…</sys:String>

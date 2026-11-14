@@ -1120,6 +1120,8 @@
     <sys:String x:Key="Str_Ctx_UpsideDown">Na glavo</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Knjige EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Dokumenti DjVu</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Shrani kot KillerPDF</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF ni mogel ustvariti PDF-ja iz {0}.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Datoteke s potrdili</sys:String>
     <sys:String x:Key="Str_Filter_Text">Besedilna datoteka</sys:String>
     <sys:String x:Key="Str_Print_Sending">Pošiljanje tiskalniku...</sys:String>

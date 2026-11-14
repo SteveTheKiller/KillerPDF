@@ -1215,6 +1215,8 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Ctx_UpsideDown">Догори дриґом</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Книги EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Документи DjVu</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Зберегти як KillerPDF</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF не зміг створити PDF з {0}.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Файли сертифікатів</sys:String>
     <sys:String x:Key="Str_Filter_Text">Текстовий файл</sys:String>
     <sys:String x:Key="Str_Print_Sending">Надсилання на принтер…</sys:String>

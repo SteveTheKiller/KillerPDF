@@ -56,6 +56,9 @@
     <Compile Include="..\Services\TwainScan.cs" Link="Services\TwainScan.cs" />
     <Compile Include="..\Services\AppDataPaths.cs" Link="Services\AppDataPaths.cs" />
     <Compile Include="..\Services\FileAssociationRegistry.cs" Link="Services\FileAssociationRegistry.cs" />
+    <Compile Include="..\Services\ImagesToPdfPlan.cs" Link="Services\ImagesToPdfPlan.cs" />
+    <Compile Include="..\Services\ImagesToPdfCommand.cs" Link="Services\ImagesToPdfCommand.cs" />
+    <Compile Include="..\Services\ImageLaunchCollector.cs" Link="Services\ImageLaunchCollector.cs" />
     <Compile Include="..\Services\ShellPrintFailure.cs" Link="Services\ShellPrintFailure.cs" />
     <Compile Include="..\Services\SignatureStore.cs" Link="Services\SignatureStore.cs" />
     <Compile Include="..\Services\SavedSignatureButton.cs" Link="Services\SavedSignatureButton.cs" />

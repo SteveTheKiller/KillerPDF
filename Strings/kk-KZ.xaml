@@ -1111,6 +1111,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Ctx_UpsideDown">Төңкеру</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB кітаптары</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu құжаттары</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">KillerPDF ретінде сақтау</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF {0} файлынан PDF жасай алмады.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Сертификат файлдары</sys:String>
     <sys:String x:Key="Str_Filter_Text">Мәтін файлы</sys:String>
     <sys:String x:Key="Str_Print_Sending">Принтерге жіберілуде...</sys:String>
