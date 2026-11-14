@@ -25,15 +25,14 @@ internal sealed class ImportReviewDialog : Window
         var apply = UiKit.Make(actionLabel ?? L("Str_Exchange_Import"), accent: true);
         apply.IsDefault = true;
         apply.Click += (_, _) => { DialogResult = true; };
-        var buttons = UiKit.ButtonRow(cancel, apply);
-        buttons.Margin = new Thickness(0, 14, 0, 0);
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        body.Children.Add(buttons);
+        // One footer row: the review's option, when it has one, on the left; Cancel and the action on the right.
         _option = UiKit.CheckBox(optionLabel ?? "");
         if (optionLabel is null) _option.Visibility = Visibility.Collapsed;
-        _option.Margin = new Thickness(0, 12, 0, 0);
-        DockPanel.SetDock(_option, Dock.Bottom);
-        body.Children.Add(_option);
+        DockPanel footer = optionLabel is null
+            ? DialogParts.Footer([cancel, apply])
+            : DialogParts.Footer([cancel, apply], _option);
+        DockPanel.SetDock(footer, Dock.Bottom);
+        body.Children.Add(footer);
         var text = UiKit.Field();
         text.Text = report;
         System.Windows.Automation.AutomationProperties.SetName(text, title);
@@ -41,7 +40,7 @@ internal sealed class ImportReviewDialog : Window
         text.AcceptsReturn = true;
         text.TextWrapping = TextWrapping.Wrap;
         text.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-        body.Children.Add(text);
+        body.Children.Add(DialogParts.Well(text));
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         Loaded += (_, _) => text.Focus();
     }

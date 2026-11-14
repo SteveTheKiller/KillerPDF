@@ -33,66 +33,66 @@ internal sealed class MeasurementReportDialog : Window
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
 
-        var body = new Grid { Margin = new Thickness(20, 6, 20, 16) };
-        body.RowDefinitions.Add(new RowDefinition());
-        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
 
         string report = ReportText(results);
-        var table = new Grid { Margin = new Thickness(12, 8, 12, 10) };
+        bool any = results.Count > 0;
+        var table = new Grid { Margin = new Thickness(12, 4, 12, 10) };
         table.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         table.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         table.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         FillTable(table, results);
-        var panel = new Border
+        var scroller = new ScrollViewer
         {
-            Background = UiKit.Brush("TextFieldBrush", UiKit.Brush("BgCanvas")),
-            BorderBrush = UiKit.Brush("CardBorderBrush"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = UiKit.RadControl,
-            Child = new ScrollViewer
-            {
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                Focusable = false,
-                Content = table
-            }
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Focusable = false,
+            Content = table,
+            // The empty well keeps a little height for its hint.
+            MinHeight = any ? 0 : 64
         };
-        Grid.SetRow(panel, 0);
-        body.Children.Add(panel);
+        System.Windows.Automation.AutomationProperties.SetName(scroller, L("Str_MeasureReport_Title"));
 
-        var copy = UiKit.Make(L("Str_DocumentTools_Copy"), accent: false);
-        copy.Click += (_, _) =>
+        // Copying confirms on the footer's left, where the copy icon's tooltip alone would go unseen.
+        var copied = new TextBlock { Text = L("Str_DocumentTools_Copied"), Visibility = Visibility.Hidden };
+        copied.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+        Button copy = DialogParts.IconAction("Str_DocumentTools_Copy", 0xE8C8, (_, _) =>
         {
             try
             {
                 Clipboard.SetText(report);
-                copy.Content = L("Str_DocumentTools_Copied");
+                copied.Visibility = Visibility.Visible;
             }
             catch (Exception ex) when (ex is System.Runtime.InteropServices.ExternalException)
             {
                 KillerDialog.Show(this, L("Str_DocumentTools_Failed") + "\n" + ex.Message,
                     "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        };
-        var csv = UiKit.Make(L("Str_MeasureReport_SaveCsv"), accent: false);
-        csv.Click += (_, _) => Save("csv", "CSV|*.csv", () => PdfMeasurementReport.ToCsv(_results));
-        var json = UiKit.Make(L("Str_MeasureReport_SaveJson"), accent: false);
-        json.Click += (_, _) => Save("json", "JSON|*.json", () => PdfMeasurementReport.ToJson(_results));
-        bool any = results.Count > 0;
+        });
+        Button csv = DialogParts.IconAction("Str_MeasureReport_SaveCsv", 0xE898,
+            (_, _) => Save("csv", "CSV|*.csv", () => PdfMeasurementReport.ToCsv(_results)));
+        Button json = DialogParts.IconAction("Str_MeasureReport_SaveJson", 0xE74E,
+            (_, _) => Save("json", "JSON|*.json", () => PdfMeasurementReport.ToJson(_results)));
         copy.IsEnabled = csv.IsEnabled = json.IsEnabled = any;
         var close = UiKit.Make(L("Str_DocumentTools_Close"), accent: true);
         close.IsDefault = true;
         close.IsCancel = true;
         close.Click += (_, _) => Close();
-        var buttons = UiKit.ButtonRow(copy, csv, json, close);
-        buttons.Margin = new Thickness(0, 14, 0, 0);
-        Grid.SetRow(buttons, 1);
-        body.Children.Add(buttons);
+        DockPanel footer = DialogParts.Footer([close], copied);
+        DockPanel.SetDock(footer, Dock.Bottom);
+        body.Children.Add(footer);
+
+        // The count heads the list, with the copy and save icons beside it.
+        string heading = any ? string.Format(L("Str_MeasureReport_Count"), results.Count) : L("Str_MeasureReport_Title");
+        DockPanel header = DialogParts.Header(heading, copy, csv, json);
+        DockPanel.SetDock(header, Dock.Top);
+        body.Children.Add(header);
+        body.Children.Add(DialogParts.Well(scroller, any ? null : DialogParts.EmptyHint("Str_MeasureReport_None")));
 
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
     }
 
-    // The count, then a header per page over its measurements: type, value, and scale.
+    // A header per page over its measurements: type, value, and scale.
     private static void FillTable(Grid table, IReadOnlyList<PdfMeasurementResult> results)
     {
         void Cell(string text, int column, int span = 1, string brush = "TextBrush",
@@ -102,28 +102,24 @@ internal sealed class MeasurementReportDialog : Window
             var cell = new TextBlock
             {
                 Text = text,
-                FontFamily = UiKit.UiFont,
                 FontSize = 12,
                 FontWeight = weight ?? FontWeights.Normal,
-                Foreground = UiKit.Brush(brush),
                 Margin = margin ?? new Thickness(0, 2, column < 2 ? 28 : 0, 2)
             };
+            cell.SetResourceReference(TextBlock.FontFamilyProperty, "UiFont");
+            cell.SetResourceReference(TextBlock.ForegroundProperty, brush);
             Grid.SetRow(cell, table.RowDefinitions.Count - 1);
             Grid.SetColumn(cell, column);
             Grid.SetColumnSpan(cell, span);
             table.Children.Add(cell);
         }
 
-        if (results.Count == 0)
-        {
-            Cell(L("Str_MeasureReport_None"), 0, 3, "MutedTextBrush");
-            return;
-        }
-        Cell(string.Format(L("Str_MeasureReport_Count"), results.Count), 0, 3, "MutedTextBrush");
+        bool first = true;
         foreach (var page in results.GroupBy(result => result.PageIndex))
         {
             Cell(string.Format(L("Str_MeasureReport_Page"), page.Key + 1), 0, 3,
-                weight: FontWeights.SemiBold, margin: new Thickness(0, 10, 0, 3));
+                weight: FontWeights.SemiBold, margin: new Thickness(0, first ? 4 : 10, 0, 3));
+            first = false;
             foreach (PdfMeasurementResult result in page)
             {
                 Cell(result.Kind, 0);
