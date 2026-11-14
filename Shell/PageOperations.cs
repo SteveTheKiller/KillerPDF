@@ -80,12 +80,54 @@ namespace KillerPDF.Shell
             if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             if (!EnsureMayWrite(PdfOutput.Printable)) return;
             var sourceCurrent = CaptureDocumentOrigin();
-            int[]? ordered = PromptPageOperationRange("Str_Lbl_Extract", _doc.PageCount);
-            if (ordered is null || !sourceCurrent()) return;
-            var dlg = new Controls.FileDialog(Controls.FileDialogMode.Save)
-                          { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SaveExtractedAs"),
-                            CheckFileExists = false, CheckPathExists = true, RequireFilterExtension = true };
-            if (dlg.ShowDialog(this) != true || !sourceCurrent()) return;
+            // #484: one window offers pages X to Y (the default, one PDF as before), a typed page list, every page as
+            // its own PDF, or a PDF for every few pages; the last two write a folder of files named as the CLI's split.
+            int pageCount = _doc.PageCount;
+            int[] selected = [.. PageList.SelectedItems.Cast<PageThumbnailVm>().Select(page => page.PageIndex + 1)];
+            string documentName = System.IO.Path.GetFileNameWithoutExtension(_suggestedName ?? _originalFile ?? _currentFile);
+            var choice = new SplitDialog(this, Loc("Str_Lbl_Extract"), pageCount, selected, InitialPageRange(pageCount),
+                PageSplit.BaseName(documentName) ?? "document");
+            if (choice.ShowDialog() != true || !sourceCurrent()) return;
+            // Where it goes: one PDF asks for a file name, as before; several files ask for a folder, then once
+            // before replacing files already there.
+            Func<string, Dictionary<int, int>, string> build;
+            if (choice.Choice is SplitChoice.EveryPage or SplitChoice.EveryN)
+            {
+                IReadOnlyList<PageSplitPart> parts = PageSplit.Plan(
+                    choice.Choice == SplitChoice.EveryPage ? PageSplitMode.EveryPage : PageSplitMode.EveryN,
+                    pageCount, choice.PagesPerFile, choice.BaseName);
+                var picker = new Controls.FileDialog(Controls.FileDialogMode.Folder)
+                    { Title = Loc("Str_Split_ChooseFolder"), HideFilesInFolderMode = true, AcceptHighlightedFolder = true };
+                if (_originalFile is not null && System.IO.Path.GetDirectoryName(_originalFile) is { } home)
+                    picker.InitialDirectory = home;
+                if (picker.ShowDialog(this) != true || !sourceCurrent()) return;
+                string folder = picker.FileName;
+                if (PageSplit.WouldReplace(folder, parts, _originalFile ?? _currentFile))
+                {
+                    KillerDialog.Show(this, Loc("Str_Split_ReplacesOpen"), "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                int existing = PageSplit.Existing(folder, parts).Count;
+                if (existing > 0 && (KillerDialog.Show(this, string.Format(Loc("Str_Split_ReplaceExisting"), existing),
+                        "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes || !sourceCurrent()))
+                    return;
+                build = (copy, turns) => string.Format(Loc("Str_Split_Wrote"),
+                    PageSplit.Write(copy, folder, parts, turns, overwrite: existing > 0), folder);
+            }
+            else
+            {
+                int[] ordered = [.. choice.Pages];
+                var dlg = new Controls.FileDialog(Controls.FileDialogMode.Save)
+                              { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SaveExtractedAs"),
+                                CheckFileExists = false, CheckPathExists = true, RequireFilterExtension = true };
+                if (dlg.ShowDialog(this) != true || !sourceCurrent()) return;
+                build = (copy, turns) =>
+                {
+                    PdfEngineIntegration.ExtractPages(copy, dlg.FileName, ordered, turns);
+                    return string.Format(Loc("Str_Extracted"), ordered.Length, System.IO.Path.GetFileName(dlg.FileName));
+                };
+            }
+            // Both build from one saved copy of the document as it stands, with the pending page turns applied once.
             string? snapshot = null;
             try
             {
@@ -93,11 +135,7 @@ namespace KillerPDF.Shell
                 var rotations = SnapshotPageRotations();
                 SavedCopy extractCopy = WriteSavedCopyToTemp(throwaway: true);
                 snapshot = extractCopy.Path;
-                PdfEngineIntegration.ExtractPages(
-                    snapshot, dlg.FileName, ordered, rotations);
-                SetStatus(extractCopy.Note(
-                    string.Format(Loc("Str_Extracted"), ordered.Length, System.IO.Path.GetFileName(dlg.FileName)),
-                    Loc("Str_Save_PicturesSkipped")));
+                SetStatus(extractCopy.Note(build(snapshot, rotations), Loc("Str_Save_PicturesSkipped")));
             }
             catch (Exception ex)
             {
@@ -181,21 +219,6 @@ namespace KillerPDF.Shell
                 .Select(page => page.PageIndex + 1).Distinct().Order());
             return initial.Length > 0 ? initial
                 : (Math.Clamp(_currentPage, 0, Math.Max(0, pageCount - 1)) + 1).ToString(System.Globalization.CultureInfo.CurrentCulture);
-        }
-
-        private int[]? PromptPageOperationRange(string titleKey, int pageCount)
-        {
-            string initial = InitialPageRange(pageCount);
-            var dialog = new DocumentValuesDialog(this, Loc(titleKey), Loc("Str_Btn_OK"),
-                (string.Format(Loc("Str_Dlg_PageRange"), pageCount), initial));
-            if (dialog.ShowDialog() != true) return null;
-            List<int>? pages = Features.CliRunner.CliParsePageRange(dialog.Values[0], pageCount, out _);
-            if (pages is null)
-            {
-                KillerDialog.Show(this, Loc("Str_InvalidRange"), "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return null;
-            }
-            return [.. pages];
         }
 
         private void InsertBlankPage_Click(object sender, RoutedEventArgs e) => InsertBlankPage(null);

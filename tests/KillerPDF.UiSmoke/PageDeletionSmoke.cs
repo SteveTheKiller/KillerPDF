@@ -168,7 +168,10 @@ internal static class PageDeletionSmoke
                     continue;
                 }
                 string dialogType = dialog.GetType().Name;
-                TextBox? range = dialogType is "DocumentValuesDialog" or "DeletePagesDialog" ? Descendants<TextBox>(dialog).SingleOrDefault() : null;
+                // Extract Pages' typed page list is one of several boxes in its window; Delete has only the one.
+                TextBox? range = dialogType == "SplitDialog"
+                    ? Descendants<TextBox>(dialog).SingleOrDefault(box => System.Windows.Automation.AutomationProperties.GetAutomationId(box) == "SplitPageList")
+                    : dialogType == "DeletePagesDialog" ? Descendants<TextBox>(dialog).SingleOrDefault() : null;
                 if (range is not null && seen.Add(dialog))
                 {
                     rangePrompts++;
