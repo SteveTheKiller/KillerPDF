@@ -517,6 +517,33 @@ public sealed class CliExitCodeTests : IDisposable
     }
 
     [Fact]
+    public void EveryLanguageListsTheSameCommandsByGroupAsEnglish()
+    {
+        string runner = ReadSource("Features", "Cli", "CliRunner.cs");
+        int start = runner.IndexOf("\"accessibility\", \"attachments\"", StringComparison.Ordinal);
+        string list = runner[start..runner.IndexOf("], \"--\")", start, StringComparison.Ordinal)];
+        string[] verbs = [.. System.Text.RegularExpressions.Regex.Matches(list, "\"([a-z-]+)\"").Select(match => match.Groups[1].Value)];
+        string page = ReadSource("pdf-landing", "help.html");
+        string translations = ReadSource("pdf-landing", "kp-i18n.js");
+        static bool Names(string text, string verb) =>
+            System.Text.RegularExpressions.Regex.IsMatch(text, "(?<![a-z-])" + System.Text.RegularExpressions.Regex.Escape(verb) + "(?![a-z-])");
+        foreach (string key in new[] { "ph19_cli_more_2", "ph19_cli_more_3" })
+        {
+            string english = System.Text.RegularExpressions.Regex.Match(page,
+                "data-i18n=\"" + key + "\">(.*?)</p>", System.Text.RegularExpressions.RegexOptions.Singleline).Groups[1].Value;
+            string[] expected = [.. verbs.Where(verb => Names(english, verb))];
+            Assert.NotEmpty(expected);
+            var lines = System.Text.RegularExpressions.Regex.Matches(translations, "\"" + key + "\"\\s*:\\s*\"(.*)\"");
+            Assert.NotEmpty(lines);
+            foreach (System.Text.RegularExpressions.Match line in lines)
+            {
+                string[] missing = [.. expected.Where(verb => !Names(line.Groups[1].Value, verb))];
+                Assert.True(missing.Length == 0, key + " is missing " + string.Join(", ", missing) + " in: " + line.Groups[1].Value[..Math.Min(60, line.Groups[1].Value.Length)]);
+            }
+        }
+    }
+
+    [Fact]
     public void SetBookmarksRefusesAMissingFile()
     {
         Assert.Equal(2, Run("--set-bookmarks", Blank("t.pdf"), Path.Combine(folder, "t2.pdf"),
