@@ -13,13 +13,15 @@ namespace KillerLauncher
 
         internal static string Get(string key)
         {
-            string locale = ResolveLocale(CultureInfo.CurrentUICulture);
+            string locale = CurrentLocale();
             if (Tables[locale].TryGetValue(key, out string value)) return value;
             return Tables["en-US"][key];
         }
 
         internal static string Format(string key, params object[] values) =>
             string.Format(CultureInfo.CurrentCulture, Get(key), values);
+
+        internal static string CurrentLocale() => ResolveLocale(CultureInfo.CurrentUICulture);
 
         internal static string ResolveLocale(CultureInfo culture)
         {

@@ -14,6 +14,7 @@ namespace KillerLauncher
     {
         private LauncherDialog(string message)
         {
+            InstallerWizard.ApplyLanguageFonts(this);
             InitializeComponent();
             VersionLabel.Text = System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).ProductVersion?.Split('+')[0] ?? "";
             TaskbarIdentity.Track(this);

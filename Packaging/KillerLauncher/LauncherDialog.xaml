@@ -6,7 +6,7 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="KillerPDF" Width="560" MinHeight="300" SizeToContent="Height"
         WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="True"
-        AllowsTransparency="True" Background="Transparent" FontFamily="./Fonts/#Killer Sans UI, Segoe UI" Foreground="#e0e0e0"
+        AllowsTransparency="True" Background="Transparent" Foreground="#e0e0e0"
         TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
     <shell:WindowChrome.WindowChrome>
@@ -19,7 +19,6 @@
         <FontFamily x:Key="Wordmark">./Fonts/#Punktype</FontFamily>
         <FontFamily x:Key="WordmarkAccent">./Fonts/#Lacquer</FontFamily>
         <FontFamily x:Key="BrandSans">./Fonts/#Killer Sans</FontFamily>
-        <FontFamily x:Key="UiFont">./Fonts/#Killer Sans UI, Segoe UI</FontFamily>
         <SolidColorBrush x:Key="Green" Color="#1ea54c"/>
         <LinearGradientBrush x:Key="AccentFill" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#1ea54c" Offset="0"/><GradientStop Color="#198b40" Offset="1"/></LinearGradientBrush>
         <Style x:Key="PrimaryButton" TargetType="Button">

@@ -67,6 +67,8 @@ foreach ($file in Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.cs') {
             $line -match '(?:ShowNotice|MessageBox\.Show|new [A-Za-z]+Exception)\(\s*"[A-Za-z]') {
             throw "Unlocalized UI assignment in $($file.Name): $($line.Trim())"
         }
+        # Font stacks name faces, not text a user reads.
+        if ($line.Contains('./Fonts/#')) { continue }
         foreach ($literal in [regex]::Matches($line, '"(?:\\.|[^"\\])*"')) {
             if ($literal.Value -match '[A-Za-z]{2,} [A-Za-z]{2,}') { throw "Review source literal in $($file.Name): $($literal.Value)" }
         }

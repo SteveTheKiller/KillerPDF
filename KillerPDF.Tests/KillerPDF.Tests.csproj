@@ -274,6 +274,7 @@
     <Compile Include="..\Packaging\KillerLauncher\UpdateRelaunchArguments.cs" Link="Packaging\UpdateRelaunchArguments.cs" />
     <Compile Include="..\Features\About\InstalledUpdateCommand.cs" Link="Features\InstalledUpdateCommand.cs" />
     <Compile Include="..\Packaging\KillerLauncher\PortableDirectoryCleanup.cs" Link="Packaging\PortableDirectoryCleanup.cs" />
+    <Compile Include="..\Packaging\KillerLauncher\LauncherFonts.cs" Link="Packaging\LauncherFonts.cs" />
   </ItemGroup>
 
   <ItemGroup>

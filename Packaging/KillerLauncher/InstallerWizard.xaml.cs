@@ -28,8 +28,22 @@ namespace KillerLauncher
             return true;
         }
 
+        // The window's text face and the UiFont and HeadingFont resources follow the language the
+        // launcher's strings load for. This runs before InitializeComponent so the XAML's
+        // StaticResource lookups find the application-level resources.
+        internal static void ApplyLanguageFonts(Window window)
+        {
+            string locale = LauncherStrings.CurrentLocale();
+            var baseUri = new Uri("pack://application:,,,/" + typeof(InstallerWizard).Assembly.GetName().Name + ";component/");
+            window.FontFamily = new FontFamily(baseUri, LauncherFonts.Ui(locale));
+            if (Application.Current == null) return;
+            Application.Current.Resources["UiFont"] = new FontFamily(baseUri, LauncherFonts.Ui(locale));
+            Application.Current.Resources["HeadingFont"] = new FontFamily(baseUri, LauncherFonts.Heading(locale));
+        }
+
         private InstallerWizard()
         {
+            ApplyLanguageFonts(this);
             InitializeComponent();
             new KillerFamily.Accessibility.OverlayFocus(this).Track(NoticeOverlay);
             Closing += (_, e) =>

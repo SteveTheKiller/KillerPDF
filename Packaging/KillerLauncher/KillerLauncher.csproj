@@ -44,6 +44,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\Services\UiFontStack.cs" Link="Services\UiFontStack.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Include="..\..\Fonts\Punktype.ttf" Link="Fonts\Punktype.ttf" />
     <Resource Include="..\..\Fonts\Lacquer-Regular.ttf" Link="Fonts\Lacquer-Regular.ttf" />
     <Resource Include="..\..\Fonts\KillerSans-Regular.ttf" Link="Fonts\KillerSans-Regular.ttf" />
