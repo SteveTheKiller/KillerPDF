@@ -36,10 +36,13 @@ internal sealed class GuidedTasksDialog : Window
         Title = "KillerPDF - " + L("Str_Guided_Title");
         scale = Math.Clamp(scale, .7, 2.5);
         Width = Math.Min(620 * scale, SystemParameters.WorkArea.Width - 40);
-        Height = Math.Min(430 * scale, SystemParameters.WorkArea.Height - 40);
-        MinWidth = 400; MinHeight = 300; UseLayoutRounding = true;
+        // As tall as the chosen task's fields, so the footer sits right under them; past the screen's height the
+        // content scrolls. Choosing another task or a result line resizes it until it is resized by hand.
+        SizeToContent = SizeToContent.Height;
+        MaxHeight = Math.Max(300, SystemParameters.WorkArea.Height - 40);
+        MinWidth = 400; MinHeight = 240; UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
-        // It opens 620 x 430 DIP times the app scale and its content scrolls, so 400 x 300 stays its minimum rather than
+        // It opens 620 DIP wide times the app scale and its content scrolls, so 400 x 240 stays its minimum rather than
         // the opening size, which at a large scale is most of the screen.
         DialogFrame.KeepDeclaredMinimum(this);
         Id(this, "GuidedTasksDialog", "Str_Guided_Title");
