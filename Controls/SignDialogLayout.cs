@@ -11,6 +11,10 @@ namespace KillerPDF.Controls
     internal static class SignDialogLayout
     {
         public const double ColumnWidth = 352;
+
+        /// <summary>Padding for the 26 px Browse buttons: the kit button's own padding is for taller buttons and
+        /// pushed the bottom of the caption out of view at this height.</summary>
+        public static System.Windows.Thickness CompactButtonPadding => new(12, 0, 12, 0);
         public const double ColumnGap = 24;
         /// <summary>Space between the card's edges and the columns, the footer's 16 plus 4.</summary>
         public const double Inset = 20;

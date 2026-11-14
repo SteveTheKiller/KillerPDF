@@ -200,6 +200,7 @@ namespace KillerPDF
             Grid.SetColumn(_pfxBox, 0);
             _browsePfx = MakeButton(L("Str_Sign_Browse"), false);
             _browsePfx.Height = Layout.ControlHeight;
+            _browsePfx.Padding = SignLayout.CompactButtonPadding;
             _browsePfx.Click += (_, _) => BrowsePfx();
             Grid.SetColumn(_browsePfx, 1);
             fileRow.Children.Add(_pfxBox);
@@ -338,6 +339,7 @@ namespace KillerPDF
             Grid.SetColumn(_outputBox, 0);
             var browseOut = MakeButton(L("Str_Sign_Browse"), false);
             browseOut.Height = Layout.ControlHeight;
+            browseOut.Padding = SignLayout.CompactButtonPadding;
             browseOut.Click += (_, _) => BrowseOutput();
             Grid.SetColumn(browseOut, 1);
             outRow.Children.Add(_outputBox);

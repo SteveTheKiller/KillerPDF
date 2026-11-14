@@ -182,9 +182,11 @@ namespace KillerPDF
 
             var box = new FrameworkElementFactory(typeof(Border));
             box.SetValue(Border.CornerRadiusProperty, RadControl);
-            box.SetValue(Border.BorderThicknessProperty, new Thickness(1));
-            box.SetValue(Border.BorderBrushProperty, Brush("CardBorderBrush"));
-            box.SetValue(Border.BackgroundProperty, Brush("RadioWellBrush"));
+            // The theme radios' ring: DimTextBrush at 1.5 px reads on every theme, where CardBorderBrush nearly
+            // vanished on Light. Resource references, so a theme switch repaints an open dialog's boxes.
+            box.SetValue(Border.BorderThicknessProperty, new Thickness(1.5));
+            box.SetResourceReference(Border.BorderBrushProperty, "DimTextBrush");
+            box.SetResourceReference(Border.BackgroundProperty, "RadioWellBrush");
             boxHost.AppendChild(box);
 
             var sunkenDark = new FrameworkElementFactory(typeof(Border));

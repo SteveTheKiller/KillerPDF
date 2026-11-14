@@ -67,6 +67,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - `killerpdf search-text` searches for a query that starts with two dashes, such as `--json`, instead of reading it as an option, so a search can no longer leave the command waiting for input.
 - The footer copyright has a single space between the year and the name, and the version and copyright come from the family footer, so their distance from the corner grip matches the other Killer apps.
 - The Open dialog offers EPUB and DjVu books alongside PDFs, together or one format at a time, and the Open button's recent files menu is only as wide as its longest name.
+- Check boxes in dialogs draw a visible box on the Light theme and repaint when the theme changes.
 - Hiding shortcut hints removes the hints the app adds to tooltips in every language, including translated keys such as (Strg+D).
 - Menu rows show the right shortcut: the Attachments Save row no longer shows Ctrl+S, which saves the PDF, and Compare PDFs shows its own. The Bold, Italic and Underline buttons show their shortcuts, and the status line names Ctrl+Enter, not Enter, as the key that saves a text box.
 - Chinese and Japanese interface text uses the font Windows uses for that language: Microsoft YaHei UI for Simplified Chinese and Yu Gothic UI for Japanese, instead of the Traditional Chinese font. The installer and portable launcher follow the same rule. (#490)
