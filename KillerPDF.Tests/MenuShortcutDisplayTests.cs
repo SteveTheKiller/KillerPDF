@@ -47,8 +47,9 @@ public sealed class MenuShortcutDisplayTests
                 if (binding.LabelKey != key && binding.Caps.Length > 0 && english.TryGetValue(binding.LabelKey, out string? text) && text == english[key])
                     Assert.Fail($"The sidebar row {key} reads \"{english[key]}\", the text of {binding.LabelKey}, so the menu would show that command's shortcut on it.");
         }
+        // The attachment's Save is a strip button that names no shortcut, so it cannot show Ctrl+S.
         string save = Line(panels, "Loc(\"Str_Btn_Save\")");
-        Assert.Contains("SaveAttachmentCopy(attachment), \"\")", save);
+        Assert.Contains("Loc(\"Str_Btn_Save\"), null, () => SaveAttachmentCopy(attachment)", save);
     }
 
     [Fact]

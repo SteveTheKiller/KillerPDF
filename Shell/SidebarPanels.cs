@@ -197,37 +197,52 @@ namespace KillerPDF.Shell
                 if (node is TreeViewItem item) { clicked = item; break; }
             if (clicked is not null) clicked.IsSelected = true;
             void Add(string key, Action action) => menu.Items.Add(MakeMenuItem(Loc(key), (_, _) => action()));
+            // A panel's own actions are one icon strip on the card frame, as the page and bookmark menus show them.
+            void Strip(params (string Glyph, string Caption, string? Gesture, Action Act, bool Mirror, bool Enabled)[] actions)
+            {
+                if (TryFindResource("CardMenu") is Style card) menu.Style = card;
+                var strip = QuickStrip(menu, 3, actions);
+                menu.Items.Add(CardSlot(strip, new Thickness(0)));
+                FocusFirstActionFromKeyboard(menu, strip);
+            }
             switch (panel ?? _sidebarPanel)
             {
                 case SidebarPanel.Attachments:
-                    Add("Str_Attachment_Add", AddSidebarAttachment);
+                    var attachmentActions = new List<(string, string, string?, Action, bool, bool)>
+                    {
+                        ("\uE710", Loc("Str_Attachment_Add"), null, AddSidebarAttachment, false, true),
+                    };
                     if (clicked?.Tag is PdfAttachmentInfo attachment)
-                        menu.Items.Add(MakeMenuItem(Loc("Str_Btn_Save"), (_, _) => SaveAttachmentCopy(attachment), ""));
-                    Add("Str_DocumentTools_EditAttachments", EditAttachments);
+                        attachmentActions.Add(("\uE74E", Loc("Str_Btn_Save"), null, () => SaveAttachmentCopy(attachment), false, true));
+                    attachmentActions.Add(("\uE8B7", Loc("Str_DocumentTools_EditAttachments"), null, EditAttachments, false, true));
+                    Strip([.. attachmentActions]);
                     break;
                 case SidebarPanel.Comments:
-                    Add("Str_Comments_Add", () => EditComments(addNew: true));
-                    Add("Str_DocumentTools_Comments", () => EditComments());
-                    menu.Items.Add(new Separator());
-                    Add("Str_Measure_Distance", () => SelectMeasurement(MeasurementKind.Distance));
-                    Add("Str_Measure_Perimeter", () => SelectMeasurement(MeasurementKind.Perimeter));
-                    Add("Str_Measure_Area", () => SelectMeasurement(MeasurementKind.Area));
-                    Add("Str_Measure_Angle", () => SelectMeasurement(MeasurementKind.Angle));
-                    Add("Str_Measure_TT_Scale", () => OpenMeasureScale());
+                    Strip(("\uE710", Loc("Str_Comments_Add"), null, () => EditComments(addNew: true), false, true),
+                          ("\uE90A", Loc("Str_DocumentTools_Comments"), null, () => EditComments(), false, true));
+                    // The measuring modes draw their own pictures on the measure bar, so they stay rows under one item.
+                    var measure = MakeMenuItem(Loc("Str_Lbl_Measure"), (_, _) => { }, gesture: "", glyph: "\uED5E");
+                    measure.Items.Add(MakeMenuItem(Loc("Str_Measure_Distance"), (_, _) => SelectMeasurement(MeasurementKind.Distance), GestureFor("AltShift:D1"), ""));
+                    measure.Items.Add(MakeMenuItem(Loc("Str_Measure_Perimeter"), (_, _) => SelectMeasurement(MeasurementKind.Perimeter), GestureFor("AltShift:D2"), ""));
+                    measure.Items.Add(MakeMenuItem(Loc("Str_Measure_Area"), (_, _) => SelectMeasurement(MeasurementKind.Area), GestureFor("AltShift:D3"), ""));
+                    measure.Items.Add(MakeMenuItem(Loc("Str_Measure_Angle"), (_, _) => SelectMeasurement(MeasurementKind.Angle), GestureFor("AltShift:D4"), ""));
+                    measure.Items.Add(MakeMenuItem(Loc("Str_Measure_TT_Scale"), (_, _) => OpenMeasureScale(), GestureFor("AltShift:D5"), ""));
+                    menu.Items.Add(measure);
+                    // A row, not a strip button, so it can show its Ctrl+Shift+D chord.
                     menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_Measurements"), (_, _) => ShowMeasurementReport(),
-                        GestureFor("CtrlShift:D") + ", " + ShortcutTable.DocumentToolKey("Str_DocumentTools_Measurements")));
+                        GestureFor("CtrlShift:D") + ", " + ShortcutTable.DocumentToolKey("Str_DocumentTools_Measurements"), "\uED5E"));
                     break;
                 case SidebarPanel.Layers:
-                    Add("Str_DocumentTools_EditLayers", EditLayers);
+                    menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_EditLayers"), (_, _) => EditLayers(), glyph: "\uE70F"));
                     break;
                 case SidebarPanel.Signatures:
-                    Add("Str_Lbl_DigitalSig", OpenSidebarSigning);
-                    Add("Str_DocumentTools_Signatures", ShowSignaturesReport);
+                    Strip(("\uEE56", Loc("Str_Lbl_DigitalSig"), "CtrlShift:G", OpenSidebarSigning, false, true),
+                          ("\uE8D7", Loc("Str_DocumentTools_Signatures"), null, ShowSignaturesReport, false, true));
                     menu.Items.Add(MakeMenuItem(Loc("Str_CertCatalog_Title"), (_, _) => OpenCertificateCatalog(),
-                        GestureFor("CtrlShift:D") + ", " + ShortcutTable.DocumentToolKey("Str_CertCatalog_Title")));
+                        GestureFor("CtrlShift:D") + ", " + ShortcutTable.DocumentToolKey("Str_CertCatalog_Title"), "\uEB95"));
                     break;
                 case SidebarPanel.Outlines:
-                    Add("Str_Ctx_BmAdd", () => AddBookmarkInto(null));
+                    menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_BmAdd"), (_, _) => AddBookmarkInto(null), glyph: "\uE710"));
                     break;
                 case SidebarPanel.DocumentTools:
                     break;   // the panel is its own list of actions; the menu keeps only the sidebar position
