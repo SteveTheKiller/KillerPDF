@@ -16743,6 +16743,7 @@ if (I18N["bn"]) Object.assign(I18N["bn"], {
   "shot_19_16": "এক্টোপ্লাজম থিমসহ উইন্ডোর নিচে ডক করা পৃষ্ঠা স্ট্রিপ",
   "shot_19_17": "নীলাভ থিমসহ নিচে সরানো নথির ট্যাব",
   "shot_19_20": "Dark থিমে সাইডবারে দুই কলামের পৃষ্ঠা থাম্বনেইল",
+  "shot_193_21": "নীল অ্যাকসেন্টে সাইডবারে ডকুমেন্ট টুলস প্যানেল",
   "ui_home": "KillerPDF-এর হোম",
   "ui_store": "Microsoft Store থেকে KillerPDF নিন",
   "ui_mcp_store": "Microsoft Store থেকে KillerMCP নিন"
@@ -16957,6 +16958,7 @@ if (I18N["cs"]) Object.assign(I18N["cs"], {
   "shot_19_16": "Pruh stránek ukotvený dole v okně s motivem Ektoplazma",
   "shot_19_17": "Karty dokumentů přesunuté dolů s motivem Cyanotický",
   "shot_19_20": "Náhledy stránek ve dvou sloupcích v postranním panelu s motivem Dark",
+  "shot_193_21": "Panel Nástroje dokumentu v postranním panelu s modrým zvýrazněním",
   "ui_home": "Domovská stránka KillerPDF",
   "ui_store": "Získat KillerPDF z Microsoft Store",
   "ui_mcp_store": "Získat KillerMCP z Microsoft Store"
@@ -17171,6 +17173,7 @@ if (I18N["de"]) Object.assign(I18N["de"], {
   "shot_19_16": "Die Seitenleiste unten im Fenster angedockt, mit dem Thema Ectoplasm",
   "shot_19_17": "Dokument-Tabs nach unten verschoben, mit dem Thema Cyanotic",
   "shot_19_20": "Seitenminiaturen in zwei Spalten in der Seitenleiste mit dem Design Dark",
+  "shot_193_21": "Der Bereich Dokumentwerkzeuge in der Seitenleiste mit blauer Akzentfarbe",
   "ui_home": "KillerPDF Startseite",
   "ui_store": "KillerPDF aus dem Microsoft Store laden",
   "ui_mcp_store": "KillerMCP aus dem Microsoft Store laden"
@@ -17385,6 +17388,7 @@ if (I18N["es"]) Object.assign(I18N["es"], {
   "shot_19_16": "La franja de páginas acoplada en la parte inferior de la ventana con el tema Ectoplasm",
   "shot_19_17": "Las pestañas de documentos movidas a la parte inferior con el tema Cyanotic",
   "shot_19_20": "Miniaturas de página en dos columnas en la barra lateral con el tema Dark",
+  "shot_193_21": "El panel Herramientas de documento en la barra lateral con el acento azul",
   "ui_home": "Inicio de KillerPDF",
   "ui_store": "Obtener KillerPDF en Microsoft Store",
   "ui_mcp_store": "Obtener KillerMCP en Microsoft Store"
@@ -17599,6 +17603,7 @@ if (I18N["fr"]) Object.assign(I18N["fr"], {
   "shot_19_16": "La bande de pages ancrée en bas de la fenêtre avec le thème Ectoplasm",
   "shot_19_17": "Les onglets de documents déplacés en bas avec le thème Cyanotic",
   "shot_19_20": "Miniatures de pages sur deux colonnes dans la barre latérale avec le thème Dark",
+  "shot_193_21": "Le panneau Outils du document dans la barre latérale avec l’accent bleu",
   "ui_home": "Accueil KillerPDF",
   "ui_store": "Obtenir KillerPDF sur le Microsoft Store",
   "ui_mcp_store": "Obtenir KillerMCP sur le Microsoft Store"
@@ -17813,6 +17818,7 @@ if (I18N["hu"]) Object.assign(I18N["hu"], {
   "shot_19_16": "Az ablak alján rögzített oldalsáv az Ektoplazma témával",
   "shot_19_17": "A dokumentumlapok lent, a Cianotikus témával",
   "shot_19_20": "Kétoszlopos oldalbélyegképek az oldalsávban, a Dark témával",
+  "shot_193_21": "A Dokumentumeszközök panel az oldalsávban, kék kiemelőszínnel",
   "ui_home": "A KillerPDF kezdőlapja",
   "ui_store": "A KillerPDF beszerzése a Microsoft Store-ból",
   "ui_mcp_store": "A KillerMCP beszerzése a Microsoft Store-ból"
@@ -18027,6 +18033,7 @@ if (I18N["it"]) Object.assign(I18N["it"], {
   "shot_19_16": "La barra delle pagine agganciata in basso nella finestra con il tema Ectoplasma",
   "shot_19_17": "Le schede dei documenti spostate in basso con il tema Cianotico",
   "shot_19_20": "Miniature delle pagine su due colonne nella barra laterale con il tema Dark",
+  "shot_193_21": "Il pannello Strumenti documento nella barra laterale con l’accento blu",
   "ui_home": "Pagina iniziale di KillerPDF",
   "ui_store": "Scarica KillerPDF dal Microsoft Store",
   "ui_mcp_store": "Scarica KillerMCP dal Microsoft Store"
@@ -18241,6 +18248,7 @@ if (I18N["ja"]) Object.assign(I18N["ja"], {
   "shot_19_16": "エクトプラズムテーマで、ページストリップをウィンドウ下部にドッキングした状態",
   "shot_19_17": "シアノティックテーマで、文書タブを下部に移動した状態",
   "shot_19_20": "Dark テーマでサイドバーに 2 列表示したページのサムネイル",
+  "shot_193_21": "青のアクセントでサイドバーに表示したドキュメント ツール パネル",
   "ui_home": "KillerPDF ホーム",
   "ui_store": "Microsoft Store で KillerPDF を入手",
   "ui_mcp_store": "Microsoft Store で KillerMCP を入手"
@@ -18455,6 +18463,7 @@ if (I18N["kk"]) Object.assign(I18N["kk"], {
   "shot_19_16": "Беттер жолағы Ectoplasm тақырыбымен терезенің төменгі жағына бекітілген",
   "shot_19_17": "Құжат қойындылары Cyanotic тақырыбымен төменге жылжытылған",
   "shot_19_20": "Dark тақырыбымен бүйірлік тақтадағы екі бағандық бет нобайлары",
+  "shot_193_21": "Көк екпін түсімен бүйірлік тақтадағы Құжат құралдары тақтасы",
   "ui_home": "KillerPDF басты беті",
   "ui_store": "KillerPDF бағдарламасын Microsoft Store дүкенінен алу",
   "ui_mcp_store": "KillerMCP бағдарламасын Microsoft Store дүкенінен алу"
@@ -18669,6 +18678,7 @@ if (I18N["nb"]) Object.assign(I18N["nb"], {
   "shot_19_16": "Sidestripen dokket nederst i vinduet med Ectoplasm-temaet",
   "shot_19_17": "Dokumentfaner flyttet nederst med Cyanotic-temaet",
   "shot_19_20": "Sideminiatyrer i to kolonner i sidepanelet med Dark-temaet",
+  "shot_193_21": "Dokumentverktøy-panelet i sidepanelet med blå uthevingsfarge",
   "ui_home": "KillerPDF-startside",
   "ui_store": "Få KillerPDF fra Microsoft Store",
   "ui_mcp_store": "Få KillerMCP fra Microsoft Store",
@@ -18888,6 +18898,7 @@ if (I18N["pl"]) Object.assign(I18N["pl"], {
   "shot_19_16": "Pasek stron zadokowany na dole okna z motywem Ektoplazma",
   "shot_19_17": "Karty dokumentów przeniesione na dół z motywem Sinica",
   "shot_19_20": "Miniatury stron w dwóch kolumnach na pasku bocznym z motywem Dark",
+  "shot_193_21": "Panel Narzędzia dokumentu na pasku bocznym z niebieskim akcentem",
   "ui_home": "Strona główna KillerPDF",
   "ui_store": "Pobierz KillerPDF ze Sklepu Microsoft Store",
   "ui_mcp_store": "Pobierz KillerMCP ze Sklepu Microsoft Store"
@@ -19102,6 +19113,7 @@ if (I18N["pt"]) Object.assign(I18N["pt"], {
   "shot_19_16": "A faixa de páginas ancorada na parte de baixo da janela com o tema Ectoplasm",
   "shot_19_17": "Guias de documento movidas para baixo com o tema Cyanotic",
   "shot_19_20": "Miniaturas de página em duas colunas na barra lateral com o tema Dark",
+  "shot_193_21": "O painel Ferramentas de documento na barra lateral com o destaque azul",
   "ui_home": "Página inicial do KillerPDF",
   "ui_store": "Obter o KillerPDF na Microsoft Store",
   "ui_mcp_store": "Obter o KillerMCP na Microsoft Store",
@@ -19321,6 +19333,7 @@ if (I18N["ru"]) Object.assign(I18N["ru"], {
   "shot_19_16": "Полоса страниц, закреплённая внизу окна, с темой Ectoplasm",
   "shot_19_17": "Вкладки документов, перенесённые вниз, с темой Cyanotic",
   "shot_19_20": "Миниатюры страниц в два столбца на боковой панели с темой Dark",
+  "shot_193_21": "Панель «Инструменты документа» на боковой панели с синим акцентом",
   "ui_home": "Главная страница KillerPDF",
   "ui_store": "Получить KillerPDF в Microsoft Store",
   "ui_mcp_store": "Получить KillerMCP в Microsoft Store"
@@ -19534,7 +19547,8 @@ if (I18N["sl"]) Object.assign(I18N["sl"], {
   "shot_19_15": "Trak s stranmi, zasidran na vrhu okna, s temo Greed",
   "shot_19_16": "Trak s stranmi, zasidran na dnu okna, s temo Ectoplasm",
   "shot_19_17": "Zavihki dokumentov, premaknjeni na dno, s temo Cyanotic",
-  "shot_19_20": "Sličice strani v dveh stolpcih v stranski vrstici s temo Dark"
+  "shot_19_20": "Sličice strani v dveh stolpcih v stranski vrstici s temo Dark",
+  "shot_193_21": "Podokno Orodja dokumenta v stranski vrstici z modrim poudarkom"
 });
 if (I18N["tr"]) Object.assign(I18N["tr"], {
   "ph19_access_1": "Ekran okuyucunun önüne çıkan engelleri, her bulgu için bir sayfa önizlemesiyle listeler: eksik veya geçersiz belge dili, yapı ağacının olmaması veya işaretlenmemiş içerik, alternatif açıklaması olmayan şekiller, açıklaması olmayan form alanları ve bağlantılar ile başlık hücresi olmayan tablolar.",
@@ -19746,6 +19760,7 @@ if (I18N["tr"]) Object.assign(I18N["tr"], {
   "shot_19_16": "Sayfa şeridi, Ektoplazma temasıyla pencerenin altına yerleştirilmiş",
   "shot_19_17": "Belge sekmeleri, Siyanotik temasıyla alta taşınmış",
   "shot_19_20": "Dark temasıyla kenar çubuğunda iki sütunlu sayfa küçük resimleri",
+  "shot_193_21": "Mavi vurgu rengiyle kenar çubuğundaki Belge araçları paneli",
   "ui_home": "KillerPDF ana sayfası",
   "ui_store": "KillerPDF'yi Microsoft Store'dan edinin",
   "ui_mcp_store": "KillerMCP'yi Microsoft Store'dan edinin"
@@ -19960,6 +19975,7 @@ if (I18N["uk"]) Object.assign(I18N["uk"], {
   "shot_19_16": "Смуга сторінок, закріплена внизу вікна, з темою Ectoplasm",
   "shot_19_17": "Вкладки документів, перенесені вниз, з темою Cyanotic",
   "shot_19_20": "Мініатюри сторінок у два стовпці на бічній панелі з темою Dark",
+  "shot_193_21": "Панель «Інструменти документа» на бічній панелі із синім акцентом",
   "ui_home": "Головна сторінка KillerPDF",
   "ui_store": "Отримати KillerPDF у Microsoft Store",
   "ui_mcp_store": "Отримати KillerMCP у Microsoft Store",
@@ -20179,6 +20195,7 @@ if (I18N["vi"]) Object.assign(I18N["vi"], {
   "shot_19_16": "Dải trang neo ở phía dưới cửa sổ với giao diện Ectoplasm",
   "shot_19_17": "Các tab tài liệu được chuyển xuống dưới với giao diện Cyanotic",
   "shot_19_20": "Hình thu nhỏ trang hai cột trong thanh bên với chủ đề Dark",
+  "shot_193_21": "Bảng Công cụ tài liệu trong thanh bên với màu nhấn xanh lam",
   "ui_home": "Trang chủ KillerPDF",
   "ui_store": "Tải KillerPDF từ Microsoft Store",
   "ui_mcp_store": "Tải KillerMCP từ Microsoft Store"
@@ -20393,6 +20410,7 @@ if (I18N["zh-cn"]) Object.assign(I18N["zh-cn"], {
   "shot_19_16": "页面条停靠在窗口底部，使用 Ectoplasm 主题",
   "shot_19_17": "文档标签页移到底部，使用 Cyanotic 主题",
   "shot_19_20": "Dark 主题下侧边栏中的双列页面缩略图",
+  "shot_193_21": "蓝色强调色下侧边栏中的文档工具面板",
   "ui_home": "KillerPDF 主页",
   "ui_store": "从 Microsoft Store 获取 KillerPDF",
   "ui_mcp_store": "从 Microsoft Store 获取 KillerMCP"
@@ -20607,6 +20625,7 @@ if (I18N["zh"]) Object.assign(I18N["zh"], {
   "shot_19_16": "頁面條停靠在視窗底部，使用 Ectoplasm 佈景主題",
   "shot_19_17": "文件分頁移到底部，使用 Cyanotic 佈景主題",
   "shot_19_20": "Dark 主題下側邊欄中的雙欄頁面縮圖",
+  "shot_193_21": "藍色強調色下側邊欄中的文件工具面板",
   "ui_home": "KillerPDF 首頁",
   "ui_store": "從 Microsoft Store 取得 KillerPDF",
   "ui_mcp_store": "從 Microsoft Store 取得 KillerMCP"
