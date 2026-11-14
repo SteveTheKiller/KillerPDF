@@ -367,14 +367,11 @@ namespace KillerPDF.Services
 
                 // Tint the Win11 1px frame border to the theme's pane border so the
                 // window outline follows the palette instead of staying system gray.
-                // AppBorderBrush lets a theme override the tone (family standard).
-                if ((Application.Current?.TryFindResource("AppBorderBrush")
-                     ?? Application.Current?.TryFindResource("PaneBorderBrush")) is SolidColorBrush b)
-                {
-                    // COLORREF is 0x00BBGGRR
-                    int colorref = b.Color.R | (b.Color.G << 8) | (b.Color.B << 16);
+                // AppBorderBrush lets a theme override the tone (family standard). The kit decides
+                // the color, so this writer and DwmChrome.SetThemeBorder cannot disagree: a theme
+                // that draws its own outer frame (98SE) gets no system border at all.
+                if (KillerPDF.Controls.DwmChrome.ThemeBorderColorRef() is int colorref)
                     _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref colorref, sizeof(int));
-                }
             }
 
             catch { /* DWMWA not supported on older Windows builds */ }

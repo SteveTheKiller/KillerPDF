@@ -945,11 +945,15 @@ namespace KillerPDF.Controls
                                           TreeFadeBottom.Height, 22);
         }
 
-        // Height is NaN until the border has been laid out, hence the fallback.
-        private static double Ramp(double distance, double height, double fallback)
+        // Height is NaN until the border has been laid out, hence the fallback. Scaled by the theme's
+        // EdgeFadeOpacity, as every other edge fade in the kit is: 98SE states 0. Its pane is white
+        // and its scrollbar wider than the fades' right inset, so a fade there was a solid white
+        // block painted over the bottom of the places scrollbar.
+        private double Ramp(double distance, double height, double fallback)
         {
             double h = double.IsNaN(height) || height <= 0 ? fallback : height;
-            return Math.Min(1, Math.Max(0, distance) / h);
+            double strength = TryFindResource("EdgeFadeOpacity") is double fade ? fade : 1;
+            return Math.Min(1, Math.Max(0, distance) / h) * strength;
         }
 
         /// <summary>

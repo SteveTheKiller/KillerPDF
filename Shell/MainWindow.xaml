@@ -259,12 +259,24 @@
                             <Border x:Name="Face" Margin="{DynamicResource CaptionButtonMargin}"
                                     Background="{DynamicResource CaptionButtonBrush}">
                                 <Grid>
+                                    <!-- The Win98 caption button edge, the kit ChromeButton's four 1px
+                                         layers (KillerUI Controls.xaml): white then #dfdfdf on the top
+                                         and left, black then #808080 on the bottom and right. It was a
+                                         single 2px white/#808080 pair here, with no black outer edge and
+                                         no two-tone bevel, so the buttons read faint and flat beside the
+                                         family's. The face size is unchanged. Zero on every other theme. -->
                                     <Border x:Name="capLight" IsHitTestVisible="False"
                                             BorderBrush="{DynamicResource BevelLightBrush}"
-                                            BorderThickness="{DynamicResource ButtonBevelLightThickness}"/>
-                                    <Border x:Name="capDark" IsHitTestVisible="False"
+                                            BorderThickness="{DynamicResource BevelLightThickness}"/>
+                                    <Border x:Name="capDark" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}"
                                             BorderBrush="{DynamicResource BevelDarkBrush}"
-                                            BorderThickness="{DynamicResource ButtonBevelDarkThickness}"/>
+                                            BorderThickness="{DynamicResource BevelDarkThickness}"/>
+                                    <Border x:Name="capInnerLight" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}"
+                                            BorderBrush="{DynamicResource BevelInnerLightBrush}"
+                                            BorderThickness="{DynamicResource BevelInnerLightThickness}"/>
+                                    <Border x:Name="capOuterDark" IsHitTestVisible="False"
+                                            BorderBrush="{DynamicResource BevelOuterDarkBrush}"
+                                            BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     <!-- Grain OVER the hover fill (family rule). Hover-only: at rest the
                                          face is transparent and the window's own grain already shows, so a
@@ -287,13 +299,17 @@
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowSelectedBrush}"/>
-                                <Setter TargetName="capLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
-                                <Setter TargetName="capDark" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
+                                <Setter TargetName="capLight" Property="BorderBrush" Value="{DynamicResource BevelOuterDarkBrush}"/>
+                                <Setter TargetName="capDark" Property="BorderBrush" Value="{DynamicResource BevelInnerLightBrush}"/>
+                                <Setter TargetName="capInnerLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
+                                <Setter TargetName="capOuterDark" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
                             </Trigger>
                             <Trigger Property="snap:SnapLayouts.IsPressed" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowSelectedBrush}"/>
-                                <Setter TargetName="capLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
-                                <Setter TargetName="capDark" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
+                                <Setter TargetName="capLight" Property="BorderBrush" Value="{DynamicResource BevelOuterDarkBrush}"/>
+                                <Setter TargetName="capDark" Property="BorderBrush" Value="{DynamicResource BevelInnerLightBrush}"/>
+                                <Setter TargetName="capInnerLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
+                                <Setter TargetName="capOuterDark" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -322,12 +338,19 @@
                                     Background="{DynamicResource CaptionButtonBrush}"
                                     CornerRadius="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}">
                                 <Grid>
+                                    <!-- Same four-layer Win98 caption edge as ChromeButton. -->
                                     <Border x:Name="capLight" IsHitTestVisible="False"
                                             BorderBrush="{DynamicResource BevelLightBrush}"
-                                            BorderThickness="{DynamicResource ButtonBevelLightThickness}"/>
-                                    <Border x:Name="capDark" IsHitTestVisible="False"
+                                            BorderThickness="{DynamicResource BevelLightThickness}"/>
+                                    <Border x:Name="capDark" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}"
                                             BorderBrush="{DynamicResource BevelDarkBrush}"
-                                            BorderThickness="{DynamicResource ButtonBevelDarkThickness}"/>
+                                            BorderThickness="{DynamicResource BevelDarkThickness}"/>
+                                    <Border x:Name="capInnerLight" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}"
+                                            BorderBrush="{DynamicResource BevelInnerLightBrush}"
+                                            BorderThickness="{DynamicResource BevelInnerLightThickness}"/>
+                                    <Border x:Name="capOuterDark" IsHitTestVisible="False"
+                                            BorderBrush="{DynamicResource BevelOuterDarkBrush}"
+                                            BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
                                     <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="10"
                                                FontWeight="{DynamicResource CaptionGlyphWeight}"
                                                Foreground="{TemplateBinding Foreground}"
@@ -358,8 +381,10 @@
                                 <Setter TargetName="capGrain" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="capLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
-                                <Setter TargetName="capDark" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
+                                <Setter TargetName="capLight" Property="BorderBrush" Value="{DynamicResource BevelOuterDarkBrush}"/>
+                                <Setter TargetName="capDark" Property="BorderBrush" Value="{DynamicResource BevelInnerLightBrush}"/>
+                                <Setter TargetName="capInnerLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
+                                <Setter TargetName="capOuterDark" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

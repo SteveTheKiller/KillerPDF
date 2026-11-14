@@ -23,9 +23,15 @@
     <!-- Every picker style lives in the family Controls.xaml. Only the recent-locations arrow,
          which no other control uses, is kept here. -->
     <Window.Resources>
+        <!-- The recent-locations arrow. On a Win98 caption theme (RootBorder.Tag is
+             UseDialogCaption) it is the Win98 combo drop button: 16 wide, standing inside the path
+             box's 2px sunken edge from top to bottom, with the four-layer raised bevel the implicit
+             ComboBox's drop button uses. It was a fixed 26px-tall face laid over a 22px box with a
+             single bevel ring, so it overhung the field and read as a loose gray tile. -->
         <Style x:Key="PickerComboArrowBtn" TargetType="Button">
             <Setter Property="Width" Value="{DynamicResource ComboButtonSize}"/>
             <Setter Property="Height" Value="{DynamicResource ComboButtonHeight}"/>
+            <Setter Property="Margin" Value="0,0,1,0"/>
             <Setter Property="FontFamily" Value="{DynamicResource ComboChevFont}"/>
             <Setter Property="FontSize" Value="8"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
@@ -39,9 +45,15 @@
                             <Border x:Name="bevelLight" IsHitTestVisible="False"
                                     BorderBrush="{DynamicResource BevelLightBrush}"
                                     BorderThickness="{DynamicResource BevelLightThickness}"/>
-                            <Border x:Name="bevelDark" IsHitTestVisible="False"
+                            <Border x:Name="bevelDark" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}"
                                     BorderBrush="{DynamicResource BevelDarkBrush}"
                                     BorderThickness="{DynamicResource BevelDarkThickness}"/>
+                            <Border x:Name="bevelInnerLight" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}"
+                                    BorderBrush="{DynamicResource BevelInnerLightBrush}"
+                                    BorderThickness="{DynamicResource BevelInnerLightThickness}"/>
+                            <Border x:Name="bevelOuterDark" IsHitTestVisible="False"
+                                    BorderBrush="{DynamicResource BevelOuterDarkBrush}"
+                                    BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -49,13 +61,116 @@
                                 <Setter TargetName="face" Property="Background" Value="{DynamicResource ComboButtonHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bevelLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
-                                <Setter TargetName="bevelDark" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
+                                <Setter TargetName="bevelLight" Property="BorderBrush" Value="{DynamicResource BevelOuterDarkBrush}"/>
+                                <Setter TargetName="bevelDark" Property="BorderBrush" Value="{DynamicResource BevelInnerLightBrush}"/>
+                                <Setter TargetName="bevelInnerLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
+                                <Setter TargetName="bevelOuterDark" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
+                    <Setter Property="Width" Value="{DynamicResource ComboButtonMinWidth}"/>
+                    <Setter Property="Height" Value="Auto"/>
+                    <Setter Property="VerticalAlignment" Value="Stretch"/>
+                    <Setter Property="Margin" Value="0,2,2,2"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- The file type combo: its height follows the file name box above it, so on 98SE both
+             drop to the compact Win98 field height together instead of a 28px combo under a 22px
+             box. -->
+        <Style x:Key="PickerFilterCombo" TargetType="ComboBox" BasedOn="{StaticResource DarkComboBox}">
+            <Setter Property="Height" Value="28"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
+                    <Setter Property="Height" Value="{DynamicResource CompactInputMinHeight}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- The places and file lists. On 98SE the pane's sunken edge is 2px all round, so the list
+             is inset exactly that far and its scrollbar meets the edge; the 4px top and bottom
+             inset left white strips above and below the gray scrollbar. -->
+        <Style x:Key="PickerPaneList" TargetType="ListBox">
+            <Setter Property="Padding" Value="2,4"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
+                    <Setter Property="Padding" Value="2"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Cancel and Open on 98SE: a Win98 push button, a #c0c0c0 face with the four-layer raised
+             edge (white and #dfdfdf top and left, black and #808080 bottom and right) that sinks on
+             press. SurfaceButton is a flat toolbar chip there and OutlineButton an accent outline,
+             so the picker's footer read as two different, wrong controls. Every other theme keeps
+             SurfaceButton and OutlineButton exactly. -->
+        <ControlTemplate x:Key="PickerClassicButtonTemplate" TargetType="Button">
+            <Grid>
+                <Border Background="{DynamicResource ChipFaceBrush}" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <Border x:Name="outerLight" IsHitTestVisible="False"
+                        BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
+                <Border x:Name="innerDark" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}"
+                        BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource BevelDarkThickness}"/>
+                <Border x:Name="innerLight" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}"
+                        BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="{DynamicResource BevelInnerLightThickness}"/>
+                <Border x:Name="outerDark" IsHitTestVisible="False"
+                        BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter TargetName="outerLight" Property="BorderBrush" Value="{DynamicResource BevelOuterDarkBrush}"/>
+                    <Setter TargetName="innerDark" Property="BorderBrush" Value="{DynamicResource BevelInnerLightBrush}"/>
+                    <Setter TargetName="innerLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
+                    <Setter TargetName="outerDark" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+        <Style x:Key="PickerCancelButton" TargetType="Button" BasedOn="{StaticResource SurfaceButton}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
+                    <Setter Property="Template" Value="{StaticResource PickerClassicButtonTemplate}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                    <Setter Property="FontSize" Value="11"/>
+                    <Setter Property="Height" Value="23"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="PickerAcceptButton" TargetType="Button" BasedOn="{StaticResource OutlineButton}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
+                    <Setter Property="Template" Value="{StaticResource PickerClassicButtonTemplate}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                    <Setter Property="FontSize" Value="11"/>
+                    <Setter Property="Height" Value="23"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- The caption row, matching DialogFrame.BuildTitleBar (every other dialog): no
+             TitleBarPadding on a modern theme (it is the MAIN window's 14px logo inset), the icon
+             and title 6px in, and the close vertically centered at the right. On a Win98 caption
+             theme the row sits 4px in, TitleBarPadding's left inset, with no top inset: the 2px top
+             inset pushed a centered row 1px below the band's middle. -->
+        <Style x:Key="PickerTitleRow" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
+                    <Setter Property="Margin" Value="4,0,0,0"/>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
         <!-- The four-layer sunken edge as one control, for the picker's wells. Every thickness is
              zero on the flat themes, so it draws nothing there. -->
@@ -149,10 +264,11 @@
             <Border Grid.Row="0" Height="{DynamicResource DialogTitleBarHeight}"
                     Background="{DynamicResource DialogTitleBarBrush}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid>
-                <Grid Margin="{DynamicResource TitleBarPadding}">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <Grid>
+                    <StackPanel Style="{StaticResource PickerTitleRow}">
                     <kui:AppIcon x:Name="TitleIcon" Width="{DynamicResource TitleIconSize}" Height="{DynamicResource TitleIconSize}"
-                                 Margin="{DynamicResource TitleIconMargin}" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                 Margin="{DynamicResource TitleIconMargin}" VerticalAlignment="Center"
+                                 RenderOptions.BitmapScalingMode="NearestNeighbor"/>
                     <!-- A file picker caption names the operation. It is window chrome, not a
                          branding surface; the caller's Title belongs here and nowhere else. -->
                     <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
@@ -162,11 +278,13 @@
                                VerticalAlignment="Center" IsHitTestVisible="False"/>
                     </StackPanel>
                     <!-- The family overlay and dialog close (App.xaml, OverlayCloseButton): the glyph
-                         reddens on hover without a fill, and 98SE gets the caption button face. -->
+                         reddens on hover without a fill, and 98SE gets the caption button face.
+                         Centered in the band, as DialogFrame centers every other dialog's close; it
+                         was top-aligned and pushed 14px in by TitleBarPadding. -->
                     <Button x:Name="CaptionCloseButton" Content="{DynamicResource AboutCloseGlyph}" Click="Cancel_Click"
                             ToolTip="{DynamicResource Str_Sys_Close}" AutomationProperties.Name="{DynamicResource Str_Sys_Close}"
                             Style="{StaticResource OverlayCloseButton}"
-                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                            HorizontalAlignment="Right" VerticalAlignment="Center"
                             Width="{DynamicResource DialogCloseWidth}" Height="{DynamicResource DialogCloseHeight}"
                             Margin="{DynamicResource DialogCaptionButtonsMargin}"/>
                 </Grid>
@@ -194,7 +312,7 @@
                     <Button x:Name="RecentsBtn" Content="{DynamicResource ComboChevGlyph}" Click="RecentsBtn_Click"
                             ToolTip="{DynamicResource Str_TT_RecentLocations}"
                             Style="{StaticResource PickerComboArrowBtn}"
-                            HorizontalAlignment="Right" Margin="0,0,1,0"/>
+                            HorizontalAlignment="Right"/>
                     <!-- Recent locations. Same raised-surface pattern as everything else:
                          shadow on an item-free sibling, content border on top. -->
                     <Popup x:Name="RecentsPopup" PlacementTarget="{Binding ElementName=PathBox}"
@@ -301,7 +419,7 @@
                         <RowDefinition x:Name="PlacesRow" Height="*" MinHeight="56"/>
                     </Grid.RowDefinitions>
                     <Control Grid.RowSpan="3" Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>
-                    <ListBox x:Name="PlacesList" Grid.Row="2" Background="Transparent" BorderThickness="0" Padding="2,4" AutomationProperties.Name="{DynamicResource Str_Dlg_Places}"
+                    <ListBox x:Name="PlacesList" Grid.Row="2" Background="Transparent" BorderThickness="0" Style="{StaticResource PickerPaneList}" AutomationProperties.Name="{DynamicResource Str_Dlg_Places}"
                              ItemContainerStyle="{StaticResource PickerPlaceRow}" SelectionChanged="Places_SelectionChanged"
                              ContextMenuOpening="Places_ContextMenuOpening"
                              PreviewMouseLeftButtonDown="Places_PreviewMouseLeftButtonDown" PreviewMouseMove="Places_PreviewMouseMove"
@@ -487,7 +605,7 @@
                             </Button>
                         </Grid>
                         <Grid>
-                            <ListBox x:Name="FileList" Background="Transparent" BorderThickness="0" Padding="2,4"
+                            <ListBox x:Name="FileList" Background="Transparent" BorderThickness="0" Style="{StaticResource PickerPaneList}"
                                      AutomationProperties.Name="{DynamicResource Str_Col_Name}"
                                      ItemContainerStyle="{StaticResource PickerRow}"
                                      ItemTemplate="{StaticResource RowTemplate}"
@@ -585,9 +703,9 @@
 
                 <TextBlock x:Name="FilterLabel" Grid.Row="1" Grid.Column="0" Text="{DynamicResource Str_Dlg_FileType}" VerticalAlignment="Center"
                            Margin="0,8,10,0" Foreground="{DynamicResource MutedTextBrush}" FontFamily="{DynamicResource UiFont}" FontSize="11"/>
-                <ComboBox x:Name="FilterCombo" Grid.Row="1" Grid.Column="1" Height="28" Margin="0,8,0,0"
+                <ComboBox x:Name="FilterCombo" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0"
                           AutomationProperties.Name="{DynamicResource Str_Dlg_FileType}"
-                          Style="{StaticResource DarkComboBox}"
+                          Style="{StaticResource PickerFilterCombo}"
                           SelectionChanged="Filter_SelectionChanged"/>
             </Grid>
 
@@ -604,8 +722,8 @@
                                TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="{DynamicResource Str_Btn_Cancel}" Style="{StaticResource SurfaceButton}" MinWidth="90" Margin="0,0,8,0" Click="Cancel_Click"/>
-                    <Button x:Name="AcceptButton" Style="{StaticResource OutlineButton}" MinWidth="90" Click="OK_Click"/>
+                    <Button Content="{DynamicResource Str_Btn_Cancel}" Style="{StaticResource PickerCancelButton}" MinWidth="90" Margin="0,0,8,0" Click="Cancel_Click"/>
+                    <Button x:Name="AcceptButton" Style="{StaticResource PickerAcceptButton}" MinWidth="90" Click="OK_Click"/>
                 </StackPanel>
             </Grid>
 

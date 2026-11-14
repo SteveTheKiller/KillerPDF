@@ -40,10 +40,25 @@ namespace KillerPDF
         private static double OwnerScale(Window? owner) => Controls.ScaledDialogFit.OwnerScale<Window>(owner,
             window => window is Shell.MainWindow main ? main.AppScale : null, window => window.Owner);
 
+        // One even inset for every message box: the notice and text sit this far in from the left,
+        // top and right, and the button row sits the same distance from the right and bottom edges.
+        // 12 on a Win98 caption theme, as a Win98 message box packs its content; 20 elsewhere, the
+        // Macros reference window's side inset. These used to be 24,18 for the body and 16,0,24,20
+        // for the buttons, so nothing lined up and the buttons hung low on 98SE.
+        private static double Inset()
+            => Application.Current?.TryFindResource("UseDialogCaption") is true ? 12 : 20;
+
+        private static Border ButtonRowHost(StackPanel buttons)
+        {
+            double inset = Inset();
+            return new Border { Padding = new Thickness(inset, 0, inset, inset), Child = buttons };
+        }
+
         // Message text stays at body size, including multiline warnings and confirmations.
         private static Grid NoticeBody(string message, MessageBoxImage image, bool confirmation, out StackPanel textStack)
         {
-            var grid = new Grid { Margin = new Thickness(24, 18, 24, 18) };
+            double inset = Inset();
+            var grid = new Grid { Margin = new Thickness(inset) };
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(38) });
             grid.ColumnDefinitions.Add(new ColumnDefinition());
 
@@ -209,11 +224,7 @@ namespace KillerPDF
                     break;
             }
 
-            root.Children.Add(new Border
-            {
-                Padding = new Thickness(16, 0, 24, 20),
-                Child = btnPanel
-            });
+            root.Children.Add(ButtonRowHost(btnPanel));
 
             // Paint the same film-grain texture the app's panels use, behind the content, so the
             // dialog reads as part of the same surface family instead of a flat box.
@@ -298,7 +309,7 @@ namespace KillerPDF
                 btn.Click += (_, _2) => { result = idx; win.Close(); };
                 btnPanel.Children.Add(btn);
             }
-            root.Children.Add(new Border { Padding = new Thickness(16, 0, 24, 20), Child = btnPanel });
+            root.Children.Add(ButtonRowHost(btnPanel));
 
             var contentGrid = new Grid();
             var grain = DialogFrame.GrainTexture(owner);
@@ -494,11 +505,7 @@ namespace KillerPDF
                 btnPanel.Children.Add(secondaryBtn);
             }
             btnPanel.Children.Add(quitBtn);
-            root.Children.Add(new Border
-            {
-                Padding = new Thickness(16, 0, 24, 20),
-                Child = btnPanel
-            });
+            root.Children.Add(ButtonRowHost(btnPanel));
 
             // Film grain across the whole card, same as Show().
             var contentGrid = new Grid();

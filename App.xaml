@@ -42,17 +42,31 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            <!-- On a Win98 caption theme (UseDialogCaption, 98SE) the thumb is the Win98 trackbar
+                 thumb instead: a gray face with the four-edge raised bevel (white and #dfdfdf on the
+                 top and left, black and #808080 on the bottom and right), taller than it is wide so it
+                 stands proud of the sunken groove. Every other theme keeps the accent-ringed thumb. -->
             <Style x:Key="DarkSliderThumb" TargetType="Thumb">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>
                 <Setter Property="Width" Value="12"/>
                 <Setter Property="Height" Value="14"/>
+                <Setter Property="Tag" Value="{DynamicResource UseDialogCaption}"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Thumb">
-                            <!-- Keep the scrollbar color while tying the thumb to the active accent. -->
-                            <Border Background="{DynamicResource RadioAccent}" Padding="1.5" CornerRadius="2">
-                                <Border x:Name="tb" Background="{DynamicResource ScrollThumbHoverBrush}" CornerRadius="0.5"/>
-                            </Border>
+                            <Grid>
+                                <!-- Keep the scrollbar color while tying the thumb to the active accent. -->
+                                <Border x:Name="modern" Background="{DynamicResource RadioAccent}" Padding="1.5" CornerRadius="2">
+                                    <Border x:Name="tb" Background="{DynamicResource ScrollThumbHoverBrush}" CornerRadius="0.5"/>
+                                </Border>
+                                <Grid x:Name="classic" Visibility="Collapsed">
+                                    <Border Background="{DynamicResource SurfaceBrush}"/>
+                                    <Border BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="1,1,0,0"/>
+                                    <Border BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="0,0,1,1"/>
+                                    <Border Margin="1" BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="1,1,0,0"/>
+                                    <Border Margin="1" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="0,0,1,1"/>
+                                </Grid>
+                            </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="tb" Property="Background" Value="{DynamicResource PrimaryBrush}"/>
@@ -60,10 +74,20 @@
                                 <Trigger Property="IsDragging" Value="True">
                                     <Setter TargetName="tb" Property="Background" Value="{DynamicResource PrimaryBrush}"/>
                                 </Trigger>
+                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                                    <Setter TargetName="modern" Property="Visibility" Value="Collapsed"/>
+                                    <Setter TargetName="classic" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                        <Setter Property="Width" Value="10"/>
+                        <Setter Property="Height" Value="18"/>
+                    </DataTrigger>
+                </Style.Triggers>
             </Style>
             <Style x:Key="DarkSlider" TargetType="Slider">
                 <Setter Property="OverridesDefaultStyle" Value="True"/>
@@ -72,9 +96,17 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Slider">
-                            <Grid VerticalAlignment="Center" Background="Transparent">
-                                <Border Height="4" CornerRadius="2" VerticalAlignment="Center"
+                            <Grid x:Name="root" VerticalAlignment="Center" Background="Transparent" Tag="{DynamicResource UseDialogCaption}">
+                                <Border x:Name="groove" Height="4" CornerRadius="2" VerticalAlignment="Center"
                                         Background="{DynamicResource SliderTrack}"/>
+                                <!-- 98SE: the Win98 trackbar channel, 4px of two sunken rings (#808080 and
+                                     black on the top and left, white and #dfdfdf on the bottom and right). -->
+                                <Grid x:Name="classicGroove" Height="4" VerticalAlignment="Center" Visibility="Collapsed">
+                                    <Border BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="1,1,0,0"/>
+                                    <Border BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="0,0,1,1"/>
+                                    <Border Margin="1" BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="1,1,0,0"/>
+                                    <Border Margin="1" BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="0,0,1,1"/>
+                                </Grid>
                                 <Track x:Name="PART_Track">
                                     <Track.DecreaseRepeatButton>
                                         <RepeatButton Style="{DynamicResource DarkSliderRepeat}" Command="{x:Static Slider.DecreaseLarge}"/>
@@ -87,6 +119,12 @@
                                     </Track.IncreaseRepeatButton>
                                 </Track>
                             </Grid>
+                            <ControlTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Tag, ElementName=root}" Value="True">
+                                    <Setter TargetName="groove" Property="Visibility" Value="Collapsed"/>
+                                    <Setter TargetName="classicGroove" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>

@@ -80,16 +80,37 @@ namespace KillerPDF.Controls
                 var hwnd = new WindowInteropHelper(w).Handle;
                 if (hwnd == IntPtr.Zero) return;
                 ObserveThemeBorder(w, () => SetThemeBorder(w, writeBorder));
-                if ((Application.Current.TryFindResource("AppBorderBrush")
-                     ?? Application.Current.TryFindResource("PaneBorderBrush")) is SolidColorBrush b)
+                int? colorref = ThemeBorderColorRef();
+                if (colorref is int value)
                 {
-                    // COLORREF is 0x00BBGGRR, not RGB.
-                    int colorref = b.Color.R | (b.Color.G << 8) | (b.Color.B << 16);
-                    if (writeBorder != null) writeBorder(hwnd, colorref);
-                    else _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref colorref, sizeof(int));
+                    if (writeBorder != null) writeBorder(hwnd, value);
+                    else _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref value, sizeof(int));
                 }
             }
             catch { /* pre-Win11: attribute unsupported */ }
+        }
+
+        /// <summary>DWMWA_COLOR_NONE: no system border at all.</summary>
+        internal const int BorderColorNone = unchecked((int)0xFFFFFFFE);
+
+        /// <summary>
+        /// The COLORREF for the Windows 11 1px window border under the current theme, or null when
+        /// the theme names no border brush. A theme that draws its own raised outer frame (98SE:
+        /// FrameOuterDarkThickness is non-zero) gets NO system border. The tinted 1px line sat
+        /// outside the frame's black bottom and right edge as a light gray strip, a second edge
+        /// along the right and bottom of the window; on the top and left it blended into the
+        /// frame's light edge, which is why only two sides showed it.
+        /// </summary>
+        internal static int? ThemeBorderColorRef()
+        {
+            if (Application.Current?.TryFindResource("FrameOuterDarkThickness") is Thickness frame
+                && (frame.Left > 0 || frame.Top > 0 || frame.Right > 0 || frame.Bottom > 0))
+                return BorderColorNone;
+            if ((Application.Current?.TryFindResource("AppBorderBrush")
+                 ?? Application.Current?.TryFindResource("PaneBorderBrush")) is SolidColorBrush b)
+                // COLORREF is 0x00BBGGRR, not RGB.
+                return b.Color.R | (b.Color.G << 8) | (b.Color.B << 16);
+            return null;
         }
     }
 }

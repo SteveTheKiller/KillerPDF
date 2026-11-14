@@ -1661,18 +1661,31 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Slider">
-                    <Grid VerticalAlignment="Center">
-                        <!-- SliderTrack: the input edge on every ordinary theme, a #808080 sunken
-                             groove on 98SE. -->
-                        <Border Height="3" CornerRadius="{DynamicResource SmallCornerRadius}" VerticalAlignment="Center"
+                    <!-- On a Win98 caption theme (UseDialogCaption, 98SE) this is the Win98 trackbar:
+                         a 4px channel of two sunken rings, no accent fill, and a raised gray thumb
+                         taller than it is wide. Every other theme is unchanged. -->
+                    <Grid x:Name="root" VerticalAlignment="Center" Tag="{DynamicResource UseDialogCaption}">
+                        <!-- SliderTrack: the input edge on every ordinary theme. -->
+                        <Border x:Name="groove" Height="3" CornerRadius="{DynamicResource SmallCornerRadius}" VerticalAlignment="Center"
                                 Background="{DynamicResource SliderTrack}"/>
+                        <Grid x:Name="classicGroove" Height="4" VerticalAlignment="Center" Visibility="Collapsed">
+                            <Border BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="1,1,0,0"/>
+                            <Border BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="0,0,1,1"/>
+                            <Border Margin="1" BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="1,1,0,0"/>
+                            <Border Margin="1" BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="0,0,1,1"/>
+                        </Grid>
                         <Track x:Name="PART_Track">
                             <Track.DecreaseRepeatButton>
-                                <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
+                                <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" Tag="{DynamicResource UseDialogCaption}">
                                     <RepeatButton.Template>
                                         <ControlTemplate TargetType="RepeatButton">
-                                            <Border Height="3" CornerRadius="{DynamicResource SmallCornerRadius}" VerticalAlignment="Center"
+                                            <Border x:Name="fill" Height="3" CornerRadius="{DynamicResource SmallCornerRadius}" VerticalAlignment="Center"
                                                     Background="{DynamicResource PrimaryBrush}"/>
+                                            <ControlTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                                                    <Setter TargetName="fill" Property="Background" Value="Transparent"/>
+                                                </DataTrigger>
+                                            </ControlTemplate.Triggers>
                                         </ControlTemplate>
                                     </RepeatButton.Template>
                                 </RepeatButton>
@@ -1687,13 +1700,41 @@
                                 </RepeatButton>
                             </Track.IncreaseRepeatButton>
                             <Track.Thumb>
-                                <Thumb x:Name="Grip" Width="13" Height="13" Focusable="False">
+                                <Thumb x:Name="Grip" Focusable="False">
+                                    <Thumb.Style>
+                                        <Style TargetType="Thumb">
+                                            <Setter Property="Width" Value="13"/>
+                                            <Setter Property="Height" Value="13"/>
+                                            <Setter Property="Tag" Value="{DynamicResource UseDialogCaption}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                                                    <Setter Property="Width" Value="10"/>
+                                                    <Setter Property="Height" Value="18"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Thumb.Style>
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Ellipse x:Name="knob" Fill="{DynamicResource PrimaryBrush}"
-                                                     Stroke="{DynamicResource SurfaceBrush}" StrokeThickness="2"/>
+                                            <Grid>
+                                                <Ellipse x:Name="knob" Fill="{DynamicResource PrimaryBrush}"
+                                                         Stroke="{DynamicResource SurfaceBrush}" StrokeThickness="2"/>
+                                                <!-- Win98 thumb: gray face, white and #dfdfdf on the top and left,
+                                                     black and #808080 on the bottom and right. -->
+                                                <Grid x:Name="classicKnob" Visibility="Collapsed">
+                                                    <Border Background="{DynamicResource SurfaceBrush}"/>
+                                                    <Border BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="1,1,0,0"/>
+                                                    <Border BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="0,0,1,1"/>
+                                                    <Border Margin="1" BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="1,1,0,0"/>
+                                                    <Border Margin="1" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="0,0,1,1"/>
+                                                </Grid>
+                                            </Grid>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="knob" Property="StrokeThickness" Value="1"/></Trigger>
+                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                                                    <Setter TargetName="knob" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="classicKnob" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
                                     </Thumb.Template>
@@ -1701,6 +1742,12 @@
                             </Track.Thumb>
                         </Track>
                     </Grid>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding Tag, ElementName=root}" Value="True">
+                            <Setter TargetName="groove" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="classicGroove" Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -3216,7 +3263,11 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
-                    <Grid>
+                    <!-- On a Win98 caption theme (UseDialogCaption, 98SE) this is the Win98 drop-down
+                         list: a white field in a two-ring sunken edge, and a 16px raised gray drop
+                         button with Marlett's triangle standing inside that edge, as the implicit
+                         ComboBox draws it. Every other theme is unchanged. -->
+                    <Grid x:Name="root" Tag="{DynamicResource UseDialogCaption}">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource SmallCornerRadius}">
@@ -3225,6 +3276,15 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="18"/>
                                 </Grid.ColumnDefinitions>
+                                <Grid x:Name="classicButton" Grid.Column="1" Margin="0,2,2,2" Visibility="Collapsed" IsHitTestVisible="False">
+                                    <Border Background="{DynamicResource ComboButtonBrush}"/>
+                                    <Border x:Name="cbLight" BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
+                                    <Border x:Name="cbDark" Margin="{DynamicResource BevelInnerMargin}" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource BevelDarkThickness}"/>
+                                    <Border x:Name="cbInnerLight" Margin="{DynamicResource BevelInnerMargin}" BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="{DynamicResource BevelInnerLightThickness}"/>
+                                    <Border x:Name="cbOuterDark" BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
+                                    <TextBlock Text="{DynamicResource ComboChevGlyph}" FontFamily="{DynamicResource ComboChevFont}" FontSize="8"
+                                               Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
                                 <ContentPresenter x:Name="ContentSite" Grid.Column="0"
                                                   Content="{TemplateBinding SelectionBoxItem}"
                                                   ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
@@ -3238,7 +3298,7 @@
                                          Focusable="True" SelectionBrush="{DynamicResource RowSelectedBrush}"
                                          SelectionTextBrush="{DynamicResource PrimaryBrush}"
                                          CaretBrush="{DynamicResource PrimaryBrush}"/>
-                                <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                <TextBlock x:Name="modernChev" Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
                                            FontSize="8" Foreground="{DynamicResource MutedTextBrush}"
                                            VerticalAlignment="Center" HorizontalAlignment="Center"
                                            IsHitTestVisible="False"/>
@@ -3247,10 +3307,18 @@
                                               IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
                             </Grid>
                         </Border>
+                        <!-- The sunken field edge: #808080 then black on the top and left, white then
+                             #dfdfdf on the bottom and right. Every thickness is 0 off 98SE. -->
+                        <Grid x:Name="classicField" IsHitTestVisible="False" Visibility="Collapsed">
+                            <Border BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
+                            <Border BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelDarkThickness}"/>
+                            <Border Margin="{DynamicResource BevelInnerMargin}" BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="{DynamicResource BevelInnerLightThickness}"/>
+                            <Border Margin="{DynamicResource BevelInnerMargin}" BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
+                        </Grid>
                         <Popup x:Name="PART_Popup" AllowsTransparency="True"
                                IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False"
                                PopupAnimation="Fade" Placement="Bottom">
-                            <Border Background="{DynamicResource PaneBrush}"
+                            <Border x:Name="PopupBd" Background="{DynamicResource PaneBrush}"
                                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                     CornerRadius="{DynamicResource SmallCornerRadius}" Padding="2" Margin="0,2,6,6"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
@@ -3278,6 +3346,32 @@
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
                         </Trigger>
+                        <!-- Last, so a Win98 field keeps its white face on hover and while open:
+                             a Win98 drop-down did not light up under the pointer. -->
+                        <DataTrigger Binding="{Binding Tag, ElementName=root}" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ComboFieldBrush}"/>
+                            <Setter TargetName="Bd" Property="BorderThickness" Value="0"/>
+                            <Setter TargetName="Bd" Property="CornerRadius" Value="0"/>
+                            <Setter TargetName="classicField" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="classicButton" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="modernChev" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="ContentSite" Property="Margin" Value="4,0,0,0"/>
+                            <Setter TargetName="PopupBd" Property="Background" Value="{DynamicResource ComboPopupBrush}"/>
+                            <Setter TargetName="PopupBd" Property="BorderBrush" Value="{DynamicResource BevelOuterDarkBrush}"/>
+                            <Setter TargetName="PopupBd" Property="CornerRadius" Value="0"/>
+                            <Setter TargetName="PopupBd" Property="Effect" Value="{x:Null}"/>
+                        </DataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding Tag, ElementName=root}" Value="True"/>
+                                <Condition Binding="{Binding IsDropDownOpen, RelativeSource={RelativeSource Self}}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
+                            <!-- The drop button sinks while the list is open, as Win98's did. -->
+                            <Setter TargetName="cbLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
+                            <Setter TargetName="cbOuterDark" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
+                            <Setter TargetName="cbDark" Property="BorderThickness" Value="0"/>
+                            <Setter TargetName="cbInnerLight" Property="BorderThickness" Value="0"/>
+                        </MultiDataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
