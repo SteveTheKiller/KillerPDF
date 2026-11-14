@@ -64,6 +64,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Flatten Layers works on layered PDFs with added text instead of stopping with a "Layer is still referenced" error.
 - A grouped text box stays in its group after its text is edited.
 - Changing the file type in the save picker while the name box holds characters no file name can carry keeps the name as typed and shows the invalid-path message.
+- `killerpdf search-text` searches for a query that starts with two dashes, such as `--json`, instead of reading it as an option, so a search can no longer leave the command waiting for input.
 - Hiding shortcut hints removes the hints the app adds to tooltips in every language, including translated keys such as (Strg+D).
 - Menu rows show the right shortcut: the Attachments Save row no longer shows Ctrl+S, which saves the PDF, and Compare PDFs shows its own. The Bold, Italic and Underline buttons show their shortcuts, and the status line names Ctrl+Enter, not Enter, as the key that saves a text box.
 - Chinese and Japanese interface text uses the font Windows uses for that language: Microsoft YaHei UI for Simplified Chinese and Yu Gothic UI for Japanese, instead of the Traditional Chinese font. The installer and portable launcher follow the same rule. (#490)

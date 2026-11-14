@@ -21,6 +21,23 @@ namespace KillerPDF.Services
             return Contrast(toward, background) >= Contrast(other, background) ? toward : other;
         }
 
+        /// <summary>
+        /// Text for the options that sit on the menu hover fill without being picked, such as a card segment's other
+        /// choices. The accent marks only the picked option, so this is the plain menu text color, moved only as far
+        /// as the fill needs to read at 4.5:1. A theme with a solid caption-style highlight (98SE) takes its own
+        /// highlight text, as its hovered menu rows do.
+        /// </summary>
+        internal static Brush MenuTrackText(System.Windows.ResourceDictionary theme)
+        {
+            if (theme.Contains("UseDialogCaption") && theme["UseDialogCaption"] is true
+                || theme["MenuTextBrush"] is not SolidColorBrush text
+                || theme["MenuHoverBrush"] is not SolidColorBrush fill)
+                return (Brush)theme["ComboHighlightTextBrush"];
+            var brush = new SolidColorBrush(ReadableOn(text.Color, fill.Color, 4.5));
+            brush.Freeze();
+            return brush;
+        }
+
         internal static double Contrast(Color a, Color b)
         {
             double la = Luminance(a), lb = Luminance(b);

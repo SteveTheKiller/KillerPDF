@@ -159,7 +159,8 @@ namespace KillerFamily.Accessibility
             Brushes(highlightBrush, "DatabaseSelectionBrush", "TextSelectionBrush", "TabActiveRingBrush",
                 "CheckBoxCheckedBackgroundBrush", "CheckBoxCheckedBrush", "FocusedPaneBrush", "SettingsOpenRowBg");
             Brushes(highlightTextBrush, "OnPrimaryBrush", "SelectionFg", "OutlineHoverTextBrush",
-                "ComboHighlightTextBrush", "CaptionHoverTextBrush", "CaptionCloseHoverTextBrush", "MenuHoverTextBrush");
+                "ComboHighlightTextBrush", "CaptionHoverTextBrush", "CaptionCloseHoverTextBrush", "MenuHoverTextBrush",
+                "MenuTrackTextBrush");
             Brushes(highlightTextBrush, "CaptionCloseHoverFgBrush", "AboutCloseHoverFg", "CaptionPressedTextBrush",
                 "DatabaseSelectionTextBrush", "TextSelectionTextBrush", "GridSelectedTextBrush", "CheckMarkBrush",
                 "CheckBoxCheckBrush", "OnOutlineBtnBrush");

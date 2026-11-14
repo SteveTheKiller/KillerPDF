@@ -620,7 +620,11 @@ namespace KillerPDF.Features
             for (int i = start; i < args.Length; i++)
             {
                 var a = args[i];
-                if (a.StartsWith("--", StringComparison.Ordinal))
+                if (Eq(command, "--search-text") && positionals.Count == 1)
+                {
+                    positionals.Add(a);
+                }
+                else if (a.StartsWith("--", StringComparison.Ordinal))
                 {
                     if (CliValueOptions.Any(o => Eq(o, a)) && i + 1 < args.Length)
                         options[a] = args[++i];
