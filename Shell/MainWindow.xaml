@@ -261,9 +261,9 @@
                                     <!-- The Win98 caption button edge, the kit ChromeButton's four 1px
                                          layers (KillerUI Controls.xaml): white then #dfdfdf on the top
                                          and left, black then #808080 on the bottom and right. It was a
-                                         single 2px white/#808080 pair here, which ate four pixels of a
-                                         16x14 face and had no black edge, so the buttons read small and
-                                         flat beside the family's. Zero on every other theme. -->
+                                         single 2px white/#808080 pair here, with no black outer edge and
+                                         no two-tone bevel, so the buttons read faint and flat beside the
+                                         family's. The face size is unchanged. Zero on every other theme. -->
                                     <Border x:Name="capLight" IsHitTestVisible="False"
                                             BorderBrush="{DynamicResource BevelLightBrush}"
                                             BorderThickness="{DynamicResource BevelLightThickness}"/>

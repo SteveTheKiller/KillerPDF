@@ -1661,18 +1661,31 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Slider">
-                    <Grid VerticalAlignment="Center">
-                        <!-- SliderTrack: the input edge on every ordinary theme, a #808080 sunken
-                             groove on 98SE. -->
-                        <Border Height="3" CornerRadius="{DynamicResource SmallCornerRadius}" VerticalAlignment="Center"
+                    <!-- On a Win98 caption theme (UseDialogCaption, 98SE) this is the Win98 trackbar:
+                         a 4px channel of two sunken rings, no accent fill, and a raised gray thumb
+                         taller than it is wide. Every other theme is unchanged. -->
+                    <Grid x:Name="root" VerticalAlignment="Center" Tag="{DynamicResource UseDialogCaption}">
+                        <!-- SliderTrack: the input edge on every ordinary theme. -->
+                        <Border x:Name="groove" Height="3" CornerRadius="{DynamicResource SmallCornerRadius}" VerticalAlignment="Center"
                                 Background="{DynamicResource SliderTrack}"/>
+                        <Grid x:Name="classicGroove" Height="4" VerticalAlignment="Center" Visibility="Collapsed">
+                            <Border BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="1,1,0,0"/>
+                            <Border BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="0,0,1,1"/>
+                            <Border Margin="1" BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="1,1,0,0"/>
+                            <Border Margin="1" BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="0,0,1,1"/>
+                        </Grid>
                         <Track x:Name="PART_Track">
                             <Track.DecreaseRepeatButton>
-                                <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
+                                <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" Tag="{DynamicResource UseDialogCaption}">
                                     <RepeatButton.Template>
                                         <ControlTemplate TargetType="RepeatButton">
-                                            <Border Height="3" CornerRadius="{DynamicResource SmallCornerRadius}" VerticalAlignment="Center"
+                                            <Border x:Name="fill" Height="3" CornerRadius="{DynamicResource SmallCornerRadius}" VerticalAlignment="Center"
                                                     Background="{DynamicResource PrimaryBrush}"/>
+                                            <ControlTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                                                    <Setter TargetName="fill" Property="Background" Value="Transparent"/>
+                                                </DataTrigger>
+                                            </ControlTemplate.Triggers>
                                         </ControlTemplate>
                                     </RepeatButton.Template>
                                 </RepeatButton>
@@ -1687,13 +1700,41 @@
                                 </RepeatButton>
                             </Track.IncreaseRepeatButton>
                             <Track.Thumb>
-                                <Thumb x:Name="Grip" Width="13" Height="13" Focusable="False">
+                                <Thumb x:Name="Grip" Focusable="False">
+                                    <Thumb.Style>
+                                        <Style TargetType="Thumb">
+                                            <Setter Property="Width" Value="13"/>
+                                            <Setter Property="Height" Value="13"/>
+                                            <Setter Property="Tag" Value="{DynamicResource UseDialogCaption}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                                                    <Setter Property="Width" Value="10"/>
+                                                    <Setter Property="Height" Value="18"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Thumb.Style>
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Ellipse x:Name="knob" Fill="{DynamicResource PrimaryBrush}"
-                                                     Stroke="{DynamicResource SurfaceBrush}" StrokeThickness="2"/>
+                                            <Grid>
+                                                <Ellipse x:Name="knob" Fill="{DynamicResource PrimaryBrush}"
+                                                         Stroke="{DynamicResource SurfaceBrush}" StrokeThickness="2"/>
+                                                <!-- Win98 thumb: gray face, white and #dfdfdf on the top and left,
+                                                     black and #808080 on the bottom and right. -->
+                                                <Grid x:Name="classicKnob" Visibility="Collapsed">
+                                                    <Border Background="{DynamicResource SurfaceBrush}"/>
+                                                    <Border BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="1,1,0,0"/>
+                                                    <Border BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="0,0,1,1"/>
+                                                    <Border Margin="1" BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="1,1,0,0"/>
+                                                    <Border Margin="1" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="0,0,1,1"/>
+                                                </Grid>
+                                            </Grid>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="knob" Property="StrokeThickness" Value="1"/></Trigger>
+                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                                                    <Setter TargetName="knob" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="classicKnob" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
                                     </Thumb.Template>
@@ -1701,6 +1742,12 @@
                             </Track.Thumb>
                         </Track>
                     </Grid>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding Tag, ElementName=root}" Value="True">
+                            <Setter TargetName="groove" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="classicGroove" Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
