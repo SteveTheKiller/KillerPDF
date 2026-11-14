@@ -51,36 +51,43 @@ public partial class MainWindow
             DocumentToolItem("Str_DocumentTools_Preflight", OpenPreflightTools, "\uE9D9"),
             DocumentToolItem("Str_CM_Title", OpenColorManagement, "\uE790"),
             DocumentToolItem("Str_DocumentTools_PrintProduction", () => ShowDocumentReport(Loc("Str_DocumentTools_PrintProduction"),
-                (path, protection) => PdfEngineIntegration.InspectPrintProduction(path, protection).ToText()), "\uE7C3"),
-            DocumentToolItem("Str_DocumentTools_Separations", ShowSeparationPreview, "\uE790"),
+                (path, protection) => PdfEngineIntegration.InspectPrintProduction(path, protection).ToText()), "\uE749"),
+            DocumentToolItem("Str_DocumentTools_Separations", ShowSeparationPreview, "\uE8B9"),
             DocumentToolItem("Str_DocumentTools_Accessibility", OpenAccessibilityTools, "\uE776"),
             DocumentToolItem("Str_DocumentTools_Signatures", () => ShowDocumentReport(Loc("Str_DocumentTools_Signatures"),
                 (path, protection) => PdfEngineIntegration.InspectSignatures(path, protection).ToText()), "\uE8D7"),
             DocumentToolItem("Str_CertCatalog_Title", OpenCertificateCatalog, "\uEB95"),
             DocumentToolItem("Str_DocumentTools_Layers", () => ShowDocumentReport(Loc("Str_DocumentTools_Layers"),
-                (path, protection) => PdfEngineIntegration.InspectLayers(path, protection).ToText()), "\uE8A1"),
-            DocumentToolItem("Str_DocumentTools_EditLayers", EditLayers, "\uE70F"),
+                (path, protection) => PdfEngineIntegration.InspectLayers(path, protection).ToText()), "\uE81E"),
+            DocumentToolItem("Str_DocumentTools_EditLayers", EditLayers, "\uE81E"),
             DocumentToolItem("Str_DocumentTools_Portfolio", () => ShowDocumentReport(Loc("Str_DocumentTools_Portfolio"),
-                PdfEngineIntegration.InspectPortfolio), "\uE8B7"),
-            DocumentToolItem("Str_DocumentTools_EditPortfolio", EditPortfolio, "\uE70F"),
-            DocumentToolItem("Str_DocumentTools_EditPortfolioStructure", EditPortfolioStructure, "\uE70F"),
-            DocumentToolItem("Str_DocumentTools_EditAttachments", EditAttachments, "\uE8B7"),
+                PdfEngineIntegration.InspectPortfolio), "\uE7B8"),
+            DocumentToolItem("Str_DocumentTools_EditPortfolio", EditPortfolio, "\uE7B8"),
+            DocumentToolItem("Str_DocumentTools_EditPortfolioStructure", EditPortfolioStructure, "\uE80A"),
+            DocumentToolItem("Str_DocumentTools_EditAttachments", EditAttachments, "\uE723"),
             DocumentToolItem("Str_DocumentTools_Comments", EditComments, "\uE90A"),
             DocumentToolItem("Str_DocumentTools_Measurements", ShowMeasurementReport, "\uED5E"),
-            DocumentToolItem("Str_DocumentTools_NavigationAudit", AuditNavigation, "\uE9D9"),
-            DocumentToolItem("Str_DocumentTools_AutoBookmarks", GenerateBookmarks, "\uE8FD"),
-            DocumentToolItem("Str_DocumentTools_PageLabels", EditPageLabels, "\uE70F"),
+            DocumentToolItem("Str_DocumentTools_NavigationAudit", AuditNavigation, "\uE71B"),
+            DocumentToolItem("Str_DocumentTools_AutoBookmarks", GenerateBookmarks, "\uE728"),
+            DocumentToolItem("Str_DocumentTools_PageLabels", EditPageLabels, "\uE8EC"),
             DocumentToolItem("Str_DocumentTools_InitialView", EditInitialView, "\uE7B3"),
             comparison,
-            DocumentToolItem("Str_Guided_Title", OpenGuidedTasks, "\uE945"),
+            DocumentToolItem("Str_Guided_Title", OpenGuidedTasks, "\uE9D5"),
             DocumentToolItem("Str_DocumentTools_Macros", OpenMacroDialog, "\uE945"),
             DocumentToolItem("Str_DocumentTools_DataMerge", RunDataMerge, "\uE8F1"),
-            DocumentToolItem("Str_DocumentTools_FormData", OpenFormDataTools, "\uE8A5"),
-            DocumentToolItem("Str_DocumentTools_BookmarkData", OpenBookmarkDataTools, "\uE8A4"),
-            DocumentToolItem("Str_DocumentTools_ProductionLayouts", OpenProductionTools, "\uE7C3"),
+            DocumentToolItem("Str_DocumentTools_FormData", OpenFormDataTools, "\uE8A1"),
+            DocumentToolItem("Str_DocumentTools_BookmarkData", OpenBookmarkDataTools, "\uE943"),
+            DocumentToolItem("Str_DocumentTools_ProductionLayouts", OpenProductionTools, "\uE8A9"),
             DocumentToolItem("Str_DocumentTools_InsertToc", InsertTableOfContents, "\uE8FD"),
         ];
     }
+
+    // The edit tools show what they edit with a pen badge on it, instead of all showing the same bare pen.
+    private static readonly HashSet<string> EditToolKeys = new(StringComparer.Ordinal)
+    {
+        "Str_DocumentTools_EditLayers", "Str_DocumentTools_EditPortfolio", "Str_DocumentTools_EditPortfolioStructure",
+        "Str_DocumentTools_EditAttachments", "Str_DocumentTools_PageLabels",
+    };
 
     private DocumentTool DocumentToolItem(string labelKey, Action run, string glyph)
         => new(labelKey, glyph, run, ShortcutTable.DocumentToolKey(labelKey));
@@ -198,6 +205,7 @@ public partial class MainWindow
         var row = new Button { Content = tool.Glyph, IsEnabled = tool.Enabled };
         row.SetResourceReference(StyleProperty, "DocumentToolRowBtn");
         row.SetResourceReference(TagProperty, tool.LabelKey);
+        if (EditToolKeys.Contains(tool.LabelKey)) ToolBadge.SetGlyph(row, char.ConvertFromUtf32(0xE70F));
         System.Windows.Automation.AutomationProperties.SetAutomationId(row, tool.LabelKey);
         string name = Loc(tool.LabelKey);
         row.ToolTip = tool.Key is char key

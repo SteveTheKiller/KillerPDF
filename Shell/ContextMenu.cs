@@ -879,13 +879,14 @@ namespace KillerPDF.Shell
             if (TryFindResource("CardMenu") is Style card) menu.Style = card;
             AddOwnerPasswordItem(menu);
             AddNavRow(menu);
-            var pages = QuickStrip(menu, 3,
+            // One row with no label over it, the same shape as the page menu's strip, so the two menus match.
+            var pages = QuickStrip(menu,
                 ("\uE7C3", Loc("Str_Ctx_AddBlankPage"), "AltShift:A", AddBlankPageAtEnd, false, true),
                 ("\uE8CB", Loc("Str_Pages_Reverse"), "AltShift:R", ReversePageOrder, false, true),
                 ("\uE7AD", Loc("Str_Pages_FixOrientation"), "AltShift:O", FixPageOrientation, false, true),
                 ("\uE809", Loc("Str_Pages_Straighten"), "AltShift:S", StraightenScannedPages, false, true),
                 ("\uE89F", Loc("Str_Pages_DivideSpreads"), "AltShift:D", DivideSpreads, false, true));
-            menu.Items.Add(CardSlot(LabelledStrip(Loc("Str_Card_PageTools"), pages), new Thickness(0)));
+            menu.Items.Add(CardSlot(pages, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, pages);
             menu.Items.Add(new Separator());
             menu.Items.Add(BuildComparisonContextItem());

@@ -8,6 +8,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:KillerPDF"
+        xmlns:shell="clr-namespace:KillerPDF.Shell"
         xmlns:ctrl="clr-namespace:KillerPDF.Controls"
         xmlns:snap="clr-namespace:KillerFamily.Windowing"
         xmlns:kfc="clr-namespace:KillerFamily.Controls"
@@ -645,7 +646,9 @@
                                            Foreground="{DynamicResource PrimaryBrush}"
                                            VerticalAlignment="Center" HorizontalAlignment="Left"
                                            Visibility="Collapsed"/>
-                                <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center"/>
+                                <!-- 6px after the 16px icon slot, so a full-width icon (Rotate, Transform) never
+                                     touches its label. -->
+                                <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center" Margin="6,0,0,0"/>
                                 <TextBlock x:Name="Gesture" Grid.Column="3" Text="{TemplateBinding InputGestureText}"
                                            Foreground="{DynamicResource MutedTextBrush}" FontSize="11"
                                            VerticalAlignment="Center" Margin="14,0,0,0"/>
@@ -955,10 +958,16 @@
                                 BorderThickness="1" BorderBrush="Transparent"
                                 CornerRadius="{DynamicResource ControlCornerRadius}">
                             <StackPanel VerticalAlignment="Top">
-                                <TextBlock x:Name="Glyph" kl:GlyphInk.Center="True" Text="{TemplateBinding Content}"
-                                           FontFamily="Segoe MDL2 Assets" FontSize="16" Height="18"
-                                           HorizontalAlignment="Center" Margin="0,0,0,3"
-                                           Foreground="{DynamicResource PrimaryBrush}"/>
+                                <!-- The icon, with an edit tool's pen badge (shell:ToolBadge) at its lower right. -->
+                                <Grid HorizontalAlignment="Center" Margin="0,0,0,3">
+                                    <TextBlock x:Name="Glyph" kl:GlyphInk.Center="True" Text="{TemplateBinding Content}"
+                                               FontFamily="Segoe MDL2 Assets" FontSize="16" Height="18"
+                                               Foreground="{DynamicResource PrimaryBrush}"/>
+                                    <TextBlock x:Name="Badge" Text="{Binding (shell:ToolBadge.Glyph), RelativeSource={RelativeSource TemplatedParent}}"
+                                               FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                               HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-9,-2"
+                                               Foreground="{DynamicResource PrimaryBrush}" IsHitTestVisible="False"/>
+                                </Grid>
                                 <TextBlock x:Name="Caption" Text="{TemplateBinding Tag}"
                                            Foreground="{TemplateBinding Foreground}"
                                            TextAlignment="Center" HorizontalAlignment="Stretch"
@@ -976,6 +985,7 @@
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowSelectedBrush}"/>
                                 <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource SelectionFg}"/>
+                                <Setter TargetName="Badge" Property="Foreground" Value="{DynamicResource SelectionFg}"/>
                                 <Setter TargetName="Caption" Property="Foreground" Value="{DynamicResource SelectionFg}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
