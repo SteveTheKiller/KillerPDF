@@ -365,14 +365,16 @@ namespace KillerPDF.Shell
             HideSignaturePopup(cancelPendingField: false);
 
             bool classicCaption = FindResource("UseDialogCaption") is true;
-            var stack = new StackPanel { Margin = classicCaption ? new Thickness(0) : new Thickness(8) };
+            // The About card's frame (MainWindow.xaml, AboutOverlay): the content sits 8px in from
+            // every edge (the stack's 4 plus each row's own 4), and the close is the family close
+            // X - anchored to the card's top-right corner on the modern themes, centered in the
+            // caption band on 98SE.
+            var stack = new StackPanel { Margin = classicCaption ? new Thickness(4, 4, 4, 6) : new Thickness(4, 0, 4, 6) };
 
             // Title doubles as a drag handle so the user can move the popup anywhere inside the
             // document area (position is remembered). Wrapped in a transparent Border so the whole
             // title strip is grabbable, not just the text glyphs.
             var sigHeaderGrid = new Grid();
-            sigHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            sigHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var sigTitleText = new TextBlock
             {
                 Text = Loc("Str_Sig_Title"),
@@ -397,62 +399,46 @@ namespace KillerPDF.Shell
                     SetTool(EditTool.Select);
             }
 
-            FrameworkElement sigCloseControl;
+            // The family close X (DialogChrome.CloseGlyph, the About card's close): the glyph reddens
+            // on hover, and 98SE draws its Win98 caption face from the AboutClose* tokens. It takes
+            // the press before the header's drag handler can start a move. It replaced a bare glyph inside a
+            // ToolbarButton, whose own padding and minimum size pushed the X off-center and made
+            // the header taller than its title.
+            FrameworkElement sigCloseControl = DialogChrome.CloseGlyph(Loc("Str_Lbl_Close"), ClosePicker);
+            sigHeaderGrid.Children.Add(sigTitleText);
+            Border sigHeader;
             if (classicCaption)
             {
-                var closeButton = new Button
+                // The About card's Win98 caption: the band at the dialog caption height, the title
+                // 5px in and the close 2px from the right edge, both centered in the band.
+                sigHeaderGrid.Margin = new Thickness(5, 0, 2, 0);
+                sigHeaderGrid.Children.Add(sigCloseControl);
+                sigHeader = new Border
                 {
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Top,
-                    Background = Brushes.Transparent,
-                    BorderThickness = new Thickness(0),
-                    Cursor = Cursors.Hand,
-                    FocusVisualStyle = null,
-                    Style = (Style)FindResource("ChromeCloseButton")
+                    Background = (Brush)FindResource("DialogTitleBarBrush"),
+                    Height = FindResource("DialogTitleBarHeight") is double captionHeight ? captionHeight : double.NaN,
+                    Child = sigHeaderGrid
                 };
-                closeButton.SetResourceReference(FrameworkElement.WidthProperty, "DialogCloseWidth");
-                closeButton.SetResourceReference(FrameworkElement.HeightProperty, "DialogCloseHeight");
-                closeButton.SetResourceReference(FrameworkElement.MarginProperty, "DialogCaptionButtonsMargin");
-                System.Windows.Automation.AutomationProperties.SetName(closeButton, Loc("Str_Lbl_Close"));
-                closeButton.Click += (_, _) => ClosePicker();
-                sigCloseControl = closeButton;
             }
             else
             {
-                var closeText = new Glyph
+                // The close is anchored to the card's top-right corner like the About card's. The
+                // header row is as tall as the close and starts at the close's top inset, so the
+                // title and the X share one centerline; the right margin keeps the title clear of it.
+                var closeMargin = FindResource("AboutCloseMargin") is Thickness cm ? cm : new Thickness(0, 6, 6, 0);
+                double closeWidth = FindResource("AboutCloseWidth") is double cw ? cw : 28;
+                sigCloseControl.VerticalAlignment = VerticalAlignment.Top;
+                sigCloseControl.Margin = closeMargin;
+                Panel.SetZIndex(sigCloseControl, 7);
+                sigHeader = new Border
                 {
-                    Text = "",
-                    FontFamily = UiKit.IconFont,
-                    FontSize = 11,
-                    Foreground = (Brush)FindResource("MutedTextBrush"),
-                    Cursor = Cursors.Hand,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0, 0, 6, 0),
-                    Padding = new Thickness(4)
+                    Background = Brushes.Transparent,
+                    Height = FindResource("AboutCloseHeight") is double ch ? ch : 26,
+                    Margin = new Thickness(0, closeMargin.Top, closeWidth + closeMargin.Right, 4),
+                    Child = sigHeaderGrid
                 };
-                closeText.MouseEnter += (_, _) => { closeText.Foreground = (Brush)FindResource("DangerRed"); };
-                closeText.MouseLeave += (_, _) => { closeText.Foreground = (Brush)FindResource("MutedTextBrush"); };
-                var closeButton = new Button { Content = closeText, Style = (Style)FindResource("ToolbarButton"),
-                    Background = Brushes.Transparent, BorderThickness = new Thickness(0), Padding = new Thickness(0) };
-                System.Windows.Automation.AutomationProperties.SetName(closeButton, Loc("Str_Lbl_Close"));
-                closeButton.Click += (_, _) => ClosePicker();
-                sigCloseControl = closeButton;
+                stack.Children.Add(sigHeader);
             }
-            Grid.SetColumn(sigCloseControl, 1);
-            sigHeaderGrid.Children.Add(sigTitleText);
-            sigHeaderGrid.Children.Add(sigCloseControl);
-            var sigHeader = new Border
-            {
-                Background = classicCaption ? (Brush)FindResource("DialogTitleBarBrush") : Brushes.Transparent,
-                Height = classicCaption && FindResource("DialogTitleBarHeight") is double captionHeight
-                    ? captionHeight : double.NaN,
-                Margin = classicCaption ? new Thickness(0) : new Thickness(0, 0, 0, 4),
-                Child = sigHeaderGrid
-            };
-            if (classicCaption)
-                sigHeaderGrid.SetResourceReference(FrameworkElement.MarginProperty, "TitleBarPadding");
-            stack.Children.Add(sigHeader);
 
             // Saved signatures and initials, shown as two labeled sections so the HR-style
             // "initial here, sign there" flow can pick each independently. One tile builder is shared.
@@ -647,7 +633,19 @@ namespace KillerPDF.Shell
             };
             sigGrain.SetResourceReference(Border.CornerRadiusProperty, "FlyoutCornerRadius");
             sigContent.Children.Add(sigGrain);
-            sigContent.Children.Add(stack);
+            if (classicCaption)
+            {
+                // The caption band runs edge to edge above the padded content, as on the About card.
+                var sigRoot = new StackPanel();
+                sigRoot.Children.Add(sigHeader);
+                sigRoot.Children.Add(stack);
+                sigContent.Children.Add(sigRoot);
+            }
+            else
+            {
+                sigContent.Children.Add(stack);
+                sigContent.Children.Add(sigCloseControl);
+            }
 
             var sigBody = new Border
             {

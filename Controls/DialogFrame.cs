@@ -176,6 +176,10 @@ namespace KillerPDF
             plain.SetResourceReference(TextBlock.FontFamilyProperty, "ChromeFontFamily");
             plain.SetResourceReference(TextBlock.ForegroundProperty, "ChromeTextBrush");
             plain.SetResourceReference(UIElement.VisibilityProperty, "PlainTitleVisibility");
+            // The main title bar's lift for the plain caption (0,-1 on 98SE). The classic row sits
+            // under TitleBarPadding's 2px top inset, which put Microsoft Sans Serif a pixel below
+            // the band's middle, exactly as on the main window before it took this margin.
+            plain.SetResourceReference(FrameworkElement.MarginProperty, "TitleTextMargin");
             var title = new Grid { Margin = new Thickness(0, -18, 0, -22), VerticalAlignment = VerticalAlignment.Center };
             title.SetResourceReference(UIElement.VisibilityProperty, "WordmarkVisibility");
             {
