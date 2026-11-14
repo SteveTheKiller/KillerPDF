@@ -219,6 +219,7 @@
     <Compile Include="..\Services\TextLineGathering.cs" Link="Services\TextLineGathering.cs" />
     <Compile Include="..\Services\ShortcutTogglePolicy.cs" Link="Services\ShortcutTogglePolicy.cs" />
     <Compile Include="..\Services\BookShortcutGates.cs" Link="Services\BookShortcutGates.cs" />
+    <Compile Include="..\Services\DocumentToolsLayout.cs" Link="Services\DocumentToolsLayout.cs" />
     <Compile Include="..\Services\UpdateRestartStore.cs" Link="Services\UpdateRestartStore.cs" />
     <Compile Include="..\Services\PayloadIntegrityVerifier.cs" Link="Services\PayloadIntegrityVerifier.cs" />
     <Compile Include="..\Services\InstallPayloadOwnership.cs" Link="Services\InstallPayloadOwnership.cs" />

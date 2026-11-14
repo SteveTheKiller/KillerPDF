@@ -1812,6 +1812,11 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Rail_Attachments">Тіркемелер</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Қабаттар</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Қолтаңбалар</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Құжат құралдары</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">ҚҰЖАТ ҚҰРАЛДАРЫ</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Есептер</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Құжатты өңдеу</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Автоматтандыру және деректер</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Барлығы</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">Бұл PDF ішінде пікір жоқ.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Әзірге өлшем жоқ. Оларды Өлшеу құралы (M) қосады.</sys:String>

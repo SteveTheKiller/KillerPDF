@@ -15,18 +15,21 @@ namespace KillerPDF.Shell;
 
 public partial class MainWindow
 {
-    // The Document tools menu, built for both the Save menu's submenu and the Ctrl+Shift+D menu that
-    // opens at the Save button. Each tool shows its chord in the gesture column, and pressing the
-    // tool's letter while either menu is open runs it. The letters live in ShortcutTable, which the
-    // shortcuts overlay reads too, so the three cannot disagree.
-    private List<Control> BuildDocumentToolsItems()
+    /// <summary>One tool in the Document tools panel. <see cref="Key"/> is its Ctrl+Shift+D letter, or null for a
+    /// tool with none (Convert to PDF, offered for a book).</summary>
+    private sealed record DocumentTool(string LabelKey, string Glyph, Action Run, char? Key, bool Enabled = true);
+
+    // The Document tools, for the sidebar panel (Alt+7, Ctrl+Shift+D) and Search Tools. Each tool names its chord in
+    // its tooltip, and pressing the tool's letter while the panel has the keyboard runs it. The letters live in
+    // ShortcutTable, which the shortcuts overlay reads too, so the three cannot disagree. A book and an empty
+    // window get only the tools that work for them.
+    private List<DocumentTool> DocumentToolsForState()
     {
         if (ActiveViewer.NativeDocumentRef is not null)
             return
             [
-                MakeMenuItem(Loc("Str_NativePdf_Convert") + "...", (_, _) => ConvertNativeDocumentToPdf(), "", "\uE8AB"),
+                new DocumentTool("Str_NativePdf_Convert", "\uE8AB", ConvertNativeDocumentToPdf, null),
                 DocumentToolItem("Str_CM_Title", OpenColorManagement, "\uE790"),
-                new Separator(),
                 DocumentToolItem("Str_DocumentTools_Macros", OpenMacroDialog, "\uE945"),
                 DocumentToolItem("Str_CertCatalog_Title", OpenCertificateCatalog, "\uEB95"),
             ];
@@ -37,10 +40,12 @@ public partial class MainWindow
                 DocumentToolItem("Str_CertCatalog_Title", OpenCertificateCatalog, "\uEB95"),
             ];
         var comparison = DocumentToolItem("Str_DocumentTools_StructuralComparison",
-            ShowStructuralComparison, "\uE8AB");
-        comparison.IsEnabled = IsSplit
-            && !string.IsNullOrWhiteSpace(Viewer.CurrentFilePathExt)
-            && !string.IsNullOrWhiteSpace(ViewerB.CurrentFilePathExt);
+            ShowStructuralComparison, "\uE8AB") with
+            {
+                Enabled = IsSplit
+                    && !string.IsNullOrWhiteSpace(Viewer.CurrentFilePathExt)
+                    && !string.IsNullOrWhiteSpace(ViewerB.CurrentFilePathExt)
+            };
         return
         [
             DocumentToolItem("Str_DocumentTools_Preflight", OpenPreflightTools, "\uE9D9"),
@@ -67,7 +72,6 @@ public partial class MainWindow
             DocumentToolItem("Str_DocumentTools_PageLabels", EditPageLabels, "\uE70F"),
             DocumentToolItem("Str_DocumentTools_InitialView", EditInitialView, "\uE7B3"),
             comparison,
-            new Separator(),
             DocumentToolItem("Str_Guided_Title", OpenGuidedTasks, "\uE945"),
             DocumentToolItem("Str_DocumentTools_Macros", OpenMacroDialog, "\uE945"),
             DocumentToolItem("Str_DocumentTools_DataMerge", RunDataMerge, "\uE8F1"),
@@ -78,75 +82,191 @@ public partial class MainWindow
         ];
     }
 
-    private MenuItem DocumentToolItem(string labelKey, Action run, string glyph)
-    {
-        var item = MakeMenuItem(Loc(labelKey), (_, _) => run(),
-            GestureFor("CtrlShift:D") + ", " + ShortcutTable.DocumentToolKey(labelKey), glyph);
-        item.Tag = ShortcutTable.DocumentToolKey(labelKey);
-        return item;
-    }
+    private DocumentTool DocumentToolItem(string labelKey, Action run, string glyph)
+        => new(labelKey, glyph, run, ShortcutTable.DocumentToolKey(labelKey));
 
-    private MenuItem BuildDocumentToolsMenu()
-    {
-        var menu = new MenuItem
-        {
-            Header = Loc("Str_DocumentTools"),
-            InputGestureText = GestureFor("CtrlShift:D"),
-            Icon = new Glyph
-            {
-                Text = "\uE9D2",
-                FontFamily = UiKit.IconFont,
-                FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
-        foreach (Control item in BuildDocumentToolsItems())
-            menu.Items.Add(item);
-        menu.PreviewKeyDown += DocumentToolsMenu_PreviewKeyDown;
-        return menu;
-    }
+    // The built panel: its scroller, its rows, and what it was built from. Pane focus refreshes the panel on every
+    // click, so a refresh that changes nothing leaves the rows, and the keyboard focus on them, where they are.
+    private ScrollViewer? _documentToolsScroll;
+    private string? _documentToolsShape;
+    private readonly List<(Button Button, DocumentTool Tool)> _documentToolsRows = [];
+    // Set by Ctrl+Shift+D until the next key, which may still have Ctrl and Shift held from the chord.
+    private bool _documentToolsChordPressed;
 
-    // Ctrl+Shift+D: the Document tools as their own menu, anchored to the Save menu button they
-    // normally sit under. With that button folded away, the menu centers on the window instead.
-    private void OpenDocumentToolsMenu()
+    /// <summary>
+    /// Ctrl+Shift+D: shows the Document tools panel and puts the keyboard on its first tool, so the tool's letter,
+    /// Enter or Space runs it. Unlike the rail button, pressing it again with the panel open keeps the panel.
+    /// </summary>
+    private void ShowDocumentToolsPanel()
     {
-        var menu = MakeThemedMenu();
-        foreach (Control item in BuildDocumentToolsItems())
-            menu.Items.Add(item);
-        menu.PreviewKeyDown += DocumentToolsMenu_PreviewKeyDown;
-        if (SaveMenuBtn.IsVisible)
-        {
-            menu.PlacementTarget = SaveMenuBtn;
-            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-        }
+        if (_sidebarCollapsed || _sidebarPanel != SidebarPanel.DocumentTools)
+            OpenSidebarPanel(SidebarPanel.DocumentTools);
         else
-        {
-            menu.PlacementTarget = this;
-            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Center;
-        }
-        menu.Opened += (_, _) => menu.Items.OfType<MenuItem>().FirstOrDefault(i => i.IsEnabled)?.Focus();
-        menu.IsOpen = true;
+            RefreshDocumentToolsPanel();
+        _documentToolsChordPressed = true;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)FocusDocumentTools);
     }
 
-    // A mapped key while a Document tools menu is open runs its tool. Shift and
-    // Ctrl may still be held from the chord; Alt is left to the menu's own handling.
-    private static void DocumentToolsMenu_PreviewKeyDown(object sender, KeyEventArgs e)
+    // The first tool that can run takes the keyboard, so the tool letters reach HandleDocumentToolsKey. While the
+    // sidebar is still sliding open the row may not take focus yet, so it is tried once more when the window idles.
+    private void FocusDocumentTools() => FocusDocumentTools(retry: true);
+
+    private void FocusDocumentTools(bool retry)
     {
-        if (sender is not ItemsControl owner || Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
-            return;
-        char letter = e.Key is Key.D0 or Key.NumPad0 ? '0'
-            : e.Key >= Key.A && e.Key <= Key.Z ? (char)('A' + (e.Key - Key.A)) : '\0';
-        if (letter == '\0') return;
-        MenuItem? match = owner.Items.OfType<MenuItem>().FirstOrDefault(i => i.Tag is char c && c == letter);
-        if (match is null) return;
+        if (_sidebarPanel != SidebarPanel.DocumentTools || _documentToolsScroll is null) return;
+        Button? first = _documentToolsRows.Select(row => row.Button).FirstOrDefault(button => button.IsEnabled);
+        if (first is not null && !first.Focus() && retry)
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle,
+                (Action)(() => FocusDocumentTools(retry: false)));
+    }
+
+    /// <summary>
+    /// Builds the Document tools panel for what is open, when it is the open panel: the tools under their section
+    /// headings, in as many columns as the panel's width allows. Nothing is rebuilt when the tools are what the
+    /// panel already shows, unless <paramref name="force"/> asks (a language or shortcut change renames the chords).
+    /// </summary>
+    private void RefreshDocumentToolsPanel(bool force = false)
+    {
+        if (_sidebarPanel != SidebarPanel.DocumentTools || SidebarListPanel is null) return;
+        List<DocumentTool> tools = DocumentToolsForState();
+        string shape = string.Join("|", tools.Select(tool => tool.LabelKey + (tool.Enabled ? "+" : "-")));
+        if (!force && shape == _documentToolsShape && _documentToolsScroll is { } built
+            && ReferenceEquals(built.Parent, SidebarListPanel))
+            return;   // the actions read what is open when they run, so the built rows stay correct
+        bool hadKeyboard = _documentToolsScroll?.IsKeyboardFocusWithin == true;
+        _documentToolsShape = shape;
+        _documentToolsRows.Clear();
+        SidebarListPanel.Children.Clear();
+        _sidebarPanelTree = null;
+
+        var sections = new StackPanel { Margin = new Thickness(6, 0, 6, 8) };
+        var grids = new List<System.Windows.Controls.Primitives.UniformGrid>();
+        var byKey = tools.ToDictionary(tool => tool.LabelKey, StringComparer.Ordinal);
+        foreach (var (titleKey, keys) in DocumentToolsLayout.Group(tools.Select(tool => tool.LabelKey)))
+        {
+            var heading = new TextBlock
+            {
+                FontFamily = UiKit.UiFont,
+                FontSize = 11,
+                Margin = new Thickness(6, 6, 6, 2),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            heading.SetResourceReference(TextBlock.TextProperty, titleKey);
+            heading.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+            sections.Children.Add(heading);
+            var grid = new System.Windows.Controls.Primitives.UniformGrid { Columns = 2 };
+            foreach (string key in keys) grid.Children.Add(DocumentToolRow(byKey[key]));
+            sections.Children.Add(grid);
+            grids.Add(grid);
+        }
+
+        // Rows wrap into columns across the width and the panel scrolls down only when the window is too short
+        // for them. Every section shares the column count, so the rows line up from one section to the next.
+        var scroll = new ScrollViewer
+        {
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            // Not focusable: a click on the panel's empty space must not take the editor's letter keys.
+            Focusable = false,
+            Content = sections
+        };
+        System.Windows.Automation.AutomationProperties.SetName(scroll, Loc("Str_Rail_DocumentTools"));
+        void Fit()
+        {
+            double width = scroll.ViewportWidth > 0 ? scroll.ViewportWidth : scroll.ActualWidth;
+            int columns = DocumentToolsLayout.Columns(width - sections.Margin.Left - sections.Margin.Right);
+            foreach (var grid in grids)
+                if (grid.Columns != columns) grid.Columns = columns;
+        }
+        scroll.SizeChanged += (_, _) => Fit();
+        scroll.ScrollChanged += (_, e) => { if (e.ViewportWidthChange != 0) Fit(); };
+        scroll.LostKeyboardFocus += (_, _) =>
+        {
+            if (!scroll.IsKeyboardFocusWithin) _documentToolsChordPressed = false;
+        };
+        SidebarListPanel.Children.Add(scroll);
+        _documentToolsScroll = scroll;
+        Fit();
+        if (hadKeyboard)
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)FocusDocumentTools);
+    }
+
+    // One tool: its glyph and name (DocumentToolRowBtn), with the name and its chord in the tooltip (the family
+    // shortcut rule). The name follows the language through its resource; the tooltip is rebuilt on a change.
+    private Button DocumentToolRow(DocumentTool tool)
+    {
+        var row = new Button { Content = tool.Glyph, IsEnabled = tool.Enabled };
+        row.SetResourceReference(StyleProperty, "DocumentToolRowBtn");
+        row.SetResourceReference(TagProperty, tool.LabelKey);
+        System.Windows.Automation.AutomationProperties.SetAutomationId(row, tool.LabelKey);
+        string name = Loc(tool.LabelKey);
+        row.ToolTip = tool.Key is char key
+            ? KillerFamily.Layout.ShortcutHints.WithHint(name, GestureFor("CtrlShift:D") + ", " + key)
+            : name;
+        row.Click += (_, _) =>
+        {
+            _documentToolsChordPressed = false;
+            // A click leaves the keyboard where it was before, as the menu this panel replaced did, so the
+            // single-letter editor tools (T, S, C...) stay the window's. Only a panel entered from the keyboard
+            // (Ctrl+Shift+D, Tab, the arrows) keeps the tool letters.
+            if (InputManager.Current.MostRecentInputDevice is MouseDevice or StylusDevice && row.IsKeyboardFocused)
+            {
+                Keyboard.ClearFocus();
+                Focus();
+            }
+            tool.Run();
+        };
+        _documentToolsRows.Add((row, tool));
+        return row;
+    }
+
+    /// <summary>
+    /// Keys while the Document tools panel has the keyboard: a tool's letter runs it, Enter and Space run the focused
+    /// tool, and the arrows move between tools. The window's own keys (single-letter tools, page turning, panning)
+    /// would otherwise take them first.
+    /// </summary>
+    private bool HandleDocumentToolsKey(KeyEventArgs e)
+    {
+        if (_sidebarPanel != SidebarPanel.DocumentTools || _documentToolsScroll is not { IsKeyboardFocusWithin: true })
+        {
+            _documentToolsChordPressed = false;
+            return false;
+        }
+        Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift) return false;
+        bool chordPressed = _documentToolsChordPressed;
+        _documentToolsChordPressed = false;
+        ModifierKeys modifiers = Keyboard.Modifiers;
+        if (modifiers == ModifierKeys.None && key is Key.Enter or Key.Space)
+        {
+            if (Keyboard.FocusedElement is not Button focused
+                || !_documentToolsRows.Any(row => ReferenceEquals(row.Button, focused))) return false;
+            e.Handled = true;
+            if (!e.IsRepeat && focused.IsEnabled)
+                focused.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, focused));
+            return true;
+        }
+        if (modifiers == ModifierKeys.None && key is Key.Left or Key.Right or Key.Up or Key.Down)
+        {
+            var direction = key switch
+            {
+                Key.Left => FocusNavigationDirection.Left,
+                Key.Right => FocusNavigationDirection.Right,
+                Key.Up => FocusNavigationDirection.Up,
+                _ => FocusNavigationDirection.Down,
+            };
+            if (Keyboard.FocusedElement is UIElement from) from.MoveFocus(new TraversalRequest(direction));
+            e.Handled = true;
+            return true;
+        }
+        if (!KeyboardShortcutsEnabled || DocumentToolsLayout.ChordKey(key, modifiers, chordPressed) is not char letter)
+            return false;
+        var match = _documentToolsRows.FirstOrDefault(row => row.Tool.Key == letter);
+        if (match.Button is null) return false;
         e.Handled = true;
-        if (!match.IsEnabled) return;
-        // Close the whole menu first, the way a click does, then run the tool.
-        DependencyObject? node = owner;
-        while (node is not null and not System.Windows.Controls.ContextMenu)
-            node = LogicalTreeHelper.GetParent(node);
-        if (node is System.Windows.Controls.ContextMenu root) root.IsOpen = false;
-        match.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent, match));
+        if (!e.IsRepeat && match.Button.IsEnabled)
+            match.Button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, match.Button));
+        return true;
     }
 
     private async void RunDataMerge()

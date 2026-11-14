@@ -1809,6 +1809,11 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Rail_Attachments">Anexos</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Camadas</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Assinaturas</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Ferramentas do documento</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">FERRAMENTAS DO DOCUMENTO</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Relatórios</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Editar documento</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Automação e dados</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Tudo</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">Este PDF não tem comentários.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Ainda não há medições. A ferramenta Medir (M) as adiciona.</sys:String>

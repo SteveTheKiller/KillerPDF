@@ -1793,6 +1793,11 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Rail_Attachments">附件</sys:String>
     <sys:String x:Key="Str_Rail_Layers">图层</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">签名</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">文档工具</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">文档工具</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">报告</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">编辑文档</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">自动化与数据</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">全部</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">此 PDF 没有注释。</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">还没有测量。测量工具 (M) 可以添加。</sys:String>

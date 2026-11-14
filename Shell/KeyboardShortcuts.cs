@@ -54,6 +54,9 @@ namespace KillerPDF.Shell
             // The title bar search box keeps its own navigation keys while it has focus.
             if (_syntheticShortcut is null && HandleToolSearchKey(e)) return;
 
+            // The Document tools panel keeps its tool letters, Enter, Space and the arrows while it has focus.
+            if (_syntheticShortcut is null && HandleDocumentToolsKey(e)) return;
+
             if (_syntheticShortcut is null && e.OriginalSource is Controls.DocumentSurface reading
                 && reading.IsKeyboardFocused && Controls.DocumentSurface.IsReadingNavigation(e.Key, Keyboard.Modifiers))
                 return;
@@ -513,7 +516,7 @@ namespace KillerPDF.Shell
             }
             else if (key == Key.D && mods == (ModifierKeys.Control | ModifierKeys.Shift))
             {
-                if (!e.IsRepeat) OpenDocumentToolsMenu();   // DocumentTools.cs; the next letter picks the tool
+                if (!e.IsRepeat) ShowDocumentToolsPanel();   // DocumentTools.cs; the next letter picks the tool
                 e.Handled = true;
             }
             else if (key == Key.System && systemKey == Key.G && mods == (ModifierKeys.Alt | ModifierKeys.Shift))

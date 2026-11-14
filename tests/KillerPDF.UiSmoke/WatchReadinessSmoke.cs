@@ -133,18 +133,11 @@ internal static class WatchReadinessSmoke
                 foreach (Window window in Application.Current.Windows.Cast<Window>().Where(window => window != owner).Reverse().ToArray()) window.Close();
             }
         };
-        Click(owner, "SaveMenuBtn");
-        ContextMenu? Menu() => PresentationSource.CurrentSources.Cast<PresentationSource>().Select(item => item.RootVisual)
-            .OfType<DependencyObject>().SelectMany(Descendants<ContextMenu>).FirstOrDefault(menu => menu.IsOpen);
-        ContextMenu? menu = Menu();
-        menu ??= PresentationSource.CurrentSources.Cast<PresentationSource>().Select(item => item.RootVisual).OfType<ContextMenu>().Single(item => item.IsOpen);
-        MenuItem tools = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, owner.FindResource("Str_DocumentTools")));
-        MenuItem macrosItem = tools.Items.OfType<MenuItem>().Single(item => Equals(item.Header, owner.FindResource("Str_DocumentTools_Macros")));
-        menu.IsOpen = false;
+        Button macrosItem = DocumentToolRow(owner, "Str_DocumentTools_Macros");
         timer.Start();
         try
         {
-            macrosItem.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            macrosItem.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Wait(() => phase == 9 || failure is not null, "watched-folder missing-language setup");
             if (failure is not null) throw failure;
             Wait(() => !Application.Current.Windows.Cast<Window>().Any(window => window != owner && window.IsVisible), "watched setup modal cleanup");

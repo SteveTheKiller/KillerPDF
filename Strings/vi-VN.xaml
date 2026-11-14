@@ -1809,6 +1809,11 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Rail_Attachments">Tệp đính kèm</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Lớp</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Chữ ký</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Công cụ tài liệu</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">CÔNG CỤ TÀI LIỆU</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Báo cáo</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Chỉnh sửa tài liệu</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Tự động hóa và dữ liệu</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Tất cả</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">PDF này không có bình luận.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Chưa có phép đo nào. Công cụ Đo lường (M) sẽ thêm chúng.</sys:String>

@@ -9,12 +9,12 @@ public sealed class ToolbarAvailabilityTests
     private static readonly ToolbarAvailability.State ThreePagesSecondSelected = new(true, true, false, false, 1, 1, 3);
 
     [Fact]
-    public void SaveMenuOpensWithNoDocumentForDocumentTools()
+    public void SaveMenuWaitsForADocumentNowThatDocumentToolsHaveTheirOwnPanel()
     {
-        // With no PDF open the Save menu still offers Document tools (Macros and the certificate
-        // catalog), so only the Save button itself waits for a document.
+        // Document tools moved to their sidebar panel, so with no PDF open the Save dropdown has
+        // nothing to offer and waits for a document like the Save button beside it.
         Assert.False(ToolbarAvailability.MainEnabled("save", NoDocument));
-        Assert.True(ToolbarAvailability.GroupEnabled("save", NoDocument));
+        Assert.False(ToolbarAvailability.GroupEnabled("save", NoDocument));
     }
 
     [Theory]

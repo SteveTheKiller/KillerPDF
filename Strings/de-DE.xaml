@@ -1798,6 +1798,11 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Rail_Attachments">Anhänge</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Ebenen</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Signaturen</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Dokumentwerkzeuge</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">DOKUMENTWERKZEUGE</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Berichte</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Dokument bearbeiten</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Automatisierung und Daten</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Alle</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">Diese PDF hat keine Kommentare.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Noch keine Messungen. Das Messwerkzeug (M) fügt sie hinzu.</sys:String>

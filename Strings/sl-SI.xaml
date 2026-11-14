@@ -1699,6 +1699,11 @@
     <sys:String x:Key="Str_Rail_Attachments">Priloge</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Plasti</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Podpisi</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Orodja za dokumente</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">ORODJA ZA DOKUMENTE</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Poročila</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Urejanje dokumenta</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Avtomatizacija in podatki</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Vse</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">Ta PDF nima komentarjev.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Še ni meritev. Dodate jih z orodjem Izmeri (M).</sys:String>

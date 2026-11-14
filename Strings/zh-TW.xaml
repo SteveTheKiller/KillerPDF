@@ -1791,6 +1791,11 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Rail_Attachments">附件</sys:String>
     <sys:String x:Key="Str_Rail_Layers">圖層</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">簽章</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">文件工具</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">文件工具</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">報告</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">編輯文件</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">自動化與資料</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">全部</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">此 PDF 沒有註解。</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">還沒有測量。測量工具 (M) 可以新增。</sys:String>

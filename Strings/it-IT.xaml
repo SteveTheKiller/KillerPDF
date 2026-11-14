@@ -1809,6 +1809,11 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Rail_Attachments">Allegati</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Livelli</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Firme</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Strumenti documento</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">STRUMENTI DOCUMENTO</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Rapporti</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Modifica documento</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Automazione e dati</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Tutto</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">Questo PDF non ha commenti.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Ancora nessuna misurazione. Lo strumento Misura (M) le aggiunge.</sys:String>

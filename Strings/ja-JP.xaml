@@ -1809,6 +1809,11 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Rail_Attachments">添付ファイル</sys:String>
     <sys:String x:Key="Str_Rail_Layers">レイヤー</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">署名</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">ドキュメントツール</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">ドキュメントツール</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">レポート</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">ドキュメントの編集</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">自動化とデータ</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">すべて</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">この PDF にはコメントがありません。</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">まだ測定はありません。測定ツール (M) で追加できます。</sys:String>

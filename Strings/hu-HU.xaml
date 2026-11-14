@@ -1796,6 +1796,11 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Rail_Attachments">Mellékletek</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Rétegek</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Aláírások</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Dokumentumeszközök</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">DOKUMENTUMESZKÖZÖK</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Jelentések</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Dokumentum szerkesztése</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Automatizálás és adatok</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Mind</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">Ebben a PDF-ben nincsenek megjegyzések.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Még nincsenek mérések. A Mérés eszköz (M) adja hozzá őket.</sys:String>

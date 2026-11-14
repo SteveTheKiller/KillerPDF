@@ -505,13 +505,11 @@ namespace KillerPDF.Shell
             _ => Enum.TryParse(id, out Key key) ? key : null,
         };
 
-        // A Document tool runs the way its letter does in the open Document tools menu.
+        // A Document tool runs the way its letter does in the Document tools panel.
         private void RunDocumentTool(char letter)
         {
-            MenuItem? item = BuildDocumentToolsItems().OfType<MenuItem>()
-                .FirstOrDefault(menuItem => menuItem.Tag is char tag && tag == letter);
-            if (item is { IsEnabled: true })
-                item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent, item));
+            DocumentTool? tool = DocumentToolsForState().FirstOrDefault(candidate => candidate.Key == letter);
+            if (tool is { Enabled: true }) tool.Run();
         }
 
         // Rebuilds the flyout for the box's text. An empty box lists the tools (or, with no

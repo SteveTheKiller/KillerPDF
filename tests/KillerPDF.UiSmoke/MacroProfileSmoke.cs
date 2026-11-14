@@ -94,23 +94,11 @@ internal static class MacroProfileSmoke
                 foreach (Window window in Application.Current.Windows.Cast<Window>().Where(window => window != owner).Reverse().ToArray()) window.Close();
             }
         };
-        ContextMenu? FindMenu()
-        {
-            DependencyObject[] roots = PresentationSource.CurrentSources.Cast<PresentationSource>()
-                .Select(source => source.RootVisual).OfType<DependencyObject>().ToArray();
-            return roots.OfType<ContextMenu>().Concat(roots.SelectMany(Descendants<ContextMenu>))
-                .Distinct().SingleOrDefault(item => item.IsOpen);
-        }
-        Click(owner, "SaveMenuBtn");
-        Wait(() => FindMenu() is not null, "profile Save menu popup readiness");
-        ContextMenu menu = FindMenu()!;
-        MenuItem tools = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, owner.FindResource("Str_DocumentTools")));
-        MenuItem macros = tools.Items.OfType<MenuItem>().Single(item => Equals(item.Header, owner.FindResource("Str_DocumentTools_Macros")));
-        menu.IsOpen = false;
+        Button macros = DocumentToolRow(owner, "Str_DocumentTools_Macros");
         timer.Start();
         try
         {
-            macros.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            macros.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Wait(() => phase == 7 || failure is not null, "macro profile edit/export");
             if (failure is not null) throw failure;
             Wait(() => !Application.Current.Windows.Cast<Window>().Any(window => window != owner && window.IsVisible),

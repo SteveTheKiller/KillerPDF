@@ -1794,6 +1794,11 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Rail_Attachments">Přílohy</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Vrstvy</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Podpisy</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Nástroje dokumentu</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">NÁSTROJE DOKUMENTU</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Zprávy</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Úpravy dokumentu</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Automatizace a data</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Vše</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">Tento PDF nemá žádné komentáře.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Zatím žádná měření. Přidá je nástroj Měření (M).</sys:String>

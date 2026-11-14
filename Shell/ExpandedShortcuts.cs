@@ -11,7 +11,7 @@ public partial class MainWindow
         Action? run = null;
         if (modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && key == Key.G)
             run = OpenSidebarSigning;
-        else if (modifiers == ModifierKeys.Alt && key is >= Key.D1 and <= Key.D6)
+        else if (modifiers == ModifierKeys.Alt && key is >= Key.D1 and <= Key.D7)
         {
             SidebarPanel panel = (SidebarPanel)(key - Key.D1);
             run = () => OpenSidebarPanel(panel);
@@ -45,7 +45,8 @@ public partial class MainWindow
             };
         if (run is null) return false;
         // A book has no PDF, but the rail buttons it leaves enabled still open their panels, so their keys follow them.
-        bool railButtonEnabled = modifiers == ModifierKeys.Alt && key is >= Key.D1 and <= Key.D6
+        // Document tools (Alt+7) is enabled with nothing open at all.
+        bool railButtonEnabled = modifiers == ModifierKeys.Alt && key is >= Key.D1 and <= Key.D7
             && RailPanelButtons().First(entry => entry.Panel == (SidebarPanel)(key - Key.D1)).Button.IsEnabled;
         if (!repeat && ExpandedShortcutGate.Runs(_doc is not null, HasReadingDocument, railButtonEnabled, key, modifiers))
             run();

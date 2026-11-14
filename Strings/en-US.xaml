@@ -1820,6 +1820,11 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Rail_Attachments">Attachments</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Layers</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Signatures</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Document tools</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">DOCUMENT TOOLS</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Reports</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Edit document</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Automation and data</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">All</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">This PDF has no comments.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">No measurements yet. The Measure tool (M) adds them.</sys:String>

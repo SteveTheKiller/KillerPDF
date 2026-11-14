@@ -506,18 +506,11 @@ internal static class DocumentStateSmoke
                 catch (Exception error) { failure = error; dialog.Close(); }
             }
         };
-        Click(owner, "SaveMenuBtn");
-        Pump();
-        var roots = PresentationSource.CurrentSources.Cast<PresentationSource>().Select(item => item.RootVisual).OfType<DependencyObject>();
-        ContextMenu menu = roots.OfType<ContextMenu>().Concat(roots.SelectMany(Descendants<ContextMenu>)).Distinct().Single(item => item.IsOpen);
-        MenuItem tools = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, owner.FindResource("Str_DocumentTools")));
-        MenuItem production = tools.Items.OfType<MenuItem>().Single(item => Equals(item.Header,
-            owner.FindResource(merge ? "Str_DocumentTools_DataMerge" : "Str_DocumentTools_ProductionLayouts")));
-        menu.IsOpen = false;
+        Button production = DocumentToolRow(owner, merge ? "Str_DocumentTools_DataMerge" : "Str_DocumentTools_ProductionLayouts");
         timer.Start();
         try
         {
-            production.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            production.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Wait(() => (File.Exists(output) && (!merge || reportShown)) || failure is not null, "complete document output");
             if (failure is not null) throw failure;
         }
@@ -1486,6 +1479,18 @@ internal static class DocumentStateSmoke
         MouseEvent(4, 0, 0, 0, UIntPtr.Zero);
     }
     internal static void Pump() => Application.Current.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+
+    // The Document tools panel's row for a tool, opening the panel from its rail button when it is not showing.
+    // Clicking the button of the panel already open would open the sidebar position menu instead.
+    internal static Button DocumentToolRow(Window owner, string labelKey)
+    {
+        Button? Row() => Descendants<Button>(owner).FirstOrDefault(item => item.IsVisible
+            && System.Windows.Automation.AutomationProperties.GetAutomationId(item) == labelKey);
+        if (Row() is null) Click(owner, "SidebarDocumentToolsTab");
+        Wait(() => Row() is not null, "Document tools panel row " + labelKey);
+        return Row()!;
+    }
+
     internal static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
     {
         for (int index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
