@@ -16,10 +16,20 @@ internal sealed class NavigationRepairDialog : Window
         Window owner, string report, bool hasUnsafeLinks, bool hasUnresolvedLinks)
     {
         Title = "KillerPDF - " + L("Str_DocumentTools_NavigationAudit");
-        // As tall as the report needs, up to most of the screen, where it starts scrolling.
-        Width = 760;
-        SizeToContent = SizeToContent.Height;
+        // The report's first line is its count ("Navigation findings: 0") and every finding adds lines under it, so
+        // a one-line report found nothing.
+        bool empty = !report.TrimEnd().Contains('\n', StringComparison.Ordinal);
+        // With findings it is wide enough for their lines and as tall as the report needs, up to most of the
+        // screen, where it starts scrolling. With none it is only as wide as its footer, the count centered in a
+        // small well.
+        if (empty) SizeToContent = SizeToContent.WidthAndHeight;
+        else
+        {
+            Width = 760;
+            SizeToContent = SizeToContent.Height;
+        }
         MaxHeight = Math.Max(360, SystemParameters.WorkArea.Height * 0.85);
+        MaxWidth = Math.Max(520, SystemParameters.WorkArea.Width - 40);
         MinWidth = 520;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
@@ -63,11 +73,25 @@ internal sealed class NavigationRepairDialog : Window
         DockPanel footer = DialogParts.Footer([cancel, _repair], options);
         DockPanel.SetDock(footer, Dock.Bottom);
         body.Children.Add(footer);
-        body.Children.Add(DialogParts.Well(reportBox));
+        if (empty)
+        {
+            // Nothing to list: the count as the well's muted, centered hint instead of an empty report box.
+            var hint = new TextBlock
+            {
+                Text = report.Trim(),
+                TextWrapping = TextWrapping.Wrap,
+                TextAlignment = TextAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(12, 10, 12, 10)
+            };
+            hint.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+            body.Children.Add(DialogParts.Well(hint));
+        }
+        else body.Children.Add(DialogParts.Well(reportBox));
 
         Content = DialogFrame.Frame(this, owner, Title,
             () => { DialogResult = false; Close(); }, body);
-        Loaded += (_, _) => reportBox.Focus();
+        Loaded += (_, _) => { if (empty) cancel.Focus(); else reportBox.Focus(); };
         UpdateRepairButton();
     }
 

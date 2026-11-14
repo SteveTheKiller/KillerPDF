@@ -20,9 +20,12 @@ internal sealed class ColorManagementDialog : Window
     {
         Title = "KillerPDF - " + L("Str_CM_Title");
         Width = SignDialogLayout.OpeningWidth;
-        Height = 580;
+        // As tall as the two columns need, so Close and Apply sit right under them; past the screen's height the
+        // fields scroll. A status line that appears grows it until it is resized by hand.
+        SizeToContent = SizeToContent.Height;
+        MaxHeight = Math.Max(360, SystemParameters.WorkArea.Height - 40);
         MinWidth = 600;
-        MinHeight = 360;
+        MinHeight = 300;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
         AutomationProperties.SetAutomationId(this, "ColorManagementDialog");

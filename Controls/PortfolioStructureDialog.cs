@@ -15,10 +15,10 @@ internal sealed class PortfolioStructureDialog : Window
     private readonly List<SortRow> _sortRows = [];
     private readonly List<FolderRow> _folderRows = [];
     private readonly List<ValueRow> _valueRows = [];
-    private readonly StackPanel _fieldsPanel = new();
-    private readonly StackPanel _sortPanel = new();
-    private readonly StackPanel _foldersPanel = new();
-    private readonly StackPanel _valuesPanel = new();
+    private readonly RowsPanel _fieldsPanel = new();
+    private readonly RowsPanel _sortPanel = new();
+    private readonly RowsPanel _foldersPanel = new();
+    private readonly RowsPanel _valuesPanel = new();
     private readonly string[] _attachmentNames;
 
     internal IReadOnlyList<PdfCollectionFieldInfo> Fields { get; private set; } = [];
@@ -33,35 +33,33 @@ internal sealed class PortfolioStructureDialog : Window
     {
         Title = "KillerPDF - " + L("Str_DocumentTools_EditPortfolioStructure");
         // As tall as the sections need, up to most of the screen, where they start scrolling.
-        Width = Math.Min(1100, SystemParameters.WorkArea.Width - 40);
+        Width = Math.Min(940, SystemParameters.WorkArea.Width - 40);
         SizeToContent = SizeToContent.Height;
         MaxHeight = Math.Max(360, SystemParameters.WorkArea.Height * 0.85);
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
         _attachmentNames = [.. attachments.Select(item => item.FileName)];
 
-        // Fields and Sort rules side by side, Folders and Attachment values full width under them, each a well
-        // with its column names and an Add icon in its heading.
-        var top = new Grid();
-        top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(63, GridUnitType.Star) });
-        top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
-        top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(37, GridUnitType.Star) });
-        UIElement fields = Section("Str_Portfolio_Fields", FieldHeader(), _fieldsPanel, () => AddField(null));
-        foreach (PdfCollectionFieldInfo field in collection?.Fields ?? []) AddField(field);
-        top.Children.Add(fields);
-        UIElement sort = Section("Str_Portfolio_Sort", SortHeader(), _sortPanel, () => AddSort(null));
-        foreach (PdfCollectionSortInfo rule in collection?.Sort ?? []) AddSort(rule);
-        Grid.SetColumn(sort, 2);
-        top.Children.Add(sort);
-
+        // Fields, Sort rules, Folders and Attachment values stacked full width, each a well with an Add icon in its
+        // heading. A well with rows shows its column names over them; an empty one shows only a short hint, so an
+        // empty section is one small line rather than a bar of column names.
         var content = new StackPanel();
-        content.Children.Add(top);
+        content.Children.Add(Section("Str_Portfolio_Fields", FieldHeader(), _fieldsPanel,
+            () => AddField(null), "Str_Portfolio_None"));
+        foreach (PdfCollectionFieldInfo field in collection?.Fields ?? []) AddField(field);
+
+        content.Children.Add(Section("Str_Portfolio_Sort", SortHeader(), _sortPanel,
+            () => AddSort(null), "Str_Portfolio_None"));
+        foreach (PdfCollectionSortInfo rule in collection?.Sort ?? []) AddSort(rule);
+
         content.Children.Add(Section("Str_Portfolio_Folders", FolderHeader(), _foldersPanel,
-            () => AddFolder(null)));
+            () => AddFolder(null), "Str_Portfolio_None"));
         foreach (PdfCollectionFolderInfo folder in collection?.Folders ?? []) AddFolder(folder);
 
+        // Values belong to attachments, so without any there is nothing to add and the hint says why.
         content.Children.Add(Section("Str_Portfolio_ItemValues", ValueHeader(), _valuesPanel,
-            () => AddValue(null, null), canAdd: _attachmentNames.Length > 0));
+            () => AddValue(null, null), _attachmentNames.Length > 0 ? "Str_Portfolio_None" : "Str_Attachment_None",
+            canAdd: _attachmentNames.Length > 0));
         foreach (PdfEngineIntegration.PortfolioAttachmentItem attachment in attachments)
             foreach (PdfCollectionItemValue value in attachment.Values)
                 AddValue(attachment.FileName, value);
@@ -87,7 +85,8 @@ internal sealed class PortfolioStructureDialog : Window
     }
 
     private static readonly double[] FieldWidths = [130, 0, 110, 60, 64, 68, 36];
-    private static readonly double[] SortWidths = [0, 90, 36];
+    // Full width, the sort key keeps a field's width and its remove icon lines up with the other sections'.
+    private static readonly double[] SortWidths = [260, 90, 0, 36];
     private static readonly double[] FolderWidths = [80, 220, 100, 0, 36];
     private static readonly double[] ValueWidths = [220, 150, 0, 80, 130, 36];
 
@@ -123,7 +122,7 @@ internal sealed class PortfolioStructureDialog : Window
         CheckBox ascending = Check(rule?.Ascending ?? true);
         SortRow row = new(key, ascending);
         Button remove = RemoveIcon(() => { _sortRows.Remove(row); _sortPanel.Children.Remove(grid); });
-        Add(grid, key, 0); Add(grid, ascending, 1); Add(grid, remove, 2);
+        Add(grid, key, 0); Add(grid, ascending, 1); Add(grid, remove, 3);
         _sortPanel.Children.Add(grid);
         _sortRows.Add(row);
     }
@@ -265,9 +264,10 @@ internal sealed class PortfolioStructureDialog : Window
         return new PdfCollectionItemValue(key, null, number, prefix);
     }
 
-    // A section: its title with an Add icon, then its column names and rows in a well.
-    private static DockPanel Section(string titleKey, Grid header, StackPanel rows, Action addRow,
-        bool canAdd = true)
+    // A section: its title with an Add icon, then its rows in a well, under their column names while there are
+    // rows and as a muted hint while there are none.
+    private static DockPanel Section(string titleKey, Grid header, RowsPanel rows, Action addRow,
+        string emptyKey, bool canAdd = true)
     {
         Button add = DialogParts.IconAction("Str_Portfolio_AddRow", 0xE710, (_, _) => addRow());
         add.IsEnabled = canAdd;
@@ -276,10 +276,33 @@ internal sealed class PortfolioStructureDialog : Window
         DockPanel.SetDock(heading, Dock.Top);
         section.Children.Add(heading);
         var inside = new StackPanel { Margin = new Thickness(8, 6, 4, 6) };
+        TextBlock empty = DialogParts.EmptyHint(emptyKey);
+        empty.Margin = new Thickness(4);
         inside.Children.Add(header);
         inside.Children.Add(rows);
+        inside.Children.Add(empty);
+        void Show()
+        {
+            bool any = rows.Children.Count > 0;
+            header.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+            empty.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
+        }
+        rows.RowsChanged += Show;
+        Show();
         section.Children.Add(DialogParts.Well(inside));
         return section;
+    }
+
+    // The rows of one section; tells its section when a row is added or removed.
+    private sealed class RowsPanel : StackPanel
+    {
+        internal event Action? RowsChanged;
+
+        protected override void OnVisualChildrenChanged(DependencyObject visualAdded, DependencyObject visualRemoved)
+        {
+            base.OnVisualChildrenChanged(visualAdded, visualRemoved);
+            RowsChanged?.Invoke();
+        }
     }
 
     private static Grid FieldHeader() => Header(FieldWidths,

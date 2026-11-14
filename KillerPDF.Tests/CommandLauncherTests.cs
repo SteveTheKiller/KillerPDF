@@ -20,18 +20,63 @@ public sealed class CommandLauncherTests
     public void EveryLauncherCommandHasItsOwnIcon()
     {
         var keys = new HashSet<string>();
+        var launchers = new List<List<string>>();
         foreach (string file in new[] { "DataExchange.cs", "DocumentRepairs.cs", "ProductionTools.cs" })
         {
             string text = File.ReadAllText(Path.Combine(Root(), "Shell", file));
             foreach (Match call in Regex.Matches(text, @"OpenExchangeCommands\(""[^""]+""(?<args>.*?)\);", RegexOptions.Singleline))
+            {
+                var launcher = new List<string>();
                 foreach (Match key in Regex.Matches(call.Groups["args"].Value, @"\(""(?<key>Str_[A-Za-z_]+)"""))
-                    keys.Add(key.Groups["key"].Value);
+                    launcher.Add(key.Groups["key"].Value);
+                keys.UnionWith(launcher);
+                // A Loc("Str_...") call inside an action matches too, so one key can show up twice.
+                launchers.Add([.. launcher.Distinct()]);
+            }
         }
         // The metadata launcher builds its commands from the empty fields.
-        keys.UnionWith(["Str_DocInfo_Title", "Str_DocInfo_Author", "Str_DocInfo_Subject", "Str_DocInfo_Keywords"]);
+        string[] metadata = ["Str_DocInfo_Title", "Str_DocInfo_Author", "Str_DocInfo_Subject", "Str_DocInfo_Keywords"];
+        keys.UnionWith(metadata);
+        launchers.Add([.. metadata]);
         Assert.True(keys.Count >= 25, "found " + keys.Count);
         foreach (string key in keys)
+        {
             Assert.True(CommandLauncher.HasGlyph(key), key + " has no icon");
+            // 0xE8A5 is the generic document glyph, a plain square on a tile.
+            Assert.NotEqual(0xE8A5, CommandLauncher.CodePointFor(key));
+        }
+        // Tiles side by side in one launcher (Form data's export and import, the page boxes) never share an icon.
+        foreach (List<string> launcher in launchers.Where(launcher => launcher.Count > 1))
+            Assert.True(launcher.Select(CommandLauncher.CodePointFor).Distinct().Count() == launcher.Count,
+                string.Join(", ", launcher) + " share an icon");
+    }
+
+    [Fact]
+    public void ACommandWithoutItsOwnIconGetsTheReportIcon()
+    {
+        Assert.Equal(0xE9F9, CommandLauncher.CodePointFor("Str_Not_A_Launcher_Command"));
+        Assert.Equal(0xE9F9, CommandLauncher.CodePointFor("Str_DocumentTools_Preflight"));
+    }
+
+    [Theory]
+    [InlineData(2, 0)]  // Bookmark data: a full row keeps Close on its own footer row
+    [InlineData(5, 1)]  // Form data: Close takes the sixth cell
+    [InlineData(6, 0)]  // Preflight
+    [InlineData(7, 1)]  // Production layouts: Close takes the eighth cell
+    [InlineData(3, 0)]
+    [InlineData(4, 0)]
+    public void CloseTakesTheLastRowsOpenCell(int commands, int open)
+    {
+        Assert.Equal(open, CommandLauncher.OpenCells(commands, CommandLauncher.Columns(commands)));
+    }
+
+    [Fact]
+    public void CloseMovesIntoTheLastRowOnlyWhenItHasRoom()
+    {
+        string dialog = File.ReadAllText(Path.Combine(Root(), "Controls", "DocumentCommandDialog.cs"));
+        Assert.Contains("CommandLauncher.OpenCells(commands.Length, columns)", dialog);
+        Assert.Contains("choices.Children.Add(close);", dialog);
+        Assert.Contains("UiKit.ButtonRow(close)", dialog);
     }
 
     [Fact]
