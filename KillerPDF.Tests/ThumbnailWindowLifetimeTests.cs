@@ -46,12 +46,18 @@ public sealed class ThumbnailWindowLifetimeTests
         string pages = File.ReadAllText(Path.Combine(root, "Shell", "PageOperations.cs"));
         int refresh = pages.IndexOf("internal void RefreshPageList()", StringComparison.Ordinal);
         Assert.True(refresh >= 0, "RefreshPageList was not found.");
-        int register = pages.IndexOf("ct.Register(() =>", refresh, StringComparison.Ordinal);
-        Assert.True(register > refresh, "RefreshPageList no longer lets go of its window on cancel.");
-        int end = pages.IndexOf("});", register, StringComparison.Ordinal);
-        string onCancel = pages[register..end];
+        int wire = pages.IndexOf("PageListThumbnails.Wire(items,", refresh, StringComparison.Ordinal);
+        Assert.True(wire > refresh, "RefreshPageList no longer wires its rows through PageListThumbnails.");
+        int end = pages.IndexOf(", ct);", wire, StringComparison.Ordinal);
+        Assert.True(end > wire, "RefreshPageList no longer ties its window to the list's token.");
+        Assert.Contains("thumbnailOwner.MarkThumbnailCacheIncomplete, ct);", pages[wire..(end + 6)], StringComparison.Ordinal);
+
+        string wiring = File.ReadAllText(Path.Combine(root, "Services", "PageListThumbnails.cs"));
+        int register = wiring.IndexOf("ct.Register(() =>", StringComparison.Ordinal);
+        Assert.True(register >= 0, "The page list no longer lets go of its window on cancel.");
+        string onCancel = wiring[register..wiring.IndexOf("});", register, StringComparison.Ordinal)];
         Assert.Contains("window.Dispose();", onCancel, StringComparison.Ordinal);
-        Assert.Contains("MarkThumbnailCacheIncomplete(items)", onCancel, StringComparison.Ordinal);
+        Assert.Contains("markIncomplete(items);", onCancel, StringComparison.Ordinal);
 
         string api = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.TabsApi.cs"));
         int mark = api.IndexOf("internal void MarkThumbnailCacheIncomplete(PageThumbnailVm[] cache)", StringComparison.Ordinal);

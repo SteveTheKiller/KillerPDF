@@ -450,35 +450,16 @@ namespace KillerPDF.Shell
             // drawing and holding one for every page took about 805 MiB at 10,000 pages and 8 GiB at 100,000.
             // The rows ask through their Thumbnail binding, which the list reads only for rows it realizes.
             var renderer = new ThumbnailSessionOwner<PdfPageRenderSession>();
-            var window = new ThumbnailWindow<System.Windows.Media.Imaging.BitmapSource>(pageCount, (i, token) =>
+            PageListThumbnails.Wire(items, renderer, (i, token) =>
             {
-                if (ct.IsCancellationRequested) return null;
                 rotSnap.TryGetValue(i, out int rot);
                 if (nativeRevision is not null)
-                    return PageThumbnailVm.BuildNativeThumb(nativeRevision, i, rot, 128, 256, ct, thumbnailProof?.Settings,
+                    return PageThumbnailVm.BuildNativeThumb(nativeRevision, i, rot, 128, 256, token, thumbnailProof?.Settings,
                         thumbnailMonitor);
                 return renderer.Use(() => PdfPageRenderSession.OpenEngineFirst(filePath, 128, 256, protection), renderSession =>
-                    PageThumbnailVm.RenderPdfThumbPixels(renderSession, i, rot, ct, thumbnailProof?.Settings, thumbnailMonitor)
-                        is { } drawn ? PageThumbnailVm.BuildThumbFromRaw(drawn.Pixels, drawn.Width, drawn.Height) : null, ct);
-            }, (i, image) =>
-            {
-                if (ct.IsCancellationRequested) return;
-                if (image is null) items[i].ReleaseThumbnail();
-                else items[i].SetThumbnail(image);
-            }, drained: () =>
-            {
-                // The renderer holds decoded page images; a scanned PDF kept them while the tab stayed open.
-                renderer.Release();
-            });
-            ct.Register(() =>
-            {
-                window.Dispose();
-                renderer.Release();
-                // Rows not drawn yet would ask a cancelled window, so a tab that comes back rebuilds its list
-                // (carrying the pictures already drawn) instead of re-seating these rows.
-                thumbnailOwner.MarkThumbnailCacheIncomplete(items);
-            });
-            foreach (var item in items) item.RequestThumbnail = window.Request;
+                    PageThumbnailVm.RenderPdfThumbPixels(renderSession, i, rot, token, thumbnailProof?.Settings, thumbnailMonitor)
+                        is { } drawn ? PageThumbnailVm.BuildThumbFromRaw(drawn.Pixels, drawn.Width, drawn.Height) : null, token);
+            }, thumbnailOwner.MarkThumbnailCacheIncomplete, ct);
             _sidebarPages.Show(items, provisional: nativeBook?.IsPaginating == true);
             ApplyPageThumbnailLayout();
             ActiveViewer.SyncPageListSelection(preservedPage);
