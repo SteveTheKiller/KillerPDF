@@ -33,6 +33,7 @@ internal sealed class TableExportDialog : Window
     private readonly FrameworkElement _pagePane;
     private readonly ScrollViewer _options;
     private readonly Grid _main;
+    private readonly DockPanel _side;
     private readonly Grid _cellsWell;
     private readonly FrameworkElement _confirmRow;
     private bool? _narrow;
@@ -84,7 +85,7 @@ internal sealed class TableExportDialog : Window
         // One footer row: the format on the left, Cancel and Export on the right.
         var footer = DialogParts.Footer([cancel, _export], _format);
         _confirmRow = (FrameworkElement)cancel.Parent;
-        DockPanel.SetDock(footer, Dock.Bottom); body.Children.Add(footer);
+        DockPanel.SetDock(footer, Dock.Bottom);
 
         var content = new StackPanel();
         _selection = new StackPanel();
@@ -174,11 +175,16 @@ internal sealed class TableExportDialog : Window
         _main.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
         _main.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
         _main.Children.Add(_pagePane);
-        Grid.SetColumn(_options, 1);
-        _main.Children.Add(_options);
+        // The right column: the steps over the footer, as in Transform.
+        _side = new DockPanel();
+        _side.Children.Add(footer);
+        _side.Children.Add(_options);
+        Grid.SetColumn(_side, 1);
+        _main.Children.Add(_side);
         body.Children.Add(_main);
         UseNarrowLayout((Width - 64) / bodyScale < NarrowBodyWidth);
         body.SizeChanged += (_, e) => UseNarrowLayout(e.NewSize.Width < NarrowBodyWidth);
+        _side.SizeChanged += (_, e) => StackFooter(e.NewSize.Width);
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         // The window opens as tall as its content needs, then keeps a size of its own. Left to size its height to
         // its content, a window with edge resizing (WindowChrome) undoes a Width set after it is shown, so it could
@@ -221,9 +227,8 @@ internal sealed class TableExportDialog : Window
     }
 
     /// <summary>
-    /// Wide: the page fills the left column and the footer is one row. Narrow: the page moves to the top of the
-    /// scrolling steps (under the instructions, as before) and Cancel and Export drop under the format, so nothing
-    /// is cut off at a large app scale on a small window.
+    /// Wide: the page fills the left column. Narrow: the page moves to the top of the scrolling steps (under the
+    /// instructions, as before), so nothing is cut off at a large app scale on a small window.
     /// </summary>
     private void UseNarrowLayout(bool narrow)
     {
@@ -248,9 +253,22 @@ internal sealed class TableExportDialog : Window
         }
         _pagePane.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
         _main.ColumnDefinitions[0].Width = narrow ? new GridLength(0) : new GridLength(2, GridUnitType.Star);
-        _options.Margin = narrow ? new Thickness(0) : new Thickness(16, 0, 0, 0);
-        DockPanel.SetDock(_confirmRow, narrow ? Dock.Bottom : Dock.Right);
-        _confirmRow.Margin = narrow ? new Thickness(0, 6, 0, 0) : new Thickness(12, 0, 0, 0);
+        _side.Margin = narrow ? new Thickness(0) : new Thickness(16, 0, 0, 0);
+    }
+
+    /// <summary>
+    /// The footer is one row while the format, Cancel and Export fit across the right column (every language
+    /// does at the opening size). In a column too narrow for them, Cancel and Export drop under the format, as the
+    /// wrapping footer used to, so neither is cut off.
+    /// </summary>
+    private void StackFooter(double columnWidth)
+    {
+        // Desired widths include each control's margin: the format's 18 on its right and Export's 8 on its left.
+        double needed = _format.DesiredSize.Width + 12 + _confirmRow.DesiredSize.Width - _confirmRow.Margin.Left - _confirmRow.Margin.Right;
+        bool stacked = _format.DesiredSize.Width > 0 && needed > columnWidth;
+        if (stacked == (DockPanel.GetDock(_confirmRow) == Dock.Bottom)) return;
+        DockPanel.SetDock(_confirmRow, stacked ? Dock.Bottom : Dock.Right);
+        _confirmRow.Margin = stacked ? new Thickness(0) : new Thickness(12, 0, 0, 0);
     }
 
     // While Find table runs, the page and the area can't be changed.
