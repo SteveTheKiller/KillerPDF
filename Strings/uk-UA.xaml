@@ -1809,6 +1809,11 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Rail_Attachments">Вкладення</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Шари</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Підписи</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Інструменти документа</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">ІНСТРУМЕНТИ ДОКУМЕНТА</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Звіти</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Редагування документа</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Автоматизація та дані</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Усі</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">У цьому PDF немає коментарів.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Вимірювань поки немає. Їх додає інструмент «Виміряти» (M).</sys:String>

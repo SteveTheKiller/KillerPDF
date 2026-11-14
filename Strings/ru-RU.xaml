@@ -1812,6 +1812,11 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Rail_Attachments">Вложения</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Слои</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Подписи</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Инструменты документа</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">ИНСТРУМЕНТЫ ДОКУМЕНТА</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Отчеты</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Редактирование документа</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Автоматизация и данные</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Все</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">В этом PDF нет комментариев.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Измерений пока нет. Их добавляет инструмент «Измерить» (M).</sys:String>

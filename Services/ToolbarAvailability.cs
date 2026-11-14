@@ -22,6 +22,7 @@ internal static class ToolbarAvailability
     };
 
     /// <summary>Whether a unit's group, including any dropdown beside its main button, takes clicks.
-    /// The Save dropdown stays open to clicks with no document: it still offers Document tools.</summary>
-    internal static bool GroupEnabled(string id, State state) => id == "save" || MainEnabled(id, state);
+    /// Every group follows its main button; Document tools, which kept the Save dropdown open with no
+    /// document, have their own sidebar panel.</summary>
+    internal static bool GroupEnabled(string id, State state) => MainEnabled(id, state);
 }

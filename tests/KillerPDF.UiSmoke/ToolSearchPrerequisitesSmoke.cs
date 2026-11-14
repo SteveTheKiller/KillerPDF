@@ -24,15 +24,21 @@ internal static class ToolSearchPrerequisitesSmoke
             .Select(source => source.RootVisual).OfType<DependencyObject>();
         ContextMenu? Menu() => Roots().OfType<ContextMenu>().Concat(Roots().SelectMany(Descendants<ContextMenu>))
             .Distinct().SingleOrDefault(menu => menu.IsOpen);
-        Click(owner, creation is null ? "SaveMenuBtn" : "OpenRecentBtn");
-        Wait(() => Menu() is not null, "empty-window source menu");
-        ContextMenu menu = Menu()!;
-        IEnumerable<MenuItem> commands = creation is null
-            ? menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, owner.FindResource("Str_DocumentTools"))).Items.OfType<MenuItem>()
-            : menu.Items.OfType<MenuItem>();
-        MenuItem command = commands.Single(item => Equals(item.Header, commandName));
-        if (!command.IsEnabled) throw new InvalidOperationException("The real " + commandName + " menu is disabled without a document.");
-        menu.IsOpen = false;
+        if (creation is null)
+        {
+            // Document tools live in their sidebar panel, which offers Macros and Certificates with nothing open.
+            Button tool = DocumentToolRow(owner, commandKey);
+            if (!tool.IsEnabled) throw new InvalidOperationException("The real " + commandName + " tool is disabled without a document.");
+        }
+        else
+        {
+            Click(owner, "OpenRecentBtn");
+            Wait(() => Menu() is not null, "empty-window source menu");
+            ContextMenu menu = Menu()!;
+            MenuItem command = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, commandName));
+            if (!command.IsEnabled) throw new InvalidOperationException("The real " + commandName + " menu is disabled without a document.");
+            menu.IsOpen = false;
+        }
         var host = (FrameworkElement)owner.FindName("ToolSearchHost");
         Descendants<Button>(host).Single().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         var input = Descendants<TextBox>(host).Single();

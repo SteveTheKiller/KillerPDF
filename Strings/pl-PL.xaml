@@ -1797,6 +1797,11 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Rail_Attachments">Załączniki</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Warstwy</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Podpisy</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Narzędzia dokumentu</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">NARZĘDZIA DOKUMENTU</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Raporty</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Edycja dokumentu</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Automatyzacja i dane</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Wszystko</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">Ten plik PDF nie ma komentarzy.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Brak pomiarów. Dodaje je narzędzie Pomiar (M).</sys:String>

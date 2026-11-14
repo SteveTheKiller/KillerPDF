@@ -15,49 +15,35 @@ internal static class WatchedFolderNavigationSmoke
         Pump();
         if (Descendants<ListBox>(owner).Where(list => list.Name == "PageList").Any(list => list.Items.Count != 0))
             throw new InvalidOperationException("The navigation check requires no open PDF.");
-        Button save = owner.FindName("SaveMenuBtn") as Button
-            ?? throw new InvalidOperationException("The real Save menu button is missing.");
-        RequireUsable(save);
-        save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        ContextMenu? menu = null;
-        Wait(() => (menu = PresentationSource.CurrentSources.Cast<PresentationSource>()
-            .Select(source => source.RootVisual).OfType<DependencyObject>()
-            .SelectMany(Descendants<ContextMenu>).FirstOrDefault(candidate => candidate.IsOpen
-                && ReferenceEquals(candidate.PlacementTarget, save))) is not null);
-        try
-        {
-            Capture(menu!, Path.Combine(folder, "save-menu-no-document.png"));
-            MenuItem documentTools = menu!.Items.OfType<MenuItem>().SingleOrDefault(item =>
-                Equals(item.Header, app.FindResource("Str_DocumentTools")))
-                ?? throw new InvalidOperationException("Document tools must be reachable from the Save menu with no PDF open.");
-            RequireUsable(documentTools);
-            documentTools.IsSubmenuOpen = true;
-            Pump();
-            MenuItem[] tools = documentTools.Items.OfType<MenuItem>().ToArray();
-            if (tools.Length != 2 || !Equals(tools[0].Header, app.FindResource("Str_DocumentTools_Macros"))
-                || !Equals(tools[1].Header, app.FindResource("Str_CertCatalog_Title")))
-                throw new InvalidOperationException("The no-document Document tools menu must offer only Macros and the certificate catalog.");
-            MenuItem macros = tools[0];
-            RequireUsable(macros);
-            Capture(macros, Path.Combine(folder, "macros-menu-no-document.png"));
-            documentTools.IsSubmenuOpen = false;
-            menu.IsOpen = false;
-            VerifyDialogs(app, owner, macros, folder);
-            if (Descendants<ListBox>(owner).Where(list => list.Name == "PageList").Any(list => list.Items.Count != 0))
-                throw new InvalidOperationException("Opening Automatic folders unexpectedly opened a PDF.");
-            File.WriteAllLines(Path.Combine(folder, "results.txt"),
-            [
-                "PASS real Save menu offers Document tools with no PDF open",
-                "PASS no-document Document tools contains only Macros and the certificate catalog",
-                "PASS rendered Macros and Automatic folders buttons open the real owned dialogs",
-                "PASS both dialogs close through their rendered buttons without opening a PDF",
-                "Evidence uses WPF routed control events, not native keyboard or mouse input"
-            ]);
-        }
-        finally { if (menu is not null) menu.IsOpen = false; }
+        Button rail = owner.FindName("SidebarDocumentToolsTab") as Button
+            ?? throw new InvalidOperationException("The real Document tools rail button is missing.");
+        RequireUsable(rail);
+        rail.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Button[] Rows() => [.. Descendants<Button>(owner).Where(button => button.IsVisible
+            && AutomationProperties.GetAutomationId(button) is { } id && (id.StartsWith("Str_DocumentTools_", StringComparison.Ordinal)
+                || id is "Str_CertCatalog_Title" or "Str_Guided_Title" or "Str_CM_Title" or "Str_NativePdf_Convert"))];
+        Wait(() => Rows().Length > 0);
+        Button[] tools = Rows();
+        if (tools.Length != 2 || AutomationProperties.GetAutomationId(tools[0]) != "Str_CertCatalog_Title"
+            || AutomationProperties.GetAutomationId(tools[1]) != "Str_DocumentTools_Macros")
+            throw new InvalidOperationException("The no-document Document tools panel must offer only the certificate catalog and Macros.");
+        Capture((FrameworkElement)owner.FindName("SidebarBorder"), Path.Combine(folder, "document-tools-no-document.png"));
+        Button macros = tools[1];
+        RequireUsable(macros);
+        VerifyDialogs(app, owner, macros, folder);
+        if (Descendants<ListBox>(owner).Where(list => list.Name == "PageList").Any(list => list.Items.Count != 0))
+            throw new InvalidOperationException("Opening Automatic folders unexpectedly opened a PDF.");
+        File.WriteAllLines(Path.Combine(folder, "results.txt"),
+        [
+            "PASS the Document tools rail button opens its panel with no PDF open",
+            "PASS no-document Document tools contains only the certificate catalog and Macros",
+            "PASS rendered Macros and Automatic folders buttons open the real owned dialogs",
+            "PASS both dialogs close through their rendered buttons without opening a PDF",
+            "Evidence uses WPF routed control events, not native keyboard or mouse input"
+        ]);
     }
 
-    private static void VerifyDialogs(Application app, Window owner, MenuItem macros, string folder)
+    private static void VerifyDialogs(Application app, Window owner, Button macros, string folder)
     {
         Window? macroDialog = null, watchedDialog = null;
         Exception? failure = null;
@@ -137,7 +123,7 @@ internal static class WatchedFolderNavigationSmoke
         timer.Start();
         try
         {
-            macros.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            macros.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Wait(() => completed || failure is not null);
             if (failure is not null) throw failure;
         }

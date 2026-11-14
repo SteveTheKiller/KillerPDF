@@ -97,11 +97,11 @@ namespace KillerPDF
             => new(keys, labelKey, cat, caps);
 
         // ── Document tools chord ───────────────────────────────────────────────────────────────
-        // Ctrl+Shift+D opens the Document tools menu at the Save button, and the letter beside each
-        // tool runs it, so "Ctrl+Shift+D, P" is the preflight report. One letter per tool, shared by
-        // the menu (gesture text and the letter handler in Shell/DocumentTools.cs) and the overlay
-        // rows below. The second key is a menu letter rather than a modifier layer, so these rows
-        // light no cap on the keyboard map; the map shows the Ctrl+Shift+D cap that opens the menu.
+        // Ctrl+Shift+D opens the Document tools sidebar panel with the keyboard on it, and the letter
+        // of each tool runs it, so "Ctrl+Shift+D, P" is the preflight report. One letter per tool,
+        // shared by the panel (tooltips and the letter handler in Shell/DocumentTools.cs) and the
+        // overlay rows below. The second key is a panel letter rather than a modifier layer, so these
+        // rows light no cap on the keyboard map; the map shows the Ctrl+Shift+D cap that opens it.
         // Declared above KsAll on purpose: static initializers run in textual order.
         internal const string DocumentToolsChord = "Ctrl+Shift+D";
 
@@ -176,6 +176,7 @@ namespace KillerPDF
             B("%alt%+4", "Str_Rail_Attachments", "Nav", Cap("Alt:D4")),
             B("%alt%+5", "Str_Rail_Layers", "Nav", Cap("Alt:D5")),
             B("%alt%+6", "Str_Rail_Signatures", "Nav", Cap("Alt:D6")),
+            B("%alt%+7", "Str_Rail_DocumentTools", "Nav", Cap("Alt:D7")),
             B("%ctrl%+O",             "Str_KS_Open",        "File", Cap("Ctrl:O")),
             B("%ctrl%+S",             "Str_Lbl_Save",       "File", Cap("Ctrl:S")),
             B("%ctrl%+%shift%+S",     "Str_KS_SaveAs",      "File", Cap("CtrlShift:S")),

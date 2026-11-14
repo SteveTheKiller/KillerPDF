@@ -457,20 +457,16 @@ internal static class GuidedTasksSmoke
 
     private static void OpenGuidedMenu(Window owner)
     {
-        Click((Button)owner.FindName("SaveMenuBtn")); Pump();
-        string tools = (string)Application.Current.FindResource("Str_DocumentTools");
-        MenuItem parent = Menus().Single(item => Equals(item.Header, tools));
-        parent.IsSubmenuOpen = true; Pump();
-        object label = Application.Current.TryFindResource("Str_Guided_Title") ?? "Guided tasks";
-        MenuItem? entry = parent.Items.OfType<MenuItem>().SingleOrDefault(item => Equals(item.Header, label));
-        if (entry is null) throw new InvalidOperationException("Real Document tools menu is missing the Guided tasks action (Str_Guided_Title).");
-        if (!entry.InputGestureText.Contains("X", StringComparison.Ordinal) || !entry.InputGestureText.Contains("D", StringComparison.Ordinal))
-            throw new InvalidOperationException("Guided menu does not advertise its Document tools chord.");
-        var chord = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(parent), Environment.TickCount, Key.X) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
-        parent.RaiseEvent(chord);
+        // The Guided tasks row of the Document tools panel, run by its letter while the panel has the keyboard.
+        Button entry = DocumentStateSmoke.DocumentToolRow(owner, "Str_Guided_Title");
+        string tip = entry.ToolTip as string ?? "";
+        if (!tip.Contains("X", StringComparison.Ordinal) || !tip.Contains("D", StringComparison.Ordinal))
+            throw new InvalidOperationException("The Guided tasks row does not advertise its Document tools chord.");
+        if (!entry.Focus()) throw new InvalidOperationException("The Guided tasks row did not take the keyboard.");
+        var chord = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(entry), Environment.TickCount, Key.X) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+        entry.RaiseEvent(chord);
         if (!chord.Handled) throw new InvalidOperationException("Document tools X chord was not handled.");
     }
-    private static IEnumerable<MenuItem> Menus() => PresentationSource.CurrentSources.Cast<PresentationSource>().Select(source => source.RootVisual).OfType<DependencyObject>().SelectMany(Children).OfType<MenuItem>();
     private static T Find<T>(Window window, string id) where T : DependencyObject => Children(window).OfType<T>().Single(item => AutomationProperties.GetAutomationId(item) == id);
     private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
     private static void CloseTransient(Window owner) { foreach (Window window in Application.Current.Windows.Cast<Window>().Where(window => window != owner).ToArray()) window.Close(); }

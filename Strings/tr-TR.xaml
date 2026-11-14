@@ -1789,6 +1789,11 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Rail_Attachments">Ekler</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Katmanlar</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">İmzalar</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Belge araçları</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">BELGE ARAÇLARI</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Raporlar</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Belge düzenleme</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Otomasyon ve veri</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Tümü</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">Bu PDF'de yorum yok.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Henüz ölçüm yok. Ölç aracı (M) ekler.</sys:String>

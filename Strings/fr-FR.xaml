@@ -1809,6 +1809,11 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Rail_Attachments">Pièces jointes</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Calques</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Signatures</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Outils du document</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">OUTILS DU DOCUMENT</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Rapports</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Édition du document</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Automatisation et données</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Tout</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">Ce PDF ne contient aucun commentaire.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Aucune mesure pour l'instant. L'outil Mesurer (M) en ajoute.</sys:String>

@@ -1809,6 +1809,11 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Rail_Attachments">Vedlegg</sys:String>
     <sys:String x:Key="Str_Rail_Layers">Lag</sys:String>
     <sys:String x:Key="Str_Rail_Signatures">Signaturer</sys:String>
+    <sys:String x:Key="Str_Rail_DocumentTools">Dokumentverktøy</sys:String>
+    <sys:String x:Key="Str_TabDocumentTools">DOKUMENTVERKTØY</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupReports">Rapporter</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupEdit">Rediger dokument</sys:String>
+    <sys:String x:Key="Str_DocTools_GroupAutomation">Automatisering og data</sys:String>
     <sys:String x:Key="Str_Panel_FilterAll">Alle</sys:String>
     <sys:String x:Key="Str_Panel_NoComments">Denne PDF-en har ingen kommentarer.</sys:String>
     <sys:String x:Key="Str_Panel_NoMeasurements">Ingen målinger ennå. Måleverktøyet (M) legger dem til.</sys:String>

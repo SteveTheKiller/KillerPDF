@@ -105,6 +105,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The sidebar position and two-page thumbnail options share one Sidebar row with a flyout at the foot of the sidebar menus.
 - Transform and Color correction flip through every page of the document. Apply changes the page on screen and keeps the window open, so the next page can be fixed without reopening it, and a window opened on several selected pages can still change them all at once.
 - Production layouts, Form data, Preflight and the other document tool launchers show each command as an icon tile in a grid instead of a column of identical buttons.
+- Document tools have their own sidebar panel on the rail (Alt+7, or Ctrl+Shift+D and a tool's letter), listed under Reports, Edit document and Automation and data in as many columns as the sidebar is wide, instead of a long submenu under Save.
 
 ### Added
 

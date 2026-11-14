@@ -13,8 +13,9 @@ using KillerPDF.Services;
 
 namespace KillerPDF.Shell
 {
-    /// <summary>The panels the sidebar can show, one rail button each.</summary>
-    internal enum SidebarPanel { Pages, Outlines, Comments, Attachments, Layers, Signatures }
+    /// <summary>The panels the sidebar can show, one rail button each. Declaration order is the Alt+1 to
+    /// Alt+7 order.</summary>
+    internal enum SidebarPanel { Pages, Outlines, Comments, Attachments, Layers, Signatures, DocumentTools }
 
     // ============================================================
     // Sidebar panels on the rail
@@ -40,6 +41,7 @@ namespace KillerPDF.Shell
         private void SidebarAttachmentsTab_Click(object sender, RoutedEventArgs e) => OpenSidebarPanel(SidebarPanel.Attachments);
         private void SidebarLayersTab_Click(object sender, RoutedEventArgs e) => OpenSidebarPanel(SidebarPanel.Layers);
         private void SidebarSignaturesTab_Click(object sender, RoutedEventArgs e) => OpenSidebarPanel(SidebarPanel.Signatures);
+        private void SidebarDocumentToolsTab_Click(object sender, RoutedEventArgs e) => OpenSidebarPanel(SidebarPanel.DocumentTools);
 
         /// <summary>
         /// A rail panel button: shows that panel, opening the sidebar when it is closed. The open
@@ -110,9 +112,11 @@ namespace KillerPDF.Shell
                 SidebarPanel.Comments => "Str_TabComments",
                 SidebarPanel.Attachments => "Str_TabAttachments",
                 SidebarPanel.Layers => "Str_TabLayers",
+                SidebarPanel.DocumentTools => "Str_TabDocumentTools",
                 _ => "Str_TabSignatures",
             });
-            SidebarPanelEditButton.Visibility = Visibility.Visible;
+            // The Document tools panel is all actions, so it has no edit button of its own.
+            SidebarPanelEditButton.Visibility = panel == SidebarPanel.DocumentTools ? Visibility.Collapsed : Visibility.Visible;
             SidebarPanelEditButton.SetResourceReference(FrameworkElement.ToolTipProperty, panel switch
             {
                 SidebarPanel.Comments => "Str_DocumentTools_Comments",
@@ -159,16 +163,19 @@ namespace KillerPDF.Shell
             yield return (SidebarAttachmentsTab, SidebarPanel.Attachments);
             yield return (SidebarLayersTab, SidebarPanel.Layers);
             yield return (SidebarSignaturesTab, SidebarPanel.Signatures);
+            yield return (SidebarDocumentToolsTab, SidebarPanel.DocumentTools);
         }
 
         /// <summary>The panel buttons work only while a document is open. Outline's button is
-        /// further gated by LoadOutlines, which knows whether there is anything to show.</summary>
+        /// further gated by LoadOutlines, which knows whether there is anything to show. Document
+        /// tools always works: with nothing open it still offers Macros and Certificates.</summary>
         private void SyncRailPanelAvailability(bool hasDoc)
         {
             SyncPageNavigationButtons();
             foreach (var (button, panel) in RailPanelButtons())
-                if (panel != SidebarPanel.Outlines) button.IsEnabled = hasDoc;
+                if (panel is not (SidebarPanel.Outlines or SidebarPanel.DocumentTools)) button.IsEnabled = hasDoc;
             if (!hasDoc) SidebarOutlinesTab.IsEnabled = false;
+            RefreshDocumentToolsPanel();
             ScheduleToolbarAvailabilityRefresh();
         }
 
@@ -222,6 +229,8 @@ namespace KillerPDF.Shell
                 case SidebarPanel.Outlines:
                     Add("Str_Ctx_BmAdd", () => AddBookmarkInto(null));
                     break;
+                case SidebarPanel.DocumentTools:
+                    break;   // the panel is its own list of actions; the menu keeps only the sidebar position
                 default:
                     FillPageAgnosticMenu(menu);
                     break;
@@ -288,6 +297,12 @@ namespace KillerPDF.Shell
         private async void RefreshSidebarPanel()
         {
             if (_sidebarPanel is SidebarPanel.Pages or SidebarPanel.Outlines) return;
+            if (_sidebarPanel == SidebarPanel.DocumentTools)
+            {
+                ++_sidebarPanelGeneration;   // drops any list read still running for the panel left behind
+                RefreshDocumentToolsPanel();
+                return;
+            }
             int generation = ++_sidebarPanelGeneration;
             SidebarPanel panel = _sidebarPanel;
             string? path = _doc is not null && !string.IsNullOrWhiteSpace(_currentFile) && File.Exists(_currentFile)

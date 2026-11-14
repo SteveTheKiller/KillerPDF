@@ -1325,7 +1325,6 @@ namespace KillerPDF.Shell
             if (_doc is null)
             {
                 menu.Items.Add(new MenuItem { Header = Loc("Str_Menu_SaveNothing"), IsEnabled = false });
-                menu.Items.Add(BuildDocumentToolsMenu());
             }
             else
             {
@@ -1344,8 +1343,6 @@ namespace KillerPDF.Shell
                 removePw.IsEnabled = _openedFromProtected && !_restrictedByCertificate;
                 menu.Items.Add(removePw);
                 menu.Items.Add(MakeMenuItem(Loc("Str_Menu_ProtectDocument"), (_, _) => OpenProtectDialog(), GestureFor("CtrlShift:P"), ""));
-                menu.Items.Add(new Separator());
-                menu.Items.Add(BuildDocumentToolsMenu());
             }
 
             menu.PlacementTarget = (UIElement)sender;

@@ -752,7 +752,7 @@ namespace KillerPDF.Shell
                 new FrameworkElement[]
                 {
                     SplitPaneRailBtn, SidebarPagesTab, SidebarOutlinesTab, SidebarCommentsTab, SidebarAttachmentsTab,
-                    SidebarLayersTab, SidebarSignaturesTab, DocInfoRailBtn,
+                    SidebarLayersTab, SidebarSignaturesTab, SidebarDocumentToolsTab, DocInfoRailBtn,
                 },
                 App.GetSetting(RailOrderSetting), value => App.SetSetting(RailOrderSetting, value));
         }
