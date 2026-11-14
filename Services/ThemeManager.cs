@@ -35,9 +35,31 @@ namespace KillerPDF.Services
 
         /// <summary>Killer Sans UI (Killer Sans scaled to Segoe UI proportions) with the Segoe fallback stack.</summary>
         private static readonly string AssemblyName = typeof(ThemeManager).Assembly.GetName().Name!;
-        internal static readonly FontFamily KillerSansUiStack = new(new Uri($"pack://application:,,,/{AssemblyName};component/"), "./Fonts/#Killer Sans UI, Segoe UI, Microsoft JhengHei UI, Nirmala UI");
+        /// <summary>The interface language the font stacks are built for, a culture name such as "zh-CN".</summary>
+        internal static string UiLanguage { get; private set; } = "en-US";
+        internal static FontFamily KillerSansUiStack { get; private set; } = UiStack(UiLanguage);
         internal static readonly FontFamily KillerSansFont = new(new Uri("pack://application:,,,/"), "./Fonts/#Killer Sans");
-        internal static readonly FontFamily LacquerHeadingStack = new(new Uri("pack://application:,,,/"), "./Fonts/#Lacquer, ./Fonts/#Killer Sans UI, Segoe UI, Microsoft JhengHei UI, Nirmala UI");
+        internal static FontFamily LacquerHeadingStack { get; private set; } = HeadingStack(UiLanguage);
+
+        private static FontFamily UiStack(string language) =>
+            new(new Uri($"pack://application:,,,/{AssemblyName};component/"), UiFontStack.For(language));
+        private static FontFamily HeadingStack(string language) =>
+            new(new Uri("pack://application:,,,/"), UiFontStack.Heading(language));
+
+        /// <summary>
+        /// Builds the font stacks for an interface language and republishes the theme when they
+        /// change, so every font resource bound with DynamicResource follows. A language that keeps
+        /// the same stack republishes nothing.
+        /// </summary>
+        internal static void SetUiLanguage(string language)
+        {
+            bool changed = UiFontStack.For(language) != UiFontStack.For(UiLanguage);
+            UiLanguage = language;
+            if (!changed) return;
+            KillerSansUiStack = UiStack(language);
+            LacquerHeadingStack = HeadingStack(language);
+            LoadDict(_current);
+        }
         /// <summary>
         /// Read a corner radius out of the live theme. For code-built controls, which cannot use a
         /// DynamicResource and so had their radii as C# literals - the exact bug that kept the

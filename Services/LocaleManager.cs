@@ -215,6 +215,10 @@ namespace KillerPDF.Services
                 CultureInfo.DefaultThreadCurrentUICulture = culture;
             }
 
+            // The UI fonts follow the interface language even while the thread cultures keep the
+            // Windows region, so Chinese and Japanese text draws in that language's face.
+            ThemeManager.SetUiLanguage(CultureFor(locale).Name);
+
             var merged = Application.Current.Resources.MergedDictionaries;
             LanguageTag = "en-US";
 

@@ -66,6 +66,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Changing the file type in the save picker while the name box holds characters no file name can carry keeps the name as typed and shows the invalid-path message.
 - Hiding shortcut hints removes the hints the app adds to tooltips in every language, including translated keys such as (Strg+D).
 - Menu rows show the right shortcut: the Attachments Save row no longer shows Ctrl+S, which saves the PDF, and Compare PDFs shows its own. The Bold, Italic and Underline buttons show their shortcuts, and the status line names Ctrl+Enter, not Enter, as the key that saves a text box.
+- Chinese and Japanese interface text uses the font Windows uses for that language: Microsoft YaHei UI for Simplified Chinese and Yu Gothic UI for Japanese, instead of the Traditional Chinese font. (#490)
 - When a save has to draw markup into the pages instead of keeping it editable, the saved message says so, and text boxes on a page whose annotation list is written as null now save as editable boxes.
 - A sidebar thumbnail that fails to draw once is drawn again without scrolling it away and back.
 - A shortcut you change in Customize Shortcuts shows its new key in the shortcut list, the keyboard map, the toolbar menu, status messages and bookmark Delete, in every open window. The list now also names Backspace, Ctrl+Enter, Ctrl+Alt+Enter, and Alt+C and Alt+W in Find.

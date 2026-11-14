@@ -98,6 +98,8 @@ namespace KillerPDF.Services
             appResources["RadCard"] = d["PanelCornerRadius"];
             appResources["RadControl"] = d["ControlCornerRadius"];
             appResources["UiFont"] = d["UiFont"];
+            // App.xaml's MonoFont is the same interface stack, so it follows the language too.
+            appResources["MonoFont"] = ThemeManager.KillerSansUiStack;
             // One SystemIdle pass to nudge any elements whose effective value didn't auto-update
             // (e.g. ControlTemplate trigger bindings with TargetName that missed the per-key signal).
             app.Dispatcher.BeginInvoke(DispatcherPriority.SystemIdle, (Action)RefreshIcons);

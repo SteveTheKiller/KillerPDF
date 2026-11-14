@@ -62,7 +62,7 @@ namespace KillerPDF
         }
 
         // ---- token + theme accessors -------------------------------------------------------------
-        public static FontFamily UiFont   => Res("UiFont",   _uiFallback);
+        public static FontFamily UiFont   => Res("UiFont",   UiFallback);
         public static FontFamily MonoFont => Res("MonoFont", _monoFallback);
         public static FontFamily IconFont => Res("IconFont", _iconFallback);
         public static FontFamily WordmarkFont => Res("WordmarkFont", _wordmarkFallback);
@@ -70,10 +70,11 @@ namespace KillerPDF
         public static FontFamily BrandSansFont => Res("BrandSansFont", _brandSansFallback);
         /// <summary>Primary headings: Lacquer with Killer Sans UI behind it (ThemeManager; Killer Sans on 98SE).</summary>
         public static FontFamily HeadingFont => Res("HeadingFont", LacquerHeadingStack);
-        /// <summary>Killer Sans UI (Killer Sans scaled to Segoe UI proportions) with the Segoe fallback stack.</summary>
-        public static readonly FontFamily KillerSansUiStack = new(new Uri($"pack://application:,,,/{typeof(UiKit).Assembly.GetName().Name};component/"), "./Fonts/#Killer Sans UI, Segoe UI, Microsoft JhengHei UI, Nirmala UI");
-        public static readonly FontFamily LacquerHeadingStack = new(new Uri("pack://application:,,,/"), "./Fonts/#Lacquer, ./Fonts/#Killer Sans UI, Segoe UI, Microsoft JhengHei UI, Nirmala UI");
-        private static readonly FontFamily _uiFallback   = new("Segoe UI, Microsoft JhengHei UI, Nirmala UI");
+        /// <summary>Killer Sans UI (Killer Sans scaled to Segoe UI proportions) with the Segoe fallback stack.
+        /// The stacks follow the interface language, so they are read from ThemeManager on every use.</summary>
+        public static FontFamily KillerSansUiStack => Services.ThemeManager.KillerSansUiStack;
+        public static FontFamily LacquerHeadingStack => Services.ThemeManager.LacquerHeadingStack;
+        private static FontFamily UiFallback => new(Services.UiFontStack.Fallbacks(Services.ThemeManager.UiLanguage));
         private static readonly FontFamily _monoFallback = new("Consolas");
         private static readonly FontFamily _iconFallback = new("Segoe MDL2 Assets");
         private static readonly FontFamily _wordmarkFallback = new("Punktype, Consolas");
