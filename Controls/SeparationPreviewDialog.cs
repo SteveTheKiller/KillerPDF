@@ -32,14 +32,15 @@ internal sealed class SeparationPreviewDialog : Window
         _pageCount = pageCount;
         _page = Math.Clamp(startPage, 0, Math.Max(0, pageCount - 1));
         Title = "KillerPDF - " + L("Str_DocumentTools_Separations");
-        Width = 760;
+        Width = 820;
         Height = 620;
         MinWidth = 560;
         MinHeight = 460;
         DialogFrame.Configure(this, owner, resizable: true);
         Closed += (_, _) => _session.Dispose();
 
-        var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16), LastChildFill = true };
+        // The page on the left with its page strip under it, like Transform and Stamp; on the right, what the
+        // plates mean over the ink list, and the footer with Report on its left and Close on its right.
         var hint = new TextBlock
         {
             Text = L("Str_Sep_Hint"),
@@ -49,23 +50,15 @@ internal sealed class SeparationPreviewDialog : Window
             Margin = new Thickness(0, 0, 0, 10)
         };
         hint.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-        DockPanel.SetDock(hint, Dock.Top);
-        body.Children.Add(hint);
 
-        var report = UiKit.Make(L("Str_Sep_Report"), accent: false);
-        report.Click += (_, _) => showReport();
+        var report = DialogParts.LabeledAction("Str_Sep_Report", 0xE8A5, (_, _) => showReport());
         var close = UiKit.Make(L("Str_Lbl_Close"), accent: true);
         close.IsCancel = true;
         close.Click += (_, _) => Close();
-        var buttons = UiKit.ButtonRow(report, close);
-        buttons.Margin = new Thickness(0, 12, 0, 0);
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        body.Children.Add(buttons);
+        var footer = DialogParts.Footer([close], report);
 
-        _status = new TextBlock { FontFamily = UiKit.UiFont, FontSize = 12, TextWrapping = TextWrapping.Wrap };
+        _status = new TextBlock { FontFamily = UiKit.UiFont, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
         _status.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-        DockPanel.SetDock(_status, Dock.Bottom);
-        body.Children.Add(_status);
 
         _previous = UiKit.Make(new Glyph { Text = "", FontFamily = UiKit.IconFont, FontSize = 12 }, accent: false);
         _previous.ToolTip = L("Str_Kb_PrevPage");
@@ -75,36 +68,84 @@ internal sealed class SeparationPreviewDialog : Window
         _next.Click += (_, _) => ShowPage(_page + 1);
         _pageLabel = new TextBlock
         {
-            FontFamily = UiKit.UiFont,
+            FontFamily = UiKit.MonoFont,
             FontSize = 12,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(10, 0, 10, 0)
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
         };
         _pageLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-        var pager = new StackPanel
+        // The page strip under the frame, as Stamp's: 36 high, 32 x 26 arrows at the frame's edges.
+        var pager = new Grid { Height = 36, Margin = new Thickness(8, 2, 8, 0) };
+        pager.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        pager.ColumnDefinitions.Add(new ColumnDefinition());
+        pager.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        foreach (Button arrow in new[] { _previous, _next })
         {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 8, 0, 4)
-        };
+            arrow.Width = 32;
+            arrow.Height = KillerPDF.Controls.PageWindowLayout.ControlHeight;
+            arrow.Padding = new Thickness(0);
+            System.Windows.Automation.AutomationProperties.SetName(arrow, (string)arrow.ToolTip);
+        }
+        Grid.SetColumn(_pageLabel, 1);
+        Grid.SetColumn(_next, 2);
         pager.Children.Add(_previous);
         pager.Children.Add(_pageLabel);
         pager.Children.Add(_next);
-        DockPanel.SetDock(pager, Dock.Bottom);
-        body.Children.Add(pager);
 
-        _list.Width = 190;
-        _list.Margin = new Thickness(0, 0, 12, 0);
-        _list.SetResourceReference(Control.BackgroundProperty, "PaneBrush");
-        _list.SetResourceReference(Control.ForegroundProperty, "TextBrush");
-        _list.SetResourceReference(Control.BorderBrushProperty, "CardBorderBrush");
+        // The page: a framed pane with the window's grain, the plate drawn on white in its middle.
+        var pane = new Border
+        {
+            BorderThickness = new Thickness(1),
+            CornerRadius = UiKit.RadCard,
+            Margin = new Thickness(8, 8, 8, _pageCount > 1 ? 0 : 8),
+            ClipToBounds = true
+        };
+        pane.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
+        pane.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
+        var pageHost = new Grid();
+        if ((owner as KillerPDF.Shell.MainWindow)?.GrainTextureSource is { } grain)
+        {
+            double opacity = Application.Current.Resources["GrainOpacity"] is double value ? value : 0.05;
+            pageHost.Children.Add(new Border
+            {
+                IsHitTestVisible = false, Opacity = opacity,
+                Background = new ImageBrush(grain) { TileMode = TileMode.Tile, ViewportUnits = BrushMappingMode.Absolute, Viewport = new Rect(0, 0, 256, 256), Stretch = Stretch.None }
+            });
+        }
+        RenderOptions.SetBitmapScalingMode(_image, BitmapScalingMode.HighQuality);
+        pageHost.Children.Add(new Border
+        {
+            Background = Brushes.White,
+            Child = _image,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(KillerPDF.Controls.PageWindowLayout.PageMargin)
+        });
+        pane.Child = pageHost;
+        var pageColumn = new DockPanel();
+        if (_pageCount > 1)
+        {
+            DockPanel.SetDock(pager, Dock.Bottom);
+            pageColumn.Children.Add(pager);
+        }
+        pageColumn.Children.Add(UiKit.PaneWithShadow(pane));
+
         _list.SelectionChanged += (_, _) => RenderSelection();
-        DockPanel.SetDock(_list, Dock.Left);
-        body.Children.Add(_list);
+        var side = new DockPanel { Width = 264, Margin = new Thickness(16, 8, 0, 0) };
+        DockPanel.SetDock(hint, Dock.Top);
+        side.Children.Add(hint);
+        DockPanel.SetDock(footer, Dock.Bottom);
+        side.Children.Add(footer);
+        DockPanel.SetDock(_status, Dock.Bottom);
+        side.Children.Add(_status);
+        side.Children.Add(DialogParts.Well(_list));
 
-        var paper = new Border { Background = Brushes.White, Child = _image, BorderThickness = new Thickness(1) };
-        paper.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
-        body.Children.Add(paper);
+        var body = new Grid { Margin = new Thickness(12, 0, 20, 16) };
+        body.ColumnDefinitions.Add(new ColumnDefinition());
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        body.Children.Add(pageColumn);
+        Grid.SetColumn(side, 1);
+        body.Children.Add(side);
 
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         ShowPage(_page);

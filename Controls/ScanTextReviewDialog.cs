@@ -39,7 +39,9 @@ internal sealed class ScanTextReviewDialog : Window
         };
         hint.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
 
-        var header = new Grid { Margin = new Thickness(34, 0, 8, 4) };
+        // The headings line up over the scan and text columns: the well pads the list by 3 DIP where its
+        // old border was 1, so they sit 2 DIP further in than before.
+        var header = new Grid { Margin = new Thickness(36, 0, 8, 4) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         TextBlock scanHeader = UiKit.GroupLabel(L("Str_ScanReview_Scan"));
@@ -53,26 +55,19 @@ internal sealed class ScanTextReviewDialog : Window
             ItemsSource = _rows,
             ItemTemplate = RowTemplate(),
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            BorderThickness = new Thickness(1),
             SelectionMode = SelectionMode.Single
         };
-        list.SetResourceReference(Control.BackgroundProperty, "PaneBrush");
-        list.SetResourceReference(Control.ForegroundProperty, "TextBrush");
-        list.SetResourceReference(Control.BorderBrushProperty, "CardBorderBrush");
         VirtualizingPanel.SetIsVirtualizing(list, true);
         VirtualizingPanel.SetVirtualizationMode(list, VirtualizationMode.Recycling);
         ScrollViewer.SetHorizontalScrollBarVisibility(list, ScrollBarVisibility.Disabled);
 
         _count = UiKit.GroupLabel("");
         _count.VerticalAlignment = VerticalAlignment.Center;
+        _count.Margin = new Thickness(0, 0, 12, 0);
         var all = UiKit.LinkLabel(L("Str_Ctx_SelectAll"), () => SetAll(true));
-        all.Margin = new Thickness(12, 0, 0, 0);
+        all.Margin = new Thickness(0, 0, 12, 0);
         var none = UiKit.LinkLabel(L("Str_Lbl_Clear"), () => SetAll(false));
-        none.Margin = new Thickness(12, 0, 0, 0);
-        var tools = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
-        tools.Children.Add(_count);
-        tools.Children.Add(all);
-        tools.Children.Add(none);
+        none.Margin = new Thickness(0, 0, 12, 0);
 
         var cancel = UiKit.Make(L("Str_Tf_Cancel"), accent: false);
         cancel.IsCancel = true;
@@ -84,19 +79,17 @@ internal sealed class ScanTextReviewDialog : Window
             foreach (Row row in _rows) row.Word.UseText = row.UseText;
             DialogResult = true;
         };
-        var buttons = UiKit.ButtonRow(cancel, save);
-        buttons.Margin = new Thickness(0, 12, 0, 0);
+        // One footer row: the count and Select all / Clear on the left, Cancel and Save on the right.
+        var footer = DialogParts.Footer([cancel, save], _count, all, none);
 
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
         DockPanel.SetDock(hint, Dock.Top);
         DockPanel.SetDock(header, Dock.Top);
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        DockPanel.SetDock(tools, Dock.Bottom);
+        DockPanel.SetDock(footer, Dock.Bottom);
         body.Children.Add(hint);
         body.Children.Add(header);
-        body.Children.Add(buttons);
-        body.Children.Add(tools);
-        body.Children.Add(list);
+        body.Children.Add(footer);
+        body.Children.Add(DialogParts.Well(list));
 
         Content = DialogFrame.Frame(this, owner, Title, () => DialogResult = false, body);
         UpdateCount();

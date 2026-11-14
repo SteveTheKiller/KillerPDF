@@ -28,6 +28,17 @@ internal sealed class TableExportDialog : Window
     private readonly Button _export;
     private readonly ComboBox _format;
     private readonly StackPanel _selection;
+    private readonly Viewbox _pageView;
+    private readonly Grid _pageHost;
+    private readonly FrameworkElement _pagePane;
+    private readonly ScrollViewer _options;
+    private readonly Grid _main;
+    private readonly DockPanel _side;
+    private readonly Grid _cellsWell;
+    private readonly FrameworkElement _confirmRow;
+    private bool? _narrow;
+    // Below this body width (before the app scale) the page and the steps no longer fit side by side.
+    private const double NarrowBodyWidth = 520;
     private PdfExtractedTable? _table;
     private CancellationTokenSource? _operation;
     private Point _start;
@@ -43,12 +54,12 @@ internal sealed class TableExportDialog : Window
     {
         _document = document; _pageIndex = pageIndex; _preview = preview; _rotation = rotation;
         Title = "KillerPDF - " + L("Str_TableExport_Title");
-        Width = Math.Min(620 * Math.Clamp(scale, 0.7, 2.5), SystemParameters.WorkArea.Width - 40);
+        Width = Math.Min(680 * Math.Clamp(scale, 0.7, 2.5), SystemParameters.WorkArea.Width - 40);
         MaxHeight = SystemParameters.WorkArea.Height - 40;
         SizeToContent = SizeToContent.Height;
         MinWidth = 480; MinHeight = 360; UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
-        // It opens 620 DIP times the app scale wide and its review area scrolls, so 480 x 360 stays its minimum
+        // It opens 680 DIP times the app scale wide and its review area scrolls, so 480 x 360 stays its minimum
         // rather than the opening size: at a large scale that would be wider than a small screen allows.
         DialogFrame.KeepDeclaredMinimum(this);
         AutomationProperties.SetAutomationId(this, "TableExportDialog");
@@ -56,37 +67,36 @@ internal sealed class TableExportDialog : Window
         // Part of the bottom spacing sits inside the scaled body, below the buttons. When the window is shorter than the
         // dialog wants (a large app scale on a short screen), the body is clipped at its bottom edge, and at a scale
         // such as 2.5 layout rounding pushed buttons flush with that edge half a pixel past it.
+        double bodyScale = Math.Clamp(scale, 0.7, 2.5);
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 14),
-            LayoutTransform = new ScaleTransform(Math.Clamp(scale, 0.7, 2.5), Math.Clamp(scale, 0.7, 2.5)) };
-        var footer = new StackPanel { Margin = new Thickness(0, 8, 0, 2) };
+            LayoutTransform = new ScaleTransform(bodyScale, bodyScale) };
         _format = new ComboBox { ItemsSource = new[] { "XLSX", "CSV" }, SelectedIndex = 0,
-            Style = UiKit.DarkComboStyle, MinWidth = 85, Height = 30, Margin = new Thickness(0, 0, 8, 0) };
+            Style = UiKit.DarkComboStyle, MinWidth = 85, Height = 30 };
         AutomationProperties.SetName(_format, L("Str_ExportImg_Format"));
         AutomationProperties.SetAutomationId(_format, "TableExportFormat");
         var cancel = UiKit.Make(L("Str_Btn_Cancel"), false);
-        cancel.Height = 30; cancel.Margin = new Thickness(0, 0, 8, 0);
+        cancel.Height = 30;
         cancel.IsCancel = true; cancel.Click += (_, _) => Close();
         AutomationProperties.SetAutomationId(cancel, "TableExportCancel");
         _export = UiKit.Make(L("Str_ExportImg_Export"), true);
         _export.Height = 30;
         _export.IsEnabled = false; _export.Click += (_, _) => Commit();
         AutomationProperties.SetAutomationId(_export, "TableExportSave");
-        var actions = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right };
-        actions.Children.Add(_format); actions.Children.Add(cancel); actions.Children.Add(_export);
-        footer.Children.Add(actions); DockPanel.SetDock(footer, Dock.Bottom); body.Children.Add(footer);
+        // One footer row: the format on the left, Cancel and Export on the right.
+        var footer = DialogParts.Footer([cancel, _export], _format);
+        _confirmRow = (FrameworkElement)cancel.Parent;
+        DockPanel.SetDock(footer, Dock.Bottom);
 
         var content = new StackPanel();
         _selection = new StackPanel();
         _selection.Children.Add(Note("Str_TableExport_Hint"));
-        var page = new Grid { Width = preview.PixelWidth, Height = preview.PixelHeight, Margin = new Thickness(0, 6, 0, 8) };
+        var page = new Grid { Width = preview.PixelWidth, Height = preview.PixelHeight };
         page.Children.Add(new Image { Source = preview, Stretch = Stretch.Fill });
         _overlay = new Canvas { Background = Brushes.Transparent, Cursor = Cursors.Cross };
         _box.SetResourceReference(Shape.StrokeProperty, "SelectionAccent");
         _cellBox.SetResourceReference(Shape.StrokeProperty, "SelectionAccent");
         _overlay.Children.Add(_box); _overlay.Children.Add(_cellBox); page.Children.Add(_overlay);
-        var pageView = new Viewbox { Child = page, Stretch = Stretch.Uniform, MaxHeight = 240,
-            HorizontalAlignment = HorizontalAlignment.Left };
-        _selection.Children.Add(pageView);
+        _pageView = new Viewbox { Child = page, Stretch = Stretch.Uniform };
         _overlay.MouseLeftButtonDown += (_, e) =>
         {
             _start = Clamp(e.GetPosition(_overlay)); _overlay.CaptureMouse();
@@ -100,7 +110,9 @@ internal sealed class TableExportDialog : Window
             _overlay.ReleaseMouseCapture(); SetArea(rect); e.Handled = true;
         };
 
-        _selection.Children.Add(UiKit.GroupLabel(L("Str_TableExport_Area")));
+        TextBlock areaLabel = UiKit.GroupLabel(L("Str_TableExport_Area"));
+        areaLabel.Margin = new Thickness(0, 10, 0, 0);
+        _selection.Children.Add(areaLabel);
         var fields = new WrapPanel();
         string[] labels = ["Str_Pos_Left", "Str_Pos_Top", "Str_Sign_Width", "Str_Sign_Height"];
         string[] ids = ["TableAreaLeft", "TableAreaTop", "TableAreaWidth", "TableAreaHeight"];
@@ -132,10 +144,47 @@ internal sealed class TableExportDialog : Window
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
         content.Children.Add(_status);
         content.Children.Add(Note("Str_TableExport_Review"));
-        content.Children.Add(new ScrollViewer { Content = _cells, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+        // The review table sits in a well once Find table has filled it.
+        _cellsWell = DialogParts.Well(new ScrollViewer { Content = _cells, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled });
-        body.Children.Add(new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, CanContentScroll = false });
+        _cellsWell.Margin = new Thickness(0, 8, 0, 0);
+        _cellsWell.Visibility = Visibility.Collapsed;
+        content.Children.Add(_cellsWell);
+        _options = new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, CanContentScroll = false };
+
+        // The page on the left in a framed pane like Transform, the steps on the right. A body too narrow for both
+        // (a large app scale on a small window) puts the page back at the top of the steps, where it scrolls with them.
+        var pane = new Border { BorderThickness = new Thickness(1), CornerRadius = UiKit.RadCard,
+            Margin = new Thickness(0, 0, 0, 0), ClipToBounds = true };
+        pane.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
+        pane.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
+        _pageHost = new Grid();
+        if ((owner as KillerPDF.Shell.MainWindow)?.GrainTextureSource is { } grain)
+        {
+            double opacity = Application.Current.Resources["GrainOpacity"] is double value ? value : 0.05;
+            _pageHost.Children.Add(new Border
+            {
+                IsHitTestVisible = false, Opacity = opacity,
+                Background = new ImageBrush(grain) { TileMode = TileMode.Tile, ViewportUnits = BrushMappingMode.Absolute, Viewport = new Rect(0, 0, 256, 256), Stretch = Stretch.None }
+            });
+        }
+        pane.Child = _pageHost;
+        _pagePane = UiKit.PaneWithShadow(pane);
+        _main = new Grid();
+        _main.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
+        _main.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
+        _main.Children.Add(_pagePane);
+        // The right column: the steps over the footer, as in Transform.
+        _side = new DockPanel();
+        _side.Children.Add(footer);
+        _side.Children.Add(_options);
+        Grid.SetColumn(_side, 1);
+        _main.Children.Add(_side);
+        body.Children.Add(_main);
+        UseNarrowLayout((Width - 64) / bodyScale < NarrowBodyWidth);
+        body.SizeChanged += (_, e) => UseNarrowLayout(e.NewSize.Width < NarrowBodyWidth);
+        _side.SizeChanged += (_, e) => StackFooter(e.NewSize.Width);
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         // The window opens as tall as its content needs, then keeps a size of its own. Left to size its height to
         // its content, a window with edge resizing (WindowChrome) undoes a Width set after it is shown, so it could
@@ -177,11 +226,64 @@ internal sealed class TableExportDialog : Window
         _ownSize = new Size(ActualWidth, wanted);
     }
 
+    /// <summary>
+    /// Wide: the page fills the left column. Narrow: the page moves to the top of the scrolling steps (under the
+    /// instructions, as before), so nothing is cut off at a large app scale on a small window.
+    /// </summary>
+    private void UseNarrowLayout(bool narrow)
+    {
+        if (_narrow == narrow) return;
+        _narrow = narrow;
+        if (_pageView.Parent is Panel parent) parent.Children.Remove(_pageView);
+        if (narrow)
+        {
+            _pageView.MaxHeight = 240;
+            _pageView.HorizontalAlignment = HorizontalAlignment.Left;
+            _pageView.VerticalAlignment = VerticalAlignment.Top;
+            _pageView.Margin = new Thickness(0, 6, 0, 0);
+            _selection.Children.Insert(1, _pageView);
+        }
+        else
+        {
+            _pageView.MaxHeight = double.PositiveInfinity;
+            _pageView.HorizontalAlignment = HorizontalAlignment.Center;
+            _pageView.VerticalAlignment = VerticalAlignment.Center;
+            _pageView.Margin = new Thickness(KillerPDF.Controls.PageWindowLayout.PageMargin);
+            _pageHost.Children.Add(_pageView);
+        }
+        _pagePane.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
+        _main.ColumnDefinitions[0].Width = narrow ? new GridLength(0) : new GridLength(2, GridUnitType.Star);
+        _side.Margin = narrow ? new Thickness(0) : new Thickness(16, 0, 0, 0);
+    }
+
+    /// <summary>
+    /// The footer is one row while the format, Cancel and Export fit across the right column (every language
+    /// does at the opening size). In a column too narrow for them, Cancel and Export drop under the format, as the
+    /// wrapping footer used to, so neither is cut off.
+    /// </summary>
+    private void StackFooter(double columnWidth)
+    {
+        // Desired widths include each control's margin: the format's 18 on its right and Export's 8 on its left.
+        double needed = _format.DesiredSize.Width + 12 + _confirmRow.DesiredSize.Width - _confirmRow.Margin.Left - _confirmRow.Margin.Right;
+        bool stacked = _format.DesiredSize.Width > 0 && needed > columnWidth;
+        if (stacked == (DockPanel.GetDock(_confirmRow) == Dock.Bottom)) return;
+        DockPanel.SetDock(_confirmRow, stacked ? Dock.Bottom : Dock.Right);
+        _confirmRow.Margin = stacked ? new Thickness(0) : new Thickness(12, 0, 0, 0);
+    }
+
+    // While Find table runs, the page and the area can't be changed.
+    private void SetSelectionEnabled(bool enabled)
+    {
+        _selection.IsEnabled = enabled;
+        _pageView.IsEnabled = enabled;
+    }
+
     private void InvalidateTable()
     {
         _table = null; _export.IsEnabled = false; _editors.Clear(); _cells.Children.Clear();
         _cells.RowDefinitions.Clear(); _cells.ColumnDefinitions.Clear();
         _cellBox.Visibility = Visibility.Collapsed;
+        if (_cellsWell is not null) _cellsWell.Visibility = Visibility.Collapsed;
         if (_status is not null) _status.Text = "";
     }
 
@@ -221,7 +323,7 @@ internal sealed class TableExportDialog : Window
             Math.Clamp(right, 0, page.Width), Math.Clamp(top, 0, page.Height));
         _operation = new CancellationTokenSource();
         CancellationToken token = _operation.Token;
-        _selection.IsEnabled = false; _status.Text = L("Str_Busy_Extracting");
+        SetSelectionEnabled(false); _status.Text = L("Str_Busy_Extracting");
         try
         {
             PdfTableExtractionResult result = await Task.Run(() => PdfTableExtractor.Extract(_document, _pageIndex, bounds, token), token);
@@ -242,12 +344,13 @@ internal sealed class TableExportDialog : Window
         finally
         {
             _operation.Dispose(); _operation = null;
-            if (!_closed) _selection.IsEnabled = true;
+            if (!_closed) SetSelectionEnabled(true);
         }
     }
 
     private void ShowTable(PdfExtractedTable table)
     {
+        _cellsWell.Visibility = Visibility.Visible;
         for (int column = 0; column <= table.ColumnCount; column++)
             _cells.ColumnDefinitions.Add(new ColumnDefinition { Width = column == 0 ? GridLength.Auto : new GridLength(150) });
         for (int row = 0; row <= table.RowCount; row++) _cells.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });

@@ -32,12 +32,12 @@ internal sealed class RasterizeRegionDialog : Window
         _pixelWidth = preview.PixelWidth;
         _pixelHeight = preview.PixelHeight;
         Title = "KillerPDF - " + L("Str_Raster_Title");
-        Width = 560;
-        SizeToContent = SizeToContent.Height;
+        SizeToContent = SizeToContent.WidthAndHeight;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
 
-        var body = new StackPanel { Margin = new Thickness(20, 6, 20, 16) };
+        // The page on the left, the options and the footer on the right, like Transform.
+        var options = new StackPanel();
         var hint = new TextBlock
         {
             Text = L("Str_Raster_Hint"),
@@ -47,9 +47,10 @@ internal sealed class RasterizeRegionDialog : Window
             Margin = new Thickness(0, 0, 0, 10)
         };
         hint.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-        body.Children.Add(hint);
+        options.Children.Add(hint);
 
-        double fit = Math.Min(516.0 / Math.Max(1, _pixelWidth), 380.0 / Math.Max(1, _pixelHeight));
+        const double boxWidth = 460, boxHeight = 440;
+        double fit = Math.Min(boxWidth / Math.Max(1, _pixelWidth), boxHeight / Math.Max(1, _pixelHeight));
         var page = new Grid { Width = _pixelWidth * fit, Height = _pixelHeight * fit };
         page.Children.Add(new Image { Source = preview, Stretch = Stretch.Fill });
         _box.SetResourceReference(Shape.StrokeProperty, "SelectionAccent");
@@ -61,10 +62,11 @@ internal sealed class RasterizeRegionDialog : Window
             Child = page,
             BorderThickness = new Thickness(1),
             HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 8)
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(KillerPDF.Controls.PageWindowLayout.PageMargin)
         };
         frame.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
-        body.Children.Add(frame);
+        FrameworkElement pagePane = SpreadDivideDialog.PagePane(owner, frame, boxWidth, boxHeight);
 
         _overlay.MouseLeftButtonDown += (_, e) =>
         {
@@ -94,13 +96,16 @@ internal sealed class RasterizeRegionDialog : Window
             MinHeight = 32
         };
         _summary.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-        body.Children.Add(_summary);
+        options.Children.Add(_summary);
 
-        body.Children.Add(UiKit.GroupLabel(L("Str_ExportImg_Dpi")));
+        options.Children.Add(UiKit.GroupLabel(L("Str_ExportImg_Dpi")));
         _dpi = UiKit.Field();
         _dpi.Text = "300";
+        _dpi.Width = 96;
+        _dpi.HorizontalAlignment = HorizontalAlignment.Left;
         _dpi.Margin = new Thickness(0, 3, 0, 0);
-        body.Children.Add(_dpi);
+        System.Windows.Automation.AutomationProperties.SetName(_dpi, L("Str_ExportImg_Dpi"));
+        options.Children.Add(_dpi);
 
         var cancel = UiKit.Make(L("Str_Tf_Cancel"), accent: false);
         cancel.IsCancel = true;
@@ -114,11 +119,8 @@ internal sealed class RasterizeRegionDialog : Window
             Confirmed = true;
             Close();
         };
-        var buttons = UiKit.ButtonRow(cancel, _apply);
-        buttons.Margin = new Thickness(0, 12, 0, 0);
-        body.Children.Add(buttons);
-
-        Content = DialogFrame.Frame(this, owner, Title, Close, body);
+        Content = DialogFrame.Frame(this, owner, Title, Close,
+            SpreadDivideDialog.PageLeftBody(pagePane, options, DialogParts.Footer([cancel, _apply])));
     }
 
     private Point Clamp(Point point) => new(

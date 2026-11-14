@@ -73,16 +73,15 @@ internal sealed class ExtractImageDialog : Window
         DockPanel.SetDock(sidebar, Dock.Right);
         var side = new DockPanel();
 
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 16, 0) };
         var cancel = UiKit.Make(L("Str_Tf_Cancel"), false);
-        cancel.Margin = new Thickness(0, 0, 8, 0);
         cancel.IsCancel = true;
         cancel.Click += (_, _) => { Confirmed = false; Close(); };
-        actions.Children.Add(cancel);
         _apply = UiKit.Make(L("Str_ExtractImage_Apply"), true);
         _apply.IsDefault = true;
         _apply.Click += (_, _) => Commit();
-        actions.Children.Add(_apply);
+        // One footer row under the options, as in Transform.
+        var actions = DialogParts.Footer([cancel, _apply]);
+        actions.Margin = new Thickness(0, 10, 16, 0);
         DockPanel.SetDock(actions, Dock.Bottom);
         side.Children.Add(actions);
 
