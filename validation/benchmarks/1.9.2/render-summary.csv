@@ -1,0 +1,4 @@
+Version,Set,Pages,Rendered,Runs,MedianRenderSeconds,MinimumRenderSeconds,MaximumRenderSeconds,MedianWallSeconds,MedianPeakWorkingSetMB
+1.9.2,Shared,600,570,6,34.389,30.528,39.597,10.478,544.8
+1.9.2,Broad,74,72,6,10.599,9.209,13.764,6.887,333.2
+1.9.2,Color,175,175,6,17.147,16,21.001,5.221,515.2
