@@ -117,6 +117,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Protect Document, Automatic folders, Color Management, Initial view settings, the certificate catalog and Customize toolbar use two columns, so they fit without scrolling.
 - The menus around the page, on a bookmark and in the Comments, Attachments and Signatures panels show their actions as icon strips, like the page card.
 - The copyright at the right end of the footer ends 8 px before the corner grip, the same gap in every Killer app.
+- Every Document tools tile has its own icon: attachments show a paperclip, Guided tasks a checklist, bookmark creation a starred list, and the edit tools show what they edit with a pen on it. The Fillable Field Preset menu row has an icon, and menu labels sit clear of wide icons.
+- The menu around the page shows its page tools in one row like the menu on the page, without a heading.
 
 ### Added
 
