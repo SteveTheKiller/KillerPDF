@@ -1206,6 +1206,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Ctx_UpsideDown">Baş Aşağı</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB kitapları</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu belgeleri</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">KillerPDF olarak kaydet</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF {0} dosyasından PDF oluşturamadı.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Sertifika dosyaları</sys:String>
     <sys:String x:Key="Str_Filter_Text">Metin dosyası</sys:String>
     <sys:String x:Key="Str_Print_Sending">Yazıcıya gönderiliyor…</sys:String>

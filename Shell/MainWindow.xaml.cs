@@ -569,6 +569,13 @@ namespace KillerPDF.Shell
                     if (restored.Count != updateRestart.Files.Length)
                         SetStatus(Loc("Str_UpdateRestartRestoreFailed"));
                 }
+                else if (args.Length > 1 && Services.ImagesToPdfPlan.OpenWithImages(args[1..]) is { } openedImages
+                    && openedImages.Any(System.IO.File.Exists))
+                {
+                    // #480: images opened with KillerPDF become one new PDF, together with any that
+                    // later launches of the same selection forward.
+                    foreach (string image in openedImages) OpenFromExternal(image);
+                }
                 else if (args.Length > 1 && (System.IO.File.Exists(args[1]) ||
                     Services.ProtocolRegistrar.IsHandoffLaunch(args[1])))
                 {

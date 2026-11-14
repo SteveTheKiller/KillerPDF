@@ -1211,6 +1211,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Ctx_UpsideDown">Vzhůru nohama</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Knihy EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Dokumenty DjVu</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Uložit jako KillerPDF</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF nemohl vytvořit PDF z {0}.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Soubory certifikátů</sys:String>
     <sys:String x:Key="Str_Filter_Text">Textový soubor</sys:String>
     <sys:String x:Key="Str_Print_Sending">Odesílání do tiskárny…</sys:String>

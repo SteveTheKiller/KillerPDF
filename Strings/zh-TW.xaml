@@ -1208,6 +1208,8 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Ctx_UpsideDown">上下顛倒</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB 書籍</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu 文件</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">另存為 KillerPDF</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF 無法從 {0} 建立 PDF。</sys:String>
     <sys:String x:Key="Str_Filter_Cert">憑證檔案</sys:String>
     <sys:String x:Key="Str_Filter_Text">文字檔</sys:String>
     <sys:String x:Key="Str_Print_Sending">正在傳送到印表機…</sys:String>

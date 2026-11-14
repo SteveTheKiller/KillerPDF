@@ -1206,6 +1206,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Ctx_UpsideDown">Al revés</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Libros EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Documentos DjVu</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Guardar como KillerPDF</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF no pudo crear un PDF a partir de {0}.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Archivos de certificado</sys:String>
     <sys:String x:Key="Str_Filter_Text">Archivo de texto</sys:String>
     <sys:String x:Key="Str_Print_Sending">Enviando a la impresora…</sys:String>

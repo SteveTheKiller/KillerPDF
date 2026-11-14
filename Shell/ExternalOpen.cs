@@ -37,9 +37,21 @@ namespace KillerPDF.Shell
             internal BrowserOpenFailure Failure { get; } = failure;
         }
 
+        /// <summary>#480: images opened with KillerPDF, waiting to become one new PDF.</summary>
+        private readonly System.Collections.Generic.List<string> _externalImages = [];
+        private System.Windows.Threading.DispatcherTimer? _externalImageTimer;
+
         public async void OpenFromExternal(string? path)
         {
             App.InvalidateUpdateRestart();
+            // Explorer starts one launch per selected image, and each is forwarded here on its own. They
+            // gather until none has arrived for a moment, then open together as one unsaved PDF. Checked
+            // before the pane check below, whose single held path would keep only the last image.
+            if (!string.IsNullOrEmpty(path) && ImagesToPdfPlan.IsImage(path) && File.Exists(path))
+            {
+                QueueExternalImage(path);
+                return;
+            }
             // A second launch is forwarded here off the pipe thread, and Application.MainWindow is
             // already set while this window's constructor is still running - so ActiveViewer can
             // still be null (it is assigned by InitSplitPanes). Hold the path and let Loaded
@@ -67,6 +79,35 @@ namespace KillerPDF.Shell
             // stays silent because that is a plain path that simply is not on disk any more.
             if (rejection != ProtocolRegistrar.HandoffRejection.NotAHandoff)
                 ShowRefusedHandoff(rejection);
+        }
+
+        private void QueueExternalImage(string path)
+        {
+            _externalImages.Add(path);
+            if (_externalImageTimer is null)
+            {
+                _externalImageTimer = new System.Windows.Threading.DispatcherTimer(
+                    System.Windows.Threading.DispatcherPriority.Background, Dispatcher)
+                { Interval = ImagesToPdfPlan.OpenWithQuietPeriod };
+                _externalImageTimer.Tick += (_, _) => FlushExternalImages();
+            }
+            _externalImageTimer.Stop();   // restart the quiet period
+            _externalImageTimer.Start();
+        }
+
+        private void FlushExternalImages()
+        {
+            if (_windowResourcesReleased)
+            {
+                _externalImageTimer?.Stop();
+                _externalImages.Clear();
+                return;
+            }
+            if (ActiveViewer == null) return;   // panes not built yet: try again on the next tick
+            _externalImageTimer?.Stop();
+            var images = ImagesToPdfPlan.Order(_externalImages.Where(File.Exists));
+            _externalImages.Clear();
+            if (images.Count > 0) OpenImagesAsNewDocument(images);
         }
 
         /// <summary>The same dialog a failed browser download gets, with the refusal as the reason.</summary>

@@ -95,6 +95,94 @@ public sealed class FileAssociationRegistryTests : IDisposable
         Assert.Null(_root.OpenSubKey(@"Software\Classes\KillerPDF.pdf"));
     }
 
+    public static TheoryData<string> ImageExtensions => [".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff"];
+
+    // #480: images list KillerPDF under Open with, which makes a new PDF from them. The user's own image
+    // viewer stays the default: the extension's default ProgID is untouched and Default apps is not offered it.
+    [Theory]
+    [MemberData(nameof(ImageExtensions))]
+    public void ImagesOfferKillerPdfInOpenWithWithoutBecomingTheDefault(string extension)
+    {
+        using (var type = _root.CreateSubKey(@"Software\Classes\" + extension))
+            type.SetValue("", "OtherViewer.image");
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        using (var type = _root.OpenSubKey(@"Software\Classes\" + extension))
+            Assert.Equal("OtherViewer.image", type!.GetValue(""));
+        using (var openWith = _root.OpenSubKey(@"Software\Classes\" + extension + @"\OpenWithProgids"))
+            Assert.Contains("KillerPDF.image", openWith!.GetValueNames());
+        using (var open = _root.OpenSubKey(@"Software\Classes\KillerPDF.image\shell\open"))
+            Assert.Equal("Player", open!.GetValue("MultiSelectModel"));
+        using (var command = _root.OpenSubKey(@"Software\Classes\KillerPDF.image\shell\open\command"))
+            Assert.Equal("\"" + Exe + "\" \"%1\"", command!.GetValue(""));
+        foreach (string application in new[] { "KillerPDF.exe", "KillerPDF.App.exe" })
+            using (var supported = _root.OpenSubKey(@"Software\Classes\Applications\" + application + @"\SupportedTypes"))
+                Assert.Contains(extension, supported!.GetValueNames());
+        using (var capabilities = _root.OpenSubKey(@"Software\KillerPDF\Capabilities\FileAssociations"))
+            Assert.DoesNotContain(extension, capabilities!.GetValueNames());
+    }
+
+    // #479: right-click an image, Save as KillerPDF, and the PDF is written beside it without a window.
+    [Theory]
+    [MemberData(nameof(ImageExtensions))]
+    public void ImagesHaveASaveAsKillerPdfVerb(string extension)
+    {
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf", "Als KillerPDF speichern");
+
+        using var verb = _root.OpenSubKey(@"Software\Classes\SystemFileAssociations\" + extension + @"\shell\KillerPDF.ImagesToPdf");
+        Assert.Equal("Als KillerPDF speichern", verb!.GetValue("MUIVerb"));
+        Assert.Equal(Exe + ",0", verb.GetValue("Icon"));
+        Assert.Equal("Player", verb.GetValue("MultiSelectModel"));
+        using var command = verb.OpenSubKey("command");
+        Assert.Equal("\"" + Exe + "\" --images-to-pdf \"%1\"", command!.GetValue(""));
+    }
+
+    [Fact]
+    public void SaveAsKillerPdfHasAnEnglishLabelByDefault()
+    {
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        using var verb = _root.OpenSubKey(@"Software\Classes\SystemFileAssociations\.png\shell\KillerPDF.ImagesToPdf");
+        Assert.Equal("Save as KillerPDF", verb!.GetValue("MUIVerb"));
+    }
+
+    [Fact]
+    public void UnregisterRemovesEveryImageEntryAndKeepsOtherApplications()
+    {
+        using (var other = _root.CreateSubKey(@"Software\Classes\.jpg\OpenWithProgids"))
+            other.SetValue("OtherViewer.jpg", Array.Empty<byte>(), RegistryValueKind.None);
+        using (var other = _root.CreateSubKey(@"Software\Classes\SystemFileAssociations\.jpg\shell\OtherEdit\command"))
+            other.SetValue("", "other.exe \"%1\"");
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        FileAssociationRegistry.Unregister(_root, "KillerPDF");
+
+        using (var openWith = _root.OpenSubKey(@"Software\Classes\.jpg\OpenWithProgids"))
+            Assert.Equal(new[] { "OtherViewer.jpg" }, openWith!.GetValueNames());
+        using (var shell = _root.OpenSubKey(@"Software\Classes\SystemFileAssociations\.jpg\shell"))
+            Assert.Equal(new[] { "OtherEdit" }, shell!.GetSubKeyNames());
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\KillerPDF.image"));
+        foreach (string extension in new[] { ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff" })
+        {
+            Assert.Null(_root.OpenSubKey(@"Software\Classes\" + extension));
+            Assert.Null(_root.OpenSubKey(@"Software\Classes\SystemFileAssociations\" + extension));
+        }
+    }
+
+    // A per-user install often starts without any of these keys, so none of them may outlive Unregister.
+    [Fact]
+    public void UnregisterLeavesNoImageKeyOnAFreshRoot()
+    {
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        FileAssociationRegistry.Unregister(_root, "KillerPDF");
+
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\SystemFileAssociations"));
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\KillerPDF.image"));
+        foreach (string extension in new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff" })
+            Assert.Null(_root.OpenSubKey(@"Software\Classes\" + extension));
+    }
+
     public void Dispose()
     {
         _root.Dispose();

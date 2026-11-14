@@ -1217,6 +1217,8 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Ctx_UpsideDown">De cabeça para baixo</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Livros EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Documentos DjVu</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Salvar como KillerPDF</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">O KillerPDF não conseguiu criar um PDF a partir de {0}.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Arquivos de certificado</sys:String>
     <sys:String x:Key="Str_Filter_Text">Arquivo de texto</sys:String>
     <sys:String x:Key="Str_Print_Sending">Enviando para a impressora…</sys:String>

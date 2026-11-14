@@ -1212,6 +1212,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Ctx_UpsideDown">Auf den Kopf</sys:String>
     <sys:String x:Key="Str_Filter_Epub">EPUB-Bücher</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">DjVu-Dokumente</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Als KillerPDF speichern</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF konnte aus {0} kein PDF erstellen.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Zertifikatdateien</sys:String>
     <sys:String x:Key="Str_Filter_Text">Textdatei</sys:String>
     <sys:String x:Key="Str_Print_Sending">Wird an den Drucker gesendet…</sys:String>

@@ -1217,6 +1217,8 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Ctx_UpsideDown">À l'envers</sys:String>
     <sys:String x:Key="Str_Filter_Epub">Livres EPUB</sys:String>
     <sys:String x:Key="Str_Filter_Djvu">Documents DjVu</sys:String>
+    <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Enregistrer en PDF avec KillerPDF</sys:String>
+    <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF n’a pas pu créer de PDF à partir de {0}.</sys:String>
     <sys:String x:Key="Str_Filter_Cert">Fichiers de certificat</sys:String>
     <sys:String x:Key="Str_Filter_Text">Fichier texte</sys:String>
     <sys:String x:Key="Str_Print_Sending">Envoi à l'imprimante…</sys:String>
