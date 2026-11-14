@@ -596,9 +596,7 @@ namespace KillerPDF
                 navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 navigation.ColumnDefinitions.Add(new ColumnDefinition());
                 navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                _previousPage = NavArrow("‹", S("Str_Kb_PrevPage"));
-                _previousPage.ToolTip = S("Str_Kb_PrevPage");
-                _previousPage.Click += (_, _2) => ShowPreviewPage(_previewPageIndex - 1);
+                _previousPage = PageNavButtons.Previous(() => ShowPreviewPage(_previewPageIndex - 1));
                 Grid.SetColumn(_previousPage, 0);
                 navigation.Children.Add(_previousPage);
                 _pageCounter = new TextBlock
@@ -611,9 +609,7 @@ namespace KillerPDF
                 };
                 Grid.SetColumn(_pageCounter, 1);
                 navigation.Children.Add(_pageCounter);
-                _nextPage = NavArrow("›", S("Str_Kb_NextPage"));
-                _nextPage.ToolTip = S("Str_Kb_NextPage");
-                _nextPage.Click += (_, _2) => ShowPreviewPage(_previewPageIndex + 1);
+                _nextPage = PageNavButtons.Next(() => ShowPreviewPage(_previewPageIndex + 1));
                 Grid.SetColumn(_nextPage, 2);
                 navigation.Children.Add(_nextPage);
                 DockPanel.SetDock(navigation, Dock.Bottom);
@@ -1116,18 +1112,6 @@ namespace KillerPDF
             button.Height = PageWindowLayout.ControlHeight;
             button.Padding = new Thickness(10, 0, 10, 0);
             button.VerticalAlignment = VerticalAlignment.Center;
-            return button;
-        }
-
-        private static Button NavArrow(string glyph, string name)
-        {
-            var button = UiKit.Make(glyph, false);
-            button.Width = 32;
-            button.Height = PageWindowLayout.ControlHeight;
-            button.Padding = new Thickness(0);
-            button.FontSize = 16;
-            // The glyph is an angle quotation mark, so name the button for a screen reader.
-            System.Windows.Automation.AutomationProperties.SetName(button, name);
             return button;
         }
 
