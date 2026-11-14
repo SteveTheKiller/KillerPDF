@@ -132,7 +132,12 @@ internal sealed class SplitDialog : Window
                 if (index < boxes.Length) line.Children.Add(boxes[index]);
             }
             else if (piece.Length > 0)
+            {
+                // Punctuation right after a number box sits against it, as it would after a typed number.
+                if (char.IsPunctuation(piece[0]) && line.Children.Count > 0 && line.Children[^1] is TextBox before)
+                    before.Margin = new Thickness(before.Margin.Left, 0, 1, 0);
                 line.Children.Add(new TextBlock { Text = piece, VerticalAlignment = VerticalAlignment.Center });
+            }
         }
         var radio = new RadioButton
         {
