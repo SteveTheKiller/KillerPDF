@@ -260,7 +260,9 @@ namespace KillerPDF.Controls
 
         private void OnReleased(object sender, MouseButtonEventArgs e)
         {
-            if (_drag is null) return;
+            if (_drag is not { } drag) return;
+            // A fast drag can end before any move is reported; the release still lands the bar there.
+            SlideTo(drag.BarLeft + e.GetPosition(this).X - drag.PointerX);
             _drag = null;
             ReleaseMouseCapture();
             FloatingStateChanged?.Invoke(this, EventArgs.Empty);
