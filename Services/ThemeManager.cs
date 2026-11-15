@@ -1064,9 +1064,8 @@ namespace KillerPDF.Services
                 // A 1px MDL2 stroke disappears against a gray button face at 16px.
                 combined["CaptionGlyphWeight"] = flat ? FontWeights.Bold : FontWeights.Normal;
 
-                // 98SE caption buttons are Win98's 20x18 face, and Win98's 8px glyph on a 16x14 face
-                // scales to 10px on that face; at 8px the X and the minimize line read as too small.
-                combined["CaptionGlyphSize"] = 10.0;
+                // ...and at 10px the X fills a 98SE face edge to edge, which reads as off center.
+                combined["CaptionGlyphSize"] = flat ? 8.0 : 10.0;
 
                 // The About card only gets a caption band when the theme asks for one; 0 keeps
                 // every other theme's card at the exact layout it already had.

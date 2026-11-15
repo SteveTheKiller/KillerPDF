@@ -6,8 +6,7 @@ using Xunit;
 namespace KillerPDF.Tests;
 
 // 98SE caption buttons follow the Win98 rule: (band - 4) tall and (band - 2) wide, so a 20px dialog
-// band gets an 18x16 X, centered. The caption glyph is 10px on every theme: Win98's 8px glyph on its
-// 16x14 face scales to 10px on the 20x18 face, and 8px made the X and minimize line too small.
+// band gets an 18x16 X, centered, and the MDL2 X drops to 8px so it sits inside the button face.
 public sealed class CaptionGlyphTests
 {
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -34,7 +33,7 @@ public sealed class CaptionGlyphTests
     public void FlatCaptionGetsTheSmallerGlyphAndBandDerivedClose()
     {
         var source = File.ReadAllText(Path.Combine(Root(), "Services", "ThemeManager.cs"));
-        Assert.Contains("combined[\"CaptionGlyphSize\"] = 10.0;", source);
+        Assert.Contains("combined[\"CaptionGlyphSize\"] = flat ? 8.0 : 10.0;", source);
         Assert.Contains("SetIfAbsent(\"DialogCloseWidth\", pickerCaption ? bar - 2 : 28.0);", source);
         Assert.Contains("SetIfAbsent(\"DialogCloseHeight\", pickerCaption ? bar - 4 : 26.0);", source);
     }
