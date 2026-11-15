@@ -14,6 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Rasterize Region removes the text inside the box, so it can no longer be searched, selected or copied from under the image. A letter that crosses the box's edge stays, so its outside half is still drawn. On a tagged PDF the image keeps the removed words as alternative text for screen readers, and the dialog points to Redact for hiding text. (#369)
 - Rotating a page turns everything on it: pictures, signatures and text boxes now turn with the page and stay on the content they were placed on, as highlights, drawings and measurements already did.
 - A picture cut or copied from a page shown turned is pasted and saved turned the same way, instead of upright and running past the page.
+- Text edits on scans (#467): copying the replacement text or its cover copies the whole object, so a paste brings both; with the text box locked and the cover free, the cover moves on its own with the mouse and the arrow keys; after a click on a layer's eye or hand, the arrow keys move the selection instead of scrolling the page; and a hidden replacement keeps a faint dashed outline on screen that can be clicked to show it again.
 - Page thumbnails show unsaved edits: pasted pictures, signatures, text boxes, highlights, covers, drawings and measurements appear on a page's thumbnail as soon as they are placed, moved or removed, instead of only after saving.
 - The tool menu floats over the top edge of the page area again by default, as it did before 1.9.3, so choosing a tool no longer moves the page down. Drag it by its grip or empty space to slide it along the edge, and double-click it to minimize it to a strip. (#485)
 - Choosing Highlight, Underline or Strikethrough with text already selected marks that text instead of clearing the selection, and while one of those tools is on, the pointer is an I-beam over text and a cross elsewhere. (#485)
@@ -23,6 +24,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
+- The replacement-text blur slider is logarithmic: light blur takes most of its travel and the strongest blur the last stretch. (#467)
 - About no longer shows a color management status line under the version. The version still opens the release notes.
 
 ### Added

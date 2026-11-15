@@ -3,6 +3,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using KillerPDF.Services;
 using ShapePath = System.Windows.Shapes.Path;
@@ -95,6 +96,11 @@ public partial class MainWindow
                 change(button.IsChecked == true);
                 MarkDirty();
                 SelectLayer(selection);
+                // A mouse click leaves the keyboard in this popup, which keeps the arrow keys from the selection, so
+                // they scrolled the page instead of moving it. Hand the keyboard back to the page (#467).
+                if (InputManager.Current.MostRecentInputDevice is MouseDevice)
+                    Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input,
+                        new Action(ActiveViewer.FocusReadingSurfaceExt));
             };
             button.Checked += changed;
             button.Unchecked += changed;

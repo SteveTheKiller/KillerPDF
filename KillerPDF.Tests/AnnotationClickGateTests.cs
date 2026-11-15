@@ -32,7 +32,8 @@ public sealed class AnnotationClickGateTests
     public void ThePressRecordsItsScreenPointTheMoveWaitsForTheDragDistanceAndAClickReleaseChangesNothing()
     {
         string annotations = Viewer("PdfViewer.Annotations.cs");
-        string press = Between(annotations, "_annotationDragUndo = null;\r\n                                        _annotDragPressScreen", "_dragAnnot = pa;");
+        // The drag leads with the member free to move (#467), so the press ends at "_dragAnnot = lead;".
+        string press = Between(annotations, "_annotationDragUndo = null;\r\n                                        _annotDragPressScreen", "_dragAnnot = lead;");
         Assert.Contains("_annotDragPressScreen = _activeCanvas.PointToScreen(pos);", press.Replace("\r\n", "\n"));
 
         string move = Between(annotations, "if (_isDraggingAnnot && _dragAnnot is not null)", "double dx = pos.X - _dragAnnotStart.X;");

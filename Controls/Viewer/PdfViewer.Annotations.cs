@@ -190,7 +190,13 @@ namespace KillerPDF.Controls
             if (_annotations.TryGetValue(pageIndex, out var annotList))
             foreach (var annot in annotList)
             {
-                if (!ReplacementLayers.IsVisible(annot)) continue;
+                if (!ReplacementLayers.IsVisible(annot))
+                {
+                    // On screen only: a faint dashed outline where a hidden replacement layer sits, so it can be
+                    // clicked and shown again. Saves, prints and thumbnails leave it out (#467).
+                    if (ReplacementLayers.ShowsWhenHidden(annot)) DrawHiddenLayerOutline(annot);
+                    continue;
+                }
                 switch (annot)
                 {
                     case TextAnnotation ta:
@@ -594,7 +600,8 @@ namespace KillerPDF.Controls
 
         private static bool HitTestAnnotation(PageAnnotation annot, Point pos, out Rect bounds, bool includeHidden = false)
         {
-            if (!includeHidden && !ReplacementLayers.IsVisible(annot))
+            // A hidden replacement layer keeps its outline on screen and takes a click, so it can be shown again (#467).
+            if (!includeHidden && !ReplacementLayers.IsVisible(annot) && !ReplacementLayers.ShowsWhenHidden(annot))
             {
                 bounds = Rect.Empty;
                 return false;
@@ -1025,7 +1032,8 @@ namespace KillerPDF.Controls
 
             selected = [.. selected.SelectMany(annotation => _annotations.TryGetValue(annotation.PageIndex, out var page)
                 ? ReplacementLayers.SelectionMembers(annotation, page) : new[] { annotation }).Distinct()];
-            if (!ReplacementLayers.CanMoveTogether(selected)) return true;
+            if (FreeToMove(selected) is not { } movable) return true;
+            selected = movable;
 
             var constraints = selected
                 .Where(annotation => _renderDims.ContainsKey(annotation.PageIndex))
@@ -1056,6 +1064,31 @@ namespace KillerPDF.Controls
             if (_selectedSet.Count > 0) ReattachMultiOutlines();
             MarkDirty();
             return true;
+        }
+
+        private void DrawHiddenLayerOutline(PageAnnotation hidden)
+        {
+            Rect box = AnnotBounds(hidden);
+            if (box.IsEmpty || box.Width <= 0 || box.Height <= 0) return;
+            var outline = new Rectangle
+            {
+                Width = box.Width, Height = box.Height,
+                Stroke = AccentBrush(), StrokeThickness = 1, StrokeDashArray = [4, 3], Opacity = .6,
+                Fill = Brushes.Transparent, IsHitTestVisible = false,
+            };
+            Canvas.SetLeft(outline, box.X);
+            Canvas.SetTop(outline, box.Y);
+            _activeCanvas.Children.Add(outline);
+        }
+
+        // The members of a selection that move. A replacement's layer locked on its own stays put while the other
+        // layer moves (#467); any other locked mark still holds its whole selection, as before. Null when nothing moves.
+        private static List<PageAnnotation>? FreeToMove(IReadOnlyList<PageAnnotation> selected)
+        {
+            var movable = ReplacementLayers.MovableMembers(selected);
+            if (movable.Count == 0) return null;
+            if (selected.Except(movable).Any(held => string.IsNullOrEmpty(held.PairId))) return null;
+            return [.. movable];
         }
 
         // Clamps a point to the page rectangle. Used during resize so a dragged corner can't leave the
@@ -1413,15 +1446,18 @@ namespace KillerPDF.Controls
                                         RenderAllAnnotations(pageIdx);
                                         SelectAnnotation(pa, paBounds);
                                     }
-                                    if (ReplacementLayers.CanMoveTogether(new[] { pa }.Concat(
-                                        _dragGroupOrig.Select(member => member.a))))
+                                    // Only the members free to move are dragged: with a replacement's text box locked,
+                                    // a drag that lands on it moves the cover underneath (#467).
+                                    if (FreeToMove([pa, .. _dragGroupOrig.Select(member => member.a)]) is { } movers)
                                     {
+                                        PageAnnotation lead = movers.Contains(pa) ? pa : movers[0];
+                                        _dragGroupOrig.RemoveAll(member => !movers.Contains(member.a) || ReferenceEquals(member.a, lead));
                                         _annotationDragUndo = null;
                                         _annotDragPressScreen = _activeCanvas.PointToScreen(pos);
                                         _isDraggingAnnot = true;
                                         _dragAnnotStart = pos;
-                                        _dragAnnotOrigPos = AnnotGetPos(pa);
-                                        _dragAnnot = pa;
+                                        _dragAnnotOrigPos = AnnotGetPos(lead);
+                                        _dragAnnot = lead;
                                         _activeCanvas.CaptureMouse();
                                     }
                                     e.Handled = true;

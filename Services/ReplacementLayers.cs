@@ -117,6 +117,30 @@ public static class ReplacementLayers
     public static bool IsVisible(PageAnnotation annotation) =>
         annotation.IsVisible && (!HasPairState(annotation) || annotation.PairVisible);
 
+    /// <summary>The marks a copy takes: everything selected, and the other layer of each replacement in it, linked or
+    /// not, so a pasted replacement is the whole object rather than an orphaned text box. (#467)</summary>
+    public static IReadOnlyList<PageAnnotation> CopyMembers(IEnumerable<PageAnnotation> selection, IReadOnlyList<PageAnnotation> page)
+    {
+        var copied = new List<PageAnnotation>();
+        foreach (var item in selection)
+        {
+            if (!copied.Contains(item)) copied.Add(item);
+            if (FindPair(item, page) is { } pair)
+                foreach (PageAnnotation layer in new PageAnnotation[] { pair.Cover, pair.Text })
+                    if (!copied.Contains(layer)) copied.Add(layer);
+        }
+        return copied;
+    }
+
+    /// <summary>The members of a selection free to move. A layer locked on its own stays put while its partner
+    /// moves; locking the whole replacement holds both. (#467)</summary>
+    public static IReadOnlyList<PageAnnotation> MovableMembers(IEnumerable<PageAnnotation> selection) =>
+        [.. selection.Distinct().Where(CanMove)];
+
+    /// <summary>Whether a hidden layer of a replacement still draws a faint outline on screen and takes a click, so
+    /// it can be found and shown again. It stays out of saves, prints and reading. (#467)</summary>
+    public static bool ShowsWhenHidden(PageAnnotation annotation) => HasPairState(annotation) && !IsVisible(annotation);
+
     private static bool HasPairState(PageAnnotation annotation) =>
         annotation is TextAnnotation or CoverAnnotation && !string.IsNullOrEmpty(annotation.PairId);
 }

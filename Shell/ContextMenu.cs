@@ -594,6 +594,13 @@ namespace KillerPDF.Shell
             if (_selectedAnnotation is not null) sel.Add(_selectedAnnotation);
             foreach (var a in _selectedSet) if (!sel.Contains(a)) sel.Add(a);
             if (sel.Count == 0) return;
+            // A replacement copies as the whole object, cover and text, whichever layer was selected. (#467)
+            var expanded = new List<PageAnnotation>();
+            foreach (var a in sel)
+                foreach (var member in _annotations.TryGetValue(a.PageIndex, out var page)
+                             ? Services.ReplacementLayers.CopyMembers([a], page) : [a])
+                    if (!expanded.Contains(member)) expanded.Add(member);
+            sel = expanded;
 
             _annotationClipboard.Clear();
             foreach (var a in sel)
