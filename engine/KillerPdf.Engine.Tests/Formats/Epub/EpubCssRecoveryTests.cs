@@ -61,4 +61,31 @@ public sealed class EpubCssRecoveryTests
         Assert.Equal(2, reader.PageCount);
         Assert.All(Enumerable.Range(0, 2), page => Assert.Equal("A", string.Concat(reader.Read(page).Letters.Select(letter => letter.Value))));
     }
+
+    [Theory]
+    [InlineData("p { content: \"}\"; color: blue } h1 { color: red }")]
+    [InlineData("p { content: '}'; color: blue } h1 { color: red }")]
+    [InlineData("p { content: 'a\\'}'; color: blue } h1 { color: red }")]
+    public void ClosingBraceInsideAStringDoesNotEndTheStyleRule(string css)
+    {
+        var source = new Book { Css = css, Chapters = { Chapter("<p>A</p><h1>B</h1>") } };
+        var layout = EpubDocument.Open(source.Build()).CreateLayout(Options());
+
+        var letters = Assert.Single(layout.Pages).TextPlacements;
+        Assert.Equal(new PdfRgbColor(0, 0, 1), letters[0].Color);
+        Assert.Equal(new PdfRgbColor(1, 0, 0), letters[1].Color);
+    }
+
+    [Theory]
+    [InlineData("@media screen { p{color:red} stray } h1{color:blue}")]
+    [InlineData("@media screen { @media screen { stray } p{color:red} } h1{color:blue}")]
+    public void StrayTextInAMediaBlockDiscardsOnlyThatBlocksRemainder(string css)
+    {
+        var source = new Book { Css = css, Chapters = { Chapter("<p>A</p><h1>B</h1>") } };
+        var layout = EpubDocument.Open(source.Build()).CreateLayout(Options());
+
+        var letters = Assert.Single(layout.Pages).TextPlacements;
+        Assert.Equal(new PdfRgbColor(1, 0, 0), letters[0].Color);
+        Assert.Equal(new PdfRgbColor(0, 0, 1), letters[1].Color);
+    }
 }

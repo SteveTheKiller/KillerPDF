@@ -590,8 +590,14 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             styleSeen = true;
             int open = css.IndexOf('{', position);
             int limit = mediaEnds.TryPeek(out int enclosing) ? enclosing : css.Length;
-            if (open < 0 || open >= limit) break;
-            int close = css.IndexOf('}', open + 1);
+            if (open < 0 || open >= limit)
+            {
+                // Stray text with no block of its own ends at the enclosing media block; the rules after it still apply.
+                if (mediaEnds.Count == 0) break;
+                position = limit;
+                continue;
+            }
+            int close = RuleEnd(open, limit);
             // An unclosed block ends at the end of its stylesheet or enclosing block.
             if (close < 0 || close > limit) close = limit;
             CssProperties properties = ParseProperties(css[(open + 1)..close]);
@@ -749,6 +755,29 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 if (css[at] == '}') return at;
             }
             return css.Length;
+        }
+
+        // A style rule ends at the first closing brace outside a quoted string; a backslash escapes the next character,
+        // and a string ends at an unescaped newline (CSS Syntax bad-string). Returns -1 when the block is unclosed.
+        int RuleEnd(int open, int limit)
+        {
+            char quote = '\0';
+            for (int at = open + 1; at < limit; at++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (++mediaWork > 16_000_000)
+                    throw new InvalidDataException("Native EPUB CSS media scanning exceeds its work limit.");
+                char current = css[at];
+                if (current == '\\') { at++; continue; }
+                if (quote != '\0')
+                {
+                    if (current == quote || current is '\n' or '\r' or '\f') quote = '\0';
+                    continue;
+                }
+                if (current is '\'' or '"') quote = current;
+                else if (current == '}') return at;
+            }
+            return -1;
         }
 
         int MediaEnd(int open)
