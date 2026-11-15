@@ -136,15 +136,41 @@ public static class PdfPartialRasterization
             for (; open > 0; open--) retained.Add(new PdfContentInstruction("Q", 0, []));
             retained.Add(new PdfContentInstruction("Q", 0, []));
             editor.SetPageContent(pageGroup.Key, retained);
+            bool tagged = tree.Catalog.ContainsKey(StructTreeRootName);
+            PdfExtractedWord[] words = tagged ? [.. page.GetWords()] : [];
             foreach (PdfPartialRasterizationReplacement replacement in pageReplacements)
-                editor.AppendPageContent(pageGroup.Key,
-                    new PdfContentBounds(box.Left, box.Bottom, box.Left + page.Width, box.Bottom + page.Height),
-                    // The clipped content keeps its tags and text, so the image repeats it as an artifact.
-                    new PdfContentStreamBuilder().BeginArtifact().DrawImage(replacement.Raster,
-                        replacement.Plan.Region.Left, replacement.Plan.Region.Bottom,
-                        replacement.Plan.Region.Width, replacement.Plan.Region.Height).EndMarkedContent());
+            {
+                PdfContentBounds region = replacement.Plan.Region;
+                // The covered text is removed below, so on a tagged page the image carries its words
+                // as a Figure description; otherwise it is page furniture.
+                string description = string.Join(" ", words
+                    .Where(word => Contains(region, word.BoundingBox))
+                    .Select(word => word.Text));
+                if (description.Length != 0)
+                    editor.AppendPageDescribedContent(pageGroup.Key, page.Width, page.Height,
+                        new PdfContentStreamBuilder().DrawImage(replacement.Raster,
+                            region.Left, region.Bottom, region.Width, region.Height), description);
+                else
+                    editor.AppendPageContent(pageGroup.Key,
+                        new PdfContentBounds(box.Left, box.Bottom, box.Left + page.Width, box.Bottom + page.Height),
+                        new PdfContentStreamBuilder().BeginArtifact().DrawImage(replacement.Raster,
+                            region.Left, region.Bottom, region.Width, region.Height).EndMarkedContent());
+            }
         }
-        return editor.Build();
+        byte[] rasterized = editor.Build();
+        // A rasterized region is an image: the text it covered must not stay findable underneath. (#369)
+        return PdfContentRedaction.RemoveCoveredText(PdfDocument.Open(rasterized),
+            selected.Select(replacement => new PdfRedactionRegion(replacement.PageIndex, replacement.Plan.Region)),
+            cancellationToken) ?? rasterized;
+    }
+
+    private static readonly KillerPdf.Engine.Objects.PdfName StructTreeRootName =
+        new(System.Text.Encoding.ASCII.GetBytes("StructTreeRoot"));
+
+    private static bool Contains(PdfContentBounds region, PdfContentBounds word)
+    {
+        double x = (word.Left + word.Right) / 2, y = (word.Bottom + word.Top) / 2;
+        return x >= region.Left && x <= region.Right && y >= region.Bottom && y <= region.Top;
     }
 
     private static void ValidateReplacement(PdfPageContent page,

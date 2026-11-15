@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Rendering;
 using Xunit;
@@ -54,9 +55,9 @@ public sealed class PdfPartialRasterizationTests
         Assert.Empty(outside.Shadings);
     }
 
-    // The dialog says so: the image goes on top, and the text under it stays in the file.
+    // A rasterized region is an image: the text it covered can no longer be found, selected or copied. (#369)
     [Fact]
-    public void ApplyKeepsTextInsideTheRegionOnAnUntaggedPage()
+    public void ApplyRemovesTextInsideTheRegionOnAnUntaggedPage()
     {
         byte[] source = new PdfDocumentBuilder()
             .AddPage(200, 100, new PdfContentStreamBuilder()
@@ -75,8 +76,67 @@ public sealed class PdfPartialRasterizationTests
             PdfImage.FromRgb(plan.PixelWidth, plan.PixelHeight, new byte[plan.PixelWidth * plan.PixelHeight * 3]));
 
         string[] words = [.. new PdfPageContentReader(PdfDocument.Open(changed)).Read(0).GetWords().Select(word => word.Text)];
-        Assert.Contains("inside", words);
+        Assert.DoesNotContain("inside", words);
         Assert.Contains("outside", words);
+    }
+
+    // On a tagged page the covered words leave the page text but stay readable to assistive technology,
+    // as the alternate description of a Figure that holds the image. (#369)
+    [Fact]
+    public void ApplyOnATaggedPageMovesTheCoveredWordsIntoAFigureDescription()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "Tagged", Language = "en-US" })
+            .AddPage(200, 100, new PdfContentStreamBuilder()
+                .BeginMarkedContent(PdfStructureType.Paragraph, 0)
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(20, 40).ShowLatin1Text("inside").EndText()
+                .EndMarkedContent()
+                .BeginMarkedContent(PdfStructureType.Paragraph, 1)
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(120, 40).ShowLatin1Text("outside").EndText()
+                .EndMarkedContent())
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureElement(PdfStructureType.Paragraph, 0, 0, 1)
+            .AddStructureElement(PdfStructureType.Paragraph, 0, 1, 1)
+            .Build();
+        PdfDocument document = PdfDocument.Open(source);
+        PdfPageContent page = new PdfPageContentReader(document).Read(0);
+        PdfPartialRasterizationPlan plan = PdfPartialRasterization.Plan(
+            page, new PdfContentBounds(10, 30, 100, 60), 72);
+
+        PdfDocument changed = PdfDocument.Open(PdfPartialRasterization.Apply(document, 0, plan,
+            PdfImage.FromRgb(plan.PixelWidth, plan.PixelHeight, new byte[plan.PixelWidth * plan.PixelHeight * 3])));
+
+        string[] words = [.. new PdfPageContentReader(changed).Read(0).GetWords().Select(word => word.Text)];
+        Assert.DoesNotContain("inside", words);
+        Assert.Contains("outside", words);
+        string[] descriptions = [.. FigureDescriptions(changed)];
+        Assert.Equal(["inside"], descriptions);
+    }
+
+    private static IEnumerable<string> FigureDescriptions(PdfDocument document)
+    {
+        static PdfName N(string name) => new(System.Text.Encoding.ASCII.GetBytes(name));
+        PdfObject Resolve(PdfObject value) => value is PdfIndirectReference reference ? document.Resolve(reference) : value;
+        var catalog = (PdfDictionary)Resolve(document.Trailer[N("Root")]);
+        var root = (PdfDictionary)Resolve(catalog[N("StructTreeRoot")]);
+        var numbers = (PdfArray)((PdfDictionary)Resolve(root[N("ParentTree")]))[N("Nums")];
+        for (int index = 1; index < numbers.Count; index += 2)
+        {
+            PdfObject entry = Resolve(numbers[index]);
+            IEnumerable<PdfObject> elements = entry is PdfArray array ? array : [entry];
+            foreach (PdfObject value in elements)
+                if (Resolve(value) is PdfDictionary element && element.TryGetValue(N("S"), out PdfObject? role)
+                    && role is PdfName name && name.Equals(N("Figure"))
+                    && element.TryGetValue(N("Alt"), out PdfObject? alt) && alt is PdfString text)
+                {
+                    byte[] bytes = text.Bytes.ToArray();
+                    yield return bytes is [0xFE, 0xFF, ..]
+                        ? System.Text.Encoding.BigEndianUnicode.GetString(bytes, 2, bytes.Length - 2)
+                        : System.Text.Encoding.Latin1.GetString(bytes);
+                }
+        }
     }
 
     [Fact]
