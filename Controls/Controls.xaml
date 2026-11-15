@@ -1842,8 +1842,16 @@
                              itself on a flat theme, where the window is square too. -->
                         <Border x:Name="Bd" Background="{DynamicResource CaptionButtonBrush}"
                                 CornerRadius="{DynamicResource CaptionCloseCornerRadius}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Visibility="{DynamicResource CaptionFontGlyphVisibility}"/>
                         </Border>
+                        <!-- Win98's close X is pixel art, square 2px steps, not a smoothed diagonal. This is
+                             its 8x7 glyph grown to 10x9 for the 20x18 button, drawn aliased so every pixel is hard. -->
+                        <Path Width="10" Height="9" HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Margin="0,0,0,1" Fill="{TemplateBinding Foreground}" IsHitTestVisible="False"
+                              SnapsToDevicePixels="True" RenderOptions.EdgeMode="Aliased"
+                              Visibility="{DynamicResource CaptionDrawnGlyphVisibility}"
+                              Data="M0,0h2v1h-2z M8,0h2v1h-2z M1,1h2v1h-2z M7,1h2v1h-2z M2,2h2v1h-2z M6,2h2v1h-2z M3,3h4v1h-4z M4,4h2v1h-2z M3,5h4v1h-4z M2,6h2v1h-2z M6,6h2v1h-2z M1,7h2v1h-2z M7,7h2v1h-2z M0,8h2v1h-2z M8,8h2v1h-2z"/>
                         <Border x:Name="bevelLight" IsHitTestVisible="False"
                                 BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
                         <Border x:Name="bevelDark" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}"
@@ -1938,7 +1946,14 @@
                         <TextBlock kl:GlyphInk.Center="True" Text="{TemplateBinding Content}"
                                    FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}"
                                    FontWeight="{TemplateBinding FontWeight}" Foreground="{TemplateBinding Foreground}"
-                                   TextOptions.TextFormattingMode="Ideal" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                   TextOptions.TextFormattingMode="Ideal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="{DynamicResource CaptionFontGlyphVisibility}"/>
+                        <!-- The same pixel X as ChromeCloseButton on a flat theme. -->
+                        <Path Width="10" Height="9" HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Margin="0,0,0,1" Fill="{TemplateBinding Foreground}" IsHitTestVisible="False"
+                              SnapsToDevicePixels="True" RenderOptions.EdgeMode="Aliased"
+                              Visibility="{DynamicResource CaptionDrawnGlyphVisibility}"
+                              Data="M0,0h2v1h-2z M8,0h2v1h-2z M1,1h2v1h-2z M7,1h2v1h-2z M2,2h2v1h-2z M6,2h2v1h-2z M3,3h4v1h-4z M4,4h2v1h-2z M3,5h4v1h-4z M2,6h2v1h-2z M6,6h2v1h-2z M1,7h2v1h-2z M7,7h2v1h-2z M0,8h2v1h-2z M8,8h2v1h-2z"/>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">

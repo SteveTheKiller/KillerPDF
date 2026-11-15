@@ -416,7 +416,14 @@
                             <Border x:Name="bevelDark" IsHitTestVisible="False"
                                     BorderBrush="{DynamicResource BevelDarkBrush}"
                                     BorderThickness="{DynamicResource BevelDarkThickness}"/>
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Visibility="{DynamicResource CaptionFontGlyphVisibility}"/>
+                            <!-- The same pixel X as ChromeCloseButton on a flat theme. -->
+                            <Path Width="10" Height="9" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Margin="0,0,0,1" Fill="{TemplateBinding Foreground}" IsHitTestVisible="False"
+                                  SnapsToDevicePixels="True" RenderOptions.EdgeMode="Aliased"
+                                  Visibility="{DynamicResource CaptionDrawnGlyphVisibility}"
+                                  Data="M0,0h2v1h-2z M8,0h2v1h-2z M1,1h2v1h-2z M7,1h2v1h-2z M2,2h2v1h-2z M6,2h2v1h-2z M3,3h4v1h-4z M4,4h2v1h-2z M3,5h4v1h-4z M2,6h2v1h-2z M6,6h2v1h-2z M1,7h2v1h-2z M7,7h2v1h-2z M0,8h2v1h-2z M8,8h2v1h-2z"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
