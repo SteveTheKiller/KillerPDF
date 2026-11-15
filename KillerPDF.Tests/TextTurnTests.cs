@@ -171,8 +171,8 @@ public sealed class TextTurnTests
         };
         Assert.Equal(expected.X, mappedOrigin.X, 6);
         Assert.Equal(expected.Y, mappedOrigin.Y, 6);
-        // Free text keeps reading level.
-        Assert.Equal(0, free.Rotation);
+        // A text box on its own turns with the page too: everything on a page turns with it.
+        Assert.Equal(TextTurn.Normalize(delta), free.Rotation);
     }
 
     [Fact]
