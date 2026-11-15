@@ -8,7 +8,7 @@ KillerPDF is a free, open-source PDF editor for Windows. Read, annotate, edit, o
 
 <p align="center">
   <a href="docs/readme-two-page.png"><img src="docs/readme-two-page.png" width="49%" alt="A six-page guide open in Two-Page view with the Dark theme, the page strip on the left and the full toolbar across the top"></a>
-  <a href="docs/readme-markup.png"><img src="docs/readme-markup.png" width="49%" alt="Highlights, a pen circle and a text box on a page, with the paragraph editing bar open above it"></a>
+  <a href="docs/readme-markup.png"><img src="docs/readme-markup.png" width="49%" alt="A handwritten-style text box added to a page, with the text tool's font, size, color and Edit paragraph bar docked above it"></a>
   <a href="docs/readme-compare.png"><img src="docs/readme-compare.png" width="49%" alt="Two versions of a guide compared side by side with the changed photo outlined in both panes"></a>
   <a href="docs/readme-sidebar-top.png"><img src="docs/readme-sidebar-top.png" width="49%" alt="The page strip docked across the top of the window with the Greed theme"></a>
 </p>
