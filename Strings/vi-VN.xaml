@@ -1284,6 +1284,9 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Split_ReplaceExisting">{0} tệp trong số này đã có trong thư mục này. Thay thế chúng?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Một trong các tệp này sẽ thay thế tài liệu đang mở. Hãy chọn thư mục hoặc tên tệp khác.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">Đã ghi {0} tệp PDF vào {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Đang ghi PDF {0} trên {1}... (Nhấn Esc để hủy)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Đã hủy tách (chưa ghi tệp nào)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">Đã ghi {0} trên {1} tệp; không thể ghi {2}.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Xóa thất bại:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Chèn thất bại:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Thêm trang thất bại:</sys:String>

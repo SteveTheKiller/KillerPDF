@@ -1276,6 +1276,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Split_ReplaceExisting">Počet souborů, které v této složce již existují: {0}. Nahradit je?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Jeden z těchto souborů by nahradil otevřený dokument. Vyberte jinou složku nebo jiný název souboru.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">Soubory PDF zapsány do {1} (počet: {0})</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Zapisuje se PDF {0} z {1}...  (Esc zruší)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Rozdělení zrušeno (žádné soubory nebyly zapsány)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">Zapsáno {0} z {1} souborů; soubor {2} se nepodařilo zapsat.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Odstranění se nezdařilo:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Vložení se nezdařilo:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Přidání stránky se nezdařilo:</sys:String>

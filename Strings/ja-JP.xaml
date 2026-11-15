@@ -1284,6 +1284,9 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Split_ReplaceExisting">このうち {0} 個のファイルは既にこのフォルダーにあります。置き換えますか？</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">このうち 1 つのファイルが開いている文書を置き換えます。別のフォルダーまたはファイル名を選んでください。</sys:String>
     <sys:String x:Key="Str_Split_Wrote">{0} 個の PDF ファイルを {1} に書き込みました</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">PDF を書き込み中... {0} / {1}  (Esc でキャンセル)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">分割をキャンセルしました (ファイルは書き込まれていません)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">{1} 個中 {0} 個のファイルを書き込みましたが、{2} を書き込めませんでした。</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">削除に失敗しました：</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">挿入に失敗しました：</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">ページの追加に失敗しました：</sys:String>

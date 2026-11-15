@@ -1271,6 +1271,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Split_ReplaceExisting">এর মধ্যে {0}টি ফাইল এই ফোল্ডারে ইতিমধ্যে আছে। সেগুলো প্রতিস্থাপন করবেন?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">এর মধ্যে একটি ফাইল খোলা নথিটিকে প্রতিস্থাপন করবে। অন্য ফোল্ডার বা ফাইলের নাম বেছে নিন।</sys:String>
     <sys:String x:Key="Str_Split_Wrote">{0}টি PDF ফাইল {1}-এ লেখা হয়েছে</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">PDF লেখা হচ্ছে... {0} / {1}  (Esc বাতিল করে)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">বিভাজন বাতিল হয়েছে (কোনো ফাইল লেখা হয়নি)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">{1}টির মধ্যে {0}টি ফাইল লেখা হয়েছে; {2} লেখা যায়নি।</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">মুছে ফেলা ব্যর্থ হয়েছে:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">ঢোকানো ব্যর্থ হয়েছে:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">পাতা যোগ করা ব্যর্থ হয়েছে:</sys:String>

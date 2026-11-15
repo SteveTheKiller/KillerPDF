@@ -1271,6 +1271,9 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Split_ReplaceExisting">Bu dosyalardan {0} tanesi bu klasörde zaten var. Değiştirilsin mi?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Bu dosyalardan biri açık belgenin yerine geçer. Başka bir klasör veya dosya adı seçin.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">{0} PDF dosyası {1} konumuna yazıldı</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">PDF yazılıyor: {0} / {1}...  (Esc iptal eder)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Bölme iptal edildi (hiç dosya yazılmadı)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">{1} dosyadan {0} tanesi yazıldı; {2} yazılamadı.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Silme başarısız oldu:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Ekleme başarısız oldu:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Sayfa ekleme başarısız oldu:</sys:String>

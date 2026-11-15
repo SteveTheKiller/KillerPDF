@@ -18,6 +18,15 @@ internal enum PageSplitMode
 /// <summary>One file Extract Pages writes: its name and the zero-based pages it holds, in order.</summary>
 internal sealed record PageSplitPart(string FileName, IReadOnlyList<int> PageIndices);
 
+/// <summary>A split that stopped while moving finished files into place: how many were written and which one failed.</summary>
+internal sealed class PageSplitWriteException(int written, int total, string failedFile, Exception inner)
+    : IOException($"Wrote {written} of {total} files; {failedFile} could not be written: {inner.Message}", inner)
+{
+    public int Written { get; } = written;
+    public int Total { get; } = total;
+    public string FailedFile { get; } = failedFile;
+}
+
 /// <summary>
 /// The window-free half of Extract Pages (#484). It reads the dialog's page choices, plans the files a split writes
 /// and writes them. Files are named exactly as the command line's split names them: one per page is
@@ -105,17 +114,15 @@ internal static class PageSplit
     /// An existing file is replaced only when <paramref name="overwrite"/> says so; otherwise nothing is written.
     /// </summary>
     internal static int Write(string sourcePath, string folder, IReadOnlyList<PageSplitPart> parts,
-        IReadOnlyDictionary<int, int> rotations, bool overwrite)
+        IReadOnlyDictionary<int, int> rotations, bool overwrite,
+        IProgress<int>? progress = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(folder);
         ArgumentNullException.ThrowIfNull(parts);
         ArgumentNullException.ThrowIfNull(rotations);
-        // A folder never gives way to a part, as the command line's split refuses it too.
-        if (parts.Select(part => Path.Combine(folder, part.FileName)).FirstOrDefault(Directory.Exists) is string blocked)
-            throw new IOException("A folder has the name of a file to write: " + blocked);
-        if (!overwrite && Existing(folder, parts) is [string first, ..])
-            throw new IOException("The file already exists: " + first);
+        CheckDestinations(folder, parts, overwrite);
+        cancellationToken.ThrowIfCancellationRequested();
         Directory.CreateDirectory(folder);
         // The saved copy is read once and every part imports from it.
         PdfDocument source = PdfDocument.Open(File.ReadAllBytes(sourcePath));
@@ -124,6 +131,7 @@ internal static class PageSplit
         {
             foreach (PageSplitPart part in parts)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 string temporary = Path.Combine(folder, $".killerpdf-split-{Guid.NewGuid():N}.tmp");
                 using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 {
@@ -131,11 +139,25 @@ internal static class PageSplit
                     stream.Write(Build(source, part.PageIndices, rotations));
                     stream.Flush(flushToDisk: true);
                 }
+                progress?.Report(staged.Count);
             }
+            // Names can appear or be taken while the parts were built, so every destination is checked again before
+            // the first one is touched. Past this point a cancel no longer applies: the moves are quick and finish.
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckDestinations(folder, parts, overwrite);
+            int moved = 0;
             foreach (var (temporary, destination) in staged)
             {
-                if (overwrite && File.Exists(destination)) PdfEngineIntegration.ReplaceFileAtomically(temporary, destination);
-                else File.Move(temporary, destination, overwrite: false);
+                try
+                {
+                    if (overwrite && File.Exists(destination)) PdfEngineIntegration.ReplaceFileAtomically(temporary, destination);
+                    else File.Move(temporary, destination, overwrite: false);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    throw new PageSplitWriteException(moved, staged.Count, Path.GetFileName(destination), ex);
+                }
+                moved++;
             }
         }
         finally
@@ -145,6 +167,16 @@ internal static class PageSplit
                     try { File.Delete(temporary); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
         return staged.Count;
+    }
+
+    // Refuses before anything is written when a planned name is a folder, or is a file and replacing was not chosen.
+    private static void CheckDestinations(string folder, IReadOnlyList<PageSplitPart> parts, bool overwrite)
+    {
+        // A folder never gives way to a part, as the command line's split refuses it too.
+        if (parts.Select(part => Path.Combine(folder, part.FileName)).FirstOrDefault(Directory.Exists) is string blocked)
+            throw new IOException("A folder has the name of a file to write: " + blocked);
+        if (!overwrite && Existing(folder, parts) is [string first, ..])
+            throw new IOException("The file already exists: " + first);
     }
 
     // The one-file extract's build (PdfEngineIntegration.ExtractPages): a fresh document importing the pages, with

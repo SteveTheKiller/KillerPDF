@@ -1284,6 +1284,9 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Split_ReplaceExisting">Файлів, які вже є в цій папці: {0}. Замінити їх?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Один із цих файлів замінив би відкритий документ. Виберіть іншу папку або іншу назву файлу.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">Записано файлів PDF: {0} до {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Запис PDF {0} з {1}...  (Esc для скасування)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Розділення скасовано (файли не записано)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">Записано файлів: {0} з {1}; не вдалося записати {2}.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Не вдалося видалити:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Не вдалося вставити:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Не вдалося додати сторінку:</sys:String>

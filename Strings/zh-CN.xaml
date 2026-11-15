@@ -1275,6 +1275,9 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Split_ReplaceExisting">其中 {0} 个文件已在此文件夹中。要替换它们吗？</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">其中一个文件会替换当前打开的文档。请选择其他文件夹或文件名。</sys:String>
     <sys:String x:Key="Str_Split_Wrote">已将 {0} 个 PDF 文件写入 {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">正在写入 PDF... 第 {0} 个，共 {1} 个  (Esc 取消)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">已取消拆分 (未写入任何文件)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">已写入 {1} 个文件中的 {0} 个；无法写入 {2}。</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">删除失败：</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">插入失败：</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">添加页面失败：</sys:String>

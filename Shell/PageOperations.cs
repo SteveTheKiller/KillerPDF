@@ -75,7 +75,7 @@ namespace KillerPDF.Shell
             }
         }
 
-        private void Split_Click(object sender, RoutedEventArgs e)
+        private async void Split_Click(object sender, RoutedEventArgs e)
         {
             if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             if (!EnsureMayWrite(PdfOutput.Printable)) return;
@@ -90,7 +90,10 @@ namespace KillerPDF.Shell
             if (choice.ShowDialog() != true || !sourceCurrent()) return;
             // Where it goes: one PDF asks for a file name, as before; several files ask for a folder, then once
             // before replacing files already there.
-            Func<string, Dictionary<int, int>, string> build;
+            // The build runs off the UI thread and returns what it wrote; the status words are made here afterwards.
+            Func<string, Dictionary<int, int>, IProgress<int>, CancellationToken, int> build;
+            Func<int, string> done;
+            int fileTotal = 1;
             if (choice.Choice is SplitChoice.EveryPage or SplitChoice.EveryN)
             {
                 IReadOnlyList<PageSplitPart> parts = PageSplit.Plan(
@@ -111,8 +114,10 @@ namespace KillerPDF.Shell
                 if (existing > 0 && (KillerDialog.Show(this, string.Format(Loc("Str_Split_ReplaceExisting"), existing),
                         "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes || !sourceCurrent()))
                     return;
-                build = (copy, turns) => string.Format(Loc("Str_Split_Wrote"),
-                    PageSplit.Write(copy, folder, parts, turns, overwrite: existing > 0), folder);
+                fileTotal = parts.Count;
+                build = (copy, turns, progress, token) =>
+                    PageSplit.Write(copy, folder, parts, turns, overwrite: existing > 0, progress, token);
+                done = written => string.Format(Loc("Str_Split_Wrote"), written, folder);
             }
             else
             {
@@ -121,21 +126,46 @@ namespace KillerPDF.Shell
                               { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SaveExtractedAs"),
                                 CheckFileExists = false, CheckPathExists = true, RequireFilterExtension = true };
                 if (dlg.ShowDialog(this) != true || !sourceCurrent()) return;
-                build = (copy, turns) =>
+                build = (copy, turns, _, _) =>
                 {
                     PdfEngineIntegration.ExtractPages(copy, dlg.FileName, ordered, turns);
-                    return string.Format(Loc("Str_Extracted"), ordered.Length, System.IO.Path.GetFileName(dlg.FileName));
+                    return ordered.Length;
                 };
+                done = _ => string.Format(Loc("Str_Extracted"), ordered.Length, System.IO.Path.GetFileName(dlg.FileName));
             }
             // Both build from one saved copy of the document as it stands, with the pending page turns applied once.
             string? snapshot = null;
+            Border? busy = null;
+            CancellationToken token = default;
+            bool began = false;
             try
             {
                 CommitActiveTextBox();
                 var rotations = SnapshotPageRotations();
                 SavedCopy extractCopy = WriteSavedCopyToTemp(throwaway: true);
                 snapshot = extractCopy.Path;
-                SetStatus(extractCopy.Note(build(snapshot, rotations), Loc("Str_Save_PicturesSkipped")));
+                // The same overlay and Esc-to-cancel the other long operations use, with a part counter.
+                token = BeginCancellableOp(Loc("Str_Op_Operation"));
+                began = true;
+                string busyFormat = Loc("Str_Busy_Splitting");
+                busy = ShowBusyOverlay(string.Format(busyFormat, 1, fileTotal));
+                Border overlay = busy;
+                var progress = new Progress<int>(finished =>
+                    SetBusyMessage(overlay, string.Format(busyFormat, Math.Min(finished + 1, fileTotal), fileTotal)));
+                string copy = snapshot;
+                int written = await Task.Run(() => build(copy, rotations, progress, token));
+                HideBusyOverlay(busy); busy = null;
+                SetStatus(extractCopy.Note(done(written), Loc("Str_Save_PicturesSkipped")));
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                SetStatus(Loc("Str_St_SplitCanceled"));
+            }
+            catch (PageSplitWriteException ex)
+            {
+                KillerDialog.Show(this, Loc("Str_Err_SplitFailed") + "\n"
+                    + string.Format(Loc("Str_Split_PartialFailure"), ex.Written, ex.Total, ex.FailedFile) + "\n" + ex.InnerException!.Message,
+                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
@@ -143,6 +173,8 @@ namespace KillerPDF.Shell
             }
             finally
             {
+                if (busy is not null) HideBusyOverlay(busy);
+                if (began) EndCancellableOp(token);
                 if (snapshot is not null)
                     try { System.IO.File.Delete(snapshot); } catch (IOException) { } catch (UnauthorizedAccessException) { }
             }

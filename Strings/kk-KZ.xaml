@@ -1180,6 +1180,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Split_ReplaceExisting">Бұл файлдардың {0} осы қалтада бұрыннан бар. Оларды ауыстыру керек пе?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Осы файлдардың бірі ашық құжаттың орнына жазылады. Басқа қалтаны немесе файл атауын таңдаңыз.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">{0} PDF файлы {1} ішіне жазылды</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">PDF жазылуда... {0} / {1}  (болдырмау үшін Esc)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Бөлу тоқтатылды (ешқандай файл жазылмады)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">{1} файлдың {0} жазылды; {2} жазылмады.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Жою сәтсіз:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Кірістіру сәтсіз:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Бет қосу сәтсіз:</sys:String>

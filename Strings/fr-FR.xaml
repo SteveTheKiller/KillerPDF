@@ -1284,6 +1284,9 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Split_ReplaceExisting">{0} de ces fichiers existent déjà dans ce dossier. Les remplacer ?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">L'un de ces fichiers remplacerait le document ouvert. Choisissez un autre dossier ou un autre nom de fichier.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">{0} fichiers PDF écrits dans {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Écriture du PDF {0} sur {1}...  (Échap annule)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Division annulée (aucun fichier écrit)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">{0} fichiers sur {1} écrits ; {2} n'a pas pu être écrit.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Échec de la suppression :</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Échec de l'insertion :</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Échec de l'ajout de page :</sys:String>
