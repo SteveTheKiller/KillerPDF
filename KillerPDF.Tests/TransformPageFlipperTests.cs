@@ -33,6 +33,16 @@ public sealed class TransformPageFlipperTests
         Assert.Contains("_pageCounter.Text = $\"{_previewPageIndex + 1} / {_pageCount}\";", window);
     }
 
+    // Opening Color correction focuses the Exposure slider, and a tooltip that only repeats a visible label popped up
+    // over the Auto exposure box. Only a slider with its own hint carries a tooltip; the label is its automation name.
+    [Fact]
+    public void ColorSlidersCarryATooltipOnlyWhenTheyHaveAHint()
+    {
+        string slider = Between(Read("Controls", "TransformWindow.cs"), "private FrameworkElement AddColorSlider(", "slider.ValueChanged");
+        Assert.Contains("ToolTip = hintKey is null ? null : S(hintKey)", slider);
+        Assert.Contains("AutomationProperties.SetName(slider, S(labelKey))", slider);
+    }
+
     [Fact]
     public void ApplyChangesThePageAndKeepsTheWindowOpen()
     {

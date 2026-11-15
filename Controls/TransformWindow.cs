@@ -936,7 +936,7 @@ namespace KillerPDF
                 SmallChange = step, LargeChange = step * 10, TickFrequency = step,
                 IsSnapToTickEnabled = false,
                 Tag = initial,
-                ToolTip = hintKey is null ? S(labelKey) : S(hintKey)
+                ToolTip = hintKey is null ? null : S(hintKey)
             };
             if (style is not null) slider.Style = style;
             System.Windows.Automation.AutomationProperties.SetName(slider, S(labelKey));
