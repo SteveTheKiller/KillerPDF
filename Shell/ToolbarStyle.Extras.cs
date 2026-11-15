@@ -253,7 +253,10 @@ namespace KillerPDF.Shell
         {
             if (item.Tag is "hide") item.IsChecked = _toolbarHidden;
             else if (item.Tag is "toolmenu")
+            {
                 item.Header = Loc(ToolMenuFloating ? "Str_ToolMenu_Docked" : "Str_ToolMenu_Floating");
+                item.Icon = ToolMenuIcons.For(floating: !ToolMenuFloating);
+            }
         }
 
         // Open / Save / OCR are split buttons (main half + overlapping dropdown chevron); the kit

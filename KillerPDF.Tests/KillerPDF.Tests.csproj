@@ -181,6 +181,7 @@
     <Compile Include="..\Services\Signing\SigningOutputPath.cs" Link="Services\Signing\SigningOutputPath.cs" />
     <Compile Include="..\Models\StampModels.cs" Link="Models\StampModels.cs" />
     <Compile Include="..\Shell\SidebarSide.cs" Link="Shell\SidebarSide.cs" />
+    <Compile Include="..\Shell\ToolMenuIcons.cs" Link="Shell\ToolMenuIcons.cs" />
     <Compile Include="..\Shell\WindowFloor.cs" Link="Shell\WindowFloor.cs" />
     <Compile Include="..\Shell\RailOrder.cs" Link="Shell\RailOrder.cs" />
     <Compile Include="..\Controls\SidebarPageBinding.cs" Link="Controls\SidebarPageBinding.cs" />

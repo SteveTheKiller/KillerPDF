@@ -71,6 +71,7 @@ namespace KillerPDF.Shell
             {
                 Header = Loc(ToolMenuFloating ? "Str_ToolMenu_Docked" : "Str_ToolMenu_Floating"),
                 Tag = "toolmenu",
+                Icon = ToolMenuIcons.For(floating: !ToolMenuFloating),
                 InputGestureText = GestureFor("Alt:B"),
             };
             row.Click += (_, _) => ToggleToolMenuFloating();
