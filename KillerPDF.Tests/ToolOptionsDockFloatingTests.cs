@@ -47,10 +47,11 @@ public sealed class ToolOptionsDockFloatingTests
     [Fact]
     public void FloatingTheBarHangsFromTheTopEdgeAtTheRightAndIsDrawnOverThePage() => RunSta(() =>
     {
-        var (dock, bar, _) = Laid(floating: true);
+        var (dock, bar, page) = Laid(floating: true);
         Rect barBounds = Bounds(bar, dock);
         Assert.Equal(new Rect(600 - 200 - ToolOptionsDock.FloatingGap, 0, 200, 30), barBounds);
-        Assert.Same(bar, VisualTreeHelper.GetChild(dock, VisualTreeHelper.GetChildrenCount(dock) - 1));
+        var order = Enumerable.Range(0, VisualTreeHelper.GetChildrenCount(dock)).Select(i => VisualTreeHelper.GetChild(dock, i)).ToList();
+        Assert.True(order.IndexOf(bar) > order.IndexOf(page));
     });
 
     [Fact]
@@ -91,6 +92,38 @@ public sealed class ToolOptionsDockFloatingTests
         Assert.Null(bar.Clip);
         Assert.Equal(1, bar.Child.Opacity);
         Assert.True(bar.Child.IsHitTestVisible);
+    });
+
+    // Floating, the bar reads as a tab hanging from the edge: side and bottom borders, rounded bottom
+    // corners, and grip dots on its left that say it can be dragged. Docked, it is a plain row again.
+    [Fact]
+    public void AFloatingBarHangsWithSideBordersRoundedBottomCornersAndAGrip() => RunSta(() =>
+    {
+        var (dock, bar, _) = Laid(floating: true);
+        Assert.Equal(new Thickness(1, 0, 1, 1), bar.BorderThickness);
+        Assert.Equal(new CornerRadius(0, 0, ToolOptionsDock.FloatingCornerRadius, ToolOptionsDock.FloatingCornerRadius), bar.CornerRadius);
+        Assert.Equal(ToolOptionsDock.GripWidth, bar.Padding.Left);
+        Rect grip = Bounds(dock.Grip!, dock);
+        Rect barBounds = Bounds(bar, dock);
+        Assert.Equal(barBounds.Left + 1, grip.Left);
+        Assert.Equal(0, grip.Top);
+        Assert.Equal(barBounds.Height, grip.Height);
+
+        dock.Floating = false;
+        Relayout(dock, 600);
+        Assert.Equal(new Thickness(0), bar.BorderThickness);
+        Assert.Equal(new CornerRadius(0), bar.CornerRadius);
+        Assert.Equal(0, bar.Padding.Left);
+        Assert.Null(dock.Grip);
+    });
+
+    [Fact]
+    public void AMinimizedBarShowsNoGrip() => RunSta(() =>
+    {
+        var (dock, _, _) = Laid(floating: true);
+        dock.ToggleMinimized();
+        Relayout(dock, 600);
+        Assert.Null(dock.Grip);
     });
 
     [Fact]

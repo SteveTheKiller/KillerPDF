@@ -28,8 +28,16 @@ namespace KillerPDF.Controls
         /// <summary>Height of the strip a minimized floating bar leaves behind.</summary>
         public const double MinimizedHeight = 10;
 
+        /// <summary>Radius of a floating bar's two bottom corners.</summary>
+        public const double FloatingCornerRadius = 6;
+
+        /// <summary>Width of the grip strip at a floating bar's left edge.</summary>
+        public const double GripWidth = 12;
+
         private UIElement? _bar, _document;
-        private Border? _strip;
+        private Border? _strip, _grip;
+        // A floating bar's own border, corners and padding, put back when it docks or is replaced.
+        private (Border Bar, Thickness Border, CornerRadius Corners, Thickness Padding)? _plainChrome;
         private bool _dimmed, _floating, _minimized;
         private double? _centerFraction;
         private readonly List<UIElement> _attached = [];
@@ -158,8 +166,54 @@ namespace KillerPDF.Controls
 
         // As in 1.9.2, a minimized bar stays the thing you click: its controls are hidden and it is cut
         // down to a strip, and the grip dots are drawn over it without taking the click.
+        /// <summary>The grip at a floating bar's left edge, or null while none is shown.</summary>
+        internal UIElement? Grip => ShowsGrip ? _grip : null;
+
+        private bool ShowsGrip => _floating && _bar is not null && !Minimized;
+
+        // Floating, the bar hangs like a tab: side and bottom borders, rounded bottom corners, and room on
+        // its left for the grip. Docked, it gets its own chrome back.
+        private void SyncChrome()
+        {
+            if (_plainChrome is { } plain && (!_floating || !ReferenceEquals(plain.Bar, _bar)))
+            {
+                plain.Bar.BorderThickness = plain.Border;
+                plain.Bar.CornerRadius = plain.Corners;
+                plain.Bar.Padding = plain.Padding;
+                _plainChrome = null;
+            }
+            if (_floating && _bar is Border bar && _plainChrome is null)
+            {
+                _plainChrome = (bar, bar.BorderThickness, bar.CornerRadius, bar.Padding);
+                bar.BorderThickness = new Thickness(1, 0, 1, 1);
+                bar.CornerRadius = new CornerRadius(0, 0, FloatingCornerRadius, FloatingCornerRadius);
+                bar.Padding = new Thickness(bar.Padding.Left + GripWidth, bar.Padding.Top, bar.Padding.Right, bar.Padding.Bottom);
+            }
+            if (ShowsGrip) _grip ??= NewGrip();
+        }
+
+        // Three stacked dots, the same dots 1.9.2's floating bar and the sidebar splitter use.
+        private static Border NewGrip()
+        {
+            var dots = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                IsHitTestVisible = false,
+            };
+            for (int i = 0; i < 3; i++)
+            {
+                var dot = new Ellipse { Width = 3, Height = 3, Margin = new Thickness(0, 1.5, 0, 1.5) };
+                dot.SetResourceReference(Shape.FillProperty, "MutedTextBrush");
+                dots.Children.Add(dot);
+            }
+            return new Border { Child = dots, Background = Brushes.Transparent, Cursor = Cursors.Hand };
+        }
+
         private void SyncBarVisibility()
         {
+            SyncChrome();
             if (_bar is null) return;
             _bar.Visibility = Visibility.Visible;
             bool minimized = ShowsStrip;
@@ -240,6 +294,7 @@ namespace KillerPDF.Controls
                  d = (d is Visual ? VisualTreeHelper.GetParent(d) : null) ?? LogicalTreeHelper.GetParent(d))
             {
                 if (ReferenceEquals(d, _strip)) return ShowsStrip;
+                if (ReferenceEquals(d, _grip)) return ShowsGrip;
                 if (ReferenceEquals(d, _bar)) return true;
                 if (d is ButtonBase or RangeBase or Selector or TextBoxBase or Thumb) return false;
                 if (ReferenceEquals(d, this)) return false;
@@ -299,6 +354,7 @@ namespace KillerPDF.Controls
             if (_document is not null) yield return _document;
             if (_bar is not null) yield return _bar;
             if (ShowsStrip && _strip is not null) yield return _strip;
+            if (ShowsGrip && _grip is not null) yield return _grip;
         }
 
         // WPF composes children in the order they were attached, not the order GetVisualChild returns
@@ -331,6 +387,7 @@ namespace KillerPDF.Controls
                 barHeight = _bar.DesiredSize.Height;
             }
             if (ShowsStrip) _strip!.Measure(new Size(available.Width, MinimizedHeight));
+            if (ShowsGrip) _grip!.Measure(new Size(GripWidth, barHeight));
             if (_floating) barHeight = 0;   // a floating bar takes no room from the document
             double rest = double.IsInfinity(available.Height) ? available.Height : Math.Max(0, available.Height - barHeight);
             _document?.Measure(new Size(available.Width, rest));
@@ -356,6 +413,7 @@ namespace KillerPDF.Controls
                         _bar.Clip = new RectangleGeometry(new Rect(0, 0, width, MinimizedHeight));
                         _strip!.Arrange(new Rect(left, 0, width, MinimizedHeight));
                     }
+                    if (ShowsGrip) _grip!.Arrange(new Rect(left + 1, 0, GripWidth, barHeight));
                 }
                 return final;
             }

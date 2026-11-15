@@ -13,7 +13,8 @@ namespace KillerPDF.Shell
     {
         private const string ToolMenuFloatingSetting = "ToolMenuFloating";
 
-        internal static bool ToolMenuFloating => App.GetSetting(ToolMenuFloatingSetting) == "1";
+        // Floating is the default, as it was before 1.9.3; docking is the choice that gets saved.
+        internal static bool ToolMenuFloating => App.GetSetting(ToolMenuFloatingSetting) != "0";
 
         private void InitToolMenuPlacement()
         {
