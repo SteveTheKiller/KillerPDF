@@ -20,7 +20,17 @@ namespace KillerPDF.Shell
             foreach (PdfViewer pane in new[] { Viewer, ViewerB })
             {
                 ToolOptionsDock dock = pane.ToolOptionsDockRef;
-                dock.Floating = ToolMenuFloating;
+                ApplyFloatingState(dock);
+                dock.FloatingStateChanged += (_, _) =>
+                {
+                    // Where it was slid and whether it is minimized carry to every pane and window.
+                    App.SetSetting(ToolMenuMinimizedSetting, dock.Minimized ? "1" : "0");
+                    if (dock.CenterFraction is double fraction)
+                        App.SetSetting(ToolMenuCenterSetting, fraction.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture));
+                    foreach (MainWindow window in Application.Current.Windows.OfType<MainWindow>())
+                        foreach (PdfViewer other in new[] { window.Viewer, window.ViewerB })
+                            if (!ReferenceEquals(other.ToolOptionsDockRef, dock)) ApplyFloatingState(other.ToolOptionsDockRef);
+                };
                 dock.MouseRightButtonUp += (_, e) =>
                 {
                     if (dock.Bar is not DependencyObject bar || e.OriginalSource is not DependencyObject source
@@ -31,6 +41,18 @@ namespace KillerPDF.Shell
                     e.Handled = true;
                 };
             }
+        }
+
+        private const string ToolMenuMinimizedSetting = "ToolMenuMinimized";
+        private const string ToolMenuCenterSetting = "ToolMenuCenter";
+
+        private static void ApplyFloatingState(ToolOptionsDock dock)
+        {
+            dock.Floating = ToolMenuFloating;
+            dock.Minimized = App.GetSetting(ToolMenuMinimizedSetting) == "1";
+            dock.CenterFraction = double.TryParse(App.GetSetting(ToolMenuCenterSetting),
+                System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture,
+                out double fraction) ? fraction : null;
         }
 
         private static bool IsWithin(DependencyObject source, DependencyObject ancestor)
@@ -59,7 +81,7 @@ namespace KillerPDF.Shell
             App.SetSetting(ToolMenuFloatingSetting, ToolMenuFloating ? "0" : "1");
             foreach (MainWindow window in Application.Current.Windows.OfType<MainWindow>())
                 foreach (PdfViewer pane in new[] { window.Viewer, window.ViewerB })
-                    pane.ToolOptionsDockRef.Floating = ToolMenuFloating;
+                    ApplyFloatingState(pane.ToolOptionsDockRef);
         }
     }
 }

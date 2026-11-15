@@ -43,16 +43,70 @@ public sealed class ToolOptionsDockFloatingTests
         Assert.Equal(new Rect(0, 0, 600, 400), Bounds(page, dock));
     });
 
+    // Like the 1.9.2 bar: it hangs from the top edge, right-anchored until moved, and is drawn over the page.
     [Fact]
-    public void FloatingTheBarIsCenteredNearTheTopAndDrawnOverThePage() => RunSta(() =>
+    public void FloatingTheBarHangsFromTheTopEdgeAtTheRightAndIsDrawnOverThePage() => RunSta(() =>
     {
         var (dock, bar, _) = Laid(floating: true);
         Rect barBounds = Bounds(bar, dock);
-        Assert.Equal(200, barBounds.Width);
-        Assert.Equal(200, barBounds.Left);
-        Assert.InRange(barBounds.Top, 1, 16);
+        Assert.Equal(new Rect(600 - 200 - ToolOptionsDock.FloatingGap, 0, 200, 30), barBounds);
         Assert.Same(bar, VisualTreeHelper.GetChild(dock, VisualTreeHelper.GetChildrenCount(dock) - 1));
     });
+
+    [Fact]
+    public void ASlidBarKeepsItsShareOfTheWidthAndStaysInside() => RunSta(() =>
+    {
+        var (dock, bar, _) = Laid(floating: true);
+        dock.SlideTo(100);
+        Relayout(dock, 600);
+        Assert.Equal(100, Bounds(bar, dock).Left);
+        Relayout(dock, 1200);
+        Assert.Equal(300, Bounds(bar, dock).Left);   // its center stays at a third of the width: 400 - 100
+        dock.SlideTo(-50);
+        Relayout(dock, 1200);
+        Assert.Equal(0, Bounds(bar, dock).Left);
+        dock.SlideTo(5000);
+        Relayout(dock, 1200);
+        Assert.Equal(1000, Bounds(bar, dock).Left);
+    });
+
+    [Fact]
+    public void MinimizingLeavesAThinStripInTheBarsPlace() => RunSta(() =>
+    {
+        var (dock, bar, page) = Laid(floating: true);
+        double left = Bounds(bar, dock).Left;
+        dock.ToggleMinimized();
+        Relayout(dock, 600);
+        Assert.True(dock.Minimized);
+        Assert.Equal(Visibility.Collapsed, bar.Visibility);
+        UIElement strip = dock.MinimizedStrip!;
+        Rect stripBounds = Bounds(strip, dock);
+        Assert.Equal(new Rect(left, 0, 200, ToolOptionsDock.MinimizedHeight), stripBounds);
+        Assert.Equal(new Rect(0, 0, 600, 400), Bounds(page, dock));
+        dock.ToggleMinimized();
+        Relayout(dock, 600);
+        Assert.Equal(Visibility.Visible, bar.Visibility);
+    });
+
+    [Fact]
+    public void DockedTheBarCannotBeMinimizedOrSlid() => RunSta(() =>
+    {
+        var (dock, bar, page) = Laid(floating: false);
+        Rect before = Bounds(bar, dock);
+        dock.ToggleMinimized();
+        dock.SlideTo(0);
+        Relayout(dock, 600);
+        Assert.False(dock.Minimized);
+        Assert.Equal(Visibility.Visible, bar.Visibility);
+        Assert.Equal(before, Bounds(bar, dock));
+        Assert.Equal(30, Bounds(page, dock).Top);
+    });
+
+    private static void Relayout(ToolOptionsDock dock, double width)
+    {
+        dock.Measure(new Size(width, 400));
+        dock.Arrange(new Rect(0, 0, width, 400));
+    }
 
     [Fact]
     public void SwitchingModesMovesThePageWithoutRebuildingTheBar() => RunSta(() =>

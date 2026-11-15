@@ -1,15 +1,20 @@
 using System.Windows;
 using System.Windows.Automation;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace KillerPDF.Controls
 {
     /// <summary>
-    /// A pane's document area with the active tool's options bar docked above it. The bar takes
-    /// its own height at the top and the document gets the rest below, so the bar never covers
-    /// the page. With no bar the document fills the whole area.
+    /// A pane's document area with the active tool's options bar. Docked, the bar takes its own height
+    /// at the top and the document gets the rest below, so the bar never covers the page. Floating, the
+    /// document keeps the whole area and the bar hangs from its top edge over the page, where a drag on
+    /// empty bar space slides it and a double-click minimizes it to a thin strip (#485). With no bar the
+    /// document fills the whole area.
     /// </summary>
     [ContentProperty(nameof(Document))]
     public sealed class ToolOptionsDock : FrameworkElement
@@ -17,8 +22,31 @@ namespace KillerPDF.Controls
         /// <summary>The inactive pane of a split shows its own tool's bar at this opacity.</summary>
         public const double InactiveOpacity = 0.55;
 
+        /// <summary>Gap between a floating bar that has not been moved and the area's right edge.</summary>
+        public const double FloatingGap = 8;
+
+        /// <summary>Height of the strip a minimized floating bar leaves behind.</summary>
+        public const double MinimizedHeight = 10;
+
         private UIElement? _bar, _document;
-        private bool _dimmed;
+        private Border? _strip;
+        private bool _dimmed, _floating, _minimized;
+        private double? _centerFraction;
+        private readonly List<UIElement> _attached = [];
+
+        // A drag in progress: where the pointer started and where the bar's left edge was.
+        private (double PointerX, double BarLeft)? _drag;
+
+        /// <summary>Raised when the user slides or minimizes the floating bar, so the choice can be kept.</summary>
+        public event EventHandler? FloatingStateChanged;
+
+        public ToolOptionsDock()
+        {
+            PreviewMouseLeftButtonDown += OnPressed;
+            PreviewMouseMove += OnMoved;
+            PreviewMouseLeftButtonUp += OnReleased;
+            LostMouseCapture += (_, _) => _drag = null;
+        }
 
         /// <summary>The document area: the scroller and everything layered over it.</summary>
         public UIElement? Document
@@ -27,7 +55,7 @@ namespace KillerPDF.Controls
             set => Swap(ref _document, value);
         }
 
-        /// <summary>The docked options bar of the pane's tool, or null for a tool without one.
+        /// <summary>The options bar of the pane's tool, or null for a tool without one.
         /// A bar rebuilt while the keyboard was in it gets the focus back on the control with the
         /// same automation id, so pressing a swatch or a mode with Space keeps the user in place.</summary>
         public UIElement? Bar
@@ -41,32 +69,16 @@ namespace KillerPDF.Controls
                     && InputManager.Current.MostRecentInputDevice is KeyboardDevice
                     && Keyboard.FocusedElement is DependencyObject focused
                     ? FocusIdFor(focused) : null;
+                if (_bar is not null) _bar.Visibility = Visibility.Visible;
                 Swap(ref _bar, value);
-                if (value is not null) value.Opacity = _dimmed ? InactiveOpacity : 1;
+                if (value is not null)
+                {
+                    value.Opacity = _dimmed ? InactiveOpacity : 1;
+                    value.Visibility = ShowsStrip ? Visibility.Collapsed : Visibility.Visible;
+                }
                 if (!string.IsNullOrEmpty(focusedId) && value is FrameworkElement bar)
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
                         new Action(() => (FindById(bar, focusedId!) ?? FindById(bar, OverflowId))?.Focus()));
-            }
-        }
-
-        /// <summary>Distance between a floating bar and the top of the document area.</summary>
-        public const double FloatingInset = 8;
-
-        private bool _floating;
-
-        /// <summary>
-        /// True to float the bar over the top of the document instead of docking it above, so choosing
-        /// a tool never moves the page. (#485)
-        /// </summary>
-        public bool Floating
-        {
-            get => _floating;
-            set
-            {
-                if (_floating == value) return;
-                _floating = value;
-                ReattachInDrawingOrder();
-                InvalidateMeasure();
             }
         }
 
@@ -81,6 +93,111 @@ namespace KillerPDF.Controls
             }
         }
 
+        /// <summary>
+        /// True to float the bar over the top edge of the document instead of docking it above, so
+        /// choosing a tool never moves the page. (#485)
+        /// </summary>
+        public bool Floating
+        {
+            get => _floating;
+            set
+            {
+                if (_floating == value) return;
+                _floating = value;
+                SyncBarVisibility();
+                ReattachInDrawingOrder();
+                InvalidateMeasure();
+            }
+        }
+
+        /// <summary>True while a floating bar is minimized to its strip. Docked, a bar is never minimized.</summary>
+        public bool Minimized
+        {
+            get => _floating && _minimized;
+            set
+            {
+                if (_minimized == value) return;
+                _minimized = value;
+                SyncBarVisibility();
+                ReattachInDrawingOrder();
+                InvalidateMeasure();
+            }
+        }
+
+        /// <summary>Where a slid floating bar's center sits, as a share of the area's width; null until it
+        /// is moved, which keeps it against the right edge.</summary>
+        public double? CenterFraction
+        {
+            get => _centerFraction;
+            set { _centerFraction = value is double f ? Math.Clamp(f, 0, 1) : null; InvalidateArrange(); }
+        }
+
+        /// <summary>The strip a minimized bar leaves behind, or null while none is shown.</summary>
+        internal UIElement? MinimizedStrip => ShowsStrip ? _strip : null;
+
+        private bool ShowsStrip => _bar is not null && Minimized;
+
+        /// <summary>Minimizes a floating bar to its strip, or restores it.</summary>
+        internal void ToggleMinimized()
+        {
+            if (!_floating) return;
+            Minimized = !_minimized;
+            FloatingStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>Slides a floating bar so its left edge sits at <paramref name="left"/>, kept inside the area.</summary>
+        internal void SlideTo(double left)
+        {
+            if (!_floating || _bar is null) return;
+            double width = BarWidth(ActualWidth);
+            double area = ActualWidth;
+            if (area <= 0) return;
+            double clamped = Math.Clamp(left, 0, Math.Max(0, area - width));
+            CenterFraction = (clamped + width / 2) / area;
+        }
+
+        private void SyncBarVisibility()
+        {
+            if (_bar is not null) _bar.Visibility = ShowsStrip ? Visibility.Collapsed : Visibility.Visible;
+            if (ShowsStrip) _strip ??= NewStrip();
+        }
+
+        // The minimized strip: the bar's own colors with a row of grip dots, as in 1.9.2.
+        private Border NewStrip()
+        {
+            var dots = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                IsHitTestVisible = false,
+            };
+            for (int i = 0; i < 6; i++)
+            {
+                var dot = new Ellipse { Width = 3, Height = 3, Margin = new Thickness(2, 0, 2, 0) };
+                dot.SetResourceReference(Shape.FillProperty, "MutedTextBrush");
+                dots.Children.Add(dot);
+            }
+            var strip = new Border { Child = dots, Cursor = Cursors.Hand, Background = Brushes.Transparent };
+            AutomationProperties.SetName(strip, "Tool menu");
+            return strip;
+        }
+
+        // A minimized bar is collapsed and measures nothing, so its strip keeps the width it last had.
+        private double _shownBarWidth;
+
+        private double BarWidth(double area) => _bar is null ? 0
+            : Math.Min(_bar.Visibility == Visibility.Visible ? _bar.DesiredSize.Width : _shownBarWidth, area);
+
+        private double FloatingLeft(double area)
+        {
+            double width = BarWidth(area);
+            double max = Math.Max(0, area - width);
+            return _centerFraction is double f
+                ? Math.Clamp(f * area - width / 2, 0, max)
+                : Math.Max(0, area - width - FloatingGap);
+        }
+
         // The automation id of the "..." button of an options bar.
         private const string OverflowId = "ToolOptionsMore";
 
@@ -91,7 +208,7 @@ namespace KillerPDF.Controls
         {
             for (DependencyObject? d = focused; d is not null;
                  d = (d is Visual ? VisualTreeHelper.GetParent(d) : null) ?? LogicalTreeHelper.GetParent(d))
-                if (d is System.Windows.Controls.Primitives.Popup { PlacementTarget: { } target })
+                if (d is Popup { PlacementTarget: { } target })
                     return AutomationProperties.GetAutomationId(target);
             return AutomationProperties.GetAutomationId(focused);
         }
@@ -108,49 +225,93 @@ namespace KillerPDF.Controls
             return null;
         }
 
+        // ---- sliding and minimizing a floating bar ------------------------------------------------
+
+        // Only empty bar space or the strip starts a drag or a double-click; a press on a swatch, slider,
+        // box or button belongs to that control.
+        private bool IsHandle(object source)
+        {
+            if (!_floating || source is not DependencyObject hit) return false;
+            for (DependencyObject? d = hit; d is not null;
+                 d = (d is Visual ? VisualTreeHelper.GetParent(d) : null) ?? LogicalTreeHelper.GetParent(d))
+            {
+                if (ReferenceEquals(d, _strip)) return ShowsStrip;
+                if (ReferenceEquals(d, _bar)) return true;
+                if (d is ButtonBase or RangeBase or Selector or TextBoxBase or Thumb) return false;
+                if (ReferenceEquals(d, this)) return false;
+            }
+            return false;
+        }
+
+        private void OnPressed(object sender, MouseButtonEventArgs e)
+        {
+            if (!IsHandle(e.OriginalSource)) return;
+            e.Handled = true;
+            if (e.ClickCount == 2) { _drag = null; ToggleMinimized(); return; }
+            _drag = (e.GetPosition(this).X, FloatingLeft(ActualWidth));
+            CaptureMouse();
+        }
+
+        private void OnMoved(object sender, MouseEventArgs e)
+        {
+            if (_drag is not { } drag || !IsMouseCaptured) return;
+            SlideTo(drag.BarLeft + e.GetPosition(this).X - drag.PointerX);
+        }
+
+        private void OnReleased(object sender, MouseButtonEventArgs e)
+        {
+            if (_drag is null) return;
+            _drag = null;
+            ReleaseMouseCapture();
+            FloatingStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        // ---- children and layout ----------------------------------------------------------------
+
         private void Swap(ref UIElement? slot, UIElement? value)
         {
             if (ReferenceEquals(slot, value)) return;
-            if (slot is not null) { RemoveVisualChild(slot); RemoveLogicalChild(slot); }
+            if (slot is not null) RemoveLogicalChild(slot);
             slot = value;
             if (value is not null) AddLogicalChild(value);
+            SyncBarVisibility();
             ReattachInDrawingOrder();
             InvalidateMeasure();
         }
 
-        // WPF composes children in the order they were attached, not the order GetVisualChild returns
-        // later, so a floating bar attached before the document was drawn under it and could not be
-        // seen. Every change re-attaches both in the current order.
-        private readonly List<UIElement> _attached = [];
+        // Docked, the bar comes first so Tab reaches it just before the document, and Shift+Tab from the
+        // document comes back to it; the two never overlap. Floating, the bar and its strip overlap the
+        // page, so they are drawn last to stay on top.
+        private IEnumerable<UIElement> InDrawingOrder()
+        {
+            if (!_floating)
+            {
+                if (_bar is not null) yield return _bar;
+                if (_document is not null) yield return _document;
+                yield break;
+            }
+            if (_document is not null) yield return _document;
+            if (_bar is not null) yield return _bar;
+            if (ShowsStrip && _strip is not null) yield return _strip;
+        }
 
+        // WPF composes children in the order they were attached, not the order GetVisualChild returns
+        // later, so every change re-attaches them in the current order.
         private void ReattachInDrawingOrder()
         {
             foreach (UIElement child in _attached) RemoveVisualChild(child);
             _attached.Clear();
-            for (int i = 0; i < VisualChildrenCount; i++)
+            foreach (UIElement child in InDrawingOrder())
             {
-                var child = (UIElement)GetVisualChild(i);
                 AddVisualChild(child);
                 _attached.Add(child);
             }
         }
 
-        protected override int VisualChildrenCount => (_document is null ? 0 : 1) + (_bar is null ? 0 : 1);
+        protected override int VisualChildrenCount => _attached.Count;
 
-        // Docked, the bar comes first so Tab reaches it just before the document, and Shift+Tab from the
-        // document comes back to it; the two never overlap. Floating, the bar overlaps the page, so it is
-        // drawn last to stay on top.
-        protected override Visual GetVisualChild(int index)
-        {
-            UIElement? first = _floating ? _document ?? _bar : _bar ?? _document;
-            UIElement? second = _floating ? (_document is null ? null : _bar) : (_bar is null ? null : _document);
-            return index switch
-            {
-                0 when first is not null => first,
-                1 when second is not null => second,
-                _ => throw new ArgumentOutOfRangeException(nameof(index)),
-            };
-        }
+        protected override Visual GetVisualChild(int index) =>
+            index >= 0 && index < _attached.Count ? _attached[index] : throw new ArgumentOutOfRangeException(nameof(index));
 
         protected override System.Collections.IEnumerator LogicalChildren =>
             new UIElement?[] { _bar, _document }.Where(e => e is not null).GetEnumerator();
@@ -162,7 +323,9 @@ namespace KillerPDF.Controls
             {
                 _bar.Measure(new Size(available.Width, double.PositiveInfinity));
                 barHeight = _bar.DesiredSize.Height;
+                if (_bar.Visibility == Visibility.Visible) _shownBarWidth = _bar.DesiredSize.Width;
             }
+            if (ShowsStrip) _strip!.Measure(new Size(available.Width, MinimizedHeight));
             if (_floating) barHeight = 0;   // a floating bar takes no room from the document
             double rest = double.IsInfinity(available.Height) ? available.Height : Math.Max(0, available.Height - barHeight);
             _document?.Measure(new Size(available.Width, rest));
@@ -181,8 +344,18 @@ namespace KillerPDF.Controls
                 _document?.Arrange(new Rect(0, 0, final.Width, final.Height));
                 if (_bar is not null)
                 {
-                    double width = Math.Min(_bar.DesiredSize.Width, final.Width);
-                    _bar.Arrange(new Rect(Math.Max(0, (final.Width - width) / 2), FloatingInset, width, barHeight));
+                    double left = FloatingLeft(final.Width), width = BarWidth(final.Width);
+                    _bar.Arrange(new Rect(left, 0, width, barHeight));
+                    if (ShowsStrip)
+                    {
+                        if (_bar is Border source)
+                        {
+                            _strip!.Background = source.Background ?? Brushes.Transparent;
+                            _strip.BorderBrush = source.BorderBrush;
+                            _strip.BorderThickness = new Thickness(1, 0, 1, 1);
+                        }
+                        _strip!.Arrange(new Rect(left, 0, width, MinimizedHeight));
+                    }
                 }
                 return final;
             }
