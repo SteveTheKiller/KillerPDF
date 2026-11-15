@@ -156,6 +156,9 @@
     <sys:String x:Key="Str_Toolbar_TextUnder">Текст під піктограмами</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Лише текст</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Сховати панель інструментів</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Закріплене меню інструмента</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Плаваюче меню інструмента</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Закріпити або відкріпити меню інструмента</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Налаштувати панель інструментів...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Налаштування панелі інструментів</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Кнопки над позначкою стоять ліворуч на панелі інструментів, кнопки під нею праворуч. Кнопки з меню «Ще» чекають під стрілкою в кінці панелі. Перетягуйте, щоб змінити порядок, або двічі клацніть, щоб перенести кнопку в інший список.</sys:String>

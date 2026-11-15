@@ -157,6 +157,9 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_Toolbar_TextUnder">Text under icons</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Text only</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Hide toolbar</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Docked Tool Menu</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Floating Tool Menu</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Dock or float the tool menu</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Customize toolbar...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Customize Toolbar</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Buttons above the marker sit on the left of the toolbar, buttons below it on the right. Buttons in the More menu wait under the chevron at the end of the toolbar. Drag to rearrange, or double-click to move a button between the lists.</sys:String>

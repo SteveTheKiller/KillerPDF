@@ -156,6 +156,9 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_Toolbar_TextUnder">Tekst under ikoner</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Bare tekst</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Skjul verktøylinjen</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Forankret verktøymeny</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Flytende verktøymeny</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Forankre eller frigjør verktøymenyen</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Tilpass verktøylinjen...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Tilpass verktøylinjen</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Knapper over markøren står til venstre på verktøylinjen, knapper under den til høyre. Knapper i Mer-menyen venter under pilen i enden av verktøylinjen. Dra for å endre rekkefølgen, eller dobbeltklikk for å flytte en knapp mellom listene.</sys:String>

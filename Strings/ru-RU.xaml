@@ -156,6 +156,9 @@
     <sys:String x:Key="Str_Toolbar_TextUnder">Текст под иконками</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Только текст</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Скрыть панель инструментов</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Закреплённое меню инструмента</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Плавающее меню инструмента</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Закрепить или открепить меню инструмента</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Настроить панель инструментов...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Настройка панели инструментов</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Кнопки над меткой стоят слева на панели инструментов, кнопки под ней справа. Кнопки из меню «Ещё» ждут под стрелкой в конце панели. Перетаскивайте, чтобы изменить порядок, или дважды щёлкните, чтобы перенести кнопку в другой список.</sys:String>

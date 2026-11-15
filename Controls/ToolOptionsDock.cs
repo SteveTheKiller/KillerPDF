@@ -49,6 +49,27 @@ namespace KillerPDF.Controls
             }
         }
 
+        /// <summary>Distance between a floating bar and the top of the document area.</summary>
+        public const double FloatingInset = 8;
+
+        private bool _floating;
+
+        /// <summary>
+        /// True to float the bar over the top of the document instead of docking it above, so choosing
+        /// a tool never moves the page. (#485)
+        /// </summary>
+        public bool Floating
+        {
+            get => _floating;
+            set
+            {
+                if (_floating == value) return;
+                _floating = value;
+                InvalidateMeasure();
+                InvalidateVisual();
+            }
+        }
+
         /// <summary>True for the pane that does not have focus while the window is split.</summary>
         public bool Dimmed
         {
@@ -98,15 +119,20 @@ namespace KillerPDF.Controls
 
         protected override int VisualChildrenCount => (_document is null ? 0 : 1) + (_bar is null ? 0 : 1);
 
-        // The bar comes first so Tab reaches it just before the document, and Shift+Tab from the
-        // document comes back to it. The two never overlap, so drawing order does not matter.
-        protected override Visual GetVisualChild(int index) => index switch
+        // Docked, the bar comes first so Tab reaches it just before the document, and Shift+Tab from the
+        // document comes back to it; the two never overlap. Floating, the bar overlaps the page, so it is
+        // drawn last to stay on top.
+        protected override Visual GetVisualChild(int index)
         {
-            0 when _bar is not null => _bar,
-            0 when _document is not null => _document,
-            1 when _bar is not null && _document is not null => _document,
-            _ => throw new ArgumentOutOfRangeException(nameof(index)),
-        };
+            UIElement? first = _floating ? _document ?? _bar : _bar ?? _document;
+            UIElement? second = _floating ? (_document is null ? null : _bar) : (_bar is null ? null : _document);
+            return index switch
+            {
+                0 when first is not null => first,
+                1 when second is not null => second,
+                _ => throw new ArgumentOutOfRangeException(nameof(index)),
+            };
+        }
 
         protected override System.Collections.IEnumerator LogicalChildren =>
             new UIElement?[] { _bar, _document }.Where(e => e is not null).GetEnumerator();
@@ -119,6 +145,7 @@ namespace KillerPDF.Controls
                 _bar.Measure(new Size(available.Width, double.PositiveInfinity));
                 barHeight = _bar.DesiredSize.Height;
             }
+            if (_floating) barHeight = 0;   // a floating bar takes no room from the document
             double rest = double.IsInfinity(available.Height) ? available.Height : Math.Max(0, available.Height - barHeight);
             _document?.Measure(new Size(available.Width, rest));
             double width = double.IsInfinity(available.Width)
@@ -131,6 +158,16 @@ namespace KillerPDF.Controls
         protected override Size ArrangeOverride(Size final)
         {
             double barHeight = _bar?.DesiredSize.Height ?? 0;
+            if (_floating)
+            {
+                _document?.Arrange(new Rect(0, 0, final.Width, final.Height));
+                if (_bar is not null)
+                {
+                    double width = Math.Min(_bar.DesiredSize.Width, final.Width);
+                    _bar.Arrange(new Rect(Math.Max(0, (final.Width - width) / 2), FloatingInset, width, barHeight));
+                }
+                return final;
+            }
             _bar?.Arrange(new Rect(0, 0, final.Width, barHeight));
             _document?.Arrange(new Rect(0, barHeight, final.Width, Math.Max(0, final.Height - barHeight)));
             return final;

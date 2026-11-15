@@ -359,6 +359,7 @@ namespace KillerPDF.Shell
             // so its bridge would NullReference the moment anything touched it otherwise.
             InitSplitPanes();
             RetireFloatingBarSettings();   // the docked options row keeps no position (AnnotationBars.cs)
+            InitToolMenuPlacement();       // docked or floating options row, Alt+B (ToolMenuPlacement.cs)
             InitTabPlacement();
             WirePageListEdgeFades();   // sidebar page-list edge fades (SidebarLayout.cs)
             _pageContentGrid  = ActiveViewer.PageGrid;

@@ -156,6 +156,9 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_Toolbar_TextUnder">Text pod ikonami</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Pouze text</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Skrýt panel nástrojů</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Ukotvená nabídka nástroje</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Plovoucí nabídka nástroje</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Ukotvit nebo uvolnit nabídku nástroje</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Přizpůsobit panel nástrojů...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Přizpůsobit panel nástrojů</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Tlačítka nad značkou jsou na levé straně panelu nástrojů, tlačítka pod ní na pravé. Tlačítka v nabídce Další čekají pod šipkou na konci panelu. Přetažením je přeuspořádáte, dvojklikem přesunete tlačítko mezi seznamy.</sys:String>

@@ -152,6 +152,9 @@ La página se puede sustituir por una imagen de sí misma con las áreas marcada
     <sys:String x:Key="Str_Toolbar_TextUnder">Texto bajo los iconos</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Solo texto</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Ocultar la barra de herramientas</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Menú de herramienta acoplado</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Menú de herramienta flotante</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Acoplar o desacoplar el menú de herramienta</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Personalizar barra de herramientas...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Personalizar barra de herramientas</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Los botones por encima del marcador van a la izquierda de la barra de herramientas y los de debajo, a la derecha. Los botones del menú Más esperan bajo la flecha al final de la barra. Arrastre para reordenar, o haga doble clic para mover un botón entre las listas.</sys:String>

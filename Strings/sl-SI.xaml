@@ -142,6 +142,9 @@
     <sys:String x:Key="Str_Toolbar_TextUnder">Besedilo pod ikonami</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Samo besedilo</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Skrij orodno vrstico</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Zasidran meni orodja</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Plavajoči meni orodja</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Zasidraj ali odspni meni orodja</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Prilagodi orodno vrstico...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Prilagodi orodno vrstico</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Gumbi nad oznako so na levi strani orodne vrstice, gumbi pod njo pa na desni. Gumbi menija Več so pod puščico na koncu orodne vrstice. Povlecite za spremembo vrstnega reda ali dvokliknite gumb, da ga premaknete med seznamoma.</sys:String>

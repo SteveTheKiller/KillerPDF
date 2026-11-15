@@ -156,6 +156,9 @@ La page peut être remplacée par une image d'elle-même avec les zones marquée
     <sys:String x:Key="Str_Toolbar_TextUnder">Texte sous les icônes</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Texte seul</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Masquer la barre d'outils</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Menu d'outil ancré</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Menu d'outil flottant</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Ancrer ou détacher le menu d'outil</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Personnaliser la barre d'outils...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Personnaliser la barre d'outils</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Les boutons au-dessus du repère se placent à gauche de la barre d'outils, ceux en dessous à droite. Les boutons du menu Plus attendent sous le chevron au bout de la barre. Faites glisser pour réorganiser, ou double-cliquez pour déplacer un bouton d'une liste à l'autre.</sys:String>

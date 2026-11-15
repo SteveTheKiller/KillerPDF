@@ -156,6 +156,9 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_Toolbar_TextUnder">Văn bản dưới biểu tượng</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Chỉ văn bản</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Ẩn thanh công cụ</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Menu tùy chọn công cụ được gắn</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Menu tùy chọn công cụ nổi</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Gắn hoặc thả nổi menu tùy chọn công cụ</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Tùy chỉnh thanh công cụ...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Tùy chỉnh thanh công cụ</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Các nút phía trên vạch đánh dấu nằm bên trái thanh công cụ, các nút phía dưới nằm bên phải. Các nút trong menu Thêm nằm dưới mũi tên ở cuối thanh công cụ. Kéo để sắp xếp lại, hoặc nhấp đúp để chuyển một nút giữa hai danh sách.</sys:String>

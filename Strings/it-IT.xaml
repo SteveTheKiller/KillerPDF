@@ -156,6 +156,9 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_Toolbar_TextUnder">Testo sotto le icone</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Solo testo</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Nascondi barra strumenti</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Menu dello strumento ancorato</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Menu dello strumento mobile</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Ancora o sgancia il menu dello strumento</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Personalizza barra degli strumenti...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Personalizza barra degli strumenti</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">I pulsanti sopra il segnaposto stanno a sinistra della barra degli strumenti, quelli sotto a destra. I pulsanti del menu Altro aspettano sotto la freccia alla fine della barra. Trascina per riordinare, oppure fai doppio clic per spostare un pulsante tra gli elenchi.</sys:String>

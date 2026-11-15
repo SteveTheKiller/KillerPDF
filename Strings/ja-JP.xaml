@@ -156,6 +156,9 @@
     <sys:String x:Key="Str_Toolbar_TextUnder">アイコンの下にテキスト</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">テキストのみ</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">ツールバーを非表示</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">ドッキングしたツールメニュー</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">フローティングのツールメニュー</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">ツールメニューをドッキングまたはフローティングにする</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">ツールバーのカスタマイズ...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">ツールバーのカスタマイズ</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">目印より上のボタンはツールバーの左側に、下のボタンは右側に並びます。その他メニューのボタンは、ツールバー末尾の矢印の下に入ります。ドラッグで並べ替え、ダブルクリックでボタンを一覧間で移動できます。</sys:String>

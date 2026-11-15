@@ -152,6 +152,9 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_Toolbar_TextUnder">Text unter Symbol</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Nur Text</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Symbolleiste ausblenden</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Angedocktes Werkzeugmenü</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Schwebendes Werkzeugmenü</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Werkzeugmenü andocken oder schweben lassen</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Symbolleiste anpassen...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Symbolleiste anpassen</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Schaltflächen über der Markierung stehen links in der Symbolleiste, Schaltflächen darunter rechts. Schaltflächen im Menü Mehr warten unter dem Pfeil am Ende der Symbolleiste. Zum Umordnen ziehen oder doppelklicken, um eine Schaltfläche zwischen den Listen zu verschieben.</sys:String>

@@ -152,6 +152,9 @@
     <sys:String x:Key="Str_Toolbar_TextUnder">图标下方文本</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">仅文本</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">隐藏工具栏</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">停靠的工具选项菜单</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">浮动的工具选项菜单</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">停靠或浮动工具选项菜单</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">自定义工具栏...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">自定义工具栏</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">标记上方的按钮位于工具栏左侧，下方的按钮位于右侧。“更多”菜单中的按钮放在工具栏末尾的箭头下。拖动可重新排列，双击可在两个列表之间移动按钮。</sys:String>

@@ -152,6 +152,9 @@
     <sys:String x:Key="Str_Toolbar_TextUnder">আইকনের নিচে লেখা</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">শুধু লেখা</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">টুলবার লুকান</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">ডক করা টুল মেনু</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">ভাসমান টুল মেনু</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">টুল মেনু ডক বা ভাসমান করুন</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">টুলবার কাস্টমাইজ করুন...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">টুলবার কাস্টমাইজ করুন</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">চিহ্নের উপরের বোতামগুলো টুলবারের বাম দিকে থাকে, নিচেরগুলো ডান দিকে। আরও মেনুর বোতামগুলো টুলবারের শেষের শেভরনের নিচে থাকে। সাজাতে টানুন, অথবা তালিকার মধ্যে বোতাম সরাতে ডাবল-ক্লিক করুন।</sys:String>

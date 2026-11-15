@@ -312,6 +312,7 @@ namespace KillerPDF
             // Esc belongs to Cancel on the base layer, so full screen only claims F11.
             B("F11 / %esc%",   "Str_KS_FullScreen",   "View", Cap("F11")),
             B("%alt%+M",       "Str_Toolbar_Hide",    "View", Cap("Alt:M")),
+            B("%alt%+B",       "Str_KS_ToolMenu",     "View", Cap("Alt:B")),
             B("N",             "Str_DocInvertSetting","View", Cap("N")),
             B("%shift%+N",     "Str_InvertImagesToo", "View", Cap("Shift:N")),
             B("%ctrl%+%shift%+%zin% / %zout% / 0", "Str_KS_AppSize", "View", Cap("CtrlShift:Equals"),

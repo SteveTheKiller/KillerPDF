@@ -156,6 +156,9 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_Toolbar_TextUnder">Szöveg az ikonok alatt</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Csak szöveg</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Eszköztár elrejtése</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Rögzített eszközmenü</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Lebegő eszközmenü</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Eszközmenü rögzítése vagy lebegtetése</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Eszköztár testreszabása...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Eszköztár testreszabása</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">A jelölő feletti gombok az eszköztár bal oldalára kerülnek, az alatta lévők a jobb oldalára. A Továbbiak menü gombjai az eszköztár végén lévő nyíl alatt várnak. Húzással rendezheti át őket, dupla kattintással áthelyezhet egy gombot a listák között.</sys:String>

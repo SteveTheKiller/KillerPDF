@@ -385,6 +385,8 @@ namespace KillerPDF.Shell
             // shape as the F10 branches above.
             else if (key == Key.System && systemKey == Key.M && mods == ModifierKeys.Alt)
             { ToggleToolbarHidden(); e.Handled = true; }
+            else if (key == Key.System && systemKey == Key.B && mods == ModifierKeys.Alt)
+            { ToggleToolMenuFloating(); e.Handled = true; }
             else if (key == Key.F11) { ToggleFullScreen(); e.Handled = true; }
             else if (key == Key.Escape && _fullScreen) { ToggleFullScreen(); e.Handled = true; }
             else if (key == Key.F4 && mods == ModifierKeys.Shift && HasReadingDocument)

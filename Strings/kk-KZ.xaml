@@ -78,6 +78,9 @@
     <sys:String x:Key="Str_Toolbar_TextUnder">Мәтін белгішенің астында</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Тек мәтін</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Құралдар тақтасын жасыру</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Бекітілген құрал мәзірі</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Қалқымалы құрал мәзірі</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Құрал мәзірін бекіту немесе қалқытып қою</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Құралдар тақтасын баптау...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Құралдар тақтасын баптау</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Белгіден жоғарыдағы түймелер құралдар тақтасының сол жағында, төмендегілері оң жағында тұрады. Қосымша мәзірдегі түймелер тақтаның соңындағы көрсеткі астында тұрады. Ретін өзгерту үшін сүйреңіз немесе түймені тізімдер арасында жылжыту үшін екі рет басыңыз.</sys:String>

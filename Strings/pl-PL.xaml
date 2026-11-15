@@ -156,6 +156,9 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_Toolbar_TextUnder">Tekst pod ikonami</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Tylko tekst</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Ukryj pasek narzędzi</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Zadokowane menu narzędzia</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Pływające menu narzędzia</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Zadokuj lub odepnij menu narzędzia</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Dostosuj pasek narzędzi...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Dostosuj pasek narzędzi</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">Przyciski nad znacznikiem są po lewej stronie paska narzędzi, a pod nim po prawej. Przyciski w menu Więcej czekają pod strzałką na końcu paska. Przeciągnij, aby zmienić kolejność, lub kliknij dwukrotnie, aby przenieść przycisk między listami.</sys:String>

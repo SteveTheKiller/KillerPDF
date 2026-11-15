@@ -152,6 +152,9 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_Toolbar_TextUnder">Simge altında metin</sys:String>
     <sys:String x:Key="Str_Toolbar_TextOnly">Yalnızca metin</sys:String>
     <sys:String x:Key="Str_Toolbar_Hide">Araç çubuğunu gizle</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Docked">Sabitlenmiş araç menüsü</sys:String>
+    <sys:String x:Key="Str_ToolMenu_Floating">Yüzen araç menüsü</sys:String>
+    <sys:String x:Key="Str_KS_ToolMenu">Araç menüsünü sabitle veya yüzdür</sys:String>
     <sys:String x:Key="Str_Toolbar_Customize">Araç çubuğunu özelleştir...</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Title">Araç çubuğunu özelleştir</sys:String>
     <sys:String x:Key="Str_CustomizeToolbar_Hint">İşaretin üstündeki düğmeler araç çubuğunun solunda, altındakiler sağında yer alır. Diğer menüsündeki düğmeler araç çubuğunun sonundaki okun altında bekler. Yeniden sıralamak için sürükleyin veya bir düğmeyi listeler arasında taşımak için çift tıklayın.</sys:String>
