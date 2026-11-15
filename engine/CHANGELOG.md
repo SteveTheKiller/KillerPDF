@@ -4,7 +4,7 @@ All notable changes to The KillerPDF.Engine are documented here. Application cha
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.3] - Unreleased
+## [1.9.3] - 2026-11-15
 
 The 1.9.3 engine adds floating-point rendering, portable profile conversion and initial native-format readers, and writes Gregorian dates on every Windows region.
 
