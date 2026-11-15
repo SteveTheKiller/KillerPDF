@@ -1584,7 +1584,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Raster_Title">Terület raszterizálása</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Húzzon keretet az oldal azon része köré, amelyből kép legyen. A kereten kívül minden változatlan marad.</sys:String>
     <sys:String x:Key="Str_Raster_None">Húzzon keretet az oldalon.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">A keretben {0} szövegrész, {1} kép és {2} rajz van. Ezek egyetlen képként jelennek meg. Az alattuk lévő szöveg a fájlban marad, így továbbra is kijelölhető és kereshető.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">A keretben {0} szövegrész, {1} kép és {2} rajz van. Ezek egyetlen képként jelennek meg, a keret belsejében lévő szöveg pedig eltűnik az oldalról. Címkézett PDF esetén a kép ezeket a szavakat helyettesítő szövegként megtartja a képernyőolvasók számára, ezért a szöveg elrejtéséhez használja a Kitakarás funkciót.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Raszterizálás</sys:String>
     <sys:String x:Key="Str_Raster_Done">A(z) {0}. oldal egy területe raszterizálva</sys:String>
     <sys:String x:Key="Str_Raster_Failed">A területet nem sikerült raszterizálni: {0}</sys:String>

@@ -1597,7 +1597,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Raster_Title">Rasterizar região</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Arraste uma caixa em volta da parte da página que vai virar imagem. Tudo fora da caixa continua como está.</sys:String>
     <sys:String x:Key="Str_Raster_None">Arraste uma caixa na página.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">A caixa cobre {0} trechos de texto, {1} imagens e {2} desenhos. Eles são desenhados como uma única imagem. O texto abaixo continua no arquivo, então ainda pode ser selecionado e pesquisado.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">A caixa cobre {0} trechos de texto, {1} imagens e {2} desenhos. Eles são desenhados como uma única imagem, e o texto dentro da caixa é removido da página. Em um PDF com tags, a imagem mantém essas palavras como texto alternativo para leitores de tela, então use Tarjar para ocultar texto.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rasterizar</sys:String>
     <sys:String x:Key="Str_Raster_Done">Região da página {0} rasterizada</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Não foi possível rasterizar a região: {0}</sys:String>

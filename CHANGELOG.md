@@ -4,6 +4,14 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.4] - Unreleased
+
+1.9.4 makes Rasterize Region remove the text inside the box.
+
+### Fixed
+
+- Rasterize Region removes the text inside the box, so it can no longer be searched, selected or copied from under the image. On a tagged PDF the image keeps the removed words as alternative text for screen readers, and the dialog points to Redact for hiding text. (#369)
+
 ## [1.9.3] - 2026-11-15
 
 1.9.3 reads EPUB and DjVu books natively with Convert to PDF, selects and extracts pictures, color-manages viewing and printer proofing on standard monitors with HDR still in progress, opens large PDFs faster, turns the page and markup right-click menus into cards, deletes pages in one step, splits a PDF into one file per page or every few pages, turns images into a PDF straight from File Explorer, lets Enter save a text box, and fixes redaction, cropping, form saving, merging, printing, stamps, updates and the file picker.

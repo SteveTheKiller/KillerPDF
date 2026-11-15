@@ -1597,7 +1597,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Raster_Title">Rasterizza area</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Trascina un riquadro attorno alla parte della pagina da trasformare in immagine. Tutto ciò che è fuori dal riquadro resta invariato.</sys:String>
     <sys:String x:Key="Str_Raster_None">Trascina un riquadro sulla pagina.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Il riquadro comprende {0} porzioni di testo, {1} immagini e {2} disegni. Vengono disegnati come un'unica immagine. Il testo sottostante resta nel file, quindi si può ancora selezionare e cercare.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Il riquadro comprende {0} porzioni di testo, {1} immagini e {2} disegni. Vengono disegnati come un'unica immagine e il testo all'interno del riquadro viene rimosso dalla pagina. In un PDF con tag l'immagine conserva quelle parole come testo alternativo per gli screen reader, quindi usa Oscura per nascondere il testo.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rasterizza</sys:String>
     <sys:String x:Key="Str_Raster_Done">Area della pagina {0} rasterizzata</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Impossibile rasterizzare l'area: {0}</sys:String>

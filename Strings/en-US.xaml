@@ -1607,7 +1607,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Raster_Title">Rasterize Region</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Drag a box around the part of the page to turn into an image. Everything outside the box stays as it is.</sys:String>
     <sys:String x:Key="Str_Raster_None">Drag a box on the page.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">The box covers {0} text runs, {1} images and {2} drawings. They are drawn as one image. The text underneath stays in the file, so it can still be selected and searched.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">The box covers {0} text runs, {1} images and {2} drawings. They are drawn as one image, and the text inside the box is removed from the page. On a tagged PDF the image keeps those words as alternative text for screen readers, so use Redact to hide text.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rasterize</sys:String>
     <sys:String x:Key="Str_Raster_Done">Rasterized a region of page {0}</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Could not rasterize the region: {0}</sys:String>

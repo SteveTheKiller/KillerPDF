@@ -1581,7 +1581,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Raster_Title">栅格化区域</sys:String>
     <sys:String x:Key="Str_Raster_Hint">拖出一个框，圈住要变成图像的页面部分。框外的内容保持不变。</sys:String>
     <sys:String x:Key="Str_Raster_None">请在页面上拖出一个框。</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">框内有 {0} 段文字、{1} 张图像和 {2} 个绘图。它们会绘制成一张图像。下方的文字仍保留在文件中，因此仍可选择和搜索。</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">框内有 {0} 段文字、{1} 张图像和 {2} 个绘图。它们会绘制成一张图像，框内的文字会从页面中删除。在带标签的 PDF 中，该图像会将这些文字保留为供屏幕阅读器使用的替代文本，因此请使用“涂黑”来隐藏文字。</sys:String>
     <sys:String x:Key="Str_Raster_Apply">栅格化</sys:String>
     <sys:String x:Key="Str_Raster_Done">已栅格化第 {0} 页的一个区域</sys:String>
     <sys:String x:Key="Str_Raster_Failed">无法栅格化该区域：{0}</sys:String>

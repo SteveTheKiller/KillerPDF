@@ -1577,7 +1577,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Raster_Title">Bölgeyi rasterleştir</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Sayfanın görüntüye dönüşecek kısmının çevresine bir kutu sürükleyin. Kutunun dışındaki her şey olduğu gibi kalır.</sys:String>
     <sys:String x:Key="Str_Raster_None">Sayfada bir kutu sürükleyin.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Kutu {0} metin parçası, {1} görüntü ve {2} çizim içeriyor. Bunlar tek bir görüntü olarak çizilir. Altındaki metin dosyada kalır, bu yüzden hâlâ seçilebilir ve aranabilir.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Kutu {0} metin parçası, {1} görüntü ve {2} çizim içeriyor. Bunlar tek bir görüntü olarak çizilir ve kutunun içindeki metin sayfadan kaldırılır. Etiketli bir PDF'de görüntü bu sözcükleri ekran okuyucular için alternatif metin olarak korur, bu yüzden metni gizlemek için Karart'ı kullanın.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rasterleştir</sys:String>
     <sys:String x:Key="Str_Raster_Done">Sayfa {0} üzerindeki bir bölge rasterleştirildi</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Bölge rasterleştirilemedi: {0}</sys:String>

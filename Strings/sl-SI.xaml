@@ -1490,7 +1490,7 @@
     <sys:String x:Key="Str_Raster_Title">Rastriraj območje</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Povlecite okvir okoli dela strani, ki ga želite pretvoriti v sliko. Vse zunaj okvirja ostane nespremenjeno.</sys:String>
     <sys:String x:Key="Str_Raster_None">Povlecite okvir na strani.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Okvir zajema {0} besedilnih nizov, {1} slik in {2} risb. Narisani bodo kot ena slika. Besedilo pod njo ostane v datoteki, zato ga je še vedno mogoče izbrati in iskati.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Okvir zajema {0} besedilnih nizov, {1} slik in {2} risb. Narisani bodo kot ena slika, besedilo znotraj okvirja pa bo odstranjeno s strani. V označenem (tagged) PDF slika ohrani te besede kot nadomestno besedilo za bralnike zaslona, zato za skrivanje besedila uporabite Prekrij.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rastriraj</sys:String>
     <sys:String x:Key="Str_Raster_Done">Območje strani {0} je rastrirano</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Območja ni bilo mogoče rastrirati: {0}</sys:String>

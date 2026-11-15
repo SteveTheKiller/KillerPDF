@@ -1597,7 +1597,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Raster_Title">Rasteriser område</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Dra en ramme rundt den delen av siden som skal bli et bilde. Alt utenfor rammen forblir som det er.</sys:String>
     <sys:String x:Key="Str_Raster_None">Dra en ramme på siden.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Rammen dekker {0} tekstbiter, {1} bilder og {2} tegninger. De tegnes som ett bilde. Teksten under blir værende i filen, så den kan fortsatt merkes og søkes i.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Rammen dekker {0} tekstbiter, {1} bilder og {2} tegninger. De tegnes som ett bilde, og teksten inni rammen fjernes fra siden. I en tagget PDF beholder bildet disse ordene som alternativ tekst for skjermlesere, så bruk Sladd for å skjule tekst.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rasteriser</sys:String>
     <sys:String x:Key="Str_Raster_Done">Rasteriserte et område på side {0}</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Kunne ikke rasterisere området: {0}</sys:String>

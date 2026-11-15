@@ -1582,7 +1582,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Raster_Title">Rastrovat oblast</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Přetažením ohraničte část stránky, která se má převést na obrázek. Vše mimo rámeček zůstane beze změny.</sys:String>
     <sys:String x:Key="Str_Raster_None">Přetáhněte na stránce rámeček.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Rámeček zahrnuje {0} textových úseků, {1} obrázků a {2} kreseb. Vykreslí se jako jeden obrázek. Text pod ním v souboru zůstane, takže jej lze dál vybírat i vyhledávat.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Rámeček zahrnuje {0} textových úseků, {1} obrázků a {2} kreseb. Vykreslí se jako jeden obrázek a text uvnitř rámečku se ze stránky odstraní. U označeného (tagged) PDF si obrázek tato slova ponechá jako alternativní text pro čtečky obrazovky, proto text skrývejte pomocí funkce Začernit.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rastrovat</sys:String>
     <sys:String x:Key="Str_Raster_Done">Oblast stránky {0} byla rastrována</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Oblast nelze rastrovat: {0}</sys:String>

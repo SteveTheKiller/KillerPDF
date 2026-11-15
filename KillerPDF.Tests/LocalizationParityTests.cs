@@ -22,15 +22,16 @@ public sealed class LocalizationParityTests
         Assert.Contains("TextWrapping = TextWrapping.Wrap;", source);
     }
 
-    // Rasterize Region draws the box as an image and keeps the page's text, tags included, so the
-    // dialog cannot promise the text goes.
+    // Rasterize Region removes the text inside the box (#369). On a tagged PDF the words stay as the image's
+    // alternative text, so the dialog points anyone hiding text to Redact instead of promising it is gone.
     [Fact]
-    public void RasterizeRegionSaysTheTextStays()
+    public void RasterizeRegionSaysTheTextIsRemovedAndPointsToRedact()
     {
         string english = ReadStrings(Path.Combine(StringsDirectory, "en-US.xaml"))["Str_Raster_Affects"];
 
-        Assert.DoesNotContain("no longer", english);
-        Assert.Contains("can still be selected and searched", english);
+        Assert.DoesNotContain("can still be selected and searched", english);
+        Assert.Contains("text inside the box is removed", english);
+        Assert.Contains("Redact", english);
     }
 
     [Fact]

@@ -1597,7 +1597,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Raster_Title">領域をラスタライズ</sys:String>
     <sys:String x:Key="Str_Raster_Hint">画像にしたいページの部分をドラッグで囲みます。枠の外側はそのまま残ります。</sys:String>
     <sys:String x:Key="Str_Raster_None">ページ上で枠をドラッグしてください。</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">枠内にはテキスト {0} 個、画像 {1} 個、図形 {2} 個があります。これらは 1 枚の画像として描画されます。下のテキストはファイルに残るため、引き続き選択も検索もできます。</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">枠内にはテキスト {0} 個、画像 {1} 個、図形 {2} 個があります。これらは 1 枚の画像として描画され、枠内のテキストはページから削除されます。タグ付き PDF では、画像がそれらの語句をスクリーン リーダー用の代替テキストとして保持するため、テキストを隠すには墨消しを使用してください。</sys:String>
     <sys:String x:Key="Str_Raster_Apply">ラスタライズ</sys:String>
     <sys:String x:Key="Str_Raster_Done">{0} ページの領域をラスタライズしました</sys:String>
     <sys:String x:Key="Str_Raster_Failed">領域をラスタライズできませんでした: {0}</sys:String>
