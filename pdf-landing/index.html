@@ -108,6 +108,11 @@ html[data-theme="light"] .blurb h3, html[data-theme="light"] .feature-card h3 { 
 .engine-lockup { display: flex; align-items: center; gap: 9px; margin: 8px 0 12px; color: var(--text); font: 30px var(--kt-font-card-title); line-height: 1; text-shadow: 0 3px 7px rgba(0,0,0,.48); }
 .engine-lockup .engine-icon { width: 48px; height: 48px; object-fit: contain; margin-right: 2px; filter: drop-shadow(0 3px 6px rgba(0,0,0,.45)); }
 .engine-lockup .wm-logo { width: auto; height: 45px; filter: drop-shadow(0 3px 6px rgba(0,0,0,.45)); }
+/* The lockup is about 4.85 times its font size wide, so it scales with its column instead of running under the stats. */
+.engine-copy { container-type: inline-size; }
+html body .engine-copy .engine-lockup { font-size: min(30px, 6.1cqi); gap: min(9px, 1.8cqi); }
+html body .engine-copy .engine-lockup .engine-icon { width: min(48px, 9.8cqi); height: min(48px, 9.8cqi); }
+html body .engine-copy .engine-lockup img.wm-logo { height: min(81.7383px, 16.7cqi); }
 .engine-copy p { max-width: 680px; color: var(--text2); font-size: 14px; line-height: 1.65; }
 .engine-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 9px 14px; border: 1.5px solid var(--accent); border-radius: 6px; color: var(--accent); font-size: 13px; font-weight: 700; transition: background .15s,color .15s,transform .1s; }
 .engine-link:hover { background: color-mix(in srgb,var(--text) 16%,transparent); color: var(--accent); transform: translateY(-1px); }
@@ -369,7 +374,7 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 <div class="engine-stats" aria-label="Corpus figures">
 <div class="engine-stat"><b>17,328</b><span data-i18n="corpus_stat_public">downloadable PDFs</span></div>
 <div class="engine-stat"><b>47,024</b><span data-i18n="corpus_stat_local">PDFs in the full local gate</span></div>
-<div class="engine-stat"><b>5</b><span data-i18n="corpus_stat_runs">measured runs per normal collection</span></div>
+<div class="engine-stat"><b>3</b><span data-i18n="corpus_stat_runs">measured runs per normal collection</span></div>
 <div class="engine-stat"><b>0</b><span data-i18n="corpus_stat_crashes">application crashes or timeouts</span></div>
 </div>
 </div>
