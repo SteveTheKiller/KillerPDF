@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
-- `PdfPartialRasterization.Apply` removes the glyphs whose centers lie inside each region, so rasterized text is no longer extractable. On a document with a structure tree, the image is added as a Figure whose `/Alt` holds the removed words; on an untagged document it stays an artifact. (#369)
+- `PdfPartialRasterization.Apply` removes the glyphs that lie wholly inside each region, so rasterized text is no longer extractable, and keeps a glyph that crosses a region's edge because the page still draws its outside part. On a document with a structure tree, the image is added as a Figure whose `/Alt` holds the removed words; on an untagged document it stays an artifact. (#369)
 
 ## [1.9.3] - 2026-11-15
 

@@ -13,7 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Printing a page that turns to fit the sheet no longer crashes with "The calling thread cannot access this object because a different thread owns it." (#492)
 - The tool menu floats over the top edge of the page area again by default, as it did before 1.9.3, so choosing a tool no longer moves the page down. Drag it by its grip or empty space to slide it along the edge, and double-click it to minimize it to a strip. (#485)
 - Choosing Highlight, Underline or Strikethrough with text already selected marks that text instead of clearing the selection, and while one of those tools is on, the pointer is an I-beam over text and a cross elsewhere. (#485)
-- Rasterize Region removes the text inside the box, so it can no longer be searched, selected or copied from under the image. On a tagged PDF the image keeps the removed words as alternative text for screen readers, and the dialog points to Redact for hiding text. (#369)
+- Rasterize Region removes the text inside the box, so it can no longer be searched, selected or copied from under the image. A letter that crosses the box's edge stays, so its outside half is still drawn. On a tagged PDF the image keeps the removed words as alternative text for screen readers, and the dialog points to Redact for hiding text. (#369)
 
 ### Added
 

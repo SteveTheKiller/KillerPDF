@@ -80,6 +80,29 @@ public sealed class PdfPartialRasterizationTests
         Assert.Contains("outside", words);
     }
 
+    // Review BF-003: a glyph across the box edge is drawn half outside the box from the page itself, so
+    // it stays; only glyphs wholly inside the box, which the image now shows, are removed.
+    [Fact]
+    public void ApplyKeepsAGlyphThatCrossesTheEdgeOfTheRegion()
+    {
+        // Helvetica W is 944/1000 em: at 12 pt the glyphs span 20-31.3, 31.3-42.7, 42.7-54 and 54-65.3.
+        // The region ends at 38, inside the second W, past its center at 37.
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(200, 100, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(20, 40).ShowLatin1Text("WWWW").EndText())
+            .Build();
+        PdfDocument document = PdfDocument.Open(source);
+        PdfPageContent page = new PdfPageContentReader(document).Read(0);
+        PdfPartialRasterizationPlan plan = PdfPartialRasterization.Plan(page, new PdfContentBounds(10, 30, 38, 60), 72);
+
+        byte[] changed = PdfPartialRasterization.Apply(document, 0, plan,
+            PdfImage.FromRgb(plan.PixelWidth, plan.PixelHeight, new byte[plan.PixelWidth * plan.PixelHeight * 3]));
+
+        string text = string.Concat(new PdfPageContentReader(PdfDocument.Open(changed)).Read(0).GetWords().Select(word => word.Text));
+        Assert.Equal("WWW", text);
+    }
+
     // On a tagged page the covered words leave the page text but stay readable to assistive technology,
     // as the alternate description of a Figure that holds the image. (#369)
     [Fact]

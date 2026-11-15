@@ -163,7 +163,7 @@ public static class PdfPartialRasterization
         // A rasterized region is an image: the text it covered must not stay findable underneath. (#369)
         return PdfContentRedaction.RemoveCoveredText(PdfDocument.Open(rasterized),
             selected.Select(replacement => new PdfRedactionRegion(replacement.PageIndex, replacement.Plan.Region)),
-            cancellationToken) ?? rasterized;
+            wholeGlyphsOnly: true, cancellationToken) ?? rasterized;
     }
 
     private static readonly KillerPdf.Engine.Objects.PdfName StructTreeRootName =

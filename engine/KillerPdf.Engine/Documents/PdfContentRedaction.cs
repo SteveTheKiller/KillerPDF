@@ -281,7 +281,16 @@ public static partial class PdfContentRedaction
     /// <see cref="PdfPageInformation.Bottom"/>.
     /// </remarks>
     public static byte[]? RemoveCoveredText(PdfDocument document, IEnumerable<PdfRedactionRegion> regions,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        RemoveCoveredText(document, regions, wholeGlyphsOnly: false, cancellationToken);
+
+    /// <summary>
+    /// As <see cref="RemoveCoveredText(PdfDocument, IEnumerable{PdfRedactionRegion}, CancellationToken)"/>,
+    /// or, with <paramref name="wholeGlyphsOnly"/>, removing only glyphs that lie wholly inside a region.
+    /// Rasterize Region uses that: a glyph across the region's edge is still drawn outside it by the page.
+    /// </summary>
+    internal static byte[]? RemoveCoveredText(PdfDocument document, IEnumerable<PdfRedactionRegion> regions,
+        bool wholeGlyphsOnly, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(regions);
@@ -297,8 +306,10 @@ public static partial class PdfContentRedaction
             cancellationToken.ThrowIfCancellationRequested();
             PdfPageTreeEntry page = tree.Pages[pageIndex];
             PdfPageInformation box = boxes[pageIndex];
+            PdfContentBounds[] whole = pageRegions;
             var rewriter = new ContentRewriter(document, update, pageRegions, textOnly: false, fonts,
-                cancellationToken, glyphsOnly: true);
+                cancellationToken, glyphsOnly: true,
+                glyphFilter: wholeGlyphsOnly ? (bounds, _, _) => whole.Any(region => Inside(bounds, region)) : null);
             List<PdfContentInstruction> content = rewriter.RewritePage(page,
                 new PageGeometry(box.Left, box.Bottom, box.Width, box.Height, box.Rotation));
             if (rewriter.RemovedGlyphs == 0) continue;
