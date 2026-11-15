@@ -3056,6 +3056,10 @@
                         <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="3" Direction="270" Opacity="{DynamicResource AboutShadowOpacity}"/>
                     </Border.Effect>
                 </Border>
+                <!-- Win98 closes a window's frame with a black line on the right and bottom, over the card's
+                     light outer edge; without it those sides end on light gray. Zero-thickness off 98SE. -->
+                <Border Panel.ZIndex="2" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelOuterDarkBrush}"
+                        BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
                 <Border Background="{DynamicResource OverlayWindowBrush}"
                         BorderBrush="{DynamicResource OverlayEdgeBrush}"
                         BorderThickness="1"
