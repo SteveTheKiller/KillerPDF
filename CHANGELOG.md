@@ -88,6 +88,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Architectural sheet sizes, ARCH A through ARCH E, are named in the footer beside their measurements, like Letter and A4. (#338)
 - Protect Document's certificate recipients list no longer shows as a bright white box on dark themes, and its buttons read Cancel then Protect like every other dialog.
 - The bookmark menu shows an icon for each action; its rows had none.
+- Pressing Enter twice on a slow network or USB folder typed into the file dialog's name box no longer navigates twice or races the save.
 - Opening Color Correction no longer pops up an Exposure tooltip over the Auto exposure box. Sliders whose label is already on screen carry no tooltip; Warmth and Tint keep their hints.
 
 ### Changed

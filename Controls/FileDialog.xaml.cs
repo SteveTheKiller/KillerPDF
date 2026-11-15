@@ -1391,11 +1391,18 @@ namespace KillerPDF.Controls
             NavigateTo(resolved);
         }
 
+        // A second Enter while a slow folder probe (a network or USB path) is still out does nothing.
+        private readonly Services.SingleFlight _nameEnter = new();
+
         private async void FileNameBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key != Key.Enter) return;
             e.Handled = true;
+            await _nameEnter.RunAsync(AcceptTypedNameAsync);
+        }
 
+        private async Task AcceptTypedNameAsync()
+        {
             var typed = FileNameBox.Text?.Trim() ?? "";
 
             // Several quoted names are a multiselect answer, not a path.
