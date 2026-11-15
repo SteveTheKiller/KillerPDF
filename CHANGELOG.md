@@ -6,14 +6,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.4] - Unreleased
 
-1.9.4 makes Rasterize Region remove the text inside the box and lets text be selected before it is highlighted.
+1.9.4 is a bugfix release: Rasterize Region removes the text inside the box, text can be selected before it is highlighted, printing a turned page no longer crashes, and the tool menu floats over the page again, with a switch to dock it.
 
 ### Fixed
 
 - Printing a page that turns to fit the sheet no longer crashes with "The calling thread cannot access this object because a different thread owns it." (#492)
-- The tool menu floats again by default, hanging from the top edge of the page area as it did before 1.9.3, so choosing a tool no longer moves the page down. Drag it by its grip or empty space to slide it along the edge, and double-click it to minimize it to a strip. Docked Tool Menu, on the toolbar's right-click menu or a right-click on the tool menu itself, or Alt+B, puts it back above the page. (#485)
+- The tool menu floats over the top edge of the page area again by default, as it did before 1.9.3, so choosing a tool no longer moves the page down. Drag it by its grip or empty space to slide it along the edge, and double-click it to minimize it to a strip. (#485)
 - Choosing Highlight, Underline or Strikethrough with text already selected marks that text instead of clearing the selection, and while one of those tools is on, the pointer is an I-beam over text and a cross elsewhere. (#485)
 - Rasterize Region removes the text inside the box, so it can no longer be searched, selected or copied from under the image. On a tagged PDF the image keeps the removed words as alternative text for screen readers, and the dialog points to Redact for hiding text. (#369)
+
+### Added
+
+- Docked Tool Menu and Floating Tool Menu choose whether the tool menu sits above the page or floats over its top edge. They are on the toolbar's right-click menu and a right-click on the tool menu itself, with a small icon of each layout, and Alt+B switches between them. (#485)
 
 ## [1.9.3] - 2026-11-15
 
