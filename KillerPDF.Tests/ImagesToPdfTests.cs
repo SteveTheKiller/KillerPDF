@@ -126,6 +126,57 @@ public sealed class ImagesToPdfTests : IDisposable
         Assert.Equal(new[] { @"C:\P\a.jpg", @"C:\P\b.jpg", @"C:\P\c.jpg", @"C:\P\d.jpg" }, gathered);
     }
 
+    // A pipe failure on a later pass stops collecting but must not drop what other launches already handed over.
+    [Fact]
+    public void APipeFailureKeepsTheImagesAlreadyReceived()
+    {
+        var channel = new SingleInstanceChannel("KillerPDF.Test." + Guid.NewGuid().ToString("N"),
+            WindowsIdentity.GetCurrent().User!.Value, 0);
+        int created = 0;
+        var first = new ImageLaunchCollector(channel, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(20), () =>
+        {
+            if (++created > 1) throw new IOException("pipe gone");
+            return channel.CreateServer();
+        });
+        IReadOnlyList<string>? gathered = null;
+        using var owning = new ManualResetEventSlim();
+        var collector = new Thread(() => { gathered = first.Collect([@"C:\P\a.jpg"], owning.Set); }) { IsBackground = true };
+        collector.Start();
+        Assert.True(owning.Wait(TimeSpan.FromSeconds(10)));
+
+        var later = new ImageLaunchCollector(channel, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(20));
+        Assert.Null(later.Collect([@"C:\P\b.jpg"]));
+
+        Assert.True(collector.Join(TimeSpan.FromSeconds(20)));
+        Assert.Equal(new[] { @"C:\P\a.jpg", @"C:\P\b.jpg" }, gathered);
+    }
+
+    // A launch that arrives while the collector is between listeners keeps trying, so one selection stays one PDF.
+    [Fact]
+    public void ALateLaunchJoinsTheBatchWhileTheCollectorIsBetweenListeners()
+    {
+        var channel = new SingleInstanceChannel("KillerPDF.Test." + Guid.NewGuid().ToString("N"),
+            WindowsIdentity.GetCurrent().User!.Value, 0);
+        int created = 0;
+        var first = new ImageLaunchCollector(channel, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30), () =>
+        {
+            if (++created == 2) Thread.Sleep(3000);   // the gap after the first arrival
+            return channel.CreateServer();
+        });
+        IReadOnlyList<string>? gathered = null;
+        using var owning = new ManualResetEventSlim();
+        var collector = new Thread(() => { gathered = first.Collect([@"C:\P\a.jpg"], owning.Set); }) { IsBackground = true };
+        collector.Start();
+        Assert.True(owning.Wait(TimeSpan.FromSeconds(10)));
+
+        var later = new ImageLaunchCollector(channel, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30));
+        Assert.Null(later.Collect([@"C:\P\b.jpg"]));
+        Assert.Null(later.Collect([@"C:\P\c.jpg"]));   // arrives during the gap
+
+        Assert.True(collector.Join(TimeSpan.FromSeconds(30)));
+        Assert.Equal(new[] { @"C:\P\a.jpg", @"C:\P\b.jpg", @"C:\P\c.jpg" }, gathered);
+    }
+
     [Fact]
     public void ALoneLaunchKeepsItsOwnImages()
     {
