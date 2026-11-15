@@ -80,6 +80,17 @@ namespace KillerPDF.Controls
         /// Empty page remains an arrow so the cursor also explains which drag behavior will begin.</summary>
         private Cursor SelectableTextCursor(int pageIdx, Point pos)
         {
+            // The marking tools also show what a drag will do: an I-beam over text, a cross elsewhere. (#485)
+            if (TextMarkupToolPolicy.FollowsText(_currentTool) && _currentFile is not null)
+            {
+                bool erasing = _currentTool == EditTool.Highlight && _highlightErase;
+                if (erasing || !_renderDims.TryGetValue(pageIdx, out var markDims) || markDims.w <= 0 || markDims.h <= 0)
+                    return CursorForTool(_currentTool);
+                var markRuns = SelectionPageRuns(pageIdx);
+                if (markRuns is null || markRuns.Chars.Count == 0) return CursorForTool(_currentTool);
+                var (mx, my) = CanvasToPdf(pageIdx, pos, markDims.w, markDims.h, markRuns);
+                return TextMarkupToolPolicy.Cursor(_currentTool, erasing, TextRunService.IsOverText(markRuns, mx, my));
+            }
             if (_currentTool != EditTool.Select || _currentFile is null) return CursorForTool(_currentTool);
             if (!_renderDims.TryGetValue(pageIdx, out var rd) || rd.w <= 0 || rd.h <= 0)
                 return Cursors.Arrow;

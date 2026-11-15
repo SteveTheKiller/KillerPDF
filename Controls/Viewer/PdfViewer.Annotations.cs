@@ -1698,7 +1698,8 @@ namespace KillerPDF.Controls
             // #221: the Select tool has two behaviors, flowing selection on text and a marquee on
             // empty page. Reflect the behavior under the pointer instead of leaving an arrow over
             // selectable text. Link hover below deliberately takes precedence with a hand.
-            if (_currentTool == EditTool.Select && sender is Canvas textHoverCanvas && textHoverCanvas.Tag is int textPage)
+            if ((_currentTool == EditTool.Select || TextMarkupToolPolicy.FollowsText(_currentTool))
+                && sender is Canvas textHoverCanvas && textHoverCanvas.Tag is int textPage)
                 textHoverCanvas.Cursor = SelectableTextCursor(textPage, e.GetPosition(textHoverCanvas));
 
             // Shapes tool (#127 Phase 3): rubber-band the in-progress polygon (no button held).

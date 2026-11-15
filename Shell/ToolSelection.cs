@@ -57,6 +57,9 @@ namespace KillerPDF.Shell
 
             // Continuous view now supports annotation tools inline via per-page overlays.
             CommitActiveTextBox();
+            // Text selected first and then given a marking tool is marked right away. (#485)
+            if (!restoringPane && KillerPDF.Services.TextMarkupToolPolicy.MarksSelectionOnChoose(tool, ActiveViewer.HasTextSelectionRangeExt))
+                ActiveViewer.AnnotateTextSelectionExt(tool);
             ClearTextSelection();
             CancelShapePolygon();   // abandon an in-progress polygon when switching tools
             if (tool != EditTool.Draw) HideBrushPreview();   // drop the brush cursor when leaving Draw

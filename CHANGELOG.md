@@ -6,10 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.4] - Unreleased
 
-1.9.4 makes Rasterize Region remove the text inside the box.
+1.9.4 makes Rasterize Region remove the text inside the box and lets text be selected before it is highlighted.
 
 ### Fixed
 
+- Choosing Highlight, Underline or Strikethrough with text already selected marks that text instead of clearing the selection, and while one of those tools is on, the pointer is an I-beam over text and a cross elsewhere. (#485)
 - Rasterize Region removes the text inside the box, so it can no longer be searched, selected or copied from under the image. On a tagged PDF the image keeps the removed words as alternative text for screen readers, and the dialog points to Redact for hiding text. (#369)
 
 ## [1.9.3] - 2026-11-15
