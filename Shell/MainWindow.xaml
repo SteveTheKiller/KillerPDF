@@ -356,7 +356,8 @@
                                                Foreground="{TemplateBinding Foreground}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                Visibility="{DynamicResource CaptionFontGlyphVisibility}"/>
-                                    <Grid Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    <!-- As wide as the bars: a child wider than its grid is pinned left, not centered. -->
+                                    <Grid Width="13" Height="13" HorizontalAlignment="Center" VerticalAlignment="Center"
                                           Visibility="{DynamicResource CaptionDrawnGlyphVisibility}">
                                         <Rectangle Width="13" Height="2" Fill="{TemplateBinding Foreground}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
