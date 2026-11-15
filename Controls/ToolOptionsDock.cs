@@ -65,8 +65,8 @@ namespace KillerPDF.Controls
             {
                 if (_floating == value) return;
                 _floating = value;
+                ReattachInDrawingOrder();
                 InvalidateMeasure();
-                InvalidateVisual();
             }
         }
 
@@ -113,8 +113,26 @@ namespace KillerPDF.Controls
             if (ReferenceEquals(slot, value)) return;
             if (slot is not null) { RemoveVisualChild(slot); RemoveLogicalChild(slot); }
             slot = value;
-            if (value is not null) { AddLogicalChild(value); AddVisualChild(value); }
+            if (value is not null) AddLogicalChild(value);
+            ReattachInDrawingOrder();
             InvalidateMeasure();
+        }
+
+        // WPF composes children in the order they were attached, not the order GetVisualChild returns
+        // later, so a floating bar attached before the document was drawn under it and could not be
+        // seen. Every change re-attaches both in the current order.
+        private readonly List<UIElement> _attached = [];
+
+        private void ReattachInDrawingOrder()
+        {
+            foreach (UIElement child in _attached) RemoveVisualChild(child);
+            _attached.Clear();
+            for (int i = 0; i < VisualChildrenCount; i++)
+            {
+                var child = (UIElement)GetVisualChild(i);
+                AddVisualChild(child);
+                _attached.Add(child);
+            }
         }
 
         protected override int VisualChildrenCount => (_document is null ? 0 : 1) + (_bar is null ? 0 : 1);
