@@ -40,9 +40,10 @@ public sealed class CliSearchQueryTests
             };
             foreach (string argument in new[] { "--search-text", pdf, query }) start.ArgumentList.Add(argument);
             using var process = Process.Start(start)!;
-            // Leave input open so a query that turns into --secrets-stdin cannot hide the bug by seeing EOF.
+            // Leave input open so a query that turns into --secrets-stdin cannot hide the bug by seeing EOF. The bug
+            // waits forever; a cold start of the app beside the rest of the suite took over five seconds on the lab VM.
             var output = process.StandardOutput.ReadToEndAsync();
-            try { await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)); }
+            try { await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(60)); }
             catch (TimeoutException) { process.Kill(true); throw new Xunit.Sdk.XunitException("Search read stdin instead of searching the query."); }
             string text = await output;
             Assert.True(process.ExitCode == 0, text + await process.StandardError.ReadToEndAsync());
