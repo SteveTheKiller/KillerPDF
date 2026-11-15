@@ -139,6 +139,21 @@ public sealed class ToolOptionsDockFloatingTests
         Assert.True(bar.Clip.FillContains(new Point(100, h - 0.5)));
     });
 
+    // Choosing another tool while minimized, or opening the app minimized, hands the dock a new bar. The
+    // strip must keep that bar's width, or there is nothing left to double-click to bring it back.
+    [Fact]
+    public void ANewBarWhileMinimizedKeepsAFullWidthClickableStrip() => RunSta(() =>
+    {
+        var (dock, _, _) = Laid(floating: true);
+        dock.ToggleMinimized();
+        var next = new Border { Width = 180, Height = 30, Child = new Button(), Background = Brushes.Gray };
+        dock.Bar = next;
+        Relayout(dock, 600);
+        Assert.Equal(Visibility.Visible, next.Visibility);
+        Assert.Equal(180, Bounds(dock.MinimizedStrip!, dock).Width);
+        Assert.Equal(180, next.RenderSize.Width);
+    });
+
     [Fact]
     public void AMinimizedBarShowsNoGrip() => RunSta(() =>
     {

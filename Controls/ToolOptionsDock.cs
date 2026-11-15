@@ -84,8 +84,9 @@ namespace KillerPDF.Controls
                 Swap(ref _bar, value);
                 if (value is not null)
                 {
+                    // Visibility stays as SyncBarVisibility left it: a minimized bar is clipped to its strip,
+                    // never collapsed, or it measures nothing and leaves no strip to click (review BF-002).
                     value.Opacity = _dimmed ? InactiveOpacity : 1;
-                    value.Visibility = ShowsStrip ? Visibility.Collapsed : Visibility.Visible;
                 }
                 if (!string.IsNullOrEmpty(focusedId) && value is FrameworkElement bar)
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
