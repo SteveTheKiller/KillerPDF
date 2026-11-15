@@ -2961,7 +2961,7 @@
                                    FontFamily="{DynamicResource ChromeFontFamily}" FontSize="11" FontWeight="Bold"
                                    Foreground="{DynamicResource ChromeTextBrush}"/>
                         <Button Click="ShortcutOverlayClose_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                Width="{DynamicResource AboutCloseWidth}" Height="{DynamicResource AboutCloseHeight}"
+                                Width="{DynamicResource DialogCloseWidth}" Height="{DynamicResource DialogCloseHeight}"
                                 Content="{DynamicResource AboutCloseGlyph}" Style="{StaticResource OverlayCloseButton}"/>
                     </Grid>
                 </Border>
@@ -3068,7 +3068,7 @@
                         <TextBlock Text="KillerPDF" VerticalAlignment="Center" FontFamily="{DynamicResource ChromeFontFamily}"
                                    FontSize="11" FontWeight="Bold" Foreground="{DynamicResource ChromeTextBrush}"/>
                         <Button Click="AboutClose_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                Width="{DynamicResource AboutCloseWidth}" Height="{DynamicResource AboutCloseHeight}"
+                                Width="{DynamicResource DialogCloseWidth}" Height="{DynamicResource DialogCloseHeight}"
                                 Content="{DynamicResource AboutCloseGlyph}" Style="{StaticResource OverlayCloseButton}"/>
                     </Grid>
                 </Border>

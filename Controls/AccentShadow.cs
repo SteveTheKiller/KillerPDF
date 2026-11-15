@@ -65,7 +65,7 @@ namespace KillerFamily.Theming
     /// yellow text and glyph so it reads on the light surfaces. A theme turns it on by giving
     /// WordmarkAccentShadowOpacity a value above 0; every other theme leaves that at 0 and nothing
     /// changes. Text that already draws its own effect, such as a wordmark halo copy, keeps it.
-    /// Call Initialize once at startup.
+    /// Call Initialize once at startup, and Refresh after every theme change.
     /// </summary>
     internal static class AccentShadow
     {
@@ -91,19 +91,71 @@ namespace KillerFamily.Theming
                 new SizeChangedEventHandler(OnTextSizeChanged), true);
         }
 
+        // Text seen while the theme asks for no outline waits here, weakly, instead of carrying a
+        // binding that runs on every color change for nothing. Refresh binds them when a theme turns
+        // the outline on.
+        private static readonly List<WeakReference<TextBlock>> Waiting = new List<WeakReference<TextBlock>>();
+        private static int _pruneAt = 256;
+
+        /// <summary>True when the current theme turns the outline on.</summary>
+        internal static bool ThemeWantsOutline()
+        {
+            var app = Application.Current;
+            return app != null && app.TryFindResource("WordmarkAccentShadowOpacity") is double opacity && opacity > 0;
+        }
+
+        /// <summary>Call after a theme change. Binds the outline on text that was set aside while the
+        /// previous theme wanted none.</summary>
+        internal static void Refresh()
+        {
+            if (!ThemeWantsOutline()) return;
+            var pending = Waiting.ToArray();
+            Waiting.Clear();
+            foreach (var weak in pending)
+                if (weak.TryGetTarget(out var text)) Bind(text);
+            _pruneAt = 256;
+        }
+
         private static void OnTextSizeChanged(object sender, SizeChangedEventArgs args)
         {
-            if (sender is not TextBlock text || (bool)text.GetValue(TrackedProperty)) return;
+            if (sender is not TextBlock text) return;
+            if ((bool)text.GetValue(TrackedProperty))
+            {
+                // A move to a monitor with another scale keeps the rim one unit wide.
+                if (BindingOperations.IsDataBound(text, UIElement.EffectProperty)
+                    && text.GetValue(ScaleProperty) is double last && last != VisualTreeHelper.GetDpi(text).DpiScaleX)
+                    text.GetBindingExpression(UIElement.EffectProperty)?.UpdateTarget();
+                return;
+            }
             text.SetValue(TrackedProperty, true);
             if (text.Effect != null || BindingOperations.IsDataBound(text, UIElement.EffectProperty)) return;
+            if (!ThemeWantsOutline())
+            {
+                if (Waiting.Count >= _pruneAt)
+                {
+                    Waiting.RemoveAll(w => !w.TryGetTarget(out _));
+                    _pruneAt = Math.Max(256, Waiting.Count * 2);
+                }
+                Waiting.Add(new WeakReference<TextBlock>(text));
+                return;
+            }
+            Bind(text);
+        }
+
+        private static readonly DependencyProperty ScaleProperty = DependencyProperty.RegisterAttached(
+            "Scale", typeof(double), typeof(AccentShadow), new PropertyMetadata(0.0));
+
+        private static void Bind(TextBlock text)
+        {
+            if (text.Effect != null || BindingOperations.IsDataBound(text, UIElement.EffectProperty)) return;
             // Bound to the text's own color, so hover and selection colors and theme changes add or
-            // remove the outline as the color changes. The DPI scale keeps the rim one unit wide on
-            // every monitor.
+            // remove the outline as the color changes. The converter reads the text's DPI scale each
+            // time, which keeps the rim one unit wide on every monitor.
             text.SetBinding(UIElement.EffectProperty, new Binding(nameof(TextBlock.Foreground))
             {
                 RelativeSource = RelativeSource.Self,
                 Converter = Converter,
-                ConverterParameter = VisualTreeHelper.GetDpi(text).DpiScaleX,
+                ConverterParameter = text,
             });
         }
 
@@ -112,7 +164,7 @@ namespace KillerFamily.Theming
         {
             var app = Application.Current;
             if (app == null || brush is not SolidColorBrush solid) return false;
-            if (!(app.TryFindResource("WordmarkAccentShadowOpacity") is double opacity) || opacity <= 0) return false;
+            if (!ThemeWantsOutline()) return false;
             foreach (string key in AccentKeys)
                 if (app.TryFindResource(key) is SolidColorBrush accent && accent.Color == solid.Color)
                     return true;
@@ -126,7 +178,13 @@ namespace KillerFamily.Theming
             public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
             {
                 if (!Applies(value as Brush)) return null;
-                double scale = parameter is double d && d > 0 ? d : 1.0;
+                double scale = 1.0;
+                if (parameter is TextBlock owner)
+                {
+                    double dpi = VisualTreeHelper.GetDpi(owner).DpiScaleX;
+                    owner.SetValue(ScaleProperty, dpi);
+                    if (dpi > 0) scale = dpi;
+                }
                 if (!_byScale.TryGetValue(scale, out var effect))
                 {
                     effect = new Outline(RimColor, RimWidth * scale);

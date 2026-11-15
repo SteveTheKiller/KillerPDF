@@ -73,8 +73,11 @@ namespace KillerPDF.Shell
         /// <summary>App hook: an overlay finished hiding.</summary>
         partial void OnOverlayHidden(UIElement overlay);
 
+        private readonly Dictionary<UIElement, DoubleAnimation> _overlayFadesOut = new();
+
         private void FadeOverlayIn(UIElement o)
         {
+            _overlayFadesOut.Remove(o);
             OnOverlayShowing(o);
             o.Visibility = Visibility.Visible;
             Anim.FadeIn(o);
@@ -89,8 +92,13 @@ namespace KillerPDF.Shell
             {
                 EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
             };
+            // A replaced fade still raises Completed, so only the latest fade out may collapse the
+            // overlay; a reopen during the fade would otherwise vanish when the old one lands.
+            _overlayFadesOut[o] = a;
             a.Completed += (_, _) =>
             {
+                if (!_overlayFadesOut.TryGetValue(o, out var current) || current != a) return;
+                _overlayFadesOut.Remove(o);
                 o.Visibility = Visibility.Collapsed;
                 OnOverlayHidden(o);
             };

@@ -38,10 +38,49 @@ namespace KillerFamily.Theming
             }
             target.Loaded += Refresh;
             target.SizeChanged += Refresh;
+            Track(target);
             Apply(target);
         }
 
-        private static void Refresh(object sender, RoutedEventArgs args) => Apply((FrameworkElement)sender);
+        private static void Refresh(object sender, RoutedEventArgs args)
+        {
+            var target = (FrameworkElement)sender;
+            Apply(target);
+            // A window the element sits in tells it when it moves to a monitor with another scale.
+            if (Window.GetWindow(target) is { } window && window.GetValue(WindowHookedProperty) is not true)
+            {
+                window.SetValue(WindowHookedProperty, true);
+                window.DpiChanged += (_, _) => RefreshAll();
+            }
+        }
+
+        // Every enabled element, weakly, so a High Contrast switch or a monitor change can redo the
+        // one-pixel depth that was worked out for the old setting.
+        private static readonly System.Collections.Generic.List<WeakReference<FrameworkElement>> Tracked = new();
+        private static bool _hooked;
+        private static readonly DependencyProperty WindowHookedProperty = DependencyProperty.RegisterAttached(
+            "WindowHooked", typeof(bool), typeof(Bevel), new PropertyMetadata(false));
+
+        private static void Track(FrameworkElement target)
+        {
+            if (!_hooked)
+            {
+                _hooked = true;
+                SystemParameters.StaticPropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(SystemParameters.HighContrast)) RefreshAll();
+                };
+            }
+            Tracked.RemoveAll(w => !w.TryGetTarget(out var t) || ReferenceEquals(t, target));
+            Tracked.Add(new WeakReference<FrameworkElement>(target));
+        }
+
+        /// <summary>Redoes the bevel on every enabled element: after a High Contrast or DPI change.</summary>
+        internal static void RefreshAll()
+        {
+            foreach (var weak in Tracked.ToArray())
+                if (weak.TryGetTarget(out var target) && GetEnabled(target)) Apply(target);
+        }
 
         private static void Apply(FrameworkElement target)
         {

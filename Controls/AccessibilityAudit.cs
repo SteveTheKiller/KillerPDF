@@ -23,12 +23,20 @@ namespace KillerFamily.Accessibility
                 "Type\tId\tName\tKeyboardFocusable\tEnabled\tVisible\tFocusVisual\tPatterns",
             };
             Visit(window, lines);
-            Directory.CreateDirectory(folder);
-            string path = Path.Combine(folder, window.GetType().Assembly.GetName().Name + "-" +
-                window.GetType().Name + "-" + Guid.NewGuid().ToString("N") + ".tsv");
-            using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
-            using var writer = new StreamWriter(stream, new UTF8Encoding(false));
-            foreach (string line in lines) writer.WriteLine(line);
+            // A diagnostic report must never take the window down: a bad folder is skipped.
+            try
+            {
+                Directory.CreateDirectory(folder);
+                string path = Path.Combine(folder, window.GetType().Assembly.GetName().Name + "-" +
+                    window.GetType().Name + "-" + Guid.NewGuid().ToString("N") + ".tsv");
+                using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+                using var writer = new StreamWriter(stream, new UTF8Encoding(false));
+                foreach (string line in lines) writer.WriteLine(line);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException
+                || ex is NotSupportedException || ex is System.Security.SecurityException)
+            {
+            }
         }
 
         private static void Visit(DependencyObject element, List<string> lines)

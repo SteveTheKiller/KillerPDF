@@ -29,8 +29,14 @@ namespace KillerPDF.Controls
                 Rect r = w.WindowState == WindowState.Normal
                     ? new Rect(w.Left, w.Top, w.Width, w.Height)
                     : w.RestoreBounds;
+                // A window that started maximized has no restore bounds until it has been normal
+                // once; its own left, top and size are what a restore should return it to.
+                if (r.IsEmpty && w.WindowState != WindowState.Normal
+                    && !double.IsNaN(w.Left) && !double.IsNaN(w.Top) && !double.IsNaN(w.Width) && !double.IsNaN(w.Height)
+                    && w.Width >= 1 && w.Height >= 1)
+                    r = new Rect(w.Left, w.Top, w.Width, w.Height);
 
-                if (r.IsEmpty || r.Width < 1 || r.Height < 1 ||
+                if (r.IsEmpty || r.Width < 1 || r.Height < 1 || double.IsNaN(r.Width) || double.IsNaN(r.Height) ||
                     double.IsNaN(r.X) || double.IsNaN(r.Y)) return;
 
                 setSetting(Key, string.Join(",",
@@ -81,10 +87,10 @@ namespace KillerPDF.Controls
                     !double.TryParse(f[3], NumberStyles.Float, Inv, out double height))
                     return;
 
-                width = Math.Max(w.MinWidth, width);
-                height = Math.Max(w.MinHeight, height);
+                (width, height) = ClampSize(width, height, SystemParameters.VirtualScreenWidth,
+                    SystemParameters.VirtualScreenHeight, w.MinWidth, w.MinHeight);
 
-                if (!IsOnScreen(left, top, width)) return;
+                if (!IsReachable(left, top, width, Screens(w))) return;
 
                 w.WindowStartupLocation = WindowStartupLocation.Manual;
                 w.Left = left;
@@ -96,15 +102,57 @@ namespace KillerPDF.Controls
             catch { /* best-effort */ }
         }
 
-        /// <summary>Leaves at least a grabbable sliver of title bar reachable on some monitor.</summary>
-        private static bool IsOnScreen(double left, double top, double width)
+        /// <summary>A saved size never exceeds the virtual desktop, and never drops under the window's minimum.</summary>
+        internal static (double, double) ClampSize(double width, double height, double desktopWidth, double desktopHeight,
+            double minWidth, double minHeight)
         {
-            double vl = SystemParameters.VirtualScreenLeft;
-            double vt = SystemParameters.VirtualScreenTop;
-            double vr = vl + SystemParameters.VirtualScreenWidth;
-            double vb = vt + SystemParameters.VirtualScreenHeight;
-
-            return !(left + width < vl + 40 || left > vr - 40 || top < vt - 8 || top > vb - 40);
+            width = Math.Max(minWidth, Math.Min(width, Math.Max(desktopWidth, minWidth)));
+            height = Math.Max(minHeight, Math.Min(height, Math.Max(desktopHeight, minHeight)));
+            return (width, height);
         }
+
+        /// <summary>
+        /// Leaves at least a grabbable sliver of title bar on one real monitor. The virtual desktop's
+        /// bounding box is not enough: monitors of different sizes leave dead corners inside it.
+        /// </summary>
+        internal static bool IsReachable(double left, double top, double width, System.Collections.Generic.IReadOnlyList<Rect> screens)
+        {
+            foreach (Rect s in screens)
+            {
+                double overlap = Math.Min(left + width, s.Right) - Math.Max(left, s.Left);
+                if (overlap >= 40 && top >= s.Top - 8 && top <= s.Bottom - 40) return true;
+            }
+            return false;
+        }
+
+        // The monitors in device-independent units, from the system's monitor list. When the list
+        // cannot be read, the virtual desktop's bounding box is the whole answer, as before.
+        private static System.Collections.Generic.IReadOnlyList<Rect> Screens(Window w)
+        {
+            var screens = new System.Collections.Generic.List<Rect>();
+            try
+            {
+                double scale = System.Windows.Media.VisualTreeHelper.GetDpi(w).DpiScaleX;
+                if (scale <= 0) scale = 1;
+                EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr monitor, IntPtr dc, ref MonitorRect r, IntPtr data) =>
+                {
+                    screens.Add(new Rect(r.Left / scale, r.Top / scale, (r.Right - r.Left) / scale, (r.Bottom - r.Top) / scale));
+                    return true;
+                }, IntPtr.Zero);
+            }
+            catch { screens.Clear(); }
+            if (screens.Count == 0)
+                screens.Add(new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop,
+                    SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight));
+            return screens;
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct MonitorRect { public int Left, Top, Right, Bottom; }
+
+        private delegate bool MonitorEnumProc(IntPtr monitor, IntPtr dc, ref MonitorRect rect, IntPtr data);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool EnumDisplayMonitors(IntPtr dc, IntPtr clip, MonitorEnumProc callback, IntPtr data);
     }
 }

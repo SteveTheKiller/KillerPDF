@@ -14,8 +14,17 @@ namespace KillerPDF.Controls
     // the bottom of the node into empty space. There is no "IsLastItem" property in WPF and no
     // way to ask in pure XAML, hence this. Bound with the item itself as the source, so it
     // re-evaluates when the container is recycled onto a different node.
-    public sealed class LastChildConverter : IValueConverter
+    //
+    // As a multi-value converter its second input is the parent's Items.Count, which does nothing
+    // but make the binding re-evaluate when an item is inserted after the one that was last.
+    public sealed class LastChildConverter : IValueConverter, IMultiValueConverter
     {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture) =>
+            Convert(values != null && values.Length > 0 ? values[0] : null!, targetType, parameter, culture);
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+            => throw new NotSupportedException();
+
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is not DependencyObject d) return false;

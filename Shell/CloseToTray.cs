@@ -129,7 +129,8 @@ namespace KillerFamily.Shell
             window.Closed += WindowClosed;
             // The user's next click or key after Exit ends the exit. A prompt the user turned down
             // leaves the window open, and the next close hides to the tray again. A close that is
-            // still running (a fade's second pass) arrives without input and still closes.
+            // still running (a fade's second pass) arrives without input and still closes, and
+            // input during that fade is ignored (InputEndsExitRequest).
             window.PreviewMouseDown += EndExitRequest;
             window.PreviewKeyDown += EndExitRequest;
             Application.Current.SessionEnding += SessionEnding;
@@ -156,7 +157,15 @@ namespace KillerFamily.Shell
             _window.Close();
         }
 
-        private void EndExitRequest(object sender, RoutedEventArgs e) => _exitRequested = false;
+        private void EndExitRequest(object sender, RoutedEventArgs e)
+        {
+            if (InputEndsExitRequest(_window.Opacity)) _exitRequested = false;
+        }
+
+        /// <summary>Whether a click or key ends a pending Exit. Not while the close fade runs: the
+        /// window is already on its way out, and ending the exit there would turn the fade's second
+        /// close into a hide at opacity 0.</summary>
+        internal static bool InputEndsExitRequest(double windowOpacity) => windowOpacity >= 1;
 
         private void SessionEnding(object sender, SessionEndingCancelEventArgs e)
         {
@@ -192,7 +201,13 @@ namespace KillerFamily.Shell
         internal void ShowWindow()
         {
             if (_disposed) return;
-            if (!_window.IsVisible) _window.Show();
+            if (!_window.IsVisible)
+            {
+                // A window hidden partway through a close fade must come back visible.
+                _window.BeginAnimation(UIElement.OpacityProperty, null);
+                _window.Opacity = 1;
+                _window.Show();
+            }
             if (_window.WindowState == WindowState.Minimized) _window.WindowState = WindowState.Normal;
             _window.Activate();
             _window.Topmost = true;
@@ -232,12 +247,13 @@ namespace KillerFamily.Shell
         /// </summary>
         internal bool Notify(string title, string text)
         {
-            if (!_iconShown || _disposed) return false;
+            // A kept icon beside an open window is not the window in the tray.
+            if (!InTray || _disposed) return false;
             var d = Data(NIF_INFO);
             d.szInfoTitle = title.Length > 63 ? title[..63] : title;
             d.szInfo = text.Length > 255 ? text[..255] : text;
             d.dwInfoFlags = NIIF_INFO | NIIF_NOSOUND;
-            return Shell_NotifyIcon(NIM_MODIFY, ref d);
+            return _notifyIcon?.Invoke(NIM_MODIFY) ?? Shell_NotifyIcon(NIM_MODIFY, ref d);
         }
 
         /// <summary>True while the window is hidden and its tray icon is showing.</summary>
@@ -283,7 +299,9 @@ namespace KillerFamily.Shell
 
         private void ShowMenu()
         {
-            var menu = new ContextMenu();
+            // The tray card: the app's name over its rows, each with an icon.
+            var menu = KillerFamily.Controls.CardBuilder.Menu(240);
+            menu.Items.Add(KillerFamily.Controls.CardBuilder.Header(_appName));
             AnchorToPointer(menu);
             foreach (var item in _items)
             {
@@ -292,9 +310,9 @@ namespace KillerFamily.Shell
                 menu.Items.Add(row);
             }
             if (_items.Count > 0) menu.Items.Add(new Separator());
-            var open = new MenuItem { Header = string.Format(_loc("Str_Tray_Open"), _appName), FontWeight = FontWeights.SemiBold };
+            var open = new MenuItem { Header = string.Format(_loc("Str_Tray_Open"), _appName), FontWeight = FontWeights.SemiBold, Icon = Glyph(0xE8A7) };
             open.Click += (_, _) => ShowWindow();
-            var exit = new MenuItem { Header = _loc("Str_Tray_Exit") };
+            var exit = new MenuItem { Header = _loc("Str_Tray_Exit"), Icon = Glyph(0xE7E8) };
             exit.Click += (_, _) => Exit();
             menu.Items.Add(open);
             menu.Items.Add(new Separator());
@@ -302,6 +320,14 @@ namespace KillerFamily.Shell
             // The hidden owner must be in front, or the menu does not close when clicking away.
             SetForegroundWindow(_source.Handle);
             menu.IsOpen = true;
+        }
+
+        // A row icon in the kit's MenuIcon style, so the file needs no app's glyph helper.
+        private static TextBlock Glyph(int codepoint)
+        {
+            var icon = new TextBlock { Text = char.ConvertFromUtf32(codepoint) };
+            icon.SetResourceReference(FrameworkElement.StyleProperty, "MenuIcon");
+            return icon;
         }
 
         /// <summary>

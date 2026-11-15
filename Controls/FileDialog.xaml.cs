@@ -134,6 +134,10 @@ namespace KillerPDF.Controls
             return IsMalformedTyped(remembered!) || !IsFullyQualified(remembered!) ? null : remembered;
         }
 
+        /// <summary>A start folder the caller seeded: it must name a folder outright (a drive or share
+        /// path), not one relative to the current directory.</summary>
+        internal static bool IsUsableSeedDirectory(string? path) => UsableRemembered(path) != null;
+
         /// <summary>The folders that exist, each probed on its own worker and under its own timeout, so one
         /// dead network entry does not hide the healthy ones.</summary>
         internal static async Task<List<string>> ExistingFoldersAsync(IEnumerable<string> folders, Func<string, bool> probe, TimeSpan timeout)
@@ -141,12 +145,15 @@ namespace KillerPDF.Controls
             var all = folders.ToList();
             var checks = all.Select(async folder =>
             {
-                try { return await OnStaWorker(() => probe(folder), timeout); }
+                try { return await OnStaWorker(() => probe(folder), timeout, ProbeKey(probe, folder)); }
                 catch (Exception) { return false; }
             }).ToList();
             bool[] exists = await Task.WhenAll(checks);
             return all.Where((_, index) => exists[index]).ToList();
         }
+
+        private static string ProbeKey(Func<string, bool> probe, string path) =>
+            probe.Method.DeclaringType?.FullName + "." + probe.Method.Name + ":" + path;
 
         private enum Presence { No, Yes, Unknown }
 
@@ -155,7 +162,7 @@ namespace KillerPDF.Controls
         private async Task<(Presence State, string Reason)> CheckAsync(Func<string, bool> probe, string path)
         {
             if (string.IsNullOrEmpty(path)) return (Presence.No, "");
-            try { return (await OnStaWorker(() => probe(path), ProbeTimeout) ? Presence.Yes : Presence.No, ""); }
+            try { return (await OnStaWorker(() => probe(path), ProbeTimeout, ProbeKey(probe, path)) ? Presence.Yes : Presence.No, ""); }
             catch (TimeoutException) { return (Presence.Unknown, new System.ComponentModel.Win32Exception(1460).Message); }
             catch (Exception error) { return (Presence.Unknown, error.Message); }
         }
@@ -223,6 +230,19 @@ namespace KillerPDF.Controls
             return matches.Cast<Match>().Select(x => x.Groups[1].Value).Where(x => x.Length > 0).ToArray();
         }
 
+        private string _selectionText = "";   // what the name box showed for the highlighted file(s)
+
+        /// <summary>The name box text for highlighted files: the one name, or a quoted list of several.</summary>
+        internal static string SelectionNameText(IReadOnlyList<string> fileNames) =>
+            fileNames.Count == 1 ? fileNames[0] : string.Join(" ", fileNames.Select(name => "\"" + name + "\""));
+
+        /// <summary>True while the name box is empty or still shows what the highlighted files put there.</summary>
+        internal static bool SelectionAnswers(string typed, string selectionText)
+        {
+            string t = typed.Trim();
+            return t.Length == 0 || string.Equals(t, selectionText, StringComparison.Ordinal);
+        }
+
         private static bool IsFullyQualified(string path)
         {
             if (path.StartsWith(@"\\") || path.StartsWith("//")) return true;
@@ -248,6 +268,7 @@ namespace KillerPDF.Controls
 
         // Per-filter-entry patterns, parallel to FilterCombo's items. Empty list = show all.
         private readonly List<string[]> _filterPatterns = [];
+        private int _declaredFilters;   // how many entries of the combo are the caller's own
 
         private static readonly string ArrowUp   = ((char)0xE70E).ToString();
         private static readonly string ArrowDown = ((char)0xE70D).ToString();
@@ -439,12 +460,13 @@ namespace KillerPDF.Controls
                 if (FileName.IndexOfAny(['\\', '/']) >= 0)
                 {
                     var d = Path.GetDirectoryName(FileName);
-                    if (!string.IsNullOrEmpty(d)) _startCandidates.Add(d!);
+                    // A relative folder would resolve against whatever the process's current directory is.
+                    if (IsUsableSeedDirectory(d)) _startCandidates.Add(d!);
                     seedName = Path.GetFileName(FileName);
                 }
                 else seedName = FileName;
             }
-            if (!string.IsNullOrWhiteSpace(InitialDirectory)) _startCandidates.Add(InitialDirectory);
+            if (IsUsableSeedDirectory(InitialDirectory)) _startCandidates.Add(InitialDirectory);
             string? remembered = UsableRemembered(Services.ThemeManager.GetSetting(LastDirKey));
             if (!string.IsNullOrWhiteSpace(remembered)) _startCandidates.Add(remembered!);
             _startCandidates.Add(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
@@ -499,6 +521,7 @@ namespace KillerPDF.Controls
                 _filterPatterns.Add(["*.*"]);
             }
 
+            _declaredFilters = FilterCombo.Items.Count;
             int idx = FilterIndex - 1;
             FilterCombo.SelectedIndex = idx >= 0 && idx < FilterCombo.Items.Count ? idx : 0;
             FilterLabel.Visibility = FilterCombo.Visibility =
@@ -508,28 +531,37 @@ namespace KillerPDF.Controls
         private void Filter_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (!_built) return;
-            FilterIndex = FilterCombo.SelectedIndex + 1;
+            FilterIndex = FilterIndexAfterSelection(FilterCombo.SelectedIndex, _declaredFilters, FilterIndex);
 
             // Save mode follows the Win32 dialogs: switching the type swaps the typed name's
             // extension - but only when the current one belongs to another entry of THIS filter.
             // An extension the user typed by hand is theirs and is left alone.
             if (_mode == FileDialogMode.Save && !IsFileNameReadOnly)
             {
-                string? newExt = ActiveFilterExt();
                 string  name   = FileNameBox.Text?.Trim() ?? "";
                 // Path.GetExtension throws on characters no path can carry; such a name keeps its
                 // text and gets the invalid-path message instead of an extension swap.
                 if (name.Length > 0 && IsMalformedTyped(name.Trim('"'))) { RejectTyped(); ApplySort(); return; }
-                string  cur    = name.Length == 0 ? "" : Path.GetExtension(name);
-                if (newExt != null && cur.Length > 0 &&
-                    !cur.Equals(newExt, StringComparison.OrdinalIgnoreCase) &&
-                    AllFilterExts().Contains(cur, StringComparer.OrdinalIgnoreCase))
-                {
-                    FileNameBox.Text = Path.ChangeExtension(name, newExt);
-                }
+                if (SwapTypedExtension(name, ActiveFilterExt(), AllFilterExts()) is string swapped)
+                    FileNameBox.Text = swapped;
             }
 
             ApplySort();
+        }
+
+        /// <summary>
+        /// The typed name with its extension swapped for <paramref name="newExt"/>, or null to leave
+        /// it as typed: there is no extension, it already matches, or the user typed one that no
+        /// entry of this filter names.
+        /// </summary>
+        internal static string? SwapTypedExtension(string typed, string? newExt, System.Collections.Generic.IEnumerable<string> filterExts)
+        {
+            // A pasted name keeps its quotes, and a quote is a character Path refuses.
+            string name = typed.Trim().Trim('"');
+            string cur  = name.Length == 0 ? "" : Path.GetExtension(name);
+            if (newExt == null || cur.Length == 0 || cur.Equals(newExt, StringComparison.OrdinalIgnoreCase)
+                || !filterExts.Contains(cur, StringComparer.OrdinalIgnoreCase)) return null;
+            return Path.ChangeExtension(name, newExt);
         }
 
         /// <summary>
@@ -598,7 +630,13 @@ namespace KillerPDF.Controls
         {
             List<(string? Label, string Path, bool Pinned)> found;
             // A probe that fails or hangs still leaves the pinned folders to choose from.
-            try { found = await OnStaWorker(() => ProbePlaces(pinnedPaths), ProbeTimeout); }
+            try
+            {
+                // Collecting the names touches no pinned folder. Each folder's existence is then
+                // checked on its own worker under its own timeout, so one dead share drops only itself.
+                var candidates = await OnStaWorker(() => CollectPlaces(pinnedPaths), ProbeTimeout, "places");
+                found = await KeepExistingPlacesAsync(candidates, PlaceExists, ProbeTimeout);
+            }
             catch { found = pinnedPaths.Select(path => ((string?)null, path, true)).ToList(); }
             if (build != _placesBuild) return;
 
@@ -608,17 +646,29 @@ namespace KillerPDF.Controls
             SyncPlacesSelection();
         }
 
-        /// <summary>Runs on a worker, so it touches no WPF state; a null label means "name it from the path".</summary>
-        private static List<(string? Label, string Path, bool Pinned)> ProbePlaces(List<string> pinnedPaths)
+        /// <summary>The candidates whose folder has to be checked (Check) are kept only when it exists, each
+        /// on its own worker under its own timeout; the rest are kept as they are. Order is preserved.</summary>
+        internal static async Task<List<(string? Label, string Path, bool Pinned)>> KeepExistingPlacesAsync(
+            List<(string? Label, string Path, bool Pinned, bool Check)> candidates, Func<string, bool> exists, TimeSpan timeout)
         {
-            var found = new List<(string? Label, string Path, bool Pinned)>();
+            var checkedPaths = await ExistingFoldersAsync(candidates.Where(c => c.Check).Select(c => c.Path), exists, timeout);
+            var keep = new HashSet<string>(checkedPaths, StringComparer.OrdinalIgnoreCase);
+            return candidates.Where(c => !c.Check || keep.Contains(c.Path))
+                             .Select(c => (c.Label, c.Path, c.Pinned)).ToList();
+        }
+
+        /// <summary>Runs on a worker, so it touches no WPF state; a null label means "name it from the path".
+        /// Pinned folders and drive roots come back marked for an existence check, which the caller does.</summary>
+        private static List<(string? Label, string Path, bool Pinned, bool Check)> CollectPlaces(List<string> pinnedPaths)
+        {
+            var found = new List<(string? Label, string Path, bool Pinned, bool Check)>();
             var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var p in pinnedPaths)
-                if (added.Add(p.TrimEnd('\\')) && PlaceExists(p)) found.Add((null, p, true));
+                if (added.Add(p.TrimEnd('\\'))) found.Add((null, p, true, true));
 
             foreach (var place in ExplorerQuickAccessPlaces())
-                if (added.Add(place.Path.TrimEnd('\\'))) found.Add((place.Label.Length > 0 ? place.Label : null, place.Path, false));
+                if (added.Add(place.Path.TrimEnd('\\'))) found.Add((place.Label.Length > 0 ? place.Label : null, place.Path, false, false));
 
             try
             {
@@ -627,8 +677,8 @@ namespace KillerPDF.Controls
                     string label;
                     try { label = string.IsNullOrWhiteSpace(d.VolumeLabel) ? d.DriveType.ToString() : d.VolumeLabel.Trim(); }
                     catch { label = d.DriveType.ToString(); }
-                    if (added.Add(d.RootDirectory.FullName.TrimEnd('\\')) && PlaceExists(d.RootDirectory.FullName))
-                        found.Add(($"{d.Name.TrimEnd('\\')}  {label}", d.RootDirectory.FullName, false));
+                    if (added.Add(d.RootDirectory.FullName.TrimEnd('\\')))
+                        found.Add(($"{d.Name.TrimEnd('\\')}  {label}", d.RootDirectory.FullName, false, true));
                 }
             }
             catch (IOException) { }
@@ -645,13 +695,31 @@ namespace KillerPDF.Controls
         /// </summary>
         private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(8);
 
-        public static Task<T> OnStaWorker<T>(Func<T> work, TimeSpan timeout)
+        // Workers still running, by caller-chosen key. A probe of a dead share can block for minutes
+        // after its caller gave up at the timeout; asking again for the same thing while it is still
+        // blocked waits on that worker instead of starting one more thread that blocks the same way.
+        private static readonly Dictionary<string, Task> InFlight = new Dictionary<string, Task>();
+
+        public static Task<T> OnStaWorker<T>(Func<T> work, TimeSpan timeout, string? key = null)
         {
+            string? slot = key == null ? null : typeof(T).FullName + "|" + key;
             var done = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+            lock (InFlight)
+            {
+                if (slot != null && InFlight.TryGetValue(slot, out var running))
+                    return WithTimeout((Task<T>)running, timeout);
+                if (slot != null) InFlight[slot] = done.Task;
+            }
             var thread = new System.Threading.Thread(() =>
             {
-                try { done.SetResult(work()); }
-                catch (Exception error) { done.SetException(error); }
+                T result = default!;
+                Exception? failure = null;
+                try { result = work(); }
+                catch (Exception error) { failure = error; }
+                // Forgotten before the result is published, so a caller that sees it finish and asks
+                // again gets a fresh probe.
+                if (slot != null) lock (InFlight) InFlight.Remove(slot);
+                if (failure != null) done.SetException(failure); else done.SetResult(result);
             }) { IsBackground = true };
             thread.SetApartmentState(System.Threading.ApartmentState.STA);
             thread.Start();
@@ -854,6 +922,7 @@ namespace KillerPDF.Controls
         private void Places_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_navigating) return;
+            if (PinHoldsSelection(_pinDragPlace, Mouse.LeftButton == MouseButtonState.Pressed)) return;
             if (PlacesList.SelectedItem is PickerPlace p) NavigateTo(p.Path);
         }
 
@@ -892,7 +961,7 @@ namespace KillerPDF.Controls
         private async Task FillTreeRootsAsync()
         {
             List<FolderNode> roots;
-            try { roots = await OnStaWorker(ReadyDriveNodes, ProbeTimeout); }
+            try { roots = await OnStaWorker(ReadyDriveNodes, ProbeTimeout, "drives"); }
             catch { _treeStarted = false; return; }
             foreach (var root in roots) TreeRoots.Add(root);
             // The first listing may have finished before the roots existed, leaving nothing revealed.
@@ -1052,8 +1121,12 @@ namespace KillerPDF.Controls
 
         private void FolderTree_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
-            _treeMenuNode = NodeUnder(Mouse.DirectlyOver as DependencyObject)
-                         ?? NodeUnder(e.OriginalSource as DependencyObject);
+            _treeMenuNode = e.CursorLeft < 0
+                ? NodeUnder(Keyboard.FocusedElement as DependencyObject)
+                    ?? NodeUnder(e.OriginalSource as DependencyObject)
+                    ?? FolderTreeCtl.SelectedItem as FolderNode
+                : NodeUnder(e.OriginalSource as DependencyObject)
+                    ?? NodeUnder(Mouse.DirectlyOver as DependencyObject);
             // Drives are already in places; empty space has nothing to pin.
             if (_treeMenuNode == null || _treeMenuNode.IsDrive) e.Handled = true;
         }
@@ -1211,7 +1284,20 @@ namespace KillerPDF.Controls
                 // Selecting a FILE fills the name box - that is the value being chosen. Selecting
                 // a folder does not: it is a navigation target, and overwriting the typed name
                 // with a folder name would lose what the user was in the middle of typing.
-                if (!en.IsFolder && !IsFileNameReadOnly) FileNameBox.Text = en.Name;
+                // Several files highlighted show as the quoted list the box also accepts as input.
+                var highlighted = Multiselect && _mode == FileDialogMode.Open
+                    ? FileList.SelectedItems.OfType<PickerEntry>().Where(x => !x.IsFolder).Select(x => x.Name).ToList()
+                    : null;
+                if (highlighted != null && highlighted.Count > 1)
+                {
+                    _selectionText = SelectionNameText(highlighted);
+                    if (!IsFileNameReadOnly) FileNameBox.Text = _selectionText;
+                }
+                else if (!en.IsFolder && !IsFileNameReadOnly)
+                {
+                    _selectionText = en.Name;
+                    FileNameBox.Text = en.Name;
+                }
                 SelName.Text = en.Name;
                 SelMeta.Text = en.IsFolder ? en.ModifiedLabel : $"{en.SizeLabel}  |  {en.ModifiedLabel}";
                 UpdateImagePreview(en);
@@ -1338,12 +1424,25 @@ namespace KillerPDF.Controls
         private bool TryApplyWildcard(string typed)
         {
             if (typed.IndexOfAny(['*', '?']) < 0) return false;
-            _filterPatterns.Insert(0, [typed]);
-            FilterCombo.Items.Insert(0, typed);
-            FilterCombo.SelectedIndex = 0;
+            // After the caller's own filters, never before them: FilterIndex numbers those, and a
+            // caller that picks its export format by FilterIndex must not see it shift.
+            var (slot, replace) = TypedFilterSlot(_declaredFilters, FilterCombo.Items.Count);
+            if (replace) { _filterPatterns[slot] = [typed]; FilterCombo.Items[slot] = typed; }
+            else { _filterPatterns.Add([typed]); FilterCombo.Items.Add(typed); }
+            FilterCombo.SelectedIndex = slot;
             FileNameBox.Clear();
             return true;
         }
+
+        /// <summary>Where a typed wildcard's entry goes: right after the declared filters, replacing the
+        /// previous typed one when there is already one.</summary>
+        internal static (int Slot, bool Replace) TypedFilterSlot(int declaredCount, int itemCount) =>
+            (declaredCount, itemCount > declaredCount);
+
+        /// <summary>The caller-visible FilterIndex (1-based) after the combo changes: only the caller's own
+        /// filters move it. A typed wildcard is a view of the listing, not one of the caller's choices.</summary>
+        internal static int FilterIndexAfterSelection(int selectedIndex, int declaredCount, int current) =>
+            selectedIndex >= 0 && selectedIndex < declaredCount ? selectedIndex + 1 : current;
 
         private void UpdateInfoSummary()
         {
@@ -1539,6 +1638,13 @@ namespace KillerPDF.Controls
         private void RefreshAcceptEnabled()
             => AcceptButton.IsEnabled = PickerAcceptRule.CanAccept(IsDirectoryListingBusy, IsDirectoryListingAvailable, _accepting, _mode == FileDialogMode.Folder, FileNameBox.Text);
 
+        // Accept depends on the typed name while the folder listing is unavailable, so it is
+        // re-evaluated as the name changes, not only when the listing settles.
+        private void FileNameBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (AcceptButton != null) RefreshAcceptEnabled();
+        }
+
         private void ReportUnanswered(string reason)
         {
             SelMeta.Text = reason;
@@ -1572,7 +1678,8 @@ namespace KillerPDF.Controls
                                                    .Where(x => !x.IsFolder)
                                                    .Select(x => x.FullPath)
                                                    .ToArray();
-                if (picked.Length > 1)
+                // The selection answers only while the box still shows it; a name the user typed over it wins.
+                if (picked.Length > 1 && (IsFileNameReadOnly || SelectionAnswers(FileNameBox.Text ?? "", _selectionText)))
                 {
                     FileNames = picked;
                     FileName  = picked[0];

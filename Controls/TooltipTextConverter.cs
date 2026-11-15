@@ -70,9 +70,15 @@ namespace KillerFamily.Layout
         public static bool GetWrapContent(DependencyObject element) => (bool)element.GetValue(WrapContentProperty);
         public static void SetWrapContent(DependencyObject element, bool value) => element.SetValue(WrapContentProperty, value);
 
+        private static readonly DependencyProperty WiredProperty = DependencyProperty.RegisterAttached(
+            "Wired", typeof(bool), typeof(TooltipTextConverter), new PropertyMetadata(false));
+
         private static void OnWrapContentChanged(DependencyObject element, DependencyPropertyChangedEventArgs e)
         {
             if (element is not ToolTip tip || e.NewValue is not true) return;
+            // Turning it on again must not stack a second set of handlers on the same tip.
+            if (tip.GetValue(WiredProperty) is true) return;
+            tip.SetValue(WiredProperty, true);
             var restore = new List<Action>();
             void Restore() { foreach (var undo in restore) undo(); restore.Clear(); }
             void Wrap() { if (tip.Content is DependencyObject content) WrapText(content, null); }

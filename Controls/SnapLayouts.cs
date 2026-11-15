@@ -80,7 +80,8 @@ namespace KillerFamily.Windowing
         public static bool HitTest(Button maximizeButton, IntPtr lParam)
         {
             if (maximizeButton == null || !maximizeButton.IsVisible || !maximizeButton.IsEnabled) return false;
-            if (PresentationSource.FromVisual(maximizeButton) == null) return false;
+            // The source can outlive its composition target during native window teardown.
+            if (PresentationSource.FromVisual(maximizeButton)?.CompositionTarget == null) return false;
             long packed = lParam.ToInt64();
             var screen = new Point((short)(packed & 0xFFFF), (short)((packed >> 16) & 0xFFFF));
             Point local;

@@ -115,18 +115,35 @@ namespace KillerPDF.Controls
                     // disables the thread's windows without touching WPF's IsEnabled, so it
                     // cannot be tested for here) and Activate is a harmless no-op; WPF's own
                     // dialog teardown re-enables and reactivates that case.
-                    window.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        Window? owner = window.Owner;
-                        if (owner != null && owner.IsVisible) owner.Activate();
-                        window.Close();
-                    }));
+                    window.Dispatcher.BeginInvoke(new Action(() => FinishFadeClose(window)));
                     return;
                 }
                 window.Opacity = from * (1 - t * t);   // quadratic ease-in, mirrors FadeIn
             }
             CompositionTarget.Rendering += Tick;
             return true;
+        }
+
+        /// <summary>The close that follows the fade. A close the window's own OnClosing cancels
+        /// (an unsaved-changes prompt answered Cancel) leaves the window open, so it comes back at
+        /// full opacity instead of sitting there invisible.</summary>
+        internal static void FinishFadeClose(Window window)
+        {
+            Window? owner = window.Owner;
+            if (owner != null && owner.IsVisible) owner.Activate();
+            bool closed = false;
+            EventHandler onClosed = (_, _) => closed = true;
+            window.Closed += onClosed;
+            try { window.Close(); }
+            finally { window.Closed -= onClosed; }
+            if (!closed) window.Opacity = 1;
+        }
+
+        /// <summary>Clears the glide's transform when it lands, unless a newer glide has already
+        /// replaced it on the same element.</summary>
+        internal static void EndSlide(UIElement element, Transform mine)
+        {
+            if (ReferenceEquals(element.RenderTransform, mine)) element.RenderTransform = null;
         }
 
         /// <summary>Fade plus a horizontal glide from dx px to rest (negative dx = in from
@@ -142,7 +159,7 @@ namespace KillerPDF.Controls
             };
             // Clear the transform when it lands: a RenderTransform left in place on a laid-out
             // element is a permanent extra composition layer for no benefit.
-            a.Completed += (_, _) => element.RenderTransform = null;
+            a.Completed += (_, _) => EndSlide(element, tt);
             tt.BeginAnimation(TranslateTransform.XProperty, a);
         }
     }

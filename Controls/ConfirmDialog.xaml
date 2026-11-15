@@ -102,7 +102,7 @@
                                 ToolTip="{DynamicResource Str_Sys_Close}"
                                 AutomationProperties.Name="{DynamicResource Str_Sys_Close}"
                                 HorizontalAlignment="Right" VerticalAlignment="Center"
-                                Width="{DynamicResource AboutCloseWidth}" Height="{DynamicResource AboutCloseHeight}"
+                                Width="{DynamicResource DialogCloseWidth}" Height="{DynamicResource DialogCloseHeight}"
                                 Style="{StaticResource OverlayCloseButton}"/>
                     </Grid>
                     </Grid>
@@ -119,10 +119,10 @@
                         <TextBlock x:Name="NoticeGlyph" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold"/>
                     </Border>
                     <StackPanel Grid.Column="1">
-                    <TextBlock x:Name="HeadingText" Foreground="{StaticResource TextBrush}"
+                    <TextBlock x:Name="HeadingText" Foreground="{DynamicResource TextBrush}"
                                FontFamily="{DynamicResource HeadingFont}" FontSize="18"
                                                TextOptions.TextFormattingMode="Ideal" TextWrapping="Wrap"/>
-                    <TextBlock x:Name="DetailText" Foreground="{StaticResource MutedTextBrush}"
+                    <TextBlock x:Name="DetailText" Foreground="{DynamicResource MutedTextBrush}"
                                FontSize="12" LineHeight="19" TextWrapping="Wrap"
                                Visibility="Collapsed" Margin="0,10,0,0"/>
                     <CheckBox x:Name="Check1" Visibility="Collapsed" Margin="0,8,0,0" FontSize="12"/>
@@ -130,7 +130,7 @@
                     <!-- Explanatory note under Check2, shown by LockCheck2 when the choice is
                          already made for the user (for example an app installed machine-wide). -->
                     <TextBlock x:Name="Check2Note" Visibility="Collapsed"
-                               Foreground="{StaticResource MutedTextBrush}"
+                               Foreground="{DynamicResource MutedTextBrush}"
                                FontSize="11" LineHeight="16" TextWrapping="Wrap"
                                Margin="22,5,0,0"/>
                 </StackPanel>

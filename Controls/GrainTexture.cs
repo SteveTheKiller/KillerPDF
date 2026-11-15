@@ -34,6 +34,22 @@ namespace KillerPDF.Controls
         private static readonly byte[] Shades = new byte[Size * Size];
         private static readonly bool[] Leaning = new bool[Size * Size];
         private static readonly Dictionary<int, BitmapSource> Cache = new();
+        private static readonly Queue<int> CacheOrder = new();
+        private const int CacheLimit = 12;
+
+        internal static int CacheCount => Cache.Count;
+
+        /// <summary>The tile for a theme and accent, generated once. Accent picking can visit every
+        /// color, so only the most recent few tiles stay.</summary>
+        internal static BitmapSource Cached(int key, Func<BitmapSource> make)
+        {
+            if (Cache.TryGetValue(key, out var hit)) return hit;
+            var bmp = make();
+            while (Cache.Count >= CacheLimit && CacheOrder.Count > 0) Cache.Remove(CacheOrder.Dequeue());
+            Cache[key] = bmp;
+            CacheOrder.Enqueue(key);
+            return bmp;
+        }
         // Every tracked brush binds its ImageSource to this one. A bound brush cannot be frozen, so a
         // style or template that seals it (a StaticResource grain layer, KillerPDF) leaves it live, and
         // a theme change repaints it instead of throwing on a frozen brush.
@@ -153,11 +169,7 @@ namespace KillerPDF.Controls
             key = (key + 1) * 2 + (highlightsOnly ? 1 : 0);
             if (_current != null && key == _currentKey) return _current;
 
-            if (!Cache.TryGetValue(key, out var bmp))
-            {
-                bmp = Generate(lean, highlightsOnly);
-                Cache[key] = bmp;
-            }
+            var bmp = Cached(key, () => Generate(lean, highlightsOnly));
             _current = bmp;
             _currentKey = key;
 

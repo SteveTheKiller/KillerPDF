@@ -603,9 +603,9 @@
 
     <sys:Double x:Key="TitleBarHeight" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">22</sys:Double>
 
-    <sys:Double x:Key="CaptionButtonWidth" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">16</sys:Double>
+    <sys:Double x:Key="CaptionButtonWidth" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">20</sys:Double>
 
-    <sys:Double x:Key="CaptionButtonHeight" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">14</sys:Double>
+    <sys:Double x:Key="CaptionButtonHeight" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">18</sys:Double>
 
     <Thickness x:Key="CaptionButtonMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0</Thickness>
 

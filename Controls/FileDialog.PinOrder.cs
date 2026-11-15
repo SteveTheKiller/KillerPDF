@@ -17,7 +17,6 @@ namespace KillerPDF.Controls
         private PickerPlace? _pinDragPlace;
         private Point _pinDragStart;
         private bool _pinDragging;
-        private bool _pinNavigatingWas;
 
         private void Places_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -25,12 +24,14 @@ namespace KillerPDF.Controls
             _pinDragPlace = ItemUnder<PickerPlace>(e.OriginalSource as DependencyObject) is { Pinned: true } p ? p : null;
             _pinDragStart = e.GetPosition(PlacesList);
             _pinDragging = false;
-            if (_pinDragPlace != null)
-            {
-                _pinNavigatingWas = _navigating;
-                _navigating = true;
-            }
         }
+
+        /// <summary>
+        /// True while the button is down on a pinned place, so the list's own selection change does
+        /// not navigate; the release does that, or the drag reorders instead. Tied to the button
+        /// itself, so a release somewhere else cannot leave navigation held off.
+        /// </summary>
+        internal static bool PinHoldsSelection(PickerPlace? pressed, bool buttonDown) => pressed != null && buttonDown;
 
         private void Places_PreviewMouseMove(object sender, MouseEventArgs e)
         {
@@ -84,7 +85,6 @@ namespace KillerPDF.Controls
             _pinDragging = false;
             if (!pending) return;
             if (captured && PlacesList.IsMouseCaptured) PlacesList.ReleaseMouseCapture();
-            _navigating = _pinNavigatingWas;
             SyncPlacesSelection();
         }
 

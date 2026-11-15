@@ -84,7 +84,7 @@
              drop to the compact Win98 field height together instead of a 28px combo under a 22px
              box. -->
         <Style x:Key="PickerFilterCombo" TargetType="ComboBox" BasedOn="{StaticResource DarkComboBox}">
-            <Setter Property="Height" Value="28"/>
+            <Setter Property="Height" Value="26"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
                     <Setter Property="Height" Value="{DynamicResource CompactInputMinHeight}"/>
@@ -327,8 +327,6 @@
                             <Border Background="{DynamicResource FileDialogPaneBrush}" BorderBrush="{DynamicResource MenuBorderBrush}"
                                     BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
                                 <Grid>
-                                    <Border IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}"
-                                            Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
                                     <ListBox x:Name="RecentsList" Background="Transparent" BorderThickness="0" Padding="2,4" AutomationProperties.Name="{DynamicResource Str_TT_RecentLocations}"
                                              Width="{Binding ActualWidth, ElementName=PathBox}" MaxHeight="260"
                                              ItemContainerStyle="{StaticResource PickerRow}"
@@ -341,6 +339,9 @@
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
                                     </ListBox>
+                                    <!-- Grain last, over the rows, so the highlighted row keeps its texture. -->
+                                    <Border IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}"
+                                            Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
                                 </Grid>
                             </Border>
                             <Control Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>
@@ -360,7 +361,7 @@
                             </StackPanel>
                         </Button.ToolTip>
                         <Button.ContextMenu>
-                            <ContextMenu x:Name="SortMenu">
+                            <ContextMenu x:Name="SortMenu" Style="{StaticResource CardMenu}" MinWidth="244" MaxWidth="244">
                                 <MenuItem x:Name="SortNameItem" Header="{DynamicResource Str_Col_Name}"
                                           IsCheckable="True" Click="SortName_Click">
                                     <MenuItem.Icon><a11y:Glyph Style="{StaticResource MenuIcon}" Text="&#xE8CB;"/></MenuItem.Icon>
@@ -426,9 +427,9 @@
                              PreviewMouseLeftButtonUp="Places_PreviewMouseLeftButtonUp" LostMouseCapture="Places_LostMouseCapture"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ListBox.ContextMenu>
-                            <ContextMenu>
+                            <ContextMenu Style="{StaticResource CardMenu}" MinWidth="244" MaxWidth="244">
                                 <MenuItem Header="{DynamicResource Str_Menu_UnpinPlace}" Click="UnpinPlace_Click">
-                                    <MenuItem.Icon><a11y:Glyph Text="&#xE77A;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                    <MenuItem.Icon><a11y:Glyph Style="{StaticResource MenuIcon}" Text="&#xE77A;"/></MenuItem.Icon>
                                 </MenuItem>
                             </ContextMenu>
                         </ListBox.ContextMenu>
@@ -474,9 +475,9 @@
                               ContextMenuOpening="FolderTree_ContextMenuOpening"
                               SelectedItemChanged="FolderTree_SelectedItemChanged">
                         <TreeView.ContextMenu>
-                            <ContextMenu>
+                            <ContextMenu Style="{StaticResource CardMenu}" MinWidth="244" MaxWidth="244">
                                 <MenuItem Header="{DynamicResource Str_Menu_PinPlace}" Click="TreePin_Click">
-                                    <MenuItem.Icon><a11y:Glyph Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                    <MenuItem.Icon><a11y:Glyph Style="{StaticResource MenuIcon}" Text="&#xE718;"/></MenuItem.Icon>
                                 </MenuItem>
                             </ContextMenu>
                         </TreeView.ContextMenu>
@@ -616,9 +617,9 @@
                                      ScrollViewer.CanContentScroll="False"
                                      PreviewMouseWheel="FileList_PreviewMouseWheel">
                                 <ListBox.ContextMenu>
-                                    <ContextMenu>
+                                    <ContextMenu Style="{StaticResource CardMenu}" MinWidth="244" MaxWidth="244">
                                         <MenuItem Header="{DynamicResource Str_Menu_PinPlace}" Click="FilePin_Click">
-                                            <MenuItem.Icon><a11y:Glyph Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                            <MenuItem.Icon><a11y:Glyph Style="{StaticResource MenuIcon}" Text="&#xE718;"/></MenuItem.Icon>
                                         </MenuItem>
                                     </ContextMenu>
                                 </ListBox.ContextMenu>
@@ -699,7 +700,8 @@
                          AutomationProperties.Name="{DynamicResource Str_Dlg_FileName}"
                          Style="{StaticResource DialogPickerTextBox}"
                          FontFamily="{DynamicResource UiFont}" FontSize="12" Padding="5,0,8,0"
-                         VerticalContentAlignment="Center" KeyDown="FileNameBox_KeyDown"/>
+                         VerticalContentAlignment="Center" KeyDown="FileNameBox_KeyDown"
+                         TextChanged="FileNameBox_TextChanged"/>
 
                 <TextBlock x:Name="FilterLabel" Grid.Row="1" Grid.Column="0" Text="{DynamicResource Str_Dlg_FileType}" VerticalAlignment="Center"
                            Margin="0,8,10,0" Foreground="{DynamicResource MutedTextBrush}" FontFamily="{DynamicResource UiFont}" FontSize="11"/>

@@ -20,6 +20,10 @@ namespace KillerPDF.Controls
         // that vanished, so Up carries on from here; a listing that works, or a folder the user asks
         // for, clears it.
         private string? _walkStopped;
+        // Why the folder the user asked for did not list. The recovery listing that follows keeps it
+        // on the status line, so its item counts do not hide the reason; the next folder the user
+        // asks for clears it.
+        private string? _recoveryReason;
         public Func<string, bool, CancellationToken, PickerListingResult> DirectoryListingReader { get; set; } = PickerDirectoryListing.Read;
         public Task DirectoryListingTask { get; private set; } = Task.CompletedTask;
         public bool IsDirectoryListingBusy { get; private set; }
@@ -35,7 +39,7 @@ namespace KillerPDF.Controls
         private Task NavigateCoreAsync(string directory, int attempt)
         {
             if (_listingClosed || string.IsNullOrWhiteSpace(directory)) return Task.CompletedTask;
-            if (attempt == 0) _walkStopped = null;
+            if (attempt == 0) { _walkStopped = null; _recoveryReason = null; }
             _listingRows?.Cancel();
             long version = ++_navigationVersion;
             UpdateImagePreview(null);
@@ -55,6 +59,7 @@ namespace KillerPDF.Controls
                 {
                     IsDirectoryListingBusy = false;
                     SelMeta.Text = Loc("Str_Dlg_NoSuchFolder");
+                    _recoveryReason ??= SelMeta.Text;
                     // A bad typed path goes back to the last folder that listed. _currentDir only
                     // changes after a listing succeeds, so it is always that folder. When that
                     // folder is the one that vanished, the nearest parent takes its place.
@@ -77,6 +82,7 @@ namespace KillerPDF.Controls
                 RefreshAcceptEnabled();
                 UpButton.IsEnabled = System.IO.Directory.GetParent(directory) != null;
                 UpdateInfoSummary();
+                if (attempt > 0 && !string.IsNullOrWhiteSpace(_recoveryReason)) SelMeta.Text += " | " + _recoveryReason;
                 MutateListingRows(SyncPlacesSelection);
                 RecordRecent(directory);
                 _ = RevealInTree(directory, version);
@@ -85,6 +91,7 @@ namespace KillerPDF.Controls
                 IsDirectoryListingBusy = false;
                 _listingError = error.Message;
                 SelMeta.Text = error.Message;
+                _recoveryReason ??= error.Message;
                 RecoverListing(directory, vanished: false, attempt);
             });
         }

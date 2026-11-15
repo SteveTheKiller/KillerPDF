@@ -449,10 +449,11 @@
                                     BorderThickness="1" CornerRadius="{DynamicResource PanelCornerRadius}" Margin="6"
                                     Effect="{DynamicResource ComboPopupShadow}">
                                 <Grid>
-                                    <Border IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
                                     <ScrollViewer Margin="0,4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
                                     </ScrollViewer>
+                                    <!-- Grain last, over the items, so a highlighted row keeps its texture. -->
+                                    <Border IsHitTestVisible="False" CornerRadius="{DynamicResource PanelCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
                                 </Grid>
                             </Border>
                         </Popup>
@@ -582,7 +583,7 @@
                     </ControlTemplate.Resources>
                     <Border x:Name="PART_Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource PanelCornerRadius}" Margin="6" Padding="8,6">
-                        <Border.Effect><DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="0.55"/></Border.Effect>
+                        <Border.Effect><DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="{DynamicResource FlyoutShadowOpacity}"/></Border.Effect>
                         <Grid>
                             <!-- Margin cancels PART_Root's Padding above. The grain is a child of
                                  the padded content, so without it the texture stops 8px short of
@@ -952,6 +953,17 @@
                     <Grid x:Name="MenuRoot" Opacity="0" Margin="22,18,22,26">
                         <!-- Shadow-only layer behind, so the menu text stays crisp. -->
                         <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource PanelCornerRadius}" IsHitTestVisible="False">
+                            <!-- A flat theme sets the opacity to 0; the layer then leaves the tree
+                                 instead of running a blur that draws nothing. -->
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Effect.Opacity, RelativeSource={RelativeSource Self}}" Value="0">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <Border.Effect>
                                 <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="{DynamicResource FlyoutShadowOpacity}"/>
                             </Border.Effect>
@@ -1088,6 +1100,15 @@
                                       Native row-relative placement retains handedness and edge flipping. -->
                                 <Grid Margin="22,18,22,26">
                                     <Border Background="{DynamicResource MenuBackgroundBrush}" CornerRadius="{DynamicResource FlyoutCornerRadius}" IsHitTestVisible="False">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Effect.Opacity, RelativeSource={RelativeSource Self}}" Value="0">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
                                         <Border.Effect>
                                             <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="{DynamicResource FlyoutShadowOpacity}"/>
                                         </Border.Effect>
@@ -1457,10 +1478,10 @@
          Field rows that open a list (Tags, Group) are ordinary MenuItems with a richer Header,
          so their submenus keep the family submenu popup. No new theme keys: every brush here is
          an existing menu token. -->
-    <!-- 404 wide is a 360 card: the template's shadow halo takes 22 off each side. One fixed width
-         so the swatch row (ten colors and the picker) and six quick buttons always fit. -->
+    <!-- Cards fit their content between 280 and 404, including the 22px shadow halo on each side.
+         Swatches and quick buttons still determine the content's required width. -->
     <Style x:Key="CardMenu" TargetType="ContextMenu" BasedOn="{StaticResource {x:Type ContextMenu}}">
-        <Setter Property="MinWidth" Value="404"/>
+        <Setter Property="MinWidth" Value="280"/>
         <Setter Property="MaxWidth" Value="404"/>
         <Setter Property="Padding" Value="6"/>
         <Setter Property="KeyboardNavigation.TabNavigation" Value="Cycle"/>
@@ -1773,7 +1794,7 @@
         <Setter Property="Margin" Value="{DynamicResource CaptionButtonMargin}"/>
         <Setter Property="Width" Value="{DynamicResource CaptionButtonWidth}"/>
         <Setter Property="Height" Value="{DynamicResource CaptionButtonHeight}"/>
-        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="FontSize" Value="{DynamicResource CaptionGlyphSize}"/>
         <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
@@ -1914,7 +1935,10 @@
                                 BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="{DynamicResource BevelInnerLightThickness}"/>
                         <Border x:Name="bevelOuterDark" IsHitTestVisible="False"
                                 BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{DynamicResource AboutCloseGlyphMargin}"/>
+                        <TextBlock kl:GlyphInk.Center="True" Text="{TemplateBinding Content}"
+                                   FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}"
+                                   FontWeight="{TemplateBinding FontWeight}" Foreground="{TemplateBinding Foreground}"
+                                   TextOptions.TextFormattingMode="Ideal" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -1932,14 +1956,9 @@
         </Setter>
     </Style>
 
-    <!-- Elevation (KillerPDF ShadowBar): lifts panels/cards slightly off the surface. -->
-    <DropShadowEffect x:Key="ShadowBar" Color="Black" BlurRadius="6" ShadowDepth="3" Direction="270" Opacity="0.38"/>
-    <!-- Stronger elevation for the results pane; casts down over the footer. -->
-    <!-- Kept for anything still referencing it directly. The LIVE one is PaneShadowEffect, built
-         per palette load in ThemeManager at that theme's PaneShadowOpacity and set to NULL on a
-         flat theme - 98SE has no shadows at all. A StaticResource here could never follow a theme
-         change, which is why the pane kept its shadow on 98SE. -->
-    <DropShadowEffect x:Key="PaneShadow" Color="Black" BlurRadius="16" ShadowDepth="5" Direction="270" Opacity="0.6"/>
+    <!-- No fixed-opacity shadow resources live here: a shadow in this file follows the theme
+         (FlyoutShadowOpacity) or comes from ThemeManager's per-palette effects, which are null
+         on a flat theme. The pane's live shadow is PaneShadowEffect, built there. -->
 
     <!-- Themed checkbox: small square, accent check, mono label. -->
     <Style TargetType="CheckBox">
@@ -2251,14 +2270,26 @@
                         </Trigger>
                         <!-- Last sibling: cut the vertical to an elbow. Bound to the container
                              itself so a recycled container re-evaluates (LastChildConverter.cs). -->
-                        <DataTrigger Value="True"
-                                     Binding="{Binding RelativeSource={RelativeSource Self}, Converter={StaticResource IsLastChild}}">
+                        <DataTrigger Value="True">
+                            <DataTrigger.Binding>
+                                <MultiBinding Converter="{StaticResource IsLastChild}">
+                                    <Binding RelativeSource="{RelativeSource Self}"/>
+                                    <Binding Path="Items.Count" RelativeSource="{RelativeSource AncestorType=ItemsControl}"/>
+                                </MultiBinding>
+                            </DataTrigger.Binding>
                             <Setter TargetName="VerLineTail" Property="Visibility" Value="Collapsed"/>
                             <Setter TargetName="VerLineBottom" Property="Visibility" Value="Collapsed"/>
                         </DataTrigger>
                         <MultiDataTrigger>
                             <MultiDataTrigger.Conditions>
-                                <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Converter={StaticResource IsLastChild}}" Value="True"/>
+                                <Condition Value="True">
+                                    <Condition.Binding>
+                                        <MultiBinding Converter="{StaticResource IsLastChild}">
+                                            <Binding RelativeSource="{RelativeSource Self}"/>
+                                            <Binding Path="Items.Count" RelativeSource="{RelativeSource AncestorType=ItemsControl}"/>
+                                        </MultiBinding>
+                                    </Condition.Binding>
+                                </Condition>
                                 <Condition Binding="{Binding HasItems, RelativeSource={RelativeSource Self}}" Value="False"/>
                             </MultiDataTrigger.Conditions>
                             <Setter TargetName="VerLineBottom" Property="Visibility" Value="Visible"/>
@@ -2522,7 +2553,7 @@
         </Setter>
     </Style>
 
-    <!-- Row container: hover + accent selection. -->
+    <!-- Row container: hover + the shared selection gradient. -->
     <Style x:Key="PickerRow" TargetType="ListBoxItem">
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
@@ -2538,8 +2569,8 @@
                             <Setter TargetName="bg" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource PrimaryFillBrush}"/>
-                            <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
+                            <Setter TargetName="bg" Property="Background" Value="{DynamicResource SelectionBg}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -2562,7 +2593,7 @@
                 <Setter Property="Foreground" Value="{DynamicResource DimTextBrush}"/>
             </DataTrigger>
             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
             </DataTrigger>
         </Style.Triggers>
     </Style>
@@ -2579,7 +2610,7 @@
                 <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
             </DataTrigger>
             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
             </DataTrigger>
         </Style.Triggers>
     </Style>
@@ -2592,7 +2623,7 @@
         <Setter Property="Foreground" Value="{DynamicResource DimTextBrush}"/>
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
             </DataTrigger>
         </Style.Triggers>
     </Style>
@@ -2857,6 +2888,12 @@
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="hdrBg" Property="Background" Value="{DynamicResource RowSelectedBrush}"/>
+                        </Trigger>
+                        <!-- Headers are tab stops for the Apps key column menu: an accent edge marks keyboard focus. -->
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="hdrBg" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                            <Setter TargetName="hdrBg" Property="BorderThickness" Value="1"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -3322,10 +3359,8 @@
                                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                     CornerRadius="{DynamicResource SmallCornerRadius}" Padding="2" Margin="0,2,6,6"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
-                                    MaxHeight="220">
-                                <Border.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="12" ShadowDepth="2" Direction="270" Opacity="0.5"/>
-                                </Border.Effect>
+                                    MaxHeight="220"
+                                    Effect="{DynamicResource ComboPopupShadow}">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                     <ItemsPresenter/>
                                 </ScrollViewer>
@@ -3378,12 +3413,14 @@
         </Setter>
     </Style>
 
-    <ContextMenu x:Key="TextInputContextMenu" x:Shared="False">
-        <MenuItem Command="ApplicationCommands.Cut"   Header="{DynamicResource Str_Ctx_Cut}"/>
-        <MenuItem Command="ApplicationCommands.Copy"  Header="{DynamicResource Str_Ctx_Copy}"/>
-        <MenuItem Command="ApplicationCommands.Paste" Header="{DynamicResource Str_Ctx_Paste}"/>
+    <!-- A card like every other menu, with an icon on each row. No header: the menu acts on the
+         box the user just right-clicked, and a title would only repeat it. -->
+    <ContextMenu x:Key="TextInputContextMenu" x:Shared="False" Style="{StaticResource CardMenu}" MinWidth="244" MaxWidth="244">
+        <MenuItem Command="ApplicationCommands.Cut"   Header="{DynamicResource Str_Ctx_Cut}"   Icon="&#xE8C6;"/>
+        <MenuItem Command="ApplicationCommands.Copy"  Header="{DynamicResource Str_Ctx_Copy}"  Icon="&#xE8C8;"/>
+        <MenuItem Command="ApplicationCommands.Paste" Header="{DynamicResource Str_Ctx_Paste}" Icon="&#xE77F;"/>
         <Separator/>
-        <MenuItem Command="ApplicationCommands.SelectAll" Header="{DynamicResource Str_Ctx_SelectAll}"/>
+        <MenuItem Command="ApplicationCommands.SelectAll" Header="{DynamicResource Str_Ctx_SelectAll}" Icon="&#xE8B3;"/>
     </ContextMenu>
 
 </ResourceDictionary>

@@ -132,13 +132,13 @@ namespace KillerPDF.Shell
             // menu has no inheritance context and misses window-level implicit styles.
             _sysMenu.PlacementTarget = this;
             _sysMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Absolute;
+            Point at;
             if (screenPoint is { } p)
             {
                 // Screen pixels -> DIP, so the menu lands under the cursor at any DPI.
                 var src = PresentationSource.FromVisual(this);
                 if (src?.CompositionTarget is { } ct) p = ct.TransformFromDevice.Transform(p);
-                _sysMenu.HorizontalOffset = p.X;
-                _sysMenu.VerticalOffset = p.Y;
+                at = p;
             }
             else
             {
@@ -151,19 +151,30 @@ namespace KillerPDF.Shell
                     Point corner = PointToScreen(new Point(8, 36));
                     if (PresentationSource.FromVisual(this)?.CompositionTarget is { } target)
                         corner = target.TransformFromDevice.Transform(corner);
-                    _sysMenu.HorizontalOffset = corner.X;
-                    _sysMenu.VerticalOffset = corner.Y;
+                    at = corner;
                 }
                 else
                 {
-                    _sysMenu.HorizontalOffset = Left + 8;
-                    _sysMenu.VerticalOffset = Top + 36;
+                    at = new Point(Left + 8, Top + 36);
                 }
             }
+
+            // The point is where the visible card starts, so its shadow halo (the MenuRoot margin,
+            // read the way FlyoutPlacement reads it) goes before it.
+            _sysMenu.ApplyTemplate();
+            Thickness halo = _sysMenu.Template?.FindName("MenuRoot", _sysMenu) is FrameworkElement card ? card.Margin : default;
+            Point origin = SystemMenuOrigin(at, halo);
+            _sysMenu.HorizontalOffset = origin.X;
+            _sysMenu.VerticalOffset = origin.Y;
 
             _sysMenu.IsOpen = true;
             Controls.Anim.FadeIn(_sysMenu);
         }
+
+        /// <summary>The popup origin that puts the visible card, not its transparent halo, at
+        /// <paramref name="cardCorner"/>. Both are in DIPs.</summary>
+        internal static Point SystemMenuOrigin(Point cardCorner, Thickness halo)
+            => new(cardCorner.X - halo.Left, cardCorner.Y - halo.Top);
 
         partial void CustomizeSystemMenuItem(MenuItem item, Glyph icon, int command, bool danger);
         partial void UseSystemMenuAccessKeys(ref bool use);

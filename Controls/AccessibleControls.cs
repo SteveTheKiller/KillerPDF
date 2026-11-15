@@ -159,9 +159,11 @@ namespace KillerFamily.Accessibility
             var existing = BindingOperations.GetBindingBase(control, AutomationProperties.NameProperty);
             bool owned = existing != null && ReferenceEquals(existing, control.GetValue(OwnedNameProperty));
             if (!owned && IsReadable(AutomationProperties.GetName(control))) return;
-            object? content = control is ContentControl button ? button.Content :
-                control is HeaderedItemsControl items ? items.Header :
-                control is HeaderedContentControl header ? header.Header : null;
+            // HeaderedContentControl is a ContentControl too, so it is tested first: a tab, expander or
+            // group box is named from its header, not from the body it holds.
+            object? content = control is HeaderedContentControl header ? header.Header :
+                control is ContentControl button ? button.Content :
+                control is HeaderedItemsControl items ? items.Header : null;
             if (!(bool)control.GetValue(TrackedTooltipProperty))
             {
                 TooltipDescriptor.AddValueChanged(control, OnTooltipChanged);
@@ -179,8 +181,9 @@ namespace KillerFamily.Accessibility
                     control.ClearValue(OwnedNameProperty);
                     return;
                 }
-                var contentName = new Binding(control is ContentControl ? nameof(ContentControl.Content)
-                    : nameof(HeaderedItemsControl.Header)) { Source = control, Converter = TooltipName };
+                var contentName = new Binding(control is ContentControl && control is not HeaderedContentControl
+                    ? nameof(ContentControl.Content) : nameof(HeaderedItemsControl.Header))
+                    { Source = control, Converter = TooltipName };
                 BindingOperations.SetBinding(control, AutomationProperties.NameProperty, contentName);
                 control.SetValue(OwnedNameProperty, contentName);
                 return;

@@ -27,10 +27,12 @@ namespace KillerPDF.Controls
         {
             get
             {
-                if (!_iconRequested)
+                // The app's UI dispatcher, never Dispatcher.CurrentDispatcher: a read from a worker
+                // thread would otherwise build a dispatcher there and post the icon to it.
+                if (!_iconRequested && System.Windows.Application.Current?.Dispatcher is { } ui)
                 {
                     _iconRequested = true;
-                    LoadIcon(Dispatcher.CurrentDispatcher);
+                    LoadIcon(ui);
                 }
                 return _icon ?? Services.ShellIcons.Small(Path, true);
             }
@@ -79,10 +81,11 @@ namespace KillerPDF.Controls
         {
             get
             {
-                if (ShowThumbnails && !IsFolder && !_thumbnailRequested && Services.ShellIcons.CanThumbnail(FullPath))
+                if (ShowThumbnails && !IsFolder && !_thumbnailRequested && System.Windows.Application.Current?.Dispatcher is { } ui
+                    && Services.ShellIcons.CanThumbnail(FullPath))
                 {
                     _thumbnailRequested = true;
-                    LoadThumbnail(Dispatcher.CurrentDispatcher);
+                    LoadThumbnail(ui);
                 }
                 return (ShowThumbnails ? _thumbnail : null) ?? Services.ShellIcons.Large(FullPath, IsFolder);
             }
@@ -104,7 +107,10 @@ namespace KillerPDF.Controls
         public static bool ShowThumbnails { get; set; } = true;
 
         public string SizeLabel     => IsFolder ? string.Empty : FormatSize(SizeBytes);
-        public string ModifiedLabel => Modified == DateTime.MinValue ? string.Empty : Modified.ToString("yyyy-MM-dd HH:mm");
+        // InvariantCulture: the current culture picks the calendar and the time separator, so Thai
+        // settings showed 2569 and Finnish ones 14.30 in an ISO-shaped label.
+        public string ModifiedLabel => Modified == DateTime.MinValue ? string.Empty
+            : Modified.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
 
         private static string FormatSize(long b)
         {
