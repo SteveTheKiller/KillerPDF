@@ -6,9 +6,10 @@ namespace KillerPDF.Services;
 
 internal static partial class ImagesToPdfCommand
 {
-    // Explorer starts the per-file processes together, but each needs a moment to start, so the
-    // collector waits this long after the last arrival. The limit bounds a very large selection.
-    private static readonly TimeSpan Quiet = TimeSpan.FromSeconds(1.5);
+    // Explorer starts the per-file processes together, but each needs a moment to start (a slow or busy
+    // machine can take several seconds), so the collector waits this long after the last arrival.
+    // The limit bounds a very large selection.
+    private static readonly TimeSpan Quiet = TimeSpan.FromSeconds(6);
     private static readonly TimeSpan Limit = TimeSpan.FromSeconds(30);
 
     /// <summary>Runs the verb for one launch and returns the process exit code.</summary>
