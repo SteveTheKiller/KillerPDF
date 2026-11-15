@@ -55,4 +55,4 @@ A few app tests open WPF windows. Run them on an unlocked desktop and follow the
 
 ## License
 
-KillerPDF is licensed under GPLv3. See [LICENSE](LICENSE) and the [corresponding-source archive](https://github.com/SteveTheKiller/KillerPDF/releases/download/v1.9.2/KillerPDF-1.9.2-src.zip). Third-party licenses and notices ship in the application payload.
+KillerPDF is licensed under GPLv3. See [LICENSE](LICENSE) and the [corresponding-source archive](https://github.com/SteveTheKiller/KillerPDF/releases/download/v1.9.3/KillerPDF-1.9.3-src.zip). Third-party licenses and notices ship in the application payload.
