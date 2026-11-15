@@ -749,28 +749,34 @@ public sealed class WatchedFolderServiceTests
         Assert.True(File.Exists(Path.Combine(fixture.Output, "later.pdf")));
     }
 
+    // The macro step is held open until the journal is locked, so the lock always lands while the job is processing.
+    // Racing a long macro against a polling loop failed three runs in eight on the lab VM when the macro won.
     [Fact]
     public async Task LosingJournalAccessAfterProcessingStartsPreventsPublishingTheResult()
     {
         using var fixture = new FolderFixture();
-        var builder = new PdfDocumentBuilder();
-        for (int i = 0; i < 100; i++) builder.AddBlankPage();
-        File.WriteAllBytes(Path.Combine(fixture.Input, "source.pdf"), builder.Build());
-        using var service = fixture.Create();
-        service.Configure(fixture.Options(new PdfMacro("Long resize",
-            Enumerable.Repeat(PdfResizeMacro.ScaleStep(100), 100))));
+        File.WriteAllBytes(Path.Combine(fixture.Input, "source.pdf"), new PdfDocumentBuilder().AddBlankPage().Build());
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var dispatcher = new PdfMacroDispatcher([
+            new(PdfMacroOperation.Resize, (step, source, context, token) =>
+            {
+                entered.Set();
+                release.Wait(token);
+                return PdfResizeMacro.Execute(step, source, context, token);
+            })]);
+        using var service = new WatchedFolderService(fixture.Storage, dispatcher, fixture.Clock);
+        service.Configure(fixture.Options(new PdfMacro("Held resize", [PdfResizeMacro.ScaleStep(100)])));
         service.Resume();
         await service.ReconcileAsync(); fixture.Clock.Advance(TimeSpan.FromSeconds(3));
-        Task running = service.ReconcileAsync();
-        DateTime deadline = DateTime.UtcNow.AddSeconds(10);
-        while (!service.GetSnapshot().Jobs.Any(job => job.Status == WatchedFolderJobStatus.Processing))
+        Task running = Task.Run(() => service.ReconcileAsync());
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(60)), "The macro never started.");
+        Assert.Equal(WatchedFolderJobStatus.Processing, Assert.Single(service.GetSnapshot().Jobs).Status);
+        using (File.Open(Path.Combine(fixture.Storage, "queue.json"), FileMode.Open, FileAccess.Read, FileShare.None))
         {
-            Assert.False(running.IsCompleted); Assert.True(DateTime.UtcNow < deadline);
-            await Task.Delay(1);
+            release.Set();
+            await running;
         }
-        using var held = File.Open(Path.Combine(fixture.Storage, "queue.json"), FileMode.Open,
-            FileAccess.Read, FileShare.None);
-        await running;
         Assert.Equal("QueueWriteFailed", service.GetSnapshot().ErrorCode);
         Assert.True(service.GetSnapshot().IsPaused);
         Assert.Empty(Directory.GetFiles(fixture.Output));
