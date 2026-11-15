@@ -28,6 +28,7 @@
     <Compile Include="..\Models\RedactionMark.cs" Link="Models\RedactionMark.cs" />
     <Compile Include="..\Services\RedactionPageEdit.cs" Link="Services\RedactionPageEdit.cs" />
     <Compile Include="..\Services\TextMarkupToolPolicy.cs" Link="Services\TextMarkupToolPolicy.cs" />
+    <Compile Include="..\Services\LiftedPicture.cs" Link="Services\LiftedPicture.cs" />
     <Compile Include="..\Services\AtomicFileOutput.cs" Link="Services\AtomicFileOutput.cs" />
     <Compile Include="..\Services\SourceImageDiagnosis.cs" Link="Services\SourceImageDiagnosis.cs" />
     <Compile Include="..\Services\OpenDialogFilter.cs" Link="Services\OpenDialogFilter.cs" />

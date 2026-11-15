@@ -271,11 +271,7 @@ public partial class PdfViewer
             {
                 var bounds = RedactionGeometry.PageToCanvas(box.Left, box.Bottom, box.Right, box.Top,
                     pw, ph, cw, ch, rotation);
-                var copy = new ImageAnnotation
-                {
-                    PageIndex = page, Position = bounds.TopLeft, Scale = 1,
-                    SourceWidth = bounds.Width, SourceHeight = bounds.Height
-                };
+                var copy = LiftedPicture.Copy(page, bounds, rotation);
                 wasSelected = _sourceImageSelection is { } held && ReferenceEquals(held.Owner, _doc)
                     && held.Occurrence.PageIndex == page && held.Ordinal == ordinal;
                 ClearSelection();
