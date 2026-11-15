@@ -220,6 +220,7 @@
     <Compile Include="..\Services\MeasurementGeometry.cs" Link="Services\MeasurementGeometry.cs" />
     <Compile Include="..\Services\EditableTextShortcutPolicy.cs" Link="Services\EditableTextShortcutPolicy.cs" />
     <Compile Include="..\Services\TextEnterKeys.cs" Link="Services\TextEnterKeys.cs" />
+    <Compile Include="..\Services\SingleFlight.cs" Link="Services\SingleFlight.cs" />
     <Compile Include="..\Services\FormFieldTypeAhead.cs" Link="Services\FormFieldTypeAhead.cs" />
     <Compile Include="..\Services\TextLineGathering.cs" Link="Services\TextLineGathering.cs" />
     <Compile Include="..\Services\ShortcutTogglePolicy.cs" Link="Services\ShortcutTogglePolicy.cs" />
