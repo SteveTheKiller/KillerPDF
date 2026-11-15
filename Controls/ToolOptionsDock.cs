@@ -144,6 +144,24 @@ namespace KillerPDF.Controls
             set { _centerFraction = value is double f ? Math.Clamp(f, 0, 1) : null; InvalidateArrange(); }
         }
 
+        private double _cornerRadius = FloatingCornerRadius;
+
+        /// <summary>Radius of a floating bar's bottom corners; 0 for a square theme such as 98SE. The minimized
+        /// strip scales its own radius with it.</summary>
+        public double CornerRadius
+        {
+            get => _cornerRadius;
+            set
+            {
+                if (_cornerRadius == value) return;
+                _cornerRadius = value;
+                if (_plainChrome is { Bar: var bar }) bar.CornerRadius = new CornerRadius(0, 0, value, value);
+                InvalidateArrange();
+            }
+        }
+
+        private double StripRadius => _cornerRadius <= 0 ? 0 : MinimizedCornerRadius;
+
         /// <summary>The strip a minimized bar leaves behind, or null while none is shown.</summary>
         internal UIElement? MinimizedStrip => ShowsStrip ? _strip : null;
 
@@ -190,7 +208,7 @@ namespace KillerPDF.Controls
             {
                 _plainChrome = (bar, bar.BorderThickness, bar.CornerRadius, bar.Padding);
                 bar.BorderThickness = new Thickness(1, 0, 1, 1);
-                bar.CornerRadius = new CornerRadius(0, 0, FloatingCornerRadius, FloatingCornerRadius);
+                bar.CornerRadius = new CornerRadius(0, 0, _cornerRadius, _cornerRadius);
                 bar.Padding = new Thickness(bar.Padding.Left + GripWidth, bar.Padding.Top, bar.Padding.Right, bar.Padding.Bottom);
             }
             if (ShowsGrip) _grip ??= NewGrip();
@@ -427,12 +445,12 @@ namespace KillerPDF.Controls
                     _bar.Arrange(new Rect(left, 0, width, barHeight));
                     if (ShowsStrip)
                     {
-                        _bar.Clip = BottomRounded(width, MinimizedHeight, MinimizedCornerRadius);
+                        _bar.Clip = BottomRounded(width, MinimizedHeight, StripRadius);
                         if (_bar is Border source)
                         {
                             _strip!.BorderBrush = source.BorderBrush;
                             _strip.BorderThickness = new Thickness(1, 0, 1, 1);
-                            _strip.CornerRadius = new CornerRadius(0, 0, MinimizedCornerRadius, MinimizedCornerRadius);
+                            _strip.CornerRadius = new CornerRadius(0, 0, StripRadius, StripRadius);
                         }
                         _strip!.Arrange(new Rect(left, 0, width, MinimizedHeight));
                     }

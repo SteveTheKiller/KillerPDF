@@ -18,6 +18,10 @@ namespace KillerPDF.Shell
 
         private void InitToolMenuPlacement()
         {
+            Action themed = () =>
+                Dispatcher.BeginInvoke(new Action(() => { ApplyFloatingState(Viewer.ToolOptionsDockRef); ApplyFloatingState(ViewerB.ToolOptionsDockRef); }));
+            Services.ThemeManager.ThemeChanged += themed;
+            Closed += (_, _) => Services.ThemeManager.ThemeChanged -= themed;
             foreach (PdfViewer pane in new[] { Viewer, ViewerB })
             {
                 ToolOptionsDock dock = pane.ToolOptionsDockRef;
@@ -49,6 +53,8 @@ namespace KillerPDF.Shell
 
         private static void ApplyFloatingState(ToolOptionsDock dock)
         {
+            // 98SE bars are square, as its floating bar was in 1.9.2; every other theme rounds the bottom.
+            dock.CornerRadius = Services.ThemeManager.Current == Services.Theme.SE98 ? 0 : ToolOptionsDock.FloatingCornerRadius;
             dock.Floating = ToolMenuFloating;
             dock.Minimized = App.GetSetting(ToolMenuMinimizedSetting) == "1";
             dock.CenterFraction = double.TryParse(App.GetSetting(ToolMenuCenterSetting),

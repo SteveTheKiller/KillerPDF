@@ -154,6 +154,23 @@ public sealed class ToolOptionsDockFloatingTests
         Assert.Equal(180, next.RenderSize.Width);
     });
 
+    // 98SE has square bars: a theme without rounding sets the corners to 0, and a theme switch applies at once.
+    [Fact]
+    public void SquareCornersApplyToTheBarAndTheStripAndFollowAThemeSwitch() => RunSta(() =>
+    {
+        var (dock, bar, _) = Laid(floating: true);
+        dock.CornerRadius = 0;
+        Relayout(dock, 600);
+        Assert.Equal(new CornerRadius(0), bar.CornerRadius);
+        dock.ToggleMinimized();
+        Relayout(dock, 600);
+        Assert.Equal(new CornerRadius(0), Assert.IsType<Border>(dock.MinimizedStrip).CornerRadius);
+        dock.ToggleMinimized();
+        dock.CornerRadius = ToolOptionsDock.FloatingCornerRadius;
+        Relayout(dock, 600);
+        Assert.Equal(new CornerRadius(0, 0, ToolOptionsDock.FloatingCornerRadius, ToolOptionsDock.FloatingCornerRadius), bar.CornerRadius);
+    });
+
     [Fact]
     public void AMinimizedBarShowsNoGrip() => RunSta(() =>
     {
