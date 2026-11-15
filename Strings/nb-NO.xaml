@@ -1284,6 +1284,9 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Split_ReplaceExisting">{0} av disse filene finnes allerede i denne mappen. Vil du erstatte dem?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">En av disse filene ville erstattet det åpne dokumentet. Velg en annen mappe eller et annet filnavn.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">Skrev {0} PDF-filer til {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Skriver PDF {0} av {1}...  (Esc for å avbryte)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Delingen ble avbrutt (ingen filer skrevet)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">Skrev {0} av {1} filer; {2} kunne ikke skrives.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Slettingen mislyktes:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Innsettingen mislyktes:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Kunne ikke legge til side:</sys:String>

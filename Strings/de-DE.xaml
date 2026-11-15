@@ -1277,6 +1277,9 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Split_ReplaceExisting">{0} dieser Dateien sind in diesem Ordner bereits vorhanden. Ersetzen?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Eine dieser Dateien würde das geöffnete Dokument ersetzen. Wählen Sie einen anderen Ordner oder Dateinamen.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">{0} PDF-Dateien in {1} geschrieben</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">PDF {0} von {1} wird geschrieben...  (Esc zum Abbrechen)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Aufteilen abgebrochen (keine Dateien geschrieben)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">{0} von {1} Dateien geschrieben; {2} konnte nicht geschrieben werden.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Löschen fehlgeschlagen:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Einfügen fehlgeschlagen:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Seite hinzufügen fehlgeschlagen:</sys:String>

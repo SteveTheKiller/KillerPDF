@@ -1291,6 +1291,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Split_ReplaceExisting">{0} of these files already exist in this folder. Replace them?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">One of these files would replace the open document. Choose another folder or file name.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">Wrote {0} PDF files to {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Writing PDF {0} of {1}...  (Esc to cancel)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Split canceled (no files written)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">Wrote {0} of {1} files; {2} could not be written.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Delete failed:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Insert failed:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Add page failed:</sys:String>

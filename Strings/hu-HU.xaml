@@ -1278,6 +1278,9 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Split_ReplaceExisting">A fájlok közül {0} már létezik ebben a mappában. Lecseréli őket?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Az egyik fájl felülírná a megnyitott dokumentumot. Válasszon másik mappát vagy fájlnevet.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">{0} PDF-fájl kiírva ide: {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">PDF írása: {0} / {1}...  (Esc megszakítja)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Az osztás megszakítva (egyetlen fájl sem készült el)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">{1} fájlból {0} elkészült; a(z) {2} nem írható ki.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">A törlés nem sikerült:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">A beszúrás nem sikerült:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Az oldal hozzáadása nem sikerült:</sys:String>

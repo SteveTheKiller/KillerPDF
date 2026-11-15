@@ -146,6 +146,101 @@ public sealed class PageSplitTests : IDisposable
         Assert.Equal([first], Directory.GetFiles(output));
     }
 
+    // Reports straight to the callback, so a test can act at an exact moment of the write.
+    private sealed class Inline(Action<int> report) : IProgress<int>
+    {
+        public void Report(int value) => report(value);
+    }
+
+    [Fact]
+    public void WritingReportsEachPartBuiltAndStopsWhenCanceledLeavingTheFolderAsItWas()
+    {
+        string source = Document(4);
+        string output = Path.Combine(_folder, "out");
+        Directory.CreateDirectory(output);
+        string kept = Path.Combine(output, "report-page-001.pdf");
+        File.WriteAllText(kept, "keep me");
+        IReadOnlyList<PageSplitPart> parts = PageSplit.Plan(PageSplitMode.EveryPage, 4, 1, "report");
+        var reported = new List<int>();
+        using var cancel = new CancellationTokenSource();
+        var progress = new Inline(done => { reported.Add(done); if (done == 2) cancel.Cancel(); });
+
+        Assert.ThrowsAny<OperationCanceledException>(() => PageSplit.Write(
+            source, output, parts, new Dictionary<int, int>(), overwrite: true, progress, cancel.Token));
+
+        Assert.Equal([1, 2], reported);
+        Assert.Equal([kept], Directory.GetFiles(output));
+        Assert.Equal("keep me", File.ReadAllText(kept));
+    }
+
+    [Fact]
+    public void WritingReportsEveryPartWhenNotCanceled()
+    {
+        string source = Document(3);
+        var reported = new List<int>();
+
+        PageSplit.Write(source, Path.Combine(_folder, "out"), PageSplit.Plan(PageSplitMode.EveryPage, 3, 1, "report"),
+            new Dictionary<int, int>(), overwrite: false, new Inline(reported.Add), CancellationToken.None);
+
+        Assert.Equal([1, 2, 3], reported);
+    }
+
+    [Fact]
+    public void ADestinationThatAppearsDuringTheBuildStopsTheSplitBeforeAnyPartIsMoved()
+    {
+        string source = Document(3);
+        string output = Path.Combine(_folder, "out");
+        IReadOnlyList<PageSplitPart> parts = PageSplit.Plan(PageSplitMode.EveryPage, 3, 1, "report");
+        string appeared = Path.Combine(output, "report-page-002.pdf");
+        var progress = new Inline(done => { if (done == 3) File.WriteAllText(appeared, "keep me"); });
+
+        Assert.Throws<IOException>(() => PageSplit.Write(
+            source, output, parts, new Dictionary<int, int>(), overwrite: false, progress, CancellationToken.None));
+
+        Assert.Equal([appeared], Directory.GetFiles(output));
+        Assert.Equal("keep me", File.ReadAllText(appeared));
+    }
+
+    [Fact]
+    public void AFolderThatAppearsDuringTheBuildStopsTheSplitBeforeAnyPartIsMoved()
+    {
+        string source = Document(3);
+        string output = Path.Combine(_folder, "out");
+        IReadOnlyList<PageSplitPart> parts = PageSplit.Plan(PageSplitMode.EveryPage, 3, 1, "report");
+        var progress = new Inline(done => { if (done == 3) Directory.CreateDirectory(Path.Combine(output, "report-page-003.pdf")); });
+
+        Assert.Throws<IOException>(() => PageSplit.Write(
+            source, output, parts, new Dictionary<int, int>(), overwrite: true, progress, CancellationToken.None));
+
+        Assert.Empty(Directory.GetFiles(output));
+    }
+
+    [Fact]
+    public void AFileHeldDuringTheMoveReportsHowManyPartsWereWrittenAndWhichOneFailed()
+    {
+        string source = Document(3);
+        string output = Path.Combine(_folder, "out");
+        Directory.CreateDirectory(output);
+        string held = Path.Combine(output, "report-page-003.pdf");
+        File.WriteAllText(held, "held");
+        IReadOnlyList<PageSplitPart> parts = PageSplit.Plan(PageSplitMode.EveryPage, 3, 1, "report");
+        FileStream? lockStream = null;
+        var progress = new Inline(done => { if (done == 3) lockStream = new FileStream(held, FileMode.Open, FileAccess.Read, FileShare.None); });
+        try
+        {
+            var failure = Assert.Throws<PageSplitWriteException>(() => PageSplit.Write(
+                source, output, parts, new Dictionary<int, int>(), overwrite: true, progress, CancellationToken.None));
+
+            Assert.Equal(2, failure.Written);
+            Assert.Equal(3, failure.Total);
+            Assert.Equal("report-page-003.pdf", failure.FailedFile);
+            Assert.NotNull(failure.InnerException);
+        }
+        finally { lockStream?.Dispose(); }
+        Assert.Equal(["report-page-001.pdf", "report-page-002.pdf", "report-page-003.pdf"],
+            Directory.GetFiles(output).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+    }
+
     [Fact]
     public void APartThatWouldReplaceTheOpenDocumentIsFound()
     {

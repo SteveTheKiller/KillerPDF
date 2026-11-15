@@ -1271,6 +1271,9 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Split_ReplaceExisting">{0} de estos archivos ya existen en esta carpeta. ¿Desea reemplazarlos?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Uno de estos archivos reemplazaría el documento abierto. Elija otra carpeta u otro nombre de archivo.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">Se escribieron {0} archivos PDF en {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Escribiendo PDF {0} de {1}...  (Esc cancela)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">División cancelada (no se escribió ningún archivo)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">Se escribieron {0} de {1} archivos; no se pudo escribir {2}.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Error al eliminar:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Error al insertar:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Error al añadir la página:</sys:String>

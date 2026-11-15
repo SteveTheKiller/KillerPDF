@@ -1279,6 +1279,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Split_ReplaceExisting">Liczba plików, które już istnieją w tym folderze: {0}. Zastąpić je?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Jeden z tych plików zastąpiłby otwarty dokument. Wybierz inny folder lub inną nazwę pliku.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">Zapisano pliki PDF ({0}) w {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Zapisywanie pliku PDF {0} z {1}...  (Esc anuluje)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Podział anulowany (nie zapisano żadnych plików)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">Zapisano {0} z {1} plików; nie udało się zapisać pliku {2}.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Usuwanie nie powiodło się:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Wstawianie nie powiodło się:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Dodawanie strony nie powiodło się:</sys:String>

@@ -1284,6 +1284,9 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Split_ReplaceExisting">Файлов, которые уже есть в этой папке: {0}. Заменить их?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Один из этих файлов заменил бы открытый документ. Выберите другую папку или другое имя файла.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">Записано файлов PDF: {0} в {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Запись PDF {0} из {1}...  (Esc для отмены)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Разделение отменено (файлы не записаны)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">Записано файлов: {0} из {1}; не удалось записать {2}.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Удалить не удалось:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Ошибка вставки:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Не удалось добавить страницу:</sys:String>

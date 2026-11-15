@@ -1284,6 +1284,9 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Split_ReplaceExisting">{0} desses arquivos já existem nesta pasta. Substituí-los?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Um desses arquivos substituiria o documento aberto. Escolha outra pasta ou outro nome de arquivo.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">{0} arquivos PDF gravados em {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Gravando PDF {0} de {1}...  (Esc para cancelar)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Divisão cancelada (nenhum arquivo gravado)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">{0} de {1} arquivos gravados; não foi possível gravar {2}.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Falha ao excluir:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Falha ao inserir:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Falha ao adicionar a página:</sys:String>

@@ -1187,6 +1187,9 @@
     <sys:String x:Key="Str_Split_ReplaceExisting">Datoteke, ki v tej mapi že obstajajo: {0}. Jih želite nadomestiti?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Ena od teh datotek bi nadomestila odprti dokument. Izberite drugo mapo ali drugo ime datoteke.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">Zapisane datoteke PDF: {0}, v {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Zapisovanje PDF-ja {0} od {1}...  (Esc za preklic)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Razdelitev preklicana (nobena datoteka ni bila zapisana)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">Zapisanih datotek: {0} od {1}; datoteke {2} ni bilo mogoče zapisati.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Brisanje ni uspelo:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Vstavljanje ni uspelo:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Dodajanje strani ni uspelo:</sys:String>

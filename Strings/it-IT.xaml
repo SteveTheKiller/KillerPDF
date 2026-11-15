@@ -1284,6 +1284,9 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Split_ReplaceExisting">{0} di questi file esistono già in questa cartella. Sostituirli?</sys:String>
     <sys:String x:Key="Str_Split_ReplacesOpen">Uno di questi file sostituirebbe il documento aperto. Scegli un'altra cartella o un altro nome di file.</sys:String>
     <sys:String x:Key="Str_Split_Wrote">Scritti {0} file PDF in {1}</sys:String>
+    <sys:String x:Key="Str_Busy_Splitting">Scrittura del PDF {0} di {1}...  ('Esc' per annullare)</sys:String>
+    <sys:String x:Key="Str_St_SplitCanceled">Divisione annullata (nessun file scritto)</sys:String>
+    <sys:String x:Key="Str_Split_PartialFailure">Scritti {0} file su {1}; impossibile scrivere {2}.</sys:String>
     <sys:String x:Key="Str_Err_DeleteFailed">Eliminazione non riuscita:</sys:String>
     <sys:String x:Key="Str_Err_InsertFailed">Inserimento non riuscito:</sys:String>
     <sys:String x:Key="Str_Err_AddPageFailed">Aggiunta pagina non riuscita:</sys:String>
