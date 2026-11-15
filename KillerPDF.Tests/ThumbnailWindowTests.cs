@@ -177,17 +177,22 @@ public sealed class ThumbnailWindowTests
     [Fact]
     public void ARowThatRanOutOfMemoryCanBeDrawnWhenAskedForAgain()
     {
-        int attempts = 0;
+        int attempts = 0, failures = 0;
         var shown = new ConcurrentDictionary<int, string>();
         using var window = new ThumbnailWindow<string>(100, (page, _) =>
         {
             if (Interlocked.Increment(ref attempts) == 1) throw new OutOfMemoryException();
             return $"thumb {page}";
-        }, (page, image) => { if (image is null) shown.TryRemove(page, out _); else shown[page] = image; }, retain: 8);
+        }, (page, image) =>
+        {
+            if (image is null) { shown.TryRemove(page, out _); Interlocked.Increment(ref failures); }
+            else shown[page] = image;
+        }, retain: 8);
 
         window.Request(3);
-        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts) >= 1, TimeSpan.FromSeconds(10)));
-        Thread.Sleep(300);
+        // Ask again once the failure is published, which is after the row stopped waiting. A fixed 300 ms pause raced
+        // the failure on a busy lab VM and folded the second request into the draw that was failing.
+        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref failures) >= 1, TimeSpan.FromSeconds(10)), "The failure was not published.");
         window.Request(3);
         Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(10)), "The row was stuck after the failure.");
     }
@@ -226,6 +231,8 @@ public sealed class ThumbnailWindowTests
         {
             window.Request(5);
             Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref asked) >= 1, TimeSpan.FromSeconds(10)));
+            // Wait for the retry itself, then give a third attempt time to show up if one were coming.
+            Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts) >= 2, TimeSpan.FromSeconds(10)), "The page was not retried.");
             Thread.Sleep(300);
 
             // The one retry after the pass, not the row's request.
