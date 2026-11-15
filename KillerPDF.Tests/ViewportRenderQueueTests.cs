@@ -37,15 +37,17 @@ public sealed class ViewportRenderQueueTests
         {
             Assert.NotEqual(caller, Environment.CurrentManagedThreadId);
             entered.Set();
-            Assert.True(release.Wait(TimeSpan.FromSeconds(10)));
+            Assert.True(release.Wait(TimeSpan.FromSeconds(60)));
             return 0;
         });
-        Assert.True(entered.Wait(TimeSpan.FromSeconds(10)));
+        // The pump starts on the thread pool, which the rest of the suite can keep busy for over ten seconds on the
+        // lab VM; these waits only guard against a hang, so they are long.
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(60)));
         var order = new List<int>();
         var prefetch = queue.Enqueue("prefetch", 1000, 16, _ => { order.Add(2); return 2; });
         var navigation = queue.Enqueue("navigation", 0, 16, _ => { order.Add(1); return 1; });
         release.Set();
-        await Task.WhenAll(first, prefetch, navigation).WaitAsync(TimeSpan.FromSeconds(10));
+        await Task.WhenAll(first, prefetch, navigation).WaitAsync(TimeSpan.FromSeconds(60));
         Assert.Equal(new[] { 1, 2 }, order);
     }
 
