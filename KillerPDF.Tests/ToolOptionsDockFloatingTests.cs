@@ -171,6 +171,20 @@ public sealed class ToolOptionsDockFloatingTests
         Assert.Equal(new CornerRadius(0, 0, ToolOptionsDock.FloatingCornerRadius, ToolOptionsDock.FloatingCornerRadius), bar.CornerRadius);
     });
 
+    // The bar's grain and 98SE dark lower edge span its full width, padding included. Floating widens the
+    // left padding for the grip, and the edge has to follow it or the bottom line stops short of the grip.
+    [Fact]
+    public void AFloatingBarsTextureAndLowerEdgeStillReachItsLeftSide() => RunSta(() =>
+    {
+        var bar = new ToolOptionsBar(EditTool.Draw, "Draw options", "More settings");
+        var dock = new ToolOptionsDock { Floating = true, Document = new Border(), Bar = bar };
+        dock.Measure(new Size(900, 400));
+        dock.Arrange(new Rect(0, 0, 900, 400));
+        var layers = Assert.IsType<Grid>(bar.Child);
+        foreach (var layer in layers.Children.OfType<Border>())
+            Assert.Equal(-bar.Padding.Left, layer.Margin.Left);
+    });
+
     [Fact]
     public void AMinimizedBarShowsNoGrip() => RunSta(() =>
     {

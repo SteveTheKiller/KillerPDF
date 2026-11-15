@@ -38,6 +38,18 @@ namespace KillerPDF.Controls
         private bool _measured, _remeasure;
         private IInputElement? _priorFocus;
 
+        // The grain and 98SE lower edge reach out over the padding to the bar's sides. A floating bar widens
+        // its left padding for the grip, so they follow every padding change.
+        private Border[] _paddingLayers = [];
+
+        protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
+        {
+            base.OnPropertyChanged(e);
+            if (e.Property == PaddingProperty)
+                foreach (Border layer in _paddingLayers)
+                    layer.Margin = new Thickness(-Padding.Left, 0, -Padding.Right, 0);
+        }
+
         public ToolOptionsBar(EditTool tool, string name, string moreName)
         {
             Tool = tool;
@@ -103,6 +115,7 @@ namespace KillerPDF.Controls
             var layers = new Grid();
             layers.Children.Add(grain);
             layers.Children.Add(edge);
+            _paddingLayers = [grain, edge];
             layers.Children.Add(dock);
             // The popups render nothing in place; being in the tree lets their DynamicResources resolve.
             layers.Children.Add(_menuPopup);
