@@ -156,10 +156,20 @@ namespace KillerPDF.Controls
             CenterFraction = (clamped + width / 2) / area;
         }
 
+        // As in 1.9.2, a minimized bar stays the thing you click: its controls are hidden and it is cut
+        // down to a strip, and the grip dots are drawn over it without taking the click.
         private void SyncBarVisibility()
         {
-            if (_bar is not null) _bar.Visibility = ShowsStrip ? Visibility.Collapsed : Visibility.Visible;
-            if (ShowsStrip) _strip ??= NewStrip();
+            if (_bar is null) return;
+            _bar.Visibility = Visibility.Visible;
+            bool minimized = ShowsStrip;
+            if (_bar is Decorator { Child: UIElement content })
+            {
+                content.Opacity = minimized ? 0 : 1;
+                content.IsHitTestVisible = !minimized;
+            }
+            if (!minimized) _bar.Clip = null;
+            if (minimized) _strip ??= NewStrip();
         }
 
         // The minimized strip: the bar's own colors with a row of grip dots, as in 1.9.2.
@@ -178,16 +188,10 @@ namespace KillerPDF.Controls
                 dot.SetResourceReference(Shape.FillProperty, "MutedTextBrush");
                 dots.Children.Add(dot);
             }
-            var strip = new Border { Child = dots, Cursor = Cursors.Hand, Background = Brushes.Transparent };
-            AutomationProperties.SetName(strip, "Tool menu");
-            return strip;
+            return new Border { Child = dots, IsHitTestVisible = false };
         }
 
-        // A minimized bar is collapsed and measures nothing, so its strip keeps the width it last had.
-        private double _shownBarWidth;
-
-        private double BarWidth(double area) => _bar is null ? 0
-            : Math.Min(_bar.Visibility == Visibility.Visible ? _bar.DesiredSize.Width : _shownBarWidth, area);
+        private double BarWidth(double area) => _bar is null ? 0 : Math.Min(_bar.DesiredSize.Width, area);
 
         private double FloatingLeft(double area)
         {
@@ -325,7 +329,6 @@ namespace KillerPDF.Controls
             {
                 _bar.Measure(new Size(available.Width, double.PositiveInfinity));
                 barHeight = _bar.DesiredSize.Height;
-                if (_bar.Visibility == Visibility.Visible) _shownBarWidth = _bar.DesiredSize.Width;
             }
             if (ShowsStrip) _strip!.Measure(new Size(available.Width, MinimizedHeight));
             if (_floating) barHeight = 0;   // a floating bar takes no room from the document
@@ -350,12 +353,7 @@ namespace KillerPDF.Controls
                     _bar.Arrange(new Rect(left, 0, width, barHeight));
                     if (ShowsStrip)
                     {
-                        if (_bar is Border source)
-                        {
-                            _strip!.Background = source.Background ?? Brushes.Transparent;
-                            _strip.BorderBrush = source.BorderBrush;
-                            _strip.BorderThickness = new Thickness(1, 0, 1, 1);
-                        }
+                        _bar.Clip = new RectangleGeometry(new Rect(0, 0, width, MinimizedHeight));
                         _strip!.Arrange(new Rect(left, 0, width, MinimizedHeight));
                     }
                 }

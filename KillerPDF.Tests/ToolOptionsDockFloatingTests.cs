@@ -12,7 +12,7 @@ public sealed class ToolOptionsDockFloatingTests
 {
     private static (ToolOptionsDock Dock, Border Bar, Border Page) Laid(bool floating)
     {
-        var bar = new Border { Width = 200, Height = 30 };
+        var bar = new Border { Width = 200, Height = 30, Child = new Button() };
         var page = new Border();
         var dock = new ToolOptionsDock { Floating = floating, Document = page, Bar = bar };
         dock.Measure(new Size(600, 400));
@@ -78,14 +78,19 @@ public sealed class ToolOptionsDockFloatingTests
         dock.ToggleMinimized();
         Relayout(dock, 600);
         Assert.True(dock.Minimized);
-        Assert.Equal(Visibility.Collapsed, bar.Visibility);
-        UIElement strip = dock.MinimizedStrip!;
-        Rect stripBounds = Bounds(strip, dock);
-        Assert.Equal(new Rect(left, 0, 200, ToolOptionsDock.MinimizedHeight), stripBounds);
+        // The bar stays the click target, cut down to the strip with its controls hidden, as in 1.9.2.
+        Assert.Equal(Visibility.Visible, bar.Visibility);
+        Assert.Equal(new Rect(0, 0, 200, ToolOptionsDock.MinimizedHeight), bar.Clip!.Bounds);
+        Assert.Equal(0, bar.Child.Opacity);
+        Assert.False(bar.Child.IsHitTestVisible);
+        Assert.Equal(new Rect(left, 0, 200, ToolOptionsDock.MinimizedHeight), Bounds(dock.MinimizedStrip!, dock));
+        Assert.False(dock.MinimizedStrip!.IsHitTestVisible);
         Assert.Equal(new Rect(0, 0, 600, 400), Bounds(page, dock));
         dock.ToggleMinimized();
         Relayout(dock, 600);
-        Assert.Equal(Visibility.Visible, bar.Visibility);
+        Assert.Null(bar.Clip);
+        Assert.Equal(1, bar.Child.Opacity);
+        Assert.True(bar.Child.IsHitTestVisible);
     });
 
     [Fact]
