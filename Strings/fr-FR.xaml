@@ -1317,6 +1317,10 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Card_Move">Déplacer</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">{0} éléments sélectionnés</sys:String>
     <sys:String x:Key="Str_Card_Style">Style</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Image</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Enregistrer l'image sous...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Remplacer l'image...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">Impossible d'enregistrer l'image :</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Texte sélectionné</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Page</sys:String>
 

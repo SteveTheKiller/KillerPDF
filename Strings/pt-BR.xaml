@@ -1317,6 +1317,10 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Card_Move">Mover</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">{0} itens selecionados</sys:String>
     <sys:String x:Key="Str_Card_Style">Estilo</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Imagem</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Salvar imagem como...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Substituir imagem...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">Não foi possível salvar a imagem:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Texto selecionado</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Página</sys:String>
 

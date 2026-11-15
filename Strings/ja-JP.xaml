@@ -1317,6 +1317,10 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Card_Move">移動</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">{0} 項目を選択中</sys:String>
     <sys:String x:Key="Str_Card_Style">スタイル</sys:String>
+    <sys:String x:Key="Str_Card_Picture">画像</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">画像に名前を付けて保存...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">画像を置換...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">画像を保存できませんでした：</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">選択したテキスト</sys:String>
     <sys:String x:Key="Str_Card_PageTools">ページ</sys:String>
 

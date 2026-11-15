@@ -1304,6 +1304,10 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Card_Move">সরান</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">{0}টি আইটেম নির্বাচিত</sys:String>
     <sys:String x:Key="Str_Card_Style">স্টাইল</sys:String>
+    <sys:String x:Key="Str_Card_Picture">ছবি</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">ছবি এভাবে সংরক্ষণ করুন...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">ছবি প্রতিস্থাপন করুন...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">ছবিটি সংরক্ষণ করা যায়নি:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">নির্বাচিত টেক্সট</sys:String>
     <sys:String x:Key="Str_Card_PageTools">পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_Op_Repair">মেরামত</sys:String>

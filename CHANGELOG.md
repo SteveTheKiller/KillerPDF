@@ -26,10 +26,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - The replacement-text blur slider is logarithmic: light blur takes most of its travel and the strongest blur the last stretch. (#467)
 - About no longer shows a color management status line under the version. The version still opens the release notes.
+- Right-clicking a picture opens a picture card instead of a three-item menu. It names the picture with its size in pixels and its page, and holds Copy, Cut and Delete as buttons. A pasted picture also gets Raise, Lower, Rotate CCW, Upside Down and Rotate CW, which turn it in place.
 
 ### Added
 
 - Docked Tool Menu and Floating Tool Menu choose whether the tool menu sits above the page or floats over its top edge. They are on the toolbar's right-click menu and a right-click on the tool menu itself, with a small icon of each layout, and Alt+B switches between them. (#485)
+- Save Picture As on the picture card writes a picture to its own file. A pasted picture keeps its original file type byte for byte, and a picture that is part of the page is saved as a PNG at its own resolution.
+- Replace Picture on a pasted picture's card swaps in another image file in the same spot and width.
 
 ## [1.9.3] - 2026-11-15
 

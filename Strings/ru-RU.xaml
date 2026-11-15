@@ -1317,6 +1317,10 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Card_Move">Переместить</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">Выбрано элементов: {0}</sys:String>
     <sys:String x:Key="Str_Card_Style">Стиль</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Изображение</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Сохранить изображение как...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Заменить изображение...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">Не удалось сохранить изображение:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Выделенный текст</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Страница</sys:String>
 

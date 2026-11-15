@@ -1312,6 +1312,10 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Card_Move">Przenieś</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">Wybrane elementy: {0}</sys:String>
     <sys:String x:Key="Str_Card_Style">Styl</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Obraz</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Zapisz obraz jako...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Zamień obraz...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">Nie udało się zapisać obrazu:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Zaznaczony tekst</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Strona</sys:String>
     <sys:String x:Key="Str_Op_Repair">naprawa</sys:String>

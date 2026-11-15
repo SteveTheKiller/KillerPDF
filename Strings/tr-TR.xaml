@@ -1304,6 +1304,10 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Card_Move">Taşı</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">{0} öğe seçildi</sys:String>
     <sys:String x:Key="Str_Card_Style">Stil</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Resim</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Resmi Farklı Kaydet...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Resmi Değiştir...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">Resim kaydedilemedi:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Seçili metin</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Sayfa</sys:String>
     <sys:String x:Key="Str_Op_Repair">onarım</sys:String>

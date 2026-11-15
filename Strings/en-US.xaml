@@ -1324,6 +1324,10 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Card_Move">Move</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">{0} items selected</sys:String>
     <sys:String x:Key="Str_Card_Style">Style</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Picture</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Save Picture As...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Replace Picture...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">The picture could not be saved:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Selected text</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Page</sys:String>
 

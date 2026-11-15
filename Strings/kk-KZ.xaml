@@ -1213,6 +1213,10 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Card_Move">Жылжыту</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">{0} элемент таңдалды</sys:String>
     <sys:String x:Key="Str_Card_Style">Стиль</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Сурет</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Суретті басқаша сақтау...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Суретті ауыстыру...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">Суретті сақтау мүмкін болмады:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Таңдалған мәтін</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Бет</sys:String>
 

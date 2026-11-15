@@ -1317,6 +1317,10 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Card_Move">Перемістити</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">Вибрано елементів: {0}</sys:String>
     <sys:String x:Key="Str_Card_Style">Стиль</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Зображення</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Зберегти зображення як...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Замінити зображення...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">Не вдалося зберегти зображення:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Виділений текст</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Сторінка</sys:String>
 

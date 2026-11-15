@@ -1220,6 +1220,10 @@
     <sys:String x:Key="Str_Card_Move">Premakni</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">Izbrani elementi: {0}</sys:String>
     <sys:String x:Key="Str_Card_Style">Slog</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Slika</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Shrani sliko kot...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Zamenjaj sliko...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">Slike ni bilo mogoče shraniti:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Izbrano besedilo</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Stran</sys:String>
     <sys:String x:Key="Str_Op_Repair">popravilo</sys:String>

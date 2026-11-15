@@ -1317,6 +1317,10 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Card_Move">Sposta</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">{0} elementi selezionati</sys:String>
     <sys:String x:Key="Str_Card_Style">Stile</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Immagine</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Salva immagine con nome...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Sostituisci immagine...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">Impossibile salvare l'immagine:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Testo selezionato</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Pagina</sys:String>
 

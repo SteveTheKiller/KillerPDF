@@ -1317,6 +1317,10 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Card_Move">Flytt</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">{0} elementer valgt</sys:String>
     <sys:String x:Key="Str_Card_Style">Stil</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Bilde</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Lagre bildet som...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Erstatt bildet...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">Bildet kunne ikke lagres:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Valgt tekst</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Side</sys:String>
 

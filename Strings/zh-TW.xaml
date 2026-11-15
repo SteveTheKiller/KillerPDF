@@ -1306,6 +1306,10 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Card_Move">移動</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">已選取 {0} 項</sys:String>
     <sys:String x:Key="Str_Card_Style">樣式</sys:String>
+    <sys:String x:Key="Str_Card_Picture">圖片</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">另存圖片為...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">取代圖片...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">無法儲存圖片：</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">選取的文字</sys:String>
     <sys:String x:Key="Str_Card_PageTools">頁面</sys:String>
     <sys:String x:Key="Str_Op_Repair">修復</sys:String>

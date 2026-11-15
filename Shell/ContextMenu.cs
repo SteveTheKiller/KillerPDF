@@ -99,22 +99,15 @@ namespace KillerPDF.Shell
                         SelectAnnotation(hit, AnnotBounds(hit));
                     }
                 }
-                AddAnnotationCard(hit);
+                if (hit is ImageAnnotation picture && hit.GroupId.Length == 0 && SelectionCount() <= 1) AddPictureCard(picture, placed: true);
+                else AddAnnotationCard(hit);
             }
             // Tiled views (continuous/grid/two-page) have no clickable link overlay, so resolve a link
             // under the cursor by bounds-check and offer the same menu the single-page overlay carries.
             else if (LinkAt(pt, pageIdx) is { } lk)
                 AddLinkMenuItems(_ctxMenu, lk.target, lk.annotIndex, pageIdx);
-            else if (ActiveViewer.TrySelectSourceImageExt(pageIdx, pt))
-            {
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Copy"), (_, _) => CopySelectedAnnotations(), GestureFor("Ctrl:C"), "\uE8C8"));
-                var cut = MakeMenuItem(Loc("Str_Ctx_Cut"), (_, _) => CutSelectedSourceImage(), GestureFor("Ctrl:X"), "\uE8C6");
-                cut.IsEnabled = ActiveViewer.CanDeleteSelectedSourceImageExt;
-                _ctxMenu.Items.Add(cut);
-                var delete = MakeMenuItem(Loc("Str_Ctx_DeleteSel"), (_, _) => DeleteSelected(), GestureFor("Del"), "\uE74D");
-                delete.IsEnabled = ActiveViewer.CanDeleteSelectedSourceImageExt;
-                _ctxMenu.Items.Add(delete);
-            }
+            else if (ActiveViewer.TrySelectSourceImageExt(pageIdx, pt) && ActiveViewer.SelectedSourceImageExt is { } sourcePicture)
+                AddPictureCard(sourcePicture, placed: false);
             else AddPageMenuItems(pt, pageIdx);
         }
 

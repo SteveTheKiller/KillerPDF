@@ -1304,6 +1304,10 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Card_Move">Mover</sys:String>
     <sys:String x:Key="Str_Card_ItemsSelected">{0} elementos seleccionados</sys:String>
     <sys:String x:Key="Str_Card_Style">Estilo</sys:String>
+    <sys:String x:Key="Str_Card_Picture">Imagen</sys:String>
+    <sys:String x:Key="Str_Ctx_SavePicture">Guardar imagen como...</sys:String>
+    <sys:String x:Key="Str_Ctx_ReplacePicture">Reemplazar imagen...</sys:String>
+    <sys:String x:Key="Str_Err_SavePictureFailed">No se pudo guardar la imagen:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Texto seleccionado</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Página</sys:String>
     <sys:String x:Key="Str_Op_Repair">la reparación</sys:String>
