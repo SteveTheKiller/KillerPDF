@@ -182,6 +182,7 @@ namespace KillerPDF.Controls
             // independent on purpose so the tools behave identically in all four modes.
             _activeCanvas = CanvasForPage(pageIndex);
             ClearRenderedCanvas(_activeCanvas);
+            QueueThumbnailOverlay(pageIndex);   // the page list's thumbnail follows the edits (PdfViewer.ThumbnailOverlay.cs)
 
             RenderStamps(pageIndex);   // stamp layer (page numbers / watermark) sits beneath annotations
             HighlighterLook.Dark? markDark = null;   // asked once, by the first highlighter mark

@@ -83,6 +83,13 @@ namespace KillerPDF
             }
         }
 
+        // The page's own render, before its unsaved edits are drawn over it, so the edits can be redrawn
+        // without rendering the page again.
+        private BitmapSource? _pageRender;
+
+        /// <summary>Draws the page's unsaved edits over its render, on the UI thread; set by the page list's owner.</summary>
+        internal Func<int, BitmapSource, BitmapSource>? Overlay { get; set; }
+
         /// <summary>Called by RefreshPageList's bulk background loader.</summary>
         internal void SetThumbnail(BitmapSource src)
         {
@@ -93,10 +100,26 @@ namespace KillerPDF
             if (app == null) return;
             app.Dispatcher.BeginInvoke(new Action(() =>
             {
-                _thumb = src;
+                _pageRender = src;
+                _thumb = Composed(src);
                 _stale = false;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumbnail)));
             }));
+        }
+
+        /// <summary>Redraws the page's unsaved edits over the render it already has, after an edit on the page.
+        /// Call on the UI thread.</summary>
+        internal void RefreshOverlay()
+        {
+            if (_pageRender is not { } render) return;
+            _thumb = Composed(render);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumbnail)));
+        }
+
+        private BitmapSource Composed(BitmapSource render)
+        {
+            try { return Overlay?.Invoke(PageIndex, render) ?? render; }
+            catch (Exception error) when (error is not OutOfMemoryException) { return render; }
         }
 
         /// <summary>Lets go of the picture of a row the list has not asked for lately. A row still on screen asks
@@ -109,6 +132,7 @@ namespace KillerPDF
             {
                 if (_thumb is null) return;
                 _thumb = null;
+                _pageRender = null;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumbnail)));
             }));
         }

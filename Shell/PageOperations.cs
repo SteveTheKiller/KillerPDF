@@ -492,11 +492,17 @@ namespace KillerPDF.Shell
             var oldItems = thumbnailOwner.ThumbCache;
 
             var items = new PageThumbnailVm[pageCount];
+            // Thumbnails show unsaved edits too. Only while this list is the pane's own: a list left behind by a tab
+            // switch must not draw another tab's edits.
+            var overlayPane = ActiveViewer;
+            Func<int, System.Windows.Media.Imaging.BitmapSource, System.Windows.Media.Imaging.BitmapSource> overlay =
+                (page, render) => ReferenceEquals(overlayPane.ThumbCache, items) ? overlayPane.ThumbnailOverlayFor(page, render) : render;
             for (int i = 0; i < pageCount; i++)
             {
                 rotSnap.TryGetValue(i, out int rot);
                 items[i] = nativeRevision is not null ? new PageThumbnailVm(i, nativeRevision, rot, thumbnailProof)
                     : new PageThumbnailVm(i, filePath, protection, rot, thumbnailProof);
+                items[i].Overlay = overlay;
             }
             // Seed with stale thumbnail - better than blank while reloading
             if (nativeRevision is null)
