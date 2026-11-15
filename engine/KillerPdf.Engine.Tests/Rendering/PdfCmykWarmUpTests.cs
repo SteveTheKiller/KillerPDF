@@ -58,6 +58,9 @@ public sealed class PdfCmykWarmUpTests
     [Fact]
     public void TheShippedTableIsTheFitOfTheBundledProfile()
     {
+        // The table is fitted on Windows and shipped to every platform. The iterative fit lands on different bytes
+        // under Linux's math library, so only Windows can say whether the shipped table is stale.
+        if (!OperatingSystem.IsWindows()) return;
         var profile = PdfCmykViewingDefault.LoadProfile();
 
         byte[]? shipped = PdfCmykDisplayTable.ShippedInverse(profile.ContentSha256);
