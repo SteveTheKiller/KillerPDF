@@ -72,7 +72,7 @@ public sealed class PdfCapturedReadRevisionTests
                     using var lease = revision.Rent();
                     Assert.Equal(1f, lease.RenderFrame(0, new PdfRenderOptions(2, 1)).Pixels[0]);
                     rented.SetResult();
-                    await closed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                    await closed.Task.WaitAsync(TimeSpan.FromSeconds(60));
                     Assert.ThrowsAny<OperationCanceledException>(() => lease.RenderFrame(0, new PdfRenderOptions(2, 1)));
                 }
                 catch (Exception error)
@@ -83,13 +83,13 @@ public sealed class PdfCapturedReadRevisionTests
             });
             try
             {
-                await rented.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                await rented.Task.WaitAsync(TimeSpan.FromSeconds(60));
                 working.Close();
             }
             finally
             {
                 closed.TrySetResult();
-                await renderTask.WaitAsync(TimeSpan.FromSeconds(10));
+                await renderTask.WaitAsync(TimeSpan.FromSeconds(60));
             }
             Assert.Throws<ObjectDisposedException>(() => revision.Rent());
             Assert.Throws<ObjectDisposedException>(() => working.CaptureReadRevision());

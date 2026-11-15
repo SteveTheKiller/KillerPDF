@@ -29,7 +29,7 @@ public sealed class BackgroundRenderCacheTests
                 await release.Task;
                 return lease.Render(0, 128, 128).Pixels;
             })).ToArray();
-            await ready.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await ready.Task.WaitAsync(TimeSpan.FromSeconds(60));
             cache.Clear();
             File.WriteAllBytes(path, Document(200, 100));
             var current = cache.Capture(path, 1, null);

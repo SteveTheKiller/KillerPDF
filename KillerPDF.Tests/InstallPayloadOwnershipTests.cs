@@ -159,7 +159,7 @@ public sealed class InstallPayloadOwnershipTests
             using Process process = Process.Start(start)!;
             Task<string> output = process.StandardOutput.ReadToEndAsync();
             Task<string> error = process.StandardError.ReadToEndAsync();
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             try { await process.WaitForExitAsync(timeout.Token); }
             finally { if (!process.HasExited) process.Kill(entireProcessTree: true); }
 

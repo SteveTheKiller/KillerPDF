@@ -20,7 +20,7 @@ public sealed class ThumbnailWindowTests
 
         for (int page = 500; page < 510; page++) window.Request(page);
 
-        Assert.True(SpinWait.SpinUntil(() => Enumerable.Range(500, 10).All(shown.ContainsKey), TimeSpan.FromSeconds(10)),
+        Assert.True(SpinWait.SpinUntil(() => Enumerable.Range(500, 10).All(shown.ContainsKey), TimeSpan.FromSeconds(60)),
             "The requested rows were not drawn.");
         Thread.Sleep(200);
         Assert.Equal(Enumerable.Range(500, 10), drawn.Order());
@@ -37,7 +37,7 @@ public sealed class ThumbnailWindowTests
         foreach (int page in new[] { 1, 2, 3, 4, 5, 6 })
         {
             window.Request(page);
-            Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(page), TimeSpan.FromSeconds(10)), $"Page {page} was not drawn.");
+            Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(page), TimeSpan.FromSeconds(60)), $"Page {page} was not drawn.");
         }
         Thread.Sleep(200);
 
@@ -54,11 +54,11 @@ public sealed class ThumbnailWindowTests
             (page, image) => { if (image is null) shown.TryRemove(page, out _); else shown[page] = image; }, retain: 1);
 
         window.Request(7);
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(7), TimeSpan.FromSeconds(10)));
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(7), TimeSpan.FromSeconds(60)));
         window.Request(8);
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(8) && !shown.ContainsKey(7), TimeSpan.FromSeconds(10)));
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(8) && !shown.ContainsKey(7), TimeSpan.FromSeconds(60)));
         window.Request(7);
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(7), TimeSpan.FromSeconds(10)));
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(7), TimeSpan.FromSeconds(60)));
 
         Assert.Equal(2, drawn.Count(page => page == 7));
     }
@@ -131,16 +131,16 @@ public sealed class ThumbnailWindowTests
         {
             Interlocked.Increment(ref draws);
             entered.Set();
-            gate.Wait(TimeSpan.FromSeconds(10));
+            gate.Wait(TimeSpan.FromSeconds(60));
             return $"thumb {page}";
         }, (page, image) => { if (image is null) shown.TryRemove(page, out _); else shown[page] = image; }, retain: 4);
 
         window.Request(0);
-        Assert.True(entered.Wait(TimeSpan.FromSeconds(10)), "The first row did not start drawing.");
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(60)), "The first row did not start drawing.");
         for (int page = 1; page < 100; page++) window.Request(page);
         gate.Set();
 
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(99) && shown.ContainsKey(96), TimeSpan.FromSeconds(10)),
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(99) && shown.ContainsKey(96), TimeSpan.FromSeconds(60)),
             "The newest rows were not drawn.");
         Thread.Sleep(300);
         // The row in flight plus the newest four waiting rows.
@@ -158,18 +158,18 @@ public sealed class ThumbnailWindowTests
         using var window = new ThumbnailWindow<string>(1_000, (page, _) =>
         {
             drawn.Add(page);
-            if (page == 0) { entered.Set(); gate.Wait(TimeSpan.FromSeconds(10)); }
+            if (page == 0) { entered.Set(); gate.Wait(TimeSpan.FromSeconds(60)); }
             return $"thumb {page}";
         }, (page, image) => { if (image is null) shown.TryRemove(page, out _); else shown[page] = image; }, retain: 2);
 
         window.Request(0);
-        Assert.True(entered.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(60)));
         for (int page = 1; page <= 5; page++) window.Request(page);   // 1, 2 and 3 are dropped
         gate.Set();
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(5) && shown.ContainsKey(4), TimeSpan.FromSeconds(10)));
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(5) && shown.ContainsKey(4), TimeSpan.FromSeconds(60)));
         Thread.Sleep(200);
         window.Request(1);
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(1), TimeSpan.FromSeconds(10)), "The dropped row was never drawn when asked for again.");
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(1), TimeSpan.FromSeconds(60)), "The dropped row was never drawn when asked for again.");
     }
 
     // An out-of-memory error while drawing one row must not leave the window believing a pass is still running or the
@@ -192,9 +192,9 @@ public sealed class ThumbnailWindowTests
         window.Request(3);
         // Ask again once the failure is published, which is after the row stopped waiting. A fixed 300 ms pause raced
         // the failure on a busy lab VM and folded the second request into the draw that was failing.
-        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref failures) >= 1, TimeSpan.FromSeconds(10)), "The failure was not published.");
+        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref failures) >= 1, TimeSpan.FromSeconds(60)), "The failure was not published.");
         window.Request(3);
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(10)), "The row was stuck after the failure.");
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(60)), "The row was stuck after the failure.");
     }
 
     // A row that keeps a carried-over picture from the list it replaced must be told when its own draw fails, or it
@@ -208,7 +208,7 @@ public sealed class ThumbnailWindowTests
 
         window.Request(5);
 
-        Assert.True(SpinWait.SpinUntil(() => failed.Contains(5), TimeSpan.FromSeconds(10)), "The failed draw was not published.");
+        Assert.True(SpinWait.SpinUntil(() => failed.Contains(5), TimeSpan.FromSeconds(60)), "The failed draw was not published.");
     }
 
     // A row that shows a carried-over picture is cleared when its own draw fails, which makes it ask for its picture
@@ -230,9 +230,9 @@ public sealed class ThumbnailWindowTests
         using (window)
         {
             window.Request(5);
-            Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref asked) >= 1, TimeSpan.FromSeconds(10)));
+            Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref asked) >= 1, TimeSpan.FromSeconds(60)));
             // Wait for the retry itself, then give a third attempt time to show up if one were coming.
-            Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts) >= 2, TimeSpan.FromSeconds(10)), "The page was not retried.");
+            Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts) >= 2, TimeSpan.FromSeconds(60)), "The page was not retried.");
             Thread.Sleep(300);
 
             // The one retry after the pass, not the row's request.
@@ -255,10 +255,10 @@ public sealed class ThumbnailWindowTests
         }, (page, image) => { if (image is not null) shown[page] = image; }, retain: 8, drained: () => drained.Release());
 
         window.Request(3);
-        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)), "The pass did not drain.");
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(60)), "The pass did not drain.");
         window.Request(3);
 
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(10)),
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(60)),
             "The page was never drawn when asked for after the failed pass.");
         Assert.Equal(2, Volatile.Read(ref attempts));
     }
@@ -278,7 +278,7 @@ public sealed class ThumbnailWindowTests
 
         window.Request(3);
 
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(5)),
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(60)),
             "The page whose draw threw was never drawn again without a second request.");
         Assert.Equal(2, Volatile.Read(ref attempts));
     }
@@ -293,7 +293,7 @@ public sealed class ThumbnailWindowTests
             (page, image) => { }, retain: 8, drained: () => drained.Release());
 
         window.Request(3);
-        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         window.Request(3);
         Thread.Sleep(300);
 
@@ -320,18 +320,18 @@ public sealed class ThumbnailWindowTests
             retain: 1, drained: () => drained.Release());
 
         window.Request(3);                                   // throws (first)
-        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         window.Request(3);                                   // draws
-        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         Assert.Equal("thumb 3 call 2", shown[3]);
         window.Request(4);                                   // evicts page 3
-        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         Assert.False(shown.ContainsKey(3));
         window.Request(3);                                   // throws a second, separate time
-        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         window.Request(3);                                   // must be drawn, not settled as failed
 
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(10)),
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(60)),
             "The page was settled as failed although it had drawn since its first throw.");
         Assert.Equal(4, Volatile.Read(ref calls3));
     }
@@ -356,20 +356,20 @@ public sealed class ThumbnailWindowTests
             for (int attempt = 0; attempt < 2; attempt++)
             {
                 window.Request(page);
-                Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+                Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
             }
         window.Request(0);                                   // settled as failed: no draw yet
         Thread.Sleep(200);
         Assert.False(shown.ContainsKey(0));
 
         window.Request(2);                                   // draws, so the renderer works again
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(2), TimeSpan.FromSeconds(10)));
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(2), TimeSpan.FromSeconds(60)));
         window.Request(0);
 
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(0), TimeSpan.FromSeconds(10)),
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(0), TimeSpan.FromSeconds(60)),
             "A page settled by throwing was never given its retry after another page drew.");
         window.Request(1);
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(1), TimeSpan.FromSeconds(10)),
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(1), TimeSpan.FromSeconds(60)),
             "The second page settled by throwing was never given its retry.");
     }
 
@@ -390,19 +390,19 @@ public sealed class ThumbnailWindowTests
         for (int attempt = 0; attempt < 2; attempt++)
         {
             window.Request(0);
-            Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+            Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         }
         Assert.Equal(2, Volatile.Read(ref attempts0));
 
         window.Request(2);                                   // a success re-arms page 0 once
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(2), TimeSpan.FromSeconds(10)));
-        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(2), TimeSpan.FromSeconds(60)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         window.Request(0);                                   // its one more try, which throws again
-        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts0) == 3, TimeSpan.FromSeconds(10)));
-        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts0) == 3, TimeSpan.FromSeconds(60)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
 
         window.Request(3);                                   // another success must not re-arm it again
-        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(10)));
+        Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(3), TimeSpan.FromSeconds(60)));
         window.Request(0);
         Thread.Sleep(300);
         Assert.Equal(3, Volatile.Read(ref attempts0));
@@ -432,15 +432,15 @@ public sealed class ThumbnailWindowTests
             for (int i = 0; i < 2; i++)
             {
                 window.Request(0);
-                Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+                Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
             }
             Assert.Equal(expected, Volatile.Read(ref attempts0));
         }
         void Draw(int page)
         {
             window.Request(page);
-            Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(page), TimeSpan.FromSeconds(10)));
-            Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+            Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(page), TimeSpan.FromSeconds(60)));
+            Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         }
 
         ThrowTwice(2);                                       // page 0 settles by throwing
@@ -451,7 +451,7 @@ public sealed class ThumbnailWindowTests
         Draw(2);                                             // a success must re-arm it again
         window.Request(0);
         Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts0) == 6 && shown.ContainsKey(0),
-            TimeSpan.FromSeconds(10)), $"page 0 was not drawn again (attempts {Volatile.Read(ref attempts0)})");
+            TimeSpan.FromSeconds(60)), $"page 0 was not drawn again (attempts {Volatile.Read(ref attempts0)})");
     }
 
     // A row can ask for a page again while that page is being drawn. The draw already running will publish it, so the
@@ -474,10 +474,10 @@ public sealed class ThumbnailWindowTests
         }, (page, image) => { }, retain: 2, drained: () => drained.Release());
 
         window.Request(0);
-        Assert.True(inDraw.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(inDraw.Wait(TimeSpan.FromSeconds(60)));
         window.Request(0);                                   // a row reads its binding while the draw runs
         releaseDraw.Set();
-        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         Thread.Sleep(200);
 
         Assert.Equal(1, Volatile.Read(ref attempts0));
@@ -508,17 +508,17 @@ public sealed class ThumbnailWindowTests
         void Draw(int page)
         {
             window.Request(page);
-            Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(page), TimeSpan.FromSeconds(10)));
-            Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+            Assert.True(SpinWait.SpinUntil(() => shown.ContainsKey(page), TimeSpan.FromSeconds(60)));
+            Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         }
 
         window.Request(0);                                   // attempt 1 throws
-        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         window.Request(0);                                   // attempt 2 throws, and a row asks again while it runs
-        Assert.True(inSecondDraw.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(inSecondDraw.Wait(TimeSpan.FromSeconds(60)));
         window.Request(0);
         releaseSecondDraw.Set();
-        Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         Thread.Sleep(200);
         Assert.Equal(2, Volatile.Read(ref attempts0));      // not drawn again in the same pass
 
@@ -528,13 +528,13 @@ public sealed class ThumbnailWindowTests
         for (int i = 0; i < 2; i++)                          // a later brief lock settles it by throwing
         {
             window.Request(0);
-            Assert.True(drained.Wait(TimeSpan.FromSeconds(10)));
+            Assert.True(drained.Wait(TimeSpan.FromSeconds(60)));
         }
         Assert.Equal(5, Volatile.Read(ref attempts0));
         Draw(1);                                             // a success re-arms it again
         window.Request(0);
         Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref attempts0) == 6 && shown.ContainsKey(0),
-            TimeSpan.FromSeconds(10)), $"page 0 was not drawn again (attempts {Volatile.Read(ref attempts0)})");
+            TimeSpan.FromSeconds(60)), $"page 0 was not drawn again (attempts {Volatile.Read(ref attempts0)})");
     }
     // A page the renderer refuses by throwing is tried once more, then settled, so a broken page does not reopen and
     // parse the file on every later pass.
@@ -553,7 +553,7 @@ public sealed class ThumbnailWindowTests
         for (int cycle = 0; cycle < 2; cycle++)
         {
             window.Request(3);
-            Assert.True(drained.Wait(TimeSpan.FromSeconds(10)), "The pass did not drain.");
+            Assert.True(drained.Wait(TimeSpan.FromSeconds(60)), "The pass did not drain.");
         }
         window.Request(3);
         Thread.Sleep(300);

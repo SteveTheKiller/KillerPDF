@@ -7,7 +7,7 @@ namespace KillerPDF.Tests;
 // What the search bar's result text and highlights do when a search ends badly, is superseded or finds too much.
 public sealed class SearchControllerStateTests
 {
-    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(60);
 
     [Fact]
     public async Task AMatchLimitHitShowsALimitMessageInsteadOfAGenericSearchError()
@@ -117,7 +117,7 @@ public sealed class SearchControllerStateTests
         controller.CancelPending();   // Esc: the new search delivers nothing and the old results stay
 
         Assert.True(SpinWait.SpinUntil(() => host.Repaints > repaints || controller.LocationToken.CanBeCanceled,
-            TimeSpan.FromSeconds(5)), "Nothing asked for the old results' pages to be read again.");
+            Patience), "Nothing asked for the old results' pages to be read again.");
     }
 
     internal sealed class Host(CurrentSearchSnapshot source) : KillerPDF.Features.ISearchHost

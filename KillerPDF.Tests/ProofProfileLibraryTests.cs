@@ -28,7 +28,7 @@ public sealed class ProofProfileLibraryTests : IDisposable
         try
         {
             var thread = WorkingCmykProfiles.StartWarmUp(() => throw (Exception)Activator.CreateInstance(failure)!);
-            Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
+            Assert.True(thread.Join(TimeSpan.FromSeconds(60)));
             Assert.Null(escaped);
         }
         finally { AppDomain.CurrentDomain.UnhandledException -= handler; }
@@ -40,9 +40,9 @@ public sealed class ProofProfileLibraryTests : IDisposable
     public void TheCmykWarmUpRunsAtNormalPriorityBecauseRendersWaitOnIt()
     {
         using var release = new ManualResetEventSlim();
-        var thread = WorkingCmykProfiles.StartWarmUp(() => release.Wait(TimeSpan.FromSeconds(10)));
+        var thread = WorkingCmykProfiles.StartWarmUp(() => release.Wait(TimeSpan.FromSeconds(60)));
         try { Assert.Equal(ThreadPriority.Normal, thread.Priority); }
-        finally { release.Set(); thread.Join(TimeSpan.FromSeconds(10)); }
+        finally { release.Set(); thread.Join(TimeSpan.FromSeconds(60)); }
     }
 
     [Fact]

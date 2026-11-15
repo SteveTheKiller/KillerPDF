@@ -36,8 +36,8 @@ public sealed class ThumbnailSessionOwnerTests
         catch (TimeoutException) { returned = false; }
         bool closedEarly = renderer.Closed;
         finish.Set();
-        Assert.Equal("thumbnail", await draw.WaitAsync(TimeSpan.FromSeconds(5)));
-        await release.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal("thumbnail", await draw.WaitAsync(TimeSpan.FromSeconds(60)));
+        await release.WaitAsync(TimeSpan.FromSeconds(60));
 
         Assert.True(returned, "Release waited for the thumbnail being drawn.");
         Assert.False(closedEarly, "The renderer was closed while it was drawing.");

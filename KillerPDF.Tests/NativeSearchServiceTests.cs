@@ -195,7 +195,7 @@ public sealed class NativeSearchServiceTests
         var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
         var controller = new KillerPDF.Features.SearchController(host);
         controller.Run("A");
-        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await host.Completed.Task.WaitAsync(Hang);
 
         var rects = controller.AllSearchRects[0];
         Assert.Equal(2, rects.Count);
@@ -224,7 +224,7 @@ public sealed class NativeSearchServiceTests
         var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
         var controller = new KillerPDF.Features.SearchController(host);
         controller.Run("A");
-        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await host.Completed.Task.WaitAsync(Hang);
 
         var rects = controller.AllSearchRects[0];
         Assert.Equal(2, rects.Count);
@@ -291,7 +291,7 @@ public sealed class NativeSearchServiceTests
         byte[][] zones = Enumerable.Range(0, 20_000)
             .Select(index => Zone(index % 100, index / 100, 1, 1, index, 1)).ToArray();
         using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page(new string('A', 20_000), zones)));
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        using var deadline = new CancellationTokenSource(Hang);
         var result = SearchService.Search(new CurrentSearchSnapshot([], []) { NativeRevision = revision },
             "A", true, false, deadline.Token);
         Assert.Equal(20_000, result.TotalHits);

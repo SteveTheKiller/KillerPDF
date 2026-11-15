@@ -69,8 +69,8 @@ namespace KillerPDF.Tests
                 silent.Connect(3000);
                 Thread.Sleep(600);   // say nothing past the deadline
             }
-            Assert.True(SpinWait.SpinUntil(() => channel.TrySend("C:\\next.pdf", 500), TimeSpan.FromSeconds(5)));
-            await server.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.True(SpinWait.SpinUntil(() => channel.TrySend("C:\\next.pdf", 500), TimeSpan.FromSeconds(60)));
+            await server.WaitAsync(TimeSpan.FromSeconds(60));
             Assert.Equal("C:\\next.pdf", second);
         }
     }

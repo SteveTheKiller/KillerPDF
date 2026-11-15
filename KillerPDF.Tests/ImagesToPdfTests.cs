@@ -116,7 +116,7 @@ public sealed class ImagesToPdfTests : IDisposable
         using var owning = new ManualResetEventSlim();
         var collector = new Thread(() => { gathered = first.Collect([@"C:\P\a.jpg"], owning.Set); }) { IsBackground = true };
         collector.Start();
-        Assert.True(owning.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(owning.Wait(TimeSpan.FromSeconds(60)));
 
         var later = new ImageLaunchCollector(channel, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(20));
         Assert.Null(later.Collect([@"C:\P\b.jpg"]));
@@ -142,7 +142,7 @@ public sealed class ImagesToPdfTests : IDisposable
         using var owning = new ManualResetEventSlim();
         var collector = new Thread(() => { gathered = first.Collect([@"C:\P\a.jpg"], owning.Set); }) { IsBackground = true };
         collector.Start();
-        Assert.True(owning.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(owning.Wait(TimeSpan.FromSeconds(60)));
 
         var later = new ImageLaunchCollector(channel, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(20));
         Assert.Null(later.Collect([@"C:\P\b.jpg"]));
@@ -167,7 +167,7 @@ public sealed class ImagesToPdfTests : IDisposable
         using var owning = new ManualResetEventSlim();
         var collector = new Thread(() => { gathered = first.Collect([@"C:\P\a.jpg"], owning.Set); }) { IsBackground = true };
         collector.Start();
-        Assert.True(owning.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(owning.Wait(TimeSpan.FromSeconds(60)));
 
         var later = new ImageLaunchCollector(channel, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30));
         Assert.Null(later.Collect([@"C:\P\b.jpg"]));

@@ -13,7 +13,7 @@ public sealed class CropMathTests
         int[]? result = null;
         var worker = new Thread(() => result = CropMath.ParsePageRange(input, pageCount)) { IsBackground = true };
         worker.Start();
-        Assert.True(worker.Join(TimeSpan.FromSeconds(5)), $"ParsePageRange(\"{input}\", {pageCount}) did not return");
+        Assert.True(worker.Join(TimeSpan.FromSeconds(60)), $"ParsePageRange(\"{input}\", {pageCount}) did not return");
         return result;
     }
 

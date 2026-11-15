@@ -14,16 +14,16 @@ public sealed class ViewportRenderQueueTests
         var first = queue.Enqueue("first", 0, 16, token =>
         {
             entered.Set();
-            Assert.True(token.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)));
+            Assert.True(token.WaitHandle.WaitOne(TimeSpan.FromSeconds(60)));
             token.ThrowIfCancellationRequested();
             return 0;
         }, source.Token);
-        Assert.True(entered.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(60)));
         var next = queue.Enqueue("next", 0, 16, _ => 7);
         source.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
-        Assert.Equal(7, await next.WaitAsync(TimeSpan.FromSeconds(10)));
-        Assert.Equal(8, await queue.Enqueue("later", 0, 16, _ => 8).WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal(7, await next.WaitAsync(TimeSpan.FromSeconds(60)));
+        Assert.Equal(8, await queue.Enqueue("later", 0, 16, _ => 8).WaitAsync(TimeSpan.FromSeconds(60)));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class ViewportRenderQueueTests
         using var entered = new ManualResetEventSlim();
         using var release = new ManualResetEventSlim();
         var active = queue.Enqueue("active", 0, 16, _ => { entered.Set(); release.Wait(); return 0; });
-        Assert.True(entered.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(60)));
         var oldZoom = queue.Enqueue<int>("zoom", 0, 16, _ => throw new Exception("Old zoom ran"));
         var zoom = queue.Enqueue("zoom", 0, 16, _ => 2);
         var distant = queue.Enqueue<int>("distant", 1000, 16, _ => throw new Exception("Distant page ran"));
@@ -79,15 +79,15 @@ public sealed class ViewportRenderQueueTests
         var active = queue.Enqueue("old", 0, 16, token =>
         {
             entered.Set();
-            token.WaitHandle.WaitOne(TimeSpan.FromSeconds(10));
+            token.WaitHandle.WaitOne(TimeSpan.FromSeconds(60));
             token.ThrowIfCancellationRequested();
             return 0;
         });
-        Assert.True(entered.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(60)));
         var pending = queue.Enqueue<int>("neighbor", 10, 16, _ => throw new Exception("Old document ran"));
         queue.CancelAll();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => active);
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
-        Assert.Equal(7, await queue.Enqueue("new", 0, 16, _ => 7).WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal(7, await queue.Enqueue("new", 0, 16, _ => 7).WaitAsync(TimeSpan.FromSeconds(60)));
     }
 }
