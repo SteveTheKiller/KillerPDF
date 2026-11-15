@@ -127,7 +127,6 @@
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">版本</sys:String>
-    <sys:String x:Key="Str_About_ColorStatus">色彩管理：HDR 显示器和物理色彩准确度仍在开发中。</sys:String>
     <sys:String x:Key="Str_About_Publisher">发布者</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">证书指纹</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

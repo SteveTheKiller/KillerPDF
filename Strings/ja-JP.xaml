@@ -129,7 +129,6 @@
 
     <!-- ── バージョン情報オーバーレイ ──────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">バージョン</sys:String>
-    <sys:String x:Key="Str_About_ColorStatus">カラーマネジメント: HDR モニターと物理的な色の正確さは開発中です。</sys:String>
     <sys:String x:Key="Str_About_Publisher">発行元</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">拇印</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

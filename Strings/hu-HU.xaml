@@ -129,7 +129,6 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERZIÓ</sys:String>
-    <sys:String x:Key="Str_About_ColorStatus">Színkezelés: a HDR-monitorok és a fizikai színpontosság fejlesztés alatt állnak.</sys:String>
     <sys:String x:Key="Str_About_Publisher">KÖZZÉTEVŐ</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">UJJLENYOMAT</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

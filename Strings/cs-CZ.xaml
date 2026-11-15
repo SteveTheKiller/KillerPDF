@@ -129,7 +129,6 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERZE</sys:String>
-    <sys:String x:Key="Str_About_ColorStatus">Správa barev: monitory HDR a fyzická přesnost barev jsou ve vývoji.</sys:String>
     <sys:String x:Key="Str_About_Publisher">VYDAVATEL</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">OTISK CERTIFIKÁTU</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

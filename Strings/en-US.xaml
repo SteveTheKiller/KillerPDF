@@ -129,7 +129,6 @@ The page can be replaced with an image of itself with the marked areas blacked o
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERSION</sys:String>
-    <sys:String x:Key="Str_About_ColorStatus">Color management: HDR monitors and physical color accuracy are in progress.</sys:String>
     <sys:String x:Key="Str_About_Publisher">PUBLISHER</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">THUMBPRINT</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

@@ -129,7 +129,6 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERSJON</sys:String>
-    <sys:String x:Key="Str_About_ColorStatus">Fargestyring: HDR-skjermer og fysisk fargenøyaktighet er under arbeid.</sys:String>
     <sys:String x:Key="Str_About_Publisher">UTGIVER</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">FINGERAVTRYKK</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

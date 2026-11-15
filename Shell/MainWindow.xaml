@@ -3087,14 +3087,14 @@
                                     ViewportUnits="Absolute" Viewport="0,0,256,256" Stretch="None"/>
                     </Border.Background>
                 </Border>
-                <Grid Grid.Row="1" Margin="8,10,8,18">
+                <Grid Grid.Row="1" Margin="8,8,8,18">
                     <StackPanel Margin="0">
                     <!-- Header: bloody KillerPDF icon to the left of the title + tagline.
                          A Grid (not a horizontal StackPanel) so the text column is bounded and the
                          tagline wraps to fill two lines (same pattern as KillerScan's About).
                          Width is pinned to the info panel below, so the card's width is still
                          determined by the SHA256 line - never by the tagline text. -->
-                    <Grid Margin="0,4,0,14" Width="{Binding ActualWidth, ElementName=AboutInfoGrid}">
+                    <Grid Margin="0,0,0,14" Width="{Binding ActualWidth, ElementName=AboutInfoGrid}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -3164,12 +3164,6 @@
                                                Foreground="{DynamicResource MutedTextBrush}"
                                                HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
                                 </Grid>
-                                <!-- Product status, not a warning: HDR and physical color accuracy
-                                     are still in progress in 1.9.3. Wraps at large app scale. -->
-                                <TextBlock Text="{DynamicResource Str_About_ColorStatus}"
-                                           Foreground="{DynamicResource MutedTextBrush}"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
-                                           TextWrapping="Wrap" Margin="0,4,0,0"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,0,10">
                                 <TextBlock Text="{DynamicResource Str_About_Publisher}" Foreground="{DynamicResource MutedTextBrush}"
@@ -3217,53 +3211,53 @@
                     </Button>
                     <!-- Settings wrap in two equal columns inside the SHA-sized info panel. -->
                     <Grid Margin="0,12,0,0" Width="{Binding ActualWidth, ElementName=AboutInfoGrid}">
-                    <!-- Shared rows: a label that wraps makes its own row taller instead of pushing one
-                         column out of line with the other. -->
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                    <!-- Each column stacks on its own, so a label that wraps on one side never changes the
+                         spacing on the other. Clear all Data floats in the bottom-right corner, outside
+                         the rows. -->
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="12"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
                         <!-- First, like every Killer Tools About card: the way back after the
                              update prompt's "Always check on startup" box was cleared. -->
-                        <CheckBox x:Name="AboutStartupUpdateCheck" Grid.Row="0" Grid.Column="0" VerticalAlignment="Top" Margin="0" Padding="10,0,10,0"
+                        <CheckBox x:Name="AboutStartupUpdateCheck" VerticalAlignment="Top" Margin="0" Padding="10,0,10,0"
                                   Style="{StaticResource ThemeCheck}" FontSize="11"
                                   Click="AboutStartupUpdateCheck_Click">
                             <TextBlock Text="{DynamicResource Str_StartupUpdateCheck}" TextWrapping="Wrap"/>
                         </CheckBox>
-                        <CheckBox x:Name="AboutCloseToTray" Grid.Row="1" Grid.Column="0" VerticalAlignment="Top" Margin="0,6,0,0" Padding="10,0,10,0"
+                        <CheckBox x:Name="AboutCloseToTray" VerticalAlignment="Top" Margin="0,6,0,0" Padding="10,0,10,0"
                                   Style="{StaticResource ThemeCheck}" FontSize="11"
                                   ToolTip="{DynamicResource Str_About_CloseToTrayHint}"
                                   Click="AboutCloseToTray_Click">
                             <TextBlock Text="{DynamicResource Str_About_CloseToTray}" TextWrapping="Wrap"/>
                         </CheckBox>
-                        <CheckBox Grid.Row="0" Grid.Column="2" VerticalAlignment="Top" Margin="0" Padding="10,0,10,0"
-                                  Style="{StaticResource ThemeCheck}" FontSize="11"
-                                  IsChecked="{Binding Source={x:Static kl:ShortcutHints.Current}, Path=Enabled, Mode=TwoWay}">
-                            <TextBlock Text="{DynamicResource Str_About_ShowShortcutsInMenus}" TextWrapping="Wrap"/>
-                        </CheckBox>
-                        <CheckBox x:Name="NoRecentCheck" Grid.Row="1" Grid.Column="2" VerticalAlignment="Top" Margin="0,6,0,0" Padding="10,0,10,0"
-                                  Style="{StaticResource ThemeCheck}" FontSize="11"
-                                  Checked="NoRecentCheck_Toggled" Unchecked="NoRecentCheck_Toggled">
-                            <TextBlock Text="{DynamicResource Str_NoRecentSetting}" TextWrapping="Wrap"/>
-                        </CheckBox>
                         <!-- Confirm-before-opening-links. Lived as a hidden row in the Settings
                              panel and came back here when that panel was dissolved: About is where
                              the data-hygiene and safety controls live. Off by default, so link
                              clicks stay immediate unless you ask for the prompt. -->
-                        <CheckBox x:Name="LinkConfirmCheck" Grid.Row="2" Grid.Column="0"
+                        <CheckBox x:Name="LinkConfirmCheck"
                                   VerticalAlignment="Top" Margin="0,6,0,0" Padding="10,0,10,0"
                                   Style="{StaticResource ThemeCheck}" FontSize="11"
                                   Checked="LinkConfirmCheck_Toggled" Unchecked="LinkConfirmCheck_Toggled">
                             <TextBlock Text="{DynamicResource Str_LinkConfirmSetting}" TextWrapping="Wrap"/>
                         </CheckBox>
-                    <TextBlock Grid.Row="2" Grid.Column="2" FontFamily="{DynamicResource UiFont}" FontSize="10"
-                               HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,6,0,0" TextWrapping="Wrap">
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <CheckBox VerticalAlignment="Top" Margin="0" Padding="10,0,10,0"
+                                  Style="{StaticResource ThemeCheck}" FontSize="11"
+                                  IsChecked="{Binding Source={x:Static kl:ShortcutHints.Current}, Path=Enabled, Mode=TwoWay}">
+                            <TextBlock Text="{DynamicResource Str_About_ShowShortcutsInMenus}" TextWrapping="Wrap"/>
+                        </CheckBox>
+                        <CheckBox x:Name="NoRecentCheck" VerticalAlignment="Top" Margin="0,6,0,0" Padding="10,0,10,0"
+                                  Style="{StaticResource ThemeCheck}" FontSize="11"
+                                  Checked="NoRecentCheck_Toggled" Unchecked="NoRecentCheck_Toggled">
+                            <TextBlock Text="{DynamicResource Str_NoRecentSetting}" TextWrapping="Wrap"/>
+                        </CheckBox>
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" FontFamily="{DynamicResource UiFont}" FontSize="10"
+                               HorizontalAlignment="Right" VerticalAlignment="Bottom" TextWrapping="Wrap">
                         <Hyperlink TextDecorations="None" Cursor="Hand" Click="AboutClearData_Click">
                             <Hyperlink.Style>
                                 <Style TargetType="Hyperlink">

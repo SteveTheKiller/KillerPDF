@@ -127,7 +127,6 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
 
     <!-- ── Hakkında katmanı ──────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">SÜRÜM</sys:String>
-    <sys:String x:Key="Str_About_ColorStatus">Renk yönetimi: HDR monitörler ve fiziksel renk doğruluğu üzerindeki çalışmalar sürüyor.</sys:String>
     <sys:String x:Key="Str_About_Publisher">YAYIMCI</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">PARMAK İZİ</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

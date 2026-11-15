@@ -127,7 +127,6 @@
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">সংস্করণ</sys:String>
-    <sys:String x:Key="Str_About_ColorStatus">কালার ম্যানেজমেন্ট: HDR মনিটর এবং ভৌত রঙের নির্ভুলতার কাজ চলছে।</sys:String>
     <sys:String x:Key="Str_About_Publisher">প্রকাশক</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">থাম্বপ্রিন্ট</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

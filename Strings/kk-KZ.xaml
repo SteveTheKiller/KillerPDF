@@ -51,7 +51,6 @@
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">НҰСҚА</sys:String>
-    <sys:String x:Key="Str_About_ColorStatus">Түсті басқару: HDR мониторлары мен физикалық түс дәлдігі әзірленуде.</sys:String>
     <sys:String x:Key="Str_About_Publisher">ЖАРИЯЛАУШЫ</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">БАРМАҚ ІЗІ</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

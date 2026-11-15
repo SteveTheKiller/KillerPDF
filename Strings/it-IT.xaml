@@ -129,7 +129,6 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERSIONE</sys:String>
-    <sys:String x:Key="Str_About_ColorStatus">Gestione del colore: i monitor HDR e l'accuratezza fisica dei colori sono in sviluppo.</sys:String>
     <sys:String x:Key="Str_About_Publisher">EDITORE</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">IMPRONTA CERTIFICATO</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
