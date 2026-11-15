@@ -455,21 +455,25 @@ namespace KillerPDF.Shell
                     }
                     return 1;
                 }
-                var blurSlider = BarSlider(0, 2, Math.Clamp(replacement.BlurRadius * BlurUnit(), 0, 2), Loc("Str_Bar_Blur"));
+                // Logarithmic (#467): the slider runs 0 to 1 and BlurSliderScale turns it into points, so light blur
+                // gets most of the travel. The readout still says points.
+                double startPoints = Math.Clamp(replacement.BlurRadius * BlurUnit(), 0, Services.BlurSliderScale.MaximumPoints);
+                var blurSlider = BarSlider(0, 1, Services.BlurSliderScale.ToSlider(startPoints), Loc("Str_Bar_Blur"));
                 blurSlider.Name = "ReplacementTextBlurSlider";
-                blurSlider.TickFrequency = .05;
-                blurSlider.IsSnapToTickEnabled = true;
-                var blurLabel = BarReadout($"{blurSlider.Value:0.##} pt", 48);
+                blurSlider.SmallChange = .02;
+                blurSlider.LargeChange = .1;
+                var blurLabel = BarReadout($"{startPoints:0.##} pt", 48);
                 // One undo step per drag or key press, not one per tick.
                 var blurGesture = new Controls.SliderGesture(blurSlider);
                 blurSlider.ValueChanged += (_, e) =>
                 {
                     if (!ReferenceEquals(_selectedAnnotation, replacement)) return;
-                    double radius = Math.Round(e.NewValue, 2) / BlurUnit();
+                    double points = Math.Round(Services.BlurSliderScale.ToPoints(e.NewValue), 3);
+                    double radius = points / BlurUnit();
                     if (replacement.BlurRadius == radius) return;
                     if (blurGesture.Starts()) ActiveViewer.PushPageSnapshotUndoExt(replacement.PageIndex);
                     replacement.BlurRadius = radius;
-                    blurLabel.Text = $"{e.NewValue:0.##} pt";
+                    blurLabel.Text = $"{points:0.##} pt";
                     MarkDirty();
                     RenderAllAnnotations(replacement.PageIndex);
                     if (_selectionBorder is not null) _activeCanvas.Children.Add(_selectionBorder);
