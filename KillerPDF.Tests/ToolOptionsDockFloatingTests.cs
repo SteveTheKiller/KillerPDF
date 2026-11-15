@@ -81,7 +81,10 @@ public sealed class ToolOptionsDockFloatingTests
         Assert.True(dock.Minimized);
         // The bar stays the click target, cut down to the strip with its controls hidden, as in 1.9.2.
         Assert.Equal(Visibility.Visible, bar.Visibility);
-        Assert.Equal(new Rect(0, 0, 200, ToolOptionsDock.MinimizedHeight), bar.Clip!.Bounds);
+        Rect clip = bar.Clip!.Bounds;
+        Assert.Equal(200, clip.Width, 3);
+        Assert.Equal(ToolOptionsDock.MinimizedHeight, clip.Height, 3);
+        Assert.Equal(0, clip.Top, 3);
         Assert.Equal(0, bar.Child.Opacity);
         Assert.False(bar.Child.IsHitTestVisible);
         Assert.Equal(new Rect(left, 0, 200, ToolOptionsDock.MinimizedHeight), Bounds(dock.MinimizedStrip!, dock));
@@ -107,7 +110,7 @@ public sealed class ToolOptionsDockFloatingTests
         Rect barBounds = Bounds(bar, dock);
         Assert.Equal(barBounds.Left + 1, grip.Left);
         Assert.Equal(0, grip.Top);
-        Assert.Equal(barBounds.Height, grip.Height);
+        Assert.Equal(barBounds.Height - 1, grip.Height);   // clear of the bottom border, so the dots sit centered
 
         dock.Floating = false;
         Relayout(dock, 600);
@@ -115,6 +118,25 @@ public sealed class ToolOptionsDockFloatingTests
         Assert.Equal(new CornerRadius(0), bar.CornerRadius);
         Assert.Equal(0, bar.Padding.Left);
         Assert.Null(dock.Grip);
+    });
+
+    // The strip keeps the tab look: a bottom border along with the sides, and slightly rounded bottom corners.
+    [Fact]
+    public void AMinimizedStripHasABottomBorderAndRoundedBottomCorners() => RunSta(() =>
+    {
+        var (dock, bar, _) = Laid(floating: true);
+        bar.BorderBrush = Brushes.Red;
+        dock.ToggleMinimized();
+        Relayout(dock, 600);
+        var strip = Assert.IsType<Border>(dock.MinimizedStrip);
+        Assert.Equal(new Thickness(1, 0, 1, 1), strip.BorderThickness);
+        Assert.Same(Brushes.Red, strip.BorderBrush);
+        Assert.Equal(new CornerRadius(0, 0, ToolOptionsDock.MinimizedCornerRadius, ToolOptionsDock.MinimizedCornerRadius), strip.CornerRadius);
+        // The bar under the strip is cut to the same rounded shape, so no square corner shows past it.
+        double h = ToolOptionsDock.MinimizedHeight;
+        Assert.False(bar.Clip!.FillContains(new Point(0.3, h - 0.3)));
+        Assert.True(bar.Clip.FillContains(new Point(0.5, 0.5)));
+        Assert.True(bar.Clip.FillContains(new Point(100, h - 0.5)));
     });
 
     [Fact]

@@ -31,6 +31,9 @@ namespace KillerPDF.Controls
         /// <summary>Radius of a floating bar's two bottom corners.</summary>
         public const double FloatingCornerRadius = 6;
 
+        /// <summary>Radius of a minimized strip's two bottom corners.</summary>
+        public const double MinimizedCornerRadius = 3;
+
         /// <summary>Width of the grip strip at a floating bar's left edge.</summary>
         public const double GripWidth = 12;
 
@@ -200,6 +203,8 @@ namespace KillerPDF.Controls
                 Orientation = Orientation.Vertical,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
+                // Lifted a pixel: centered exactly, the dots read low against the labels' text.
+                Margin = new Thickness(0, 0, 0, 2),
                 IsHitTestVisible = false,
             };
             for (int i = 0; i < 3; i++)
@@ -243,6 +248,17 @@ namespace KillerPDF.Controls
                 dots.Children.Add(dot);
             }
             return new Border { Child = dots, IsHitTestVisible = false };
+        }
+
+        // A rectangle with square top corners and rounded bottom ones: the top half of a plain rectangle
+        // joined to a fully rounded one.
+        private static Geometry BottomRounded(double width, double height, double radius)
+        {
+            var shape = new CombinedGeometry(GeometryCombineMode.Union,
+                new RectangleGeometry(new Rect(0, 0, width, Math.Max(0, height - radius))),
+                new RectangleGeometry(new Rect(0, 0, width, height), radius, radius));
+            shape.Freeze();
+            return shape;
         }
 
         private double BarWidth(double area) => _bar is null ? 0 : Math.Min(_bar.DesiredSize.Width, area);
@@ -410,10 +426,16 @@ namespace KillerPDF.Controls
                     _bar.Arrange(new Rect(left, 0, width, barHeight));
                     if (ShowsStrip)
                     {
-                        _bar.Clip = new RectangleGeometry(new Rect(0, 0, width, MinimizedHeight));
+                        _bar.Clip = BottomRounded(width, MinimizedHeight, MinimizedCornerRadius);
+                        if (_bar is Border source)
+                        {
+                            _strip!.BorderBrush = source.BorderBrush;
+                            _strip.BorderThickness = new Thickness(1, 0, 1, 1);
+                            _strip.CornerRadius = new CornerRadius(0, 0, MinimizedCornerRadius, MinimizedCornerRadius);
+                        }
                         _strip!.Arrange(new Rect(left, 0, width, MinimizedHeight));
                     }
-                    if (ShowsGrip) _grip!.Arrange(new Rect(left + 1, 0, GripWidth, barHeight));
+                    if (ShowsGrip) _grip!.Arrange(new Rect(left + 1, 0, GripWidth, Math.Max(0, barHeight - 1)));
                 }
                 return final;
             }
