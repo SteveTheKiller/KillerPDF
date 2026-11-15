@@ -121,6 +121,7 @@ netstandard.dll
 NTwain.dll
 onnxruntime.dll
 onnxruntime.lib
+onnxruntime_providers_azure.lib
 onnxruntime_providers_shared.dll
 onnxruntime_providers_shared.lib
 pdf-file.ico

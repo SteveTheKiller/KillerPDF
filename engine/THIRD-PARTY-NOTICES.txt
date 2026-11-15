@@ -522,7 +522,7 @@ Source: https://github.com/DanBloomberg/leptonica/tree/1.82.0
  -  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *====================================================================*/
 
-Microsoft.ML.OnnxRuntime and Microsoft.ML.OnnxRuntime.Managed packages 1.31.1.
+Microsoft.ML.OnnxRuntime and Microsoft.ML.OnnxRuntime.Managed packages 1.32.0.
 The package license and bundled third-party notices are reproduced from the installed NuGet package. The native and managed package copies of ThirdPartyNotices.txt are identical.
 
 MIT License
@@ -7079,7 +7079,7 @@ SOFTWARE.
 =========================================
 END OF Sergio0694/ComputeSharp NOTICES AND INFORMATION
 
-System.Numerics.Tensors package 11.0.0, used with Microsoft.ML.OnnxRuntime.Managed 1.31.1, and System.Security.Cryptography.Pkcs package 11.0.0, used for CMS signatures, timestamps and certificate encryption. Both are included in the installed payload.
+System.Numerics.Tensors package 11.0.0, used with Microsoft.ML.OnnxRuntime.Managed 1.32.0, and System.Security.Cryptography.Pkcs package 11.0.0, used for CMS signatures, timestamps and certificate encryption. Both are included in the installed payload.
 The license and third-party notices are reproduced from the installed NuGet packages, which carry the same text.
 
 The MIT License (MIT)

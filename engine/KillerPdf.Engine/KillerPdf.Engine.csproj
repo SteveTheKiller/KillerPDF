@@ -42,7 +42,7 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.31.1" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.32.0" />
     <PackageReference Include="System.Numerics.Tensors" Version="11.0.0" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="11.0.0" />
   </ItemGroup>
