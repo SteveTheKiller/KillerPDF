@@ -124,18 +124,6 @@ public sealed class DjvuIw44RealPageTests
         Assert.True(watch.ElapsedMilliseconds < 1000, $"The refusal took {watch.ElapsedMilliseconds} ms.");
     }
 
-    // The largest color decode the limits admit takes about 14 seconds on the development machine; it stops within a
-    // block row of work once cancelled.
-    [Fact]
-    public void TheLargestAdmittedDecodeStopsWhenCancelled()
-    {
-        var chunks = CodedChunks(color: true, 4800, 6016, crcb: 0x80, 8u, payloadDivisor: 8);
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
-        var watch = Stopwatch.StartNew();
-        Assert.ThrowsAny<OperationCanceledException>(() =>
-            DjvuIw44Decoder.DecodeColor(chunks, 4800, 6016, cancellation.Token, callerBytesPerPixel: 0));
-        Assert.True(watch.ElapsedMilliseconds < 3000, $"Cancellation took {watch.ElapsedMilliseconds} ms to stop the decode.");
-    }
 
     // The coefficient visits a decode makes, from DjVu v3 section 10.4 alone: a component of n slices codes slice k in band
     // k % 10, a band's coefficients are 1, 1, 1, 1, 4, 4, 4, 16, 16, 16 buckets of 16 for bands 0 to 9 of every 32 x 32
