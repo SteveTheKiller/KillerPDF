@@ -92,6 +92,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
+- Updated ONNX Runtime to 1.32.0 for OCR, System.Security.Cryptography.Pkcs to 11.0.0 and System.Numerics.Tensors to 11.0.0; the installed app now carries its own copies of Pkcs and System.Formats.Asn1.
 - Updates OCR, cryptography and test dependencies, and reads installed font metadata without a separate font library.
 - Saved TrueType text retains fractional font advances. (#472)
 - Color edges in JPEG photos and scans are smoother, most visibly red or blue text on white.
