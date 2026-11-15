@@ -647,8 +647,10 @@ namespace KillerPDF
             return WrapContent(owner, framedContent, haloMargin);
         }
 
-        // The same window frame every dialog gets from Frame, so a card or picker built on its own grid
-        // looks like the Print, Transform and Stamp windows in 98SE. Zero-thickness on other themes.
-        internal static void AddBevels(Grid grid, Window? owner) => grid.Children.Add(WindowFrame(owner));
+        internal static void AddBevels(Grid grid, Window? owner)
+        {
+            grid.Children.Add(new Border { IsHitTestVisible = false, BorderBrush = Brush(owner, "BevelLightBrush", Brushes.Transparent), BorderThickness = Value(owner, "BevelLightThickness", new Thickness(0)) });
+            grid.Children.Add(new Border { IsHitTestVisible = false, BorderBrush = Brush(owner, "BevelDarkBrush", Brushes.Transparent), BorderThickness = Value(owner, "BevelDarkThickness", new Thickness(0)) });
+        }
     }
 }
