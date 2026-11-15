@@ -58,49 +58,120 @@ public sealed class AnnotationRotateTests
     }
 
     [Fact]
-    public void TextBox_KeepsSize_CenterFollowsThePage()
+    public void TextBox_KeepsItsSizeAndTurnsAroundTheSameContent()
     {
         var ta = new TextAnnotation { Position = new Point(10, 70), Width = 100, Height = 40 };
         AnnotationRotate.Remap([ta], 90, W, H);
 
-        // Center (60,90) maps to (510,60); the box keeps 100x40 around it.
-        Assert.Equal(460, ta.Position.X, 3);
-        Assert.Equal(40, ta.Position.Y, 3);
+        // The 100x40 box at (10,70) covers (10..110, 70..110); turned it covers (490..530, 10..110).
+        Assert.Equal(490, ta.Position.X, 3);
+        Assert.Equal(10, ta.Position.Y, 3);
         Assert.Equal(100, ta.Width, 3);
         Assert.Equal(40, ta.Height, 3);
+        Assert.Equal(new Size(40, 100), ta.FootprintSize);
     }
 
+    // A placed picture is page content, often lifted from the page by Extract Image, so it turns with the page:
+    // its pixels take the same quarter turn and its rectangle maps like a highlight's.
     [Fact]
-    public void UprightTextBoxNearLongEdge_IsClampedInsideRotatedPage()
+    public void PlacedImage_TurnsWithThePage()
     {
-        // Fully inside the old 800x600 page. Keeping this tall box upright after a clockwise turn
-        // would put its bottom at 870 on the new 600x800 page unless the remap clamps it.
-        var ta = new TextAnnotation { Position = new Point(750, 100), Width = 40, Height = 200 };
-        AnnotationRotate.Remap([ta], 90, W, H);
-
-        Assert.Equal(380, ta.Position.X, 3);
-        Assert.Equal(600, ta.Position.Y, 3);
-        Assert.InRange(ta.Position.X + ta.Width, 0, H);
-        Assert.InRange(ta.Position.Y + ta.Height, 0, W);
-    }
-
-    [Fact]
-    public void UprightPlacedItemNearLongEdge_IsClampedInsideRotatedPage()
-    {
+        // Left pixel red, right pixel blue; a clockwise quarter turn puts red on top.
         var image = new ImageAnnotation
         {
-            Position = new Point(750, 100),
-            SourceWidth = 40,
-            SourceHeight = 200,
-            Scale = 1
+            Position = new Point(10, 20),
+            SourceWidth = 20,
+            SourceHeight = 10,
+            Scale = 1,
+            ImageData = Png(2, 1, [0, 0, 255, 255, 255, 0, 0, 255]),
         };
 
         AnnotationRotate.Remap([image], 90, W, H);
 
-        Assert.Equal(380, image.Position.X, 3);
-        Assert.Equal(600, image.Position.Y, 3);
-        Assert.InRange(image.Position.X + image.SourceWidth * image.Scale, 0, H);
-        Assert.InRange(image.Position.Y + image.SourceHeight * image.Scale, 0, W);
+        Assert.Equal(10, image.SourceWidth, 3);
+        Assert.Equal(20, image.SourceHeight, 3);
+        Assert.Equal(H - 30, image.Position.X, 3);
+        Assert.Equal(10, image.Position.Y, 3);
+        var (w, h, pixels) = Pixels(image.ImageData);
+        Assert.Equal((1, 2), (w, h));
+        Assert.Equal(new byte[] { 0, 0, 255, 255, 255, 0, 0, 255 }, pixels);   // red above blue
+        Assert.Null(image.CachedBitmap);
+    }
+
+    // Everything on a page turns with it: a free text box keeps its place on the content and reads sideways.
+    [Fact]
+    public void FreeText_TurnsWithThePage()
+    {
+        var text = new TextAnnotation { Position = new Point(10, 20), Width = 200, Height = 28 };
+
+        AnnotationRotate.Remap([text], 90, W, H);
+
+        Assert.Equal(90, text.Rotation);
+        Assert.Equal(H - 48, text.Position.X, 3);   // the 200x28 box at (10,20) maps to 28x200 at (H-48, 10)
+        Assert.Equal(10, text.Position.Y, 3);
+    }
+
+    [Fact]
+    public void Signature_TurnsItsStrokesWithThePage()
+    {
+        var signature = new SignatureAnnotation
+        {
+            Position = new Point(10, 20), SourceWidth = 40, SourceHeight = 10, Scale = 1,
+            Strokes = [[new Point(0, 0), new Point(40, 10)]],
+            Vectors = [new SignatureVector { Data = "M0,0 L40,0" }],
+        };
+
+        AnnotationRotate.Remap([signature], 90, W, H);
+
+        Assert.Equal((10.0, 40.0), (signature.SourceWidth, signature.SourceHeight));
+        Assert.Equal(new Point(H - 30, 10), signature.Position);
+        // A clockwise quarter turn in the signature's own 40x10 space: (x, y) goes to (10 - y, x).
+        Assert.Equal(new[] { new Point(10, 0), new Point(0, 40) }, signature.Strokes[0]);
+        var turned = System.Windows.Media.Geometry.Parse(signature.Vectors[0].Data).Bounds;
+        Assert.Equal(new Rect(10, 0, 0, 40), turned);
+    }
+
+    [Fact]
+    public void PlacedImage_FourQuarterTurnsComeBackToTheStart()
+    {
+        byte[] start = [0, 0, 255, 255, 255, 0, 0, 255];
+        var image = new ImageAnnotation
+        {
+            Position = new Point(10, 20), SourceWidth = 20, SourceHeight = 10, Scale = 1,
+            ImageData = Png(2, 1, start),
+        };
+        double w = W, h = H;
+        for (int turn = 0; turn < 4; turn++)
+        {
+            AnnotationRotate.Remap([image], 90, w, h);
+            (w, h) = (h, w);
+        }
+        Assert.Equal(new Point(10, 20), image.Position);
+        Assert.Equal((20.0, 10.0), (image.SourceWidth, image.SourceHeight));
+        Assert.Equal(start, Pixels(image.ImageData).Pixels);
+    }
+
+    private static string Png(int width, int height, byte[] bgra)
+    {
+        var source = System.Windows.Media.Imaging.BitmapSource.Create(width, height, 96, 96,
+            System.Windows.Media.PixelFormats.Bgra32, null, bgra, width * 4);
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(source));
+        using var stream = new System.IO.MemoryStream();
+        encoder.Save(stream);
+        return Convert.ToBase64String(stream.ToArray());
+    }
+
+    private static (int Width, int Height, byte[] Pixels) Pixels(string base64)
+    {
+        using var stream = new System.IO.MemoryStream(Convert.FromBase64String(base64));
+        var frame = System.Windows.Media.Imaging.BitmapDecoder.Create(stream,
+            System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat,
+            System.Windows.Media.Imaging.BitmapCacheOption.OnLoad).Frames[0];
+        var bgra = new System.Windows.Media.Imaging.FormatConvertedBitmap(frame, System.Windows.Media.PixelFormats.Bgra32, null, 0);
+        byte[] pixels = new byte[bgra.PixelWidth * bgra.PixelHeight * 4];
+        bgra.CopyPixels(pixels, bgra.PixelWidth * 4, 0);
+        return (bgra.PixelWidth, bgra.PixelHeight, pixels);
     }
 
     public static TheoryData<double, double, int> QuarterTurnFrames => new()
@@ -133,18 +204,10 @@ public sealed class AnnotationRotateTests
                 Width = itemW,
                 Height = itemH,
             };
-            var image = new ImageAnnotation
-            {
-                Position = position,
-                SourceWidth = itemW,
-                SourceHeight = itemH,
-                Scale = 1,
-            };
+            AnnotationRotate.Remap([text], delta, oldW, oldH);
 
-            AnnotationRotate.Remap([text, image], delta, oldW, oldH);
-
-            AssertInsideRotatedFrame(text.Position, itemW, itemH, oldH, oldW);
-            AssertInsideRotatedFrame(image.Position, itemW, itemH, oldH, oldW);
+            // The box turns with the page, so its footprint swaps and stays inside the turned frame.
+            AssertInsideRotatedFrame(text.Position, itemH, itemW, oldH, oldW);
         }
     }
 
