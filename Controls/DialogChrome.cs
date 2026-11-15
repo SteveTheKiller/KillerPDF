@@ -231,8 +231,8 @@ namespace KillerPDF.Controls
             System.Windows.Automation.AutomationProperties.SetName(glyph, tooltip);
             if (Application.Current?.TryFindResource("OverlayCloseButton") is Style s) glyph.Style = s;
             glyph.SetResourceReference(ContentControl.ContentProperty, "AboutCloseGlyph");
-            glyph.SetResourceReference(FrameworkElement.WidthProperty, "AboutCloseWidth");
-            glyph.SetResourceReference(FrameworkElement.HeightProperty, "AboutCloseHeight");
+            glyph.SetResourceReference(FrameworkElement.WidthProperty, "DialogCloseWidth");
+            glyph.SetResourceReference(FrameworkElement.HeightProperty, "DialogCloseHeight");
             glyph.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; onClose(); };
             glyph.Click += (_, _) => onClose();
             return glyph;
