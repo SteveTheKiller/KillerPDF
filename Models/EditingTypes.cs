@@ -284,6 +284,11 @@ namespace KillerPDF
     {
         /// <summary>Base-64 encoded image bytes (PNG, JPG, BMP, etc.).</summary>
         public string ImageData { get; set; } = "";
+
+        /// <summary>Clockwise quarter turns, in degrees (0, 90, 180 or 270), the picture is drawn at inside its
+        /// SourceWidth x SourceHeight footprint. A page rotation adds to it, so the picture turns with the page
+        /// whatever its bytes are, including a picture lifted from the page and kept as its own PDF.</summary>
+        public int Rotation { get; set; }
     }
 
     /// <summary>

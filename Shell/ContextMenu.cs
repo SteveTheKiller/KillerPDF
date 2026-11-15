@@ -570,7 +570,8 @@ namespace KillerPDF.Shell
                 Scale = img.Scale,
                 SourceWidth = img.SourceWidth,
                 SourceHeight = img.SourceHeight,
-                ImageData = img.ImageData
+                ImageData = img.ImageData,
+                Rotation = img.Rotation
             },
             _ => null
         };

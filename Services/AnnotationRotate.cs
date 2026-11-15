@@ -103,11 +103,16 @@ namespace KillerPDF.Services
             };
             switch (placed)
             {
-                case ImageAnnotation image when image.ImageData.Length > 0:
-                    image.ImageData = TurnPixels(image.ImageData, d);
+                // A picture's bytes stay as they are; it records the turn and is drawn turned, so a picture
+                // lifted from the page (stored as its own PDF) turns as losslessly as a PNG.
+                case ImageAnnotation image:
+                    image.Rotation = TextTurn.Normalize(image.Rotation + d);
                     break;
                 case SignatureAnnotation signature:
-                    if (!string.IsNullOrEmpty(signature.ImageData)) signature.ImageData = TurnPixels(signature.ImageData, d);
+                    if (!string.IsNullOrEmpty(signature.ImageData))
+                        try { signature.ImageData = TurnPixels(signature.ImageData, d); }
+                        catch (Exception error) when (error is NotSupportedException or System.IO.IOException or FormatException
+                            or InvalidOperationException or ArgumentException) { }
                     foreach (var stroke in signature.Strokes)
                         for (int i = 0; i < stroke.Count; i++) stroke[i] = Turn(stroke[i]);
                     if (signature.Vectors is { } vectors)

@@ -459,8 +459,7 @@ internal static class PdfEngineBurn
             case HighlightAnnotation highlight: DrawHighlight(content, highlight, sx, sy); break;
             case InkAnnotation ink: DrawInk(content, ink, sx, sy); break;
             case SignatureAnnotation signature: DrawSignature(content, signature, sx, sy); break;
-            case ImageAnnotation image: DrawImage(content, image.ImageData, image.Position,
-                image.SourceWidth * image.Scale, image.SourceHeight * image.Scale, sx, sy, allowPdfAsset: true); break;
+            case ImageAnnotation image: DrawTurnedImage(content, image, sx, sy); break;
             case MeasurementAnnotation measurement: DrawMeasurement(content, measurement, sx, sy, fonts); break;
         }
     }
@@ -819,6 +818,32 @@ internal static class PdfEngineBurn
     }
 
     private static double Channel(uint argb, int shift) => ((argb >> shift) & 0xFF) / 255d;
+
+    // A picture turned with its page is drawn in its unturned frame, turned clockwise on screen about the
+    // footprint's center. Canvas y runs down and PDF y up (sy < 0 flips it), so a clockwise turn on screen is
+    // the matching turn in page space once the flip is applied.
+    private static void DrawTurnedImage(PdfContentStreamBuilder content, ImageAnnotation image, double sx, double sy)
+    {
+        double width = image.SourceWidth * image.Scale, height = image.SourceHeight * image.Scale;
+        int turn = TextTurn.Normalize(image.Rotation);
+        if (turn == 0)
+        {
+            DrawImage(content, image.ImageData, image.Position, width, height, sx, sy, allowPdfAsset: true);
+            return;
+        }
+        bool quarter = turn is 90 or 270;
+        double drawnWidth = quarter ? height : width, drawnHeight = quarter ? width : height;
+        double cx = image.Position.X + width / 2, cy = image.Position.Y + height / 2;
+        // Screen clockwise by turn, in canvas units, mapped to page units through (sx, sy).
+        double radians = turn * Math.PI / 180, cos = Math.Round(Math.Cos(radians)), sin = Math.Round(Math.Sin(radians));
+        double a = cos, b = sin * sy / sx, c = -sin * sx / sy, d = cos;
+        double px = cx * sx, py = cy * sy;
+        content.SaveState();
+        content.Transform(a, b, c, d, px - a * px - c * py, py - b * px - d * py);
+        DrawImage(content, image.ImageData, new WpfPoint(cx - drawnWidth / 2, cy - drawnHeight / 2),
+            drawnWidth, drawnHeight, sx, sy, allowPdfAsset: true);
+        content.RestoreState();
+    }
 
     private static void DrawImage(PdfContentStreamBuilder content, string data, WpfPoint position,
         double width, double height, double sx, double sy, bool allowPdfAsset = false)

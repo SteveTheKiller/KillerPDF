@@ -86,16 +86,31 @@ public sealed class AnnotationRotateTests
             ImageData = Png(2, 1, [0, 0, 255, 255, 255, 0, 0, 255]),
         };
 
+        string bytes = image.ImageData;
         AnnotationRotate.Remap([image], 90, W, H);
 
         Assert.Equal(10, image.SourceWidth, 3);
         Assert.Equal(20, image.SourceHeight, 3);
         Assert.Equal(H - 30, image.Position.X, 3);
         Assert.Equal(10, image.Position.Y, 3);
-        var (w, h, pixels) = Pixels(image.ImageData);
-        Assert.Equal((1, 2), (w, h));
-        Assert.Equal(new byte[] { 0, 0, 255, 255, 255, 0, 0, 255 }, pixels);   // red above blue
+        Assert.Equal(90, image.Rotation);
+        Assert.Equal(bytes, image.ImageData);   // the turn is recorded, the picture's bytes are kept
         Assert.Null(image.CachedBitmap);
+    }
+
+    // A picture lifted from the page is kept as its own one-page PDF, which no image decoder reads. Rotating its
+    // page must still work and turn it.
+    [Fact]
+    public void PlacedPdfPicture_TurnsWithoutDecodingItsBytes()
+    {
+        string pdf = Convert.ToBase64String("%PDF-1.7 not an image file"u8.ToArray());
+        var image = new ImageAnnotation { Position = new Point(10, 20), SourceWidth = 20, SourceHeight = 10, Scale = 1, ImageData = pdf };
+
+        AnnotationRotate.Remap([image], 180, W, H);
+
+        Assert.Equal(180, image.Rotation);
+        Assert.Equal(pdf, image.ImageData);
+        Assert.Equal(new Point(W - 30, H - 30), image.Position);
     }
 
     // Everything on a page turns with it: a free text box keeps its place on the content and reads sideways.
@@ -148,6 +163,7 @@ public sealed class AnnotationRotateTests
         }
         Assert.Equal(new Point(10, 20), image.Position);
         Assert.Equal((20.0, 10.0), (image.SourceWidth, image.SourceHeight));
+        Assert.Equal(0, image.Rotation);
         Assert.Equal(start, Pixels(image.ImageData).Pixels);
     }
 

@@ -382,17 +382,31 @@ namespace KillerPDF.Controls
             try
             {
                 byte[] bytes = Convert.FromBase64String(data);
+                // A picture turned with its page is decoded upright and drawn turned.
+                int turn = a is ImageAnnotation image ? TextTurn.Normalize(image.Rotation) : 0;
+                bool quarter = turn is 90 or 270;
+                System.Windows.Media.Imaging.BitmapSource decoded;
                 if (a is ImageAnnotation && bytes.AsSpan().StartsWith("%PDF-"u8))
-                    return a.CachedBitmap = PdfAnnotationImageSource.RenderPdf(bytes,
-                        a.SourceWidth * a.Scale, a.SourceHeight * a.Scale);
-                var bmp = new System.Windows.Media.Imaging.BitmapImage();
-                bmp.BeginInit();
-                bmp.StreamSource = new System.IO.MemoryStream(bytes);
-                bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-                bmp.EndInit();
-                bmp.Freeze();
-                a.CachedBitmap = bmp;
-                return bmp;
+                    decoded = PdfAnnotationImageSource.RenderPdf(bytes,
+                        (quarter ? a.SourceHeight : a.SourceWidth) * a.Scale, (quarter ? a.SourceWidth : a.SourceHeight) * a.Scale);
+                else
+                {
+                    var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                    bmp.BeginInit();
+                    bmp.StreamSource = new System.IO.MemoryStream(bytes);
+                    bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                    bmp.EndInit();
+                    bmp.Freeze();
+                    decoded = bmp;
+                }
+                if (turn != 0)
+                {
+                    var turned = new System.Windows.Media.Imaging.TransformedBitmap(decoded, new System.Windows.Media.RotateTransform(turn));
+                    turned.Freeze();
+                    decoded = turned;
+                }
+                a.CachedBitmap = decoded;
+                return decoded;
             }
             catch { return null; }
         }
