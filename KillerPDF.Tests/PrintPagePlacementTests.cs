@@ -160,4 +160,43 @@ public sealed class PrintPagePlacementTests
         Assert.Equal(new byte[] { 255, 0, 0, 255, 0, 0, 255, 255 }, result);
         Assert.True(turned.IsFrozen);
     }
+
+    // #492: printing crashed when the page raster was an unfrozen bitmap owned by another thread, because
+    // freezing the turned bitmap reaches into its source.
+    [Fact]
+    public void TurnAcceptsAnUnfrozenPageRasterFromAnotherThread()
+    {
+        BitmapSource? source = null;
+        System.Windows.Threading.Dispatcher? owner = null;
+        using var ready = new ManualResetEventSlim();
+        var ownerThread = new Thread(() =>
+        {
+            byte[] pixels = [0, 0, 255, 255, 255, 0, 0, 255];
+            source = BitmapSource.Create(2, 1, 96, 96, PixelFormats.Bgra32, null, pixels, 8);
+            owner = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+            ready.Set();
+            System.Windows.Threading.Dispatcher.Run();
+        }) { IsBackground = true };
+        ownerThread.SetApartmentState(ApartmentState.STA);
+        ownerThread.Start();
+        Assert.True(ready.Wait(TimeSpan.FromSeconds(60)));
+        try
+        {
+            Exception? error = null;
+            BitmapSource? turned = null;
+            var printer = new Thread(() =>
+            {
+                try { turned = PrintPagePlacement.Turn(source!); }
+                catch (Exception e) { error = e; }
+            });
+            printer.SetApartmentState(ApartmentState.STA);
+            printer.Start();
+            Assert.True(printer.Join(TimeSpan.FromSeconds(60)));
+            Assert.Null(error);
+            Assert.True(turned!.IsFrozen);
+            Assert.Equal(1, turned.PixelWidth);
+            Assert.Equal(2, turned.PixelHeight);
+        }
+        finally { owner!.InvokeShutdown(); }
+    }
 }

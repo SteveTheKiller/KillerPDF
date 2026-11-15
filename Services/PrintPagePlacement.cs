@@ -90,9 +90,25 @@ internal static class PrintPagePlacement
     internal static BitmapSource Turn(BitmapSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
+        // Freezing the turned bitmap freezes its source too, which only the source's own thread may do.
+        // A page raster made on another thread is copied there, frozen, before it is turned. (#492)
+        // A frozen bitmap belongs to no thread and always passes CheckAccess; IsFrozen itself may only be
+        // read on the owning thread, so CheckAccess comes first.
+        BitmapSource page = source;
+        if (!page.CheckAccess()) source = page.Dispatcher.Invoke(() => Frozen(page));
+        else if (!page.IsFrozen) source = Frozen(page);
         var turned = new TransformedBitmap(source, new RotateTransform(270));
         turned.Freeze();
         return turned;
+    }
+
+    private static BitmapSource Frozen(BitmapSource page)
+    {
+        if (page.CanFreeze) { BitmapSource copy = page.Clone(); copy.Freeze(); return copy; }
+        // A source that cannot freeze (still downloading, say) is copied pixel for pixel instead.
+        var pixels = new WriteableBitmap(page);
+        pixels.Freeze();
+        return pixels;
     }
 
     private static bool Valid(double width, double height) =>
