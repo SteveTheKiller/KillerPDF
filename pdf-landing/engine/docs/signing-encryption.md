@@ -60,6 +60,7 @@ Honor the authenticated permission set in your application workflow. An owner pa
 `PdfDetachedSignatureWriter` prepares the PDF signature revision and calls your application back to produce the detached CMS value. Your application owns certificate selection, private-key access, and trust configuration. Set `RequestTimestamp` on `PdfSignatureOptions` to have the engine request an RFC 3161 timestamp from `TimestampServerUrl`, or from a caller-supplied `TimestampTransport`, and verify the token before embedding it. Signing keeps the source cross-reference format and can place a visible appearance on an existing signature widget.
 
 ```csharp
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Signing;
 
 var options = new PdfSignatureOptions

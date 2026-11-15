@@ -140,6 +140,7 @@ For metadata, the reading order, or raw chapter text without a layout, open the 
 
 ```csharp
 using KillerPdf.Engine.Formats.Djvu;
+using KillerPdf.Engine.Formats.Epub;
 
 EpubDocument epub = EpubDocument.Open(File.ReadAllBytes("book.epub"));
 Console.WriteLine($"{epub.Metadata.Title} by {epub.Metadata.Creator}");
@@ -325,6 +326,8 @@ Soft proofing shows how a page looks on a printer by converting each color throu
 
 ```csharp
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.ColorManagement;
+using KillerPdf.Engine.Rendering;
 
 PdfColorProfile printer = PdfColorProfile.Load(File.ReadAllBytes("printer.icc"));
 var settings = new PdfDocumentProofSettings(

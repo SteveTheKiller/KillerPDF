@@ -117,6 +117,8 @@ byte[] pasted = new PdfIncrementalPageEditor(document)
 `PdfRasterSelection` and `PdfRasterExtraction` work on a rendered float frame, so they can pick up content that is not a placed image, such as a drawing or part of a scan. A selection is an immutable mask of whole pixels with a top-left origin, and each pixel is either selected or not.
 
 ```csharp
+using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Rendering;
 
 var renderer = new PdfPageRenderer(document);
