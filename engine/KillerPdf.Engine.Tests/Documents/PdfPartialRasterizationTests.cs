@@ -234,6 +234,50 @@ public sealed class PdfPartialRasterizationTests
         Assert.Equal((0, 255, 0), Pixel(shown, 30, 690));
     }
 
+    // Review BF-001: on a tagged page the raster goes in as a described Figure, and it must land where the
+    // clip hole is, inside the crop box, not at the page origin.
+    [Fact]
+    public void ApplyLandsATaggedRasterInsideTheCropBoxWhenTheBoxDoesNotStartAtTheOrigin()
+    {
+        string content = "0 1 0 rg 36 36 540 720 re f /P <</MCID 0>> BDC BT /F1 12 Tf 0 0 0 rg 46 46 Td (inside) Tj ET EMC";
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 5 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /CropBox [36 36 576 756] /StructParents 0 /Resources << /Font << /F1 8 0 R >> >> /Contents 4 0 R >>",
+            $"<< /Length {content.Length} >>\nstream\n{content}\nendstream",
+            "<< /Type /StructTreeRoot /K 6 0 R /ParentTree 7 0 R >>",
+            "<< /Type /StructElem /S /P /P 5 0 R /Pg 3 0 R /K 0 >>",
+            "<< /Nums [0 [6 0 R]] >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        ];
+        var pdf = new System.Text.StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = pdf.Length;
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        PdfDocument document = PdfDocument.Open(System.Text.Encoding.Latin1.GetBytes(pdf.ToString()));
+        PdfPageContent page = new PdfPageContentReader(document).Read(0);
+        PdfPartialRasterizationPlan plan = PdfPartialRasterization.Plan(page, new PdfContentBounds(0, 0, 60, 30), 72);
+
+        byte[] changed = PdfPartialRasterization.Apply(document, 0, plan,
+            SolidRaster(plan.PixelWidth, plan.PixelHeight, 255, 0, 0));
+        PdfDocument result = PdfDocument.Open(changed);
+        PdfRenderedPage shown = new PdfPageRenderer(result).Render(0, new PdfRenderOptions(540, 720));
+
+        Assert.Equal(["inside"], FigureDescriptions(result).ToArray());
+        Assert.Equal((255, 0, 0), Pixel(shown, 5, 715));     // the region: the crop box's lower left corner
+        Assert.Equal((255, 0, 0), Pixel(shown, 55, 695));
+        Assert.Equal((0, 255, 0), Pixel(shown, 65, 715));    // just right of the region
+        Assert.Equal((0, 255, 0), Pixel(shown, 5, 685));     // just above it
+    }
+
     [Fact]
     public void ApplyShowsTheRasterWhenThePageContentLeavesAGraphicsStateOpen()
     {

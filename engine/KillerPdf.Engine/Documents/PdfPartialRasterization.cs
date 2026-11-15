@@ -146,10 +146,12 @@ public static class PdfPartialRasterization
                 string description = string.Join(" ", words
                     .Where(word => Contains(region, word.BoundingBox))
                     .Select(word => word.Text));
+                // A described overlay is drawn from the page origin, not the crop box's corner, so the
+                // image carries the crop offset itself, as the clip hole above does (review BF-001).
                 if (description.Length != 0)
-                    editor.AppendPageDescribedContent(pageGroup.Key, page.Width, page.Height,
+                    editor.AppendPageDescribedContent(pageGroup.Key, box.Left + page.Width, box.Bottom + page.Height,
                         new PdfContentStreamBuilder().DrawImage(replacement.Raster,
-                            region.Left, region.Bottom, region.Width, region.Height), description);
+                            box.Left + region.Left, box.Bottom + region.Bottom, region.Width, region.Height), description);
                 else
                     editor.AppendPageContent(pageGroup.Key,
                         new PdfContentBounds(box.Left, box.Bottom, box.Left + page.Width, box.Bottom + page.Height),
