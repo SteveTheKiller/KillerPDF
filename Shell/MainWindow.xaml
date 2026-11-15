@@ -2947,8 +2947,12 @@
                         MouseRightButtonDown="ShortcutOverlayCard_MouseLeftButtonDown">
                 <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <!-- The full four-layer Win98 window frame, as ChromeButton draws it: white and light gray
+                     on the top-left, dark gray and black on the bottom-right. Zero-thickness elsewhere. -->
                 <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
-                <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource BevelDarkThickness}"/>
+                <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource BevelDarkThickness}"/>
+                <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}" BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="{DynamicResource BevelInnerLightThickness}"/>
+                <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
                 <Border Grid.RowSpan="2" CornerRadius="{DynamicResource FlyoutCornerRadius}" IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
                 <!-- Modern close follows the KillerNotes shortcut card: it is anchored to the
                      card itself, not pushed inward by the content padding. -->
@@ -3064,8 +3068,12 @@
                         MouseRightButtonDown="AboutCard_Click">
                 <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <!-- The full four-layer Win98 window frame, as ChromeButton draws it: white and light gray
+                     on the top-left, dark gray and black on the bottom-right. Zero-thickness elsewhere. -->
                 <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
-                <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource BevelDarkThickness}"/>
+                <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource BevelDarkThickness}"/>
+                <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" Margin="{DynamicResource BevelInnerMargin}" BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="{DynamicResource BevelInnerLightThickness}"/>
+                <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
                 <Border Grid.Row="0" Height="{DynamicResource DialogTitleBarHeight}" Background="{DynamicResource DialogTitleBarBrush}"
                         Visibility="{DynamicResource AboutCaptionVisibility}">
                     <Grid Margin="5,0,2,0">
