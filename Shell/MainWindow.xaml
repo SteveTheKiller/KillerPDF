@@ -356,15 +356,15 @@
                                                Foreground="{TemplateBinding Foreground}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                Visibility="{DynamicResource CaptionFontGlyphVisibility}"/>
-                                    <Grid Width="8" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    <Grid Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center"
                                           Visibility="{DynamicResource CaptionDrawnGlyphVisibility}">
-                                        <Rectangle Width="10" Height="2" Fill="{TemplateBinding Foreground}"
+                                        <Rectangle Width="13" Height="2" Fill="{TemplateBinding Foreground}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Rectangle.RenderTransform><RotateTransform Angle="45" CenterX="5" CenterY="1"/></Rectangle.RenderTransform>
+                                            <Rectangle.RenderTransform><RotateTransform Angle="45" CenterX="6.5" CenterY="1"/></Rectangle.RenderTransform>
                                         </Rectangle>
-                                        <Rectangle Width="10" Height="2" Fill="{TemplateBinding Foreground}"
+                                        <Rectangle Width="13" Height="2" Fill="{TemplateBinding Foreground}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Rectangle.RenderTransform><RotateTransform Angle="-45" CenterX="5" CenterY="1"/></Rectangle.RenderTransform>
+                                            <Rectangle.RenderTransform><RotateTransform Angle="-45" CenterX="6.5" CenterY="1"/></Rectangle.RenderTransform>
                                         </Rectangle>
                                     </Grid>
                                     <!-- Grain OVER the hover fill, hover-only - same as ChromeButton. -->
@@ -1645,8 +1645,9 @@
                                        HorizontalAlignment="Center" VerticalAlignment="Center"
                                        FontWeight="{DynamicResource CaptionGlyphWeight}"
                                        Visibility="{DynamicResource CaptionFontGlyphVisibility}"/>
-                            <Rectangle Width="6" Height="2" Fill="{DynamicResource CaptionGlyphBrush}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,3"
+                            <!-- Win98's 16x14 glyphs scaled by 1.25 to the 20x18 caption buttons. -->
+                            <Rectangle Width="8" Height="2" Fill="{DynamicResource CaptionGlyphBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,4"
                                        SnapsToDevicePixels="True"
                                        Visibility="{DynamicResource CaptionDrawnGlyphVisibility}"/>
                         </Grid>
@@ -1657,7 +1658,7 @@
                             <a11y:Glyph Text="&#xE922;" FontFamily="Segoe MDL2 Assets" FontSize="10"
                                        FontWeight="{DynamicResource CaptionGlyphWeight}"
                                        Visibility="{DynamicResource CaptionFontGlyphVisibility}"/>
-                            <Grid Width="9" Height="9" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            <Grid Width="11" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center"
                                   Margin="0,0,0,1" SnapsToDevicePixels="True"
                                   Visibility="{DynamicResource CaptionDrawnGlyphVisibility}">
                                 <Rectangle Stroke="{DynamicResource CaptionGlyphBrush}" StrokeThickness="1" Fill="Transparent"/>
