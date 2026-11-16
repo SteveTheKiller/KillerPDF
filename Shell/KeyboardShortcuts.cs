@@ -57,8 +57,10 @@ namespace KillerPDF.Shell
             // The Document tools panel keeps its tool letters, Enter, Space and the arrows while it has focus.
             if (_syntheticShortcut is null && HandleDocumentToolsKey(e)) return;
 
+            // A selected mark owns the arrow keys, so they move it instead of the reading caret (#467).
             if (_syntheticShortcut is null && e.OriginalSource is Controls.DocumentSurface reading
-                && reading.IsKeyboardFocused && Controls.DocumentSurface.IsReadingNavigation(e.Key, Keyboard.Modifiers))
+                && reading.IsKeyboardFocused && Controls.DocumentSurface.IsReadingNavigation(e.Key, Keyboard.Modifiers)
+                && !(SelectionCount() > 0 && e.Key is Key.Left or Key.Right or Key.Up or Key.Down))
                 return;
 
             // Form controls keep their activation and radio navigation keys before shortcut remapping.

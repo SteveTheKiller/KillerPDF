@@ -9,7 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Turning a replacement's layers on or off in More settings no longer freezes the window. The menu used to stay open with nothing under it and hold the mouse until another window took it back, which also kept the arrow keys from moving the text box or its cover. (#467)
-- With a replacement's text box locked, the arrow keys and a drag move its cover, as 1.9.4 promised. It worked only after the two were linked, and a fresh edit never is. The selection frame now follows the mark when the arrow keys move it, instead of staying where the mark was. (#467)
+- With a replacement's text box locked, the arrow keys and a drag move its cover, as 1.9.4 promised. It worked only after the two were linked, and a fresh edit never is. The selection frame now follows the mark when the arrow keys move it, instead of staying where the mark was. After a click in More settings, the arrow keys go back to the selection instead of changing the Font box, and with a screen reader or other accessibility tool running they move a selected mark instead of the reading caret. (#467)
 - Pinching on a precision touchpad zooms the page again, as it did before 1.9.3, instead of scrolling it. (#494)
 - A Chinese or Japanese file name in the title bar is drawn in Microsoft YaHei UI or Yu Gothic UI, matching the menus, instead of the system's default face. Document tab names follow the same rule in every theme. (#490)
 

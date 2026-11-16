@@ -86,6 +86,17 @@ public sealed class ReplacementMoveTests
         Assert.Contains("FocusReadingSurfaceExt();", press);
     }
 
+    // SOURCE PIN, traced on SN02 with DBG467 logging: with an automation client listening, the page's keyboard focus is
+    // the reading surface, and its reading-navigation early return took every arrow key before the nudge, so a selected
+    // mark never moved. A selected mark owns the arrows; reading navigation keeps them otherwise.
+    [Fact]
+    public void ASelectedMarkOwnsTheArrowsOverReadingNavigation()
+    {
+        string keys = Source("Shell", "KeyboardShortcuts.cs").Replace("\r\n", "\n");
+        string reading = Between(keys, "e.OriginalSource is Controls.DocumentSurface reading", "return;");
+        Assert.Contains("!(SelectionCount() > 0 && e.Key is Key.Left or Key.Right or Key.Up or Key.Down)", reading);
+    }
+
     // SOURCE PIN (the viewer is not compiled into this project): the arrow keys and a drag both take their movers from
     // MoveMembers, and a nudge moves the selection frame with the mark instead of putting the old frame back.
     [Fact]
