@@ -85,6 +85,7 @@ using KillerPdf.Engine.Documents;
 static byte[] Redact(
     PdfDocument document,
     PdfRedactionReview review,
+    IReadOnlyCollection<int> reviewedRasterPages,
     CancellationToken cancellationToken)
 {
     var regions = review.Included
@@ -97,8 +98,10 @@ static byte[] Redact(
 
     var options = new PdfContentRedactionOptions
     {
-        // Only list pages after a person approved replacing them with an image.
-        ApprovedRasterPages = plan.RasterPages
+        // The pages a person looked at in plan.RasterPages and approved replacing
+        // with an image. Never pass plan.RasterPages straight through: that approves
+        // every raster fallback without review.
+        ApprovedRasterPages = reviewedRasterPages
     };
 
     PdfContentRedactionResult result =
