@@ -81,6 +81,8 @@ namespace KillerPDF.Controls
                     && Keyboard.FocusedElement is DependencyObject focused
                     ? FocusIdFor(focused) : null;
                 if (_bar is not null) _bar.Visibility = Visibility.Visible;
+                // The bar going out closes its menus, or one left open keeps the mouse with nothing under it (#467).
+                (_bar as ToolOptionsBar)?.Retire();
                 Swap(ref _bar, value);
                 if (value is not null)
                 {

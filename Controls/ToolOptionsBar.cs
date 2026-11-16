@@ -321,6 +321,25 @@ namespace KillerPDF.Controls
             }
         }
 
+        /// <summary>True once the dock has let go of this bar.</summary>
+        internal bool Retired { get; private set; }
+
+        /// <summary>True while the More settings menu or the compact chip's menu is open.</summary>
+        internal bool MenusOpen => _menuPopup.IsOpen || _chipPopup.IsOpen;
+
+        /// <summary>
+        /// Closes this bar's menus for good. A bar is rebuilt while its More settings menu is open (a layer toggle
+        /// reselects its layer), and a menu left open with no bar under it keeps the mouse, so the app looks frozen
+        /// until another window takes the mouse back (#467).
+        /// </summary>
+        internal void Retire()
+        {
+            Retired = true;
+            _menuPopup.IsOpen = false;
+            _chipPopup.IsOpen = false;
+            OverflowButton.IsChecked = false;
+        }
+
         private static TextBlock MoreGlyph()
         {
             var glyph = new TextBlock
