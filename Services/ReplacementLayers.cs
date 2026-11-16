@@ -137,6 +137,27 @@ public static class ReplacementLayers
     public static IReadOnlyList<PageAnnotation> MovableMembers(IEnumerable<PageAnnotation> selection) =>
         [.. selection.Distinct().Where(CanMove)];
 
+    /// <summary>
+    /// The marks a move of this selection takes. A linked replacement moves as one; a replacement layer locked on its
+    /// own hands the move to its other layer, linked or not, so with the text box's hand off its cover moves; locked
+    /// layers stay put. An unlinked layer that is free moves alone. (#467)
+    /// </summary>
+    public static IReadOnlyList<PageAnnotation> MoveMembers(IEnumerable<PageAnnotation> selection, IReadOnlyList<PageAnnotation> page)
+    {
+        var moving = new List<PageAnnotation>();
+        foreach (var item in selection)
+        {
+            foreach (var member in SelectionMembers(item, page).DefaultIfEmpty(item))
+                if (!moving.Contains(member)) moving.Add(member);
+            if (!CanMove(item) && FindPair(item, page) is { } pair)
+            {
+                PageAnnotation partner = ReferenceEquals(item, pair.Text) ? pair.Cover : pair.Text;
+                if (!moving.Contains(partner)) moving.Add(partner);
+            }
+        }
+        return MovableMembers(moving);
+    }
+
     /// <summary>Whether a hidden layer of a replacement still draws a faint outline on screen and takes a click, so
     /// it can be found and shown again. It stays out of saves, prints and reading. (#467)</summary>
     public static bool ShowsWhenHidden(PageAnnotation annotation) => HasPairState(annotation) && !IsVisible(annotation);

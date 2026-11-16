@@ -1030,9 +1030,7 @@ namespace KillerPDF.Controls
 
             if (selected.Count == 0) return false;
 
-            selected = [.. selected.SelectMany(annotation => _annotations.TryGetValue(annotation.PageIndex, out var page)
-                ? ReplacementLayers.SelectionMembers(annotation, page) : new[] { annotation }).Distinct()];
-            if (FreeToMove(selected) is not { } movable) return true;
+            if (MovingMembers(selected) is not { } movable) return true;
             selected = movable;
 
             var constraints = selected
@@ -1061,6 +1059,7 @@ namespace KillerPDF.Controls
             foreach (int pageIndex in selected.Select(annotation => annotation.PageIndex).Distinct())
                 RenderAllAnnotations(pageIndex);
             ReattachSelectionVisuals();
+            MoveSelectionVisuals();
             if (_selectedSet.Count > 0) ReattachMultiOutlines();
             MarkDirty();
             return true;
@@ -1081,14 +1080,46 @@ namespace KillerPDF.Controls
             _activeCanvas.Children.Add(outline);
         }
 
-        // The members of a selection that move. A replacement's layer locked on its own stays put while the other
-        // layer moves (#467); any other locked mark still holds its whole selection, as before. Null when nothing moves.
-        private static List<PageAnnotation>? FreeToMove(IReadOnlyList<PageAnnotation> selected)
+        // The marks a move of this selection takes (ReplacementLayers.MoveMembers): a replacement layer locked on its own
+        // hands the move to its other layer, linked or not (#467). Any other locked mark still holds its whole
+        // selection, as before. Null when nothing moves.
+        private List<PageAnnotation>? MovingMembers(IReadOnlyList<PageAnnotation> selected)
         {
-            var movable = ReplacementLayers.MovableMembers(selected);
-            if (movable.Count == 0) return null;
-            if (selected.Except(movable).Any(held => string.IsNullOrEmpty(held.PairId))) return null;
-            return [.. movable];
+            if (selected.Any(held => string.IsNullOrEmpty(held.PairId) && !ReplacementLayers.CanMove(held))) return null;
+            var moving = new List<PageAnnotation>();
+            foreach (var onPage in selected.GroupBy(annotation => annotation.PageIndex))
+            {
+                IReadOnlyList<PageAnnotation> page = _annotations.TryGetValue(onPage.Key, out var list) ? list : [.. onPage];
+                foreach (var member in ReplacementLayers.MoveMembers(onPage, page))
+                    if (!moving.Contains(member)) moving.Add(member);
+            }
+            return moving.Count == 0 ? null : moving;
+        }
+
+        // After an arrow-key nudge, the selection frame, its handles and the partner's dashed outline go to the marks'
+        // new bounds; putting the old visuals back left them where the mark used to be (#467).
+        private void MoveSelectionVisuals()
+        {
+            if (_selectedAnnotation is not { } selected) return;
+            Rect bounds = AnnotBounds(selected);
+            if (_selectionBorder is not null)
+            {
+                Canvas.SetLeft(_selectionBorder, bounds.X - 4);
+                Canvas.SetTop(_selectionBorder, bounds.Y - 4);
+            }
+            if (selected is PlacedAnnotation or TextAnnotation or HighlightAnnotation or InkAnnotation)
+                LayoutResizeHandles(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+            else if (selected is MeasurementAnnotation measurement)
+                LayoutMeasurementHandles(measurement);
+            if (_pairedCoverOutline is not null && selected.PairId.Length > 0
+                && _annotations.TryGetValue(selected.PageIndex, out var page)
+                && page.FirstOrDefault(other => !ReferenceEquals(other, selected) && other.PairId == selected.PairId
+                    && other is TextAnnotation or CoverAnnotation) is { } partner)
+            {
+                Rect partnerBounds = AnnotBounds(partner);
+                Canvas.SetLeft(_pairedCoverOutline, partnerBounds.X - 2);
+                Canvas.SetTop(_pairedCoverOutline, partnerBounds.Y - 2);
+            }
         }
 
         // Clamps a point to the page rectangle. Used during resize so a dragged corner can't leave the
@@ -1448,7 +1479,7 @@ namespace KillerPDF.Controls
                                     }
                                     // Only the members free to move are dragged: with a replacement's text box locked,
                                     // a drag that lands on it moves the cover underneath (#467).
-                                    if (FreeToMove([pa, .. _dragGroupOrig.Select(member => member.a)]) is { } movers)
+                                    if (MovingMembers([pa, .. _dragGroupOrig.Select(member => member.a)]) is { } movers)
                                     {
                                         PageAnnotation lead = movers.Contains(pa) ? pa : movers[0];
                                         _dragGroupOrig.RemoveAll(member => !movers.Contains(member.a) || ReferenceEquals(member.a, lead));
