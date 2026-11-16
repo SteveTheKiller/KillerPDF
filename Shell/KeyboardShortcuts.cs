@@ -955,7 +955,7 @@ namespace KillerPDF.Shell
         private void PasteInView(int pageIndex)
         {
             if (ActiveViewer.NativeDocumentRef is not null) return;
-            if (_annotationClipboard.Count > 0) PasteAnnotations(pageIndex);
+            if (MarkupToPaste()) PasteAnnotations(pageIndex);
             else PasteFromClipboard();
         }
 
@@ -964,7 +964,7 @@ namespace KillerPDF.Shell
         private bool CanPasteInView()
         {
             if (ActiveViewer.NativeDocumentRef is not null) return false;
-            if (_annotationClipboard.Count > 0) return true;
+            if (MarkupToPaste()) return true;
             try { return Clipboard.ContainsImage() || Clipboard.ContainsText(); }
             catch (System.Runtime.InteropServices.ExternalException) { return false; }
         }

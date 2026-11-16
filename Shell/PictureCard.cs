@@ -48,7 +48,7 @@ namespace KillerPDF.Shell
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SavePicture"), (_, _) => SavePicture(picture), glyph: ""));
             if (placed)
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_ReplacePicture"), (_, _) => ReplacePicture(picture), glyph: ""));
-            if (placed && _annotationClipboard.Count > 0)
+            if (placed && MarkupToPaste())
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (_, _) => PasteAnnotations(picture.PageIndex), GestureFor("Ctrl:V"), ""));
         }
 

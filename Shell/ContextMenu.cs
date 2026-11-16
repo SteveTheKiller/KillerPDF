@@ -435,7 +435,10 @@ namespace KillerPDF.Shell
         }
 
         // Annotations copied via the context menu, held as page-independent deep clones until pasted.
-        private readonly List<PageAnnotation> _annotationClipboard = [];
+        private readonly Services.MarkupClipboard _annotationClipboard = new();
+
+        // Copied marks paste only while nothing else was copied since (#497).
+        private bool MarkupToPaste() => _annotationClipboard.IsCurrent(Services.MarkupClipboard.SystemSequence());
 
         // Deep-copy an annotation so the clipboard (and paste) is fully independent of the live object.
         // CoverAnnotation must be matched before HighlightAnnotation since it derives from it.
@@ -574,8 +577,7 @@ namespace KillerPDF.Shell
             if (!ActiveViewer.CanDeleteSelectedSourceImageExt
                 || ActiveViewer.SelectedSourceImageExt is not { } source) return;
             if (CloneAnnotation(source) is not ImageAnnotation copy) return;
-            _annotationClipboard.Clear();
-            _annotationClipboard.Add(copy);
+            _annotationClipboard.Set([copy], Services.MarkupClipboard.SystemSequence());
             DeleteSelected();
         }
 
@@ -595,12 +597,13 @@ namespace KillerPDF.Shell
                     if (!expanded.Contains(member)) expanded.Add(member);
             sel = expanded;
 
-            _annotationClipboard.Clear();
+            var copies = new List<PageAnnotation>();
             foreach (var a in sel)
-                if (CloneAnnotation(a) is { } c) _annotationClipboard.Add(c);
+                if (CloneAnnotation(a) is { } c) copies.Add(c);
+            _annotationClipboard.Set(copies, Services.MarkupClipboard.SystemSequence());
 
-            SetStatus(string.Format(Loc(_annotationClipboard.Count == 1
-                ? "Str_St_CopiedAnnotationOne" : "Str_St_CopiedAnnotationMany"), _annotationClipboard.Count));
+            SetStatus(string.Format(Loc(copies.Count == 1
+                ? "Str_St_CopiedAnnotationOne" : "Str_St_CopiedAnnotationMany"), copies.Count));
         }
 
         // Paste the clipboard onto pageIdx: fresh clones nudged down-right so they don't sit exactly on
@@ -609,13 +612,13 @@ namespace KillerPDF.Shell
         private void PasteAnnotations(int pageIdx)
         {
             // EPUB and DjVu books are read-only; annotations cannot be added to them.
-            if (_annotationClipboard.Count == 0 || pageIdx < 0 || ActiveViewer.NativeDocumentRef is not null) return;
+            if (!MarkupToPaste() || pageIdx < 0 || ActiveViewer.NativeDocumentRef is not null) return;
             const double off = 14;
 
             var pasted = new List<PageAnnotation>();
             var pairMap = new Dictionary<string, string>();
             var groupMap = new Dictionary<string, string>();
-            foreach (var src in _annotationClipboard)
+            foreach (var src in _annotationClipboard.Items)
             {
                 if (CloneAnnotation(src) is not { } c) continue;
                 c.PageIndex = pageIdx;

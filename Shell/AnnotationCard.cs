@@ -56,7 +56,7 @@ namespace KillerPDF.Shell
                 _ctxMenu.Items.Add(CardSlot(CardStyleRow(marks), new Thickness(8, 4, 4, 6)));
 
             _ctxMenu.Items.Add(new Separator());
-            if (_annotationClipboard.Count > 0)
+            if (MarkupToPaste())
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (_, _) => PasteAnnotations(hit.PageIndex), GestureFor("Ctrl:V"), "\uE77F"));
             if (hit.PairId.Length > 0 && !multi && PairPartner(hit) is { } partner)
                 _ctxMenu.Items.Add(MakeMenuItem(Loc(partner is CoverAnnotation ? "Str_Ctx_SelectCover" : "Str_Ctx_SelectText"),

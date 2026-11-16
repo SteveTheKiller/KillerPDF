@@ -18,6 +18,6 @@ public sealed class BookPasteGuardTests
         Assert.True(paste.IndexOf("NativeDocumentRef is not null", StringComparison.Ordinal) is var guard and >= 0
             && guard < paste.IndexOf("PasteAnnotations(", StringComparison.Ordinal), paste);
         Assert.True(offer.IndexOf("NativeDocumentRef is not null", StringComparison.Ordinal) is var shown and >= 0
-            && shown < offer.IndexOf("_annotationClipboard.Count > 0", StringComparison.Ordinal), offer);
+            && shown < offer.IndexOf("MarkupToPaste()", StringComparison.Ordinal), offer);
     }
 }
