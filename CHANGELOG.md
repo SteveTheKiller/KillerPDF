@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.5] - Unreleased
 
+### Fixed
+
+- Pinching on a precision touchpad zooms the page again, as it did before 1.9.3, instead of scrolling it. (#494)
+
 ## [1.9.4] - 2026-11-15
 
 1.9.4 is a bugfix release: Rasterize Region removes the text inside the box, text can be selected before it is highlighted, printing a turned page no longer crashes, and the tool menu floats over the page again, with a switch to dock it.

@@ -44,8 +44,12 @@ namespace KillerPDF.Controls
             // box could never be scrolled at all.
             if (FieldListWantsWheel(e.OriginalSource as DependencyObject, e.Delta)) return;
 
+            // The keys the gesture was made with, not the live keyboard: a touchpad pinch is a wheel marked Ctrl
+            // without Ctrl held, and the native page replays its wheels after the message is gone (#494).
+            ModifierKeys keys = KillerPDF.Presentation.WindowsPdfViewportHost.GetWheelModifiers(e);
+
             // A signature being placed takes the plain wheel for its size; Ctrl+wheel still zooms.
-            if (Keyboard.Modifiers == ModifierKeys.None && ResizeSignatureGhost(e.Delta))
+            if (keys == ModifierKeys.None && ResizeSignatureGhost(e.Delta))
             {
                 e.Handled = true;
                 return;
@@ -53,14 +57,14 @@ namespace KillerPDF.Controls
 
             // #209: match the standard Windows/browser gesture and reuse the same path as a
             // physical tilt wheel. Wheel-down moves right; wheel-up moves left.
-            if (Keyboard.Modifiers == ModifierKeys.Shift)
+            if (keys == ModifierKeys.Shift)
             {
                 e.Handled = true;
                 ScrollHorizontalExt(-e.Delta);
                 return;
             }
 
-            if (Keyboard.Modifiers == ModifierKeys.Control)
+            if (keys == ModifierKeys.Control)
             {
                 e.Handled = true;
                 if (_viewMode == ViewMode.Grid) { GridZoomStep(e.Delta < 0); return; }

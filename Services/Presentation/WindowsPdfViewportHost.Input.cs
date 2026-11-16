@@ -14,12 +14,19 @@ internal partial class WindowsPdfViewportHost
     List<(uint Message, nint Keys, nint Position)>? pendingEditorMouse;
     bool translatingAccelerator;
 
-    sealed class NativeWheelEventArgs(int timestamp, int delta, Point screenPosition, FrameworkElement pageRoot)
+    sealed class NativeWheelEventArgs(int timestamp, int delta, Point screenPosition, FrameworkElement pageRoot, ModifierKeys keys)
         : MouseWheelEventArgs(Mouse.PrimaryDevice, timestamp, delta)
     {
         internal Point ScreenPosition { get; } = screenPosition;
         internal FrameworkElement PageRoot { get; } = pageRoot;
+        // The keys the wheel message carried. A touchpad pinch sets Ctrl here without Ctrl held (#494).
+        internal ModifierKeys Keys { get; } = keys;
     }
+
+    // The modifiers a wheel gesture was made with: a wheel replayed from the native page keeps its message's keys,
+    // because the keyboard no longer shows a pinch's Ctrl by the time the replay runs (#494).
+    internal static ModifierKeys GetWheelModifiers(MouseWheelEventArgs args)
+        => args is NativeWheelEventArgs native ? native.Keys : Keyboard.Modifiers;
 
     internal static Point GetWheelPosition(MouseWheelEventArgs args, FrameworkElement relativeTo)
         => args is NativeWheelEventArgs native
@@ -85,6 +92,7 @@ internal partial class WindowsPdfViewportHost
         while (hit is not null && hit is not UIElement) hit = LogicalTreeHelper.GetParent(hit);
         UIElement target = hit as UIElement ?? OverlayRoot;
         int delta = unchecked((short)((wParam.ToInt64() >> 16) & 0xffff));
+        ModifierKeys keys = KillerPDF.Services.WheelKeys.FromMessage(wParam, Keyboard.Modifiers);
         int timestamp = Environment.TickCount;
         Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
         {
@@ -92,11 +100,11 @@ internal partial class WindowsPdfViewportHost
                 || PresentationSource.FromVisual(target) != overlay) return;
             // The native page does not update WPF's mouse device position. Keep the message's
             // screen point so consumers can anchor the gesture across presentation sources.
-            var preview = new NativeWheelEventArgs(timestamp, delta, new Point(screen.X, screen.Y), OverlayRoot)
+            var preview = new NativeWheelEventArgs(timestamp, delta, new Point(screen.X, screen.Y), OverlayRoot, keys)
                 { RoutedEvent = Mouse.PreviewMouseWheelEvent, Source = target };
             target.RaiseEvent(preview);
             if (!preview.Handled)
-                target.RaiseEvent(new NativeWheelEventArgs(timestamp, delta, new Point(screen.X, screen.Y), OverlayRoot)
+                target.RaiseEvent(new NativeWheelEventArgs(timestamp, delta, new Point(screen.X, screen.Y), OverlayRoot, keys)
                     { RoutedEvent = Mouse.MouseWheelEvent, Source = target });
         }));
         return true;
