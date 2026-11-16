@@ -401,6 +401,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Theme_Ectoplasm">Ectoplasma</sys:String>
     <sys:String x:Key="Str_Theme_Decay">Decadenza</sys:String>
     <sys:String x:Key="Str_Theme_Mourning">Lutto</sys:String>
+    <sys:String x:Key="Str_Theme_TrashPolka">Trash Polka</sys:String>
     <sys:String x:Key="Str_Theme_FilmGrain">Grana pellicola</sys:String>
     <sys:String x:Key="Str_Theme_Sepulchre">Sepolcro</sys:String>
     <sys:String x:Key="Str_Theme_Delirium">Delirio</sys:String>

@@ -125,9 +125,9 @@ namespace KillerPDF.Services
 
             var own = Load($"Themes/App/{FileName(theme)}.xaml");
             Add(own);
-            if (ThemeManager.SupportsAccents(theme) && accent != Accent.Green)
+            if (ThemeManager.SupportsAccents(theme) && accent.ToString() != ThemeAccentRules.BakedAccent(FileName(theme)))
             {
-                string sub = theme == Theme.Light ? "Light/" : theme == Theme.Black ? "Black/" : theme == Theme.SE98 ? "98SE/" : "Dark/";
+                string sub = FileName(theme) + "/";
                 var ownAccent = Load($"Themes/App/Accents/{sub}{accent}.xaml");
                 Add(ownAccent);
                 // The theme file's Install fill is its base accent; a colored accent takes over.

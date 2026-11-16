@@ -1580,6 +1580,7 @@
         <!-- Native caption via WM_NCHITTEST, so no drag handler is wired. -->
         <Border Grid.Row="0" x:Name="TitleBarBorder" Height="{DynamicResource TitleBarHeight}" Panel.ZIndex="1"
                 Background="{DynamicResource TitleBarBrush}" BorderThickness="0"
+                ctrl:ThemeMotif.Part="Chrome" ctrl:ThemeMotif.BaseBrush="TitleBarBrush"
                 CornerRadius="{DynamicResource TitleBarCornerRadius}">
             <Grid>
             <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
@@ -1678,7 +1679,8 @@
         <!-- Toolbar -->
         <!-- Keep the toolbar explicitly in the client hit-test area. This is also a safety net for
              compact titlebar themes: native caption pixels must never swallow toolbar input. -->
-        <Border Grid.Row="1" x:Name="ToolbarRowBorder" Background="{DynamicResource BackgroundBrush}">
+        <Border Grid.Row="1" x:Name="ToolbarRowBorder" Background="{DynamicResource BackgroundBrush}"
+                ctrl:ThemeMotif.Part="Chrome" ctrl:ThemeMotif.BaseBrush="BackgroundBrush" ctrl:ThemeMotif.MotifBrush="TitleBarBrush">
             <Grid>
             <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
             <!-- Background=Transparent is load-bearing: without it the grid's empty stretches have no
@@ -1944,6 +1946,7 @@
                 <Border x:Name="SidebarBorder" Grid.Column="0"
                         Margin="{DynamicResource SidebarPanelMargin}"
                         Background="{DynamicResource SidebarPaneBrush}"
+                        ctrl:ThemeMotif.Part="Chrome" ctrl:ThemeMotif.BaseBrush="SidebarPaneBrush" ctrl:ThemeMotif.MotifBrush="PaneBrush"
                         BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,0"
                         MouseRightButtonUp="SidebarArea_MouseRightButtonUp">
                     <Grid>

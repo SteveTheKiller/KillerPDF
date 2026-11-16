@@ -31,7 +31,7 @@ namespace KillerPDF.Controls
         [
             Theme.Dark, Theme.Light, Theme.Black, Theme.SE98, Theme.Blood, Theme.Greed,
             Theme.Cyanotic, Theme.Ectoplasm, Theme.Decay, Theme.Malaise, Theme.Sepulchre,
-            Theme.Delirium, Theme.Mourning
+            Theme.Delirium, Theme.Mourning, Theme.TrashPolka
         ];
 
         private const double AccentStripWidth = 39;
@@ -305,8 +305,7 @@ namespace KillerPDF.Controls
             return host;
         }
 
-        private static bool HasAccents(Theme theme) =>
-            theme == Theme.Dark || theme == Theme.Light || theme == Theme.Black || theme == Theme.SE98;
+        private static bool HasAccents(Theme theme) => ThemeManager.SupportsAccents(theme);
 
         private object ThemeLabel(Theme theme) =>
             _window.TryFindResource(theme == Theme.SE98 ? "Str_Theme_98SE" : "Str_Theme_" + theme)
@@ -345,7 +344,8 @@ namespace KillerPDF.Controls
             Brush brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(flatHex));
             if (family != Theme.SE98)
             {
-                string path = accent == Accent.Green
+                // The accent a family bakes into its base palette has no overlay of its own.
+                string path = accent.ToString() == ThemeAccentRules.BakedAccent(family.ToString())
                     ? $"Themes/{family}.xaml"
                     : $"Themes/Accents/{family}/{accent}.xaml";
                 try
@@ -372,6 +372,12 @@ namespace KillerPDF.Controls
             [
                 (Accent.Red, "#FF2929"), (Accent.Orange, "#FF910A"), (Accent.Yellow, "#FFEB00"), (Accent.Green, "#00FF66"),
                 (Accent.Teal, "#0AFFE7"), (Accent.Blue, "#298DFF"), (Accent.Purple, "#B829FF"), (Accent.Magenta, "#FF2BBD")
+            ],
+            // Blood, Ember, Ochre, Moss, Teal, Cobalt, Violet, Rose.
+            Theme.TrashPolka =>
+            [
+                (Accent.Red, "#D7263D"), (Accent.Orange, "#E2582A"), (Accent.Yellow, "#D9A21B"), (Accent.Green, "#7A9A3A"),
+                (Accent.Teal, "#1E9A96"), (Accent.Blue, "#3A6FD0"), (Accent.Purple, "#8A4CC2"), (Accent.Magenta, "#E4588E")
             ],
             Theme.SE98 =>
             [

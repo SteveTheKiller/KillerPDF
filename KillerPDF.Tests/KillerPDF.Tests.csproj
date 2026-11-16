@@ -55,6 +55,7 @@
     <Compile Include="..\Services\ColorContrast.cs" Link="Services\ColorContrast.cs" />
     <Compile Include="..\Services\UiFontStack.cs" Link="Services\UiFontStack.cs" />
     <Compile Include="..\Services\ThemeManager.cs" Link="Services\ThemeManager.cs" />
+    <Compile Include="..\Services\ThemeAccentRules.cs" Link="Services\ThemeAccentRules.cs" />
     <Compile Include="..\Services\SingleInstanceChannel.cs" Link="Services\SingleInstanceChannel.cs" />
     <Compile Include="..\Services\ComparisonGeometry.cs" Link="Services\ComparisonGeometry.cs" />
     <Compile Include="..\Services\FormTextLimit.cs" Link="Services\FormTextLimit.cs" />

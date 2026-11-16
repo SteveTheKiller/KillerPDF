@@ -14,7 +14,7 @@ namespace KillerPDF.Services
     public enum Theme
     {
         Dark, Light, Black, SE98, Blood, Greed, Cyanotic, Ectoplasm, Decay,
-        Mourning, Sepulchre, Delirium, Malaise
+        Mourning, Sepulchre, Delirium, Malaise, TrashPolka
     }
     public enum Accent { Green, Red, Blue, Purple, Orange, Teal, Yellow, Magenta }
 
@@ -127,6 +127,8 @@ namespace KillerPDF.Services
         private static Accent _lightAccent = Accent.Green;
         private static Accent _blackAccent = Accent.Orange;
         private static Accent _se98Accent  = Accent.Green;
+        // Trash Polka opens on Blood (Red), the accent its base palette bakes in.
+        private static Accent _trashPolkaAccent = Accent.Red;
 
         /// <summary>Call before <see cref="Initialize"/> to set the app's first-run theme and accents.</summary>
         public static void SetDefaults(Theme theme, Accent dark, Accent light, Accent black, Accent se98)
@@ -141,10 +143,10 @@ namespace KillerPDF.Services
             t == Theme.Light ? _lightAccent
             : t == Theme.Black ? _blackAccent
             : t == Theme.SE98 ? _se98Accent
+            : t == Theme.TrashPolka ? _trashPolkaAccent
             : _darkAccent;
 
-        private static bool HasAccents(Theme t) =>
-            t == Theme.Dark || t == Theme.Light || t == Theme.Black || t == Theme.SE98;
+        private static bool HasAccents(Theme t) => ThemeAccentRules.TakesAccents(ThemeFileName(t));
 
         /// <summary>True for the themes that carry an Accents/ folder, so a picker can show or hide
         /// its accent dots without repeating the list.</summary>
@@ -223,6 +225,7 @@ namespace KillerPDF.Services
             _blackAccent = Enum.TryParse<Accent>(GetSetting("BlackAccent"), out var ba) && Enum.IsDefined(typeof(Accent), ba) ? ba : _blackAccent;
             // SE98Accent is the spelling some apps once wrote.
             _se98Accent  = Enum.TryParse<Accent>(GetSetting("98SEAccent") ?? GetSetting("SE98Accent"), out var wa) && Enum.IsDefined(typeof(Accent), wa) ? wa : _se98Accent;
+            _trashPolkaAccent = Enum.TryParse<Accent>(GetSetting(ThemeAccentRules.SettingKey("TrashPolka")), out var ta) && Enum.IsDefined(typeof(Accent), ta) ? ta : _trashPolkaAccent;
             LoadDict(_current);
         }
 
@@ -241,6 +244,7 @@ namespace KillerPDF.Services
             if      (family == Theme.Light) { _lightAccent = accent; SetSetting("LightAccent", accent.ToString()); }
             else if (family == Theme.Black) { _blackAccent = accent; SetSetting("BlackAccent", accent.ToString()); }
             else if (family == Theme.SE98)  { _se98Accent  = accent; SetSetting("98SEAccent",  accent.ToString()); }
+            else if (family == Theme.TrashPolka) { _trashPolkaAccent = accent; SetSetting(ThemeAccentRules.SettingKey("TrashPolka"), accent.ToString()); }
             else                            { _darkAccent  = accent; SetSetting("DarkAccent",  accent.ToString()); }
 
             if (_current == family)
@@ -292,12 +296,11 @@ namespace KillerPDF.Services
                 combined[key] = newDict[key];
 
             bool accentOwnsMenuHover = false;
-            if (HasAccents(theme) && accent != Accent.Green)
+            // Each accent family bakes one accent into its base palette (Green, or Red for Trash Polka); every other
+            // accent comes from that family's overlay folder, which is named like the palette file.
+            if (HasAccents(theme) && accent.ToString() != ThemeAccentRules.BakedAccent(name))
             {
-                string family = theme == Theme.Light ? "Light"
-                              : theme == Theme.Black ? "Black"
-                              : theme == Theme.SE98  ? "98SE"
-                              : "Dark";
+                string family = name;
                 try
                 {
                     var accentDict = new ResourceDictionary
@@ -311,6 +314,10 @@ namespace KillerPDF.Services
                 catch { /* overlay not present - base theme stands */ }
             }
 
+
+            // Trash Polka draws its motif behind the window and its chrome panes (Controls/ThemeMotif.cs); every other
+            // theme keeps plain backgrounds. Set before the app's tokens so an app can turn it off.
+            combined["ThemeMotif"] = theme == Theme.TrashPolka;
 
             // The app's own values go in before the family contract, so they win over its defaults.
             AppTokens?.Invoke(combined, theme, accent);

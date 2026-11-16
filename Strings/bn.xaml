@@ -336,6 +336,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Theme_Ectoplasm">এক্টোপ্লাজম</sys:String>
     <sys:String x:Key="Str_Theme_Decay">ক্ষয়</sys:String>
     <sys:String x:Key="Str_Theme_Mourning">শোক</sys:String>
+    <sys:String x:Key="Str_Theme_TrashPolka">Trash Polka</sys:String>
     <sys:String x:Key="Str_Theme_FilmGrain">ফিল্ম গ্রেইন</sys:String>
     <sys:String x:Key="Str_Theme_Sepulchre">সমাধি</sys:String>
     <sys:String x:Key="Str_Theme_Delirium">প্রলাপ</sys:String>

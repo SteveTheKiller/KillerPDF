@@ -336,6 +336,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Theme_Ectoplasm">灵质</sys:String>
     <sys:String x:Key="Str_Theme_Decay">腐朽</sys:String>
     <sys:String x:Key="Str_Theme_Mourning">哀悼</sys:String>
+    <sys:String x:Key="Str_Theme_TrashPolka">Trash Polka</sys:String>
     <sys:String x:Key="Str_Theme_FilmGrain">胶片颗粒</sys:String>
     <sys:String x:Key="Str_Theme_Sepulchre">陵墓</sys:String>
     <sys:String x:Key="Str_Theme_Delirium">谵妄</sys:String>

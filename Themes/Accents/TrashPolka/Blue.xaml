@@ -1,0 +1,22 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options">
+    <!-- Trash Polka family - COBALT accent overlay (Blue). -->
+    <SolidColorBrush x:Key="PrimaryBrush"        Color="#3A6FD0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#3A6FD0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#3A6FD0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush"     Color="#3A6FD0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OnPrimaryBrush"      Color="#FFFFFF" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#3A6FD0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#3A6FD0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#1D2D4A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionBg"         Color="#3A6FD0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionFg"         Color="#FFFFFF" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#1D2D4A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"    Color="#883A6FD0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TabEdgeBrush"        Color="#663A6FD0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="AccentLogo"          Color="#3A6FD0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionAccent"     Color="#3A6FD0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RadioAccent"         Color="#3A6FD0" po:Freeze="True"/>
+</ResourceDictionary>

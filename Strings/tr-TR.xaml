@@ -336,6 +336,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Theme_Ectoplasm">Ektoplazma</sys:String>
     <sys:String x:Key="Str_Theme_Decay">Çürüme</sys:String>
     <sys:String x:Key="Str_Theme_Mourning">Yas</sys:String>
+    <sys:String x:Key="Str_Theme_TrashPolka">Trash Polka</sys:String>
     <sys:String x:Key="Str_Theme_FilmGrain">Film greni</sys:String>
     <sys:String x:Key="Str_Theme_Sepulchre">Kabir</sys:String>
     <sys:String x:Key="Str_Theme_Delirium">Hezeyan</sys:String>

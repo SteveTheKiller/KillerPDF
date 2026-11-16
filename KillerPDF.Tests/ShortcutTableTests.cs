@@ -390,7 +390,7 @@ namespace KillerPDF.Tests
                 .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value, StringComparer.Ordinal);
 
             string[] themes = Directory.GetFiles(Path.Combine(RepoRoot(), "Themes"), "*.xaml");
-            Assert.Equal(13, themes.Length);
+            Assert.Equal(14, themes.Length);
             var missing = new List<string>();
             foreach (string theme in themes)
             {

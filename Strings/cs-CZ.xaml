@@ -401,6 +401,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Theme_Ectoplasm">Ektoplazma</sys:String>
     <sys:String x:Key="Str_Theme_Decay">Rozklad</sys:String>
     <sys:String x:Key="Str_Theme_Mourning">Smutek</sys:String>
+    <sys:String x:Key="Str_Theme_TrashPolka">Trash Polka</sys:String>
     <sys:String x:Key="Str_Theme_FilmGrain">Filmové zrno</sys:String>
     <sys:String x:Key="Str_Theme_Sepulchre">Hrobka</sys:String>
     <sys:String x:Key="Str_Theme_Delirium">Delirium</sys:String>
