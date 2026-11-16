@@ -1426,16 +1426,16 @@ namespace KillerPDF.Shell
         {
             if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             if (!EnsureEditable()) return;
-            var dlg = new Controls.FileDialog(Controls.FileDialogMode.Open)
-                          { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SelectMerge"), Multiselect = true };
-            if (dlg.ShowDialog(this) != true) return;
+            // The files to merge, in order, from buttons or a drop from File Explorer (#495).
+            var dlg = new MergeFilesDialog(this);
+            if (dlg.ShowDialog() != true || dlg.Paths.Count == 0) return;
             // Checking a damaged file copies its pages, so it runs off the UI thread behind the busy
             // overlay, and the import goes only into the document the merge was started on.
             var isTargetCurrent = CaptureDocumentOrigin();
             try
             {
                 var imports = new List<PdfEngineIntegration.ImportedDocument>();
-                foreach (var file in dlg.FileNames)
+                foreach (var file in dlg.Paths)
                 {
                     try
                     {
@@ -1494,7 +1494,7 @@ namespace KillerPDF.Shell
                                 rotations, imports, insertAt),
                         selectedPageAfterReload: insertionIndex,
                         documentUndo: documentUndo));
-                SetStatus(string.Format(Loc("Str_St_Merged"), dlg.FileNames.Length, _doc?.PageCount));
+                SetStatus(string.Format(Loc("Str_St_Merged"), dlg.Paths.Count, _doc?.PageCount));
             }
             catch (Exception ex)
             {

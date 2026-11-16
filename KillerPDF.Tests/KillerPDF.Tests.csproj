@@ -35,6 +35,8 @@
     <Compile Include="..\Services\PictureTurn.cs" Link="Services\PictureTurn.cs" />
     <Compile Include="..\Services\WheelKeys.cs" Link="Services\WheelKeys.cs" />
     <Compile Include="..\Services\MarkupClipboard.cs" Link="Services\MarkupClipboard.cs" />
+    <Compile Include="..\Controls\FolderNameRule.cs" Link="Controls\FolderNameRule.cs" />
+    <Compile Include="..\Services\MergeFileList.cs" Link="Services\MergeFileList.cs" />
     <Compile Include="..\Services\AtomicFileOutput.cs" Link="Services\AtomicFileOutput.cs" />
     <Compile Include="..\Services\SourceImageDiagnosis.cs" Link="Services\SourceImageDiagnosis.cs" />
     <Compile Include="..\Services\OpenDialogFilter.cs" Link="Services\OpenDialogFilter.cs" />

@@ -298,9 +298,29 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Button x:Name="UpButton" Grid.Column="0" Content="&#xE74A;" Click="Up_Click"
-                        ToolTip="{DynamicResource Str_TT_Up}" Style="{StaticResource PickerViewBtn}"
-                        Margin="0,0,6,0"/>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button x:Name="UpButton" Content="&#xE74A;" Click="Up_Click"
+                            ToolTip="{DynamicResource Str_TT_Up}" Style="{StaticResource PickerViewBtn}"
+                            Margin="0,0,6,0"/>
+                    <!-- New folder (#498): a name box under the button; Enter creates the folder and opens it. -->
+                    <Button x:Name="NewFolderButton" Content="&#xE8F4;" Click="NewFolder_Click"
+                            ToolTip="{DynamicResource Str_TT_NewFolder}" AutomationProperties.Name="{DynamicResource Str_FD_NewFolder}"
+                            Style="{StaticResource PickerViewBtn}" Margin="0,0,6,0"/>
+                    <Popup x:Name="NewFolderPopup" PlacementTarget="{Binding ElementName=NewFolderButton}"
+                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" VerticalOffset="2">
+                        <Border Background="{DynamicResource FileDialogPaneBrush}" BorderBrush="{DynamicResource MenuBorderBrush}"
+                                BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}" Padding="8">
+                            <StackPanel Width="260">
+                                <TextBox x:Name="NewFolderBox" Style="{StaticResource DialogPickerTextBox}"
+                                         AutomationProperties.Name="{DynamicResource Str_FD_NewFolder}"
+                                         FontFamily="{DynamicResource UiFont}" FontSize="12" Padding="8,0,8,0" Height="28"
+                                         VerticalContentAlignment="Center" KeyDown="NewFolderBox_KeyDown"/>
+                                <TextBlock x:Name="NewFolderError" Visibility="Collapsed" TextWrapping="Wrap" Margin="2,6,2,0"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="11" Foreground="{DynamicResource DimTextBrush}"/>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </StackPanel>
                 <!-- Explicit style: an unstyled TextBox falls back to WPF's white fill and blue
                      focus border. The chevron overlays the box's right edge (the box pads 28 to
                      clear it) and drops the recent-locations list, like Explorer's address bar. -->
