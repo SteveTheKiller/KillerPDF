@@ -18,6 +18,9 @@ namespace KillerPDF.Services
         /// <summary>Killer Sans UI over the system faces: the interface stack.</summary>
         internal static string For(string? cultureName) => "./Fonts/#Killer Sans UI, " + Fallbacks(cultureName);
 
+        /// <summary>Killer Sans over the system faces: the title bar's file name stack.</summary>
+        internal static string Title(string? cultureName) => "./Fonts/#Killer Sans, " + Fallbacks(cultureName);
+
         /// <summary>Lacquer over the interface stack: the heading stack.</summary>
         internal static string Heading(string? cultureName) => "./Fonts/#Lacquer, " + For(cultureName);
 

@@ -40,9 +40,14 @@ namespace KillerPDF.Services
         internal static FontFamily KillerSansUiStack { get; private set; } = UiStack(UiLanguage);
         internal static readonly FontFamily KillerSansFont = new(new Uri("pack://application:,,,/"), "./Fonts/#Killer Sans");
         internal static FontFamily LacquerHeadingStack { get; private set; } = HeadingStack(UiLanguage);
+        // The title bar's file name: Killer Sans over the language's fallbacks, so a CJK name is not left to the
+        // system default face.
+        internal static FontFamily KillerSansTitleStack { get; private set; } = TitleStack(UiLanguage);
 
         private static FontFamily UiStack(string language) =>
             new(new Uri($"pack://application:,,,/{AssemblyName};component/"), UiFontStack.For(language));
+        private static FontFamily TitleStack(string language) =>
+            new(new Uri("pack://application:,,,/"), UiFontStack.Title(language));
         private static FontFamily HeadingStack(string language) =>
             new(new Uri("pack://application:,,,/"), UiFontStack.Heading(language));
 
@@ -58,6 +63,7 @@ namespace KillerPDF.Services
             if (!changed) return;
             KillerSansUiStack = UiStack(language);
             LacquerHeadingStack = HeadingStack(language);
+            KillerSansTitleStack = TitleStack(language);
             LoadDict(_current);
         }
         /// <summary>
@@ -999,8 +1005,7 @@ namespace KillerPDF.Services
             // baseline in Killer Sans, as KillerPDF's filename and KillerScan's subtitle do. A flat
             // theme keeps its caption font beside its plain title.
             bool flatTitle = combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool ft && ft;
-            SetIfAbsent("FileNameFont", flatTitle ? combined["ChromeFontFamily"]
-                : new FontFamily(new Uri("pack://application:,,,/"), "./Fonts/#Killer Sans"));
+            SetIfAbsent("FileNameFont", flatTitle ? combined["ChromeFontFamily"] : KillerSansTitleStack);
             SetIfAbsent("FileNameFontSize", flatTitle ? 11.0 : 18.0);
             if (!combined.Contains("FileNameTransform"))
             {
@@ -1011,8 +1016,7 @@ namespace KillerPDF.Services
             // The app (mono) slot: Killer Sans UI, the family UI face, over the Segoe stack. It is
             // completed here rather than in AppStyles.xaml so 98SE can state its own face; a font
             // picked in Fonts still overrides it from the top-level application dictionary.
-            SetIfAbsent("MonoFont", new FontFamily(new Uri("pack://application:,,,/"),
-                $"/{AssemblyName};component/Fonts/#Killer Sans UI, Segoe UI"));
+            SetIfAbsent("MonoFont", KillerSansUiStack);
             SetIfAbsent("TitleIconMargin", new Thickness(0, 0, 7, 0));
             SetIfAbsent("TitleIconSize", 27.0);
             SetIfAbsent("TitleTextMargin", new Thickness(0));

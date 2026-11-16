@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Pinching on a precision touchpad zooms the page again, as it did before 1.9.3, instead of scrolling it. (#494)
+- A Chinese or Japanese file name in the title bar is drawn in Microsoft YaHei UI or Yu Gothic UI, matching the menus, instead of the system's default face. Document tab names follow the same rule in every theme. (#490)
 
 ## [1.9.4] - 2026-11-15
 

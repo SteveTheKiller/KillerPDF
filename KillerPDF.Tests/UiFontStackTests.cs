@@ -60,6 +60,39 @@ public sealed class UiFontStackTests
         Assert.Equal("Segoe UI, Yu Gothic UI, Microsoft JhengHei UI, Nirmala UI", UiFontStack.Fallbacks("ja-JP"));
     }
 
+    // #490: the file name in the title bar is drawn in Killer Sans, which has no CJK glyphs either, so it needs the same
+    // language-chosen fallbacks as the interface or a Chinese file name falls to the system default face.
+    [Fact]
+    public void TheTitleFileNameStackFallsBackLikeTheInterface()
+    {
+        Assert.Equal("./Fonts/#Killer Sans, Segoe UI, Microsoft YaHei UI, Microsoft JhengHei UI, Nirmala UI",
+            UiFontStack.Title("zh-CN"));
+        Assert.Equal("./Fonts/#Killer Sans, Segoe UI, Microsoft JhengHei UI, Nirmala UI", UiFontStack.Title("en-US"));
+    }
+
+    [Fact]
+    public void SwitchingTheLanguageRebuildsTheTitleStack()
+    {
+        _ = System.IO.Packaging.PackUriHelper.UriSchemePack;
+        try
+        {
+            ThemeManager.SetUiLanguage("zh-CN");
+            Assert.Equal(UiFontStack.Title("zh-CN"), ThemeManager.KillerSansTitleStack.Source);
+            ThemeManager.SetUiLanguage("ja-JP");
+            Assert.Equal(UiFontStack.Title("ja-JP"), ThemeManager.KillerSansTitleStack.Source);
+        }
+        finally { ThemeManager.SetUiLanguage("en-US"); }
+    }
+
+    // Source pin: the title file name and the theme's own MonoFont take the language stacks, never a bare face.
+    [Fact]
+    public void TheFileNameAndMonoFontsUseTheLanguageStacks()
+    {
+        string kit = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Services", "ThemeManager.cs"));
+        Assert.Contains("SetIfAbsent(\"FileNameFont\", flatTitle ? combined[\"ChromeFontFamily\"] : KillerSansTitleStack);", kit);
+        Assert.Contains("SetIfAbsent(\"MonoFont\", KillerSansUiStack);", kit);
+    }
+
     [Fact]
     public void SwitchingTheLanguageRebuildsTheThemeStacks()
     {
