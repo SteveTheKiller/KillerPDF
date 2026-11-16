@@ -378,7 +378,9 @@ namespace KillerPDF.Controls
         internal void PageJumpBoxGotFocusExt(object sender, RoutedEventArgs e) => PageJumpBox_GotFocus(sender, e);
         internal void FocusReadingSurfaceExt()
         {
-            if (IsKeyboardFocusWithin) return;
+            // The page, not the viewer: the tool bar is docked inside the viewer, so the keyboard sitting in its Font box
+            // or a layer toggle is "within" too, and the arrows went there instead of to the selection (#467).
+            if (PagePreviewPanel.IsKeyboardFocusWithin) return;
             if (PagePreviewPanel.IsVisible) FocusDocumentView();
             else Focus();
         }

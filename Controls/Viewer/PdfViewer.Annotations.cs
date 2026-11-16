@@ -1491,6 +1491,9 @@ namespace KillerPDF.Controls
                                         _dragAnnot = lead;
                                         _activeCanvas.CaptureMouse();
                                     }
+                                    // A click on the native page does not move the keyboard, which can still be in the
+                                    // tool bar; the selection takes it so the arrow keys move what was clicked (#467).
+                                    FocusReadingSurfaceExt();
                                     e.Handled = true;
                                     hitPlaced = true;
                                     break;

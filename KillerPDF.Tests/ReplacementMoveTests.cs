@@ -69,6 +69,23 @@ public sealed class ReplacementMoveTests
         Assert.Empty(ReplacementLayers.MoveMembers([text], page));
     }
 
+    // SOURCE PIN, reproduced on SN02 with the reporter's PDF: after a layer toggle the keyboard stayed in the tool bar
+    // docked inside the viewer, so "focus is within the viewer" was already true, the hand-back did nothing and the
+    // arrows changed the Font box. The hand-back asks about the page itself, and selecting a mark with a click gives
+    // the page the keyboard.
+    [Fact]
+    public void TheKeyboardGoesBackToThePageNotJustSomewhereInTheViewer()
+    {
+        string api = Viewer("PdfViewer.Api.cs").Replace("\r\n", "\n");
+        string handBack = Between(api, "internal void FocusReadingSurfaceExt()", "private void FocusDocumentView()");
+        Assert.Contains("if (PagePreviewPanel.IsKeyboardFocusWithin) return;", handBack);
+        Assert.DoesNotContain("if (IsKeyboardFocusWithin) return;", handBack);
+
+        string annotations = Viewer("PdfViewer.Annotations.cs").Replace("\r\n", "\n");
+        string press = Between(annotations, "// Single click: check if hitting a PlacedAnnotation first", "if (!hitPlaced)");
+        Assert.Contains("FocusReadingSurfaceExt();", press);
+    }
+
     // SOURCE PIN (the viewer is not compiled into this project): the arrow keys and a drag both take their movers from
     // MoveMembers, and a nudge moves the selection frame with the mark instead of putting the old frame back.
     [Fact]
