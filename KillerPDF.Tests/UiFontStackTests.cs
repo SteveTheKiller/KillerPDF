@@ -93,6 +93,18 @@ public sealed class UiFontStackTests
         Assert.Contains("SetIfAbsent(\"MonoFont\", KillerSansUiStack);", kit);
     }
 
+    // Source pin: the 98SE caption glyph switch comes from the KillerUI kit's ThemeManager, as in KillerUI, and the app
+    // keeps no second copy of it.
+    [Fact]
+    public void TheCaptionGlyphSwitchLivesOnlyInTheKit()
+    {
+        string root = FindRepositoryRoot();
+        string kit = File.ReadAllText(Path.Combine(root, "Services", "ThemeManager.cs"));
+        Assert.Contains("combined[\"CaptionDrawnGlyphVisibility\"] = flat ? Visibility.Visible   : Visibility.Collapsed;", kit);
+        string app = File.ReadAllText(Path.Combine(root, "Services", "AppTheme.cs"));
+        Assert.DoesNotContain("CaptionDrawnGlyphVisibility", app);
+    }
+
     [Fact]
     public void SwitchingTheLanguageRebuildsTheThemeStacks()
     {

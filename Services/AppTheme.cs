@@ -289,10 +289,6 @@ namespace KillerPDF.Services
             Default("SplitHostMargin", new Thickness(0, 0, 8, 0));
             Default("SplitPaneGutterWidth", 8.0);
 
-            bool classicCaption = d["PlainTitleVisibility"] is Visibility titleVisibility
-                                  && titleVisibility == Visibility.Visible;
-            d["CaptionFontGlyphVisibility"] = classicCaption ? Visibility.Collapsed : Visibility.Visible;
-            d["CaptionDrawnGlyphVisibility"] = classicCaption ? Visibility.Visible : Visibility.Collapsed;
             // The active tab's corner (matched by the card's corners at each end of the band), the
             // title and the close x, as KillerShell has them. 98SE keeps its classic sizes.
             bool compactDialogCaption = d["UseDialogCaption"] is true;

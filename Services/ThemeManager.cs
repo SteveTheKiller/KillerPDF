@@ -1065,6 +1065,12 @@ namespace KillerPDF.Services
                 if (!combined.Contains("CaptionHoverBrush"))
                     combined["CaptionHoverBrush"] = flat ? (object)Transparent : combined["OutlineHoverBrush"];
 
+                // A flat theme draws Win98's caption glyphs as pixel art instead of the MDL2 font: the
+                // close X in ChromeCloseButton, and the app's own minimize line (8x2, 4px above the
+                // bottom) and maximize box (11x10 outline with a 2px top bar). These pick which shows.
+                combined["CaptionFontGlyphVisibility"]  = flat ? Visibility.Collapsed : Visibility.Visible;
+                combined["CaptionDrawnGlyphVisibility"] = flat ? Visibility.Visible   : Visibility.Collapsed;
+
                 // A 1px MDL2 stroke disappears against a gray button face at 16px.
                 combined["CaptionGlyphWeight"] = flat ? FontWeights.Bold : FontWeights.Normal;
 
