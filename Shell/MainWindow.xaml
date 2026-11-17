@@ -1890,7 +1890,8 @@
              matches the sidebar and footer, which already paint BackgroundBrush. The sidebar and
              the card both paint over this, so only the exposed gutter changes. -->
         <Grid Grid.Row="2" Grid.RowSpan="2" x:Name="MainContentGrid"
-              Background="{DynamicResource BackgroundBrush}">
+              Background="{DynamicResource BackgroundBrush}"
+              ctrl:ThemeMotif.Part="Chrome" ctrl:ThemeMotif.BaseBrush="BackgroundBrush">
             <Grid.ColumnDefinitions>
                 <!-- A left or right sidebar lives in column 0 (left, default) or column 2 (right).
                      ApplySidebarSide swaps which column is the sized sidebar and which is the star
