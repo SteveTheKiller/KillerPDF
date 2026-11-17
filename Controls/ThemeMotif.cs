@@ -43,7 +43,6 @@ namespace KillerPDF.Controls
         public static string? GetMotifBrush(DependencyObject element) => (string?)element.GetValue(MotifBrushProperty);
         public static void SetMotifBrush(DependencyObject element, string? value) => element.SetValue(MotifBrushProperty, value);
 
-        private static readonly Dictionary<(MotifPart, Color), Drawing> Motifs = [];
         private static readonly Dictionary<MotifPart, (Color Accent, Size Size, Drawing Piece)> Pieces = [];
 
         private static void OnPartChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -144,29 +143,20 @@ namespace KillerPDF.Controls
             string stamp = $"{part}|{accent.Color}|{baseBrush.Color}|{pane}|{window}";
             if ((string?)element.GetValue(PaintedProperty) == stamp) return;
 
-            DrawingBrush brush;
-            if (part == MotifPart.Chrome)
+            // Every part carries a full ink piece (TrashPolkaInk): the document canvas and the split pane their own, the
+            // window background and its chrome (title bar, toolbar, sidebar, frame) a third one, so the raised panes never
+            // continue the background's image. Each is drawn ONCE at screen size and pinned to the window, so resizing
+            // only shows more or less of the same image (Steve, 2026-11-16: "the images scrunch up and change").
+            var size = new Size(Math.Ceiling(SystemParameters.PrimaryScreenWidth / TrashPolkaInk.Scale),
+                Math.Ceiling(SystemParameters.PrimaryScreenHeight / TrashPolkaInk.Scale));
+            if (!Pieces.TryGetValue(part, out var cached) || cached.Accent != accent.Color || cached.Size != size)
             {
-                if (!Motifs.TryGetValue((part, accent.Color), out var motif))
-                    Motifs[(part, accent.Color)] = motif = TrashPolkaMotif.Build(TrashPolkaLayout.Chrome, accent.Color);
-                brush = TrashPolkaMotif.Compose(baseBrush.Color, motif, pane, window, opacity: TrashPolkaMotif.ChromeOpacity);
+                int seed = part switch { MotifPart.Window => TrashPolkaInk.WindowSeed, MotifPart.Split => TrashPolkaInk.SplitSeed, _ => TrashPolkaInk.BackgroundSeed };
+                cached = (accent.Color, size, TrashPolkaInk.Draw(accent.Color, size, seed));
+                Pieces[part] = cached;
             }
-            else
-            {
-                // The document canvas and the split pane carry the full ink piece (TrashPolkaInk), drawn to their own
-                // size at 1:1; one cached piece per part, redrawn only when the pane's size or the accent changes.
-                // Drawn ONCE at screen size and pinned to the window, so resizing a pane only shows more or less of the
-                // same image instead of redrawing a different one (Steve, 2026-11-16: "the images scrunch up and change").
-                var size = new Size(Math.Ceiling(SystemParameters.PrimaryScreenWidth / TrashPolkaInk.Scale),
-                    Math.Ceiling(SystemParameters.PrimaryScreenHeight / TrashPolkaInk.Scale));
-                if (!Pieces.TryGetValue(part, out var cached) || cached.Accent != accent.Color || cached.Size != size)
-                {
-                    cached = (accent.Color, size, TrashPolkaInk.Draw(accent.Color, size,
-                        part == MotifPart.Window ? TrashPolkaInk.WindowSeed : TrashPolkaInk.SplitSeed));
-                    Pieces[part] = cached;
-                }
-                brush = TrashPolkaMotif.Compose(baseBrush.Color, cached.Piece, pane, window, scale: TrashPolkaInk.Scale);
-            }
+            var brush = TrashPolkaMotif.Compose(baseBrush.Color, cached.Piece, pane, window, scale: TrashPolkaInk.Scale,
+                opacity: part == MotifPart.Chrome ? TrashPolkaInk.BackgroundOpacity : TrashPolkaInk.PaneOpacity);
             element.SetValue(PaintedBrushProperty, brush);
             element.SetValue(PaintedProperty, stamp);
             SetBackground(element, brush);

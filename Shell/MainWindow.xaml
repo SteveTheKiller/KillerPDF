@@ -1557,7 +1557,8 @@
          managed in UpdateWindowChrome. -->
     <Border x:Name="WindowShadowBorder" Background="{DynamicResource SurfaceBrush}" CornerRadius="{DynamicResource WindowCornerRadius}" IsHitTestVisible="False"/>
     <Border x:Name="RootBorder" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="{DynamicResource RootBorderThickness}"
-            Background="{DynamicResource WindowFrameBrush}" CornerRadius="{DynamicResource WindowCornerRadius}">
+            Background="{DynamicResource WindowFrameBrush}" CornerRadius="{DynamicResource WindowCornerRadius}"
+            ctrl:ThemeMotif.Part="Chrome" ctrl:ThemeMotif.BaseBrush="WindowFrameBrush" ctrl:ThemeMotif.MotifBrush="BackgroundBrush">
     <Grid>
     <Border Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource FrameOuterLightBrush}" BorderThickness="{DynamicResource FrameOuterLightThickness}"/>
     <Border Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource FrameOuterDarkBrush}" BorderThickness="{DynamicResource FrameOuterDarkThickness}"/>

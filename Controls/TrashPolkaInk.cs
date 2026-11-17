@@ -21,6 +21,15 @@ namespace KillerPDF.Controls
         /// <summary>The piece draws this much larger than its design units (Steve, 2026-11-16: "a bit larger").</summary>
         internal const double Scale = 1.25;
 
+        /// <summary>A third seed for the window background and its chrome, a different image from the panes on it.</summary>
+        internal const int BackgroundSeed = 162;
+
+        /// <summary>The panes' piece, toned down a little (Steve, 2026-11-16: "lower the opacity of the design a little").</summary>
+        internal const double PaneOpacity = 0.75;
+
+        /// <summary>The background piece sits under the toolbar and sidebar, so it stays faint enough to read them over.</summary>
+        internal const double BackgroundOpacity = 0.35;
+
         internal static DrawingGroup Draw(Color accent, Size size, int seed)
         {
             var group = new DrawingGroup();
