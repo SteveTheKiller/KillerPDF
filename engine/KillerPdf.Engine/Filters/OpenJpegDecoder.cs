@@ -7,25 +7,26 @@ internal static class OpenJpegDecoder
 {
     private const string ImportName = "openjp2";
 
-    internal static Jpeg2000DecodedImage Decode(ReadOnlySpan<byte> codestream, Jpeg2000Shape shape,
+    internal static Jpeg2000DecodedImage Decode(byte[] codestream, Jpeg2000Shape shape,
         int reduction, int width, int height, int rowBytes, int length, int maximumParallelism)
     {
         if ((long)width * height * shape.Components * sizeof(int) > 256L * 1024 * 1024)
             throw new PdfFilterException("OpenJPEG sample allocation exceeds the configured safety limit.");
-        string file = Path.GetTempFileName();
+        var source = new MemorySource(codestream);
+        GCHandle handle = GCHandle.Alloc(source);
         IntPtr codec = IntPtr.Zero, stream = IntPtr.Zero, image = IntPtr.Zero;
         try
         {
-            using (FileStream input = File.OpenWrite(file))
-                input.Write(codestream);
             codec = CreateDecoder(0);
-            stream = CreateFileStream(file, 1);
+            stream = CreateMemoryStream(handle, codestream.Length);
             var parameters = new DecoderParameters();
             SetDefaults(ref parameters);
             parameters.Reduction = (uint)reduction;
             if (codec == IntPtr.Zero || stream == IntPtr.Zero || Setup(codec, ref parameters) == 0)
                 throw new PdfFilterException("OpenJPEG could not initialize the JPEG 2000 decoder.");
-            SetThreads(codec, Math.Clamp(maximumParallelism, 1, Environment.ProcessorCount));
+            // OpenJPEG builds a fresh thread pool per codec, which costs more than decoding a small image.
+            if ((long)width * height >= 1 << 20)
+                SetThreads(codec, Math.Clamp(maximumParallelism, 1, Environment.ProcessorCount));
             if (ReadHeader(stream, codec, out image) == 0
                 || DecodeImage(codec, stream, image) == 0
                 || EndDecode(codec, stream) == 0)
@@ -39,8 +40,70 @@ internal static class OpenJpegDecoder
             if (image != IntPtr.Zero) DestroyImage(image);
             if (stream != IntPtr.Zero) DestroyStream(stream);
             if (codec != IntPtr.Zero) DestroyDecoder(codec);
-            File.Delete(file);
+            handle.Free();
         }
+    }
+
+    // The codestream is read from memory through OpenJPEG's stream callbacks instead of a temp file,
+    // which cost more than the decode itself on pages with hundreds of small images.
+    private sealed class MemorySource(byte[] data)
+    {
+        public readonly byte[] Data = data;
+        public long Position;
+    }
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate nuint ReadCallback(IntPtr buffer, nuint count, IntPtr user);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate long SkipCallback(long count, IntPtr user);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int SeekCallback(long position, IntPtr user);
+
+    private static readonly ReadCallback Reader = ReadSource;
+    private static readonly SkipCallback Skipper = SkipSource;
+    private static readonly SeekCallback Seeker = SeekSource;
+    private static readonly IntPtr ReaderPointer = Marshal.GetFunctionPointerForDelegate(Reader);
+    private static readonly IntPtr SkipperPointer = Marshal.GetFunctionPointerForDelegate(Skipper);
+    private static readonly IntPtr SeekerPointer = Marshal.GetFunctionPointerForDelegate(Seeker);
+
+    private static IntPtr CreateMemoryStream(GCHandle handle, int length)
+    {
+        IntPtr stream = CreateStream(1 << 20, 1);
+        if (stream == IntPtr.Zero) return stream;
+        SetReadFunction(stream, ReaderPointer);
+        SetSkipFunction(stream, SkipperPointer);
+        SetSeekFunction(stream, SeekerPointer);
+        SetUserData(stream, GCHandle.ToIntPtr(handle), IntPtr.Zero);
+        SetUserDataLength(stream, (ulong)length);
+        return stream;
+    }
+
+    private static nuint ReadSource(IntPtr buffer, nuint count, IntPtr user)
+    {
+        var source = (MemorySource)GCHandle.FromIntPtr(user).Target!;
+        long available = source.Data.Length - source.Position;
+        if (available <= 0) return nuint.MaxValue;
+        int read = (int)Math.Min(available, (long)Math.Min(count, (nuint)int.MaxValue));
+        Marshal.Copy(source.Data, (int)source.Position, buffer, read);
+        source.Position += read;
+        return (nuint)read;
+    }
+
+    private static long SkipSource(long count, IntPtr user)
+    {
+        var source = (MemorySource)GCHandle.FromIntPtr(user).Target!;
+        long target = source.Position + count;
+        if (target < 0 || target > source.Data.Length) return -1;
+        source.Position = target;
+        return count;
+    }
+
+    private static int SeekSource(long position, IntPtr user)
+    {
+        var source = (MemorySource)GCHandle.FromIntPtr(user).Target!;
+        if (position < 0 || position > source.Data.Length) return 0;
+        source.Position = position;
+        return 1;
     }
 
     private static byte[] Pack(IntPtr image, Jpeg2000Shape shape, int reduction,
@@ -80,6 +143,11 @@ internal static class OpenJpegDecoder
             {
                 int index = checked((int)((y - top) / stepY * columns + (x - left) / stepX));
                 int value = Math.Clamp(samples[index] + bias, 0, maximum);
+                if (bits == 8)
+                {
+                    result[y * rowBytes + x * shape.Components + component] = (byte)value;
+                    continue;
+                }
                 long bitOffset = (long)y * rowBytes * 8 + (x * shape.Components + component) * bits;
                 for (int bit = bits - 1; bit >= 0; bit--, bitOffset++)
                     if ((value & (1 << bit)) != 0)
@@ -105,8 +173,18 @@ internal static class OpenJpegDecoder
     private static extern int Setup(IntPtr codec, ref DecoderParameters parameters);
     [DllImport(ImportName, EntryPoint = "opj_codec_set_threads", CallingConvention = CallingConvention.Cdecl)]
     private static extern int SetThreads(IntPtr codec, int count);
-    [DllImport(ImportName, EntryPoint = "opj_stream_create_default_file_stream", CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr CreateFileStream([MarshalAs(UnmanagedType.LPStr)] string path, int read);
+    [DllImport(ImportName, EntryPoint = "opj_stream_create", CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr CreateStream(nuint bufferSize, int input);
+    [DllImport(ImportName, EntryPoint = "opj_stream_set_read_function", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void SetReadFunction(IntPtr stream, IntPtr function);
+    [DllImport(ImportName, EntryPoint = "opj_stream_set_skip_function", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void SetSkipFunction(IntPtr stream, IntPtr function);
+    [DllImport(ImportName, EntryPoint = "opj_stream_set_seek_function", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void SetSeekFunction(IntPtr stream, IntPtr function);
+    [DllImport(ImportName, EntryPoint = "opj_stream_set_user_data", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void SetUserData(IntPtr stream, IntPtr data, IntPtr free);
+    [DllImport(ImportName, EntryPoint = "opj_stream_set_user_data_length", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void SetUserDataLength(IntPtr stream, ulong length);
     [DllImport(ImportName, EntryPoint = "opj_read_header", CallingConvention = CallingConvention.Cdecl)]
     private static extern int ReadHeader(IntPtr stream, IntPtr codec, out IntPtr image);
     [DllImport(ImportName, EntryPoint = "opj_decode", CallingConvention = CallingConvention.Cdecl)]
