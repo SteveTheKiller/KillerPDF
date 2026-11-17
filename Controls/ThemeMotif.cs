@@ -6,7 +6,7 @@ using KillerPDF.Services;
 namespace KillerPDF.Controls
 {
     /// <summary>Which motif an element paints when the theme has one (Trash Polka).</summary>
-    internal enum MotifPart { None, Window, Chrome, Split }
+    internal enum MotifPart { None, Window, Chrome, Split, Popup }
 
     /// <summary>
     /// Paints Trash Polka's motif into an app's own layout. An app marks its window root <c>Window</c>, each raised
@@ -117,6 +117,29 @@ namespace KillerPDF.Controls
             if (_allWindows) return;
             _allWindows = true;
             EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnWindowLoaded));
+            // Flyouts and context menus live in popups, not windows: the top element of each popup gets its own piece.
+            EventManager.RegisterClassHandler(typeof(FrameworkElement), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnPopupContentLoaded));
+        }
+
+        private static void OnPopupContentLoaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement element || element is Window || !IsPopupTop(element)) return;
+            var target = FindOpaqueRoot(element, 4);
+            if (target is null || GetPart(target) != MotifPart.None) return;
+            var brush = target switch { Border b => b.Background, Panel p => p.Background, Control c => c.Background, _ => null };
+            string? key = RootBrushKeys.FirstOrDefault(k => ReferenceEquals(target.TryFindResource(k), brush));
+            if (key is null) return;
+            SetBaseBrush(target, key);
+            SetPart(target, MotifPart.Popup);
+        }
+
+        // True for the element a popup hosts: its visual parent (or the one above) is WPF's internal PopupRoot.
+        private static bool IsPopupTop(FrameworkElement element)
+        {
+            DependencyObject? up = VisualTreeHelper.GetParent(element);
+            for (int i = 0; i < 2 && up is not null; i++, up = VisualTreeHelper.GetParent(up))
+                if (up.GetType().Name == "PopupRoot") return true;
+            return false;
         }
 
         private static void OnWindowLoaded(object sender, RoutedEventArgs e)
@@ -191,7 +214,7 @@ namespace KillerPDF.Controls
 
             Rect pane;
             Size window;
-            if (part == MotifPart.Split)
+            if (part is MotifPart.Split or MotifPart.Popup)
             {
                 pane = new Rect(0, 0, element.ActualWidth, element.ActualHeight);
                 window = pane.Size;
@@ -204,7 +227,7 @@ namespace KillerPDF.Controls
                 window = new Size(root.ActualWidth, root.ActualHeight);
             }
 
-            double opacity = part == MotifPart.Chrome ? TrashPolkaInk.BackgroundOpacity : TrashPolkaInk.PaneOpacity;
+            double opacity = part is MotifPart.Chrome or MotifPart.Popup ? TrashPolkaInk.BackgroundOpacity : TrashPolkaInk.PaneOpacity;
             string stamp = $"{part}|{accent.Color}|{baseBrush.Color}|{pane}|{window}|{opacity}";
             if ((string?)element.GetValue(PaintedProperty) == stamp) return;
 
@@ -214,7 +237,9 @@ namespace KillerPDF.Controls
             // only shows more or less of the same image (Steve, 2026-11-16: "the images scrunch up and change").
             var size = new Size(Math.Ceiling(SystemParameters.PrimaryScreenWidth / TrashPolkaInk.Scale),
                 Math.Ceiling(SystemParameters.PrimaryScreenHeight / TrashPolkaInk.Scale));
-            if (!Pieces.TryGetValue(part, out var cached) || cached.Accent != accent.Color || cached.Size != size)
+            // An accent switch only recolors the shared accent brushes; the pieces are redrawn only for a new screen size.
+            TrashPolkaInk.SetAccent(accent.Color);
+            if (!Pieces.TryGetValue(part, out var cached) || cached.Size != size)
             {
                 int seed = part switch { MotifPart.Window => TrashPolkaInk.WindowSeed, MotifPart.Split => TrashPolkaInk.SplitSeed, _ => TrashPolkaInk.BackgroundSeed };
                 cached = (accent.Color, size, TrashPolkaInk.Draw(accent.Color, size, seed));

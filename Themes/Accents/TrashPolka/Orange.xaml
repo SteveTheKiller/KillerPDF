@@ -2,21 +2,21 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options">
     <!-- Trash Polka family - EMBER accent overlay (Orange). -->
-    <SolidColorBrush x:Key="PrimaryBrush"        Color="#E2582A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#E2582A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#E2582A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="HeaderLineBrush"     Color="#E2582A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryBrush"        Color="#EE7B22" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#EE7B22" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#EE7B22" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush"     Color="#EE7B22" po:Freeze="True"/>
     <SolidColorBrush x:Key="OnPrimaryBrush"      Color="#111111" po:Freeze="True"/>
-    <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#E2582A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#E2582A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#502618" po:Freeze="True"/>
-    <SolidColorBrush x:Key="SelectionBg"         Color="#E2582A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#EE7B22" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#EE7B22" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#55300E" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionBg"         Color="#EE7B22" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionFg"         Color="#111111" po:Freeze="True"/>
-    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#502618" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ScrollThumbBrush"    Color="#88E2582A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TabEdgeBrush"        Color="#66E2582A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#55300E" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"    Color="#88EE7B22" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TabEdgeBrush"        Color="#66EE7B22" po:Freeze="True"/>
     <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="AccentLogo"          Color="#E2582A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="SelectionAccent"     Color="#E2582A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="RadioAccent"         Color="#E2582A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="AccentLogo"          Color="#EE7B22" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionAccent"     Color="#EE7B22" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RadioAccent"         Color="#EE7B22" po:Freeze="True"/>
 </ResourceDictionary>

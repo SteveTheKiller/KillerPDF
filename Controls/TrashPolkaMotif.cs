@@ -65,7 +65,8 @@ namespace KillerPDF.Controls
                 ViewportUnits = BrushMappingMode.Absolute, Viewport = pane,
                 ViewboxUnits = BrushMappingMode.Absolute, Viewbox = pane,
             };
-            brush.Freeze();
+            // The ink pieces keep live accent brushes (TrashPolkaInk.SetAccent), so only an already frozen motif freezes.
+            if (motif.IsFrozen) brush.Freeze();
             return brush;
         }
 

@@ -30,8 +30,37 @@ namespace KillerPDF.Controls
         /// <summary>The background piece sits under the toolbar and sidebar, so it stays faint enough to read them over.</summary>
         internal static double BackgroundOpacity { get; set; } = 0.26;
 
+        // Every accent-colored mark draws with one of these shared brushes, keyed by its alpha (in 5% steps) and whether
+        // it is the darkened shade. Switching accents recolors these few brushes instead of redrawing the pieces, which
+        // took seconds per switch (Steve, 2026-11-16). They stay unfrozen for that, so the pieces are never frozen.
+        private static readonly Dictionary<(int Alpha, bool Dark), SolidColorBrush> AccentBrushes = [];
+        private static Color _accent;
+
+        /// <summary>Recolors every accent mark in every piece already drawn.</summary>
+        internal static void SetAccent(Color accent)
+        {
+            if (accent == _accent) return;
+            _accent = accent;
+            foreach (var (key, brush) in AccentBrushes) brush.Color = Shade(accent, key);
+        }
+
+        private static SolidColorBrush AccentBrush(double alpha, bool dark)
+        {
+            var key = ((int)Math.Round(Math.Clamp(alpha, 0, 1) * 20), dark);
+            if (!AccentBrushes.TryGetValue(key, out var brush))
+                AccentBrushes[key] = brush = new SolidColorBrush(Shade(_accent, key));
+            return brush;
+        }
+
+        private static Color Shade(Color c, (int Alpha, bool Dark) key)
+        {
+            double f = key.Dark ? 0.55 : 1;
+            return Color.FromArgb((byte)(key.Alpha * 255 / 20), (byte)(c.R * f), (byte)(c.G * f), (byte)(c.B * f));
+        }
+
         internal static DrawingGroup Draw(Color accent, Size size, int seed)
         {
+            SetAccent(accent);
             var group = new DrawingGroup();
             using (var dc = group.Open())
             {
@@ -42,7 +71,6 @@ namespace KillerPDF.Controls
                 new Ink(dc, accent, seed).Piece(area);
                 dc.Pop();
             }
-            group.Freeze();
             return group;
         }
 
@@ -54,8 +82,9 @@ namespace KillerPDF.Controls
 
             private double R(double a, double b) => a + _r.NextDouble() * (b - a);
 
-            private static SolidColorBrush B(Color c, double a = 1)
+            private SolidColorBrush B(Color c, double a = 1)
             {
+                if (c == accent) return AccentBrush(a, dark: false);
                 var s = new SolidColorBrush(Color.FromArgb((byte)(a * 255), c.R, c.G, c.B));
                 s.Freeze();
                 return s;
@@ -529,8 +558,11 @@ namespace KillerPDF.Controls
                     double a1 = R(0, 0.12), a2 = R(0.75, 1.05);
                     Point p1 = vertical ? new Point(r.X + o, r.Y + r.Height * a1) : new Point(r.X + r.Width * a1, r.Y + o);
                     Point p2 = vertical ? new Point(r.X + o + R(-2, 2), r.Y + r.Height * a2) : new Point(r.X + r.Width * a2, r.Y + o + R(-2, 2));
-                    var c = R(0, 1) < 0.15 ? Color.FromRgb((byte)(col.R * 0.55), (byte)(col.G * 0.55), (byte)(col.B * 0.55)) : col;
-                    dc.DrawLine(new Pen(B(c, R(0.35, 0.95)), R(0.8, 2)), p1, p2);
+                    bool dark = R(0, 1) < 0.15;
+                    double alpha = R(0.35, 0.95);
+                    var brush = col == accent ? AccentBrush(alpha, dark)
+                        : B(dark ? Color.FromRgb((byte)(col.R * 0.55), (byte)(col.G * 0.55), (byte)(col.B * 0.55)) : col, alpha);
+                    dc.DrawLine(new Pen(brush, R(0.8, 2)), p1, p2);
                 }
                 dc.Pop();
             }
