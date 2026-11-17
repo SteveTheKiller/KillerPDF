@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.5] - Unreleased
 
+### Security
+
+- A PDF built to multiply its own drawing work can no longer hang KillerPDF, the Explorer and Outlook preview, or the page thumbnails. A tiling pattern that paints with itself is skipped, nested drawings share one work limit for the page however wide they branch, and a preview page or thumbnail that takes longer than 15 seconds stops and shows as incomplete.
+
 ### Added
 
 - Trash Polka, a new theme under 98SE: black with a tattoo-style ink background in your accent color, from eight accents with Blood red as the default.

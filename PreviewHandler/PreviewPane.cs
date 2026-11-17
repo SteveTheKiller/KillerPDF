@@ -54,6 +54,7 @@ internal sealed partial class PreviewPane : IDisposable
     private const double MinimumZoom = 0.1;
     private const double MaximumZoom = 8;
     private const long MaximumPagePixels = 40_000_000;
+    private static readonly TimeSpan PageRenderDeadline = TimeSpan.FromSeconds(15);
 
     private readonly HwndSource _source;
     private readonly byte[] _data;
@@ -360,7 +361,11 @@ internal sealed partial class PreviewPane : IDisposable
                             CacheResult = false,
                             MaximumParallelism = Math.Clamp(Environment.ProcessorCount / 2, 1, 4)
                         });
-                        PdfRenderedPage page = renderer.Render(request.Slot.Index, options, token);
+                        // A page that takes longer than the deadline is shown as incomplete, so one
+                        // hostile page cannot keep Explorer's or Outlook's preview host busy forever.
+                        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+                        deadline.CancelAfter(PageRenderDeadline);
+                        PdfRenderedPage page = renderer.Render(request.Slot.Index, options, deadline.Token);
                         incomplete = PdfRenderCompleteness.Classify(page.Diagnostics).Any(item => item.BlocksPublication);
                         byte[] pixels = MemoryMarshal.TryGetArray(page.Pixels, out ArraySegment<byte> segment)
                             && segment.Offset == 0 && segment.Array is not null
@@ -369,9 +374,10 @@ internal sealed partial class PreviewPane : IDisposable
                             pixels, page.Width * 4);
                         bitmap.Freeze();
                     }
-                    catch (OperationCanceledException) { return; }
+                    catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
                     catch (Exception ex) when (ex is not OutOfMemoryException)
                     {
+                        // Includes the page deadline: the page shows its incomplete notice and Retry.
                         bitmap = null;
                         incomplete = true;
                     }

@@ -83,7 +83,59 @@ public sealed class PdfFormExpansionTests
         Assert.Equal(new byte[] { 0, 0, 255, 255 }, rendered.Pixels.Span.Slice(center, 4).ToArray());
     }
 
-    private static PdfDocument SharedForms(int depth, string leaf = "q Q", bool repeat = true)
+    [Fact]
+    public void WideSharedFormsBelowTheRecoveryDepthCannotExpandWithoutLimit()
+    {
+        // Fourteen distinct forms that each draw the next four times never reach the recovery
+        // depth, yet the leaf would run 4^14 times. The page work budget has to stop it.
+        PdfDocument document = SharedForms(14, repeat: true, fanOut: 4);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+
+        FormatException error = Assert.Throws<FormatException>(() =>
+            new PdfPageRenderer(document).Render(0, new PdfRenderOptions(16, 16), timeout.Token));
+
+        Assert.Contains("work limit exceeded", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ATilingPatternThatPaintsWithItselfStopsInsteadOfMultiplying()
+    {
+        PdfDocument document = Pdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 16 16] /Resources << /Pattern << /P 5 0 R >> >> /Contents 4 0 R >>",
+            Stream("/Pattern cs /P scn 0 0 16 16 re f"),
+            Stream("/Pattern cs /P scn 0 0 16 16 re f",
+                "/Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 1 1] /XStep 1 /YStep 1 /Resources << /Pattern << /P 5 0 R >> >>"));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+
+        PdfRenderedPage page = new PdfPageRenderer(document)
+            .Render(0, new PdfRenderOptions(16, 16) { CacheResult = false }, timeout.Token);
+
+        Assert.Contains(page.Diagnostics, message => message.Contains("Cyclic tiling pattern", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ALargeOrdinaryTilingPatternStillRenders()
+    {
+        // 100 x 100 cells of a plain red tile is ordinary content and stays inside the budget.
+        PdfDocument document = Pdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /Pattern << /P 5 0 R >> >> /Contents 4 0 R >>",
+            Stream("/Pattern cs /P scn 0 0 100 100 re f"),
+            Stream("1 0 0 rg 0 0 1 1 re f",
+                "/Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 1 1] /XStep 1 /YStep 1 /Resources << >>"));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+        PdfRenderedPage page = new PdfPageRenderer(document)
+            .Render(0, new PdfRenderOptions(100, 100) { CacheResult = false }, timeout.Token);
+
+        int center = (50 * 100 + 50) * 4;
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, page.Pixels.Span.Slice(center, 4).ToArray());
+    }
+
+    private static PdfDocument SharedForms(int depth, string leaf = "q Q", bool repeat = true, int fanOut = 2)
     {
         var objects = new List<string>
         {
@@ -94,7 +146,8 @@ public sealed class PdfFormExpansionTests
         };
         for (int level = 0; level <= depth; level++)
         {
-            string content = level == depth ? leaf : repeat ? "/F Do /F Do" : "/F Do";
+            string content = level == depth ? leaf
+                : repeat ? string.Join(" ", Enumerable.Repeat("/F Do", fanOut)) : "/F Do";
             string resources = level == depth ? "" : $"/XObject << /F {level + 6} 0 R >>";
             objects.Add(Stream(content, $"/Type /XObject /Subtype /Form /BBox [0 0 16 16] /Resources << /Font << /F1 {depth + 6} 0 R >> {resources} >>"));
         }

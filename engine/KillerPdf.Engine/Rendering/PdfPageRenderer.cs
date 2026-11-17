@@ -18,6 +18,9 @@ public sealed partial class PdfPageRenderer
     private const long MaximumFlattenedGlyphCacheBytes = 16L * 1024 * 1024;
     private const long MaximumRenderedPageCacheBytes = 64L * 1024 * 1024;
     private const int MaximumMeshVerticesPerRow = 65_536;
+    // Nested content runs one page may start: form invocations plus tiling cells. A full
+    // 100,000-cell pattern fill or a CAD symbol drawn thousands of times fits many times over.
+    private const long MaximumNestedContentRuns = 2_000_000;
     // An image's converted plane holds at most this many cells; larger images are averaged down.
     private const long MaximumImagePlaneCells = 4_000_000L;
     // A 600 dpi scan of an A4 page.
@@ -390,6 +393,10 @@ public sealed partial class PdfPageRenderer
         };
         int recoveredFormExpansions = 0;
         int deepFormExpansions = 0;
+        // Every nested content run (a Form XObject or one tiling pattern cell) counts here whatever
+        // its depth, so content that fans out without a cycle or deep nesting still has a ceiling.
+        long nestedContentRuns = 0;
+        var activePatterns = new HashSet<PdfStream>();
         IReadOnlySet<int> hiddenOptionalContentGroups = options.ForPrinting
             ? _printHiddenOptionalContentGroups : _hiddenOptionalContentGroups;
         PdfDictionary pageResources = _pageResources[pageIndex];
@@ -482,6 +489,8 @@ public sealed partial class PdfPageRenderer
             bool beginKnockoutObjects = true)
         {
             if (depth > 32) throw new FormatException("Form XObject nesting limit exceeded.");
+            if (depth > 0 && ++nestedContentRuns > MaximumNestedContentRuns)
+                throw new FormatException("Nested content work limit exceeded.");
             if (!RuntimeHelpers.TryEnsureSufficientExecutionStack())
                 throw new InsufficientExecutionStackException(
                     "Nested PDF rendering exceeds the available execution stack.");
@@ -1469,6 +1478,18 @@ public sealed partial class PdfPageRenderer
                 }
 
                 PdfStream pattern = paint.Tiling!;
+                // A pattern that paints with itself, directly or through another pattern, never
+                // finishes, so the repeated use paints nothing and the rest of the page still draws.
+                if (!activePatterns.Add(pattern))
+                {
+                    diagnostics.Add("Cyclic tiling pattern skipped.");
+                    return;
+                }
+                try { RenderTilingCells(); }
+                finally { activePatterns.Remove(pattern); }
+
+                void RenderTilingCells()
+                {
                 PdfArray box = pattern.Dictionary.TryGetValue(Name("BBox"), out PdfObject? boxValue)
                     ? ResolveArray(boxValue, 4, "Tiling pattern bounding box")
                     : throw new FormatException("A tiling pattern has no bounding box.");
@@ -1538,6 +1559,7 @@ public sealed partial class PdfPageRenderer
                         Process(patternInstructions, patternResources, cellState,
                             patternDepth + 1, beginKnockoutObjects: false);
                     }
+                }
             }
 
             double PatternStep(PdfDictionary dictionary, string key)

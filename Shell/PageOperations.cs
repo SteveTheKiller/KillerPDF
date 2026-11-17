@@ -17,6 +17,8 @@ namespace KillerPDF.Shell
 {
     public partial class MainWindow
     {
+        private static readonly TimeSpan ThumbnailRenderDeadline = TimeSpan.FromSeconds(15);
+
         // A page's annotation space before a turn, for pages drawn since the last reload and for
         // pages that were not. Called while the reload remaps, before the new rotations apply.
         private (int Width, int Height) AnnotationSpaceBeforeTurn(int pageIndex)
@@ -511,9 +513,13 @@ namespace KillerPDF.Shell
             // drawing and holding one for every page took about 805 MiB at 10,000 pages and 8 GiB at 100,000.
             // The rows ask through their Thumbnail binding, which the list reads only for rows it realizes.
             var renderer = new ThumbnailSessionOwner<PdfPageRenderSession>();
-            PageListThumbnails.Wire(items, renderer, (i, token) =>
+            PageListThumbnails.Wire(items, renderer, (i, listToken) =>
             {
                 rotSnap.TryGetValue(i, out int rot);
+                // A hostile page must not pin the thumbnail worker: past the deadline the row stays blank.
+                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(listToken);
+                deadline.CancelAfter(ThumbnailRenderDeadline);
+                CancellationToken token = deadline.Token;
                 if (nativeRevision is not null)
                     return PageThumbnailVm.BuildNativeThumb(nativeRevision, i, rot, 128, 256, token, thumbnailProof?.Settings,
                         thumbnailMonitor);
