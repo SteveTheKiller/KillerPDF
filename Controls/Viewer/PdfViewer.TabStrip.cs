@@ -123,6 +123,7 @@ namespace KillerPDF.Controls
             {
                 t.IsFirst = false;
                 t.IsLast = false;
+                t.BeforeActive = false;
                 t.RetroBeforeActive = false;
                 t.RetroAfterActive = false;
                 t.UseRetroTabChrome = retroTabs;
@@ -133,6 +134,7 @@ namespace KillerPDF.Controls
                 strip[^1].IsLast = !chevron && hostFillsBand;
 
                 int activeIndex = strip.IndexOf(_active!);
+                if (!retroTabs && activeIndex > 0) strip[activeIndex - 1].BeforeActive = true;
                 if (retroTabs && activeIndex >= 0)
                 {
                     if (activeIndex > 0) strip[activeIndex - 1].RetroBeforeActive = true;

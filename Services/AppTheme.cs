@@ -264,6 +264,9 @@ namespace KillerPDF.Services
             Default("DangerRed", new SolidColorBrush(Color.FromRgb(0xef, 0x44, 0x44)));
             Default("BgOverlay", new SolidColorBrush(Color.FromArgb(0xbb, 0, 0, 0)));
             Default("HeaderShadowOpacity", 0.5);
+            // The shade along the foot of the tab strip follows the bar shadow unless a theme turns it off (Trash Polka:
+            // inactive tabs sit on the window background with no darkening).
+            Default("TabStripFadeOpacity", d.Contains("BarShadowOpacity") ? d["BarShadowOpacity"] : 0.38);
             Default("AboutShadowOpacity", d.Contains("FlyoutShadowOpacity") ? d["FlyoutShadowOpacity"] : 0.6);
             Default("AboutIconShadowOpacity", 0.6);
             Default("AboutCaptionVisibility", Visibility.Collapsed);

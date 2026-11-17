@@ -18,5 +18,7 @@
     <SolidColorBrush x:Key="DragLine"       Color="#363636" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgOverlay"      Color="#BB000000" po:Freeze="True"/>
     <sys:Double x:Key="HeaderShadowOpacity">0.5</sys:Double>
+    <!-- No shade under the tabs: inactive tabs are the window background, undarkened. -->
+    <sys:Double x:Key="TabStripFadeOpacity">0</sys:Double>
     <SolidColorBrush x:Key="BgCanvas"       Color="#3a3a3a" po:Freeze="True"/>
 </ResourceDictionary>

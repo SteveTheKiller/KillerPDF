@@ -32,7 +32,7 @@
                      tile over the window's existing background. Only the opaque active tab
                      replaces that shared grain below. -->
                 <Border x:Name="TabStripFade" IsHitTestVisible="False"
-                        Opacity="{DynamicResource BarShadowOpacity}" RenderTransformOrigin="0.5,0.5">
+                        Opacity="{DynamicResource TabStripFadeOpacity}" RenderTransformOrigin="0.5,0.5">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                             <GradientStop Color="#00000000" Offset="0"/>
@@ -252,6 +252,9 @@
                                             </MultiDataTrigger.Conditions>
                                             <Setter TargetName="tabBd" Property="Margin" Value="{DynamicResource TabInactiveLastMargin}"/>
                                         </MultiDataTrigger>
+                                        <DataTrigger Binding="{Binding BeforeActive}" Value="True">
+                                            <Setter TargetName="tabBd" Property="BorderThickness" Value="0"/>
+                                        </DataTrigger>
                                         <DataTrigger Binding="{Binding IsActive}" Value="True">
                                             <!-- 3px, matched by the card's corners at each end of the band
                                                  (CardCorners.AtTabBand); 98SE keeps its 2px. -->

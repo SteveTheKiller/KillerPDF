@@ -173,6 +173,11 @@ namespace KillerPDF.Controls
             private bool _isLast;
             public bool IsLast { get => _isLast; set { if (_isLast != value) { _isLast = value; Notify(); } } }
 
+            // The tab just left of the active tab. Its right divider would stand against the active tab's own edge as a
+            // stray second line, so the template drops it there.
+            private bool _beforeActive;
+            public bool BeforeActive { get => _beforeActive; set { if (_beforeActive != value) { _beforeActive = value; Notify(); } } }
+
             // Win98 tabs overlap their immediate neighbor by one pixel, like the native tab
             // control. These flags are only enabled by RebuildTabStrip while the retro theme is
             // active, so the modern themes retain their existing edge-to-edge geometry.
