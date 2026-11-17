@@ -57,6 +57,8 @@ namespace KillerPDF.Controls
             element.Unloaded += Detach;
             ThemeManager.ThemeChanged -= Rebind(element);
             ThemeManager.ThemeChanged += Rebind(element);
+            Retuned -= Rebind(element);
+            Retuned += Rebind(element);
             WatchBackground(element);
             if (element.IsLoaded) Paint(element);
         }
@@ -96,6 +98,11 @@ namespace KillerPDF.Controls
         // One handler per element, kept so Detach can remove exactly it.
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FrameworkElement, Action> Handlers = new();
 
+        private static event Action? Retuned;
+
+        /// <summary>Repaints every motif element after TrashPolkaInk's opacities change.</summary>
+        internal static void Retune() => Retuned?.Invoke();
+
         private static Action Rebind(FrameworkElement element)
         {
             var handler = Handlers.GetValue(element, e => () => Paint(e));
@@ -105,7 +112,10 @@ namespace KillerPDF.Controls
         private static void Detach(object sender, RoutedEventArgs e)
         {
             if (sender is FrameworkElement element && Handlers.TryGetValue(element, out var handler))
+            {
                 ThemeManager.ThemeChanged -= handler;
+                Retuned -= handler;
+            }
         }
 
         private static void Refresh(object sender, EventArgs e)
@@ -140,7 +150,8 @@ namespace KillerPDF.Controls
                 window = new Size(root.ActualWidth, root.ActualHeight);
             }
 
-            string stamp = $"{part}|{accent.Color}|{baseBrush.Color}|{pane}|{window}";
+            double opacity = part == MotifPart.Chrome ? TrashPolkaInk.BackgroundOpacity : TrashPolkaInk.PaneOpacity;
+            string stamp = $"{part}|{accent.Color}|{baseBrush.Color}|{pane}|{window}|{opacity}";
             if ((string?)element.GetValue(PaintedProperty) == stamp) return;
 
             // Every part carries a full ink piece (TrashPolkaInk): the document canvas and the split pane their own, the
@@ -155,8 +166,7 @@ namespace KillerPDF.Controls
                 cached = (accent.Color, size, TrashPolkaInk.Draw(accent.Color, size, seed));
                 Pieces[part] = cached;
             }
-            var brush = TrashPolkaMotif.Compose(baseBrush.Color, cached.Piece, pane, window, scale: TrashPolkaInk.Scale,
-                opacity: part == MotifPart.Chrome ? TrashPolkaInk.BackgroundOpacity : TrashPolkaInk.PaneOpacity);
+            var brush = TrashPolkaMotif.Compose(baseBrush.Color, cached.Piece, pane, window, scale: TrashPolkaInk.Scale, opacity: opacity);
             element.SetValue(PaintedBrushProperty, brush);
             element.SetValue(PaintedProperty, stamp);
             SetBackground(element, brush);

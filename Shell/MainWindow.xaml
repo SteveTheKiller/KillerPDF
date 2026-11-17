@@ -1947,7 +1947,6 @@
                 <Border x:Name="SidebarBorder" Grid.Column="0"
                         Margin="{DynamicResource SidebarPanelMargin}"
                         Background="{DynamicResource SidebarPaneBrush}"
-                        ctrl:ThemeMotif.Part="Chrome" ctrl:ThemeMotif.BaseBrush="SidebarPaneBrush"
                         BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,0"
                         MouseRightButtonUp="SidebarArea_MouseRightButtonUp">
                     <Grid>
@@ -2175,7 +2174,6 @@
                 <!-- Toggle strip - 24px wide vertical icon bar -->
                 <Border x:Name="SidebarToggleStrip" Grid.Column="1"
                         Background="{DynamicResource SidebarRailBrush}"
-                        ctrl:ThemeMotif.Part="Chrome" ctrl:ThemeMotif.BaseBrush="SidebarRailBrush"
                         BorderThickness="0"
                         MouseRightButtonUp="SidebarArea_MouseRightButtonUp">
                     <Grid x:Name="SidebarRailGrid">
