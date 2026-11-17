@@ -102,6 +102,7 @@ public static class PdfCrossReferenceReader
     {
         const int maximumDistance = 1_048_576;
         ReadOnlySpan<byte> bytes = source.Span;
+        int parsesLeft = MaximumRecoveryStreamParses;
         for (int distance = 1; distance <= maximumDistance; distance++)
         {
             for (int side = 0; side < 2; side++)
@@ -110,8 +111,12 @@ public static class PdfCrossReferenceReader
                 if (candidate < 0 || candidate >= source.Length
                     || bytes[candidate] is < (byte)'0' or > (byte)'9'
                     || candidate > 0 && !IsBoundary(bytes[candidate - 1])
-                    || !MayStartIndirectObject(bytes, candidate))
+                    || !MayStartIndirectObject(bytes, candidate)
+                    || !MayStartDictionaryObject(bytes, candidate))
                     continue;
+                // Every full parse can read to the end of the file, as an unclosed string does,
+                // so a file packed with object headers is limited to a fixed number of tries.
+                if (parsesLeft-- == 0) return null;
                 try
                 {
                     return ReadStream(source, candidate, compatibilityRecovery: true);
@@ -146,6 +151,24 @@ public static class PdfCrossReferenceReader
         return position + 3 <= bytes.Length
             && bytes.Slice(position, 3).SequenceEqual("obj"u8)
             && (position + 3 == bytes.Length || IsBoundary(bytes[position + 3]));
+    }
+
+    private const int MaximumRecoveryStreamParses = 256;
+
+    /// <summary>
+    /// An xref stream's body is a dictionary, so only an object whose value opens with "&lt;&lt;"
+    /// (or a comment the parser has to skip first) is worth parsing.
+    /// </summary>
+    private static bool MayStartDictionaryObject(ReadOnlySpan<byte> bytes, int candidate)
+    {
+        // MayStartIndirectObject lets a comment through, so "obj" may sit past it; past 256 bytes
+        // the full parser decides.
+        int found = bytes.Slice(candidate, Math.Min(256, bytes.Length - candidate)).IndexOf("obj"u8);
+        if (found < 0) return true;
+        int position = SkipWhitespace(bytes, candidate + found + 3);
+        if (position >= bytes.Length) return false;
+        if (bytes[position] == (byte)'%') return true;
+        return position + 1 < bytes.Length && bytes[position] == (byte)'<' && bytes[position + 1] == (byte)'<';
     }
 
     private static int SkipWhitespace(ReadOnlySpan<byte> bytes, int position)

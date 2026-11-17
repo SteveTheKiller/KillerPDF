@@ -34,6 +34,9 @@ public sealed partial class PdfDocument
     private readonly Lock _objectResolutionSync = new();
     private readonly Dictionary<int, PdfObject> _objects = [];
     private readonly Dictionary<int, ObjectStreamContents> _objectStreams = [];
+    // Object streams recovery already failed to read. Each lookup into one used to decode and
+    // parse it again, so a file with many entries in a broken stream cost one full inflate apiece.
+    private readonly HashSet<int> _brokenObjectStreams = [];
     private const int MaximumResolveDepth = 64;
     private readonly HashSet<int> _resolving = [];
     private readonly HashSet<(int Number, int Generation)> _absentObjectHeaders = [];
@@ -181,6 +184,7 @@ public sealed partial class PdfDocument
         document._securityDictionary = encryption.Dictionary;
         document._objects.Clear();
         document._objectStreams.Clear();
+        document._brokenObjectStreams.Clear();
         return document;
     }
 
@@ -360,6 +364,7 @@ public sealed partial class PdfDocument
         document._securityDictionary = resolved;
         document._objects.Clear();
         document._objectStreams.Clear();
+        document._brokenObjectStreams.Clear();
         return document;
     }
 
@@ -397,6 +402,7 @@ public sealed partial class PdfDocument
         document._securityDictionary = resolved;
         document._objects.Clear();
         document._objectStreams.Clear();
+        document._brokenObjectStreams.Clear();
         return document;
     }
 
@@ -700,6 +706,8 @@ public sealed partial class PdfDocument
     {
         int streamNumber = checked((int)entry.Field1);
         ObjectStreamContents contents;
+        if (_compatibilityRecovery && _brokenObjectStreams.Contains(streamNumber))
+            return PdfNull.Instance;
         try
         {
             contents = ReadObjectStream(streamNumber);
@@ -709,6 +717,7 @@ public sealed partial class PdfDocument
         {
             // An unreadable object stream loses its objects, as in mainstream viewers, rather
             // than making the whole document unusable.
+            _brokenObjectStreams.Add(streamNumber);
             return PdfNull.Instance;
         }
         if (_compatibilityRecovery && contents.ObjectsByNumber is not null

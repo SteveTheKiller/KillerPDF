@@ -89,7 +89,9 @@ public sealed class PdfFormExpansionTests
         // Fourteen distinct forms that each draw the next four times never reach the recovery
         // depth, yet the leaf would run 4^14 times. The page work budget has to stop it.
         PdfDocument document = SharedForms(14, repeat: true, fanOut: 4);
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        // The work limit is counted, not timed. The token only stops a real hang, so it has to
+        // outlast the counted run on a loaded machine, where the full suite slowed it past 20 s.
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
         FormatException error = Assert.Throws<FormatException>(() =>
             new PdfPageRenderer(document).Render(0, new PdfRenderOptions(16, 16), timeout.Token));
@@ -107,7 +109,7 @@ public sealed class PdfFormExpansionTests
             Stream("/Pattern cs /P scn 0 0 16 16 re f"),
             Stream("/Pattern cs /P scn 0 0 16 16 re f",
                 "/Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 1 1] /XStep 1 /YStep 1 /Resources << /Pattern << /P 5 0 R >> >>"));
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
 
         PdfRenderedPage page = new PdfPageRenderer(document)
             .Render(0, new PdfRenderOptions(16, 16) { CacheResult = false }, timeout.Token);

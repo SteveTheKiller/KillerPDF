@@ -73,6 +73,39 @@ public sealed class PdfObjectStreamRecoveryTests
         Assert.IsType<PdfNull>(recovered.Resolve(2));
     }
 
+    [Fact]
+    public void ABrokenObjectStreamIsReadOnceForAllItsEntries()
+    {
+        // 5,000 compressed entries point into one 8 MB object stream whose header is garbage.
+        // Each lookup used to copy and parse the whole stream again.
+        const int members = 5000;
+        var text = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        void Add(string body) { offsets.Add(text.Length); text.Append(body); }
+        Add("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n");
+        Add("2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj\n");
+        Add("3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >> endobj\n");
+        string garbage = new('x', 8 * 1024 * 1024);
+        Add($"4 0 obj << /Type /ObjStm /N {members} /First 0 /Length {garbage.Length} >> stream\n{garbage}\nendstream\nendobj\n");
+        int xrefOffset = text.Length;
+        int size = 6 + members;
+        var rows = new List<byte> { 0, 0, 0, 0, 0, 0xFF, 0xFF };
+        foreach (int offset in offsets.Append(xrefOffset))
+            rows.AddRange([1, (byte)(offset >> 24), (byte)(offset >> 16), (byte)(offset >> 8), (byte)offset, 0, 0]);
+        for (int index = 0; index < members; index++)
+            rows.AddRange([2, 0, 0, 0, 4, (byte)(index >> 8), (byte)index]);
+        byte[] head = Encoding.ASCII.GetBytes(text +
+            $"5 0 obj << /Type /XRef /Size {size} /Root 1 0 R /W [1 4 2] /Length {rows.Count} >> stream\n");
+        byte[] tail = Encoding.ASCII.GetBytes($"\nendstream\nendobj\nstartxref\n{xrefOffset}\n%%EOF\n");
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery((byte[])[.. head, .. rows, .. tail]);
+
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        for (int number = 6; number < size; number++)
+            Assert.IsType<PdfNull>(document.Resolve(number));
+
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(5), $"Resolving took {clock.Elapsed}.");
+    }
+
     private static byte[] Source(string members) => Encoding.ASCII.GetBytes(
         "%PDF-1.7\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n" +
         "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >> endobj\n" +

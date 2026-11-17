@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Security
 
 - A PDF built to multiply its own drawing work can no longer hang KillerPDF, the Explorer and Outlook preview, or the page thumbnails. A tiling pattern that paints with itself is skipped, nested drawings share one work limit for the page however wide they branch, and a preview page or thumbnail that takes longer than 15 seconds stops and shows as incomplete.
+- A damaged PDF built to make repair slow opens or fails in seconds. The search for a lost cross-reference stream skips objects that cannot be one and stops after a fixed number of tries, and a broken object stream is read once instead of once for every object inside it.
 - Redact checks the finished file for the words it found. When one still appears in a bookmark, a link destination's name, a script, the document's details or any other text, the command line refuses to save and the app, macros and the Privacy guided task say which words remain. Removing hidden information now also renames link destinations, which can carry the words they point at, and links keep working.
 - The Signatures panel shows "Certification broken" for a document certified to allow no changes that was changed afterward. It used to say "Valid, changed after signing", which read as a pass.
 - The working copies KillerPDF keeps while you edit are deleted as soon as an edit replaces them, so text a redaction removed no longer sits in a temporary file until KillerPDF closes.
