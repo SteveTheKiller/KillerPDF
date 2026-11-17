@@ -6,7 +6,8 @@ namespace KillerPDF.Controls
     /// <summary>
     /// Trash Polka's document-canvas piece, the E7 mockup Steve picked on 2026-11-16: his hexagons (black and accent,
     /// filled and outlined) layered with dry-brush slashes, smeared accent bars, ink splatter with drips, wavy and
-    /// swept halftone and thin linework, dense down both margins with two focal pieces on top. Drawn to the pane's real
+    /// swept halftone and thin linework as one image across the whole canvas, with his tattoo (honeycomb band, circuit
+    /// traces, gauge ring) leading, plus bubble halos, dot clumps and streak splatter. Drawn to the pane's real
     /// size at 1:1 from a fixed seed, so the same pane size always gives the same piece.
     /// </summary>
     internal static class TrashPolkaInk
@@ -61,22 +62,24 @@ namespace KillerPDF.Controls
                 double right = area.Right, top = area.Top, bottom = area.Bottom, left = area.Left;
                 // Back layer: a faint ground so no part of the canvas is bare.
                 dc.PushOpacity(0.35);
-                for (int i = 0; i < 6; i++)
+                // One continuous image across the whole canvas, behind the page too (Steve, 2026-11-16: "a large image
+                // that continues throughout a full screen"), so every layer spreads over the full width.
+                int across = Math.Max(3, (int)(area.Width / 300));
+                for (int i = 0; i < across * 3; i++)
                 {
-                    bool onRight = i % 2 == 0;
-                    double x = onRight ? R(right - 420, right - 60) : R(left + 20, left + 360);
-                    double y = top + (i / 2 + R(0.1, 0.9)) * area.Height / 3;
+                    double x = left + (i % across + R(0.1, 0.9)) * area.Width / across;
+                    double y = top + (i / across + R(0.1, 0.9)) * area.Height / 3;
                     HexCluster(new Point(x, y), R(12, 30), 6 + _r.Next(8), outlineOnly: R(0, 1) < 0.5, colorBone: R(0, 1) < 0.5);
                     HalftoneArc(new Point(x + R(-80, 80), y + R(-80, 80)), R(50, 90), R(110, 180), R(0, 360), R(70, 160), R(0, 1) < 0.5 ? accent : Black);
                     Splatter(new Point(x + R(-120, 120), y + R(-120, 120)), R(14, 30), R(0, 1) < 0.3 ? accent : Black);
                 }
                 dc.Pop();
-                // Middle layer: mini-pieces down each margin, each at its own angle, overlapping their neighbours.
+                // Middle layer: mini-pieces in loose columns across the whole width, each at its own angle, overlapping.
                 double[] angles = [-62, -35, -12, 8, 27, 51, 74];
-                for (int side = 0; side < 2; side++)
-                    for (double y = top + 60; y < bottom; y += R(170, 240))
+                for (double col = left + 60; col < right; col += R(230, 320))
+                    for (double y = top + R(20, 120); y < bottom; y += R(170, 260))
                     {
-                        double x = side == 0 ? R(left + 60, left + 330) : R(right - 400, right - 80);
+                        double x = col + R(-70, 70);
                         var c = new Point(x, y);
                         double ang = angles[_r.Next(angles.Length)];
                         switch (_r.Next(4))
@@ -100,21 +103,29 @@ namespace KillerPDF.Controls
                                 break;
                         }
                     }
-                // Wavy dot ribbons snaking through both margins.
-                for (int i = 0; i < 7; i++)
+                // Wavy dot ribbons snaking across the canvas.
+                for (int i = 0; i < across * 3; i++)
                 {
-                    bool onRight = i % 2 == 1;
-                    double x0 = onRight ? R(right - 430, right - 300) : R(left - 20, left + 120);
+                    double x0 = R(left - 60, right - 200);
                     double y0 = R(top, bottom - 150);
                     DotWave(new Point(x0, y0), R(260, 420), R(-50, 50), R(18, 40), R(0.012, 0.03), 4 + _r.Next(4), i % 3 == 0 ? Black : accent);
                 }
                 // Hexagon clusters, black and accent, filled and outlined.
-                for (int i = 0; i < 10; i++)
+                for (int i = 0; i < across * 5; i++)
                 {
-                    bool onRight = i % 2 == 0;
-                    var p = new Point(onRight ? R(right - 420, right - 40) : R(left + 20, left + 380), R(top + 20, bottom - 40));
+                    var p = new Point(R(left, right), R(top + 20, bottom - 40));
                     HexMix(p, R(11, 30), 5 + _r.Next(9));
                 }
+                // Center piece: the middle of the canvas carries its own focal piece, so the image runs straight through.
+                var mid = new Point(left + area.Width * 0.5, top + area.Height * 0.42);
+                HexCluster(new Point(mid.X - 60, mid.Y - 80), 28, 12, outlineOnly: false, colorBone: false);
+                Tilted(mid, -18, () => SmearBar(new Rect(mid.X - area.Width * 0.45, mid.Y + 40, area.Width * 0.9, 36), vertical: false, accent));
+                BrushArc(mid, 220, 160, 150, 56, Black);
+                DryBrush(new Point(mid.X - 300, mid.Y + 260), new Point(mid.X + 320, mid.Y - 240), 60, Black);
+                HalftoneArc(new Point(mid.X + 80, mid.Y + 60), 120, 220, 200, 130, accent);
+                Splatter(new Point(mid.X + 140, mid.Y + 200), 58, Black);
+                Starburst(new Point(mid.X - 220, mid.Y - 60), 20, 160);
+                dc.DrawEllipse(null, new Pen(B(accent, 0.9), 2.4), mid, 170, 160);
                 // Front layer, main piece: right margin, centered low.
                 var m = new Point(right - 200, top + area.Height * 0.58);
                 HalftoneArc(m, 150, 200, -150, 120, accent);
@@ -136,12 +147,176 @@ namespace KillerPDF.Controls
                 HalftoneArc(new Point(s.X + 20, s.Y + 120), 70, 120, 20, 140, Black);
                 Splatter(new Point(s.X + 90, s.Y + 170), 30, accent);
                 dc.DrawEllipse(null, new Pen(B(Black, 0.85), 1.4), s, 120, 112);
-                // Stray drops so the margins are never empty.
-                for (int i = 0; i < 40; i++)
+                // Steve's own tattoo on top of everything: the honeycomb band with its gauge ring, big enough to lead,
+                // one across the center behind the page and one down the right.
+                var t1 = new Point(left + area.Width * 0.38, top + area.Height * 0.18);
+                BubbleHalo(new Point(t1.X + 180, t1.Y + 260), 300);
+                TattooPiece(t1, Math.Clamp(area.Height / 22, 26, 44));
+                var t2 = new Point(right - area.Width * 0.2, top + area.Height * 0.12);
+                BubbleHalo(new Point(t2.X + 120, t2.Y + 220), 220);
+                TattooPiece(t2, Math.Clamp(area.Height / 30, 20, 34));
+                DotClump(new Point(left + area.Width * 0.18, top + area.Height * 0.78), 90);
+                DotClump(new Point(right - area.Width * 0.12, top + area.Height * 0.82), 70);
+                StreakSplat(new Point(left + area.Width * 0.12, top + area.Height * 0.3), 46);
+                StreakSplat(new Point(left + area.Width * 0.7, top + area.Height * 0.85), 40);
+                // Stray drops so no part is ever empty.
+                for (int i = 0; i < across * 20; i++)
                 {
-                    var p = new Point(R(left, left + 330), R(top + 420, bottom));
+                    var p = new Point(R(left, right), R(top, bottom));
                     double rr = Math.Pow(R(0, 1), 3) * 4 + 0.7;
                     dc.DrawEllipse(B(i % 4 == 0 ? accent : Black, 0.9), null, p, rr, rr);
+                }
+            }
+
+            // ---- Steve's tattoo ---------------------------------------------------------------------------------------
+
+            /// <summary>
+            /// The tattoo itself: a gauge ring at the top, then a diagonal band of solid ink hexes with thin gaps, cell
+            /// variants (nested bone ring with a black core, accent dot, hollow), circuit traces between cell centres that
+            /// end in ring nodes, and parallel circuit lines fanning out of the band.
+            /// </summary>
+            private void TattooPiece(Point at, double r)
+            {
+                double gap = Math.Max(3, r * 0.12);
+                double dx = r * Math.Sqrt(3) + gap, dy = r * 1.5 + gap * 0.87;
+                Point Cell(int q, int s) => new(at.X + dx * (q + s / 2.0), at.Y + r * 4.2 + dy * s);
+                // The band: rows slide right as they go down, three to four cells wide, like the forearm piece.
+                var cells = new List<(int q, int s)>();
+                for (int s = 0; s < 7; s++)
+                {
+                    int width = s is 0 or 6 ? 2 : 3 + (s % 2);
+                    int start = -s / 2 + (s > 3 ? 1 : 0);
+                    for (int q = start; q < start + width; q++) cells.Add((q, s));
+                }
+                var bone = B(Bone);
+                var ink = B(Black);
+                foreach (var (q, s) in cells)
+                {
+                    var p = Cell(q, s);
+                    Hex(p, r, Black, true);
+                    switch (_r.Next(7))
+                    {
+                        case 0: case 1: Hex(p, r * 0.62, Bone, true); Hex(p, r * 0.4, Black, true); break;     // nested
+                        case 2: dc.DrawEllipse(B(accent), null, p, r * 0.17, r * 0.17); break;                // accent dot
+                        case 3: Hex(p, r * 0.6, Bone, true); Hex(p, r * 0.46, Black, true); Hex(p, r * 0.3, Bone, true); break;
+                        default: break;                                                                        // solid
+                    }
+                }
+                // Traces inside the band: centre to centre with a ring node at each end.
+                var trace = new Pen(bone, Math.Max(2, r * 0.1));
+                for (int i = 0; i < 4; i++)
+                {
+                    var a = cells[_r.Next(cells.Count)];
+                    var b = (q: a.q + (_r.Next(2) == 0 ? 0 : -1), s: a.s + 1 + _r.Next(2));
+                    Point pa = Cell(a.q, a.s), pb = Cell(b.q, b.s);
+                    dc.DrawLine(trace, pa, new Point(pa.X, (pa.Y + pb.Y) / 2));
+                    dc.DrawLine(trace, new Point(pa.X, (pa.Y + pb.Y) / 2), pb);
+                    dc.DrawEllipse(ink, trace, pb, r * 0.24, r * 0.24);
+                }
+                // Circuit fan out of the band's lower right: parallel lines with a bend and a node dot.
+                var fan = new Pen(ink, Math.Max(1.6, r * 0.07));
+                var origin = Cell(cells[^1].q, cells[^1].s);
+                for (int k = 0; k < 6; k++)
+                {
+                    var s0 = origin + new Vector(r * 0.3 * k, r);
+                    var s1 = s0 + new Vector(0, r * (1.2 + k * 0.35));
+                    var s2 = s1 + new Vector(r * (1 + k * 0.2), r * (1 + k * 0.2));
+                    var s3 = s2 + new Vector(0, r * R(0.8, 2));
+                    dc.DrawLine(fan, s0, s1); dc.DrawLine(fan, s1, s2); dc.DrawLine(fan, s2, s3);
+                    dc.DrawEllipse(ink, null, s3, r * 0.13, r * 0.13);
+                }
+                // A second fan up the left side, the long traces of the tattoo's upper arm.
+                var first = Cell(cells[0].q, cells[0].s);
+                for (int k = 0; k < 4; k++)
+                {
+                    var s0 = first + new Vector(-r * 1.2, -r * 0.4 * k);
+                    var s1 = s0 + new Vector(-r * (1.5 + k * 0.5), -r * (1.5 + k * 0.5));
+                    var s2 = s1 + new Vector(-r * 2, 0);
+                    dc.DrawLine(fan, s0, s1); dc.DrawLine(fan, s1, s2);
+                    dc.DrawEllipse(ink, null, s2, r * 0.12, r * 0.12);
+                }
+                // The gauge ring above the band.
+                Gauge(new Point(at.X + dx * 0.2, at.Y + r * 0.6), r * 2.6);
+            }
+
+            /// <summary>The tattoo's ring: a thick ragged ink ring with accent spatter, circuit arcs and spokes inside, and
+            /// an accent hex at the hub.</summary>
+            private void Gauge(Point c, double rad)
+            {
+                var ink = B(Black);
+                // Ragged outer ring: a thick arc band drawn as many short strokes.
+                BrushArc(c, rad, 0, 360, rad * 0.22, Black);
+                dc.DrawEllipse(null, new Pen(B(accent, 0.8), 1.6), c, rad * 1.04, rad * 1.04);
+                for (int i = 0; i < 40; i++)
+                {
+                    double a = R(0, Math.PI * 2), d = rad * R(0.95, 1.25), rr = R(0.6, 2.4);
+                    dc.DrawEllipse(B(i % 3 == 0 ? Black : accent, 0.9), null, new Point(c.X + Math.Cos(a) * d, c.Y + Math.Sin(a) * d), rr, rr);
+                }
+                // Circuit arcs inside: broken concentric arcs at several radii.
+                var thin = new Pen(ink, Math.Max(1.4, rad * 0.025));
+                foreach (double f in new[] { 0.78, 0.62, 0.48 })
+                {
+                    double a0 = R(0, 360), sweep = R(120, 260);
+                    double rr = rad * f;
+                    var p0 = new Point(c.X + rr * Math.Cos(a0 * Math.PI / 180), c.Y + rr * Math.Sin(a0 * Math.PI / 180));
+                    double a1 = a0 + sweep;
+                    var p1 = new Point(c.X + rr * Math.Cos(a1 * Math.PI / 180), c.Y + rr * Math.Sin(a1 * Math.PI / 180));
+                    var g = new PathGeometry([new PathFigure(p0, [new ArcSegment(p1, new Size(rr, rr), 0, sweep > 180, SweepDirection.Clockwise, true)], false)]);
+                    g.Freeze();
+                    dc.DrawGeometry(null, new Pen(ink, rad * 0.06), g);
+                }
+                // Spokes stepping in from the ring, each with a short right-angle jog.
+                for (int i = 0; i < 9; i++)
+                {
+                    double a = i * Math.PI * 2 / 9 + R(-0.1, 0.1);
+                    var o = new Point(c.X + Math.Cos(a) * rad * 0.86, c.Y + Math.Sin(a) * rad * 0.86);
+                    var m = new Point(c.X + Math.Cos(a) * rad * 0.55, c.Y + Math.Sin(a) * rad * 0.55);
+                    var n = new Point(c.X + Math.Cos(a + 0.3) * rad * 0.4, c.Y + Math.Sin(a + 0.3) * rad * 0.4);
+                    dc.DrawLine(thin, o, m); dc.DrawLine(thin, m, n);
+                }
+                // Hub: accent hex with a target ring.
+                dc.DrawEllipse(null, new Pen(B(accent), rad * 0.04), c, rad * 0.24, rad * 0.24);
+                Hex(c, rad * 0.16, accent, true);
+                Hex(c, rad * 0.08, Black, true);
+            }
+
+            /// <summary>A halo of small round bubble dots, dense near the middle and thinning out, from the clock piece.</summary>
+            private void BubbleHalo(Point c, double radius)
+            {
+                var ink = B(Black, 0.9);
+                for (int i = 0; i < 420; i++)
+                {
+                    double a = R(0, Math.PI * 2), d = radius * Math.Sqrt(R(0, 1));
+                    if (R(0, 1) < d / radius * 0.6) continue;
+                    double rr = R(2.5, 6.5) * (1 - d / radius * 0.5);
+                    var p = new Point(c.X + Math.Cos(a) * d, c.Y + Math.Sin(a) * d);
+                    if (R(0, 1) < 0.5) dc.DrawEllipse(ink, null, p, rr, rr);
+                    else dc.DrawEllipse(null, new Pen(ink, rr * 0.5), p, rr * 0.8, rr * 0.8);
+                }
+            }
+
+            /// <summary>Big accent dots bunched together with smaller ones falling away, from the bird piece.</summary>
+            private void DotClump(Point c, double radius)
+            {
+                for (int i = 0; i < 70; i++)
+                {
+                    double a = R(0, Math.PI * 2), d = radius * Math.Pow(R(0, 1), 0.8);
+                    double rr = (1 - d / radius) * R(6, 16) + 1.2;
+                    dc.DrawEllipse(B(accent, 0.9), null, new Point(c.X + Math.Cos(a) * d, c.Y + Math.Sin(a) * d), rr, rr);
+                }
+            }
+
+            /// <summary>A black splatter with long thin streak lines shooting straight out of it, from the bird piece.</summary>
+            private void StreakSplat(Point c, double size)
+            {
+                Splatter(c, size, Black);
+                var ink = B(Black);
+                for (int i = 0; i < 5; i++)
+                {
+                    double a = R(0, Math.PI * 2), len = size * R(2.5, 5);
+                    var end = new Point(c.X + Math.Cos(a) * len, c.Y + Math.Sin(a) * len);
+                    dc.DrawLine(new Pen(ink, R(1.5, 3.5)) { EndLineCap = PenLineCap.Triangle }, c, end);
+                    dc.DrawEllipse(ink, null, end, R(2, 5), R(2, 5));
                 }
             }
 
