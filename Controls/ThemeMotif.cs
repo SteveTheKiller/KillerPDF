@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -84,7 +85,26 @@ namespace KillerPDF.Controls
             Retuned -= Rebind(element);
             Retuned += Rebind(element);
             WatchBackground(element);
+            WatchHighContrast(element);
             if (element.IsLoaded) Paint(element);
+        }
+
+        // High contrast swaps every palette brush for a system brush; the motif steps aside so the element shows it, and
+        // comes back when high contrast turns off.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FrameworkElement, object> WatchedContrast = new();
+
+        private static void WatchHighContrast(FrameworkElement element)
+        {
+            if (WatchedContrast.TryGetValue(element, out _)) return;
+            WatchedContrast.Add(element, element);
+            System.ComponentModel.DependencyPropertyDescriptor
+                .FromProperty(KillerFamily.Accessibility.HighContrastResources.IsActiveProperty, element.GetType())
+                ?.AddValueChanged(element, OnHighContrastChanged);
+        }
+
+        private static void OnHighContrastChanged(object? sender, EventArgs e)
+        {
+            if (sender is FrameworkElement element) Paint(element);
         }
 
         // Apps restyle their own panes (KillerPDF resets the document card's Background when a pane takes focus), which
@@ -234,6 +254,7 @@ namespace KillerPDF.Controls
             var part = GetPart(element);
             if (part == MotifPart.Window && GetSecondPane(element)) part = MotifPart.Split;
             if (part == MotifPart.None || element.TryFindResource("ThemeMotif") is not true
+                || KillerFamily.Accessibility.HighContrastResources.GetIsActive(element) || SystemParameters.HighContrast
                 || element.TryFindResource(GetMotifBrush(element) ?? GetBaseBrush(element)) is not SolidColorBrush baseBrush
                 || element.TryFindResource("PrimaryBrush") is not SolidColorBrush accent
                 || element.ActualWidth <= 0 || element.ActualHeight <= 0)

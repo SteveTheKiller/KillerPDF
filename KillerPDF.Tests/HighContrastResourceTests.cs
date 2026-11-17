@@ -25,5 +25,21 @@ public sealed class HighContrastResourceTests
         Assert.DoesNotContain("\"MenuHoverTextBrush\"", Group("WindowTextBrush"));
     }
 
+    // High Contrast drops every decorative shade, the tab strip's included, and Trash Polka's ink steps aside so each
+    // surface shows its system brush.
+    [Fact]
+    public void HighContrastDropsTheTabShadeAndTheTrashPolkaInk()
+    {
+        string controls = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(SourcePath()))!, "Controls");
+        string overlay = File.ReadAllText(Path.Combine(controls, "HighContrastResources.cs"));
+        Match zeroed = Regex.Match(overlay, @"foreach \(string key in new\[\] \{ ""GrainOpacity""(?<keys>[^}]*)\}\) d\[key\] = 0\.0;");
+        Assert.True(zeroed.Success);
+        Assert.Contains("\"TabStripFadeOpacity\"", zeroed.Groups["keys"].Value);
+
+        string motif = File.ReadAllText(Path.Combine(controls, "ThemeMotif.cs"));
+        Assert.Contains("HighContrastResources.GetIsActive(element) || SystemParameters.HighContrast", motif);
+        Assert.Contains("HighContrastResources.IsActiveProperty", motif);
+    }
+
     private static string SourcePath([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 }

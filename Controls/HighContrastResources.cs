@@ -169,7 +169,7 @@ namespace KillerFamily.Accessibility
             d["WindowFramePadding"] = new Thickness(1);
             foreach (string key in new[] { "WindowFrameMargin", "FrameOuterLightThickness", "FrameOuterDarkThickness",
                 "FrameInnerLightThickness", "FrameInnerDarkThickness" }) d[key] = new Thickness(0);
-            foreach (string key in new[] { "GrainOpacity", "PaneShadowOpacity", "BarShadowOpacity",
+            foreach (string key in new[] { "GrainOpacity", "PaneShadowOpacity", "BarShadowOpacity", "TabStripFadeOpacity",
                 "FlyoutShadowOpacity", "ShortcutShadowOpacity", "WordmarkShadowOpacity", "WordmarkEmbossOpacity",
                 "WordmarkAccentShadowOpacity", "IconShadowOpacity", "AboutShadowOpacity", "SelectedTileShadowOpacity" }) d[key] = 0.0;
             _overlay = d;
