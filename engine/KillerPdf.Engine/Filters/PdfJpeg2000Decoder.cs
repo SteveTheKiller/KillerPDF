@@ -27,6 +27,10 @@ internal static partial class PdfJpeg2000Decoder
             int length = checked(rowBytes * height);
             if (length > maximumDecodedBytes)
                 throw new PdfFilterException("Decoded stream exceeds the configured safety limit.");
+            if (OperatingSystem.IsWindows() && RuntimeInformation.ProcessArchitecture == Architecture.X64
+                && Environment.GetEnvironmentVariable("KILLERPDF_OPENJPEG_PROTOTYPE") is { Length: > 0 })
+                return OpenJpegPrototype.Decode(LocateCodestream(source.Span), shape,
+                    reduction, width, height, rowBytes, length);
             return DecodePixels(source, shape, resolutionLevel, width, height, rowBytes, length, maximumParallelism);
         }
         catch (PdfFilterException)
