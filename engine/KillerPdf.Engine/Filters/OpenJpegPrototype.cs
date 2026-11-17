@@ -13,8 +13,14 @@ internal static class OpenJpegPrototype
     {
         NativeLibrary.SetDllImportResolver(typeof(OpenJpegPrototype).Assembly, (name, _, _) =>
             name == ImportName
-                ? NativeLibrary.Load(Environment.GetEnvironmentVariable("KILLERPDF_OPENJPEG_PROTOTYPE")!)
+                ? NativeLibrary.Load(GetLibraryPath())
                 : IntPtr.Zero);
+    }
+
+    private static string GetLibraryPath()
+    {
+        string setting = Environment.GetEnvironmentVariable("KILLERPDF_OPENJPEG_PROTOTYPE")!;
+        return setting == "1" ? Path.Combine(AppContext.BaseDirectory, "openjp2.dll") : setting;
     }
 
     internal static Jpeg2000DecodedImage Decode(ReadOnlySpan<byte> codestream, Jpeg2000Shape shape,

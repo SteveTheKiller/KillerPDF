@@ -81,4 +81,17 @@
           PackagePath="color_profiles\" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(OpenJpegPrototypeBinary)' != ''">
+    <None Include="$(OpenJpegPrototypeBinary)" Pack="true" PackagePath="runtimes/win-x64/native/openjp2.dll" />
+    <None Include="$(OpenJpegPrototypeLicense)" Pack="true" PackagePath="third_party/openjpeg/" />
+    <None Include="..\..\third_party\CoreJ2K\COPYRIGHT-JJ2000-5.1" Pack="true" PackagePath="third_party/corej2k/COPYRIGHT-JJ2000-5.1" />
+  </ItemGroup>
+
+  <Target Name="VerifyOpenJpegPrototypePackInputs" BeforeTargets="GenerateNuspec"
+          Condition="'$(OpenJpegPrototypeBinary)' != ''">
+    <Error Condition="!Exists('$(OpenJpegPrototypeBinary)')" Text="The OpenJPEG prototype DLL was not found." />
+    <Error Condition="'$(OpenJpegPrototypeLicense)' == '' or !Exists('$(OpenJpegPrototypeLicense)')"
+           Text="The upstream OpenJPEG license is required when packing its native DLL." />
+  </Target>
+
 </Project>
