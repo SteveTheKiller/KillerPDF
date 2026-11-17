@@ -220,7 +220,9 @@ public static class PdfFormRecognizer
                         run.Add(cell);
                         continue;
                     }
-                    if (run.Count >= 2)
+                    // Two boxes side by side are usually a Yes/No pair of checkboxes, so a comb
+                    // needs at least MinimumCombCells.
+                    if (run.Count >= MinimumCombCells)
                     {
                         int first = run.Min(item => item.PathIndex);
                         combs[first] = [.. run.Select(item => item.Bounds)];
@@ -274,10 +276,7 @@ public static class PdfFormRecognizer
                     $"page-{pageIndex + 1}-path-{pathIndex + 1}", pageIndex, absoluteBounds,
                     square ? PdfRecognizedFieldKind.CheckBox : PdfRecognizedFieldKind.Text,
                     (square ? 0.9 : 0.7) + (label is null ? 0 : 0.05),
-                    suggestedName, suggestedTooltip: label,
-                    // The page already draws the box, so the field adds no fill or border of its own.
-                    suggestedAppearanceStyle: square ? null : ClearAppearance,
-                    coversPrintedText: CoversPrintedText(content.Lines, bounds)));
+                    suggestedName, suggestedTooltip: label));
             }
         }
         // Fields sharing a label (a row split into runs, a section repeated) need distinct names to be authored.
@@ -292,6 +291,9 @@ public static class PdfFormRecognizer
         }
         return new PdfFormRecognitionReview(proposals);
     }
+
+    // The fewest touching, equally sized squares that read as a comb rather than separate checkboxes.
+    internal const int MinimumCombCells = 3;
 
     private static readonly PdfFormFieldAppearanceStyle ClearAppearance = new()
     {

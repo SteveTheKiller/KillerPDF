@@ -1244,13 +1244,18 @@ internal static partial class PdfEngineIntegration
         if (cache.TryGetValue(key, out TrueTypeFont? font)) return font;
         byte[]? bytes = InstalledFontCatalog.FaceBytes(family, bold, italic);
         if (bytes is null) return EmbeddedFormFont(value, cache);
-        try { font = TrueTypeFont.Load(bytes); }
-        catch (Exception ex) when (ex is not OutOfMemoryException)
-        {
-            throw new InvalidOperationException($"The installed font {family} could not be embedded in a form field.", ex);
-        }
+        // A face that cannot be loaded falls back to the standard font, as one that is not installed does.
+        font = TryLoadFormFace(bytes);
+        if (font is null) return EmbeddedFormFont(value, cache);
         cache.Add(key, font);
         return font;
+    }
+
+    // An installed face parsed for embedding, or null when its file cannot be read as a TrueType font.
+    internal static TrueTypeFont? TryLoadFormFace(byte[] bytes)
+    {
+        try { return TrueTypeFont.Load(bytes); }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { return null; }
     }
 
     private static TrueTypeFont? EmbeddedFormFont(

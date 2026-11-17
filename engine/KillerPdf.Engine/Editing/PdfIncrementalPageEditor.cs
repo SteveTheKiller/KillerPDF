@@ -4218,13 +4218,12 @@ public sealed class PdfIncrementalPageEditor
             Alignment = (PdfTextFieldAlignment)OptionalInteger(
                 field, QuaddingName, 0, 2, fieldName)
         };
-        // A value longer than a comb field's cells runs on in cells of the same width past the last one:
-        // the field takes as many cells as the value has characters, and each widget grows by those cells.
-        int? printedCells = options.Comb ? options.MaximumLength : null;
-        int valueLength = pending.Value.EnumerateRunes().Count();
-        if (printedCells is { } cellCount && valueLength > cellCount)
-            options = options with { MaximumLength = valueLength };
-        bool cellsGrew = printedCells.HasValue && options.MaximumLength > printedCells;
+        // A comb field keeps its /MaxLen and /Rect. A longer value set through the API is stored whole in
+        // /V, and its appearance shows the characters that fit the printed cells.
+        string appearanceValue = options.Comb && options.MaximumLength is { } cellCount
+            && pending.Value.EnumerateRunes().Count() > cellCount
+                ? string.Concat(pending.Value.EnumerateRunes().Take(cellCount))
+                : pending.Value;
         (double existingFontSize, PdfRgbColor textColor) = TextDefaultAppearance(field, form, fieldName);
         double requestedFontSize = pending.FontSize ?? existingFontSize;
         // Underline and strikethrough live in the field's /DS, so a new value keeps them like its /DA color.
@@ -4264,14 +4263,6 @@ public sealed class PdfIncrementalPageEditor
             if (pending.TextColor is { } textColorOverride)
                 style = style with { TextColor = textColorOverride };
             style = style with { Underline = underline, StrikeThrough = strikeThrough };
-            PdfArray? widenedRectangle = null;
-            if (cellsGrew)
-            {
-                int printed = printedCells!.Value;
-                double extra = width / printed * (options.MaximumLength!.Value - printed);
-                widenedRectangle = WidenedRectangle(widget, fieldName, extra, options.Alignment);
-                width += extra;
-            }
             double fontSize = requestedFontSize;
             if (fontSize == 0)
             {
@@ -4280,23 +4271,11 @@ public sealed class PdfIncrementalPageEditor
                 if (options.Comb && options.MaximumLength is { } maximumLength)
                     fontSize = Math.Min(fontSize, width / maximumLength / 0.55);
             }
-            // A single line longer than its box runs on past it, as text written on a printed form does:
-            // the widget grows to hold the line, from the side the alignment leaves free, since a viewer
-            // clips an appearance to its rectangle.
-            if (!options.Multiline && !options.Comb)
-            {
-                double needed = SingleLineWidth(pending.Value, pending.EmbeddedFont, fontSize, options.Password) + 6;
-                if (needed > width)
-                {
-                    widenedRectangle = WidenedRectangle(widget, fieldName, needed - width, options.Alignment);
-                    width = needed;
-                }
-            }
             byte[] authored = new PdfDocumentBuilder()
                 .AddBlankPage(Math.Max(1, width), Math.Max(1, height))
-                .AddTextField(0, "field", 0, 0, width, height, pending.Value,
+                .AddTextField(0, "field", 0, 0, width, height, appearanceValue,
                     fontSize, options, pending.EmbeddedFont,
-                    defaultValue: pending.Value, appearanceStyle: style)
+                    defaultValue: appearanceValue, appearanceStyle: style)
                 .Build();
             PdfDocument appearanceDocument = PdfDocument.Open(authored);
             PdfDictionary appearanceCatalog = ResolveDictionary(
@@ -4334,8 +4313,6 @@ public sealed class PdfIncrementalPageEditor
                 [AppearanceCharacteristicsName] = importer.Import(
                     appearanceField[AppearanceCharacteristicsName])
             };
-            if (widenedRectangle is not null)
-                replacements[RectangleName] = widenedRectangle;
             if (widgetReference.Equals(fieldReference))
             {
                 replacements[FieldValueName] = TextString(pending.Value);
@@ -4344,8 +4321,6 @@ public sealed class PdfIncrementalPageEditor
                     replacements[DefaultAppearanceName] = overriddenAppearance;
                 if (replacedStyle is not null)
                     replacements[DefaultStyleName] = replacedStyle;
-                if (cellsGrew)
-                    replacements[MaximumLengthName] = new PdfInteger(options.MaximumLength!.Value);
             }
             update.ReplaceObject(widgetReference.ObjectNumber,
                 ReplaceMany(widget, replacements,
@@ -4362,8 +4337,6 @@ public sealed class PdfIncrementalPageEditor
                 fieldReplacements[DefaultAppearanceName] = overriddenAppearance;
             if (replacedStyle is not null)
                 fieldReplacements[DefaultStyleName] = replacedStyle;
-            if (cellsGrew)
-                fieldReplacements[MaximumLengthName] = new PdfInteger(options.MaximumLength!.Value);
             update.ReplaceObject(fieldReference.ObjectNumber,
                 ReplaceMany(field, fieldReplacements, removedFieldKeys));
         }
@@ -4700,35 +4673,6 @@ public sealed class PdfIncrementalPageEditor
             double.TryParse(text, System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out number)
             && double.IsFinite(number) && number is >= 0 and <= 1;
-    }
-
-    // The width a single line takes, measured as the appearance builder lays it out: the embedded font's
-    // advances, or 0.55 em per character in a standard font. A password shows one mark per character.
-    private static double SingleLineWidth(string value, TrueTypeFont? font, double fontSize, bool password)
-    {
-        if (password) value = new string('*', value.EnumerateRunes().Count());
-        return font is null
-            ? value.EnumerateRunes().Count() * fontSize * 0.55
-            : font.MapText(value).Sum(mapping => font.GetPdfAdvanceWidth(mapping.Glyph)) * fontSize / 1000;
-    }
-
-    // The widget's /Rect made wider by the extra width: to the right of left-aligned text, to the left of
-    // right-aligned text, and half each way for centred text.
-    private PdfArray WidenedRectangle(PdfDictionary widget, string fieldName, double extra,
-        PdfTextFieldAlignment alignment)
-    {
-        PdfArray rectangle = ResolveArray(
-            _document, widget[RectangleName], $"The text field '{fieldName}' /Rect value");
-        double[] values = [.. rectangle.Select(NumberValue)];
-        double left = Math.Min(values[0], values[2]), right = Math.Max(values[0], values[2]);
-        double bottom = Math.Min(values[1], values[3]), top = Math.Max(values[1], values[3]);
-        (left, right) = alignment switch
-        {
-            PdfTextFieldAlignment.Right => (left - extra, right),
-            PdfTextFieldAlignment.Center => (left - extra / 2, right + extra / 2),
-            _ => (left, right + extra)
-        };
-        return new PdfArray([Number(left), Number(bottom), Number(right), Number(top)]);
     }
 
     private (double Width, double Height) WidgetSize(

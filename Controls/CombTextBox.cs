@@ -83,8 +83,7 @@ internal sealed class CombTextBox : Grid
             _caret.Visibility == Visibility.Visible ? Visibility.Hidden : Visibility.Visible;
         Children.Add(Editor);
         Children.Add(_characters);
-        // A value longer than the printed cells runs on in cells of the same width, as the save writes it.
-        Editor.TextChanged += (_, _) => { Width = _cellWidth * Cells; RefreshCharacters(); };
+        Editor.TextChanged += (_, _) => RefreshCharacters();
         Editor.SelectionChanged += (_, _) => RefreshCharacters();
         Editor.IsKeyboardFocusedChanged += (_, _) => RefreshCharacters();
         // The editor's own hit testing follows its hidden text, so the mouse is mapped to cells here:
@@ -131,8 +130,8 @@ internal sealed class CombTextBox : Grid
     private int? _dragAnchor;
     private readonly double _cellWidth;
 
-    // The printed cells, and one more of the same width for each character past them.
-    private int Cells => Math.Max(_cellCount, Editor.Text.Length);
+    // The printed cells. The editor's MaxLength holds typing to them (/MaxLen).
+    private int Cells => Math.Max(1, _cellCount);
 
     private int CellAt(MouseEventArgs e) =>
         CombFieldLayout.CellIndexAt(e.GetPosition(Editor).X, Math.Max(1, _cellWidth * Cells), Cells);
@@ -170,9 +169,9 @@ internal sealed class CombTextBox : Grid
             else
             {
                 // The caret stands just inside the left edge of the cell the next character goes to,
-                // past the printed cells too, since the value runs on in cells of the same width.
+                // or just inside the right edge of the last cell once every cell is full.
                 int index = Math.Min(Editor.CaretIndex, Editor.Text.Length);
-                double left = index * cellWidth + 2;
+                double left = index >= Cells ? Cells * cellWidth - 2 : index * cellWidth + 2;
                 _caret.Height = Math.Min(ActualHeight, fontSize * 1.2);
                 Canvas.SetLeft(_caret, left);
                 Canvas.SetTop(_caret, (ActualHeight - _caret.Height) / 2);
@@ -181,7 +180,7 @@ internal sealed class CombTextBox : Grid
                 _blink.Start();
             }
         }
-        for (int index = 0; index < Editor.Text.Length; index++)
+        for (int index = 0; index < Math.Min(Editor.Text.Length, Cells); index++)
         {
             // The editor's font, as an ordinary text field shows its own, and the line is centred on its
             // capitals as that field's is (TextCapCentering), so both kinds of field show the same

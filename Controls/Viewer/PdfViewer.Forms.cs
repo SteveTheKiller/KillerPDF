@@ -479,8 +479,7 @@ namespace KillerPDF.Controls
                             Width            = f.Cw,
                             Height           = f.Ch,
                             Text             = cur,
-                            // A comb's cells are not a limit: a longer value runs on in cells of the same width.
-                            MaxLength        = 0,
+                            MaxLength        = f.IsComb ? f.MaxLen : 0,
                             IsReadOnly       = f.IsReadOnly,
                             AcceptsReturn    = f.IsMultiLine,
                             TextWrapping     = f.IsMultiLine ? TextWrapping.Wrap : TextWrapping.NoWrap,
@@ -512,10 +511,6 @@ namespace KillerPDF.Controls
                         else _formSavedTextStyles.Remove(f.FieldName);
                         if (!f.IsComb && !f.IsMultiLine)
                         {
-                            // A line longer than its box runs on past it, as on a printed form, and the
-                            // save widens the field to hold it; the box never shrinks below the field.
-                            tb.Width = double.NaN;
-                            tb.MinWidth = f.Cw;
                             // Centre the capitals rather than the line box, as the comb cells do, at
                             // whatever size the stepper sets.
                             var padding = new System.Windows.Data.MultiBinding
@@ -532,9 +527,7 @@ namespace KillerPDF.Controls
                         // One typed value goes to every field of a name, so the tightest limit holds it.
                         // Its read starts now, so it is known by the time anyone types.
                         StartReadingFormTextLimits();
-                        // A comb's /MaxLen counts its printed cells, which a longer value runs on past.
-                        int MaxLen() => f.IsComb ? 0
-                            : KnownFormTextLimits()?.GetValueOrDefault(capturedKey, f.MaxLen) ?? f.MaxLen;
+                        int MaxLen() => KnownFormTextLimits()?.GetValueOrDefault(capturedKey, f.MaxLen) ?? f.MaxLen;
                         string lastAccepted = tb.Text;
                         tb.GotFocus  += (_, _) =>
                         {
