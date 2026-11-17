@@ -57,8 +57,41 @@ namespace KillerPDF.Controls
             element.Unloaded += Detach;
             ThemeManager.ThemeChanged -= Rebind(element);
             ThemeManager.ThemeChanged += Rebind(element);
+            WatchBackground(element);
             if (element.IsLoaded) Paint(element);
         }
+
+        // Apps restyle their own panes (KillerPDF resets the document card's Background when a pane takes focus), which
+        // would wipe the motif and leave the stamp claiming it is still there. Any outside Background change while the
+        // motif is painted repaints it.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FrameworkElement, object> Watched = new();
+
+        private static void WatchBackground(FrameworkElement element)
+        {
+            if (BackgroundProperty(element) is not { } property || Watched.TryGetValue(element, out _)) return;
+            Watched.Add(element, property);
+            System.ComponentModel.DependencyPropertyDescriptor.FromProperty(property, element.GetType())
+                ?.AddValueChanged(element, OnBackgroundChanged);
+        }
+
+        private static void OnBackgroundChanged(object? sender, EventArgs e)
+        {
+            if (sender is not FrameworkElement element || element.GetValue(PaintedProperty) is null) return;
+            if (BackgroundProperty(element) is { } property && ReferenceEquals(element.GetValue(property), element.GetValue(PaintedBrushProperty))) return;
+            element.ClearValue(PaintedProperty);
+            Paint(element);
+        }
+
+        private static DependencyProperty? BackgroundProperty(FrameworkElement element) => element switch
+        {
+            Border => Border.BackgroundProperty,
+            Panel => Panel.BackgroundProperty,
+            Control => Control.BackgroundProperty,
+            _ => null,
+        };
+
+        private static readonly DependencyProperty PaintedBrushProperty = DependencyProperty.RegisterAttached(
+            "PaintedBrush", typeof(Brush), typeof(ThemeMotif), new PropertyMetadata(null));
 
         // One handler per element, kept so Detach can remove exactly it.
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FrameworkElement, Action> Handlers = new();
@@ -109,19 +142,22 @@ namespace KillerPDF.Controls
 
             string stamp = $"{part}|{accent.Color}|{baseBrush.Color}|{pane}|{window}";
             if ((string?)element.GetValue(PaintedProperty) == stamp) return;
-            element.SetValue(PaintedProperty, stamp);
 
             var layout = part switch { MotifPart.Window => TrashPolkaLayout.FullSleeve, MotifPart.Chrome => TrashPolkaLayout.Chrome, _ => TrashPolkaLayout.CornerCluster };
             if (!Motifs.TryGetValue((part, accent.Color), out var motif))
                 Motifs[(part, accent.Color)] = motif = TrashPolkaMotif.Build(layout, accent.Color);
-            SetBackground(element, TrashPolkaMotif.Compose(baseBrush.Color, motif, pane, window, anchorRight: part != MotifPart.Chrome,
-                opacity: part == MotifPart.Chrome ? TrashPolkaMotif.ChromeOpacity : 1));
+            var brush = TrashPolkaMotif.Compose(baseBrush.Color, motif, pane, window, anchorRight: part != MotifPart.Chrome,
+                opacity: part == MotifPart.Chrome ? TrashPolkaMotif.ChromeOpacity : 1);
+            element.SetValue(PaintedBrushProperty, brush);
+            element.SetValue(PaintedProperty, stamp);
+            SetBackground(element, brush);
         }
 
         private static void Restore(FrameworkElement element)
         {
             if (element.GetValue(PaintedProperty) is null) return;
             element.ClearValue(PaintedProperty);
+            element.ClearValue(PaintedBrushProperty);
             string key = GetBaseBrush(element);
             switch (element)
             {

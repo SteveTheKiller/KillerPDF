@@ -30,6 +30,9 @@ namespace KillerPDF.Controls
         /// mockup Steve liked, so the panes stay quiet raised cards.</summary>
         internal const double ChromeOpacity = 0.18;
 
+        /// <summary>Device-independent pixels per motif unit: the 340 by 210 piece draws 476 by 294.</summary>
+        internal const double MotifScale = 1.4;
+
         /// <summary>
         /// A pane's brush: its base color with the motif placed over it as if the motif covered the whole
         /// <paramref name="window"/>, so each pane shows only its own part and neighbouring panes join up. One scale
@@ -39,7 +42,9 @@ namespace KillerPDF.Controls
         internal static DrawingBrush Compose(Color baseColor, Drawing motif, Rect paneInWindow, Size window, bool anchorRight = false,
             double opacity = 1)
         {
-            double scale = Math.Max(window.Width / Width, window.Height / Height);
+            // A fixed, small scale: stretching the piece to cover the window blew every dot and hex up to poster size
+            // (Steve, 2026-11-16: "everything is way too big").
+            double scale = MotifScale;
             double left = anchorRight ? window.Width - Width * scale : 0;
             var pane = new Rect(0, 0, paneInWindow.Width, paneInWindow.Height);
 
@@ -88,8 +93,7 @@ namespace KillerPDF.Controls
                 // left behind the sidebar, the hex circuit block down the right, spatter and linework between them.
                 canvas.Halftone(0, 0, 10, 20, 11, 4.6, 0.42);
                 canvas.Hexes(228, 12, 6, 10, 13, 0.12);
-                canvas.Spatter(70, 175, 30, 40, 3.5, ink: false);
-                canvas.Spatter(222, 70, 25, 30, 3, ink: true);
+                // No spatter anywhere (Steve, 2026-11-16: "the splatters look terrible").
                 canvas.Linework(292, 178, 30);
                 canvas.Slash("M0,120 L120,60 L130,70 L0,140 Z", 0.6);
                 canvas.Slash("M250,0 L340,0 L340,14 L232,24 Z", 0.5);
@@ -98,7 +102,6 @@ namespace KillerPDF.Controls
             {
                 canvas.Halftone(250, 20, 8, 12, 11, 4.4, 0.45);
                 canvas.Hexes(215, 95, 5, 5, 13, 0.3);
-                canvas.Spatter(280, 170, 22, 30, 3, ink: false);
                 canvas.Linework(50, 170, 30);
                 canvas.Slash("M140,0 L220,0 L110,40 L95,40 Z", 0.55);
             }
