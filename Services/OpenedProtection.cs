@@ -128,9 +128,19 @@ internal sealed class OpenedProtection
 
     // A file that was encrypted when it opened and reads plain now is a file put in its place, which
     // says nothing about the one this tab read.
+    // The password is held only for a short while after a failed read, so it does not sit in
+    // memory for as long as the tab stays open. After that the tab stays refused.
+    internal static readonly TimeSpan PasswordHoldTime = TimeSpan.FromMinutes(2);
+    private DateTime _unreadUntil = DateTime.UtcNow + PasswordHoldTime;
+
     private void ReadAgain()
     {
         if (Access.Role != PdfAccessRole.Refused || _unread is null) return;
+        if (DateTime.UtcNow > _unreadUntil)
+        {
+            _unread = null;
+            return;
+        }
         PdfAccess access = PdfRestrictions.Read(_unread.Value.Path, _unread.Value.Password, out PdfEncryptionSnapshot? encryption);
         if (access.Role is PdfAccessRole.Refused or PdfAccessRole.Unencrypted) return;
         Access = access;

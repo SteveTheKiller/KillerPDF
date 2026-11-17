@@ -89,6 +89,21 @@ namespace KillerPDF.Features
                         continue;
                     badUsage = true;
                 }
+                else if (string.Equals(a, CliSecrets.Option, StringComparison.OrdinalIgnoreCase))
+                {
+                    // The same JSON on standard input the other commands take, so the owner
+                    // password stays out of the process list and shell history.
+                    var secrets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [CliSecrets.Option] = "" };
+                    using var secretInput = new StreamReader(Console.OpenStandardInput(), new System.Text.UTF8Encoding(false));
+                    string? problem = CliSecrets.Read(secretInput, secrets);
+                    if (problem is not null)
+                    {
+                        con.WriteLine(problem);
+                        exitCode = 2;
+                        return true;
+                    }
+                    if (secrets.TryGetValue("--password", out string? secret)) password = secret;
+                }
                 else if (string.Equals(a, "--quiet", StringComparison.OrdinalIgnoreCase))
                 {
                     quiet = true;
@@ -106,7 +121,7 @@ namespace KillerPDF.Features
 
             if (badUsage || string.IsNullOrWhiteSpace(input) || string.IsNullOrWhiteSpace(output))
             {
-                con.WriteLine("Usage: KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--parallel <n>] [--log <file.csv>] [--quiet] [--allow-incomplete] [--password <p>]");
+                con.WriteLine("Usage: KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--parallel <n>] [--log <file.csv>] [--quiet] [--allow-incomplete] [--password <p> | --secrets-stdin]");
                 exitCode = 2;
                 return true;
             }

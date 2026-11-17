@@ -124,6 +124,7 @@
     <Compile Include="..\Services\TextEntryPlaceholder.cs" Link="Services\TextEntryPlaceholder.cs" />
     <Compile Include="..\Services\ProtocolRegistrar.cs" Link="Services\ProtocolRegistrar.cs" />
     <Compile Include="..\Services\PublicAddressGuard.cs" Link="Services\PublicAddressGuard.cs" />
+    <Compile Include="..\Services\CrashTextScrub.cs" Link="Services\CrashTextScrub.cs" />
     <Compile Include="..\Services\PerspectiveWarp.cs" Link="Services\PerspectiveWarp.cs" />
     <Compile Include="..\Services\PdfFontStyle.cs" Link="Services\PdfFontStyle.cs" />
     <Compile Include="..\Services\PdfPageRenderSession.cs" Link="Services\PdfPageRenderSession.cs" />

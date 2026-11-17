@@ -149,18 +149,20 @@ public static class PdfDocumentEncryptionWriter
         return new PdfDocumentWriteResult(output.ToArray(), plainResult.ReferenceRepairs);
     }
 
-    // Encrypted documents need a trailer /ID. The source pair is kept so links to the document
-    // still resolve; a document without one gets a fresh identifier from its content.
+    // Encrypted documents need a trailer /ID. The first, permanent identifier is kept so links to
+    // the document still resolve; the second, which marks this version, is always new. Both are
+    // random rather than a hash of the content, because a hash of the unencrypted bytes in the
+    // clear lets anyone confirm a guess at what the document says.
     private static PdfArray Identifiers(PdfDocument source, byte[] content)
     {
-        if (source.CrossReferences.TryGetTrailerValue(IdName, out PdfObject value)
-            && value is PdfArray { Count: 2 } pair
-            && pair[0] is PdfString && pair[1] is PdfString)
-            return pair;
-        byte[] identifier = SHA256.HashData(content)[..16];
+        _ = content;
+        PdfString permanent = source.CrossReferences.TryGetTrailerValue(IdName, out PdfObject value)
+            && value is PdfArray { Count: 2 } pair && pair[0] is PdfString first && pair[1] is PdfString
+                ? first
+                : new PdfString(RandomNumberGenerator.GetBytes(16), PdfStringForm.Hexadecimal);
         return new PdfArray([
-            new PdfString(identifier, PdfStringForm.Hexadecimal),
-            new PdfString(identifier, PdfStringForm.Hexadecimal)]);
+            permanent,
+            new PdfString(RandomNumberGenerator.GetBytes(16), PdfStringForm.Hexadecimal)]);
     }
 
     private static void Ascii(Stream output, string text) =>

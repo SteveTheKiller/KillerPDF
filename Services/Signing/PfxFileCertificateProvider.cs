@@ -12,8 +12,8 @@ namespace KillerPDF.Services.Signing
         public string DisplayName => Path.GetFileName(path);
 
         public X509Certificate2 GetCertificate()
-            // Exportable so the signer can access the private key while building the CMS payload.
-            => X509CertificateLoader.LoadPkcs12FromFile(path, password,
-                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+            // Signing uses the key in place, so it is loaded without Exportable and cannot be
+            // copied out of the process as raw key material.
+            => X509CertificateLoader.LoadPkcs12FromFile(path, password, X509KeyStorageFlags.EphemeralKeySet);
     }
 }

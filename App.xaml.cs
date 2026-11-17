@@ -909,19 +909,22 @@ namespace KillerPDF
             {
                 try
                 {
-                    var msgLen = Math.Min(80, ex.Message.Length);
+                    // The issue is public, so paths in the message and stack lose their folders.
+                    string message = Services.CrashTextScrub.Paths(ex.Message);
+                    string fullStack = Services.CrashTextScrub.Paths(ex.StackTrace);
+                    var msgLen = Math.Min(80, message.Length);
                     var title  = Uri.EscapeDataString(
-                        $"Crash: {ex.GetType().Name}: {ex.Message[..msgLen]}");
-                    var stack  = ex.StackTrace?.Length > 800
-                        ? ex.StackTrace[..800] + "\n... (truncated)"
-                        : ex.StackTrace ?? "(no stack trace)";
+                        $"Crash: {ex.GetType().Name}: {message[..msgLen]}");
+                    var stack  = fullStack.Length > 800
+                        ? fullStack[..800] + "\n... (truncated)"
+                        : fullStack.Length > 0 ? fullStack : "(no stack trace)";
                     var body = Uri.EscapeDataString(
                         $"**Version:** {AppVersion.Display}\n" +
                         $"**OS:** {Environment.OSVersion}\n" +
                         $"**Exception:** `{ex.GetType().FullName}`\n" +
-                        $"**Message:** {ex.Message}\n\n" +
+                        $"**Message:** {message}\n\n" +
                         $"```\n{stack}\n```\n\n" +
-                        $"_Log folder: `{CrashReporter.LogDir}`_");
+                        "_The crash log is in KillerPDF's log folder._");
                     Process.Start(new ProcessStartInfo(
                         $"https://github.com/SteveTheKiller/KillerPDF/issues/new?title={title}&body={body}")
                         { UseShellExecute = true });

@@ -65,18 +65,40 @@ public sealed class PdfDocumentEncryptionWriterTests
     }
 
     [Fact]
-    public void Encrypt_KeepsTheDocumentIdentifiersAndOpensWithAnEmptyUserPassword()
+    public void Encrypt_KeepsThePermanentIdentifierAndOpensWithAnEmptyUserPassword()
     {
         byte[] source = Source("identifiers");
 
         byte[] encrypted = PdfDocumentEncryptionWriter.EncryptWithPasswords(PdfDocument.Open(source),
+            new PdfPasswordEncryptionOptions { UserPassword = "", OwnerPassword = "owner" });
+        byte[] again = PdfDocumentEncryptionWriter.EncryptWithPasswords(PdfDocument.Open(source),
             new PdfPasswordEncryptionOptions { UserPassword = "", OwnerPassword = "owner" });
 
         PdfDocument opened = PdfDocument.Open(encrypted, "");
         Assert.True(opened.IsEncrypted);
         Assert.True(opened.IsDecrypted);
         Assert.Equal("identifiers", new PdfPageContentReader(opened).Read(0).Text);
-        Assert.Equal(Identifiers(source), Identifiers(encrypted));
+        // The first identifier stays so links to the document resolve; the second is new each time.
+        Assert.Equal(FirstIdentifier(source), FirstIdentifier(encrypted));
+        Assert.NotEqual(Identifiers(encrypted), Identifiers(again));
+    }
+
+    [Fact]
+    public void Encrypt_GivesADocumentWithoutAnIdentifierARandomOne()
+    {
+        // Renaming the trailer key in place keeps every offset, and leaves the file with no /ID.
+        byte[] source = System.Text.Encoding.Latin1.GetBytes(
+            System.Text.Encoding.Latin1.GetString(Source("no identifier")).Replace("/ID", "/XX", StringComparison.Ordinal));
+        var options = new PdfPasswordEncryptionOptions { UserPassword = "", OwnerPassword = "owner" };
+        byte[] first = PdfDocumentEncryptionWriter.EncryptWithPasswords(PdfDocument.Open(source), options);
+        byte[] second = PdfDocumentEncryptionWriter.EncryptWithPasswords(PdfDocument.Open(source), options);
+        Assert.NotEqual(FirstIdentifier(first), FirstIdentifier(second));
+    }
+
+    private static string FirstIdentifier(byte[] pdf)
+    {
+        string ids = Identifiers(pdf);
+        return ids[..ids.IndexOf('>')];
     }
 
     [Fact]

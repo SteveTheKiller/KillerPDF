@@ -22,6 +22,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A file or link sent to the KillerPDF that's already running goes only to a copy running as you. Another account that started first can no longer collect what you open.
 - OCR languages download from a fixed version of the Tesseract language files, so a later change to those files cannot reach KillerPDF unreviewed.
 - Converting a Word or Excel file no longer refreshes its links to other files, and Excel 4.0 macros in a workbook stay off while it converts.
+- A password-protected save gets a random document identifier instead of one made from the unencrypted content, which let anyone holding the file confirm a guess at what it says.
+- The crash window's Report on GitHub link no longer carries folder names, so your Windows user name and document folders stay out of a public issue.
+- A password typed for a file whose protection could not be read is forgotten after two minutes instead of being kept until the tab closes.
+- A signing certificate loaded from a .pfx file can no longer have its private key exported from KillerPDF while it signs.
+- `--batch-render` takes `--secrets-stdin`, so an owner password stays out of the process list.
 
 ### Added
 
