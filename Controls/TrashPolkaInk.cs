@@ -18,6 +18,9 @@ namespace KillerPDF.Controls
         /// <summary>A different seed for the second pane in split view, so the two panes are two pieces.</summary>
         internal const int SplitSeed = 161;
 
+        /// <summary>The piece draws this much larger than its design units (Steve, 2026-11-16: "a bit larger").</summary>
+        internal const double Scale = 1.25;
+
         internal static DrawingGroup Draw(Color accent, Size size, int seed)
         {
             var group = new DrawingGroup();

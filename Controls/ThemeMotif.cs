@@ -155,14 +155,17 @@ namespace KillerPDF.Controls
             {
                 // The document canvas and the split pane carry the full ink piece (TrashPolkaInk), drawn to their own
                 // size at 1:1; one cached piece per part, redrawn only when the pane's size or the accent changes.
-                var size = new Size(Math.Ceiling(element.ActualWidth), Math.Ceiling(element.ActualHeight));
+                // Drawn ONCE at screen size and pinned to the window, so resizing a pane only shows more or less of the
+                // same image instead of redrawing a different one (Steve, 2026-11-16: "the images scrunch up and change").
+                var size = new Size(Math.Ceiling(SystemParameters.PrimaryScreenWidth / TrashPolkaInk.Scale),
+                    Math.Ceiling(SystemParameters.PrimaryScreenHeight / TrashPolkaInk.Scale));
                 if (!Pieces.TryGetValue(part, out var cached) || cached.Accent != accent.Color || cached.Size != size)
                 {
                     cached = (accent.Color, size, TrashPolkaInk.Draw(accent.Color, size,
                         part == MotifPart.Window ? TrashPolkaInk.WindowSeed : TrashPolkaInk.SplitSeed));
                     Pieces[part] = cached;
                 }
-                brush = TrashPolkaMotif.Compose(baseBrush.Color, cached.Piece, new Rect(new Point(0, 0), size), size, scale: 1);
+                brush = TrashPolkaMotif.Compose(baseBrush.Color, cached.Piece, pane, window, scale: TrashPolkaInk.Scale);
             }
             element.SetValue(PaintedBrushProperty, brush);
             element.SetValue(PaintedProperty, stamp);
