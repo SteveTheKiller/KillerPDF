@@ -173,11 +173,75 @@ public sealed class PdfAttachmentReaderTests
             Assert.True(attachment.HasEncryptedContent));
     }
 
+    [Theory]
+    [InlineData("run.bat.")]
+    [InlineData("run.bat ")]
+    [InlineData("CON")]
+    [InlineData("con.txt")]
+    [InlineData("COM1.pdf")]
+    [InlineData("LPT¹")]
+    [InlineData("NUL .txt")]
+    [InlineData("notes.txt:hidden")]
+    [InlineData("a\\b.txt")]
+    [InlineData("what?.txt")]
+    public void NamesWindowsWouldRewriteOrOpenAsADeviceAreRefused(string name)
+    {
+        Assert.Throws<ArgumentException>(() => PdfAttachmentReader.GetSafeExtractionPath(Path.GetTempPath(), name));
+    }
+
+    [Theory]
+    [InlineData("invoice.hta", true)]
+    [InlineData("report.docm", true)]
+    [InlineData("disk.iso", true)]
+    [InlineData("shortcut.url", true)]
+    [InlineData("tool.PS1", true)]
+    [InlineData("contract.pdf", false)]
+    [InlineData("console.log", false)]
+    public void ExecutableExtensionsAreFlaggedIncludingATrailingDot(string name, bool executable)
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment(name, new byte[] { 1, 2, 3 }).Build());
+
+        Assert.Equal(executable, Assert.Single(PdfAttachmentReader.Read(document)).IsPotentiallyExecutable);
+    }
+
+    [Fact]
+    public void AnExecutableNameWithATrailingDotIsFlaggedAndUnsafe()
+    {
+        // The builder refuses this name, so the file is written by hand.
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [(run.bat.) 4 0 R] >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 10 10] >>",
+            "<< /Type /Filespec /F (run.bat.) /UF (run.bat.) /EF << /F 5 0 R >> >>",
+            "<< /Type /EmbeddedFile /Length 3 >>\nstream\nabc\nendstream",
+        ];
+        var text = new System.Text.StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        foreach (string value in objects)
+        {
+            offsets.Add(text.Length);
+            text.Append($"{offsets.Count} 0 obj\n{value}\nendobj\n");
+        }
+        int xref = text.Length;
+        text.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) text.Append($"{offset:D10} 00000 n \n");
+        text.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        byte[] bytes = System.Text.Encoding.ASCII.GetBytes(text.ToString());
+
+        PdfAttachmentInfo attachment = Assert.Single(PdfAttachmentReader.Read(PdfDocument.Open(bytes)));
+
+        Assert.Equal("run.bat.", attachment.FileName);
+        Assert.True(attachment.IsPotentiallyExecutable);
+        Assert.True(attachment.HasUnsafeFileName);
+    }
+
     [Fact]
     public void ExtractionPathRejectsTraversalAndExecutableNamesAreFlagged()
     {
-        // Traversal through the platform's own separator. A backslash is a separator only on
-        // Windows; elsewhere it is an ordinary file-name character and the name stays inside.
+        // Traversal through the platform's own separator. Windows name rules apply everywhere,
+        // so a backslash is refused on Linux too.
         Assert.Throws<ArgumentException>(() =>
             PdfAttachmentReader.GetSafeExtractionPath(Path.GetTempPath(), ".." + Path.DirectorySeparatorChar + "outside.txt"));
         Assert.Throws<ArgumentException>(() =>

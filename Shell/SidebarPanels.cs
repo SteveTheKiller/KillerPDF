@@ -604,6 +604,7 @@ namespace KillerPDF.Shell
             try
             {
                 File.WriteAllBytes(dialog.FileName, attachment.Data.ToArray());
+                Services.MarkOfTheWeb.TryApply(dialog.FileName);
                 SetStatus(string.Format(Loc("Str_Panel_AttachmentSaved"), Path.GetFileName(dialog.FileName)));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

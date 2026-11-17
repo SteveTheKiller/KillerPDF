@@ -10,6 +10,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - A PDF built to multiply its own drawing work can no longer hang KillerPDF, the Explorer and Outlook preview, or the page thumbnails. A tiling pattern that paints with itself is skipped, nested drawings share one work limit for the page however wide they branch, and a preview page or thumbnail that takes longer than 15 seconds stops and shows as incomplete.
 - A damaged PDF built to make repair slow opens or fails in seconds. The search for a lost cross-reference stream skips objects that cannot be one and stops after a fixed number of tries, and a broken object stream is read once instead of once for every object inside it.
+- An embedded file named to fool Windows can no longer be extracted under a different name or onto a device. A name ending in a dot or space, such as `run.bat.`, which Windows would save as `run.bat`, is refused, and so are device names such as CON, NUL and COM1. Far more file types count as executable in the attachment safety check, including .hta, .url, .iso and macro-enabled Office files.
+- Files saved out of a PDF are marked as coming from the internet, so Windows SmartScreen and Office Protected View treat them like a download.
 - Redact checks the finished file for the words it found. When one still appears in a bookmark, a link destination's name, a script, the document's details or any other text, the command line refuses to save and the app, macros and the Privacy guided task say which words remain. Removing hidden information now also renames link destinations, which can carry the words they point at, and links keep working.
 - The Signatures panel shows "Certification broken" for a document certified to allow no changes that was changed afterward. It used to say "Valid, changed after signing", which read as a pass.
 - The working copies KillerPDF keeps while you edit are deleted as soon as an edit replaces them, so text a redaction removed no longer sits in a temporary file until KillerPDF closes.
@@ -34,6 +36,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Changed
 
 - On the command line, `--redact` removes hidden information by default and fails when a redacted word survives anywhere in the file. Add `--no-sanitize` to skip that step, or `--sanitize` with a list to choose what is removed.
+- On the command line, `--attachments` no longer replaces files already in the output folder. Add `--overwrite` to replace them.
 
 ## [1.9.4] - 2026-11-15
 

@@ -1378,7 +1378,7 @@ namespace KillerPDF.Features
         {
             if (pos.Count is < 1 or > 2)
             {
-                con.WriteLine("Usage: KillerPDF.exe --attachments <in.pdf> [<outputFolder>] [--json] [--password <p>]");
+                con.WriteLine("Usage: KillerPDF.exe --attachments <in.pdf> [<outputFolder>] [--json] [--overwrite] [--password <p>]");
                 return 2;
             }
             string inPath = Path.GetFullPath(pos[0]);
@@ -1423,7 +1423,9 @@ namespace KillerPDF.Features
             IReadOnlyList<string> written;
             try
             {
-                written = PdfAttachmentReader.ExtractAll(attachments, outDir, overwrite: true);
+                written = PdfAttachmentReader.ExtractAll(attachments, outDir,
+                    overwrite: options.ContainsKey("--overwrite"));
+                foreach (string path in written) Services.MarkOfTheWeb.TryApply(path);
             }
             catch (Exception ex) when (ex is InvalidOperationException
                 or NotSupportedException or ArgumentException or IOException

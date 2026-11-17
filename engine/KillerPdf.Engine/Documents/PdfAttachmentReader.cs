@@ -408,16 +408,39 @@ public static partial class PdfAttachmentReader
         return Array.AsReadOnly(paths);
     }
 
+    // The Windows rules apply on every platform, because a file extracted on Linux can still be
+    // copied to Windows. Windows drops trailing dots and spaces, so "run.bat." lands as run.bat,
+    // and a device name such as CON or COM1, with or without an extension, opens the device.
+    private static readonly char[] WindowsInvalidNameChars =
+        [.. "\"<>|:*?\\/", .. Enumerable.Range(0, 32).Select(code => (char)code)];
+
+    private static readonly HashSet<string> WindowsDeviceNames = new(
+        ["CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
+         .. Enumerable.Range(0, 10).SelectMany(digit => new[] { $"COM{digit}", $"LPT{digit}" }),
+         .. "¹²³".SelectMany(digit => new[] { $"COM{digit}", $"LPT{digit}" })],
+        StringComparer.OrdinalIgnoreCase);
+
+    private static readonly HashSet<string> ExecutableExtensions = new(
+        [".exe", ".com", ".bat", ".cmd", ".ps1", ".psm1", ".psd1", ".msi", ".msp", ".msix", ".appx",
+         ".appxbundle", ".appref-ms", ".scr", ".pif", ".cpl", ".dll", ".sys", ".ocx", ".drv",
+         ".js", ".jse", ".vbs", ".vbe", ".wsf", ".wsh", ".ws", ".hta", ".lnk", ".url", ".reg",
+         ".inf", ".chm", ".jar", ".application", ".gadget", ".msc", ".scf", ".iso", ".img", ".vhd",
+         ".vhdx", ".settingcontent-ms", ".library-ms", ".search-ms", ".docm", ".xlsm", ".pptm",
+         ".dotm", ".xlam", ".sh", ".py", ".pyw", ".app", ".command", ".desktop"],
+        StringComparer.OrdinalIgnoreCase);
+
     private static bool IsSafeFileName(string? fileName) =>
         !string.IsNullOrWhiteSpace(fileName)
         && !Path.IsPathRooted(fileName)
         && fileName == Path.GetFileName(fileName)
         && fileName is not "." and not ".."
-        && fileName.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
+        && fileName.IndexOfAny(Path.GetInvalidFileNameChars()) < 0
+        && fileName.IndexOfAny(WindowsInvalidNameChars) < 0
+        && !fileName.EndsWith('.') && !fileName.EndsWith(' ')
+        && !WindowsDeviceNames.Contains(fileName.Split('.')[0].TrimEnd(' '));
 
     private static bool IsPotentiallyExecutable(string fileName) =>
-        new[] { ".exe", ".com", ".bat", ".cmd", ".ps1", ".msi", ".scr", ".js", ".vbs", ".lnk" }
-            .Contains(Path.GetExtension(fileName), StringComparer.OrdinalIgnoreCase);
+        ExecutableExtensions.Contains(Path.GetExtension(fileName.TrimEnd('.', ' ')));
 
     private static bool HasExecutableContent(ReadOnlySpan<byte> data) =>
         data.StartsWith("MZ"u8)
