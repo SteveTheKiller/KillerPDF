@@ -205,7 +205,7 @@ namespace KillerPDF.Shell
                 RenderDimensions = session.RenderDims.Select(pair => new { Page = pair.Key, Width = pair.Value.w, Height = pair.Value.h }),
                 session.PageRotations, session.FormTextValues, session.FormChoiceValues,
                 session.FormMultiChoiceValues, session.FormCheckValues, session.FormRadioValues,
-                session.FormFontSizes, session.RedactionMarks,
+                session.FormFontSizes, session.FormTextStyles, session.RedactionMarks,
                 Stamps = JsonSerializer.SerializeToElement(_docStampSpec, new JsonSerializerOptions { IncludeFields = true })
             }, options));
         }

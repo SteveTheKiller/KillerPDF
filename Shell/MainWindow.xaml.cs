@@ -80,6 +80,7 @@ namespace KillerPDF.Shell
         private Dictionary<string, bool> _formCheckValues { get => ActiveViewer.FormCheckValuesRef; set => ActiveViewer.FormCheckValuesRef = value; }
         private Dictionary<string, string> _formRadioValues { get => ActiveViewer.FormRadioValuesRef; set => ActiveViewer.FormRadioValuesRef = value; }
         private Dictionary<string, double> _formFontSizes { get => ActiveViewer.FormFontSizesRef; set => ActiveViewer.FormFontSizesRef = value; }
+        private Dictionary<string, Services.FormTextStyle> _formTextStyles { get => ActiveViewer.FormTextStylesRef; set => ActiveViewer.FormTextStylesRef = value; }
         // Floating font-size stepper shown while a form text field is focused.
         private Border? _formSizeBar { get => ActiveViewer.FormSizeBarRef; set => ActiveViewer.FormSizeBarRef = value; }
         private TextBox? _activeFormTb { get => ActiveViewer.ActiveFormTbRef; set => ActiveViewer.ActiveFormTbRef = value; }

@@ -103,6 +103,11 @@ namespace KillerPDF.Controls
         private Dictionary<string, bool> _formCheckValues = [];
         private Dictionary<string, string> _formRadioValues = [];
         private Dictionary<string, double> _formFontSizes = [];
+        // Font, bold, italic and color given to a text field's value, by name like its size.
+        private Dictionary<string, Services.FormTextStyle> _formTextStyles = [];
+        // The look each text field's saved appearance already has, read from the file, for the
+        // fields not given a style here. Rebuilt with the page overlays.
+        private readonly Dictionary<string, Services.FormTextStyle> _formSavedTextStyles = [];
         private Border? _formSizeBar;
         private TextBox? _activeFormTb;
         private string _activeFormName = string.Empty;

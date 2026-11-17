@@ -88,6 +88,23 @@ public sealed class PdfIncrementalUpdateBuilder
             int generation = entry.Type == PdfCrossReferenceEntryType.InUse ? entry.Field2 : 0;
             _objects[pair.Key] = new PendingObject(pair.Key, generation, pair.Value);
         }
+        // A later revision may drop /Info from its trailer and free the object an older trailer still
+        // names (ExifTool does this when it strips metadata). That removal stands, so the update
+        // carries no /Info. A dead /Info in the newest trailer itself is still refused as damage.
+        if (!document.CrossReferences.LatestTrailer.ContainsKey(InfoName)
+            && document.CrossReferences.TryGetTrailerValue(InfoName, out PdfObject inheritedInfo)
+            && inheritedInfo is PdfIndirectReference infoReference
+            && !(document.CrossReferences.TryGetValue(infoReference.ObjectNumber, out PdfCrossReferenceEntry infoEntry)
+                && infoEntry.Type switch
+                {
+                    PdfCrossReferenceEntryType.InUse => infoEntry.Field2 == infoReference.Generation,
+                    PdfCrossReferenceEntryType.Compressed => infoReference.Generation == 0,
+                    _ => false
+                }))
+        {
+            _documentInformationSpecified = true;
+            _documentInformation = null;
+        }
     }
 
     /// <summary>The registered changes at one moment, for an edit that may have to be undone.</summary>

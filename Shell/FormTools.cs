@@ -114,6 +114,7 @@ public partial class MainWindow
             ActiveViewer.FormCheckValuesRef.Clear();
             ActiveViewer.FormRadioValuesRef.Clear();
             ActiveViewer.FormFontSizesRef.Clear();
+            ActiveViewer.FormTextStylesRef.Clear();
         });
         MarkDirty();
     }

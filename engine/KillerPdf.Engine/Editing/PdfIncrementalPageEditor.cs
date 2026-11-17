@@ -102,6 +102,7 @@ public sealed class PdfIncrementalPageEditor
     private static readonly PdfName BorderStyleName = Name("BS");
     private static readonly PdfName MaximumLengthName = Name("MaxLen");
     private static readonly PdfName RichValueName = Name("RV");
+    private static readonly PdfName DefaultStyleName = Name("DS");
     private static readonly PdfName ChoiceFieldName = Name("Ch");
     private static readonly PdfName OptionsName = Name("Opt");
     private static readonly PdfName SelectedIndexesName = Name("I");
@@ -348,6 +349,36 @@ public sealed class PdfIncrementalPageEditor
         {
             KeepsItsValue = true,
             FontForValue = fontForValue
+        };
+        return this;
+    }
+
+    /// <summary>
+    /// Gives a text field its own text font, color, underline and strikethrough and regenerates its
+    /// appearance. The callback gives the font to embed for the value a field shows (null keeps the
+    /// standard font); the color also goes into the field's /DA, and the decorations into its /DS as
+    /// CSS text-decoration. A null keeps the field's own. It joins a value or size already set for the
+    /// name in this editor, or else each field that repeats the name keeps its own value.
+    /// </summary>
+    public PdfIncrementalPageEditor SetTextFieldTextStyle(
+        string fieldName, Func<string, TrueTypeFont?>? fontForValue, PdfRgbColor? textColor,
+        bool? underline = null, bool? strikeThrough = null)
+    {
+        if (string.IsNullOrWhiteSpace(fieldName))
+            throw new ArgumentException("The form field name cannot be empty.", nameof(fieldName));
+        if (!_textFieldValues.TryGetValue(fieldName, out PendingTextFieldValue? pending))
+        {
+            SetTextFieldValue(fieldName, string.Empty);
+            pending = _textFieldValues[fieldName] with { KeepsItsValue = true };
+        }
+        _textFieldValues[fieldName] = pending with
+        {
+            EmbeddedFont = (pending.KeepsItsValue ? null : fontForValue?.Invoke(pending.Value))
+                ?? pending.EmbeddedFont,
+            FontForValue = fontForValue ?? pending.FontForValue,
+            TextColor = textColor ?? pending.TextColor,
+            Underline = underline ?? pending.Underline,
+            StrikeThrough = strikeThrough ?? pending.StrikeThrough
         };
         return this;
     }
@@ -4187,12 +4218,33 @@ public sealed class PdfIncrementalPageEditor
             Alignment = (PdfTextFieldAlignment)OptionalInteger(
                 field, QuaddingName, 0, 2, fieldName)
         };
+        // A value longer than a comb field's cells runs on in cells of the same width past the last one:
+        // the field takes as many cells as the value has characters, and each widget grows by those cells.
+        int? printedCells = options.Comb ? options.MaximumLength : null;
+        int valueLength = pending.Value.EnumerateRunes().Count();
+        if (printedCells is { } cellCount && valueLength > cellCount)
+            options = options with { MaximumLength = valueLength };
+        bool cellsGrew = printedCells.HasValue && options.MaximumLength > printedCells;
         (double existingFontSize, PdfRgbColor textColor) = TextDefaultAppearance(field, form, fieldName);
         double requestedFontSize = pending.FontSize ?? existingFontSize;
+        // Underline and strikethrough live in the field's /DS, so a new value keeps them like its /DA color.
+        string? existingStyle = field.TryGetValue(DefaultStyleName, out PdfObject? styleValue)
+            && ResolveCatalogValue(_document, styleValue, $"The text field '{fieldName}' /DS value") is PdfString styleString
+            ? PdfUnicodeEncoding.DecodeTextString(styleString.Bytes.Span, $"The text field '{fieldName}' /DS value")
+            : null;
+        (bool savedUnderline, bool savedStrike) = TextDecorationsOf(existingStyle);
+        bool underline = pending.Underline ?? savedUnderline;
+        bool strikeThrough = pending.StrikeThrough ?? savedStrike;
+        PdfObject? replacedStyle = pending.Underline.HasValue || pending.StrikeThrough.HasValue
+            ? WithTextDecorations(existingStyle, underline, strikeThrough) is { Length: > 0 } css
+                ? TextString(css) : null
+            : existingStyle is null ? null : styleValue;
+        PdfName[] removedFieldKeys = replacedStyle is null && existingStyle is not null
+            ? [RichValueName, DefaultStyleName] : [RichValueName];
         PdfString? overriddenAppearance = pending.FontSize.HasValue
-            || pending.AppearanceStyle is not null
+            || pending.AppearanceStyle is not null || pending.TextColor is not null
             ? OverrideDefaultAppearance(field, form, fieldName,
-                pending.FontSize, pending.AppearanceStyle?.TextColor)
+                pending.FontSize, pending.TextColor ?? pending.AppearanceStyle?.TextColor)
             : null;
         var widgets = new List<(PdfIndirectReference Reference, PdfDictionary Dictionary)>();
         Collect(fieldReference, field, 0);
@@ -4209,6 +4261,17 @@ public sealed class PdfIncrementalPageEditor
                 style = pending.AppearanceStyle;
             if (pending.HasBackgroundColor)
                 style = style with { BackgroundColor = pending.BackgroundColor };
+            if (pending.TextColor is { } textColorOverride)
+                style = style with { TextColor = textColorOverride };
+            style = style with { Underline = underline, StrikeThrough = strikeThrough };
+            PdfArray? widenedRectangle = null;
+            if (cellsGrew)
+            {
+                int printed = printedCells!.Value;
+                double extra = width / printed * (options.MaximumLength!.Value - printed);
+                widenedRectangle = WidenedRectangle(widget, fieldName, extra, options.Alignment);
+                width += extra;
+            }
             double fontSize = requestedFontSize;
             if (fontSize == 0)
             {
@@ -4216,6 +4279,18 @@ public sealed class PdfIncrementalPageEditor
                 fontSize = Math.Min(height * 0.62, options.Multiline ? 11.5 : 15);
                 if (options.Comb && options.MaximumLength is { } maximumLength)
                     fontSize = Math.Min(fontSize, width / maximumLength / 0.55);
+            }
+            // A single line longer than its box runs on past it, as text written on a printed form does:
+            // the widget grows to hold the line, from the side the alignment leaves free, since a viewer
+            // clips an appearance to its rectangle.
+            if (!options.Multiline && !options.Comb)
+            {
+                double needed = SingleLineWidth(pending.Value, pending.EmbeddedFont, fontSize, options.Password) + 6;
+                if (needed > width)
+                {
+                    widenedRectangle = WidenedRectangle(widget, fieldName, needed - width, options.Alignment);
+                    width = needed;
+                }
             }
             byte[] authored = new PdfDocumentBuilder()
                 .AddBlankPage(Math.Max(1, width), Math.Max(1, height))
@@ -4259,16 +4334,22 @@ public sealed class PdfIncrementalPageEditor
                 [AppearanceCharacteristicsName] = importer.Import(
                     appearanceField[AppearanceCharacteristicsName])
             };
+            if (widenedRectangle is not null)
+                replacements[RectangleName] = widenedRectangle;
             if (widgetReference.Equals(fieldReference))
             {
                 replacements[FieldValueName] = TextString(pending.Value);
                 replacements[FieldFlagsName] = new PdfInteger(flags & ~(1L << 25));
                 if (overriddenAppearance is not null)
                     replacements[DefaultAppearanceName] = overriddenAppearance;
+                if (replacedStyle is not null)
+                    replacements[DefaultStyleName] = replacedStyle;
+                if (cellsGrew)
+                    replacements[MaximumLengthName] = new PdfInteger(options.MaximumLength!.Value);
             }
             update.ReplaceObject(widgetReference.ObjectNumber,
                 ReplaceMany(widget, replacements,
-                    widgetReference.Equals(fieldReference) ? [RichValueName] : []));
+                    widgetReference.Equals(fieldReference) ? removedFieldKeys : []));
         }
         if (!widgets.Any(widget => widget.Reference.Equals(fieldReference)))
         {
@@ -4279,8 +4360,12 @@ public sealed class PdfIncrementalPageEditor
                 };
             if (overriddenAppearance is not null)
                 fieldReplacements[DefaultAppearanceName] = overriddenAppearance;
+            if (replacedStyle is not null)
+                fieldReplacements[DefaultStyleName] = replacedStyle;
+            if (cellsGrew)
+                fieldReplacements[MaximumLengthName] = new PdfInteger(options.MaximumLength!.Value);
             update.ReplaceObject(fieldReference.ObjectNumber,
-                ReplaceMany(field, fieldReplacements, [RichValueName]));
+                ReplaceMany(field, fieldReplacements, removedFieldKeys));
         }
 
         void Collect(PdfIndirectReference reference, PdfDictionary candidate, int depth)
@@ -4503,6 +4588,40 @@ public sealed class PdfIncrementalPageEditor
             PdfStringForm.Literal);
     }
 
+    // The underline and strikethrough a /DS default style string asks for through CSS text-decoration.
+    internal static (bool Underline, bool StrikeThrough) TextDecorationsOf(string? style)
+    {
+        foreach (string declaration in (style ?? string.Empty).Split(';'))
+        {
+            int colon = declaration.IndexOf(':');
+            if (colon < 0 || !declaration[..colon].Trim().Equals("text-decoration", StringComparison.OrdinalIgnoreCase))
+                continue;
+            string value = declaration[(colon + 1)..];
+            return (value.Contains("underline", StringComparison.OrdinalIgnoreCase),
+                value.Contains("line-through", StringComparison.OrdinalIgnoreCase));
+        }
+        return (false, false);
+    }
+
+    // A /DS string with its text-decoration declaration replaced, and its other declarations kept.
+    private static string WithTextDecorations(string? style, bool underline, bool strikeThrough)
+    {
+        var declarations = (style ?? string.Empty).Split(';')
+            .Select(declaration => declaration.Trim())
+            .Where(declaration => declaration.Length > 0 && !(declaration.IndexOf(':') is var colon and > 0
+                && declaration[..colon].Trim().Equals("text-decoration", StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        string decoration = (underline, strikeThrough) switch
+        {
+            (true, true) => "underline line-through",
+            (true, false) => "underline",
+            (false, true) => "line-through",
+            _ => string.Empty
+        };
+        if (decoration.Length > 0) declarations.Add("text-decoration: " + decoration);
+        return string.Join("; ", declarations);
+    }
+
     private long FieldFlags(PdfDictionary field, string fieldName)
     {
         if (!field.TryGetValue(FieldFlagsName, out PdfObject? value)) return 0;
@@ -4583,6 +4702,35 @@ public sealed class PdfIncrementalPageEditor
             && double.IsFinite(number) && number is >= 0 and <= 1;
     }
 
+    // The width a single line takes, measured as the appearance builder lays it out: the embedded font's
+    // advances, or 0.55 em per character in a standard font. A password shows one mark per character.
+    private static double SingleLineWidth(string value, TrueTypeFont? font, double fontSize, bool password)
+    {
+        if (password) value = new string('*', value.EnumerateRunes().Count());
+        return font is null
+            ? value.EnumerateRunes().Count() * fontSize * 0.55
+            : font.MapText(value).Sum(mapping => font.GetPdfAdvanceWidth(mapping.Glyph)) * fontSize / 1000;
+    }
+
+    // The widget's /Rect made wider by the extra width: to the right of left-aligned text, to the left of
+    // right-aligned text, and half each way for centred text.
+    private PdfArray WidenedRectangle(PdfDictionary widget, string fieldName, double extra,
+        PdfTextFieldAlignment alignment)
+    {
+        PdfArray rectangle = ResolveArray(
+            _document, widget[RectangleName], $"The text field '{fieldName}' /Rect value");
+        double[] values = [.. rectangle.Select(NumberValue)];
+        double left = Math.Min(values[0], values[2]), right = Math.Max(values[0], values[2]);
+        double bottom = Math.Min(values[1], values[3]), top = Math.Max(values[1], values[3]);
+        (left, right) = alignment switch
+        {
+            PdfTextFieldAlignment.Right => (left - extra, right),
+            PdfTextFieldAlignment.Center => (left - extra / 2, right + extra / 2),
+            _ => (left, right + extra)
+        };
+        return new PdfArray([Number(left), Number(bottom), Number(right), Number(top)]);
+    }
+
     private (double Width, double Height) WidgetSize(
         PdfDictionary widget, string fieldName)
     {
@@ -4605,12 +4753,16 @@ public sealed class PdfIncrementalPageEditor
     {
         PdfRgbColor? background = null;
         PdfRgbColor? border = null;
+        bool markedTransparent = false;
         if (widget.TryGetValue(AppearanceCharacteristicsName, out PdfObject? mkValue))
         {
             PdfDictionary mk = ResolveDictionary(
                 _document, mkValue, $"The text field '{fieldName}' /MK value");
             background = OptionalRgb(mk, Name("BG"), fieldName);
             border = OptionalRgb(mk, Name("BC"), fieldName);
+            // An empty /BG says the field is clear on purpose; regenerating it must keep saying so.
+            markedTransparent = mk.TryGetValue(Name("BG"), out PdfObject? backgroundValue)
+                && ResolveCatalogValue(_document, backgroundValue, $"The text field '{fieldName}' /MK /BG value") is PdfArray { Count: 0 };
         }
         double width = 1;
         PdfFormFieldBorderStyle style = PdfFormFieldBorderStyle.Solid;
@@ -4650,7 +4802,8 @@ public sealed class PdfIncrementalPageEditor
             TextColor = textColor,
             BorderWidth = width,
             BorderStyle = style,
-            DashPattern = dash
+            DashPattern = dash,
+            MarkedTransparent = markedTransparent
         };
     }
 
@@ -19450,6 +19603,12 @@ public sealed class PdfIncrementalPageEditor
         /// <summary>A change of look only: each field regenerates around the value it holds.</summary>
         public bool KeepsItsValue { get; init; }
         public Func<string, TrueTypeFont?>? FontForValue { get; init; }
+        /// <summary>A text color for the appearance and the field's /DA, or null to keep the field's own.</summary>
+        public PdfRgbColor? TextColor { get; init; }
+        /// <summary>Underline for the value, or null to keep what the field's /DS says.</summary>
+        public bool? Underline { get; init; }
+        /// <summary>Strikethrough for the value, or null to keep what the field's /DS says.</summary>
+        public bool? StrikeThrough { get; init; }
     }
     private sealed record PendingTextFieldBehavior(
         bool Multiline, bool DoNotScroll, PdfTextFieldAlignment Alignment);

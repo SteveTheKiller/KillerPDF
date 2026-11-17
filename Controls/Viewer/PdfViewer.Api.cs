@@ -313,6 +313,7 @@ namespace KillerPDF.Controls
         internal Dictionary<string, bool> FormCheckValuesRef { get => _formCheckValues; set => _formCheckValues = value; }
         internal Dictionary<string, string> FormRadioValuesRef { get => _formRadioValues; set => _formRadioValues = value; }
         internal Dictionary<string, double> FormFontSizesRef { get => _formFontSizes; set => _formFontSizes = value; }
+        internal Dictionary<string, Services.FormTextStyle> FormTextStylesRef { get => _formTextStyles; set => _formTextStyles = value; }
         internal Border? FormSizeBarRef { get => _formSizeBar; set => _formSizeBar = value; }
         internal TextBox? ActiveFormTbRef { get => _activeFormTb; set => _activeFormTb = value; }
         internal string ActiveFormNameRef { get => _activeFormName; set => _activeFormName = value; }

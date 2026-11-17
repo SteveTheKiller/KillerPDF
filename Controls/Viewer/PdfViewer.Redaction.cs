@@ -601,6 +601,7 @@ namespace KillerPDF.Controls
                         _formCheckValues.Remove(field);
                         _formRadioValues.Remove(field);
                         _formFontSizes.Remove(field);
+                        _formTextStyles.Remove(field);
                     }
                     _redactMarks.RemoveAll(mark => !skipped.Contains(mark.PageIndex));
                 });
@@ -672,6 +673,7 @@ namespace KillerPDF.Controls
                     _formCheckValues.Clear();
                     _formRadioValues.Clear();
                     _formFontSizes.Clear();
+                    _formTextStyles.Clear();
                 }
                 ReportResult(Loc("Str_RedactFinish_Done"));
             }

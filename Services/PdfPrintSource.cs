@@ -15,13 +15,15 @@ internal static class PdfPrintSource
                 item => (IReadOnlyList<string>)[.. item.Value]),
             new Dictionary<string, bool>(edits.CheckBoxValues),
             new Dictionary<string, string>(edits.RadioValues),
-            new Dictionary<string, double>(edits.TextFontSizes));
+            new Dictionary<string, double>(edits.TextFontSizes),
+            new Dictionary<string, FormTextStyle>(edits.TextStyles ?? new Dictionary<string, FormTextStyle>()));
     }
 
     internal static bool HasValues(PdfEngineIntegration.FormEdits edits) =>
         edits.TextValues.Count > 0 || edits.ChoiceValues.Count > 0
         || edits.MultiChoiceValues.Count > 0 || edits.CheckBoxValues.Count > 0
-        || edits.RadioValues.Count > 0 || edits.TextFontSizes.Count > 0;
+        || edits.RadioValues.Count > 0 || edits.TextFontSizes.Count > 0
+        || edits.TextStyles is { Count: > 0 };
 
     internal static void Create(string sourcePath, string printPath, PdfEngineIntegration.FormEdits edits)
     {

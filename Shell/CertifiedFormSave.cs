@@ -12,7 +12,7 @@ public partial class MainWindow
     {
         if (_doc is null || _currentFile is null || _annotations.Values.Any(list => list.Count > 0)
             || HasActiveStamps || ActiveViewer.RedactionMarkCountExt > 0 || _formFontSizes.Count > 0
-            || ActiveViewer.ActiveTextBoxRef is not null)
+            || _formTextStyles.Count > 0 || ActiveViewer.ActiveTextBoxRef is not null)
             return false;
         try
         {
