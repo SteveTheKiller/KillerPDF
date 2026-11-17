@@ -50,8 +50,9 @@ internal static class PreviewHandlerRegistration
             key.SetValue("", DisplayName);
             key.SetValue("DisplayName", DisplayName);
             key.SetValue("AppID", AppId);
-            // The pane reads the font index from the user's KillerPDF data folder.
-            key.SetValue("DisableLowILProcessIsolation", 1, RegistryValueKind.DWord);
+            // The pane keeps Windows' low-integrity preview sandbox. It only reads the font index
+            // and settings, which low integrity allows, and an older install's opt-out is removed.
+            key.DeleteValue("DisableLowILProcessIsolation", throwOnMissingValue: false);
         }
         using (RegistryKey key = root.CreateSubKey(ClassKey + @"\InprocServer32"))
         {

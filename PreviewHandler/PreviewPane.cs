@@ -406,7 +406,8 @@ internal sealed partial class PreviewPane : IDisposable
     {
         try
         {
-            string root = Path.Combine(Path.GetTempPath(), "KillerPDF Preview");
+            // LocalLow, because the low-integrity preview cannot write to %TEMP%.
+            string root = Path.Combine(DesktopLaunch.LowWritableFolder(), "KillerPDF Preview");
             Directory.CreateDirectory(root);
             RemoveOldCopies(root);
             string folder = Path.Combine(root, Guid.NewGuid().ToString("N")[..8]);
@@ -417,9 +418,7 @@ internal sealed partial class PreviewPane : IDisposable
             File.WriteAllBytes(copy, _data);
             File.SetAttributes(copy, FileAttributes.ReadOnly);
             string directory = Path.GetDirectoryName(typeof(PreviewPane).Assembly.Location) ?? AppContext.BaseDirectory;
-            var start = new ProcessStartInfo(Path.Combine(directory, "KillerPDF.App.exe")) { UseShellExecute = false };
-            start.ArgumentList.Add(copy);
-            Process.Start(start)?.Dispose();
+            DesktopLaunch.Start(Path.Combine(directory, "KillerPDF.App.exe"), copy);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {

@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Security
 
+- The Explorer and Outlook preview runs in Windows' low-integrity preview sandbox again, so a PDF that exploited it could not write to your files or settings. Open in KillerPDF still starts the full app normally.
 - A PDF built to multiply its own drawing work can no longer hang KillerPDF, the Explorer and Outlook preview, or the page thumbnails. A tiling pattern that paints with itself is skipped, nested drawings share one work limit for the page however wide they branch, and a preview page or thumbnail that takes longer than 15 seconds stops and shows as incomplete.
 - A damaged PDF built to make repair slow opens or fails in seconds. The search for a lost cross-reference stream skips objects that cannot be one and stops after a fixed number of tries, and a broken object stream is read once instead of once for every object inside it.
 - An embedded file named to fool Windows can no longer be extracted under a different name or onto a device. A name ending in a dot or space, such as `run.bat.`, which Windows would save as `run.bat`, is refused, and so are device names such as CON, NUL and COM1. Far more file types count as executable in the attachment safety check, including .hta, .url, .iso and macro-enabled Office files.
