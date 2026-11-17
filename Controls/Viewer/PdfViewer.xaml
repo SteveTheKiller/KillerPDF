@@ -170,7 +170,6 @@
                                             RenderTransform="{DynamicResource TabPlacementTransform}" RenderTransformOrigin="0.5,0.5"
                                             UseLayoutRounding="True" SnapsToDevicePixels="True"
                                             Cursor="Hand" Background="Transparent"
-                                            local:ThemeMotif.Part="Chrome" local:ThemeMotif.BaseBrush="BackgroundBrush"
                                             BorderThickness="0,0,1,0" BorderBrush="{DynamicResource PaneEdgeBrush}"
                                             DividerBrush="{DynamicResource PaneBorderBrush}"
                                             ToolTip="{Binding TabTip}"
@@ -263,8 +262,8 @@
                                                  over the document, above the lighter pane. -->
                                             <Setter TargetName="tabBd" Property="Background" Value="{DynamicResource TabActiveBrush}"/>
                                             <!-- Trash Polka: the front tab carries the pane's own piece, pinned to the
-                                                 window, so it continues the card below seamlessly; inactive tabs keep
-                                                 the background piece on the panel black. -->
+                                                 window, so it continues the card below seamlessly. Inactive tabs stay
+                                                 transparent so the window's own ink and film grain show through. -->
                                             <Setter TargetName="tabBd" Property="local:ThemeMotif.BaseBrush" Value="ContentPaneBrush"/>
                                             <Setter TargetName="tabBd" Property="local:ThemeMotif.Part" Value="Window"/>
                                             <Setter TargetName="tabGrain" Property="Opacity" Value="{DynamicResource GrainOpacity}"/>
