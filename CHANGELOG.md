@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
-- Trash Polka, a new theme under 98SE: a black window covered in a tattoo-style ink piece built around circuit-board hexagons, with dry-brush strokes, smeared bars, ink splatter and halftone dots in your accent color. Pick from eight accents, with Blood red as the default. Each document pane carries its own piece that runs up into its active tab, the bars, sidebar, dialogs, flyouts and menus carry a fainter one, and the image stays put when you resize a pane.
+- Trash Polka, a new theme under 98SE: black with a tattoo-style ink background in your accent color, from eight accents with Blood red as the default.
 - Merge opens a Merge files dialog instead of a plain file picker. Drop PDF files or whole folders on it from File Explorer, or use Add files and Add folder, then drag files into the order you want, or use Move up and Move down. A folder adds the PDFs directly inside it, in name order. (#495)
 - The open and save dialogs have a New folder button, also on Ctrl+Shift+N. The folder is created in the current folder and opened, so a Save As can go straight into it. A name Windows won't accept is explained before anything is created. (#498)
 
