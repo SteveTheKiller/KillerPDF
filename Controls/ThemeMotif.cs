@@ -70,6 +70,15 @@ namespace KillerPDF.Controls
 
         private static readonly Dictionary<MotifPart, (Color Accent, Size Size, Drawing Piece)> Pieces = [];
 
+        // The bitmap pieces, one per set of layers, tinted for the accent they were last painted with.
+        private sealed class TintedPiece(Color accent, Drawing piece)
+        {
+            internal Color Accent { get; } = accent;
+            internal Drawing Piece { get; } = piece;
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TrashPolkaRaster.Layers, TintedPiece> RasterPieces = new();
+
         private static void OnPartChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is not FrameworkElement element) return;
@@ -285,24 +294,43 @@ namespace KillerPDF.Controls
                 MotifPart.Popup => TrashPolkaInk.PopupOpacity,
                 _ => TrashPolkaInk.PaneOpacity,
             };
-            string stamp = $"{part}|{accent.Color}|{baseBrush.Color}|{pane}|{window}|{opacity}";
+            var size = new Size(Math.Ceiling(SystemParameters.PrimaryScreenWidth / TrashPolkaInk.Scale),
+                Math.Ceiling(SystemParameters.PrimaryScreenHeight / TrashPolkaInk.Scale));
+            int seed = part switch { MotifPart.Window => TrashPolkaInk.WindowSeed, MotifPart.Split => TrashPolkaInk.SplitSeed, _ => TrashPolkaInk.BackgroundSeed };
+            // The bitmap layers (TrashPolkaRaster) are built in the background at this monitor's scale; until they land the
+            // element shows the vector piece, and Retune repaints every element once they do.
+            double dpi = VisualTreeHelper.GetDpi(element).DpiScaleX;
+            var layers = TrashPolkaRaster.Get(seed, size, TrashPolkaInk.Scale, dpi, Retune);
+            string stamp = $"{part}|{accent.Color}|{baseBrush.Color}|{pane}|{window}|{opacity}|{(layers is null ? "vector" : "raster " + dpi)}";
             if ((string?)element.GetValue(PaintedProperty) == stamp) return;
 
             // Every part carries a full ink piece (TrashPolkaInk): the document canvas and the split pane their own, the
             // window background and its chrome (title bar, toolbar, sidebar, frame) a third one, so the raised panes never
             // continue the background's image. Each is drawn ONCE at screen size and pinned to the window, so resizing
             // only shows more or less of the same image (Steve, 2026-11-16: "the images scrunch up and change").
-            var size = new Size(Math.Ceiling(SystemParameters.PrimaryScreenWidth / TrashPolkaInk.Scale),
-                Math.Ceiling(SystemParameters.PrimaryScreenHeight / TrashPolkaInk.Scale));
             // An accent switch only recolors the shared accent brushes; the pieces are redrawn only for a new screen size.
-            TrashPolkaInk.SetAccent(accent.Color);
-            if (!Pieces.TryGetValue(part, out var cached) || cached.Size != size)
+            Drawing piece;
+            if (layers is not null)
             {
-                int seed = part switch { MotifPart.Window => TrashPolkaInk.WindowSeed, MotifPart.Split => TrashPolkaInk.SplitSeed, _ => TrashPolkaInk.BackgroundSeed };
-                cached = (accent.Color, size, TrashPolkaInk.Draw(accent.Color, size, seed));
-                Pieces[part] = cached;
+                var tint = Color.FromRgb(accent.Color.R, accent.Color.G, accent.Color.B);
+                if (!RasterPieces.TryGetValue(layers, out var composed) || composed.Accent != tint)
+                {
+                    RasterPieces.Remove(layers);
+                    RasterPieces.Add(layers, composed = new TintedPiece(tint, TrashPolkaRaster.Compose(layers, size, tint)));
+                }
+                piece = composed.Piece;
             }
-            var brush = TrashPolkaMotif.Compose(baseBrush.Color, cached.Piece, pane, window, scale: TrashPolkaInk.Scale, opacity: opacity);
+            else
+            {
+                TrashPolkaInk.SetAccent(accent.Color);
+                if (!Pieces.TryGetValue(part, out var cached) || cached.Size != size)
+                {
+                    cached = (accent.Color, size, TrashPolkaInk.Draw(accent.Color, size, seed));
+                    Pieces[part] = cached;
+                }
+                piece = cached.Piece;
+            }
+            var brush = TrashPolkaMotif.Compose(baseBrush.Color, piece, pane, window, scale: TrashPolkaInk.Scale, opacity: opacity);
             element.SetValue(PaintedProperty, stamp);
             // First paint since the last restore: remember whether the background we are about to replace was local.
             if (BackgroundProperty(element) is { } bg && element.ReadLocalValue(PaintedBrushProperty) == DependencyProperty.UnsetValue)
