@@ -100,9 +100,44 @@ namespace KillerPDF.Controls
 
         // ---- Every other window --------------------------------------------------------------------------------------
 
-        // The palette brushes a dialog's root can paint; the first that matches the root's brush is its base brush.
-        private static readonly string[] RootBrushKeys =
-            ["BackgroundBrush", "PaneBrush", "SurfaceBrush", "MenuBackgroundBrush", "FileDialogPaneBrush", "ContentPaneBrush", "BgCanvas", "TitleBarBrush"];
+        // Which part a surface painting a palette brush becomes, so every window mirrors the app: dark surfaces carry the
+        // background piece, canvas-gray preview frames the pane piece, menus and bars the popup piece.
+        private static readonly (string Key, MotifPart Part)[] SurfaceParts =
+        [
+            ("BackgroundBrush", MotifPart.Chrome), ("TitleBarBrush", MotifPart.Chrome),
+            ("BgCanvas", MotifPart.Window), ("ContentPaneBrush", MotifPart.Window),
+            ("MenuBackgroundBrush", MotifPart.Popup), ("AnnotationBarBrush", MotifPart.Popup),
+        ];
+
+        private static (string Key, MotifPart Part)? SurfaceOf(FrameworkElement el)
+        {
+            if (!el.IsHitTestVisible || GetPart(el) != MotifPart.None) return null;
+            var brush = el switch { Border b => b.Background, Panel p => p.Background, Control c => c.Background, _ => null };
+            if (brush is not SolidColorBrush { Color.A: 255 }) return null;
+            foreach (var s in SurfaceParts)
+                if (ReferenceEquals(el.TryFindResource(s.Key), brush)) return s;
+            return null;
+        }
+
+        private static void Mark(FrameworkElement el, (string Key, MotifPart Part) s)
+        {
+            SetBaseBrush(el, s.Key);
+            SetPart(el, s.Part);
+        }
+
+        // Every opaque palette surface in a tree. Stacked opaque surfaces each paint the same pinned piece, and the top
+        // one hides the rest, so marking them all never doubles the ink.
+        private static void MarkTree(FrameworkElement root, int budget = 6000)
+        {
+            var queue = new Queue<DependencyObject>();
+            queue.Enqueue(root);
+            while (queue.Count > 0 && budget-- > 0)
+            {
+                var node = queue.Dequeue();
+                if (node is FrameworkElement el && SurfaceOf(el) is { } s) Mark(el, s);
+                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++) queue.Enqueue(VisualTreeHelper.GetChild(node, i));
+            }
+        }
 
         private static bool _allWindows;
 
@@ -123,14 +158,10 @@ namespace KillerPDF.Controls
 
         private static void OnPopupContentLoaded(object sender, RoutedEventArgs e)
         {
-            if (sender is not FrameworkElement element || element is Window || !IsPopupTop(element)) return;
-            var target = FindOpaqueRoot(element, 4);
-            if (target is null || GetPart(target) != MotifPart.None) return;
-            var brush = target switch { Border b => b.Background, Panel p => p.Background, Control c => c.Background, _ => null };
-            string? key = RootBrushKeys.FirstOrDefault(k => ReferenceEquals(target.TryFindResource(k), brush));
-            if (key is null) return;
-            SetBaseBrush(target, key);
-            SetPart(target, MotifPart.Popup);
+            if (sender is not FrameworkElement element || element is Window) return;
+            if (IsPopupTop(element)) { MarkTree(element); return; }
+            // Bars built at runtime inside a window (annotation tool bars) paint the menu brush: mark them as they load.
+            if (SurfaceOf(element) is { Part: MotifPart.Popup } s) Mark(element, s);
         }
 
         // True for the element a popup hosts: its visual parent (or the one above) is WPF's internal PopupRoot.
@@ -146,33 +177,7 @@ namespace KillerPDF.Controls
         {
             if (sender is not Window window || window.Content is not FrameworkElement root) return;
             if (GetPart(root) != MotifPart.None) return;
-            var target = FindOpaqueRoot(root, 4);
-            if (target is null || GetPart(target) != MotifPart.None) return;
-            var brush = target switch { Border b => b.Background, Panel p => p.Background, Control c => c.Background, _ => null };
-            string? key = RootBrushKeys.FirstOrDefault(k => ReferenceEquals(target.TryFindResource(k), brush));
-            if (key is null) return;
-            SetBaseBrush(target, key);
-            SetPart(target, MotifPart.Chrome);
-        }
-
-        // Breadth-first down a few levels for the first element painting an opaque brush.
-        private static FrameworkElement? FindOpaqueRoot(FrameworkElement root, int depth)
-        {
-            var level = new List<FrameworkElement> { root };
-            for (int d = 0; d < depth && level.Count > 0; d++)
-            {
-                foreach (var el in level)
-                {
-                    var brush = el switch { Border b => b.Background, Panel p => p.Background, Control c => c.Background, _ => null };
-                    if (brush is SolidColorBrush { Color.A: 255 }) return el;
-                }
-                var next = new List<FrameworkElement>();
-                foreach (var el in level)
-                    for (int i = 0; i < VisualTreeHelper.GetChildrenCount(el); i++)
-                        if (VisualTreeHelper.GetChild(el, i) is FrameworkElement child) next.Add(child);
-                level = next;
-            }
-            return null;
+            MarkTree(root);
         }
 
         private static event Action? Retuned;
@@ -227,7 +232,12 @@ namespace KillerPDF.Controls
                 window = new Size(root.ActualWidth, root.ActualHeight);
             }
 
-            double opacity = part is MotifPart.Chrome or MotifPart.Popup ? TrashPolkaInk.BackgroundOpacity : TrashPolkaInk.PaneOpacity;
+            double opacity = part switch
+            {
+                MotifPart.Chrome => TrashPolkaInk.BackgroundOpacity,
+                MotifPart.Popup => TrashPolkaInk.PopupOpacity,
+                _ => TrashPolkaInk.PaneOpacity,
+            };
             string stamp = $"{part}|{accent.Color}|{baseBrush.Color}|{pane}|{window}|{opacity}";
             if ((string?)element.GetValue(PaintedProperty) == stamp) return;
 

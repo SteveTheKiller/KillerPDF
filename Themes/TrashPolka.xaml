@@ -48,7 +48,7 @@
 
     <SolidColorBrush x:Key="InputBorderBrush"    Color="#2e2e2e" po:Freeze="True"/>
     <!-- Flyouts and menus sit a step above the black window. -->
-    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#1a1a1a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#121212" po:Freeze="True"/>
     <SolidColorBrush x:Key="TerminalBackgroundBrush" Color="#3a3a3a" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuBorderBrush"     Color="#404040" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuTextBrush"       Color="#a3a3a3" po:Freeze="True"/>
