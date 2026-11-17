@@ -24,7 +24,7 @@ internal static partial class PdfJpeg2000Decoder
             int length = checked(rowBytes * height);
             if (length > maximumDecodedBytes)
                 throw new PdfFilterException("Decoded stream exceeds the configured safety limit.");
-            return OpenJpegDecoder.Decode(LocateCodestream(source.Span), shape,
+            return OpenJpegDecoder.Decode(WithoutTileLengthMarkers(LocateCodestream(source.Span)), shape,
                 reduction, width, height, rowBytes, length, maximumParallelism);
         }
         catch (PdfFilterException)
@@ -100,6 +100,40 @@ internal static partial class PdfJpeg2000Decoder
             offset += checked(segmentLength + 2);
         }
         throw new PdfFilterException("JPEG 2000 data has no coding-style header.");
+    }
+
+    // TLM segments are an optional index of tile-part lengths. OpenJPEG 2.5.4 seeks by them and
+    // corrupts its heap when they are wrong, so they are dropped and tile-parts are read in order.
+    internal static byte[] WithoutTileLengthMarkers(ReadOnlySpan<byte> codestream)
+    {
+        var kept = new List<Range>();
+        int start = 0, offset = 2;
+        while (offset <= codestream.Length - 4 && codestream[offset] == 0xFF)
+        {
+            byte marker = codestream[offset + 1];
+            if (marker == 0x90) break;
+            int segment = BinaryPrimitives.ReadUInt16BigEndian(codestream[(offset + 2)..]);
+            if (segment < 2 || segment > codestream.Length - offset - 2) break;
+            if (marker == 0x55)
+            {
+                kept.Add(start..offset);
+                start = offset + 2 + segment;
+            }
+            offset += 2 + segment;
+        }
+        if (kept.Count == 0) return codestream.ToArray();
+        kept.Add(start..codestream.Length);
+        int total = 0;
+        foreach (Range range in kept) total += range.GetOffsetAndLength(codestream.Length).Length;
+        var result = new byte[total];
+        int written = 0;
+        foreach (Range range in kept)
+        {
+            ReadOnlySpan<byte> part = codestream[range];
+            part.CopyTo(result.AsSpan(written));
+            written += part.Length;
+        }
+        return result;
     }
 
     private static ReadOnlySpan<byte> LocateCodestream(ReadOnlySpan<byte> source)
