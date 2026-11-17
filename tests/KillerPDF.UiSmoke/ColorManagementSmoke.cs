@@ -25,7 +25,8 @@ internal static class ColorManagementSmoke
     {
         if (Environment.MachineName is not ("SN01" or "SN02")) throw new InvalidOperationException("Color controls require an owned VM.");
         string engineHash = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
-        string codecHash = SelectedAssemblyIdentity.HashLoaded(Assembly.Load("CoreJ2K"), appPath);
+        string codecPath = Path.Combine(Path.GetDirectoryName(appPath)!, "openjp2.dll");
+        string codecHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(codecPath)));
         Directory.CreateDirectory(folder);
         string source = Path.Combine(folder, nativeEpub ? "color-controls.epub" : nativeDjvu ? "color-controls.djvu" : "color-controls.pdf");
         byte[] original = nativeEpub ? EpubFixture() : nativeDjvu ? Convert.FromBase64String(

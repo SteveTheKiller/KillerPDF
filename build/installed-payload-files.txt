@@ -1,5 +1,4 @@
 CommunityToolkit.Mvvm.dll
-CoreJ2K.dll
 KillerPDF.App.deps.json
 KillerPDF.App.dll
 KillerPDF.App.exe
@@ -14,6 +13,8 @@ LICENSE
 Microsoft.ML.OnnxRuntime.dll
 NTwain.dll
 onnxruntime.dll
+openjp2.dll
+OpenJPEG-LICENSE.txt
 onnxruntime.lib
 onnxruntime_providers_azure.lib
 onnxruntime_providers_shared.dll

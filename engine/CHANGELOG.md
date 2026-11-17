@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.5] - Unreleased
 
+### Changed
+
+- Decode JPEG 2000 with OpenJPEG and bundle the native decoder for Windows x64.
+
 ## [1.9.4] - 2026-11-15
 
 ### Fixed

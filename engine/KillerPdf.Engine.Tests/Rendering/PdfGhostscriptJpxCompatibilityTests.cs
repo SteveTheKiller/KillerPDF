@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using CoreJ2K;
 using CoreJ2K.Configuration;
 using CoreJ2K.Util;
@@ -21,7 +20,7 @@ public sealed class PdfGhostscriptJpxCompatibilityTests
     private const string IndexRoundsDown =
         "/0//UQApAAAAAAAQAAAAEAAAAAAAAAAAAAAAEAAAABAAAAAAAAAAAAABBwEB/1IADAAAAAEAAgQEAAD/XAARQl9SUAVQBVBHV9NX01di/2QAJQABQ3JlYXRlZCBieSBPcGVuSlBFRyB2ZXJzaW9uIDIuNS40/5AACgAAAAAAKQAB/5PHxCgSWtb1f7yjQojHwijDAB8EJKNpxGBXg2P/2Q==";
 
-    [OpenJpegPrototypeTheory]
+    [Theory]
     [InlineData(IndexRoundsUp, 12, 13, 34)]
     [InlineData(IndexRoundsDown, 8, 7, 156)]
     public void Render_UsesGhostscriptConfirmedIndicesForLossyJpx(
@@ -106,13 +105,4 @@ public sealed class PdfGhostscriptJpxCompatibilityTests
     private static PdfDictionary Dictionary(PdfDocument document, PdfObject value) =>
         Assert.IsType<PdfDictionary>(document.Resolve(Assert.IsType<PdfIndirectReference>(value)));
 
-    private sealed class OpenJpegPrototypeTheoryAttribute : TheoryAttribute
-    {
-        public OpenJpegPrototypeTheoryAttribute()
-        {
-            if (!OperatingSystem.IsWindows() || RuntimeInformation.ProcessArchitecture != Architecture.X64
-                || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("KILLERPDF_OPENJPEG_PROTOTYPE")))
-                Skip = "Requires the opt-in Windows x64 OpenJPEG prototype.";
-        }
-    }
 }

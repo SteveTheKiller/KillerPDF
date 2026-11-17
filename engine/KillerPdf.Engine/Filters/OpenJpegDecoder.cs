@@ -2,33 +2,16 @@ using System.Runtime.InteropServices;
 
 namespace KillerPdf.Engine.Filters;
 
-// Windows x64 experiment against the OpenJPEG 2.5.4 C ABI.
-internal static class OpenJpegPrototype
+// OpenJPEG 2.5.4 C ABI. The packaged native library targets Windows x64.
+internal static class OpenJpegDecoder
 {
-    private const string ImportName = "killerpdf-openjpeg-prototype";
-    private static long _attempts;
-    internal static long Attempts => Interlocked.Read(ref _attempts);
-
-    static OpenJpegPrototype()
-    {
-        NativeLibrary.SetDllImportResolver(typeof(OpenJpegPrototype).Assembly, (name, _, _) =>
-            name == ImportName
-                ? NativeLibrary.Load(GetLibraryPath())
-                : IntPtr.Zero);
-    }
-
-    private static string GetLibraryPath()
-    {
-        string setting = Environment.GetEnvironmentVariable("KILLERPDF_OPENJPEG_PROTOTYPE")!;
-        return setting == "1" ? Path.Combine(AppContext.BaseDirectory, "openjp2.dll") : setting;
-    }
+    private const string ImportName = "openjp2";
 
     internal static Jpeg2000DecodedImage Decode(ReadOnlySpan<byte> codestream, Jpeg2000Shape shape,
-        int reduction, int width, int height, int rowBytes, int length)
+        int reduction, int width, int height, int rowBytes, int length, int maximumParallelism)
     {
-        Interlocked.Increment(ref _attempts);
         if ((long)width * height * shape.Components * sizeof(int) > 256L * 1024 * 1024)
-            throw new PdfFilterException("OpenJPEG prototype sample allocation exceeds its limit.");
+            throw new PdfFilterException("OpenJPEG sample allocation exceeds the configured safety limit.");
         string file = Path.GetTempFileName();
         IntPtr codec = IntPtr.Zero, stream = IntPtr.Zero, image = IntPtr.Zero;
         try
@@ -40,8 +23,11 @@ internal static class OpenJpegPrototype
             var parameters = new DecoderParameters();
             SetDefaults(ref parameters);
             parameters.Reduction = (uint)reduction;
-            if (codec == IntPtr.Zero || stream == IntPtr.Zero || Setup(codec, ref parameters) == 0
-                || ReadHeader(stream, codec, out image) == 0 || DecodeImage(codec, stream, image) == 0
+            if (codec == IntPtr.Zero || stream == IntPtr.Zero || Setup(codec, ref parameters) == 0)
+                throw new PdfFilterException("OpenJPEG could not initialize the JPEG 2000 decoder.");
+            SetThreads(codec, Math.Clamp(maximumParallelism, 1, Environment.ProcessorCount));
+            if (ReadHeader(stream, codec, out image) == 0
+                || DecodeImage(codec, stream, image) == 0
                 || EndDecode(codec, stream) == 0)
                 throw new PdfFilterException("OpenJPEG could not decode the JPEG 2000 codestream.");
 
@@ -117,6 +103,8 @@ internal static class OpenJpegPrototype
     private static extern void SetDefaults(ref DecoderParameters parameters);
     [DllImport(ImportName, EntryPoint = "opj_setup_decoder", CallingConvention = CallingConvention.Cdecl)]
     private static extern int Setup(IntPtr codec, ref DecoderParameters parameters);
+    [DllImport(ImportName, EntryPoint = "opj_codec_set_threads", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int SetThreads(IntPtr codec, int count);
     [DllImport(ImportName, EntryPoint = "opj_stream_create_default_file_stream", CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr CreateFileStream([MarshalAs(UnmanagedType.LPStr)] string path, int read);
     [DllImport(ImportName, EntryPoint = "opj_read_header", CallingConvention = CallingConvention.Cdecl)]

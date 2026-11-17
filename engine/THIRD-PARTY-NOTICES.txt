@@ -193,42 +193,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-CoreJ2K JPEG 2000 codec, vendored into the KillerPDF engine:
-https://github.com/cinderblocks/CoreJ2K
-
-The complete license, the upstream JJ2000 copyright notice, and the record of the
-vendored revision are included in third_party/CoreJ2K.
-
-Copyright (c) 1999-2000, JJ2000 Partners.
-Copyright (c) 2007-2016, CSJ2K contributors.
-Copyright (c) 2007-2012, Jason S. Clary.
-Copyright (c) 2013-2018, Anders Gustafsson, Cureos AB.
-Copyright (c) 2024-2026, Sjofn LLC.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software without
-   specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
-OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
+OpenJPEG 2.5.4 is the JPEG 2000 decoder used by the KillerPDF engine.
+Source and Windows x64 release: https://github.com/uclouvain/openjpeg/releases/tag/v2.5.4
+The BSD-2-Clause terms are included in third_party/OpenJPEG/LICENSE.txt in
+source, third_party/openjpeg/LICENSE.txt in the NuGet package, and
+OpenJPEG-LICENSE.txt in the Windows application payload.
 
 NTwain 3.7.6 is used by the KillerPDF desktop app for Scan to PDF.
 Source: https://github.com/soukoku/ntwain

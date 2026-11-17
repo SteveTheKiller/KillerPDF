@@ -1,12 +1,9 @@
 using System.Buffers.Binary;
-using System.Runtime.InteropServices;
 
 namespace KillerPdf.Engine.Filters;
 
 internal static partial class PdfJpeg2000Decoder
 {
-    private const long MaximumTemporarySampleBytes = 256L * 1024 * 1024;
-
     internal static byte[] Decode(ReadOnlyMemory<byte> source, int maximumDecodedBytes)
         => DecodeImage(source, maximumDecodedBytes, -1).Samples;
 
@@ -27,11 +24,8 @@ internal static partial class PdfJpeg2000Decoder
             int length = checked(rowBytes * height);
             if (length > maximumDecodedBytes)
                 throw new PdfFilterException("Decoded stream exceeds the configured safety limit.");
-            if (OperatingSystem.IsWindows() && RuntimeInformation.ProcessArchitecture == Architecture.X64
-                && Environment.GetEnvironmentVariable("KILLERPDF_OPENJPEG_PROTOTYPE") is { Length: > 0 })
-                return OpenJpegPrototype.Decode(LocateCodestream(source.Span), shape,
-                    reduction, width, height, rowBytes, length);
-            return DecodePixels(source, shape, resolutionLevel, width, height, rowBytes, length, maximumParallelism);
+            return OpenJpegDecoder.Decode(LocateCodestream(source.Span), shape,
+                reduction, width, height, rowBytes, length, maximumParallelism);
         }
         catch (PdfFilterException)
         {
@@ -41,17 +35,6 @@ internal static partial class PdfJpeg2000Decoder
         {
             throw new PdfFilterException("JPEG 2000 data is malformed or unsupported.", ex);
         }
-    }
-
-    private static MemoryStream CreateReadStream(ReadOnlyMemory<byte> source)
-    {
-        if (MemoryMarshal.TryGetArray(source, out ArraySegment<byte> segment)
-            && segment.Array is not null)
-        {
-            return new MemoryStream(segment.Array, segment.Offset, segment.Count,
-                writable: false, publiclyVisible: true);
-        }
-        return new MemoryStream(source.ToArray(), writable: false);
     }
 
     internal static int ReducedDimension(uint size, uint origin, int reduction)

@@ -20,7 +20,8 @@ internal static class ProofCopySmoke
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Proof copy acceptance requires an owned VM.");
         string engineHash = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
-        string codecHash = SelectedAssemblyIdentity.HashLoaded(Assembly.Load("CoreJ2K"), appPath);
+        string codecPath = Path.Combine(Path.GetDirectoryName(appPath)!, "openjp2.dll");
+        string codecHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(codecPath)));
         Directory.CreateDirectory(folder);
         string originalPath = Path.Combine(folder, "proof-source.pdf");
         string copyPath = Path.Combine(folder, "proof-copy.pdf");

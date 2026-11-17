@@ -59,18 +59,6 @@ if (-not $RepackOnly) {
         -p:PublishDir="$payloadDir\"
     if ($LASTEXITCODE -ne 0) { throw 'Payload build failed.' }
 
-    $codecProject = Join-Path $projectDir 'third_party\CoreJ2K\CoreJ2K\CoreJ2K.csproj'
-    $codecPublishDir = Join-Path $artifactRoot 'codec-r2r'
-    & dotnet publish $codecProject -c $Configuration `
-        -r win-x64 `
-        --self-contained false `
-        -p:PublishReadyToRun=true `
-        -o $codecPublishDir
-    if ($LASTEXITCODE -ne 0) { throw 'CoreJ2K ReadyToRun build failed.' }
-    $codecAssembly = Join-Path $codecPublishDir 'CoreJ2K.dll'
-    if (-not [IO.File]::Exists($codecAssembly)) { throw "CoreJ2K ReadyToRun assembly is missing: $codecAssembly" }
-    [IO.File]::Copy($codecAssembly, (Join-Path $payloadDir 'CoreJ2K.dll'), $true)
-
     $engineProject = Join-Path $projectDir 'engine\KillerPdf.Engine\KillerPdf.Engine.csproj'
     $enginePublishDir = Join-Path $artifactRoot 'engine-r2r'
     & dotnet publish $engineProject -c $Configuration `

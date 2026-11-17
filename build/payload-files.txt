@@ -4,7 +4,6 @@ clrgc.dll
 clrgcexp.dll
 clrjit.dll
 CommunityToolkit.Mvvm.dll
-CoreJ2K.dll
 coreclr.dll
 createdump.exe
 cs/PresentationCore.resources.dll
@@ -120,6 +119,8 @@ msquic.dll
 netstandard.dll
 NTwain.dll
 onnxruntime.dll
+openjp2.dll
+OpenJPEG-LICENSE.txt
 onnxruntime.lib
 onnxruntime_providers_azure.lib
 onnxruntime_providers_shared.dll

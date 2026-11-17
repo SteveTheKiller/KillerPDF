@@ -12,6 +12,11 @@ The KillerPDF.Engine targets .NET 10. [Get KillerPdf.Engine from NuGet.org](http
 dotnet add package KillerPdf.Engine
 ```
 
+JPEG 2000 decoding uses OpenJPEG. The NuGet package bundles OpenJPEG 2.5.4
+for Windows x64, where its DLL requires the Microsoft Visual C++ runtime.
+On other platforms, JPEG 2000 decoding requires a compatible OpenJPEG
+library available to the native loader.
+
 When working directly from a KillerPDF repository checkout, use a project reference instead:
 
 ```xml
