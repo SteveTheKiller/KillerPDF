@@ -9,10 +9,9 @@ namespace KillerPDF.Tests;
 public sealed class ThemeFlyoutCornerTests
 {
     [Fact]
-    public void ModernThemesRoundEveryFlyoutCornerAndSquareThemesStaySquare()
+    public void ModernThemesRoundEveryFlyoutCornerAnd98SeStaysSquare()
     {
-        // 98SE and Trash Polka are square by design; every other theme rounds its flyouts.
-        string[] square = ["98SE.xaml", "TrashPolka.xaml"];
+        string[] square = ["98SE.xaml"];
         string root = FindRepositoryRoot();
         string themeDirectory = Path.Combine(root, "Themes");
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";

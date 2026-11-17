@@ -3,108 +3,108 @@
                     xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
-    <!-- Trash Polka: ink window with the full-sleeve motif (circuit hexagons, accent halftone, ink splatter, linework),
-         bone text and thick bone rules, solid warm charcoal panes carrying their own faint piece, square corners. The
-         motif is painted by Controls/ThemeMotif.cs (ThemeMotif = true). The base bakes the default Blood (Red) accent;
+    <!-- Trash Polka: Dark's neutral grays and rounded corners, with the tattoo motif painted by
+         Controls/ThemeMotif.cs (ThemeMotif = true). The base bakes the default Blood (Red) accent;
          Themes/Accents/TrashPolka holds the other seven. -->
-    <sys:Double x:Key="GrainOpacity">0.12</sys:Double>
-    <sys:Boolean x:Key="GrainHighlightsOnly">True</sys:Boolean>
+    <SolidColorBrush x:Key="TextFieldBrush" Color="#101010" po:Freeze="True"/>
+    <sys:Double x:Key="GrainOpacity">0.24</sys:Double>
     <sys:Double x:Key="IconShadowOpacity">0.9</sys:Double>
 
     <DropShadowEffect x:Key="TextStroke"     Color="Black" BlurRadius="3" ShadowDepth="0.8" Direction="270" Opacity="0.7"/>
     <DropShadowEffect x:Key="TextStrokeSoft" Color="Black" BlurRadius="2" ShadowDepth="0.6" Direction="270" Opacity="0.45"/>
 
+    <!-- Accent: Blood -->
     <SolidColorBrush x:Key="PrimaryBrush"        Color="#D7263D" po:Freeze="True"/>
     <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#D7263D" po:Freeze="True"/>
     <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#D7263D" po:Freeze="True"/>
     <SolidColorBrush x:Key="HeaderLineBrush"     Color="#D7263D" po:Freeze="True"/>
     <SolidColorBrush x:Key="OnPrimaryBrush"      Color="#FFFFFF" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#D7263D" po:Freeze="True"/>
-    <SolidColorBrush x:Key="InputHoverBrush"     Color="#9A938A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextFooter"          Color="#9A938A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="InputHoverBrush"     Color="#707070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TextFooter"          Color="#858585" po:Freeze="True"/>
 
-    <!-- The window is ink with the full sleeve; panels are raised cards in solid warm charcoal that carry their own
-         motif piece (TrashPolkaLayout.Chrome), never a view of the window's sleeve. -->
-    <SolidColorBrush x:Key="BackgroundBrush"     Color="#111111" po:Freeze="True"/>
-    <SolidColorBrush x:Key="SurfaceBrush"        Color="#2E2926" po:Freeze="True"/>
-    <SolidColorBrush x:Key="PaneBrush"           Color="#2E2926" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TableHeaderBrush"    Color="#2E2926" po:Freeze="True"/>
-    <SolidColorBrush x:Key="CardBorderBrush"     Color="#EDE8DF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TreeLineBrush"       Color="#5A544E" po:Freeze="True"/>
-    <SolidColorBrush x:Key="WarnBrush"           Color="#D9A21B" po:Freeze="True"/>
-    <SolidColorBrush x:Key="OkBrush"             Color="#7A9A3A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="PaneBorderBrush"     Color="#EDE8DF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AppBorderBrush"      Color="#EDE8DF" po:Freeze="True"/>
+    <!-- Surface tiers: Dark's neutrals -->
+    <SolidColorBrush x:Key="BackgroundBrush"     Color="#1c1c1c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SurfaceBrush"        Color="#333333" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PaneBrush"           Color="#3a3a3a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TableHeaderBrush"    Color="#333333" po:Freeze="True"/>
+    <SolidColorBrush x:Key="CardBorderBrush"     Color="#4a4a4a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TreeLineBrush"       Color="#3d3d3d" po:Freeze="True"/>
+    <SolidColorBrush x:Key="WarnBrush"           Color="#d9a218" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OkBrush"             Color="#3fb950" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PaneBorderBrush"     Color="#555555" po:Freeze="True"/>
 
-    <SolidColorBrush x:Key="TextBrush"           Color="#EDE8DF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="MutedTextBrush"      Color="#C9C2B6" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ChromeTextBrush"     Color="#EDE8DF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="DimTextBrush"        Color="#9A938A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TextBrush"           Color="#e0e0e0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MutedTextBrush"      Color="#a3a3a3" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ChromeTextBrush"     Color="#b6b6b6" po:Freeze="True"/>
+    <SolidColorBrush x:Key="DimTextBrush"        Color="#858585" po:Freeze="True"/>
 
-    <SolidColorBrush x:Key="RowAltBrush"         Color="#14EDE8DF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="RowHoverBrush"       Color="#463F3A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowAltBrush"         Color="#18FFFFFF" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowHoverBrush"       Color="#404040" po:Freeze="True"/>
     <SolidColorBrush x:Key="RowSelectedBrush"    Color="#4A1218" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionBg"         Color="#D7263D" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionFg"         Color="#FFFFFF" po:Freeze="True"/>
 
-    <SolidColorBrush x:Key="InputBorderBrush"    Color="#EDE8DF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#2E2926" po:Freeze="True"/>
-    <SolidColorBrush x:Key="MenuBorderBrush"     Color="#EDE8DF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="MenuTextBrush"       Color="#EDE8DF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="MenuHoverBrush"      Color="#463F3A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="InputBorderBrush"    Color="#2e2e2e" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#141414" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TerminalBackgroundBrush" Color="#3a3a3a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuBorderBrush"     Color="#404040" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuTextBrush"       Color="#a3a3a3" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuHoverBrush"      Color="#404040" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlinePressedBrush" Color="#4A1218" po:Freeze="True"/>
     <SolidColorBrush x:Key="ScrollThumbBrush"    Color="#88D7263D" po:Freeze="True"/>
     <SolidColorBrush x:Key="TabEdgeBrush"        Color="#66D7263D" po:Freeze="True"/>
     <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#D7263D" po:Freeze="True"/>
 
-    <SolidColorBrush x:Key="TypeRouter"     Color="#E2582A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeWindows"    Color="#3A6FD0" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypePrinter"    Color="#E4588E" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeSwitch"     Color="#C9C2B6" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeHypervisor" Color="#D7263D" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeNas"        Color="#7A9A3A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeIot"        Color="#8A4CC2" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeServer"     Color="#E2582A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeLinux"      Color="#D9A21B" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeDns"        Color="#1E9A96" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeHa"         Color="#1E9A96" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeMobile"     Color="#9AB4E8" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeCamera"     Color="#D9A21B" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeSmarttv"    Color="#E4588E" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TypeMedia"      Color="#1E9A96" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeRouter"     Color="#F0A030" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeWindows"    Color="#60A0F0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypePrinter"    Color="#D080A0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeSwitch"     Color="#C0C0C0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeHypervisor" Color="#E06060" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeNas"        Color="#40C080" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeIot"        Color="#B060D0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeServer"     Color="#E08050" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeLinux"      Color="#D0C050" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeDns"        Color="#50B0D0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeHa"         Color="#50D0A0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeMobile"     Color="#A0A0F0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeCamera"     Color="#F0C060" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeSmarttv"    Color="#E0A0E0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TypeMedia"      Color="#70C0E0" po:Freeze="True"/>
 
-    <SolidColorBrush x:Key="KsCatFile"      Color="#1E9A96" po:Freeze="True"/>
-    <SolidColorBrush x:Key="KsCatNav"       Color="#8A4CC2" po:Freeze="True"/>
-    <SolidColorBrush x:Key="KsCatView"      Color="#E4588E" po:Freeze="True"/>
-    <SolidColorBrush x:Key="KsCatSearch"    Color="#3A6FD0" po:Freeze="True"/>
-    <SolidColorBrush x:Key="KsCatEdit"      Color="#D7263D" po:Freeze="True"/>
-    <SolidColorBrush x:Key="KsCatTabs"      Color="#D9A21B" po:Freeze="True"/>
-    <SolidColorBrush x:Key="KsCatHelp"      Color="#7A9A3A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="KsCatFile"      Color="#00fff9" po:Freeze="True"/>
+    <SolidColorBrush x:Key="KsCatNav"       Color="#8c1eff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="KsCatView"      Color="#f222ff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="KsCatSearch"    Color="#00b3ff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="KsCatEdit"      Color="#ff2975" po:Freeze="True"/>
+    <SolidColorBrush x:Key="KsCatTabs"      Color="#ffd319" po:Freeze="True"/>
+    <SolidColorBrush x:Key="KsCatHelp"      Color="#39ff14" po:Freeze="True"/>
 
-    <!-- Square corners everywhere: Trash Polka is cut paper, not rounded cards. -->
-    <CornerRadius x:Key="WindowCornerRadius">0</CornerRadius>
-    <CornerRadius x:Key="PanelCornerRadius">0</CornerRadius>
-    <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
-    <CornerRadius x:Key="SmallCornerRadius">0</CornerRadius>
-    <CornerRadius x:Key="FlyoutCornerRadius">0</CornerRadius>
-    <CornerRadius x:Key="AccentSwatchCornerRadius">0</CornerRadius>
+    <!-- Dark's rounded corners -->
+    <CornerRadius x:Key="WindowCornerRadius">7</CornerRadius>
+    <CornerRadius x:Key="PanelCornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="ControlCornerRadius">4</CornerRadius>
+    <CornerRadius x:Key="SmallCornerRadius">3</CornerRadius>
+    <CornerRadius x:Key="FlyoutCornerRadius">4</CornerRadius>
+    <CornerRadius x:Key="AccentSwatchCornerRadius">9</CornerRadius>
 
-    <SolidColorBrush x:Key="TitleBarBrush"       Color="#2E2926" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TitleBarBrush"       Color="#1c1c1c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="AppBorderBrush"      Color="#3f3f3f" po:Freeze="True"/>
 
-    <SolidColorBrush x:Key="AccentLogo"          Color="#D7263D" po:Freeze="True"/>
-    <sys:Double x:Key="FlyoutShadowOpacity">0.55</sys:Double>
-    <SolidColorBrush x:Key="RadioAccent"         Color="#D7263D" po:Freeze="True"/>
-    <sys:Double x:Key="BarShadowOpacity">0.38</sys:Double>
-    <SolidColorBrush x:Key="SelectionAccent"     Color="#D7263D" po:Freeze="True"/>
-    <sys:Double x:Key="PaneShadowOpacity">0.60</sys:Double>
-    <SolidColorBrush x:Key="SurfaceHoverBrush"   Color="#FF463F3A" po:Freeze="True"/>
     <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#FFFFFFFF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="DialogTitleBarBrush" Color="Transparent" po:Freeze="True"/>
-    <SolidColorBrush x:Key="FooterBackgroundBrush" Color="#2E2926" po:Freeze="True"/>
-    <sys:Double x:Key="WordmarkShadowOpacity">0.45</sys:Double>
+    <SolidColorBrush x:Key="AccentLogo"          Color="#D7263D" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RadioAccent"         Color="#D7263D" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionAccent"     Color="#D7263D" po:Freeze="True"/>
+    <sys:Double x:Key="PaneShadowOpacity">0.6</sys:Double>
+    <SolidColorBrush x:Key="SurfaceHoverBrush"   Color="#FF404040" po:Freeze="True"/>
     <sys:Double x:Key="TitleBarHeight">32</sys:Double>
-    <SolidColorBrush x:Key="MenuSeparatorBrush"  Color="#FF5A544E" po:Freeze="True"/>
+    <sys:Double x:Key="BarShadowOpacity">0.38</sys:Double>
+    <SolidColorBrush x:Key="DialogTitleBarBrush" Color="Transparent" po:Freeze="True"/>
+    <SolidColorBrush x:Key="FooterBackgroundBrush" Color="#FF1C1C1C" po:Freeze="True"/>
+    <sys:Double x:Key="FlyoutShadowOpacity">0.55</sys:Double>
+    <sys:Double x:Key="WordmarkShadowOpacity">0.45</sys:Double>
+    <SolidColorBrush x:Key="MenuSeparatorBrush"  Color="#FF2E2E2E" po:Freeze="True"/>
     <sys:Double x:Key="TitleWordmarkBoldSize">22.52</sys:Double>
     <sys:Double x:Key="TitleWordmarkSize">15</sys:Double>
-    <SolidColorBrush x:Key="FileDialogPaneBrush" Color="#2E2926" po:Freeze="True"/>
+    <SolidColorBrush x:Key="FileDialogPaneBrush" Color="#FF3A3A3A" po:Freeze="True"/>
 </ResourceDictionary>

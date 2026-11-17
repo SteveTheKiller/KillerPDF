@@ -29,9 +29,9 @@ namespace KillerPDF.Controls
     {
         private static readonly Theme[] Themes =
         [
-            Theme.Dark, Theme.Light, Theme.Black, Theme.SE98, Theme.Blood, Theme.Greed,
+            Theme.Dark, Theme.Light, Theme.Black, Theme.SE98, Theme.TrashPolka, Theme.Blood, Theme.Greed,
             Theme.Cyanotic, Theme.Ectoplasm, Theme.Decay, Theme.Malaise, Theme.Sepulchre,
-            Theme.Delirium, Theme.Mourning, Theme.TrashPolka
+            Theme.Delirium, Theme.Mourning
         ];
 
         private const double AccentStripWidth = 39;
