@@ -1860,6 +1860,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Panel_SigIncomplete">未完全驗證</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">未簽署</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">簽署後已變更</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">認證已失效，認證後已變更</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">表單資料</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">書籤資料</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">匯出表單資料</sys:String>

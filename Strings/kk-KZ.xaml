@@ -1881,6 +1881,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Panel_SigIncomplete">Толық тексерілмеген</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Қол қойылмаған</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">қол қойылғаннан кейін өзгертілген</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Сертификаттау бұзылған, сертификаттаудан кейін өзгертілген</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Пішін деректері</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Бетбелгі деректері</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Пішін деректерін экспорттау</sys:String>

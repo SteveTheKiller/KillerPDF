@@ -1878,6 +1878,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Panel_SigIncomplete">Não totalmente verificada</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Não assinado</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">alterado depois da assinatura</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Certificação violada, alterado depois da certificação</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Dados do formulário</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Dados dos marcadores</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Exportar dados do formulário</sys:String>

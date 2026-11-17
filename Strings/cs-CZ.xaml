@@ -1863,6 +1863,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Panel_SigIncomplete">Neověřeno úplně</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Nepodepsáno</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">změněno po podpisu</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Certifikace porušena, změněno po certifikaci</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Data formuláře</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Data záložek</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Exportovat data formuláře</sys:String>

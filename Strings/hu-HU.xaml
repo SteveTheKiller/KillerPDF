@@ -1865,6 +1865,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Panel_SigIncomplete">Nincs teljesen ellenőrizve</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Nincs aláírva</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">aláírás után módosítva</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">A tanúsítás sérült, tanúsítás után módosítva</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Űrlapadatok</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Könyvjelzőadatok</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Űrlapadatok exportálása</sys:String>

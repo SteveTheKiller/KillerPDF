@@ -1878,6 +1878,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Panel_SigIncomplete">完全には検証されていません</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">未署名</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">署名後に変更されています</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">認証が無効です。認証後に変更されています</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">フォームデータ</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">しおりデータ</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">フォームデータをエクスポート</sys:String>

@@ -1866,6 +1866,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Panel_SigIncomplete">Nie w pełni zweryfikowany</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Niepodpisany</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">zmieniony po podpisaniu</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Certyfikacja naruszona, zmieniony po certyfikacji</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Dane formularza</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Dane zakładek</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Eksportuj dane formularza</sys:String>

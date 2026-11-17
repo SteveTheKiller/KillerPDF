@@ -1768,6 +1768,7 @@
     <sys:String x:Key="Str_Panel_SigIncomplete">Ni v celoti preverjen</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Ni podpisan</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">spremenjeno po podpisovanju</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Certifikacija je kršena, spremenjeno po certificiranju</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Podatki obrazca</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Podatki zaznamkov</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Izvozi podatke obrazca</sys:String>

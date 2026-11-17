@@ -1889,6 +1889,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Panel_SigIncomplete">Not fully verified</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Not signed</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">changed after signing</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Certification broken, changed after certifying</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Form data</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Bookmark data</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Export form data</sys:String>

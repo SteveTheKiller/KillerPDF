@@ -1878,6 +1878,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Panel_SigIncomplete">Pas entièrement vérifiée</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Non signée</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">modifié après la signature</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Certification rompue, modifié après la certification</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Données de formulaire</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Données des signets</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Exporter les données du formulaire</sys:String>

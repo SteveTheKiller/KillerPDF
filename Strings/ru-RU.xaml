@@ -1881,6 +1881,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Panel_SigIncomplete">Проверена не полностью</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Не подписано</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">изменён после подписания</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Сертификация нарушена, изменён после сертификации</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Данные формы</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Данные закладок</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Экспорт данных формы</sys:String>

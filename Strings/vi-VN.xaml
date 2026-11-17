@@ -1878,6 +1878,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Panel_SigIncomplete">Chưa được xác minh đầy đủ</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Chưa ký</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">đã thay đổi sau khi ký</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Chứng nhận bị phá vỡ, đã thay đổi sau khi chứng nhận</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Dữ liệu biểu mẫu</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Dữ liệu dấu trang</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Xuất dữ liệu biểu mẫu</sys:String>

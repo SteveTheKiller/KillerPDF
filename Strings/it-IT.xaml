@@ -1878,6 +1878,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Panel_SigIncomplete">Non verificata del tutto</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Non firmata</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">modificato dopo la firma</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Certificazione violata, modificato dopo la certificazione</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Dati del modulo</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Dati dei segnalibri</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Esporta dati del modulo</sys:String>

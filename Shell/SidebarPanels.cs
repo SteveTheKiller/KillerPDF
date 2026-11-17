@@ -670,15 +670,7 @@ namespace KillerPDF.Shell
             {
                 PdfSignatureInfo signature = entry.Signature;
                 string name = string.IsNullOrWhiteSpace(signature.SignerName) ? signature.FieldName : signature.SignerName!;
-                string status = !signature.IsSigned ? Loc("Str_Panel_SigUnsigned")
-                    : entry.Verification.ValidationStatus switch
-                    {
-                        PdfSignatureValidationStatus.Valid => Loc("Str_Panel_SigValid"),
-                        PdfSignatureValidationStatus.Invalid => Loc("Str_Panel_SigInvalid"),
-                        _ => Loc("Str_Panel_SigIncomplete"),
-                    };
-                if (signature.IsSigned && entry.Revision?.HasLaterChanges == true)
-                    status += ", " + Loc("Str_Panel_SigChanged");
+                string status = string.Join(", ", Services.SignatureStatus.Keys(entry).Select(Loc));
                 string? when = signature.SigningTime?.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
                 string tooltip = string.Join("\n", new[] { signature.FieldName, when, signature.Reason, signature.Location }
                     .Where(part => !string.IsNullOrWhiteSpace(part)));

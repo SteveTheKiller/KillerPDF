@@ -1858,6 +1858,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Panel_SigIncomplete">সম্পূর্ণ যাচাই হয়নি</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">স্বাক্ষরিত নয়</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">স্বাক্ষরের পরে পরিবর্তিত</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">প্রত্যয়ন ভঙ্গ হয়েছে, প্রত্যয়নের পরে পরিবর্তিত</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">ফর্মের তথ্য</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">বুকমার্কের তথ্য</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">ফর্মের তথ্য রপ্তানি করুন</sys:String>

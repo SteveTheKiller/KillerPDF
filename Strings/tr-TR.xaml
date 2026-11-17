@@ -1858,6 +1858,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Panel_SigIncomplete">Tam olarak doğrulanmadı</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">İmzalanmamış</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">imzadan sonra değiştirildi</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Sertifika bozuldu, sertifikalandırmadan sonra değiştirildi</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Form verileri</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Yer imi verileri</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Form verilerini dışa aktar</sys:String>

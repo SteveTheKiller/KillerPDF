@@ -1858,6 +1858,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Panel_SigIncomplete">No verificada por completo</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Sin firmar</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">modificado después de firmar</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Certificación rota, modificado después de certificar</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Datos del formulario</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Datos de marcadores</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Exportar datos del formulario</sys:String>

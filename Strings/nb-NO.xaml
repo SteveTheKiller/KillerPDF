@@ -1878,6 +1878,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Panel_SigIncomplete">Ikke fullt bekreftet</sys:String>
     <sys:String x:Key="Str_Panel_SigUnsigned">Ikke signert</sys:String>
     <sys:String x:Key="Str_Panel_SigChanged">endret etter signering</sys:String>
+    <sys:String x:Key="Str_Panel_SigCertBroken">Sertifiseringen er brutt, endret etter sertifisering</sys:String>
     <sys:String x:Key="Str_DocumentTools_FormData">Skjemadata</sys:String>
     <sys:String x:Key="Str_DocumentTools_BookmarkData">Bokmerkedata</sys:String>
     <sys:String x:Key="Str_Exchange_ExportForms">Eksporter skjemadata</sys:String>
