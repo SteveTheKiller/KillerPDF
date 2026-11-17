@@ -38,9 +38,8 @@ namespace KillerPDF.Shell
 
         private void OpenFile(string path)
         {
-            // Record real user files in the recent list (skips blank/new docs, which don't open a path).
-            if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path)) App.AddRecentFile(path);
-
+            // Recent gets the file once it has opened (FinishOpenFile, AdoptNativeDocument), so a
+            // failed, refused or canceled open does not land there.
             if (System.IO.Path.GetExtension(path).ToLowerInvariant() is ".djvu" or ".djv" or ".epub")
             {
                 OpenNativeFile(path);
@@ -260,6 +259,9 @@ namespace KillerPDF.Shell
             string? suggested = App.TakeSuggestedName(displayPath);
             bool imported = App.IsCleanupOwnedPath(displayPath);
             _originalFile = imported ? null : displayPath;
+            // Only a real file the user opened, never a scan, import or blank document's name.
+            if (!imported && System.IO.Path.IsPathFullyQualified(displayPath) && System.IO.File.Exists(displayPath))
+                App.AddRecentFile(displayPath);
             _loadedRevision = imported ? null : Services.FileRevision.Capture(displayPath);
             _suggestedName = imported ? suggested ?? System.IO.Path.GetFileName(displayPath) : null;
             FileNameLabel.Text = _suggestedName ?? System.IO.Path.GetFileName(displayPath);
@@ -1718,7 +1720,14 @@ namespace KillerPDF.Shell
                     // The working copy reopens before the destination changes: a failed reopen then
                     // leaves the file on disk untouched and the tab on its current document.
                     var reopened = ReopenCleanWorkingCopy(ref tempClean);
-                    keptProtection = ProtectedDocumentFiles.Publish(tempEdited, saveTarget, publishUnder);
+                    // A failed publish leaves the tab on its current document, so the copy just
+                    // reopened is closed here instead of holding its file until the app exits.
+                    try { keptProtection = ProtectedDocumentFiles.Publish(tempEdited, saveTarget, publishUnder); }
+                    catch
+                    {
+                        reopened.Close();
+                        throw;
+                    }
                     _completeDocumentSource = completeSource;
                     // Signing reads these bytes, since the working copy lacks what the save burned in.
                     _publishedFile = Services.PublishedFileStamp.Capture(saveTarget);
@@ -1953,7 +1962,12 @@ namespace KillerPDF.Shell
                     // The working copy reopens before the destination changes: a failed reopen then
                     // leaves the file on disk untouched and the tab on its current document.
                     var reopened = ReopenCleanWorkingCopy(ref tempClean);
-                    keptProtection = ProtectedDocumentFiles.Publish(tempEdited, dlg.FileName, publishUnder);
+                    try { keptProtection = ProtectedDocumentFiles.Publish(tempEdited, dlg.FileName, publishUnder); }
+                    catch
+                    {
+                        reopened.Close();
+                        throw;
+                    }
                     _completeDocumentSource = completeSource;
                     // Signing reads these bytes, since the working copy lacks what the save burned in.
                     _publishedFile = Services.PublishedFileStamp.Capture(dlg.FileName);

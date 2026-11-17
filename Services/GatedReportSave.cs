@@ -15,7 +15,9 @@ internal static class GatedReportSave
         ArgumentNullException.ThrowIfNull(choosePath);
         ArgumentNullException.ThrowIfNull(content);
         if (!mayExport() || choosePath() is not string path) return null;
-        File.WriteAllText(path, content(), new UTF8Encoding(true));
+        // Through a temporary file and a move, so a failed write never leaves half a report in
+        // place of a file the user chose to replace.
+        AtomicFileOutput.Write(path, new UTF8Encoding(true).GetPreamble().Concat(new UTF8Encoding(true).GetBytes(content())).ToArray());
         return path;
     }
 }

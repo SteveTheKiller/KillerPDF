@@ -137,6 +137,7 @@ public partial class MainWindow
         CloseEngineDocumentSession();
         _currentFile = path;
         _originalFile = path;
+        App.AddRecentFile(path);
         _publishedFile = null;
         _completeDocumentSource = null;
         _loadedRevision = null;

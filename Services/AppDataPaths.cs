@@ -57,6 +57,7 @@ internal static class AppDataPaths
     {
         if (PortableRoot is null) return;
         lock (SettingsGate)
+        using (AcrossProcesses())
         {
             // A file that exists but cannot be read right now (half written by another copy,
             // locked, or damaged) is left alone rather than replaced by a one-entry file.
@@ -71,10 +72,35 @@ internal static class AppDataPaths
     {
         if (PortableRoot is null) return;
         lock (SettingsGate)
+        using (AcrossProcesses())
         {
             Dictionary<string, string>? settings = TryReadSettings();
             if (settings is null || !settings.Remove(name)) return;
             WriteSettings(settings);
+        }
+    }
+
+    // Two portable copies sharing one data folder would otherwise each read, change and write the
+    // file, and the later write would drop the other's change. The mutex is named for the file, so
+    // copies in different folders never wait on each other. A copy that died holding it leaves it
+    // abandoned, which still hands it over.
+    private static IDisposable AcrossProcesses()
+    {
+        byte[] hash = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(SettingsFile).ToUpperInvariant()));
+        var mutex = new Mutex(false, @"Local\KillerPDF.Settings." + Convert.ToHexString(hash, 0, 16));
+        bool held;
+        try { held = mutex.WaitOne(TimeSpan.FromSeconds(5)); }
+        catch (AbandonedMutexException) { held = true; }
+        return new MutexRelease(mutex, held);
+    }
+
+    private sealed class MutexRelease(Mutex mutex, bool held) : IDisposable
+    {
+        public void Dispose()
+        {
+            if (held) mutex.ReleaseMutex();
+            mutex.Dispose();
         }
     }
 
@@ -105,7 +131,13 @@ internal static class AppDataPaths
         string temporary = SettingsFile + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
-            File.WriteAllText(temporary, JsonSerializer.Serialize(settings, JsonOptions));
+            // Flushed to the disk before the move, so a power cut cannot leave an empty file in
+            // place of the settings.
+            using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                stream.Write(System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(settings, JsonOptions)));
+                stream.Flush(flushToDisk: true);
+            }
             File.Move(temporary, SettingsFile, overwrite: true);
         }
         finally
