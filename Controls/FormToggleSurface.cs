@@ -50,6 +50,13 @@ namespace KillerPDF.Controls
                 if (!ReferenceEquals(box, setIn)) box.FontSize = points * scale;
         }
 
+        /// <summary>Runs a change of look on every box of a text field, across pages.</summary>
+        internal void ForEachText(string fieldName, Action<TextBox> apply)
+        {
+            if (!_texts.TryGetValue(fieldName, out var boxes)) return;
+            foreach ((_, TextBox box, _) in boxes.ToArray()) apply(box);
+        }
+
         internal void AddCheck(int pageIndex, string fieldName, UIElement mark)
         {
             if (!_checks.TryGetValue(fieldName, out var marks)) _checks[fieldName] = marks = [];

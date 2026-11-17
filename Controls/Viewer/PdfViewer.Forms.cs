@@ -81,6 +81,8 @@ namespace KillerPDF.Controls
                     && field.FieldType == "/Tx";
                 if ((_currentTool != EditTool.FormField && !selectTextField)
                     || field.ObjNum <= 0) return;
+                // A field being typed in takes the press itself, to place the caret or select text.
+                if (selectTextField && element.IsKeyboardFocusWithin) return;
                 _selectedFormFieldName = field.FieldName;
                 if (selectTextField && e.ClickCount > 1) return;
                 Point local = e.GetPosition(element);
@@ -94,6 +96,8 @@ namespace KillerPDF.Controls
                 _formDragSize = new Size(element.ActualWidth, element.ActualHeight);
                 _formDragIsResize = resize;
                 _formDragMoved = false;
+                // A text box that grows with its line keeps the field's width as its least; a resize may go under it.
+                if (resize) element.MinWidth = 0;
                 HideFormSizeBar();
                 Keyboard.ClearFocus();
                 Window.GetWindow(element)?.Focus();
@@ -113,7 +117,9 @@ namespace KillerPDF.Controls
                 {
                     bool selectTextField = _currentTool == EditTool.Select
                         && field.FieldType == "/Tx";
-                    if (_currentTool == EditTool.FormField || selectTextField)
+                    if (selectTextField && element.IsKeyboardFocusWithin)
+                        element.Cursor = Cursors.IBeam;
+                    else if (_currentTool == EditTool.FormField || selectTextField)
                     {
                         Point local = e.GetPosition(element);
                         bool resize = local.X >= element.ActualWidth - FormResizeGripSize
@@ -231,6 +237,7 @@ namespace KillerPDF.Controls
                         _formCheckValues.Remove(fieldName);
                         _formRadioValues.Remove(fieldName);
                         _formFontSizes.Remove(fieldName);
+                        _formTextStyles.Remove(fieldName);
                     });
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -275,9 +282,10 @@ namespace KillerPDF.Controls
             int pageIndex, FormFieldInfo field, FrameworkElement element, Canvas canvas, bool resized)
         {
             if (_currentFile is null) return;
+            // A text box grown past its field to show a long line moves at the field's own width.
             Rect canvasRectangle = new(
                 Canvas.GetLeft(element), Canvas.GetTop(element),
-                element.ActualWidth, element.ActualHeight);
+                resized ? element.ActualWidth : field.Cw, element.ActualHeight);
             try
             {
                 IReadOnlyList<KillerPdf.Engine.Documents.PdfPageInformation> pages =
@@ -330,7 +338,12 @@ namespace KillerPDF.Controls
             Color? BackgroundColor,
             Color? BorderColor,
             bool   IsPassword = false,   // /Tx with the Password flag (bit 14): never shown in clear
-            string Description = "")     // the field's /TU user name, e.g. "Date of birth"
+            string Description = "",     // the field's /TU user name, e.g. "Date of birth"
+            string AppearanceFont = "",  // PostScript name of the embedded font the saved appearance uses
+            Color? DaColor = null,       // the text color of the field's /DA, when it gives one
+            bool   Underline = false,    // the field's /DS text-decoration
+            bool   StrikeThrough = false,
+            bool   MarkedTransparent = false)   // /MK /BG is empty: the field is clear on purpose
         {
             // What a person reads and a screen reader announces: the /TU description when the
             // form has one, else the internal field name. Storage and export keep FieldName.
@@ -422,8 +435,12 @@ namespace KillerPDF.Controls
                     // (Consolas advance is ~0.55em), capped by MaxLen; the SAVED appearance
                     // stream places each character exactly at its cell center.
                     double combCellW = f.IsComb ? f.Cw / f.MaxLen : 0;
-                    var restingBorder = new SolidColorBrush(
-                        f.BorderColor ?? Color.FromRgb(0x88, 0x88, 0x88));
+                    // A field whose /MK says it is clear (an empty /BG, as recognized fields over a printed
+                    // box have) shows no fill and no outline at rest; the page's own box shows where to type.
+                    Brush restingBorder = f.MarkedTransparent ? Brushes.Transparent
+                        : new SolidColorBrush(f.BorderColor ?? Color.FromRgb(0x88, 0x88, 0x88));
+                    Brush restingFill = f.MarkedTransparent ? Brushes.Transparent
+                        : new SolidColorBrush(f.BackgroundColor ?? fieldBg.Color);
                     if (f.IsPassword)
                     {
                         // A password field (flag bit 14) never shows its value: PasswordBox masks it,
@@ -436,7 +453,7 @@ namespace KillerPDF.Controls
                             Height           = f.Ch,
                             Password         = cur,
                             IsEnabled        = !f.IsReadOnly,
-                            Background       = new SolidColorBrush(f.BackgroundColor ?? fieldBg.Color),
+                            Background       = restingFill,
                             Foreground       = Brushes.Black,
                             CaretBrush       = Brushes.Black,
                             BorderBrush      = restingBorder,
@@ -472,8 +489,7 @@ namespace KillerPDF.Controls
                             // fill hides those dividers and makes it look like an ordinary text box.
                             // Keep the overlay transparent so the cells remain visible while the
                             // editable characters, selection, and caret stay above the page artwork.
-                            Background       = f.IsComb ? Brushes.Transparent
-                                : new SolidColorBrush(f.BackgroundColor ?? fieldBg.Color),
+                            Background       = f.IsComb ? Brushes.Transparent : restingFill,
                             Foreground       = Brushes.Black,
                             CaretBrush       = Brushes.Black,
                             Cursor           = Cursors.IBeam,
@@ -490,7 +506,21 @@ namespace KillerPDF.Controls
                                 ? VerticalAlignment.Top : VerticalAlignment.Center,
                             ToolTip          = string.IsNullOrEmpty(f.Label) ? null : f.Label,
                         };
-                        if (f.IsComb) tb.FontFamily = new FontFamily("Consolas");
+                        // The look the saved field already has, for when no style is given here.
+                        if (SavedFormTextStyle(f) is { } savedStyle) _formSavedTextStyles[f.FieldName] = savedStyle;
+                        else _formSavedTextStyles.Remove(f.FieldName);
+                        if (!f.IsComb && !f.IsMultiLine)
+                        {
+                            // Centre the capitals rather than the line box, as the comb cells do, at
+                            // whatever size the stepper sets.
+                            var padding = new System.Windows.Data.MultiBinding
+                                { Converter = new Services.TextCapCentering.PaddingConverter(3, 3) };
+                            padding.Bindings.Add(new System.Windows.Data.Binding(nameof(TextBox.FontSize))
+                                { RelativeSource = System.Windows.Data.RelativeSource.Self });
+                            padding.Bindings.Add(new System.Windows.Data.Binding(nameof(TextBox.FontFamily))
+                                { RelativeSource = System.Windows.Data.RelativeSource.Self });
+                            tb.SetBinding(Control.PaddingProperty, padding);
+                        }
                         // Focus also raises the per-field font-size stepper (and hides it on blur).
                         string capturedKey   = f.FieldName;
                         double capturedScale = f.Scale;
@@ -507,7 +537,7 @@ namespace KillerPDF.Controls
                             {
                                 tb.Text = _formTextValues.TryGetValue(capturedKey, out string? raw) ? raw : cur;
                                 lastAccepted = tb.Text;
-                                SetFormValueForeground(tb, Brushes.Black);
+                                SetFormValueForeground(tb, FormTextBrush(capturedKey));
                             }
                             finally { _formRecalculating = wasRecalculating; }
                             _selectedFormFieldName = capturedKey; tb.SetResourceReference(Control.BorderBrushProperty, "HeaderLineBrush"); ShowFormSizeBar(tb, capturedKey, capturedScale);
@@ -516,7 +546,12 @@ namespace KillerPDF.Controls
                             if (Services.FormTextLimit.IsOver(tb.Text, maxLen))
                                 SetStatus(string.Format(Loc("Str_St_FieldMaxLength"), maxLen));
                         };
-                        tb.LostFocus += (_, _) => { tb.BorderBrush = f.IsComb ? Brushes.Transparent : restingBorder; HideFormSizeBar(); RecalculateFormFields(); };
+                        tb.LostFocus += (_, _) =>
+                        {
+                            tb.BorderBrush = f.IsComb ? Brushes.Transparent : restingBorder;
+                            if (!FormSizeBarInUse) HideFormSizeBar();
+                            RecalculateFormFields();
+                        };
                         tb.TextChanged += (_, _) =>
                         {
                             if (_formRecalculating) return;
@@ -540,7 +575,9 @@ namespace KillerPDF.Controls
                         };
                         fieldMarks.AddText(pageIndex, capturedKey, tb, capturedScale);
                         RegisterFormValueBox(capturedKey, tb);
+                        AttachFormTextStyleClipboard(tb, capturedKey, capturedScale);
                         ctrl = f.IsComb ? new CombTextBox(tb, f.MaxLen, fontSize) : tb;
+                        ApplyFormTextStyle(tb, capturedKey);
                     }
                 }
 
@@ -858,7 +895,11 @@ namespace KillerPDF.Controls
                                 (byte)Math.Round(border.Blue * 255))
                             : null,
                         IsPassword: fieldType == "/Tx" && !isMultiLine && (flags & (1 << 13)) != 0,
-                        Description: widget.Tooltip ?? string.Empty));
+                        Description: widget.Tooltip ?? string.Empty,
+                        AppearanceFont: widget.AppearanceFontName,
+                        DaColor: ParseDaColor(widget.DefaultAppearance),
+                        Underline: widget.Underline, StrikeThrough: widget.StrikeThrough,
+                        MarkedTransparent: widget.MarkedTransparent));
                 }
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"GetPageFormFields (engine): {ex}"); }
@@ -880,6 +921,75 @@ namespace KillerPDF.Controls
             return 0;
         }
 
+        // The text color a /DA string sets: "r g b rg" or "gray g", the last one given. Null when none.
+        private static Color? ParseDaColor(string da)
+        {
+            if (string.IsNullOrWhiteSpace(da)) return null;
+            var t = da.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+            static bool Unit(string text, out byte value)
+            {
+                bool ok = double.TryParse(text, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double number) && number is >= 0 and <= 1;
+                value = ok ? (byte)Math.Round(number * 255) : (byte)0;
+                return ok;
+            }
+            Color? color = null;
+            for (int i = 0; i < t.Length; i++)
+            {
+                if (t[i] == "rg" && i >= 3 && Unit(t[i - 3], out byte r) && Unit(t[i - 2], out byte g) && Unit(t[i - 1], out byte b))
+                    color = Color.FromRgb(r, g, b);
+                else if (t[i] == "g" && i >= 1 && Unit(t[i - 1], out byte gray))
+                    color = Color.FromRgb(gray, gray, gray);
+            }
+            return color;
+        }
+
+        // The look a text field's saved appearance already has: the embedded font it draws with and the
+        // color of its /DA. Null for the plain black standard-font look, which the overlay leaves as is.
+        private static Services.FormTextStyle? SavedFormTextStyle(FormFieldInfo f)
+        {
+            string? family = null;
+            bool bold = false, italic = false;
+            if (f.AppearanceFont.Length > 0)
+            {
+                Services.DetectedPdfFontStyle detected = Services.PdfFontStyle.FromPdfName(f.AppearanceFont);
+                family = Shell.MainWindow.SystemFontNames.FirstOrDefault(name =>
+                    string.Equals(name, detected.Family, StringComparison.OrdinalIgnoreCase));
+                (bold, italic) = (detected.Bold, detected.Italic);
+            }
+            string? color = f.DaColor is { } c && c != Colors.Black ? Services.FormTextStyle.Hex(c) : null;
+            return family is null && !bold && !italic && color is null && !f.Underline && !f.StrikeThrough
+                ? null : new Services.FormTextStyle(family, bold, italic, color, f.Underline, f.StrikeThrough);
+        }
+
+        // The style a field shows: the one given here, else the one its saved appearance has.
+        private Services.FormTextStyle? EffectiveFormTextStyle(string fieldName) =>
+            _formTextStyles.TryGetValue(fieldName, out Services.FormTextStyle? chosen) ? chosen
+            : _formSavedTextStyles.TryGetValue(fieldName, out Services.FormTextStyle? saved) ? saved : null;
+
+        // The brush a field's value is drawn with when nothing (a formatted negative) asks for red.
+        private Brush FormTextBrush(string fieldName) =>
+            EffectiveFormTextStyle(fieldName)?.MediaColor is { } color ? new SolidColorBrush(color) : Brushes.Black;
+
+        // Shows a style on one box of a field: its font, weight and slant, and its color, which a comb
+        // draws on its cells because its editor's own text stays transparent.
+        private void ApplyFormTextStyle(TextBox box, string fieldName)
+        {
+            Services.FormTextStyle? style = EffectiveFormTextStyle(fieldName);
+            // A field without a font of its own shows Arial: the face its saved standard font stands for,
+            // and the one the size bar names, so typed and pasted text look as they will be saved.
+            box.FontFamily = new FontFamily(style?.FontFamily ?? Services.FormTextStyle.DefaultFamily);
+            box.FontWeight = style?.Bold == true ? FontWeights.Bold : FontWeights.Normal;
+            box.FontStyle = style?.Italic == true ? FontStyles.Italic : FontStyles.Normal;
+            var decorations = new TextDecorationCollection();
+            if (style?.Underline == true) decorations.Add(TextDecorations.Underline);
+            if (style?.StrikeThrough == true) decorations.Add(TextDecorations.Strikethrough);
+            box.TextDecorations = decorations;
+            Brush brush = FormTextBrush(fieldName);
+            if (box.Parent is CombTextBox comb) comb.CharacterBrush = brush;
+            SetFormValueForeground(box, brush);
+        }
+
         /// <summary>
         /// Applies all pending form values to a saved PDF as one engine revision. A field that shares
         /// its name with one that took the value and could not take it itself is remembered for the
@@ -889,14 +999,14 @@ namespace KillerPDF.Controls
         {
             FieldsThatKeptTheirValueRef = PdfEngineIntegration.ApplyFormValues(path, new PdfEngineIntegration.FormEdits(
                 _formTextValues, _formChoiceValues, _formMultiChoiceValues, _formCheckValues,
-                _formRadioValues, _formFontSizes));
+                _formRadioValues, _formFontSizes, _formTextStyles));
         }
 
 
         internal PdfEngineIntegration.FormEdits SnapshotFormValuesForPrint() =>
             PdfPrintSource.Snapshot(new PdfEngineIntegration.FormEdits(
                 _formTextValues, _formChoiceValues, _formMultiChoiceValues, _formCheckValues,
-                _formRadioValues, _formFontSizes));
+                _formRadioValues, _formFontSizes, _formTextStyles));
 
         // Form-field font-size stepper
         // A small "Font size: - N +" bar shown while a form text field is focused, so the user can
@@ -941,6 +1051,7 @@ namespace KillerPDF.Controls
             panel.Children.Add(MakeFormSizeStep("", () => AdjustFormFontSize(-1, sizeLbl)));  // minus
             panel.Children.Add(sizeLbl);
             panel.Children.Add(MakeFormSizeStep("", () => AdjustFormFontSize(+1, sizeLbl)));  // plus
+            AddFormTextStyleControls(panel, fieldName);
 
             // The on-document "inline flyout" style: translucent pill, solidifies on hover.
             _formSizeBar = UiKit.InlineFlyout(panel);
@@ -1025,13 +1136,161 @@ namespace KillerPDF.Controls
             double scale = _activeFormScale > 0 ? _activeFormScale : 1;
             double pt = Math.Round(_activeFormTb.FontSize / scale);
             pt = Math.Max(4, Math.Min(96, pt + delta));
-            _formFontSizes[_activeFormName] = pt;
-            _activeFormTb.FontSize = pt * scale;
-            // The size belongs to the name, so every box of it shows the change at once.
-            _fieldMarks.ShowFontSize(_activeFormName, pt, _activeFormTb);
+            SetFormFontSize(_activeFormName, _activeFormTb, scale, pt);
             sizeLbl.Text = pt.ToString("0");
+        }
+
+        // A field's font size in points, set in the box it was set in and, since the size belongs to the
+        // name, shown in every other box of it at once.
+        private void SetFormFontSize(string fieldName, TextBox box, double scale, double points)
+        {
+            points = Math.Max(4, Math.Min(96, points));
+            _formFontSizes[fieldName] = points;
+            box.FontSize = points * (scale > 0 ? scale : 1);
+            _fieldMarks.ShowFontSize(fieldName, points, box);
             MarkDirty(true);
         }
+
+        // Font, bold, italic, underline, strikethrough and color for the field's value: the choices the
+        // Text tool's bar offers.
+        // Like the size steps, none of them takes keyboard focus, so the field stays the one typed in.
+        private void AddFormTextStyleControls(StackPanel panel, string fieldName)
+        {
+            var light = new SolidColorBrush(Color.FromRgb(0xF2, 0xF2, 0xF2));
+            Services.FormTextStyle Current() => EffectiveFormTextStyle(fieldName) ?? new Services.FormTextStyle();
+            panel.Children.Add(new Border
+            {
+                Width = 1, Height = 14, Margin = new Thickness(6, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center,
+                Background = new SolidColorBrush(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF))
+            });
+
+            var fontBox = new ComboBox
+            {
+                Width = 130, Height = 20, FontFamily = UiKit.UiFont, FontSize = 11, MaxDropDownHeight = 320,
+                Focusable = false, VerticalAlignment = VerticalAlignment.Center
+            };
+            if (TryFindResource("DarkComboBox") is Style comboStyle) fontBox.Style = comboStyle;
+            var itemStyle = new Style(typeof(ComboBoxItem), TryFindResource("DarkComboItem") as Style);
+            itemStyle.Setters.Add(new Setter(UIElement.FocusableProperty, false));
+            fontBox.ItemContainerStyle = itemStyle;
+            System.Windows.Automation.AutomationProperties.SetName(fontBox, Loc("Str_Bar_Font").TrimEnd(':', ' '));
+            foreach (string name in Shell.MainWindow.SystemFontNames) fontBox.Items.Add(name);
+            fontBox.SelectedItem = Current().FontFamily ?? Services.FormTextStyle.DefaultFamily;
+            fontBox.ToolTip = fontBox.SelectedItem;
+            fontBox.SelectionChanged += (_, _) =>
+            {
+                if (fontBox.SelectedItem is not string family) return;
+                fontBox.ToolTip = family;
+                ChangeFormTextStyle(fieldName, style => style with { FontFamily = family });
+            };
+            fontBox.DropDownClosed += (_, _) => _activeFormTb?.Focus();
+            panel.Children.Add(fontBox);
+
+            // Each glyph previews its own effect, as the Text tool's B, I, S and U toggles do.
+            Border Toggle(string glyph, FontWeight weight, FontStyle slant, TextDecorationCollection? decoration,
+                string tipKey, Func<Services.FormTextStyle, bool> isOn, Func<Services.FormTextStyle, Services.FormTextStyle> flip)
+            {
+                var toggle = new Border
+                {
+                    Width = 21, Height = 19, CornerRadius = new CornerRadius(4), Margin = new Thickness(4, 0, 0, 0),
+                    Cursor = Cursors.Hand, ToolTip = Loc(tipKey),
+                    Child = new TextBlock
+                    {
+                        Text = glyph, FontFamily = UiKit.UiFont, FontSize = 12, FontWeight = weight, FontStyle = slant,
+                        TextDecorations = decoration, Foreground = light,
+                        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+                    }
+                };
+                void Paint() => toggle.Background = isOn(Current())
+                    ? new SolidColorBrush(Color.FromArgb(0x50, 0xFF, 0xFF, 0xFF)) : Brushes.Transparent;
+                Paint();
+                toggle.MouseLeftButtonDown += (_, e) => { e.Handled = true; ChangeFormTextStyle(fieldName, flip); Paint(); };
+                System.Windows.Automation.AutomationProperties.SetName(toggle, Loc(tipKey));
+                return toggle;
+            }
+            panel.Children.Add(Toggle("B", FontWeights.Bold, FontStyles.Normal, null, "Str_Lbl_Bold",
+                style => style.Bold, style => style with { Bold = !style.Bold }));
+            panel.Children.Add(Toggle("I", FontWeights.Normal, FontStyles.Italic, null, "Str_Lbl_Italic",
+                style => style.Italic, style => style with { Italic = !style.Italic }));
+            // Strikethrough before underline, in the Text tool's order.
+            panel.Children.Add(Toggle("S", FontWeights.Normal, FontStyles.Normal, TextDecorations.Strikethrough, "Str_Lbl_Strike",
+                style => style.StrikeThrough, style => style with { StrikeThrough = !style.StrikeThrough }));
+            panel.Children.Add(Toggle("U", FontWeights.Normal, FontStyles.Normal, TextDecorations.Underline, "Str_Lbl_Underline",
+                style => style.Underline, style => style with { Underline = !style.Underline }));
+
+            var swatch = new Border
+            {
+                Width = 16, Height = 16, CornerRadius = new CornerRadius(3), BorderThickness = new Thickness(1),
+                BorderBrush = light, Margin = new Thickness(6, 0, 2, 0), Cursor = Cursors.Hand,
+                VerticalAlignment = VerticalAlignment.Center, Background = FormTextBrush(fieldName),
+                ToolTip = Loc("Str_Bar_Color").TrimEnd(':', ' ')
+            };
+            System.Windows.Automation.AutomationProperties.SetName(swatch, Loc("Str_Bar_Color").TrimEnd(':', ' '));
+            swatch.MouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;
+                var dialog = new ColorPickerDialog(Window.GetWindow(this), Current().MediaColor ?? Colors.Black);
+                dialog.ShowDialog();
+                if (!dialog.Accepted) { _activeFormTb?.Focus(); return; }
+                string color = Services.FormTextStyle.Hex(dialog.SelectedColor);
+                ChangeFormTextStyle(fieldName, style => style with { TextColor = color });
+                swatch.Background = FormTextBrush(fieldName);
+            };
+            panel.Children.Add(swatch);
+        }
+
+        // Copied field text carries its field's style and font size under this app-only format, beside the
+        // plain text other programs read, the way copied annotations keep their look.
+        private const string FormTextStyleClipboardFormat = "KillerPDF.FormTextStyle";
+        private sealed record CopiedFormText(string Text, Services.FormTextStyle? Style, double Points);
+
+        // Copying from a field puts its style and size on the clipboard too, and pasting that same text into
+        // another field gives it the look the text had. A field has one look for its whole value, so the
+        // pasted look becomes the field's. Text changed on the clipboard since (copied elsewhere) brings none.
+        private void AttachFormTextStyleClipboard(TextBox box, string fieldName, double scale)
+        {
+            DataObject.AddCopyingHandler(box, (_, e) =>
+            {
+                if (box.SelectionLength == 0) return;
+                // The size in points, as the size bar shows it: the one set here, else the box's own.
+                double points = _formFontSizes.TryGetValue(fieldName, out double set) ? set
+                    : Math.Round(box.FontSize / (scale > 0 ? scale : 1));
+                e.DataObject.SetData(FormTextStyleClipboardFormat, System.Text.Json.JsonSerializer.Serialize(
+                    new CopiedFormText(box.SelectedText, EffectiveFormTextStyle(fieldName), points)));
+            });
+            DataObject.AddPastingHandler(box, (_, e) =>
+            {
+                if (e.DataObject.GetData(FormTextStyleClipboardFormat) is not string json) return;
+                CopiedFormText? copied;
+                try { copied = System.Text.Json.JsonSerializer.Deserialize<CopiedFormText>(json); }
+                catch (System.Text.Json.JsonException) { return; }
+                if (copied is null || e.DataObject.GetData(DataFormats.UnicodeText) as string != copied.Text) return;
+                // After the text lands, so the look follows the value it came with.
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (copied.Points > 0) SetFormFontSize(fieldName, box, scale, copied.Points);
+                    if (copied.Style is { } style) ChangeFormTextStyle(fieldName, _ => style);
+                    if (ReferenceEquals(_activeFormTb, box)) ShowFormSizeBar(box, fieldName, scale);
+                });
+            });
+        }
+
+        // Gives the field a changed style, shows it in every box of the name and keeps typing in the field.
+        private void ChangeFormTextStyle(string fieldName, Func<Services.FormTextStyle, Services.FormTextStyle> change)
+        {
+            _formTextStyles[fieldName] = change(EffectiveFormTextStyle(fieldName) ?? new Services.FormTextStyle());
+            _fieldMarks.ForEachText(fieldName, box => ApplyFormTextStyle(box, fieldName));
+            if (_activeFormTb is { } active)
+            {
+                ApplyFormTextStyle(active, fieldName);
+                if (!active.IsKeyboardFocusWithin) active.Focus();
+            }
+            MarkDirty(true);
+        }
+
+        // While the pointer or keyboard is on the bar (its font list, its color button), the field it
+        // belongs to may lose focus for a moment; the bar stays for the choice to land.
+        private bool FormSizeBarInUse => _formSizeBar is { } bar && (bar.IsMouseOver || bar.IsKeyboardFocusWithin);
 
         private void HideFormSizeBar()
         {

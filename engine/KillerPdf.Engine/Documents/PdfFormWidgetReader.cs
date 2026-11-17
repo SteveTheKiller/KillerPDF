@@ -48,6 +48,15 @@ public sealed class PdfFormWidgetReader
     private static readonly PdfName CropBoxName = Name("CropBox");
     private static readonly PdfName MediaBoxName = Name("MediaBox");
     private static readonly PdfName RotateName = Name("Rotate");
+    private static readonly PdfName DefaultStyleName = Name("DS");
+    private static readonly PdfName ResourcesName = Name("Resources");
+    private static readonly PdfName FontName = Name("Font");
+    private static readonly PdfName BaseFontName = Name("BaseFont");
+    private static readonly PdfName DescendantFontsName = Name("DescendantFonts");
+    private static readonly PdfName FontDescriptorName = Name("FontDescriptor");
+    private static readonly PdfName FontFileName = Name("FontFile");
+    private static readonly PdfName FontFile2Name = Name("FontFile2");
+    private static readonly PdfName FontFile3Name = Name("FontFile3");
 
     /// <summary>Reads all valid form widgets on one zero-based page.</summary>
     public static IReadOnlyList<PdfFormWidgetInfo> ReadPage(PdfDocument document, int pageIndex)
@@ -90,6 +99,7 @@ public sealed class PdfFormWidgetReader
             IReadOnlyList<string> values = [];
             IReadOnlyList<string> defaultValues = [];
             string defaultAppearance = string.Empty;
+            string? defaultStyle = null;
             PdfTextFieldAlignment alignment = PdfTextFieldAlignment.Left;
             bool hasAlignment = false;
             long flags = 0;
@@ -150,6 +160,9 @@ public sealed class PdfFormWidgetReader
                     defaultAppearance = PdfUnicodeEncoding.DecodeTextString(
                         appearance.Bytes.Span, "An AcroForm /DA value");
                 }
+                if (defaultStyle is null && node.TryGetValue(DefaultStyleName, out PdfObject? styleValue)
+                    && Resolve(document, styleValue, "An AcroForm /DS value") is PdfString styleText)
+                    defaultStyle = PdfUnicodeEncoding.DecodeTextString(styleText.Bytes.Span, "An AcroForm /DS value");
                 if (!hasAlignment && node.TryGetValue(AlignmentName, out PdfObject? alignmentValue))
                 {
                     long rawAlignment = Integer(document, alignmentValue, "An AcroForm /Q value");
@@ -179,6 +192,7 @@ public sealed class PdfFormWidgetReader
             }
             if (fieldType is null || nameParts.Count == 0) continue;
             nameParts.Reverse();
+            (bool underline, bool strikeThrough) = Editing.PdfIncrementalPageEditor.TextDecorationsOf(defaultStyle);
             (int objectNumber, int generation) = rawWidget is PdfIndirectReference reference
                 ? (reference.ObjectNumber, reference.Generation) : (0, 0);
             result.Add(new PdfFormWidgetInfo
@@ -200,6 +214,10 @@ public sealed class PdfFormWidgetReader
                 DefaultValue = defaultValue,
                 DefaultValues = defaultValues,
                 DefaultAppearance = defaultAppearance,
+                AppearanceFontName = EmbeddedAppearanceFont(document, widget),
+                Underline = underline,
+                StrikeThrough = strikeThrough,
+                MarkedTransparent = HasEmptyBackground(document, widget),
                 Alignment = alignment,
                 BackgroundColor = WidgetColor(
                     document, widget, BackgroundColorName, "background"),
@@ -218,6 +236,60 @@ public sealed class PdfFormWidgetReader
             });
         }
         return result;
+    }
+
+    // The first font of the normal appearance's resources that carries its own font program. An
+    // appearance that cannot be read is treated as using no embedded font: this is display detail
+    // and must never stop a form from being read.
+    private static string EmbeddedAppearanceFont(PdfDocument document, PdfDictionary widget)
+    {
+        try
+        {
+            if (!widget.TryGetValue(AppearanceName, out PdfObject? appearanceValue)
+                || Resolve(document, appearanceValue, "A widget /AP value") is not PdfDictionary appearance
+                || !appearance.TryGetValue(NormalAppearanceName, out PdfObject? normalValue)
+                || Resolve(document, normalValue, "A widget normal appearance") is not PdfStream normal
+                || !normal.Dictionary.TryGetValue(ResourcesName, out PdfObject? resourcesValue)
+                || Resolve(document, resourcesValue, "An appearance /Resources value") is not PdfDictionary resources
+                || !resources.TryGetValue(FontName, out PdfObject? fontsValue)
+                || Resolve(document, fontsValue, "An appearance /Font value") is not PdfDictionary fonts)
+                return string.Empty;
+            foreach (KeyValuePair<PdfName, PdfObject> entry in fonts)
+            {
+                if (Resolve(document, entry.Value, "An appearance font") is not PdfDictionary font
+                    || !font.TryGetValue(BaseFontName, out PdfObject? baseFontValue)
+                    || Resolve(document, baseFontValue, "A font /BaseFont value") is not PdfName baseFont)
+                    continue;
+                PdfDictionary? described = font;
+                if (font.TryGetValue(DescendantFontsName, out PdfObject? descendantsValue))
+                    described = Resolve(document, descendantsValue, "A font /DescendantFonts value") is PdfArray { Count: > 0 } descendants
+                        ? Resolve(document, descendants[0], "A descendant font") as PdfDictionary
+                        : null;
+                if (described is null
+                    || !described.TryGetValue(FontDescriptorName, out PdfObject? descriptorValue)
+                    || Resolve(document, descriptorValue, "A /FontDescriptor value") is not PdfDictionary descriptor
+                    || !(descriptor.ContainsKey(FontFile2Name) || descriptor.ContainsKey(FontFile3Name)
+                        || descriptor.ContainsKey(FontFileName)))
+                    continue;
+                string name = baseFont.ValueAsLatin1();
+                int plus = name.IndexOf('+');
+                return plus >= 0 && plus + 1 < name.Length ? name[(plus + 1)..] : name;
+            }
+        }
+        catch (Exception error) when (error is not OutOfMemoryException) { }
+        return string.Empty;
+    }
+
+    private static bool HasEmptyBackground(PdfDocument document, PdfDictionary widget)
+    {
+        try
+        {
+            return widget.TryGetValue(AppearanceCharacteristicsName, out PdfObject? characteristicsValue)
+                && Resolve(document, characteristicsValue, "A widget /MK value") is PdfDictionary characteristics
+                && characteristics.TryGetValue(BackgroundColorName, out PdfObject? colorValue)
+                && Resolve(document, colorValue, "A widget background color") is PdfArray { Count: 0 };
+        }
+        catch (Exception error) when (error is not OutOfMemoryException) { return false; }
     }
 
     private static PdfRgbColor? WidgetColor(

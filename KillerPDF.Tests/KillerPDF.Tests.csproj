@@ -269,6 +269,8 @@
     <Compile Include="..\Services\FormOcrPolicy.cs" Link="Services\FormOcrPolicy.cs" />
     <Compile Include="..\Features\Ocr\OcrFormHints.cs" Link="Features\Ocr\OcrFormHints.cs" />
     <Compile Include="..\Services\CombFieldLayout.cs" Link="Services\CombFieldLayout.cs" />
+    <Compile Include="..\Services\TextCapCentering.cs" Link="Services\TextCapCentering.cs" />
+    <Compile Include="..\Services\FormTextStyle.cs" Link="Services\FormTextStyle.cs" />
     <Compile Include="..\Services\ContinuousRenderOrder.cs" Link="Services\ContinuousRenderOrder.cs" />
     <Compile Include="..\Services\ContinuousPageLayout.cs" Link="Services\ContinuousPageLayout.cs" />
     <Compile Include="..\Services\PdfOverlayAnnotations.cs" Link="Services\PdfOverlayAnnotations.cs" />

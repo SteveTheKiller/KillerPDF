@@ -113,7 +113,8 @@ internal static partial class PdfEngineIntegration
         IReadOnlyDictionary<string, IReadOnlyList<string>> MultiChoiceValues,
         IReadOnlyDictionary<string, bool> CheckBoxValues,
         IReadOnlyDictionary<string, string> RadioValues,
-        IReadOnlyDictionary<string, double> TextFontSizes);
+        IReadOnlyDictionary<string, double> TextFontSizes,
+        IReadOnlyDictionary<string, FormTextStyle>? TextStyles = null);
 
     /// <summary>
     /// Opens a user's PDF for reading. An owner-restricted file is decrypted with the empty
@@ -975,7 +976,8 @@ internal static partial class PdfEngineIntegration
 
     private static bool HasFormValues(FormEdits edits) =>
         edits.TextValues.Count != 0 || edits.ChoiceValues.Count != 0 || edits.MultiChoiceValues.Count != 0
-        || edits.CheckBoxValues.Count != 0 || edits.RadioValues.Count != 0 || edits.TextFontSizes.Count != 0;
+        || edits.CheckBoxValues.Count != 0 || edits.RadioValues.Count != 0 || edits.TextFontSizes.Count != 0
+        || edits.TextStyles is { Count: > 0 };
 
     /// <summary>
     /// Saves filled-in values into a restricted form as an incremental update of the encrypted file, so the
@@ -1003,13 +1005,29 @@ internal static partial class PdfEngineIntegration
         IReadOnlyList<PdfFormWidgetInfo> widgets = [.. FormBindings(document).Pages.SelectMany(page => page)];
         document = AttachUnlistedFormFields(document);
         var editor = new PdfIncrementalPageEditor(document);
+        IReadOnlyDictionary<string, FormTextStyle> styles = edits.TextStyles ?? new Dictionary<string, FormTextStyle>();
+        // A field already drawn with an embedded font keeps that face when only its value or size changes.
+        var savedFaces = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (PdfFormWidgetInfo widget in widgets)
+            if (widget.FieldKind == PdfFormFieldKind.Text && widget.AppearanceFontName.Length > 0)
+                savedFaces.TryAdd(widget.FieldName, widget.AppearanceFontName);
+        Func<string, TrueTypeFont?> FontFor(string name) => value => FormFieldFont(name, value, styles, savedFaces, fonts);
         foreach ((string name, string value) in edits.TextValues.OrderBy(item => item.Key))
-            editor.SetTextFieldValue(name, value, EmbeddedFormFont(value, fonts), fontSize:
+            editor.SetTextFieldValue(name, value, FontFor(name)(value), fontSize:
                 edits.TextFontSizes.TryGetValue(name, out double size) ? size : null);
         // A size alone sends no value: a name the file repeats holds a value per field, and each keeps its own.
         foreach ((string name, double size) in edits.TextFontSizes.OrderBy(item => item.Key))
             if (!edits.TextValues.ContainsKey(name))
-                editor.SetTextFieldFontSize(name, size, value => EmbeddedFormFont(value, fonts));
+                editor.SetTextFieldFontSize(name, size, FontFor(name));
+        // A style joins the value or size set above, or alone keeps each field's own value. It is the whole
+        // look, so its underline and strikethrough are written even when off, to clear the saved ones.
+        foreach ((string name, FormTextStyle style) in styles.OrderBy(item => item.Key))
+        {
+            PdfRgbColor? color = style.MediaColor is { } media
+                ? new PdfRgbColor(media.R / 255d, media.G / 255d, media.B / 255d) : null;
+            editor.SetTextFieldTextStyle(name, style.HasFont ? FontFor(name) : null, color,
+                style.Underline, style.StrikeThrough);
+        }
         foreach ((string name, string value) in edits.ChoiceValues.OrderBy(item => item.Key))
         {
             string appearanceText = widgets.FirstOrDefault(widget =>
@@ -1200,6 +1218,44 @@ internal static partial class PdfEngineIntegration
                 (widget.ObjectNumber, widget.Generation), out string? binding) ? widget with { FieldName = binding } : widget)])];
         return new FormBindingPlan(boundPages, orphans, form, formReference, fields);
         }
+    }
+
+    // The face a text field's value is drawn with: the style given to the field, else the embedded face the
+    // field already shows, else a standard font unless the value needs a Unicode one. A face that lacks a
+    // character of the value gives way to a family that has it, in the same weight and slant.
+    private static TrueTypeFont? FormFieldFont(string name, string value,
+        IReadOnlyDictionary<string, FormTextStyle> styles, IReadOnlyDictionary<string, string> savedFaces,
+        Dictionary<string, TrueTypeFont> cache)
+    {
+        string? family = null;
+        bool bold = false, italic = false;
+        if (styles.TryGetValue(name, out FormTextStyle? style) && style.HasFont)
+            (family, bold, italic) = (style.FontFamily ?? FormTextStyle.DefaultFamily, style.Bold, style.Italic);
+        else if (savedFaces.TryGetValue(name, out string? saved))
+        {
+            DetectedPdfFontStyle detected = PdfFontStyle.FromPdfName(saved);
+            (family, bold, italic) = (detected.Family, detected.Bold, detected.Italic);
+        }
+        // A face that is not installed here cannot be embedded; the field falls back as before.
+        if (family is null || InstalledFontCatalog.FaceBytes(family, bold, italic) is null)
+            return EmbeddedFormFont(value, cache);
+        family = FontCoverage.PickFamily(family, value);
+        string key = family + "|" + bold + "|" + italic;
+        if (cache.TryGetValue(key, out TrueTypeFont? font)) return font;
+        byte[]? bytes = InstalledFontCatalog.FaceBytes(family, bold, italic);
+        if (bytes is null) return EmbeddedFormFont(value, cache);
+        // A face that cannot be loaded falls back to the standard font, as one that is not installed does.
+        font = TryLoadFormFace(bytes);
+        if (font is null) return EmbeddedFormFont(value, cache);
+        cache.Add(key, font);
+        return font;
+    }
+
+    // An installed face parsed for embedding, or null when its file cannot be read as a TrueType font.
+    internal static TrueTypeFont? TryLoadFormFace(byte[] bytes)
+    {
+        try { return TrueTypeFont.Load(bytes); }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { return null; }
     }
 
     private static TrueTypeFont? EmbeddedFormFont(

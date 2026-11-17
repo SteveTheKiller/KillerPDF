@@ -76,7 +76,8 @@ internal sealed class FormRecognitionReviewDialog : Window
             row.ColumnDefinitions.Add(new ColumnDefinition());
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
             var include = UiKit.CheckBox("");
-            include.IsChecked = true;
+            // Boxes the page already prints text in are likely filled in, so they start left out.
+            include.IsChecked = !proposal.CoversPrintedText;
             System.Windows.Automation.AutomationProperties.SetName(include,
                 L("Str_AutoBookmarks_Include") + " " + proposal.SuggestedName);
             var name = UiKit.Field();
