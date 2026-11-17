@@ -2487,9 +2487,7 @@ namespace KillerPDF.Features
             if (File.Exists(dest)) return true;
 
             bool hq = App.GetSetting("OcrHighQuality") == "1";
-            string url = (hq
-                ? "https://raw.githubusercontent.com/tesseract-ocr/tessdata_best/main/"
-                : "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/") + lang + ".traineddata";
+            string url = Services.OcrLanguages.LanguageDataUrl(lang, hq);
             con.WriteLine($"Downloading OCR language '{lang}' ({(hq ? "high quality" : "standard")})...");
             try
             {

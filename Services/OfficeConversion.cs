@@ -155,12 +155,22 @@ internal static class OfficeConversion
             {
                 // FileName, ConfirmConversions, ReadOnly, AddToRecentFiles, PasswordDocument.
                 var security = Get(app, "AutomationSecurity")!;
+                // Linked files and fields would otherwise be refreshed from wherever the
+                // document points, which can be a remote share that collects the user's hash.
+                object? options = TryGet(app, "Options");
+                object? updateLinks = options is null ? null : TryGet(options, "UpdateLinksAtOpen");
                 try
                 {
                     Set(app, "AutomationSecurity", 3);
+                    if (options is not null) TrySet(options, "UpdateLinksAtOpen", false);
                     document = Call(documents!, "Open", path, false, true, false, "");
                 }
-                finally { Set(app, "AutomationSecurity", security); }
+                finally
+                {
+                    Set(app, "AutomationSecurity", security);
+                    if (options is not null && updateLinks is not null) TrySet(options, "UpdateLinksAtOpen", updateLinks);
+                    Release(options);
+                }
                 try { Call(document!, "ExportAsFixedFormat", output, 17); }
                 finally { TryClose(document!, 0); }
             }
@@ -168,13 +178,21 @@ internal static class OfficeConversion
             {
                 // Filename, UpdateLinks, ReadOnly, Format, Password.
                 var security = Get(app, "AutomationSecurity")!;
+                // Auto_Open and other Excel 4.0 macros run from workbook events, which
+                // AutomationSecurity does not cover, so events stay off while the workbook is open.
+                object? events = TryGet(app, "EnableEvents");
                 try
                 {
                     // msoAutomationSecurityForceDisable blocks VBA, but not Excel 4.0 macros.
                     Set(app, "AutomationSecurity", 3);
+                    TrySet(app, "EnableEvents", false);
                     document = Call(documents!, "Open", path, 0, true, Type.Missing, "");
                 }
-                finally { Set(app, "AutomationSecurity", security); }
+                finally
+                {
+                    Set(app, "AutomationSecurity", security);
+                    if (events is not null) TrySet(app, "EnableEvents", events);
+                }
                 try { Call(document!, "ExportAsFixedFormat", 0, output); }
                 finally { TryClose(document!, false); }
             }
@@ -208,6 +226,19 @@ internal static class OfficeConversion
 
     private static void Set(object target, string name, object value) =>
         target.GetType().InvokeMember(name, BindingFlags.SetProperty, null, target, [value]);
+
+    // For settings an older Office may lack: a missing one is skipped, not a failed conversion.
+    private static object? TryGet(object target, string name)
+    {
+        try { return Get(target, name); }
+        catch (Exception ex) when (ex is COMException or TargetInvocationException or MissingMethodException) { return null; }
+    }
+
+    private static void TrySet(object target, string name, object value)
+    {
+        try { Set(target, name, value); }
+        catch (Exception ex) when (ex is COMException or TargetInvocationException or MissingMethodException) { }
+    }
 
     private static object? Call(object target, string name, params object?[] arguments) =>
         target.GetType().InvokeMember(name, BindingFlags.InvokeMethod, null, target, arguments);

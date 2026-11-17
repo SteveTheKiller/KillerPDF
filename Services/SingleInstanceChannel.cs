@@ -25,6 +25,9 @@ internal sealed class SingleInstanceChannel(string applicationName, string accou
     public NamedPipeServerStream CreateServer()
     {
         var security = new PipeSecurity();
+        // The owner is set to the user even when elevated, where Windows would make it
+        // Administrators, so a sender's owner check below matches either way.
+        security.SetOwner(new SecurityIdentifier(accountId));
         security.AddAccessRule(new PipeAccessRule(new SecurityIdentifier(accountId),
             PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance, AccessControlType.Allow));
         security.AddAccessRule(new PipeAccessRule(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
@@ -70,7 +73,9 @@ internal sealed class SingleInstanceChannel(string applicationName, string accou
     {
         try
         {
-            using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
+            // CurrentUserOnly refuses a pipe owned by anyone else, so another account that made
+            // this name first cannot collect the paths and links this user opens.
+            using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out, PipeOptions.CurrentUserOnly);
             client.Connect(timeoutMilliseconds);
             using var writer = new StreamWriter(client, new UTF8Encoding(false)) { AutoFlush = true };
             writer.WriteLine(path ?? "");

@@ -251,7 +251,7 @@ namespace KillerPDF.Shell
                     i++;
                     string name = OcrLanguages.NameForCode(code);
                     string dest = Path.Combine(tessDir, code + ".traineddata");
-                    string url = $"https://raw.githubusercontent.com/tesseract-ocr/tessdata_best/main/{code}.traineddata";
+                    string url = OcrLanguages.LanguageDataUrl(code, highQuality: true);
                     try
                     {
                         await OcrLanguages.DownloadTrainedDataAsync(http, url, dest,

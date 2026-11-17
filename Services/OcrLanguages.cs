@@ -31,9 +31,15 @@ namespace KillerPDF.Services
         // Standard tier uses tessdata_fast: the same integer LSTM model as the full "tessdata" repo but without
         // the unused legacy-engine data, so it is ~4MB instead of ~22MB with identical LSTM accuracy. HQ uses
         // tessdata_best (float LSTM): larger (~14MB) but the most accurate.
+        // Both come from a fixed commit, not main, so a change pushed to either repository later
+        // cannot reach a KillerPDF that already shipped. Moving to newer models means changing
+        // these two hashes on purpose.
+        internal const string TessdataBestCommit = "e12c65a915945e4c28e237a9b52bc4a8f39a0cec";
+        internal const string TessdataFastCommit = "87416418657359cb625c412a48b6e1d6d41c29bd";
+
         internal static string LanguageDataUrl(string code, bool highQuality) => highQuality
-            ? $"https://raw.githubusercontent.com/tesseract-ocr/tessdata_best/main/{code}.traineddata"
-            : $"https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/{code}.traineddata";
+            ? $"https://raw.githubusercontent.com/tesseract-ocr/tessdata_best/{TessdataBestCommit}/{code}.traineddata"
+            : $"https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/{TessdataFastCommit}/{code}.traineddata";
 
         internal static string NameForCode(string code)
         {

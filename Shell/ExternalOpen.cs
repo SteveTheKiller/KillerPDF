@@ -150,7 +150,7 @@ namespace KillerPDF.Shell
             string temp = App.MakeTempFile("browser");
             try
             {
-                using var http = new HttpClient { Timeout = System.TimeSpan.FromSeconds(90) };
+                using var http = new HttpClient(PublicAddressGuard.CreateHandler()) { Timeout = System.TimeSpan.FromSeconds(90) };
                 const long MaxBytes = 256L * 1024 * 1024;
                 using (var output = File.Create(temp))
                     await HttpDownload.CopyToAsync(http, target, output, System.TimeSpan.FromSeconds(90), MaxBytes);

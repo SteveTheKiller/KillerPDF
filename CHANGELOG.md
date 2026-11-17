@@ -18,6 +18,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - An update installs only when its signing certificate chains to the certificate authority that issues KillerPDF's own, and a revoked certificate is refused. A certificate that only carries the right name no longer passes.
 - A machine-wide install unpacks into a folder only administrators can change, and a machine-wide uninstall runs its cleanup script from one, so a program running without admin rights cannot swap files in while setup works.
 - Setup no longer loads DLLs from the folder it was downloaded to, and it starts Explorer and the command prompt by their full Windows paths.
+- A PDF link handed over from the browser downloads only from the public internet. A web page can no longer use it to reach a router, printer or other device on your network.
+- A file or link sent to the KillerPDF that's already running goes only to a copy running as you. Another account that started first can no longer collect what you open.
+- OCR languages download from a fixed version of the Tesseract language files, so a later change to those files cannot reach KillerPDF unreviewed.
+- Converting a Word or Excel file no longer refreshes its links to other files, and Excel 4.0 macros in a workbook stay off while it converts.
 
 ### Added
 
