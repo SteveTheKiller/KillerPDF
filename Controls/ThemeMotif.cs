@@ -27,10 +27,23 @@ namespace KillerPDF.Controls
             "Part", typeof(MotifPart), typeof(ThemeMotif), new PropertyMetadata(MotifPart.None, OnPartChanged));
 
         public static readonly DependencyProperty BaseBrushProperty = DependencyProperty.RegisterAttached(
-            "BaseBrush", typeof(string), typeof(ThemeMotif), new PropertyMetadata("BackgroundBrush"));
+            "BaseBrush", typeof(string), typeof(ThemeMotif), new PropertyMetadata("BackgroundBrush", OnBaseBrushChanged));
+
+        // A template trigger can flip BaseBrush with Part (the active document tab); repaint on the new base.
+        private static void OnBaseBrushChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not FrameworkElement element || GetPart(element) == MotifPart.None || element.GetValue(PaintedProperty) is null) return;
+            element.SetValue(PaintedProperty, "");
+            if (element.IsLoaded) Paint(element);
+        }
 
         private static readonly DependencyProperty PaintedProperty = DependencyProperty.RegisterAttached(
             "Painted", typeof(string), typeof(ThemeMotif), new PropertyMetadata(null));
+
+        // Whether the element's Background was a local value before the first paint. Template- and trigger-driven
+        // backgrounds (the document tabs) are not, and Restore clears back to them instead of pinning a brush key.
+        private static readonly DependencyProperty HadLocalBackgroundProperty = DependencyProperty.RegisterAttached(
+            "HadLocalBackground", typeof(bool), typeof(ThemeMotif), new PropertyMetadata(true));
 
         public static MotifPart GetPart(DependencyObject element) => (MotifPart)element.GetValue(PartProperty);
         public static void SetPart(DependencyObject element, MotifPart value) => element.SetValue(PartProperty, value);
@@ -256,8 +269,11 @@ namespace KillerPDF.Controls
                 Pieces[part] = cached;
             }
             var brush = TrashPolkaMotif.Compose(baseBrush.Color, cached.Piece, pane, window, scale: TrashPolkaInk.Scale, opacity: opacity);
-            element.SetValue(PaintedBrushProperty, brush);
             element.SetValue(PaintedProperty, stamp);
+            // First paint since the last restore: remember whether the background we are about to replace was local.
+            if (BackgroundProperty(element) is { } bg && element.ReadLocalValue(PaintedBrushProperty) == DependencyProperty.UnsetValue)
+                element.SetValue(HadLocalBackgroundProperty, element.ReadLocalValue(bg) != DependencyProperty.UnsetValue);
+            element.SetValue(PaintedBrushProperty, brush);
             SetBackground(element, brush);
         }
 
@@ -266,6 +282,11 @@ namespace KillerPDF.Controls
             if (element.GetValue(PaintedProperty) is null) return;
             element.ClearValue(PaintedProperty);
             element.ClearValue(PaintedBrushProperty);
+            if (!(bool)element.GetValue(HadLocalBackgroundProperty))
+            {
+                if (BackgroundProperty(element) is { } bg) element.ClearValue(bg);
+                return;
+            }
             string key = GetBaseBrush(element);
             switch (element)
             {
