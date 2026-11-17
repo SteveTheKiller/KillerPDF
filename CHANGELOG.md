@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Trash Polka, a new theme under 98SE: a black window covered in a tattoo-style ink piece built around circuit-board hexagons, with dry-brush strokes, smeared bars, ink splatter and halftone dots in your accent color. Pick from eight accents, with Blood red as the default. Each document pane carries its own piece that runs up into its active tab, the bars, sidebar, dialogs, flyouts and menus carry a fainter one, and the image stays put when you resize a pane.
 - Merge opens a Merge files dialog instead of a plain file picker. Drop PDF files or whole folders on it from File Explorer, or use Add files and Add folder, then drag files into the order you want, or use Move up and Move down. A folder adds the PDFs directly inside it, in name order. (#495)
 - The open and save dialogs have a New folder button, also on Ctrl+Shift+N. The folder is created in the current folder and opened, so a Save As can go straight into it. A name Windows won't accept is explained before anything is created. (#498)
 
@@ -18,6 +19,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Turning a replacement's layers on or off in More settings no longer freezes the window. The menu used to stay open with nothing under it and hold the mouse until another window took it back, which also kept the arrow keys from moving the text box or its cover. (#467)
 - With a replacement's text box locked, the arrow keys and a drag move its cover, as 1.9.4 promised. It worked only after the two were linked, and a fresh edit never is. The selection frame now follows the mark when the arrow keys move it, instead of staying where the mark was. After a click in More settings, the arrow keys go back to the selection instead of changing the Font box, and with a screen reader or other accessibility tool running they move a selected mark instead of the reading caret. (#467)
 - Pinching on a precision touchpad zooms the page again, as it did before 1.9.3, instead of scrolling it. (#494)
+- Redact no longer fails with "Pages ... cannot be redacted without replacing them with an image" when saving the document leaves a page that has to become an image. It asks about those pages the same way it asks about the others, and canceling leaves the document as it was. (#499)
+- The tab beside the active document tab no longer draws a second divider line against it.
 - A Chinese or Japanese file name in the title bar is drawn in Microsoft YaHei UI or Yu Gothic UI, matching the menus, instead of the system's default face. Document tab names follow the same rule in every theme. (#490)
 
 ## [1.9.4] - 2026-11-15
