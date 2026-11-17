@@ -251,6 +251,7 @@
     <Compile Include="..\Services\TrustedUpdate.cs" Link="Services\TrustedUpdate.cs" />
     <Compile Include="..\Services\ReleaseIdentity.cs" Link="Services\ReleaseIdentity.cs" />
     <Compile Include="..\Services\CodeSignature.cs" Link="Services\CodeSignature.cs" />
+    <Compile Include="..\Services\PublisherChain.cs" Link="Services\PublisherChain.cs" />
     <Compile Include="..\Services\ImmutablePowerShell.cs" Link="Services\ImmutablePowerShell.cs" />
     <Compile Include="..\Services\InstallerExitCodes.cs" Link="Services\InstallerExitCodes.cs" />
     <Compile Include="..\Services\InstallationFiles.cs" Link="Services\InstallationFiles.cs" />

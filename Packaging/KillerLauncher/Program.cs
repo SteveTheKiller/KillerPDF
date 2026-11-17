@@ -33,13 +33,18 @@ namespace KillerLauncher
         [STAThread]
         private static int Main(string[] args)
         {
+            // A setup exe is usually run from Downloads, where a planted version.dll or similar
+            // would load before any system copy. Later loads search System32 and the exe's own
+            // folder only, and the current directory drops out of the search.
+            SetDefaultDllDirectories(LoadLibrarySearchSystem32 | LoadLibrarySearchApplicationDir);
+            SetDllDirectory("");
             KillerFamily.Accessibility.AccessibleControls.Initialize();
             try
             {
 #if INSTALLER_PACKAGE
                 // An inherited installation-folder working directory prevents Windows from
                 // renaming that folder, even after the installed application has exited.
-                Directory.SetCurrentDirectory(Path.GetTempPath());
+                Directory.SetCurrentDirectory(Environment.SystemDirectory);
                 TaskbarIdentity.UseInstaller();
                 if (args.Any(a => string.Equals(a, "/install-user", StringComparison.OrdinalIgnoreCase)))
                 {
@@ -78,7 +83,7 @@ namespace KillerLauncher
                 // code and relaunches the installed copy itself.
                 if (PortableLauncherPolicy.ReadInAppInstall(args) is { } inApp)
                 {
-                    Directory.SetCurrentDirectory(Path.GetTempPath());
+                    Directory.SetCurrentDirectory(Environment.SystemDirectory);
                     return Install(machine: inApp.Machine, desktop: inApp.Desktop);
                 }
                 if (args.Any(PortableLauncherPolicy.IsInstallationArgument))
@@ -204,7 +209,7 @@ namespace KillerLauncher
             bool registered = false;
             try
             {
-                ExtractAndVerify(staging);
+                ExtractAndVerify(staging, machine && string.IsNullOrWhiteSpace(testRoot));
 
                 ValidateInstallDestination(destination);
                 if (Directory.Exists(destination))
@@ -283,7 +288,7 @@ namespace KillerLauncher
                 if (!File.Exists(executable)) return exitCode;
                 string? reopen = UpdateRelaunchArguments.ReopenFile(args);
                 if (KillerFamily.Deployment.InstallerExitCodes.IsElevated())
-                    Process.Start(new ProcessStartInfo("explorer.exe", "\"" + executable + "\"") { UseShellExecute = true });
+                    Process.Start(new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"),"\"" + executable + "\"") { UseShellExecute = true });
                 else
                     Process.Start(new ProcessStartInfo(executable, reopen == null ? string.Empty : "\"" + reopen + "\"")
                     {
@@ -598,6 +603,18 @@ namespace KillerLauncher
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), IsArm64Host());
 
         private const ushort ImageFileMachineArm64 = 0xAA64;
+        private const uint LoadLibrarySearchApplicationDir = 0x00000200;
+        private const uint LoadLibrarySearchSystem32 = 0x00000800;
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetDefaultDllDirectories(uint directoryFlags);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetDllDirectory(string pathName);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
@@ -650,9 +667,49 @@ namespace KillerLauncher
             }
         }
 
-        private static void ExtractAndVerify(string destination)
+        // An all-users install is what HKLM file types, the protocol, the preview handler and the
+        // elevated uninstall point at, so its folder must not be writable by other users. A custom
+        // folder such as C:\KillerPDF inherits Authenticated Users Modify from the drive root, so the
+        // staging folder gets its own protected ACL before any file is written, and the files inherit
+        // it. The move into place keeps the ACL. Program Files already looks like this.
+        internal static void CreateProtectedDirectory(string path)
         {
-            Directory.CreateDirectory(destination);
+            if (Directory.Exists(path) || File.Exists(path))
+                throw new IOException(LauncherStrings.Get("InvalidDirectory"));
+            var security = new System.Security.AccessControl.DirectorySecurity();
+            security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+            var administrators = new System.Security.Principal.SecurityIdentifier(
+                System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid, null);
+            security.SetOwner(administrators);
+            const System.Security.AccessControl.InheritanceFlags everything =
+                System.Security.AccessControl.InheritanceFlags.ContainerInherit
+                | System.Security.AccessControl.InheritanceFlags.ObjectInherit;
+            void Allow(System.Security.Principal.WellKnownSidType sid, System.Security.AccessControl.FileSystemRights rights) =>
+                security.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(
+                    new System.Security.Principal.SecurityIdentifier(sid, null), rights, everything,
+                    System.Security.AccessControl.PropagationFlags.None,
+                    System.Security.AccessControl.AccessControlType.Allow));
+            Allow(System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid, System.Security.AccessControl.FileSystemRights.FullControl);
+            Allow(System.Security.Principal.WellKnownSidType.LocalSystemSid, System.Security.AccessControl.FileSystemRights.FullControl);
+            Allow(System.Security.Principal.WellKnownSidType.BuiltinUsersSid, System.Security.AccessControl.FileSystemRights.ReadAndExecute);
+            security.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(
+                new System.Security.Principal.SecurityIdentifier("S-1-15-2-1"),
+                System.Security.AccessControl.FileSystemRights.ReadAndExecute, everything,
+                System.Security.AccessControl.PropagationFlags.None,
+                System.Security.AccessControl.AccessControlType.Allow));
+            Directory.CreateDirectory(path, security);
+            // Another user could have made the folder between the check and the create, in which
+            // case CreateDirectory leaves their ACL alone. Only a folder owned by Administrators
+            // is ours.
+            var owner = Directory.GetAccessControl(path).GetOwner(typeof(System.Security.Principal.SecurityIdentifier));
+            if (!administrators.Equals(owner))
+                throw new UnauthorizedAccessException(LauncherStrings.Get("InvalidDirectory"));
+        }
+
+        private static void ExtractAndVerify(string destination, bool machine = false)
+        {
+            if (machine) CreateProtectedDirectory(destination);
+            else Directory.CreateDirectory(destination);
             using (var payload = Assembly.GetExecutingAssembly().GetManifestResourceStream(PayloadResourceName))
             {
                 if (payload == null) throw new InvalidOperationException(LauncherStrings.Get("PayloadMissing"));

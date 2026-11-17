@@ -111,11 +111,12 @@ internal static class InstallPayloadOwnership
     /// <summary>
     /// Writes the script that removes the payload once this process has exited, then deletes itself.
     /// </summary>
-    internal static void WriteRemovalScript(string path, OwnedPayload owned) =>
+    internal static void WriteRemovalScript(string path, OwnedPayload owned, bool removeFolder = false) =>
         File.WriteAllText(path,
             "@echo off\r\n" +
             "chcp 65001 >nul\r\n" +
             "ping -n 3 127.0.0.1 >nul\r\n" +
             RemovalBatch(owned) +
-            "del \"%~f0\"\r\n");
+            // A protected script folder of its own goes with the script; %TEMP% stays.
+            (removeFolder ? "del \"%~f0\" & rd \"%~dp0.\"\r\n" : "del \"%~f0\"\r\n"));
 }

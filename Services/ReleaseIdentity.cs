@@ -42,6 +42,7 @@ namespace KillerPDF.Services
             using (var self = Process.GetCurrentProcess()) current = self.MainModule?.FileName ?? string.Empty;
             if (!CodeSignature.MayReplace(current, exe))
                 throw new SecurityException("The update is not signed by the publisher of the installed copy.");
+            PublisherChain.Verify(exe);
             return incoming.thumb;
         }
 
@@ -78,6 +79,7 @@ namespace KillerPDF.Services
             using (var self = Process.GetCurrentProcess()) current = self.MainModule?.FileName ?? string.Empty;
             if (!CodeSignature.MayReplace(current, package))
                 throw new SecurityException("The update is not signed by the publisher of the installed copy.");
+            PublisherChain.Verify(package);
             return incoming.thumb;
         }
 

@@ -15,6 +15,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Redact checks the finished file for the words it found. When one still appears in a bookmark, a link destination's name, a script, the document's details or any other text, the command line refuses to save and the app, macros and the Privacy guided task say which words remain. Removing hidden information now also renames link destinations, which can carry the words they point at, and links keep working.
 - The Signatures panel shows "Certification broken" for a document certified to allow no changes that was changed afterward. It used to say "Valid, changed after signing", which read as a pass.
 - The working copies KillerPDF keeps while you edit are deleted as soon as an edit replaces them, so text a redaction removed no longer sits in a temporary file until KillerPDF closes.
+- An update installs only when its signing certificate chains to the certificate authority that issues KillerPDF's own, and a revoked certificate is refused. A certificate that only carries the right name no longer passes.
+- A machine-wide install unpacks into a folder only administrators can change, and a machine-wide uninstall runs its cleanup script from one, so a program running without admin rights cannot swap files in while setup works.
+- Setup no longer loads DLLs from the folder it was downloaded to, and it starts Explorer and the command prompt by their full Windows paths.
 
 ### Added
 

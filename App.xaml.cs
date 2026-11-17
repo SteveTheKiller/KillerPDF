@@ -2204,12 +2204,20 @@ namespace KillerPDF
 
             // Self-delete: deferred via cmd batch so the EXE can exit first. The batch names every
             // owned file and removes folders only when they are empty, never recursively.
-            string bat = Path.Combine(Path.GetTempPath(), $"killerpdf_uninstall_{Guid.NewGuid():N}.bat");
-            Services.InstallPayloadOwnership.WriteRemovalScript(bat, owned);
-            Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{bat}\"")
+            // An elevated uninstall's %TEMP% is writable at medium integrity by the same user, so a
+            // process without elevation could rewrite the script before cmd runs it. The machine
+            // script goes in a folder only Administrators and SYSTEM can write, and cmd is started by
+            // its full path rather than found by name.
+            string scripts = machine ? Services.ProtectedScriptFolder.Create() : Path.GetTempPath();
+            string bat = Path.Combine(scripts, $"killerpdf_uninstall_{Guid.NewGuid():N}.bat");
+            Services.InstallPayloadOwnership.WriteRemovalScript(bat, owned, removeFolder: machine);
+            Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "cmd.exe"))
             {
+                ArgumentList = { "/d", "/c", bat },
+                WorkingDirectory = Environment.SystemDirectory,
                 WindowStyle    = ProcessWindowStyle.Hidden,
-                UseShellExecute = true
+                CreateNoWindow = true,
+                UseShellExecute = false
             });
 
             if (!silent)
