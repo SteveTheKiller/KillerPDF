@@ -40,12 +40,12 @@ namespace KillerPDF.Controls
         /// edge instead of its left; <paramref name="opacity"/> draws it faint (the chrome panes).
         /// </summary>
         internal static DrawingBrush Compose(Color baseColor, Drawing motif, Rect paneInWindow, Size window, bool anchorRight = false,
-            double opacity = 1)
+            double opacity = 1, double? scale = null)
         {
             // A fixed, small scale: stretching the piece to cover the window blew every dot and hex up to poster size
             // (Steve, 2026-11-16: "everything is way too big").
-            double scale = MotifScale;
-            double left = anchorRight ? window.Width - Width * scale : 0;
+            double s = scale ?? MotifScale;
+            double left = anchorRight ? window.Width - Width * s : 0;
             var pane = new Rect(0, 0, paneInWindow.Width, paneInWindow.Height);
 
             var fill = new SolidColorBrush(baseColor);
@@ -54,7 +54,7 @@ namespace KillerPDF.Controls
             group.Children.Add(new GeometryDrawing(fill, null, new RectangleGeometry(pane)));
             var placed = new DrawingGroup
             {
-                Transform = new MatrixTransform(scale, 0, 0, scale, left - paneInWindow.X, -paneInWindow.Y), Opacity = opacity
+                Transform = new MatrixTransform(s, 0, 0, s, left - paneInWindow.X, -paneInWindow.Y), Opacity = opacity
             };
             placed.Children.Add(motif);
             group.Children.Add(placed);

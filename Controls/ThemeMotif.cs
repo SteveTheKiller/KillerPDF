@@ -44,6 +44,7 @@ namespace KillerPDF.Controls
         public static void SetMotifBrush(DependencyObject element, string? value) => element.SetValue(MotifBrushProperty, value);
 
         private static readonly Dictionary<(MotifPart, Color), Drawing> Motifs = [];
+        private static readonly Dictionary<MotifPart, (Color Accent, Size Size, Drawing Piece)> Pieces = [];
 
         private static void OnPartChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -143,11 +144,26 @@ namespace KillerPDF.Controls
             string stamp = $"{part}|{accent.Color}|{baseBrush.Color}|{pane}|{window}";
             if ((string?)element.GetValue(PaintedProperty) == stamp) return;
 
-            var layout = part switch { MotifPart.Window => TrashPolkaLayout.FullSleeve, MotifPart.Chrome => TrashPolkaLayout.Chrome, _ => TrashPolkaLayout.CornerCluster };
-            if (!Motifs.TryGetValue((part, accent.Color), out var motif))
-                Motifs[(part, accent.Color)] = motif = TrashPolkaMotif.Build(layout, accent.Color);
-            var brush = TrashPolkaMotif.Compose(baseBrush.Color, motif, pane, window, anchorRight: part != MotifPart.Chrome,
-                opacity: part == MotifPart.Chrome ? TrashPolkaMotif.ChromeOpacity : 1);
+            DrawingBrush brush;
+            if (part == MotifPart.Chrome)
+            {
+                if (!Motifs.TryGetValue((part, accent.Color), out var motif))
+                    Motifs[(part, accent.Color)] = motif = TrashPolkaMotif.Build(TrashPolkaLayout.Chrome, accent.Color);
+                brush = TrashPolkaMotif.Compose(baseBrush.Color, motif, pane, window, opacity: TrashPolkaMotif.ChromeOpacity);
+            }
+            else
+            {
+                // The document canvas and the split pane carry the full ink piece (TrashPolkaInk), drawn to their own
+                // size at 1:1; one cached piece per part, redrawn only when the pane's size or the accent changes.
+                var size = new Size(Math.Ceiling(element.ActualWidth), Math.Ceiling(element.ActualHeight));
+                if (!Pieces.TryGetValue(part, out var cached) || cached.Accent != accent.Color || cached.Size != size)
+                {
+                    cached = (accent.Color, size, TrashPolkaInk.Draw(accent.Color, size,
+                        part == MotifPart.Window ? TrashPolkaInk.WindowSeed : TrashPolkaInk.SplitSeed));
+                    Pieces[part] = cached;
+                }
+                brush = TrashPolkaMotif.Compose(baseBrush.Color, cached.Piece, new Rect(new Point(0, 0), size), size, scale: 1);
+            }
             element.SetValue(PaintedBrushProperty, brush);
             element.SetValue(PaintedProperty, stamp);
             SetBackground(element, brush);

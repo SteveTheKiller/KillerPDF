@@ -441,7 +441,6 @@
         <Border x:Name="PaneBorder" Panel.ZIndex="6"
                 Background="{DynamicResource ContentPaneBrush}"
                 local:ThemeMotif.Part="Window" local:ThemeMotif.BaseBrush="ContentPaneBrush"
-                local:ThemeMotif.MotifBrush="BackgroundBrush"
                 BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1"
                 CornerRadius="{DynamicResource RadCard}">
             <!-- Clipped to the card's own corners (DocPane_SizeChanged). A Border with a
