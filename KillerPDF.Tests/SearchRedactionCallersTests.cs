@@ -134,7 +134,8 @@ public sealed class SearchRedactionCallersTests : IDisposable
         string source = ReadSource("Features", "Cli", "CliRunner.Macros.cs");
 
         Assert.DoesNotContain("catch (RedactionPagesSkippedException", source);
-        Assert.Contains("SearchService.FindRedactionTermAreas(path, redaction.Terms)", source);
+        Assert.Contains("MacroRedactionPass.Run(data, redaction.Terms", source);
+        Assert.DoesNotContain("catch (RedactionPagesSkippedException", ReadSource("Services", "MacroRedactionPass.cs"));
         Assert.Contains("could not be read", source[..source.IndexOf("private static int CliMacro(", StringComparison.Ordinal)]);
     }
 

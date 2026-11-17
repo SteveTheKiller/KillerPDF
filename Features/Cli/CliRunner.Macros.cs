@@ -313,31 +313,22 @@ namespace KillerPDF.Features
             string path = App.MakeTempFile("climacroredact");
             try
             {
-                File.WriteAllBytes(path, data.ToArray());
-                List<PdfRedactionRegion> regions = [.. redaction.Marked];
-                token.ThrowIfCancellationRequested();
-                // All terms in one pass, so the document is parsed once rather than twice per term. A page
-                // it could not search throws, which fails this step with the pages named in the report.
-                foreach (var (page, rects) in SearchService.FindRedactionTermAreas(path, redaction.Terms))
-                    foreach (var (left, bottom, right, top) in rects)
-                        regions.Add(new PdfRedactionRegion(page, new PdfContentBounds(left, bottom, right, top)));
-                if (regions.Count == 0) return new PdfMacroOperationResult(data);
-
-                PdfContentRedactionPlan plan = PdfEngineIntegration.AnalyzeRedaction(
-                    PdfEngineIntegration.OpenForReading(data.ToArray()), regions);
-                List<int> approved = redaction.Rasterize ? [.. plan.RasterPages] : [];
-                HashSet<int> skipped = [.. plan.RasterPages.Except(approved)];
-                redaction.Blocked.UnionWith(skipped);
-                if (skipped.Count > 0)
-                    throw new InvalidOperationException($"Redaction requires rasterization on pages "
-                        + $"{string.Join(", ", skipped.Order().Select(page => page + 1))}; add --rasterize to allow that.");
-
-                token.ThrowIfCancellationRequested();
-                PdfEngineIntegration.ApplyRedaction(path, regions, approved);
-                redaction.Areas += regions.Count;
-                redaction.Pages += regions.Select(region => region.PageIndex).Distinct().Count();
-                redaction.Rasterized += approved.Count;
-                return new PdfMacroOperationResult(File.ReadAllBytes(path));
+                MacroRedactionPass.Outcome? outcome = MacroRedactionPass.Run(data, redaction.Terms, redaction.Marked, path,
+                    (rasterPages, approved, skipped) =>
+                    {
+                        if (redaction.Rasterize) approved.AddRange(rasterPages);
+                        else skipped.UnionWith(rasterPages);
+                        redaction.Blocked.UnionWith(skipped);
+                        if (skipped.Count > 0)
+                            throw new InvalidOperationException($"Redaction requires rasterization on pages "
+                                + $"{string.Join(", ", skipped.Order().Select(page => page + 1))}; add --rasterize to allow that.");
+                        return true;
+                    }, approveMore: null, token);
+                if (outcome is null) return new PdfMacroOperationResult(data);
+                redaction.Areas += outcome.Areas;
+                redaction.Pages += outcome.Pages;
+                redaction.Rasterized += outcome.Rasterized;
+                return new PdfMacroOperationResult(outcome.Bytes);
             }
             finally
             {

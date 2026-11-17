@@ -63,11 +63,15 @@ public sealed class RedactionTermAreasTests : IDisposable
     [Fact]
     public void BothMacroCallersPassAllTermsAtOnce()
     {
+        // Guard pin: both callers go through the one shared pass, which MacroRedactionPassTests
+        // runs with several terms. A caller with its own copy would drift again.
         string root = FindRepositoryRoot();
-        Assert.Contains("SearchService.FindRedactionTermAreas(path, _macroRedaction.Terms)",
+        Assert.Contains("MacroRedactionPass.Run(source, _macroRedaction.Terms",
             File.ReadAllText(Path.Combine(root, "Shell", "Macros.cs")));
-        Assert.Contains("SearchService.FindRedactionTermAreas(path, redaction.Terms)",
+        Assert.Contains("MacroRedactionPass.Run(data, redaction.Terms",
             File.ReadAllText(Path.Combine(root, "Features", "Cli", "CliRunner.Macros.cs")));
+        Assert.Contains("SearchService.FindRedactionTermAreas(workingPath, terms)",
+            File.ReadAllText(Path.Combine(root, "Services", "MacroRedactionPass.cs")));
     }
 
     private static string FindRepositoryRoot()

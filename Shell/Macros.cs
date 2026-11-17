@@ -269,15 +269,26 @@ public partial class MainWindow
         string path = App.MakeTempFile("macroredact");
         try
         {
-            File.WriteAllBytes(path, source.ToArray());
-            List<PdfRedactionRegion> regions = [.. _macroRedaction.Marked];
-            cancellationToken.ThrowIfCancellationRequested();
-            // All terms in one pass, so the document is parsed once rather than twice per term.
+            MacroRedactionPass.Outcome? outcome;
             try
             {
-                foreach (var (page, rects) in SearchService.FindRedactionTermAreas(path, _macroRedaction.Terms))
-                    foreach (var (left, bottom, right, top) in rects)
-                        regions.Add(new PdfRedactionRegion(page, new PdfContentBounds(left, bottom, right, top)));
+                outcome = MacroRedactionPass.Run(source, _macroRedaction.Terms, _macroRedaction.Marked, path,
+                    (rasterPages, approved, skipped) =>
+                    {
+                        bool asked = Dispatcher.Invoke(() =>
+                        {
+                            var viewer = _macroRedaction.SourceViewer;
+                            if (viewer is null || !ReferenceEquals(viewer.ActiveSessionExt, _macroRedaction.SourceSession)
+                                || !ReferenceEquals(viewer.DocumentRef, _macroRedaction.SourceDocument))
+                                return false;
+                            return viewer.ApproveRasterPages(rasterPages, approved, skipped);
+                        });
+                        if (!asked) _macroRedaction.Canceled = true;
+                        return asked;
+                    },
+                    pages => Dispatcher.Invoke(() =>
+                        _macroRedaction.SourceViewer is { } viewer && viewer.ApproveEveryRasterPage(pages)),
+                    cancellationToken);
             }
             catch (RedactionPagesSkippedException unsearched)
             {
@@ -286,34 +297,10 @@ public partial class MainWindow
                 throw new InvalidOperationException(Dispatcher.Invoke(() => unsearched.Localized(
                     Loc("Str_Macro_RedactSkippedPages"), Loc("Str_Search_PagesSkipped"))));
             }
-            if (regions.Count == 0) return new PdfMacroOperationResult(source);
-
-            PdfContentRedactionPlan plan = PdfEngineIntegration.AnalyzeRedaction(
-                PdfDocument.Open(source.ToArray()), regions);
-            var approved = new List<int>();
-            var skipped = new HashSet<int>();
-            if (plan.RasterPages.Count > 0
-                && !Dispatcher.Invoke(() =>
-                {
-                    var viewer = _macroRedaction.SourceViewer;
-                    if (viewer is null || !ReferenceEquals(viewer.ActiveSessionExt, _macroRedaction.SourceSession)
-                        || !ReferenceEquals(viewer.DocumentRef, _macroRedaction.SourceDocument))
-                        return false;
-                    return viewer.ApproveRasterPages(plan.RasterPages, approved, skipped);
-                }))
-            {
-                _macroRedaction.Canceled = true;
-                throw new OperationCanceledException(cancellationToken);
-            }
-            regions.RemoveAll(region => skipped.Contains(region.PageIndex));
-            if (regions.Count == 0) return new PdfMacroOperationResult(source);
-
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfEngineIntegration.ApplyRedaction(path, regions, approved, pages => Dispatcher.Invoke(() =>
-                _macroRedaction.SourceViewer is { } viewer && viewer.ApproveEveryRasterPage(pages)));
-            _macroRedaction.Areas += regions.Count;
-            _macroRedaction.Pages += regions.Select(region => region.PageIndex).Distinct().Count();
-            return new PdfMacroOperationResult(File.ReadAllBytes(path));
+            if (outcome is null) return new PdfMacroOperationResult(source);
+            _macroRedaction.Areas += outcome.Areas;
+            _macroRedaction.Pages += outcome.Pages;
+            return new PdfMacroOperationResult(outcome.Bytes);
         }
         finally
         {

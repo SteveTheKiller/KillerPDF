@@ -48,6 +48,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Two portable copies sharing one data folder no longer lose each other's settings changes, and a power cut while settings save can no longer leave an empty settings file.
 - A saved report replaces the old file only once it is completely written.
 - A file that fails to open, or whose open you cancel, no longer shows up in Recent.
+- A macro's Redact step in the app works on a slightly damaged PDF the way the command line always did, instead of failing on a file KillerPDF opens fine.
 
 ### Changed
 
