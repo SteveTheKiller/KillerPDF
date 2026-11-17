@@ -55,6 +55,8 @@ namespace KillerPDF.Services
         /// <summary>KillerPDF's settings for the shared UI kit files in Controls and Shell.</summary>
         internal static void ConfigureKit()
         {
+            // Trash Polka's background ink on every dialog, picker and preview window, not just the main window.
+            Controls.ThemeMotif.EnableForAllWindows();
             // Kit dialog captions (Controls/DialogChrome.cs): title icon and wordmark.
             Controls.DialogChrome.AppName = "KillerPDF";
             Controls.DialogChrome.WordmarkSplit = 6;

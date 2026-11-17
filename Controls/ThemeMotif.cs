@@ -98,6 +98,60 @@ namespace KillerPDF.Controls
         // One handler per element, kept so Detach can remove exactly it.
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FrameworkElement, Action> Handlers = new();
 
+        // ---- Every other window --------------------------------------------------------------------------------------
+
+        // The palette brushes a dialog's root can paint; the first that matches the root's brush is its base brush.
+        private static readonly string[] RootBrushKeys =
+            ["BackgroundBrush", "PaneBrush", "SurfaceBrush", "MenuBackgroundBrush", "FileDialogPaneBrush", "ContentPaneBrush", "BgCanvas", "TitleBarBrush"];
+
+        private static bool _allWindows;
+
+        /// <summary>
+        /// Gives every window the app opens (dialogs, print preview, pickers) the background piece, without marking each
+        /// one: when a window loads, its outermost opaque Border or Panel painting a palette brush is marked
+        /// <c>Chrome</c> with that brush as its base. A window whose root is already marked (the main window) is left
+        /// alone. Call once at startup.
+        /// </summary>
+        public static void EnableForAllWindows()
+        {
+            if (_allWindows) return;
+            _allWindows = true;
+            EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnWindowLoaded));
+        }
+
+        private static void OnWindowLoaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Window window || window.Content is not FrameworkElement root) return;
+            if (GetPart(root) != MotifPart.None) return;
+            var target = FindOpaqueRoot(root, 4);
+            if (target is null || GetPart(target) != MotifPart.None) return;
+            var brush = target switch { Border b => b.Background, Panel p => p.Background, Control c => c.Background, _ => null };
+            string? key = RootBrushKeys.FirstOrDefault(k => ReferenceEquals(target.TryFindResource(k), brush));
+            if (key is null) return;
+            SetBaseBrush(target, key);
+            SetPart(target, MotifPart.Chrome);
+        }
+
+        // Breadth-first down a few levels for the first element painting an opaque brush.
+        private static FrameworkElement? FindOpaqueRoot(FrameworkElement root, int depth)
+        {
+            var level = new List<FrameworkElement> { root };
+            for (int d = 0; d < depth && level.Count > 0; d++)
+            {
+                foreach (var el in level)
+                {
+                    var brush = el switch { Border b => b.Background, Panel p => p.Background, Control c => c.Background, _ => null };
+                    if (brush is SolidColorBrush { Color.A: 255 }) return el;
+                }
+                var next = new List<FrameworkElement>();
+                foreach (var el in level)
+                    for (int i = 0; i < VisualTreeHelper.GetChildrenCount(el); i++)
+                        if (VisualTreeHelper.GetChild(el, i) is FrameworkElement child) next.Add(child);
+                level = next;
+            }
+            return null;
+        }
+
         private static event Action? Retuned;
 
         /// <summary>Repaints every motif element after TrashPolkaInk's opacities change.</summary>

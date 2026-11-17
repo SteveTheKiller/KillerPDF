@@ -2943,6 +2943,7 @@
                     </Border.Effect>
                 </Border>
                 <Border Background="{DynamicResource OverlayWindowBrush}"
+                        ctrl:ThemeMotif.Part="Split" ctrl:ThemeMotif.BaseBrush="OverlayWindowBrush"
                         BorderBrush="{DynamicResource OverlayEdgeBrush}"
                         BorderThickness="1"
                         CornerRadius="{DynamicResource PanelCornerRadius}"
@@ -3065,6 +3066,7 @@
                 <Border Panel.ZIndex="2" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelOuterDarkBrush}"
                         BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
                 <Border Background="{DynamicResource OverlayWindowBrush}"
+                        ctrl:ThemeMotif.Part="Split" ctrl:ThemeMotif.BaseBrush="OverlayWindowBrush"
                         BorderBrush="{DynamicResource OverlayEdgeBrush}"
                         BorderThickness="1"
                         CornerRadius="{DynamicResource PanelCornerRadius}"
