@@ -25,10 +25,10 @@ namespace KillerPDF.Controls
         internal const int BackgroundSeed = 162;
 
         /// <summary>The panes' piece, toned down a little (Steve, 2026-11-16: "lower the opacity of the design a little").</summary>
-        internal static double PaneOpacity { get; set; } = 0.6;
+        internal static double PaneOpacity { get; set; } = 0.41;
 
         /// <summary>The background piece sits under the toolbar and sidebar, so it stays faint enough to read them over.</summary>
-        internal static double BackgroundOpacity { get; set; } = 0.25;
+        internal static double BackgroundOpacity { get; set; } = 0.26;
 
         internal static DrawingGroup Draw(Color accent, Size size, int seed)
         {

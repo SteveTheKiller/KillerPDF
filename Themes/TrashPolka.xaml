@@ -24,7 +24,8 @@
     <SolidColorBrush x:Key="TextFooter"          Color="#858585" po:Freeze="True"/>
 
     <!-- Surface tiers: Dark's neutrals -->
-    <SolidColorBrush x:Key="BackgroundBrush"     Color="#1c1c1c" po:Freeze="True"/>
+    <!-- The window is ink black, not Dark's charcoal (Steve, 2026-11-16). -->
+    <SolidColorBrush x:Key="BackgroundBrush"     Color="#111111" po:Freeze="True"/>
     <SolidColorBrush x:Key="SurfaceBrush"        Color="#333333" po:Freeze="True"/>
     <SolidColorBrush x:Key="PaneBrush"           Color="#3a3a3a" po:Freeze="True"/>
     <SolidColorBrush x:Key="TableHeaderBrush"    Color="#333333" po:Freeze="True"/>
@@ -88,7 +89,7 @@
     <CornerRadius x:Key="FlyoutCornerRadius">4</CornerRadius>
     <CornerRadius x:Key="AccentSwatchCornerRadius">9</CornerRadius>
 
-    <SolidColorBrush x:Key="TitleBarBrush"       Color="#1c1c1c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TitleBarBrush"       Color="#111111" po:Freeze="True"/>
     <SolidColorBrush x:Key="AppBorderBrush"      Color="#3f3f3f" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#FFFFFFFF" po:Freeze="True"/>
@@ -100,7 +101,7 @@
     <sys:Double x:Key="TitleBarHeight">32</sys:Double>
     <sys:Double x:Key="BarShadowOpacity">0.38</sys:Double>
     <SolidColorBrush x:Key="DialogTitleBarBrush" Color="Transparent" po:Freeze="True"/>
-    <SolidColorBrush x:Key="FooterBackgroundBrush" Color="#FF1C1C1C" po:Freeze="True"/>
+    <SolidColorBrush x:Key="FooterBackgroundBrush" Color="#FF111111" po:Freeze="True"/>
     <sys:Double x:Key="FlyoutShadowOpacity">0.55</sys:Double>
     <sys:Double x:Key="WordmarkShadowOpacity">0.45</sys:Double>
     <SolidColorBrush x:Key="MenuSeparatorBrush"  Color="#FF2E2E2E" po:Freeze="True"/>
