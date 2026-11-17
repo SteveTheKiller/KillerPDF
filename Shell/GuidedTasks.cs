@@ -80,7 +80,8 @@ public partial class MainWindow
                             regions.Select(region => region.PageIndex).Distinct().Count()), Loc("Str_Guided_Privacy"),
                             MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) throw new OperationCanceledException();
                         Current(token);
-                        await Task.Run(() => PdfEngineIntegration.ApplyRedaction(snapshot, regions, approved), token);
+                        await Task.Run(() => PdfEngineIntegration.ApplyRedaction(snapshot, regions, approved,
+                            pages => owner.Dispatcher.Invoke(() => sourceViewer.ApproveEveryRasterPage(pages, owner))), token);
                         result = await File.ReadAllBytesAsync(snapshot, token);
                     }
                     else if (request.Kind == GuidedTaskKind.Form)

@@ -2481,16 +2481,33 @@ internal static partial class PdfEngineIntegration
     /// Permanently removes everything under the marked regions, replacing only the approved pages
     /// with sanitized images, and swaps in the verified single-revision result.
     /// </summary>
+    /// <remarks>
+    /// The callers plan on the open document and redact a fresh save of it, and the save can leave a
+    /// page needing an image the first plan did not (#499). This re-plans on the bytes it redacts and
+    /// hands any page not yet approved to <paramref name="approveMore"/>; false cancels with the file
+    /// untouched. Without the callback such a page still fails as the engine refuses it.
+    /// </remarks>
     internal static PdfContentRedactionResult ApplyRedaction(string path,
-        IReadOnlyList<PdfRedactionRegion> regions, IReadOnlyCollection<int> approvedRasterPages)
+        IReadOnlyList<PdfRedactionRegion> regions, IReadOnlyCollection<int> approvedRasterPages,
+        Func<IReadOnlyList<int>, bool>? approveMore = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(regions);
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
+        var approved = new HashSet<int>(approvedRasterPages);
+        if (approveMore is not null)
+        {
+            int[] extra = [.. PdfContentRedaction.Analyze(document, regions).RasterPages.Where(page => !approved.Contains(page))];
+            if (extra.Length > 0)
+            {
+                if (!approveMore(extra)) throw new OperationCanceledException();
+                approved.UnionWith(extra);
+            }
+        }
         PdfContentRedactionResult result = PdfContentRedaction.Apply(document, regions,
             new PdfContentRedactionOptions
             {
-                ApprovedRasterPages = approvedRasterPages,
+                ApprovedRasterPages = approved,
                 AllowSignatureInvalidation = true,
                 FontResolver = InstalledPdfFontResolver.Instance
             });

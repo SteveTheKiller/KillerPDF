@@ -587,7 +587,9 @@ namespace KillerPDF.Controls
             {
                 SaveTempAndReload(keepAnnotations: true, preserveZoom: true, finalizeSavedFile: path =>
                 {
-                    result = PdfEngineIntegration.ApplyRedaction(path, regions, approved);
+                    // The save can leave a page needing an image this plan did not ask about (#499): ask now.
+                    result = PdfEngineIntegration.ApplyRedaction(path, regions, approved,
+                        pages => Dispatcher.Invoke(() => ApproveEveryRasterPage(pages)));
                 }, onPublished: () =>
                 {
                     foreach (var (page, annotation) in covered)
@@ -608,6 +610,11 @@ namespace KillerPDF.Controls
             catch (Exception ex) { failure ??= ex; }
             finally { Mouse.OverrideCursor = null; }
 
+            if (failure is OperationCanceledException)
+            {
+                ReportResult(Loc("Str_Redact_NothingApplied"));
+                return;
+            }
             if (failure is not null || result is null)
             {
                 string reason = failure is PdfRedactionVerificationException
@@ -684,6 +691,18 @@ namespace KillerPDF.Controls
 
         // Pages whose marked content can't be removed by itself are only turned into an image
         // with the user's say-so, one page at a time. False means the user canceled.
+        /// <summary>
+        /// Asks about pages a redaction found it needs images for only once the file was saved. Those pages can carry
+        /// no region of their own (they share covered content), so they cannot be skipped: every one is approved or
+        /// the redaction is cancelled.
+        /// </summary>
+        internal bool ApproveEveryRasterPage(IReadOnlyList<int> rasterPages, Window? reviewOwner = null)
+        {
+            var approved = new List<int>();
+            var skipped = new HashSet<int>();
+            return ApproveRasterPages(rasterPages, approved, skipped, reviewOwner) && skipped.Count == 0;
+        }
+
         internal bool ApproveRasterPages(IReadOnlyList<int> rasterPages, List<int> approved, HashSet<int> skipped,
             Window? reviewOwner = null)
         {

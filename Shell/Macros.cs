@@ -289,7 +289,8 @@ public partial class MainWindow
             if (regions.Count == 0) return new PdfMacroOperationResult(source);
 
             cancellationToken.ThrowIfCancellationRequested();
-            PdfEngineIntegration.ApplyRedaction(path, regions, approved);
+            PdfEngineIntegration.ApplyRedaction(path, regions, approved, pages => Dispatcher.Invoke(() =>
+                _macroRedaction.SourceViewer is { } viewer && viewer.ApproveEveryRasterPage(pages)));
             _macroRedaction.Areas += regions.Count;
             _macroRedaction.Pages += regions.Select(region => region.PageIndex).Distinct().Count();
             return new PdfMacroOperationResult(File.ReadAllBytes(path));
