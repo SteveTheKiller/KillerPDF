@@ -599,7 +599,9 @@ public sealed class PdfOverlayPrefixTests(Xunit.Abstractions.ITestOutputHelper o
             _ = PdfOverlayAnnotations.Attach(native, signatureRecords);
         }
         long imageBytes = long.MaxValue, signatureBytes = long.MaxValue;
-        for (int sample = 0; sample < 3; sample++)
+        // Five samples, not three: under the full suite a shared buffer pool can miss once and add one large rental to a
+        // sample; the minimum of five absorbs that without loosening the allowance.
+        for (int sample = 0; sample < 5; sample++)
         {
             imageBytes = Math.Min(imageBytes, Measure(imageRecords));
             signatureBytes = Math.Min(signatureBytes, Measure(signatureRecords));
