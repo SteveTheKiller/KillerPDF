@@ -105,6 +105,7 @@ namespace KillerPDF.Controls
             public Dictionary<string, bool> FormCheckValues = [];
             public Dictionary<string, string> FormRadioValues = [];
             public Dictionary<string, double> FormFontSizes = [];
+            public Dictionary<string, Services.FormTextStyle> FormTextStyles = [];
             // Unapplied redaction marks. They stay with the document until applied, cleared or
             // saved into the file as /Redact annotations.
             public List<RedactionMark> RedactionMarks = [];
@@ -271,6 +272,7 @@ namespace KillerPDF.Controls
             s.RedactionMarks   = _redactMarks;
             s.RedactionSourceFingerprint = _redactionSourceFingerprint;
             s.FormFontSizes    = _formFontSizes;
+            s.FormTextStyles   = _formTextStyles;
             s.UndoStack        = _undoStack;
             s.RedoStack        = _redoStack;
             // The search controller is the window's and holds the focused pane's results, so an
@@ -405,6 +407,7 @@ namespace KillerPDF.Controls
             _redactMarks      = s.RedactionMarks;
             _redactionSourceFingerprint = s.RedactionSourceFingerprint;
             _formFontSizes    = s.FormFontSizes;
+            _formTextStyles   = s.FormTextStyles;
             _undoStack        = s.UndoStack;
             _redoStack        = s.RedoStack;
             _navBack.Clear();      // jump history is per-view-session: a tab switch starts fresh

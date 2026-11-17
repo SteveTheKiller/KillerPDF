@@ -3230,6 +3230,7 @@ namespace KillerPDF.Controls
                     _formCheckValues = new(forms.CheckBoxValues);
                     _formRadioValues = new(forms.RadioValues);
                     _formFontSizes = new(forms.TextFontSizes);
+                    _formTextStyles = forms.TextStyles is null ? [] : new(forms.TextStyles);
                 }
                 _renderDims.Clear();
                 InvalidateRenderCache(_active);
@@ -3287,6 +3288,8 @@ namespace KillerPDF.Controls
                     + pair.Value.Sum(value => 24L + 2L * value.Length));
                 bytes += forms.CheckBoxValues.Keys.Concat(forms.TextFontSizes.Keys)
                     .Sum(key => 64L + 2L * key.Length);
+                if (forms.TextStyles is not null)
+                    bytes += forms.TextStyles.Sum(pair => 128L + 2L * (pair.Key.Length + (pair.Value.FontFamily?.Length ?? 0)));
             }
             return Math.Max(1, bytes);
         }

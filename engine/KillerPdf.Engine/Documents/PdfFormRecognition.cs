@@ -178,18 +178,15 @@ public static class PdfFormRecognizer
             PdfContentBounds[] widgets = [.. PdfFormWidgetReader.ReadPage(document, pageIndex)
                 .Select(widget => new PdfContentBounds(
                     widget.Left, widget.Bottom, widget.Right, widget.Top))];
-            int sequence = 0;
+            var candidates = new List<(int PathIndex, PdfContentBounds Bounds, bool Square)>();
             foreach ((PdfExtractedPath path, int pathIndex) in content.Paths
                          .Select((path, index) => (path, index)))
             {
-                if (path.IsClippingPath || path.Segments.Count != 1
-                    || path.Segments[0].Operator != "re"
+                if (path.IsClippingPath || !IsRectangle(path)
                     || path.PaintOperator is not ("S" or "s" or "B" or "B*"))
                     continue;
                 PdfContentBounds bounds = path.BoundingBox;
-                var absoluteBounds = new PdfContentBounds(
-                    bounds.Left + crop.Left, bounds.Bottom + crop.Bottom,
-                    bounds.Right + crop.Left, bounds.Top + crop.Bottom);
+                var absoluteBounds = Offset(bounds, crop);
                 if (bounds.Width < options.MinimumDimension
                     || bounds.Height < options.MinimumDimension
                     || bounds.Height > options.MaximumHeight
@@ -199,6 +196,76 @@ public static class PdfFormRecognizer
                     <= options.MaximumCheckBoxDimension
                     && Math.Abs(bounds.Width - bounds.Height)
                         <= Math.Max(bounds.Width, bounds.Height) * 0.2;
+                candidates.Add((pathIndex, bounds, square));
+            }
+
+            // A row of touching, equally sized square cells is one character per box,
+            // so it becomes a single comb text field rather than a checkbox per cell.
+            var combs = new Dictionary<int, List<PdfContentBounds>>();
+            var consumed = new HashSet<int>();
+            foreach (var row in candidates.Where(candidate => candidate.Square)
+                         .OrderBy(candidate => candidate.Bounds.Bottom)
+                         .ThenBy(candidate => candidate.Bounds.Left)
+                         .GroupBy(candidate => Math.Round(candidate.Bounds.Bottom)))
+            {
+                var run = new List<(int PathIndex, PdfContentBounds Bounds, bool Square)>();
+                foreach (var cell in row.OrderBy(candidate => candidate.Bounds.Left)
+                             .Append((-1, default, false)))
+                {
+                    if (cell.PathIndex >= 0 && run.Count > 0
+                        && Near(cell.Bounds.Left, run[^1].Bounds.Right)
+                        && Near(cell.Bounds.Height, run[^1].Bounds.Height)
+                        && Near(cell.Bounds.Width, run[^1].Bounds.Width))
+                    {
+                        run.Add(cell);
+                        continue;
+                    }
+                    // Two boxes side by side are usually a Yes/No pair of checkboxes, so a comb
+                    // needs at least MinimumCombCells.
+                    if (run.Count >= MinimumCombCells)
+                    {
+                        int first = run.Min(item => item.PathIndex);
+                        combs[first] = [.. run.Select(item => item.Bounds)];
+                        consumed.UnionWith(run.Select(item => item.PathIndex));
+                    }
+                    run = cell.PathIndex >= 0 ? [cell] : [];
+                }
+            }
+            // A frame drawn around a comb row (same height, enclosing it) would otherwise overlap it
+            // as a second field.
+            PdfContentBounds[] combBounds = [.. combs.Values.Select(Union)];
+            consumed.UnionWith(candidates
+                .Where(candidate => !candidate.Square && combBounds.Any(comb =>
+                    candidate.Bounds.Left <= comb.Left + 1 && candidate.Bounds.Right >= comb.Right - 1
+                    && Near(candidate.Bounds.Bottom, comb.Bottom) && Near(candidate.Bounds.Top, comb.Top)))
+                .Select(candidate => candidate.PathIndex));
+
+            int sequence = 0;
+            foreach ((int pathIndex, PdfContentBounds bounds, bool square) in candidates)
+            {
+                if (combs.TryGetValue(pathIndex, out List<PdfContentBounds>? cells))
+                {
+                    PdfContentBounds comb = Union(cells);
+                    sequence++;
+                    string? combLabel = FindLabel(content.Lines, comb, false,
+                        options.MaximumLabelDistance);
+                    proposals.Add(new PdfFormFieldProposal(
+                        $"page-{pageIndex + 1}-path-{pathIndex + 1}", pageIndex, Offset(comb, crop),
+                        PdfRecognizedFieldKind.Text, 0.8 + (combLabel is null ? 0 : 0.05),
+                        combLabel is null
+                            ? $"field_{pageIndex + 1}_{sequence}"
+                            : NormalizeName(combLabel, pageIndex, sequence),
+                        suggestedTooltip: combLabel, suggestedComb: true,
+                        suggestedMaximumLength: cells.Count,
+                        // The page draws the cells; a fill of its own would also hide a neighbour's
+                        // line that runs on over it.
+                        suggestedAppearanceStyle: ClearAppearance,
+                        suggestedFontSize: Math.Min(12, Math.Floor(comb.Height * 0.75)),
+                        coversPrintedText: CoversPrintedText(content.Lines, comb)));
+                    continue;
+                }
+                if (consumed.Contains(pathIndex)) continue;
+                var absoluteBounds = Offset(bounds, crop);
                 sequence++;
                 string? label = FindLabel(content.Lines, bounds, square,
                     options.MaximumLabelDistance);
@@ -212,8 +279,77 @@ public static class PdfFormRecognizer
                     suggestedName, suggestedTooltip: label));
             }
         }
+        // Fields sharing a label (a row split into runs, a section repeated) need distinct names to be authored.
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < proposals.Count; i++)
+        {
+            string name = proposals[i].SuggestedName;
+            for (int suffix = 2; !used.Add(name); suffix++)
+                name = $"{proposals[i].SuggestedName}_{suffix}";
+            if (name != proposals[i].SuggestedName)
+                proposals[i] = proposals[i].Review(PdfFormProposalStatus.Proposed, name);
+        }
         return new PdfFormRecognitionReview(proposals);
     }
+
+    // The fewest touching, equally sized squares that read as a comb rather than separate checkboxes.
+    internal const int MinimumCombCells = 3;
+
+    private static readonly PdfFormFieldAppearanceStyle ClearAppearance = new()
+    {
+        BackgroundColor = null, BorderColor = null, MarkedTransparent = true
+    };
+
+    // A rectangle drawn with re, or as a closed axis-aligned outline of four corners (m l l l [l] [h]).
+    private static bool IsRectangle(PdfExtractedPath path)
+    {
+        IReadOnlyList<PdfExtractedPathSegment> segments = path.Segments;
+        if (segments.Count == 1 && segments[0].Operator == "re") return true;
+        if (segments.Count is < 4 or > 6 || segments[0].Operator != "m") return false;
+        int end = segments[^1].Operator == "h" ? segments.Count - 1 : segments.Count;
+        var corners = new List<PdfPoint>();
+        for (int i = 0; i < end; i++)
+        {
+            if ((i > 0 && segments[i].Operator != "l") || segments[i].Points.Count != 1) return false;
+            corners.Add(segments[i].Points[0]);
+        }
+        if (corners.Count == 5)
+        {
+            if (!Near(corners[4].X, corners[0].X) || !Near(corners[4].Y, corners[0].Y)) return false;
+            corners.RemoveAt(4);
+        }
+        else if (corners.Count != 4 || end == segments.Count) return false;
+        for (int i = 0; i < 4; i++)
+        {
+            PdfPoint a = corners[i], b = corners[(i + 1) % 4];
+            if (Near(a.X, b.X) == Near(a.Y, b.Y)) return false;
+        }
+        return true;
+    }
+
+    private static bool Near(double left, double right) => Math.Abs(left - right) <= 1;
+
+    private static PdfContentBounds Offset(PdfContentBounds bounds, PdfPageInformation crop) =>
+        new(bounds.Left + crop.Left, bounds.Bottom + crop.Bottom,
+            bounds.Right + crop.Left, bounds.Top + crop.Bottom);
+
+    private static PdfContentBounds Union(IReadOnlyList<PdfContentBounds> cells) =>
+        new(cells.Min(cell => cell.Left), cells.Min(cell => cell.Bottom),
+            cells.Max(cell => cell.Right), cells.Max(cell => cell.Top));
+
+    // Whether the page prints text inside a box: a line whose middle height falls within it and that
+    // overlaps it across more than half the narrower of the two, or by about one character (half the
+    // line's height), as when a long printed line ends in a short box of its own row.
+    private static bool CoversPrintedText(IReadOnlyList<PdfExtractedLine> lines, PdfContentBounds box) =>
+        lines.Any(line =>
+        {
+            if (string.IsNullOrWhiteSpace(line.Text)) return false;
+            PdfContentBounds text = line.BoundingBox;
+            double middle = (text.Bottom + text.Top) / 2;
+            double overlap = Math.Min(text.Right, box.Right) - Math.Max(text.Left, box.Left);
+            return middle > box.Bottom && middle < box.Top
+                && overlap > Math.Min(Math.Min(text.Width, box.Width) * 0.5, text.Height * 0.5);
+        });
 
     private static bool Intersects(PdfContentBounds left, PdfContentBounds right) =>
         left.Left < right.Right && left.Right > right.Left
@@ -283,7 +419,8 @@ public sealed record PdfFormFieldProposal
         IEnumerable<string>? suggestedOptionExportValues = null,
         bool suggestedMultiSelect = false,
         IEnumerable<string>? suggestedSelectedValues = null,
-        IEnumerable<string>? suggestedDefaultValues = null)
+        IEnumerable<string>? suggestedDefaultValues = null,
+        bool coversPrintedText = false)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
@@ -451,6 +588,7 @@ public sealed record PdfFormFieldProposal
         SuggestedDefaultValues = Array.AsReadOnly(defaultValues);
         SuggestedDefaultChecked = suggestedDefaultChecked;
         SuggestedMultiSelect = suggestedMultiSelect;
+        CoversPrintedText = coversPrintedText;
         Status = status;
     }
 
@@ -518,6 +656,9 @@ public sealed record PdfFormFieldProposal
     public bool SuggestedMultiSelect { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
+    /// <summary>Gets whether the page already prints text inside the proposed field, so it is likely
+    /// filled in already and a reviewer may want to leave it out.</summary>
+    public bool CoversPrintedText { get; }
 
     internal PdfFormFieldProposal Review(PdfFormProposalStatus status, string? name = null,
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
@@ -553,7 +694,8 @@ public sealed record PdfFormFieldProposal
                 ? SuggestedOptionExportValues : options),
             multiSelect ?? SuggestedMultiSelect,
             selectedValues ?? (value is null ? SuggestedValues : [value]),
-            defaultValues ?? (defaultValue is null ? SuggestedDefaultValues : [defaultValue]));
+            defaultValues ?? (defaultValue is null ? SuggestedDefaultValues : [defaultValue]),
+            CoversPrintedText);
 
     internal PdfFormFieldProposal Duplicate(string id, int pageIndex,
         PdfContentBounds bounds, string suggestedName) =>
@@ -565,7 +707,7 @@ public sealed record PdfFormFieldProposal
             SuggestedAppearanceStyle, SuggestedNoExport, SuggestedVisibility,
             SuggestedPushButtonAction, SuggestedMappingName, null,
             SuggestedDefaultChecked, SuggestedOptionExportValues, SuggestedMultiSelect,
-            SuggestedValues, SuggestedDefaultValues);
+            SuggestedValues, SuggestedDefaultValues, CoversPrintedText);
 
     private static PdfFormFieldAppearanceStyle ValidateAppearance(
         PdfFormFieldAppearanceStyle? style)

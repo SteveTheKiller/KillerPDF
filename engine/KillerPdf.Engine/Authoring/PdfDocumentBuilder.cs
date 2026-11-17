@@ -3714,10 +3714,28 @@ public sealed partial class PdfDocumentBuilder
                 $"{FormatNumber(x)} {FormatNumber(baseline)} Td\n");
             WriteShownText(output, line, field.EmbeddedFont, fontUsage);
             output.Write("ET\n"u8);
+            WriteTextDecorations(output, field.AppearanceStyle, x, baseline,
+                MeasureTextFieldText(field, line), field.FontSize);
             baseline -= leading;
         }
         output.Write("Q\n"u8);
         return output.ToArray();
+    }
+
+    // Underline and strikethrough drawn the way the application burns them into text it places: a rule in
+    // the text color, a sixteenth of the size thick (half a point at least), 0.12 em under the baseline or
+    // 0.3 em above it, as long as the text it marks.
+    private static void WriteTextDecorations(Stream output, PdfFormFieldAppearanceStyle style,
+        double x, double baseline, double width, double fontSize)
+    {
+        if ((!style.Underline && !style.StrikeThrough) || width <= 0) return;
+        WriteAscii(output,
+            $"{ColorOperands(style.TextColor)} RG\n{FormatNumber(Math.Max(0.5, fontSize / 16))} w\n");
+        if (style.Underline) Rule(baseline - fontSize * 0.12);
+        if (style.StrikeThrough) Rule(baseline + fontSize * 0.3);
+
+        void Rule(double y) => WriteAscii(output,
+            $"{FormatNumber(x)} {FormatNumber(y)} m\n{FormatNumber(x + width)} {FormatNumber(y)} l\nS\n");
     }
 
     private static string TextFieldAppearanceValue(TextFieldDefinition field) =>
@@ -3732,13 +3750,17 @@ public sealed partial class PdfDocumentBuilder
         using var output = new MemoryStream();
         WriteFormFieldBackgroundAndBorder(
             output, field.Width, field.Height, field.AppearanceStyle, clip: false);
+        double x = TextFieldTextX(field, value);
+        double baseline = Math.Max(1, (field.Height - field.FontSize) / 2);
         WriteAscii(output,
             $"BT\n{NameToken(fontResource)} {FormatNumber(field.FontSize)} Tf\n" +
             $"{ColorOperands(field.AppearanceStyle.TextColor)} rg\n" +
-            $"{FormatNumber(TextFieldTextX(field, value))} " +
-            $"{FormatNumber(Math.Max(1, (field.Height - field.FontSize) / 2))} Td\n");
+            $"{FormatNumber(x)} {FormatNumber(baseline)} Td\n");
         WriteShownText(output, value, field.EmbeddedFont, fontUsage);
-        output.Write("ET\nQ\n"u8);
+        output.Write("ET\n"u8);
+        WriteTextDecorations(output, field.AppearanceStyle, x, baseline,
+            MeasureTextFieldText(field, value), field.FontSize);
+        output.Write("Q\n"u8);
         return output.ToArray();
     }
 
@@ -3880,6 +3902,9 @@ public sealed partial class PdfDocumentBuilder
                 $"{FormatNumber(x)} {FormatNumber(y)} Td\n");
             WriteShownText(output, shownValue, field.EmbeddedFont, fontUsage);
             output.Write("ET\n"u8);
+            // One rule per character, under or through its glyph, so the lines stop at the cell walls.
+            WriteTextDecorations(output, field.AppearanceStyle, x, y,
+                MeasureTextFieldText(field, shownValue), field.FontSize);
             cell++;
         }
         output.Write("Q\n"u8);
@@ -5204,8 +5229,12 @@ public sealed partial class PdfDocumentBuilder
         var entries = new List<(string Name, PdfObject Value)>();
         if (style.BackgroundColor.HasValue)
             entries.Add(("BG", RgbArray(style.BackgroundColor.Value)));
+        else if (style.MarkedTransparent)
+            entries.Add(("BG", new PdfArray([])));
         if (style.BorderColor.HasValue)
             entries.Add(("BC", RgbArray(style.BorderColor.Value)));
+        else if (style.MarkedTransparent)
+            entries.Add(("BC", new PdfArray([])));
         return Dictionary([.. entries]);
     }
 

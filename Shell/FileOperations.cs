@@ -280,6 +280,7 @@ namespace KillerPDF.Shell
             _formChoiceValues.Clear();
             _formCheckValues.Clear();
             _formFontSizes.Clear();
+            _formTextStyles.Clear();
             _formRadioValues.Clear();
             LoadRedactionMarksFromDocument();
             foreach (OverlayRecord record in openedOverlays)
@@ -881,6 +882,7 @@ namespace KillerPDF.Shell
             var checkValues = new Dictionary<string, bool>(_formCheckValues);
             var radioValues = new Dictionary<string, string>(_formRadioValues);
             var fontSizes = new Dictionary<string, double>(_formFontSizes);
+            var textStyles = new Dictionary<string, Services.FormTextStyle>(_formTextStyles);
             try
             {
                 _doc?.Close();
@@ -928,6 +930,7 @@ namespace KillerPDF.Shell
                 foreach (var pair in checkValues) _formCheckValues[pair.Key] = pair.Value;
                 foreach (var pair in radioValues) _formRadioValues[pair.Key] = pair.Value;
                 foreach (var pair in fontSizes) _formFontSizes[pair.Key] = pair.Value;
+                foreach (var pair in textStyles) _formTextStyles[pair.Key] = pair.Value;
                 foreach (int page in annotations.Keys) RenderAllAnnotations(page);
                 if (wasDirty) MarkDirty(true);
             }
@@ -1588,6 +1591,7 @@ namespace KillerPDF.Shell
             var checkValues = new Dictionary<string, bool>(_formCheckValues);
             var radioValues = new Dictionary<string, string>(_formRadioValues);
             var fontSizes = new Dictionary<string, double>(_formFontSizes);
+            var textStyles = new Dictionary<string, Services.FormTextStyle>(_formTextStyles);
             IReadOnlyCollection<string> kept;
             try
             {
@@ -1631,6 +1635,7 @@ namespace KillerPDF.Shell
                 foreach (var pair in checkValues) _formCheckValues[pair.Key] = pair.Value;
                 foreach (var pair in radioValues) _formRadioValues[pair.Key] = pair.Value;
                 foreach (var pair in fontSizes) _formFontSizes[pair.Key] = pair.Value;
+                foreach (var pair in textStyles) _formTextStyles[pair.Key] = pair.Value;
                 if (wasDirty) MarkDirty(true);
             }
         }

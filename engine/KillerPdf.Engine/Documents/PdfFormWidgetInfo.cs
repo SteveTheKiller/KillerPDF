@@ -59,6 +59,15 @@ public sealed record PdfFormWidgetInfo
     public IReadOnlyList<string> DefaultValues { get; init; } = [];
     /// <summary>Gets the effective default appearance string.</summary>
     public required string DefaultAppearance { get; init; }
+    /// <summary>Gets the PostScript name, without a subset tag, of the embedded font the widget's normal
+    /// appearance draws with, or an empty string when it uses only standard fonts or has none.</summary>
+    public string AppearanceFontName { get; init; } = string.Empty;
+    /// <summary>Gets whether the field's /DS default style underlines its value (CSS text-decoration).</summary>
+    public bool Underline { get; init; }
+    /// <summary>Gets whether the field's /DS default style strikes its value through (CSS text-decoration).</summary>
+    public bool StrikeThrough { get; init; }
+    /// <summary>Gets whether the widget's /MK says it has no background (an empty /BG array).</summary>
+    public bool MarkedTransparent { get; init; }
     /// <summary>Gets the effective horizontal text or choice alignment.</summary>
     public PdfTextFieldAlignment Alignment { get; init; }
     /// <summary>Gets the widget background color, or null when none is defined.</summary>

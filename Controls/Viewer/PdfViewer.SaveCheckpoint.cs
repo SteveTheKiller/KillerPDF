@@ -61,6 +61,7 @@ public partial class PdfViewer
                 JsonSerializer.Serialize(writer, _formCheckValues.OrderBy(pair => pair.Key, StringComparer.Ordinal), StateJson);
                 JsonSerializer.Serialize(writer, _formRadioValues.OrderBy(pair => pair.Key, StringComparer.Ordinal), StateJson);
                 JsonSerializer.Serialize(writer, _formFontSizes.OrderBy(pair => pair.Key, StringComparer.Ordinal), StateJson);
+                JsonSerializer.Serialize(writer, _formTextStyles.OrderBy(pair => pair.Key, StringComparer.Ordinal), StateJson);
                 JsonSerializer.Serialize(writer, _redactMarks, StateJson);
                 JsonSerializer.Serialize(writer, stamps, StampStateJson);
                 if (stamps is { WmEnabled: true, WmIsImage: true })
