@@ -139,7 +139,16 @@ internal sealed class PdfPageRenderSession : IDisposable
         System.Collections.Concurrent.ConcurrentDictionary<string, CachedDocument>> _keyedCache = [];
 
     private sealed record CachedDocument(long Ticks, long Size, WeakReference<EngineDocument> Ref,
-        WeakReference<PdfWorkingDocument>? Working);
+        WeakReference<PdfWorkingDocument>? Working)
+    {
+        /// <summary>When the file was read for this parse, for the racy-timestamp check.</summary>
+        internal long ReadAt { get; init; } = DateTime.UtcNow.Ticks;
+    }
+
+    // Windows stamps a write with a clock that moves in steps of up to about 16 ms, and a lazily
+    // written file can stamp later still. A parse read within this window of the file's own stamp
+    // could have missed a same-size rewrite that kept the stamp, so it is not trusted.
+    private static readonly long RacyWindow = TimeSpan.FromSeconds(2).Ticks;
 
     private static System.Collections.Concurrent.ConcurrentDictionary<string, CachedDocument> CacheFor(OpenedProtection? key) =>
         key is null ? _documentCache
@@ -164,6 +173,7 @@ internal sealed class PdfPageRenderSession : IDisposable
     {
         document = null!;
         if (!cache.TryGetValue(normalized, out CachedDocument? entry) || entry.Ticks != ticks || entry.Size != size
+            || entry.Working is null && entry.ReadAt - ticks < RacyWindow
             || !entry.Ref.TryGetTarget(out EngineDocument? cached)) return false;
         if (entry.Working is not null && entry.Working.TryGetTarget(out var working))
             working.ReleaseParsedDocument(cached);

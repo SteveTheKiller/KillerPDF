@@ -38,6 +38,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- A PDF rewritten in place at the same size within the same instant no longer shows its old pages in the background render or thumbnails.
 - The Mourning theme highlights selections in its original peach with dark text again, instead of pink.
 - Paste pastes what was copied last. Once a picture, shape or text box had been copied, every paste brought it back, even after copying text or an image somewhere else, in every open document until a restart. (#497)
 - Turning a replacement's layers on or off in More settings no longer freezes the window. The menu used to stay open with nothing under it and hold the mouse until another window took it back, which also kept the arrow keys from moving the text box or its cover. (#467)

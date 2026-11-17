@@ -139,6 +139,23 @@ public sealed class BackgroundRenderCacheTests
         });
     }
 
+    [Fact]
+    public void SameSizeRewriteThatKeepsTheTimestampIsReadAgain()
+    {
+        WithFile((path, cache) =>
+        {
+            DateTime stamp = File.GetLastWriteTimeUtc(path);
+            using (var first = cache.Capture(path, 0, null).Rent())
+                Assert.Equal(64, first.Render(0, 128, 128).Width);
+            byte[] rewrite = Document(200, 100);
+            Assert.Equal(new FileInfo(path).Length, rewrite.Length);
+            File.WriteAllBytes(path, rewrite);
+            File.SetLastWriteTimeUtc(path, stamp);
+            using var second = cache.Capture(path, 1, null).Rent();
+            Assert.Equal(128, second.Render(0, 128, 128).Width);
+        });
+    }
+
     private static void WithFile(Action<string, PdfBackgroundRenderCache> action)
     {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
