@@ -40,6 +40,17 @@ namespace KillerPDF.Controls
         private static readonly DependencyProperty PaintedProperty = DependencyProperty.RegisterAttached(
             "Painted", typeof(string), typeof(ThemeMotif), new PropertyMetadata(null));
 
+        /// <summary>
+        /// Inherited: set on the second document pane in split view. Its <c>Window</c> parts (the card and its active
+        /// tab) then draw the second pane's own piece, pinned to the window like the first, so each pane's image runs up
+        /// into its own active tab.
+        /// </summary>
+        public static readonly DependencyProperty SecondPaneProperty = DependencyProperty.RegisterAttached(
+            "SecondPane", typeof(bool), typeof(ThemeMotif), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.Inherits));
+
+        public static bool GetSecondPane(DependencyObject element) => (bool)element.GetValue(SecondPaneProperty);
+        public static void SetSecondPane(DependencyObject element, bool value) => element.SetValue(SecondPaneProperty, value);
+
         // Whether the element's Background was a local value before the first paint. Template- and trigger-driven
         // backgrounds (the document tabs) are not, and Restore clears back to them instead of pinning a brush key.
         private static readonly DependencyProperty HadLocalBackgroundProperty = DependencyProperty.RegisterAttached(
@@ -221,6 +232,7 @@ namespace KillerPDF.Controls
         private static void Paint(FrameworkElement element)
         {
             var part = GetPart(element);
+            if (part == MotifPart.Window && GetSecondPane(element)) part = MotifPart.Split;
             if (part == MotifPart.None || element.TryFindResource("ThemeMotif") is not true
                 || element.TryFindResource(GetMotifBrush(element) ?? GetBaseBrush(element)) is not SolidColorBrush baseBrush
                 || element.TryFindResource("PrimaryBrush") is not SolidColorBrush accent
@@ -232,7 +244,8 @@ namespace KillerPDF.Controls
 
             Rect pane;
             Size window;
-            if (part is MotifPart.Split or MotifPart.Popup)
+            // Popups float free of the window, so they draw from their own corner; everything else is pinned to it.
+            if (part is MotifPart.Popup)
             {
                 pane = new Rect(0, 0, element.ActualWidth, element.ActualHeight);
                 window = pane.Size;

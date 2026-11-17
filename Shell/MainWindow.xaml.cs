@@ -323,8 +323,8 @@ namespace KillerPDF.Shell
         {
             _startupTearOutSession = startupTearOutSession;
             InitializeComponent();
-            // Trash Polka: the second pane carries its own corner cluster, not a stretch of the window's sleeve.
-            Controls.ThemeMotif.SetPart(ViewerB.PaneBorder, Controls.MotifPart.Split);            // The footer version is the kit FooterCorner's; the name keeps FindName("VersionLabel") working.
+            // Trash Polka: the second pane (card and active tab) carries its own piece, pinned to the window like the first.
+            Controls.ThemeMotif.SetSecondPane(ViewerB, true);            // The footer version is the kit FooterCorner's; the name keeps FindName("VersionLabel") working.
             RegisterName("VersionLabel", VersionLabel);
             RestoreWindowBounds();
             _about = new Features.About.AboutController(this);
