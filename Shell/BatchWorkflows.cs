@@ -95,6 +95,7 @@ public partial class MainWindow
                             bool written = WriteGeneratedMacroOutputs([new(data, Path.GetFileName(outputs[index]))
                                 { Exports = file.Exports }], plannedFiles[index], overwrite, report, token);
                             if (written) report.AppendLine(string.Format(Loc("Str_Macro_Complete"), outputs[index]));
+                            if (written && MacroSurvivorNote(data) is { } survivors) report.AppendLine(survivors);
                         }
                         else report.AppendLine(result.ToText());
                     }

@@ -56,6 +56,7 @@ public partial class MainWindow
                     {
                         progress.Report(Loc("Str_Guided_Privacy"));
                         List<PdfRedactionRegion> regions = [.. marked];
+                        var foundText = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                         if (request.Search)
                         {
                             // The saved copy holds the tab's own bytes, so it reads under the tab's protection.
@@ -63,6 +64,8 @@ public partial class MainWindow
                                 () => PdfEngineIntegration.OpenForReading(File.ReadAllBytes(snapshot), protection));
                             if (find.ShowDialog() != true) throw new OperationCanceledException();
                             Current(token);
+                            foreach (PdfRedactionMatch match in find.Checked)
+                                if (!string.IsNullOrWhiteSpace(match.Text)) foundText.Add(match.Text);
                             foreach (PdfRedactionMatch match in find.Checked)
                                 foreach (PdfContentBounds area in match.Areas.Count > 0 ? match.Areas : [match.Bounds])
                                     if (!regions.Any(region => region.PageIndex == match.PageIndex && region.Bounds == area))
@@ -83,6 +86,21 @@ public partial class MainWindow
                         await Task.Run(() => PdfEngineIntegration.ApplyRedaction(snapshot, regions, approved,
                             pages => owner.Dispatcher.Invoke(() => sourceViewer.ApproveEveryRasterPage(pages, owner))), token);
                         result = await File.ReadAllBytesAsync(snapshot, token);
+                        if (foundText.Count > 0)
+                        {
+                            byte[] made = result;
+                            PdfRedactionVerificationReport survivors = await Task.Run(() =>
+                                PdfContentRedaction.FindSurvivingText(made, foundText, cancellationToken: token), token);
+                            Current(token);
+                            if (!survivors.Succeeded)
+                            {
+                                string[] left = [.. foundText.Where(term => survivors.Findings.Any(finding =>
+                                    finding.Message.Contains("'" + term + "'", StringComparison.OrdinalIgnoreCase)))];
+                                KillerDialog.Show(owner, string.Format(Loc("Str_Redact_TextSurvives"),
+                                    string.Join(", ", (left.Length > 0 ? left : [.. foundText]).Select(term => "“" + term + "”"))),
+                                    Loc("Str_Guided_Privacy"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                            }
+                        }
                     }
                     else if (request.Kind == GuidedTaskKind.Form)
                     {

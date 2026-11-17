@@ -92,6 +92,7 @@
     <sys:String x:Key="Str_RedactFinish_Skip">Не сейчас</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">Продолжить</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">Скрытая информация удалена.</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">Некоторые скрытые слова всё ещё встречаются в документе: в тексте страниц или в скрытых данных, таких как закладки, имена назначений, поля форм или сценарии: {0}. Проверьте их, прежде чем делиться файлом.</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">Не удалось удалить скрытую информацию: {0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">Найти текст для скрытия</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">Искать</sys:String>

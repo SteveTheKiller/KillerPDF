@@ -92,6 +92,7 @@
     <sys:String x:Key="Str_RedactFinish_Skip">Не зараз</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">Продовжити</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">Приховану інформацію видалено.</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">Деякі приховані слова досі трапляються в документі: у тексті сторінок або в прихованих даних, як-от закладки, імена призначень, поля форм чи сценарії: {0}. Перевірте їх, перш ніж ділитися файлом.</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">Не вдалося видалити приховану інформацію: {0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">Знайти текст для приховування</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">Шукати</sys:String>

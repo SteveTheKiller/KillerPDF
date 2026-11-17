@@ -1479,6 +1479,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_RedactFinish_Skip">Қазір емес</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">Жалғастыру</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">Жасырын ақпарат жойылды.</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">Жасырылған кейбір сөздер құжатта әлі де бар: бет мәтінінде немесе бетбелгілер, мақсат атаулары, пішін өрістері не сценарийлер сияқты жасырын ақпаратта: {0}. Файлды бөліспес бұрын оларды тексеріңіз.</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">Жасырын ақпаратты жою мүмкін болмады: {0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">Жасыратын мәтінді табу</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">Іздеу түрі</sys:String>

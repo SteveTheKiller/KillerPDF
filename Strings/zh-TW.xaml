@@ -94,6 +94,7 @@
     <sys:String x:Key="Str_RedactFinish_Skip">暫不</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">繼續</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">已移除隱藏資訊。</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">部分已塗黑的字詞仍出現在此文件中，位於頁面文字或書籤、目的地名稱、表單欄位、指令碼等隱藏資訊中：{0}。分享檔案前請先檢查。</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">無法移除隱藏資訊：{0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">尋找要塗黑的文字</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">尋找內容</sys:String>

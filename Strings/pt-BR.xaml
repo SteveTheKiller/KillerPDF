@@ -92,6 +92,7 @@ A página pode ser substituída por uma imagem dela mesma com as áreas marcadas
     <sys:String x:Key="Str_RedactFinish_Skip">Agora não</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">Continuar</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">Informações ocultas removidas.</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">Algumas palavras censuradas ainda aparecem neste documento, no texto das páginas ou em informações ocultas como marcadores, nomes de destino, campos de formulário ou scripts: {0}. Confira-as antes de compartilhar o arquivo.</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">Não foi possível remover as informações ocultas: {0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">Localizar texto para tarjar</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">Procurar</sys:String>

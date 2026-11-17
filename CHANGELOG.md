@@ -9,6 +9,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Security
 
 - A PDF built to multiply its own drawing work can no longer hang KillerPDF, the Explorer and Outlook preview, or the page thumbnails. A tiling pattern that paints with itself is skipped, nested drawings share one work limit for the page however wide they branch, and a preview page or thumbnail that takes longer than 15 seconds stops and shows as incomplete.
+- Redact checks the finished file for the words it found. When one still appears in a bookmark, a link destination's name, a script, the document's details or any other text, the command line refuses to save and the app, macros and the Privacy guided task say which words remain. Removing hidden information now also renames link destinations, which can carry the words they point at, and links keep working.
+- The working copies KillerPDF keeps while you edit are deleted as soon as an edit replaces them, so text a redaction removed no longer sits in a temporary file until KillerPDF closes.
 
 ### Added
 
@@ -26,6 +28,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Redact no longer fails with "Pages ... cannot be redacted without replacing them with an image" when saving the document leaves a page that has to become an image. It asks about those pages the same way it asks about the others, and canceling leaves the document as it was. (#499)
 - The tab beside the active document tab no longer draws a second divider line against it.
 - A Chinese or Japanese file name in the title bar is drawn in Microsoft YaHei UI or Yu Gothic UI, matching the menus, instead of the system's default face. Document tab names follow the same rule in every theme. (#490)
+
+### Changed
+
+- On the command line, `--redact` removes hidden information by default and fails when a redacted word survives anywhere in the file. Add `--no-sanitize` to skip that step, or `--sanitize` with a list to choose what is removed.
 
 ## [1.9.4] - 2026-11-15
 

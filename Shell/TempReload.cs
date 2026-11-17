@@ -109,9 +109,15 @@ namespace KillerPDF.Shell
                 var fixedPath = App.MakeTempFile("fixed");
                 if (!PdfEngineIntegration.TryCreateZeroRotationCopy(tempPath, fixedPath))
                     throw; // Engine recovery also failed; rethrow the original reopen error.
+                string unusable = tempPath;
                 tempPath = fixedPath;
                 candidateDocument = PdfWorkingDocument.Open(tempPath, null);
+                DeleteWorkingCopy(unusable);
             }
+            // The serialized copy only fed the zero-rotation copy, so it holds the old content
+            // and nothing reads it again.
+            DeleteWorkingCopy(serializedPath);
+            string? superseded = _currentFile;
             // Preparation has succeeded. Publish the replacement and side state together before
             // notifying the UI or recording history; failures above leave the live document usable.
             CloseEngineDocumentSession();
@@ -124,6 +130,12 @@ namespace KillerPDF.Shell
             _doc = candidateDocument;
             _currentFile = tempPath;
             doc.Close();
+            // The working copy this edit replaced still holds what the edit removed, such as text
+            // under a redaction. Undo keeps its own bytes in memory, so the file goes now rather than
+            // at session cleanup. A copy another tab still reads, or the user's own file, stays.
+            if (!preserveRenderedPages && superseded is not null && superseded != tempPath
+                && App.IsCleanupOwnedPath(superseded) && !WorkingCopyInUse(superseded))
+                DeleteWorkingCopy(superseded);
             _pageRotations.Clear();
             foreach (var pair in candidateRotations) _pageRotations[pair.Key] = pair.Value;
             if (!keepAnnotations || candidateAnnotations is not null) _annotations.Clear();
@@ -192,6 +204,25 @@ namespace KillerPDF.Shell
                 if (preserveZoom) ActiveViewer.ApplyZoom();
                 else ActiveViewer.ReapplyGridOrFit();
             }));
+        }
+
+        // True when any tab other than the one this edit just moved on still names the copy. The
+        // edited tab's own session can hold the old path until it is next captured, so it is skipped.
+        private bool WorkingCopyInUse(string path)
+        {
+            Controls.PdfViewer.DocumentSession? edited = ActiveViewer.ActiveSessionRef;
+            return Application.Current.Windows.OfType<MainWindow>().Any(window =>
+                window.AllSessions().Any(session => !ReferenceEquals(session, edited)
+                    && string.Equals(session.CurrentFile, path, StringComparison.OrdinalIgnoreCase))
+                || (!ReferenceEquals(window, this)
+                    && string.Equals(window._currentFile, path, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        // Best effort: a copy a reader still holds open stays for session cleanup to remove.
+        private static void DeleteWorkingCopy(string path)
+        {
+            try { if (App.IsCleanupOwnedPath(path)) File.Delete(path); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
         }
     }
 }

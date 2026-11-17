@@ -92,6 +92,7 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_RedactFinish_Skip">Ikke nå</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">Fortsett</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">Skjult informasjon er fjernet.</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">Noen sladdede ord finnes fortsatt i dokumentet, i sideteksten eller i skjult informasjon som bokmerker, målnavn, skjemafelt eller skript: {0}. Sjekk dem før du deler filen.</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">Kunne ikke fjerne skjult informasjon: {0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">Finn tekst som skal sladdes</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">Søk etter</sys:String>

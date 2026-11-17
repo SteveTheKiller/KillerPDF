@@ -154,6 +154,8 @@ public partial class MainWindow
             if (_macroRedaction.Areas > 0)
                 reportText += Environment.NewLine + string.Format(Loc("Str_Macro_Redacted"),
                     _macroRedaction.Areas, _macroRedaction.Pages);
+            if (result.Succeeded && result.Data is ReadOnlyMemory<byte> made && MacroSurvivorNote(made) is { } survivors)
+                reportText += Environment.NewLine + survivors;
             new DocumentReportDialog(this, Loc("Str_DocumentTools_Macros"), reportText).ShowDialog();
         }
         catch (OperationCanceledException)
@@ -219,6 +221,24 @@ public partial class MainWindow
     }
 
     private MacroRedaction _macroRedaction = new();
+
+    // A warning for the run report when the words a Redact step removed still appear in what the
+    // whole macro made, such as in a bookmark, destination name or script no later step removed.
+    private string? MacroSurvivorNote(ReadOnlyMemory<byte> output)
+    {
+        if (_macroRedaction.Terms.Length == 0 || _macroRedaction.Areas == 0) return null;
+        PdfRedactionVerificationReport report;
+        try { report = PdfContentRedaction.FindSurvivingText(output, _macroRedaction.Terms); }
+        catch (Exception error) when (error is FormatException or InvalidOperationException or NotSupportedException)
+        {
+            return null;
+        }
+        if (report.Succeeded) return null;
+        string[] left = [.. _macroRedaction.Terms.Where(term => report.Findings.Any(finding =>
+            finding.Message.Contains("'" + term + "'", StringComparison.OrdinalIgnoreCase)))];
+        return string.Format(Loc("Str_Redact_TextSurvives"),
+            string.Join(", ", (left.Length > 0 ? left : _macroRedaction.Terms).Select(term => "“" + term + "”")));
+    }
 
     private bool PrepareMacroRedaction(Controls.PdfViewer? sourceViewer = null)
     {

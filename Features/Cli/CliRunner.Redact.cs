@@ -21,7 +21,10 @@ namespace KillerPDF.Features
             + "                  --find email,phone,ssn,card,iban  --whole-pages <range>  --marked (marks saved in the file)\n"
             + "                  [--match-case]\n"
             + "  how:  [--fill <#RRGGBB or color name>] [--overlay <text>] [--rasterize]\n"
-            + "        [--sanitize all|comments,attachments,forms,layers,scripts,links,bookmarks]\n"
+            + "        [--sanitize all|comments,attachments,forms,layers,scripts,links,bookmarks | --no-sanitize]\n"
+            + "  Hidden information is removed by default, as --sanitize all; --sanitize picks what goes and\n"
+            + "  --no-sanitize keeps it all. Either way, the finished file is checked for every word found, in its\n"
+            + "  page text, bookmarks, destination names, form values and scripts, and nothing is saved if one remains.\n"
             + "  --rasterize lets pages whose marked content cannot be removed on its own become images;\n"
             + "  without it the command fails without saving output and lists the affected pages.\n"
             + "  A search that could not read a page's text, form fields or comments exits 3 without saving\n"
@@ -97,7 +100,15 @@ namespace KillerPDF.Features
                 con.WriteLine("The overlay text uses characters a redaction label cannot draw; use plain letters, numbers and punctuation.");
                 return 2;
             }
-            PdfEngineIntegration.SanitizeChoices? sanitize = null;
+            // Hidden information is removed unless asked not to: a bookmark, destination name, form value
+            // or script can repeat the very words the redaction took off the page.
+            if (options.ContainsKey("--sanitize") && options.ContainsKey("--no-sanitize"))
+            {
+                con.WriteLine("Use --sanitize or --no-sanitize, not both.");
+                return 2;
+            }
+            PdfEngineIntegration.SanitizeChoices? sanitize = options.ContainsKey("--no-sanitize") ? null
+                : CliSanitizeChoices("all");
             if (options.TryGetValue("--sanitize", out string? sanitizeRaw))
             {
                 if (CliSanitizeChoices(sanitizeRaw) is not { } choices)
@@ -115,6 +126,9 @@ namespace KillerPDF.Features
             // come from one engine document, parsed once and only when something asks for it.
             var document = new Lazy<PdfDocument>(() => PdfEngineIntegration.OpenForReading(File.ReadAllBytes(source)));
             var unreadable = new SortedSet<int>();
+            bool matchCase = options.ContainsKey("--match-case");
+            // What the search found, word for word: the finished file must not contain any of it.
+            var foundText = new HashSet<string>(StringComparer.Ordinal);
             if (searches.Count > 0)
             {
                 (IReadOnlyList<PdfPageContent?> pages, IReadOnlyList<int> unreadablePages) = SearchService.LoadPagesForReview(source, null);
@@ -128,7 +142,7 @@ namespace KillerPDF.Features
                         {
                             Kind = kind,
                             Query = query,
-                            MatchCase = options.ContainsKey("--match-case"),
+                            MatchCase = matchCase,
                             Timeout = TimeSpan.FromSeconds(2)
                         };
                         foreach (PdfRedactionMatch match in PdfRedactionSearch.Find(pages, search).Matches)
@@ -144,6 +158,7 @@ namespace KillerPDF.Features
                     con.WriteLine("Could not search the document: " + ex.Message);
                     return 2;
                 }
+                foundText.UnionWith(found.Values.Select(match => match.Text.Trim()).Where(value => value.Length > 0));
                 foreach (PdfRedactionMatch match in found.Values.OrderBy(match => match.PageIndex)
                     .ThenByDescending(match => match.Bounds.Top).ThenBy(match => match.Bounds.Left))
                     foreach (PdfContentBounds area in match.Areas.Count > 0 ? match.Areas : [match.Bounds])
@@ -216,12 +231,18 @@ namespace KillerPDF.Features
                 {
                     result = PdfEngineIntegration.ApplyRedaction(path, regions, approved);
                     if (sanitize is not null) PdfEngineIntegration.SanitizeFile(path, sanitize);
+                    // The words found are checked for on the finished file, after the cleanup, so one
+                    // left in a bookmark, a destination name or a script fails the run instead of shipping.
+                    PdfRedactionVerificationReport survivors = PdfEngineIntegration.FindSurvivingText(path, foundText, matchCase);
+                    if (!survivors.Succeeded) throw new PdfRedactionVerificationException(survivors);
                 });
             }
             catch (PdfRedactionVerificationException ex)
             {
                 con.WriteLine("The redaction was not saved because verification found content still exposed:");
                 con.WriteLine(ex.Report.ToText());
+                if (sanitize is null)
+                    con.WriteLine("Hidden information was kept because of --no-sanitize; drop it to remove that information too.");
                 return 1;
             }
             int pagesTouched = regions.Select(region => region.PageIndex).Distinct().Count();

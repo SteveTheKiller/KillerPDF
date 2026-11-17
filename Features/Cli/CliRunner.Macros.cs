@@ -145,6 +145,20 @@ namespace KillerPDF.Features
             PdfMacroRunReport report = dispatcher.RunReport(macro, [new ReadOnlyMemory<byte>(input)],
                 renames || merges ? PdfRenameMacro.CreateContext(Path.GetFileName(source), 1) : null);
             PdfMacroFileResult? result = report.Results.Count == 1 ? report.Results[0] : null;
+            // The terms are checked for on what the whole macro made, after any later cleanup step, so one
+            // left in a bookmark, a destination name or a script fails the run instead of being saved.
+            if (redacts && redaction.Terms.Count > 0 && result is { Succeeded: true, Data: ReadOnlyMemory<byte> finished })
+            {
+                PdfRedactionVerificationReport survivors = PdfContentRedaction.FindSurvivingText(finished, redaction.Terms);
+                if (!survivors.Succeeded)
+                {
+                    con.WriteLine(report.ToText());
+                    con.WriteLine("No macro output was saved because the redacted words still appear in it:");
+                    con.WriteLine(survivors.ToText());
+                    con.WriteLine("Add a step that removes hidden information after Redact, or check where they remain.");
+                    return 1;
+                }
+            }
             bool outputsWritten = true;
             if (mergePlan is not null && result?.Outputs is not null && (!redacts || result.Succeeded))
                 outputsWritten = CliWriteMacroOutputs(result.Outputs, mergePlan.OutputPaths, con);

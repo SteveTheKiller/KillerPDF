@@ -92,6 +92,7 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_RedactFinish_Skip">Để sau</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">Tiếp tục</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">Đã xóa thông tin ẩn.</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">Một số từ đã bôi đen vẫn còn trong tài liệu này, trong văn bản trang hoặc trong thông tin ẩn như dấu trang, tên đích, trường biểu mẫu hay tập lệnh: {0}. Hãy kiểm tra trước khi chia sẻ tệp.</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">Không thể xóa thông tin ẩn: {0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">Tìm văn bản cần che</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">Tìm</sys:String>

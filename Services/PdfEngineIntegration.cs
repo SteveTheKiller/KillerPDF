@@ -2515,6 +2515,16 @@ internal static partial class PdfEngineIntegration
         return result;
     }
 
+    /// <summary>
+    /// Checks a finished redacted file for the words the redaction removed, in its page text and in
+    /// everything the pages don't show, such as bookmarks, destination names, form values and scripts.
+    /// </summary>
+    internal static PdfRedactionVerificationReport FindSurvivingText(string path, IEnumerable<string> terms, bool matchCase)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfContentRedaction.FindSurvivingText(File.ReadAllBytes(path), terms, matchCase);
+    }
+
     /// <summary>Reports whether a line in the file can be rewritten in the page content, or null
     /// when the file cannot be read for it.</summary>
     internal static PdfTextLineInspection? InspectTextLine(string path, int pageIndex, PdfContentBounds region)
@@ -2624,6 +2634,9 @@ internal static partial class PdfEngineIntegration
                 }
             if (removed) document = PdfDocument.Open(editor.Build());
         }
+        // Destination names are written by authors and often repeat headings, so they are renamed
+        // to plain numbers and every link to them follows.
+        document = PdfNamedDestinationAnonymizer.Apply(document);
         PdfOptimizationOptions settings = PdfOptimizationOptions.ForDocument(document) with
         {
             RepairHarmlessArtifacts = true,

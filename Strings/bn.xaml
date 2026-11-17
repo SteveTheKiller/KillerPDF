@@ -92,6 +92,7 @@
     <sys:String x:Key="Str_RedactFinish_Skip">এখন নয়</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">চালিয়ে যান</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">লুকানো তথ্য সরানো হয়েছে।</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">মুছে ফেলা কিছু শব্দ এই নথিতে এখনও আছে, পৃষ্ঠার লেখায় বা বুকমার্ক, গন্তব্যের নাম, ফর্মের ঘর বা স্ক্রিপ্টের মতো লুকানো তথ্যে: {0}। ফাইল শেয়ার করার আগে এগুলো দেখে নিন।</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">লুকানো তথ্য সরানো যায়নি: {0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">রিড্যাক্ট করার লেখা খুঁজুন</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">যা খুঁজবেন</sys:String>

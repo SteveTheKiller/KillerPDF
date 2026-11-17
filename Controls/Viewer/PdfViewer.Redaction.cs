@@ -23,6 +23,8 @@ namespace KillerPDF.Controls
         private static bool _redactDefaultsLoaded;
         private List<RedactionMark> _redactMarks = [];
         private string? _redactionSourceFingerprint;
+        // The words searches marked, checked for in the finished file once hidden information is dealt with.
+        private readonly HashSet<string> _redactFoundText = new(StringComparer.OrdinalIgnoreCase);
 
         internal RedactionMarkSnapshot CaptureRedactionMarksExt() => new(_redactMarks, _redactionSourceFingerprint);
 
@@ -392,6 +394,8 @@ namespace KillerPDF.Controls
                 }
                 var current = SearchService.FindCurrentRedaction(snapshot, options);
                 if (current.Matches.Count > 0) _redactionSourceFingerprint = fingerprint;
+                foreach (PdfRedactionMatch match in current.Matches)
+                    if (match.Text.Trim() is { Length: > 0 } found) _redactFoundText.Add(found);
                 unreadable = [.. current.Unreadable];
                 matches = current.Matches.GroupBy(match => match.PageIndex).ToDictionary(group => group.Key,
                     group => group.SelectMany(match => match.Areas.Count > 0 ? match.Areas : [match.Bounds])
@@ -452,6 +456,7 @@ namespace KillerPDF.Controls
             int added = 0;
             foreach (PdfRedactionMatch match in dialog.Checked)
             {
+                if (match.Text.Trim() is { Length: > 0 } found) _redactFoundText.Add(found);
                 IEnumerable<PdfContentBounds> areas = match.Areas.Count > 0 ? match.Areas : [match.Bounds];
                 foreach (PdfContentBounds area in areas)
                 {
@@ -523,6 +528,7 @@ namespace KillerPDF.Controls
         {
             if (_redactMarks.Count > 0) MarkDirty();
             _redactMarks.Clear();
+            _redactFoundText.Clear();
             _redactionSourceFingerprint = null;
             UpdateRedactionCount();
             RepaintRedactionMarks();
@@ -649,7 +655,14 @@ namespace KillerPDF.Controls
             string stem = System.IO.Path.GetFileNameWithoutExtension(source);
             string suggested = (stem.EndsWith("_Redacted", StringComparison.OrdinalIgnoreCase) ? stem : stem + "_Redacted") + ".pdf";
             var dialog = new RedactionFinishDialog(owner, suggested);
-            if (dialog.ShowDialog() != true) return;
+            bool finished = dialog.ShowDialog() == true;
+            // Skipped, cancelled or with boxes unticked, the words may still sit in a bookmark, a
+            // destination name, a form value or a script, so the finished file is checked either way.
+            if (!finished || dialog.Choices is null)
+            {
+                WarnAboutSurvivingText(owner);
+                if (!finished) return;
+            }
             if (dialog.Choices is PdfEngineIntegration.SanitizeChoices choices)
             {
                 Exception? failure = null;
@@ -681,12 +694,35 @@ namespace KillerPDF.Controls
                     _formFontSizes.Clear();
                 }
                 ReportResult(Loc("Str_RedactFinish_Done"));
+                WarnAboutSurvivingText(owner);
             }
             if (dialog.SaveCopy)
             {
                 Host!.FocusViewer(this);
                 Host.SaveAsWithName(suggested);
             }
+        }
+
+        // A warning, not a refusal: a page skipped from image replacement or a mark taken off by hand
+        // leaves copies the user chose to keep, so only they can say whether a remaining one is wrong.
+        private void WarnAboutSurvivingText(Window owner)
+        {
+            if (_redactFoundText.Count == 0 || _currentFile is null) return;
+            string[] terms = [.. _redactFoundText];
+            if (_redactMarks.Count == 0) _redactFoundText.Clear();
+            PdfRedactionVerificationReport report;
+            try { report = PdfEngineIntegration.FindSurvivingText(_currentFile, terms, matchCase: false); }
+            catch (Exception error) when (error is System.IO.IOException or FormatException or InvalidOperationException
+                or NotSupportedException or UnauthorizedAccessException)
+            {
+                return;
+            }
+            if (report.Succeeded) return;
+            string[] left = [.. terms.Where(term => report.Findings.Any(finding =>
+                finding.Message.Contains("'" + term + "'", StringComparison.OrdinalIgnoreCase)))];
+            string words = string.Join(", ", (left.Length > 0 ? left : terms).Select(term => "“" + term + "”"));
+            KillerDialog.Show(owner, string.Format(Loc("Str_Redact_TextSurvives"), words), "KillerPDF",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         // Pages whose marked content can't be removed by itself are only turned into an image

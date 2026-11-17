@@ -92,6 +92,7 @@ La page peut être remplacée par une image d'elle-même avec les zones marquée
     <sys:String x:Key="Str_RedactFinish_Skip">Pas maintenant</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">Continuer</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">Informations masquées supprimées.</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">Certains mots caviardés apparaissent encore dans ce document, dans le texte des pages ou dans des informations masquées comme les signets, les noms de destination, les champs de formulaire ou les scripts : {0}. Vérifiez-les avant de partager le fichier.</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">Impossible de supprimer les informations masquées : {0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">Rechercher le texte à caviarder</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">Rechercher</sys:String>

@@ -92,6 +92,7 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_RedactFinish_Skip">Not now</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">Continue</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">Hidden information removed.</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">Some redacted words still appear in this document, in its page text or in hidden information such as bookmarks, destination names, form fields or scripts: {0}. Check them before you share the file.</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">Could not remove hidden information: {0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">Find Text to Redact</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">Search for</sys:String>

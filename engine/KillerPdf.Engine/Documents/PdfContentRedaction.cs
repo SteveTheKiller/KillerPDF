@@ -560,8 +560,67 @@ public static partial class PdfContentRedaction
         return new PdfRedactionVerificationReport(Array.AsReadOnly(findings.ToArray()));
     }
 
+    /// <summary>
+    /// Reports where any of <paramref name="terms"/> still appears in a finished document: its page text,
+    /// every text string and readable stream, and the names of legacy named destinations. Embedded font
+    /// programs and images are binary and are not read, so a short number cannot match inside them by chance.
+    /// </summary>
+    /// <remarks>Run it on the final bytes, after any cleanup of hidden information, with the terms the
+    /// redaction removed. Matching follows the redaction search: a plain substring, with or without case.</remarks>
+    public static PdfRedactionVerificationReport FindSurvivingText(ReadOnlyMemory<byte> output,
+        IEnumerable<string> terms, bool matchCase = false, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(terms);
+        string[] prohibited = [.. terms.Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal)];
+        var findings = new List<PdfRedactionVerificationFinding>();
+        if (prohibited.Length == 0) return new PdfRedactionVerificationReport(Array.AsReadOnly(findings.ToArray()));
+        StringComparison comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        PdfDocument document = PdfDocument.Open(output);
+        PdfPageTree tree = PdfPageTree.Read(document);
+        var reader = new PdfPageContentReader(document);
+        for (int pageIndex = 0; pageIndex < tree.Pages.Count; pageIndex++)
+        {
+            string text = reader.Read(pageIndex, cancellationToken).Text;
+            foreach (string value in prohibited)
+                if (text.Contains(value, comparison))
+                    findings.Add(new("ProhibitedText", $"Page text still contains '{value}'.", pageIndex));
+        }
+        if (tree.Catalog.TryGetValue(DestsName, out PdfObject? dests) && Resolve(document, dests) is PdfDictionary legacy)
+            foreach (PdfName key in legacy.Keys)
+            {
+                string name = key.ValueAsLatin1();
+                foreach (string value in prohibited)
+                    if (name.Contains(value, comparison))
+                        findings.Add(new("ProhibitedObjectText", $"A named destination is still called '{value}'."));
+            }
+        InspectObjects(document, prohibited, findings, cancellationToken, comparison, FontPrograms(document));
+        return new PdfRedactionVerificationReport(Array.AsReadOnly(findings.ToArray()));
+    }
+
+    private static readonly PdfName DestsName = Name("Dests");
+    private static readonly PdfName[] FontFileNames = [Name("FontFile"), Name("FontFile2"), Name("FontFile3")];
+
+    // The streams a font descriptor names as its program: binary, and read by no one for text.
+    private static HashSet<int> FontPrograms(PdfDocument document)
+    {
+        var programs = new HashSet<int>();
+        foreach (PdfCrossReferenceEntry entry in document.CrossReferences.Values)
+        {
+            if (entry.Type is not (PdfCrossReferenceEntryType.InUse or PdfCrossReferenceEntryType.Compressed)) continue;
+            PdfObject value;
+            try { value = document.Resolve(entry.ObjectNumber); }
+            catch (Exception error) when (error is FormatException or InvalidOperationException) { continue; }
+            if (value is not PdfDictionary descriptor) continue;
+            foreach (PdfName key in FontFileNames)
+                if (descriptor.TryGetValue(key, out PdfObject? file) && file is PdfIndirectReference reference)
+                    programs.Add(reference.ObjectNumber);
+        }
+        return programs;
+    }
+
     private static void InspectObjects(PdfDocument document, string[] prohibited,
-        List<PdfRedactionVerificationFinding> findings, CancellationToken cancellationToken)
+        List<PdfRedactionVerificationFinding> findings, CancellationToken cancellationToken,
+        StringComparison comparison = StringComparison.OrdinalIgnoreCase, HashSet<int>? skipped = null)
     {
         var reported = new HashSet<(int, string)>();
         foreach (PdfCrossReferenceEntry entry in document.CrossReferences.Values)
@@ -569,6 +628,7 @@ public static partial class PdfContentRedaction
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.Type is not (PdfCrossReferenceEntryType.InUse
                 or PdfCrossReferenceEntryType.Compressed)) continue;
+            if (skipped?.Contains(entry.ObjectNumber) == true) continue;
             PdfObject value;
             try { value = document.Resolve(entry.ObjectNumber); }
             catch (Exception error) when (error is FormatException or InvalidOperationException)
@@ -617,7 +677,7 @@ public static partial class PdfContentRedaction
         void Check(string candidate, int objectNumber)
         {
             foreach (string blocked in prohibited)
-                if (candidate.Contains(blocked, StringComparison.OrdinalIgnoreCase) && reported.Add((objectNumber, blocked)))
+                if (candidate.Contains(blocked, comparison) && reported.Add((objectNumber, blocked)))
                     findings.Add(new("ProhibitedObjectText",
                         $"Object {objectNumber} still contains '{blocked}'.", ObjectNumber: objectNumber));
         }

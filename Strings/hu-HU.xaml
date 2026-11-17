@@ -92,6 +92,7 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_RedactFinish_Skip">Most nem</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">Tovább</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">A rejtett információk törölve.</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">Néhány kitakart szó még szerepel a dokumentumban, az oldalak szövegében vagy rejtett információkban, például könyvjelzőkben, célnevekben, űrlapmezőkben vagy szkriptekben: {0}. Ellenőrizze őket, mielőtt megosztja a fájlt.</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">A rejtett információk nem törölhetők: {0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">Kitakarandó szöveg keresése</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">Keresés erre</sys:String>

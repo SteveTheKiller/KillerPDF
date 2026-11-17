@@ -92,6 +92,7 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_RedactFinish_Skip">Non ora</sys:String>
     <sys:String x:Key="Str_RedactFinish_Continue">Continua</sys:String>
     <sys:String x:Key="Str_RedactFinish_Done">Informazioni nascoste rimosse.</sys:String>
+    <sys:String x:Key="Str_Redact_TextSurvives">Alcune parole oscurate compaiono ancora in questo documento, nel testo delle pagine o in informazioni nascoste come segnalibri, nomi di destinazione, campi modulo o script: {0}. Controllale prima di condividere il file.</sys:String>
     <sys:String x:Key="Str_RedactFinish_Failed">Impossibile rimuovere le informazioni nascoste: {0}</sys:String>
     <sys:String x:Key="Str_RedactFind_Title">Trova testo da oscurare</sys:String>
     <sys:String x:Key="Str_RedactFind_Kind">Cerca</sys:String>
