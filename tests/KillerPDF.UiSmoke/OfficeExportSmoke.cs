@@ -45,7 +45,7 @@ internal static class OfficeExportSmoke
                     RunWorkflow(owner, source, Path.Combine(folder, $"workflow-{selectedMode}." + (selectedFormat == 0 ? "docx" : "pptx")), selectedFormat, selectedMode, false);
             RunWorkflow(owner, source, Path.Combine(folder, "source-switch.docx"), 0, 0, true);
             VerifyCli(appPath, source, folder);
-            string result = "PASS Office layout selection, 13 themes at two scales, 20 locales, small-window layout, four saved exports, source-switch cancellation and CLI layout selection; app SHA256=" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)));
+            string result = "PASS Office layout selection, 14 themes at two scales, 20 locales, small-window layout, four saved exports, source-switch cancellation and CLI layout selection; app SHA256=" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)));
             File.WriteAllText(Path.Combine(folder, "result.txt"), result);
             Console.WriteLine(result);
             return 0;

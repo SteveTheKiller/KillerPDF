@@ -47,7 +47,7 @@ pwsh -NoProfile -Sta -CommandWithArgs '& "build/Test-CrashDialog.ps1" -AssemblyP
 
 Use a fresh evidence directory. The literal process argument `--startup-smoke`
 is required to keep preferences isolated. The check measures real controls in
-all 13 themes with grain on and off, two widths and fatal/recoverable states.
+all 14 themes with grain on and off, two widths and fatal/recoverable states.
 It asserts caption fit, family rest and hover colors, clipped cards, scrolling,
 and Continue behavior. PNGs are captured before closing the tested window.
 These are synthetic offscreen previews, not physical input or screen-reader QA.

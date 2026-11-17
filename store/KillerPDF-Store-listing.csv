@@ -24,7 +24,7 @@ Color
 View pages color-managed on monitors that have a color profile, and proof a document against a printer profile with paper and ink simulation and gamut warnings. HDR output is still in progress.
 
 Make it yours
-Choose from 13 themes and 20 app languages, adjust interface scale and customize keyboard shortcuts.
+Choose from 14 themes and 20 app languages, adjust interface scale and customize keyboard shortcuts.
 
 GPLv3. Source code and released packages: https://killerpdf.net
 ","KillerPDF হলো Windows-এর জন্য একটি বিনামূল্যের, ওপেন-সোর্স PDF সম্পাদক, যা EPUB বই ও DjVu স্ক্যানও পড়তে পারে। ইনস্টল করুন অথবা পোর্টেবল প্যাকেজ ব্যবহার করুন। সংস্করণ 1.9 রেন্ডারিং, টেক্সট নিষ্কাশন এবং নথি প্রক্রিয়াকরণের জন্য KillerPDF-এর নিজস্ব ইঞ্জিন ব্যবহার করে।
@@ -51,7 +51,7 @@ OCR ও রপ্তানি
 রঙের প্রোফাইল আছে এমন মনিটরে পৃষ্ঠা রং-ব্যবস্থাপিত অবস্থায় দেখুন, এবং কাগজ ও কালির সিমুলেশন ও গ্যামাট সতর্কতাসহ প্রিন্টার প্রোফাইলের বিপরীতে নথির প্রুফ দেখুন। HDR আউটপুট এখনো বিকাশাধীন।
 
 নিজের মতো সাজান
-13টি থিম ও অ্যাপের 20টি ভাষা থেকে বেছে নিন, ইন্টারফেসের স্কেল বদলান এবং কিবোর্ড শর্টকাট কাস্টমাইজ করুন।
+14টি থিম ও অ্যাপের 20টি ভাষা থেকে বেছে নিন, ইন্টারফেসের স্কেল বদলান এবং কিবোর্ড শর্টকাট কাস্টমাইজ করুন।
 
 GPLv3। সোর্স কোড ও প্রকাশিত প্যাকেজ: https://killerpdf.net
 ","KillerPDF je bezplatný editor PDF s otevřeným zdrojovým kódem pro Windows, který čte také knihy EPUB a skeny DjVu. Nainstalujte jej nebo použijte přenosný balíček. Verze 1.9 používá vlastní jádro KillerPDF pro vykreslování, extrakci textu a zpracování dokumentů.
@@ -78,7 +78,7 @@ Barvy
 Zobrazujte stránky s řízením barev na monitorech s barevným profilem a prověřte dokument proti profilu tiskárny se simulací papíru a inkoustu a upozorněními na gamut. Výstup HDR je stále ve vývoji.
 
 Přizpůsobení
-Vyberte si ze 13 motivů a 20 jazyků aplikace, upravte měřítko rozhraní a přizpůsobte klávesové zkratky.
+Vyberte si ze 14 motivů a 20 jazyků aplikace, upravte měřítko rozhraní a přizpůsobte klávesové zkratky.
 
 GPLv3. Zdrojový kód a vydané balíčky: https://killerpdf.net
 ","KillerPDF ist ein kostenloser Open-Source-PDF-Editor für Windows, der auch EPUB-Bücher und DjVu-Scans liest. Installieren Sie ihn oder nutzen Sie das portable Paket. Version 1.9 verwendet die eigene Engine von KillerPDF für die Darstellung, Textextraktion und Dokumentverarbeitung.
@@ -105,7 +105,7 @@ Farbe
 Zeigen Sie Seiten auf Monitoren mit Farbprofil farbverwaltet an und erstellen Sie für ein Dokument einen Proof anhand eines Druckerprofils, mit Papier- und Tintensimulation sowie Gamut-Warnungen. Die HDR-Ausgabe ist noch in Arbeit.
 
 Individuell anpassen
-Wählen Sie aus 13 Designs und 20 App-Sprachen, passen Sie die Oberflächenskalierung an und legen Sie Tastenkombinationen fest.
+Wählen Sie aus 14 Designs und 20 App-Sprachen, passen Sie die Oberflächenskalierung an und legen Sie Tastenkombinationen fest.
 
 GPLv3. Quellcode und veröffentlichte Pakete: https://killerpdf.net
 ","KillerPDF es un editor de PDF gratuito y de código abierto para Windows que también lee libros EPUB y escaneos DjVu. Instálalo o utiliza el paquete portátil. La versión 1.9 utiliza el motor propio de KillerPDF para la renderización, la extracción de texto y el procesamiento de documentos.
@@ -132,7 +132,7 @@ Color
 Visualiza las páginas con gestión de color en monitores que tengan un perfil de color, y haz una prueba de un documento con un perfil de impresora, con simulación de papel y tinta y avisos de gamut. La salida HDR sigue en desarrollo.
 
 Personalízalo
-Elige entre 13 temas y 20 idiomas de la aplicación, ajusta la escala de la interfaz y personaliza los atajos de teclado.
+Elige entre 14 temas y 20 idiomas de la aplicación, ajusta la escala de la interfaz y personaliza los atajos de teclado.
 
 GPLv3. Código fuente y paquetes publicados: https://killerpdf.net
 ","A KillerPDF ingyenes, nyílt forráskódú PDF-szerkesztő Windowshoz, amely EPUB-könyveket és DjVu-beolvasásokat is olvas. Telepítse, vagy használja a hordozható csomagot. Az 1.9-es verzió a KillerPDF saját motorját használja a megjelenítéshez, a szövegkinyeréshez és a dokumentumfeldolgozáshoz.
@@ -159,7 +159,7 @@ Szín
 Jelenítse meg az oldalakat színkezelten a színprofillal rendelkező monitorokon, és készítsen nyomtatási próbát a dokumentumról nyomtatóprofillal, papír- és tintaszimulációval és színtartomány-figyelmeztetésekkel. A HDR-kimenet még fejlesztés alatt áll.
 
 Személyre szabás
-Válasszon 13 téma és 20 alkalmazásnyelv közül, állítsa be a felület méretezését, és szabja testre a billentyűparancsokat.
+Válasszon 14 téma és 20 alkalmazásnyelv közül, állítsa be a felület méretezését, és szabja testre a billentyűparancsokat.
 
 GPLv3. Forráskód és kiadott csomagok: https://killerpdf.net
 ","KillerPDF è un editor PDF gratuito e open source per Windows che legge anche libri EPUB e scansioni DjVu. Installalo oppure usa il pacchetto portatile. La versione 1.9 usa il proprio motore per il rendering, l'estrazione del testo e l'elaborazione dei documenti.
@@ -186,7 +186,7 @@ Colore
 Visualizza le pagine con gestione del colore sui monitor che hanno un profilo colore e fai la prova di stampa di un documento con un profilo stampante, con simulazione di carta e inchiostro e avvisi sul gamut. L'output HDR è ancora in fase di sviluppo.
 
 Personalizzazione
-Scegli tra 13 temi e 20 lingue dell'app, regola la scala dell'interfaccia e personalizza le scorciatoie da tastiera.
+Scegli tra 14 temi e 20 lingue dell'app, regola la scala dell'interfaccia e personalizza le scorciatoie da tastiera.
 
 GPLv3. Codice sorgente e pacchetti pubblicati: https://killerpdf.net
 ","KillerPDF は、Windows 用の無料でオープンソースの PDF エディターで、EPUB の書籍や DjVu のスキャンも読めます。インストールするか、ポータブルパッケージを使用できます。バージョン 1.9 は、描画、テキスト抽出、文書処理に KillerPDF 独自のエンジンを使用しています。
@@ -213,7 +213,7 @@ OCR とエクスポート
 カラープロファイルのあるモニターでは、ページをカラーマネジメントして表示できます。プリンタープロファイルに対して文書をプルーフし、用紙とインクのシミュレーションと色域の警告も利用できます。HDR 出力は開発中です。
 
 使いやすくカスタマイズ
-13 種類のテーマと 20 のアプリ言語から選び、インターフェイスの表示倍率やキーボードショートカットを変更できます。
+14 種類のテーマと 20 のアプリ言語から選び、インターフェイスの表示倍率やキーボードショートカットを変更できます。
 
 GPLv3。ソースコードとリリース済みパッケージ: https://killerpdf.net
 ","KillerPDF Windows жүйесіне арналған тегін, бастапқы коды ашық PDF редакторы, ол EPUB кітаптарын және DjVu сканерленген құжаттарын да оқиды. Оны орнатыңыз немесе тасымалды пакетті пайдаланыңыз. 1.9 нұсқасы көрсету, мәтінді шығарып алу және құжаттарды өңдеу үшін KillerPDF-тің өз қозғалтқышын қолданады.
@@ -240,7 +240,7 @@ OCR және экспорттау
 Түс профилі бар мониторларда беттерді түсті басқарумен көріңіз және құжатты принтер профилі бойынша қағаз бен бояуды модельдеумен және түс гаммасы туралы ескертулермен тексеріп көріңіз. HDR шығысы әлі әзірленуде.
 
 Өзіңізге бейімдеу
-13 тақырып пен қолданбаның 20 тілінен таңдаңыз, интерфейс масштабын реттеңіз және пернетақта тіркесімдерін бейімдеңіз.
+14 тақырып пен қолданбаның 20 тілінен таңдаңыз, интерфейс масштабын реттеңіз және пернетақта тіркесімдерін бейімдеңіз.
 
 GPLv3. Бастапқы код пен шығарылған пакеттер: https://killerpdf.net
 ","KillerPDF, EPUB kitaplarını ve DjVu taramalarını da okuyan, Windows için ücretsiz ve açık kaynaklı bir PDF düzenleyicisidir. Yükleyin veya taşınabilir paketi kullanın. Sürüm 1.9; görüntüleme, metin çıkarma ve belge işleme için KillerPDF'nin kendi motorunu kullanır.
@@ -267,7 +267,7 @@ Renk
 Renk profili olan monitörlerde sayfaları renk yönetimli görüntüleyin ve bir belgenin provasını yazıcı profiline göre kâğıt ve mürekkep benzetimi ile gamut uyarılarıyla yapın. HDR çıktısı hâlâ geliştirme aşamasındadır.
 
 Kişiselleştirme
-13 tema ve 20 uygulama dili arasından seçim yapın, arayüz ölçeğini ayarlayın ve klavye kısayollarını özelleştirin.
+14 tema ve 20 uygulama dili arasından seçim yapın, arayüz ölçeğini ayarlayın ve klavye kısayollarını özelleştirin.
 
 GPLv3. Kaynak kod ve yayımlanan paketler: https://killerpdf.net
 ","KillerPDF є безкоштовним редактором PDF з відкритим кодом для Windows, який також читає книги EPUB і скани DjVu. Установіть його або скористайтеся портативним пакетом. Версія 1.9 використовує власний рушій KillerPDF для відтворення, видобування тексту й обробки документів.
@@ -294,7 +294,7 @@ OCR та експорт
 Переглядайте сторінки з керуванням кольором на моніторах, що мають колірний профіль, і робіть пробний відбиток документа за профілем принтера із симуляцією паперу й фарб та попередженнями про гаму. Вивід HDR ще в розробці.
 
 Персоналізація
-Вибирайте серед 13 тем і 20 мов програми, змінюйте масштаб інтерфейсу та налаштовуйте сполучення клавіш.
+Вибирайте серед 14 тем і 20 мов програми, змінюйте масштаб інтерфейсу та налаштовуйте сполучення клавіш.
 
 GPLv3. Вихідний код і випущені пакети: https://killerpdf.net
 ","KillerPDF là trình chỉnh sửa PDF miễn phí, mã nguồn mở dành cho Windows, đồng thời đọc được sách EPUB và bản quét DjVu. Hãy cài đặt hoặc dùng gói di động. Phiên bản 1.9 sử dụng bộ máy riêng của KillerPDF để kết xuất, trích xuất văn bản và xử lý tài liệu.
@@ -321,7 +321,7 @@ Màu sắc
 Xem trang với quản lý màu trên các màn hình có hồ sơ màu, và thử in một tài liệu theo hồ sơ máy in với mô phỏng giấy và mực cùng cảnh báo vượt gam màu. Đầu ra HDR vẫn đang được phát triển.
 
 Tùy chỉnh
-Chọn trong 13 chủ đề và 20 ngôn ngữ ứng dụng, điều chỉnh tỷ lệ giao diện và tùy chỉnh phím tắt.
+Chọn trong 14 chủ đề và 20 ngôn ngữ ứng dụng, điều chỉnh tỷ lệ giao diện và tùy chỉnh phím tắt.
 
 GPLv3. Mã nguồn và các gói đã phát hành: https://killerpdf.net
 ","KillerPDF é um editor de PDF gratuito e de código aberto para Windows que também lê livros EPUB e digitalizações DjVu. Instale ou use o pacote portátil. A versão 1.9 usa o mecanismo próprio do KillerPDF para renderização, extração de texto e processamento de documentos.
@@ -348,7 +348,7 @@ Cor
 Veja as páginas com gerenciamento de cor em monitores que têm perfil de cor e faça a prova de um documento com base em um perfil de impressora, com simulação de papel e tinta e avisos de cores fora da gama. A saída HDR ainda está em desenvolvimento.
 
 Personalização
-Escolha entre 13 temas e 20 idiomas do aplicativo, ajuste a escala da interface e personalize os atalhos de teclado.
+Escolha entre 14 temas e 20 idiomas do aplicativo, ajuste a escala da interface e personalize os atalhos de teclado.
 
 GPLv3. Código-fonte e pacotes lançados: https://killerpdf.net
 ","KillerPDF to bezpłatny edytor PDF o otwartym kodzie źródłowym dla systemu Windows, który odczytuje także książki EPUB i skany DjVu. Zainstaluj go lub użyj pakietu przenośnego. Wersja 1.9 używa własnego silnika KillerPDF do renderowania, wyodrębniania tekstu i przetwarzania dokumentów.
@@ -375,7 +375,7 @@ Kolor
 Wyświetlaj strony z zarządzaniem kolorami na monitorach z profilem kolorów i sprawdzaj dokument względem profilu drukarki, z symulacją papieru i farby oraz ostrzeżeniami o przekroczeniu gamy. Obsługa wyjścia HDR jest jeszcze w trakcie prac.
 
 Dostosowanie
-Wybierz spośród 13 motywów i 20 języków aplikacji, zmień skalę interfejsu i dostosuj skróty klawiaturowe.
+Wybierz spośród 14 motywów i 20 języków aplikacji, zmień skalę interfejsu i dostosuj skróty klawiaturowe.
 
 GPLv3. Kod źródłowy i wydane pakiety: https://killerpdf.net
 ","KillerPDF er et gratis PDF-redigeringsprogram med åpen kildekode for Windows som også leser EPUB-bøker og DjVu-skanninger. Installer det eller bruk den portable pakken. Versjon 1.9 bruker KillerPDFs egen motor til gjengivelse, tekstuttrekking og dokumentbehandling.
@@ -402,7 +402,7 @@ Farger
 Vis sider med fargestyring på skjermer som har en fargeprofil, og prøv ut et dokument mot en skriverprofil med papir- og blekksimulering og advarsler om fargeområde. HDR-utdata er fortsatt under arbeid.
 
 Tilpass etter behov
-Velg blant 13 temaer og 20 appspråk, juster grensesnittets skalering og tilpass hurtigtaster.
+Velg blant 14 temaer og 20 appspråk, juster grensesnittets skalering og tilpass hurtigtaster.
 
 GPLv3. Kildekode og utgitte pakker: https://killerpdf.net
 ","KillerPDF 是一款适用于 Windows 的免费开源 PDF 编辑器，同时可阅读 EPUB 图书和 DjVu 扫描件。您可以安装使用，也可以使用便携包。1.9 版本使用 KillerPDF 自有引擎进行渲染、文本提取和文档处理。
@@ -429,7 +429,7 @@ OCR 与导出
 在带有色彩配置文件的显示器上以色彩管理方式查看页面，并对照打印机配置文件校样文档，提供纸张与油墨模拟及色域警告。HDR 输出仍在开发中。
 
 个性化设置
-从 13 种主题和 20 种应用语言中选择，调整界面缩放并自定义键盘快捷键。
+从 14 种主题和 20 种应用语言中选择，调整界面缩放并自定义键盘快捷键。
 
 GPLv3。源代码及已发布的软件包：https://killerpdf.net
 ","KillerPDF 是一款適用於 Windows 的免費開源 PDF 編輯器，同時可閱讀 EPUB 書籍與 DjVu 掃描檔。您可以安裝使用，也可以使用可攜式套件。1.9 版使用 KillerPDF 自有引擎進行算繪、文字擷取與文件處理。
@@ -456,7 +456,7 @@ OCR 與匯出
 在具有色彩設定檔的顯示器上以色彩管理方式檢視頁面，並對照印表機設定檔校樣文件，提供紙張與油墨模擬及色域警告。HDR 輸出仍在開發中。
 
 個人化設定
-從 13 種佈景主題與 20 種應用程式語言中選擇，調整介面縮放並自訂鍵盤快速鍵。
+從 14 種佈景主題與 20 種應用程式語言中選擇，調整介面縮放並自訂鍵盤快速鍵。
 
 GPLv3。原始碼與已發行套件：https://killerpdf.net
 ","KillerPDF est un éditeur PDF gratuit et open source pour Windows qui lit aussi les livres EPUB et les numérisations DjVu. Installez-le ou utilisez le paquet portable. La version 1.9 utilise le moteur propre à KillerPDF pour le rendu, l'extraction de texte et le traitement des documents.
@@ -483,7 +483,7 @@ Couleur
 Affichez les pages avec gestion des couleurs sur les moniteurs dotés d'un profil colorimétrique, et réalisez l'épreuve d'un document selon un profil d'imprimante, avec simulation du papier et de l'encre et avertissements de gamut. La sortie HDR est encore en cours de développement.
 
 Personnalisation
-Choisissez parmi 13 thèmes et 20 langues de l'application, ajustez l'échelle de l'interface et personnalisez les raccourcis clavier.
+Choisissez parmi 14 thèmes et 20 langues de l'application, ajustez l'échelle de l'interface et personnalisez les raccourcis clavier.
 
 GPLv3. Code source et paquets publiés : https://killerpdf.net
 ","KillerPDF представляет собой бесплатный редактор PDF с открытым исходным кодом для Windows, который также читает книги EPUB и сканы DjVu. Установите его или используйте портативный пакет. Версия 1.9 использует собственный движок KillerPDF для отрисовки, извлечения текста и обработки документов.
@@ -510,7 +510,7 @@ OCR и экспорт
 Просматривайте страницы с управлением цветом на мониторах с цветовым профилем и выполняйте цветопробу документа по профилю принтера с имитацией бумаги и красок и предупреждениями о выходе за гамму. Вывод HDR пока находится в разработке.
 
 Настройка
-Выбирайте из 13 тем и 20 языков приложения, меняйте масштаб интерфейса и настраивайте сочетания клавиш.
+Выбирайте из 14 тем и 20 языков приложения, меняйте масштаб интерфейса и настраивайте сочетания клавиш.
 
 GPLv3. Исходный код и выпущенные пакеты: https://killerpdf.net
 ","KillerPDF je brezplačen odprtokodni urejevalnik PDF za Windows, ki bere tudi knjige EPUB in skene DjVu. Namestite ga ali uporabite prenosni paket. Različica 1.9 uporablja lastni pogon KillerPDF za izrisovanje, izluščanje besedila in obdelavo dokumentov.
@@ -537,7 +537,7 @@ Barve
 Ogledujte strani z upravljanjem barv na zaslonih z barvnim profilom in preizkusite dokument glede na profil tiskalnika s simulacijo papirja in črnila ter opozorili o barvah zunaj barvnega obsega. Izhod HDR je še v pripravi.
 
 Prilagoditev
-Izbirajte med 13 temami in 20 jeziki aplikacije, prilagodite merilo vmesnika in bližnjice na tipkovnici.
+Izbirajte med 14 temami in 20 jeziki aplikacije, prilagodite merilo vmesnika in bližnjice na tipkovnici.
 
 GPLv3. Izvorna koda in izdani paketi: https://killerpdf.net
 "

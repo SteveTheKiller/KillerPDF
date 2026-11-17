@@ -8,7 +8,7 @@ using System.Windows.Media.Effects;
 // Promoted from KillerShell, the family reference for theme colors, grain and geometry.
 namespace KillerPDF.Services
 {
-    // Thirteen palettes, in picker order. SE98 cannot be written "98SE" because an enum member
+    // Fourteen palettes. SE98 cannot be written "98SE" because an enum member
     // may not start with a digit; ThemeFileName below maps it back to the real file and accent
     // folder name. Order matches KillerNotes, which is the reference for the theme set.
     public enum Theme
@@ -326,7 +326,7 @@ namespace KillerPDF.Services
             //
             // 98SE is the only FLAT theme: a hard 2px frame, raised bevels, a short Win98
             // caption. It carries 126 keys no other palette declares, and controls that bind
-            // them have to resolve on all thirteen themes - so every one gets a neutral default
+            // them have to resolve on all fourteen themes - so every one gets a neutral default
             // here and 98SE's own value simply wins, with no branch on the theme name anywhere.
             //
             // SetIfAbsent, never a plain assignment: the palette is read FIRST and must not be

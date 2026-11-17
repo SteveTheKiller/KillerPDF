@@ -86,7 +86,7 @@ scripts:
     mutates: temporary-files-and-test-owned-process-only
   preset_selection_smoke:
     path: tests/KillerPDF.UiSmoke/PresetSelectionSmoke.cs
-    purpose: Verify populated preset selected and unselected text through real WPF controls in 13 themes.
+    purpose: Verify populated preset selected and unselected text through real WPF controls in 14 themes.
     inputs: Built app DLL, matching App.xaml, fresh evidence directory and --startup-smoke.
     outputs: PNGs and a result containing the tested assembly hash.
     failure_behavior: Return nonzero on mismatched colors, missing resources or invalid fixture inputs.
@@ -94,7 +94,7 @@ scripts:
 
   crash_dialog_smoke:
     path: build/Test-CrashDialog.ps1
-    purpose: Check crash report controls, caption fit, scrolling and recovery in 13 themes.
+    purpose: Check crash report controls, caption fit, scrolling and recovery in 14 themes.
     inputs: Built app DLL, fresh evidence directory, PowerShell 7 on .NET 10 and --startup-smoke.
     outputs: Synthetic offscreen PNGs and 104 case results.
     failure_behavior: Throw on preference isolation, layout, palette, hover, scrolling or recovery failure.

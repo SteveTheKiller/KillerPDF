@@ -108,7 +108,7 @@ internal static class GuidedTasksSmoke
             if (!File.ReadAllBytes(source).AsSpan().SequenceEqual(original)) throw new InvalidOperationException("A later guided workflow changed source bytes.");
             if (Directory.EnumerateFiles(Path.Combine(folder, "data"), "*reduceclean*", SearchOption.AllDirectories).Any())
                 throw new InvalidOperationException("Guided snapshots left reduceclean intermediates in owned app data.");
-            string result = "PASS four real menu-to-picker task workflows, public saved readers, reviewed privacy removal and form name, source/current document preservation, live-edit rejection, review/picker cancellation, serialized email/scan macros, 13 themes, current locales, 70/100/150/250 percent scales and small-window rendered reachability. Offscreen WPF routed events; app SHA256=" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)));
+            string result = "PASS four real menu-to-picker task workflows, public saved readers, reviewed privacy removal and form name, source/current document preservation, live-edit rejection, review/picker cancellation, serialized email/scan macros, 14 themes, current locales, 70/100/150/250 percent scales and small-window rendered reachability. Offscreen WPF routed events; app SHA256=" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)));
             File.WriteAllText(Path.Combine(folder, "result.txt"), result); Console.WriteLine(result); return 0;
         }
         catch (Exception error) { File.WriteAllText(Path.Combine(folder, "failure.txt"), "stage=" + stage + "\napp SHA256=" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath))) + "\n" + error); throw; }

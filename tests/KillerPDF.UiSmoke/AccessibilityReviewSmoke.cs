@@ -119,7 +119,7 @@ internal static class AccessibilityReviewSmoke
         VerifySignatureGuard(owner, engine, folder);
         VerifyReadOnly(owner, assembly);
         VerifyLayouts(owner, assembly, folder);
-        string result = "PASS accessibility review: language/figure/link/field fixes; public host Save As/reopen/Undo/Redo; dialog Undo, validation, close, stale-source, manual and read-only guards; Apply/Undo host failures; 13 themes, 20 locales, 70/100/150/250 percent scales, 480x360 reachability and decoded nonblank PNGs. WPF routed events; no native input or screen-reader certification. App SHA256="
+        string result = "PASS accessibility review: language/figure/link/field fixes; public host Save As/reopen/Undo/Redo; dialog Undo, validation, close, stale-source, manual and read-only guards; Apply/Undo host failures; 14 themes, 20 locales, 70/100/150/250 percent scales, 480x360 reachability and decoded nonblank PNGs. WPF routed events; no native input or screen-reader certification. App SHA256="
             + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)));
         File.WriteAllText(Path.Combine(folder, "result.txt"), result);
         Console.WriteLine(result);
@@ -238,7 +238,7 @@ internal static class AccessibilityReviewSmoke
         MethodInfo applyLocale = assembly.GetType("KillerPDF.Services.LocaleManager", true)!
             .GetMethod("Apply", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!;
         string[] themes = Enum.GetNames(themeType), locales = Enum.GetNames(localeType);
-        if (themes.Length != 13 || locales.Length != 20) throw new InvalidOperationException("Expected 13 themes and 20 locales.");
+        if (themes.Length != 14 || locales.Length != 20) throw new InvalidOperationException("Expected 14 themes and 20 locales.");
         try
         {
             foreach (string theme in themes)
@@ -259,7 +259,7 @@ internal static class AccessibilityReviewSmoke
             applyLocale.Invoke(null, [Enum.Parse(localeType, "EnUS")]);
             applyTheme.Invoke(null, [Enum.Parse(themeType, "Dark")]);
         }
-        Console.WriteLine("PASS 13 themes, 20 locales, 70/100/150/250 percent scales and small-window reachability.");
+        Console.WriteLine("PASS 14 themes, 20 locales, 70/100/150/250 percent scales and small-window reachability.");
     }
 
     private static void Capture(Window window, string path)

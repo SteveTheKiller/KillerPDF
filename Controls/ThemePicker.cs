@@ -12,7 +12,7 @@ using KillerPDF.Shell;
 namespace KillerPDF.Controls
 {
     /// <summary>
-    /// Canonical KillerPDF-style theme picker: a radio-row ContextMenu listing all thirteen themes,
+    /// Canonical KillerPDF-style theme picker: a radio-row ContextMenu listing all fourteen themes,
     /// with ONE vertical accent strip beside the list, repainted for whichever accent-capable
     /// family (Dark, Light, Black, 98SE) is selected, and the Film Grain switch under both columns.
     /// Each accent is a radio option with a screen reader name, reachable by Tab and the arrow

@@ -45,7 +45,7 @@ internal static class GrainThemeSmoke
                     throw new InvalidOperationException(name + " left shared grain on the previous theme.");
             }
             File.WriteAllText(Path.Combine(folder, "result.txt"),
-                "PASS dropdown followed by Greed and all 13 themes; shared grain matches the published tile.");
+                "PASS dropdown followed by Greed and all 14 themes; shared grain matches the published tile.");
             Console.WriteLine("PASS grain theme switching after dropdown.");
             return 0;
         }

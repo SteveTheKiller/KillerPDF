@@ -128,7 +128,7 @@ the check sends no desktop input.
 After building the app and this test project, use
 `--verify-table-export APP_DLL APP_XAML OUTPUT_DIRECTORY --startup-smoke`.
 Use a fresh output directory. The isolated host renders the actual table dialog
-in all 13 themes at 100% and 150% app scaling, checks a 480x360 window at 250%,
+in all 14 themes at 100% and 150% app scaling, checks a 480x360 window at 250%,
 and checks all 20 locales at 640x480 and 150%. It verifies invalid selections,
 editable cells, and access to the scrolling content and save controls.
 
@@ -148,7 +148,7 @@ The same isolated invocation accepts `--verify-office-export`, `--verify-sidebar
 Office checks include editable and page-image DOCX/PPTX saves, source-change cancellation,
 and command-line layout selection. Sidebar checks cover cursor menus, measurements, signing,
 the F1 list and command dispatch through Search Tools. Grain checks seal a WPF style before
-switching through every theme. Dialog text checks render 12 prompt variants across all 13 themes,
+switching through every theme. Dialog text checks render 12 prompt variants across all 14 themes,
 including multiline warnings, errors, choices, confirmations, password and text entry.
 
 `--verify-paragraph-edit` uses the same isolated invocation. It checks paragraph

@@ -92,7 +92,7 @@ internal static class ParagraphEditSmoke
             RunWorkflow(owner, assembly, engine, folder, true);
             VerifyLayouts(owner, assembly, dialogType, document, folder);
             Console.WriteLine("PASS paragraph cancellation, themes, scales, locales and small-window field reachability.");
-            string result = "PASS paragraph selection, resize, formatting, overflow, preview/Apply/Cancel, 13 themes at two scales, 20 locales, small-window reachability, main-window Apply/save/reopen/Undo/Redo and source-switch cancellation. WPF routed events; no native input certification. App SHA256=" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)));
+            string result = "PASS paragraph selection, resize, formatting, overflow, preview/Apply/Cancel, 14 themes at two scales, 20 locales, small-window reachability, main-window Apply/save/reopen/Undo/Redo and source-switch cancellation. WPF routed events; no native input certification. App SHA256=" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)));
             File.WriteAllText(Path.Combine(folder, "result.txt"), result);
             Console.WriteLine(result);
             return 0;

@@ -44,7 +44,7 @@
 - Undo and redo across annotations, page operations and document edits
 - Print with a real in-app preview (paper, scale, margins, pages per sheet, two-sided)
 - Optional File Explorer and Outlook PDF previews for installed copies
-- Thirteen themes and 41 looks, twenty languages, interface scaling, custom shortcuts, and Search Tools (Ctrl+K)
+- Fourteen themes and 49 looks, twenty languages, interface scaling, custom shortcuts, and Search Tools (Ctrl+K)
 - Compact installer (per-user or machine-wide, uses the .NET 10 Desktop Runtime) or a self-contained portable download
 - GPLv3, local-only, no account, no telemetry
     </description>
