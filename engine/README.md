@@ -1352,6 +1352,6 @@ See [The KillerPDF.Engine changelog](https://github.com/SteveTheKiller/KillerPDF
 
 ## License
 
-The KillerPDF.Engine is licensed under GPLv3 as part of the KillerPDF repository. See the repository [LICENSE](https://github.com/SteveTheKiller/KillerPDF/blob/main/LICENSE).
+The KillerPDF.Engine is licensed under the Mozilla Public License 2.0. See the engine [LICENSE](LICENSE). The KillerPDF desktop app remains GPLv3 under the repository [LICENSE](https://github.com/SteveTheKiller/KillerPDF/blob/main/LICENSE).
 
 Bundled font metrics and character maps retain their original licenses in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), also included in the NuGet package.

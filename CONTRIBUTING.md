@@ -191,6 +191,6 @@ Do not use automatic closing keywords such as `Fixes`, `Closes`, or `Resolves`. 
 
 Be ready to adjust the change after review. Review questions are about protecting behavior and keeping the project coherent, not discouraging contributions.
 
-KillerPDF is licensed under [GPLv3](LICENSE). Contributions become part of the GPLv3 project and must be compatible with that license.
+The KillerPDF app is licensed under [GPLv3](LICENSE), and the engine under `engine/` is licensed under the [Mozilla Public License 2.0](engine/LICENSE). Contributions to the app are released under GPLv3 and contributions to the engine under MPL 2.0, and each must be compatible with its license.
 
 Thank you for helping make KillerPDF more capable and more reliable.

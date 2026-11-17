@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
+- The engine is licensed under the Mozilla Public License 2.0 instead of GPLv3. The KillerPDF desktop app remains GPLv3.
 - Decode JPEG 2000 with OpenJPEG and bundle the native decoder for Windows x64.
 
 ## [1.9.4] - 2026-11-15
