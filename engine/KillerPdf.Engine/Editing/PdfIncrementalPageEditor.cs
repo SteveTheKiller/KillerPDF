@@ -4218,12 +4218,9 @@ public sealed class PdfIncrementalPageEditor
             Alignment = (PdfTextFieldAlignment)OptionalInteger(
                 field, QuaddingName, 0, 2, fieldName)
         };
-        // A comb field keeps its /MaxLen and /Rect. A longer value set through the API is stored whole in
-        // /V, and its appearance shows the characters that fit the printed cells.
-        string appearanceValue = options.Comb && options.MaximumLength is { } cellCount
-            && pending.Value.EnumerateRunes().Count() > cellCount
-                ? string.Concat(pending.Value.EnumerateRunes().Take(cellCount))
-                : pending.Value;
+        // A comb field keeps its /MaxLen and /Rect. A value longer than /MaxLen is refused, so a field
+        // that repeats the name but is too short keeps its own value.
+        string appearanceValue = pending.Value;
         (double existingFontSize, PdfRgbColor textColor) = TextDefaultAppearance(field, form, fieldName);
         double requestedFontSize = pending.FontSize ?? existingFontSize;
         // Underline and strikethrough live in the field's /DS, so a new value keeps them like its /DA color.

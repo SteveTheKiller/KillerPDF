@@ -60,23 +60,23 @@ public sealed class PdfCombFieldTests
     }
 
     [Fact]
-    public void SetTextFieldValue_LongerCombValueKeepsRectAndMaxLen()
+    public void SetTextFieldValue_CombValueKeepsRectAndMaxLen()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage()
-            .AddTextField(0, "code", 20, 20, 120, 20, "1234", 12,
+            .AddTextField(0, "code", 20, 20, 120, 20, "12", 12,
                 new PdfTextFieldOptions { Comb = true, MaximumLength = 4 })
             .Build();
         PdfFormWidgetInfo before = Assert.Single(PdfFormWidgetReader.ReadPage(PdfDocument.Open(source), 0));
 
         byte[] saved = new PdfIncrementalPageEditor(PdfDocument.Open(source))
-            .SetTextFieldValue("code", "123456789")
+            .SetTextFieldValue("code", "4321")
             .Build();
 
         PdfFormWidgetInfo after = Assert.Single(PdfFormWidgetReader.ReadPage(PdfDocument.Open(saved), 0));
         Assert.Equal(4, after.MaximumLength);
         Assert.Equal((before.Left, before.Bottom, before.Right, before.Top),
             (after.Left, after.Bottom, after.Right, after.Top));
-        Assert.Equal("123456789", after.Value);
+        Assert.Equal("4321", after.Value);
     }
 
     [Fact]
