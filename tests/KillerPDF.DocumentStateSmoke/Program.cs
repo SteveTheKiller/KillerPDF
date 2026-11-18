@@ -494,7 +494,7 @@ internal static partial class Program
                 if (stage == 0)
                 {
                     Button? merge = Descendants<Button>(dialog).FirstOrDefault(button =>
-                        Text(button) == (string)Owner.FindResource("Str_Drop_Merge"));
+                        Text(button) == (string)Owner.FindResource("Str_MergeFiles_Merge"));
                     if (merge is null) return;
                     stage = 1;
                     dialog.Closed += (_, _) => Owner.Dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(() =>
@@ -707,6 +707,7 @@ internal static partial class Program
         };
         timer.Start();
         Click((Button)Owner.FindName("ExtractPagesBtn"));
+        WaitForFile(output);
         string value = PdfFormWidgetReader.ReadPage(PdfDocument.Open(File.ReadAllBytes(output)), 0)
             .Single(w => w.FieldName == "customer").Value;
         if (value != "Updated") throw new InvalidOperationException("BF-F004: extraction returned " + value + ", expected Updated.");
@@ -922,9 +923,23 @@ internal static partial class Program
 
     private static void OpenMacroWindow()
     {
-        Click((Button)Owner.FindName("SaveMenuBtn"));
-        MenuItem macros = Menus().SelectMany(m => Items(m.Items)).Single(m => Header(m).Contains("Macros", StringComparison.OrdinalIgnoreCase));
-        macros.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        // Macros lives in the Document tools sidebar panel, not the Save menu.
+        Button? Row() => Descendants<Button>(Owner).FirstOrDefault(b => b.IsVisible
+            && System.Windows.Automation.AutomationProperties.GetAutomationId(b) == "Str_DocumentTools_Macros");
+        if (Row() is null) Click((Button)Owner.FindName("SidebarDocumentToolsTab"));
+        for (int tries = 0; Row() is null && tries < 100; tries++) Pump(50);
+        Click(Row() ?? throw new TimeoutException("Document tools Macros row never appeared."));
+    }
+
+    private static void WaitForFile(string path)
+    {
+        for (int tries = 0; tries < 200; tries++)
+        {
+            try { using (File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None)) return; }
+            catch (IOException) { }
+            Pump(50);
+        }
+        throw new TimeoutException("Output never finished: " + path);
     }
 
     private static string Header(MenuItem item) => item.Header?.ToString() ?? "";

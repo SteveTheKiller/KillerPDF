@@ -51,7 +51,7 @@ internal static partial class Program
             if (!requested)
             {
                 Button? merge = Descendants<Button>(dialog).FirstOrDefault(button =>
-                    Text(button) == (string)Owner.FindResource("Str_Drop_Merge"));
+                    Text(button) == (string)Owner.FindResource("Str_MergeFiles_Merge"));
                 if (merge is null) return;
                 dialog.Closed += (_, _) => Owner.Dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(() =>
                 {
