@@ -66,8 +66,9 @@ internal static partial class Program
         RaiseOwnedDrop(viewer, [zip]);
         var watch = System.Diagnostics.Stopwatch.StartNew();
         while (!canceledPassword && watch.Elapsed < TimeSpan.FromSeconds(12)) Pump(80);
-        Pump(300);
-        bool blueImage = Descendants<Image>(viewer).Where(control => control.IsVisible)
+        // The canceled open hands the image tab back, and its page then rasterizes off the UI thread, so the
+        // check waits for the picture with a deadline instead of a fixed pump that a slow lab VM can outrun.
+        bool ShowsBlueImage() => Descendants<Image>(viewer).Where(control => control.IsVisible)
             .Select(control => control.Source).OfType<BitmapSource>().Any(bitmap =>
             {
                 var converted = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
@@ -75,8 +76,12 @@ internal static partial class Program
                 converted.CopyPixels(new Int32Rect(converted.PixelWidth / 2, converted.PixelHeight / 2, 1, 1), center, 4, 0);
                 return center[0] > 200 && center[1] < 30 && center[2] < 30 && center[3] == 255;
             });
+        Pump(300);
+        bool blueImage = ShowsBlueImage();
+        var imageWait = System.Diagnostics.Stopwatch.StartNew();
+        while (!blueImage && imageWait.Elapsed < TimeSpan.FromSeconds(10)) { Pump(80); blueImage = ShowsBlueImage(); }
         if (!separate || !canceledPassword || !blueImage)
-            throw new InvalidOperationException($"Mixed Separate import did not keep the image after the protected open was canceled. Separate={separate}, canceledPassword={canceledPassword}, label={((TextBlock)Owner.FindName("FileNameLabel")).Text}. "
+            throw new InvalidOperationException($"Mixed Separate import did not keep the image after the protected open was canceled. Separate={separate}, canceledPassword={canceledPassword}, label={((TextBlock)Owner.FindName("FileNameLabel")).Text}, closeEnabled={((Button)Owner.FindName("CloseFileBtn")).IsEnabled}. "
                 + string.Join(" | ", App.Windows.Cast<Window>().Where(window => window.IsVisible && !ReferenceEquals(window, Owner))
                     .SelectMany(window => Descendants<TextBlock>(window)).Select(text => text.Text)));
         string directory = Directory.EnumerateDirectories(Folder, "import-*", SearchOption.AllDirectories).Single();
