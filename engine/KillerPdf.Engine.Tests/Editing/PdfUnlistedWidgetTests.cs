@@ -50,9 +50,26 @@ public sealed class PdfUnlistedWidgetTests
         Assert.Equal("0", Assert.Single(PdfFormWidgetReader.ReadPage(reopened, 0)).FieldName);
     }
 
-    private static byte[] PageWithUnlistedWidget(bool withCheckbox = false)
+    [Fact]
+    public void AnUnlistedKidOfAListedParentKeepsTheParentInItsName()
     {
-        string[] objects =
+        // The parent is in /Fields, but its /Kids no longer names the widget that points back at it.
+        var original = PdfDocument.Open(Build(
+        [
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [4 0 R] /DA (/Helv 0 Tf 0 g) /DR << /Font << /Helv 6 0 R >> >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Annots [5 0 R] /Resources << >> >>",
+            "<< /T (addr) /Kids [] >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (city) /Parent 4 0 R /P 3 0 R /Rect [10 40 110 60] >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+        ]));
+
+        byte[] saved = new PdfIncrementalPageEditor(original).SetTextFieldValue("addr.city", "Filled").Build();
+
+        Assert.Contains("(Filled)", Encoding.ASCII.GetString(saved));
+    }
+
+    private static byte[] PageWithUnlistedWidget(bool withCheckbox = false) => Build(
         [
             "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [4 0 R] /DA (/Helv 0 Tf 0 g) /DR << /Font << /Helv 6 0 R >> >> >> >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -61,7 +78,10 @@ public sealed class PdfUnlistedWidgetTests
             "<< /Type /Annot /Subtype /Widget /FT /Tx /T (0) /P 3 0 R /Rect [10 40 110 60] >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             "<< /Type /Annot /Subtype /Widget /FT /Btn /T (0) /P 3 0 R /Rect [150 40 160 50] /AS /Off >>"
-        ];
+        ]);
+
+    private static byte[] Build(string[] objects)
+    {
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();
         for (int index = 0; index < objects.Length; index++)

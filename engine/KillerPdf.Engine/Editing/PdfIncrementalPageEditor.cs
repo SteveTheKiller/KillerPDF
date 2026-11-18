@@ -2625,8 +2625,8 @@ public sealed class PdfIncrementalPageEditor
                 ? [] : RepeatedFieldNames(fields);
         foreach (PdfObject field in fields)
             Visit(field, null, null, null, 0);
-        foreach (PdfIndirectReference unlisted in UnlistedFieldRoots(visited))
-            Visit(unlisted, null, null, null, 0);
+        foreach (var (unlisted, parentName) in UnlistedFieldRoots(visited))
+            Visit(unlisted, parentName, parentName, null, 0);
         foreach ((string name, ExceptionDispatchInfo failure) in twinFailures)
             if (!matched.Contains(name) && !appearanceMatched.Contains(name))
                 failure.Throw();
@@ -3024,7 +3024,7 @@ public sealed class PdfIncrementalPageEditor
         var repeated = new HashSet<string>(StringComparer.Ordinal);
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
         foreach (PdfObject field in fields) Walk(field, null, 0);
-        foreach (PdfIndirectReference unlisted in UnlistedFieldRoots(visited)) Walk(unlisted, null, 0);
+        foreach (var (unlisted, parentName) in UnlistedFieldRoots(visited)) Walk(unlisted, parentName, 0);
         return repeated;
 
         void Walk(PdfObject value, string? parentName, int depth)
@@ -3629,7 +3629,7 @@ public sealed class PdfIncrementalPageEditor
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
         List<PdfObject> retained = RewriteList(fields, null, 0);
         // Widgets on the pages that /Fields never lists still carry the reader's names (#466).
-        List<PdfIndirectReference> unlisted = UnlistedFieldRoots([.. visited, .. removedFields]);
+        List<PdfIndirectReference> unlisted = [.. UnlistedFieldRoots([.. visited, .. removedFields]).Select(root => root.Reference)];
         if (unlisted.Count > 0) RewriteList(new PdfArray([.. unlisted]), null, 0);
         foreach (string requested in _removedFormFields)
             if (!matched.Contains(requested))
@@ -6133,9 +6133,10 @@ public sealed class PdfIncrementalPageEditor
     /// widgets still on the pages). The widget reader names them by their own /T chain, so the editor walks
     /// them under that same name.
     /// </summary>
-    private List<PdfIndirectReference> UnlistedFieldRoots(HashSet<(int ObjectNumber, int Generation)> visited)
+    private List<(PdfIndirectReference Reference, string? ParentName)> UnlistedFieldRoots(
+        HashSet<(int ObjectNumber, int Generation)> visited)
     {
-        var roots = new List<PdfIndirectReference>();
+        var roots = new List<(PdfIndirectReference, string?)>();
         var seen = new HashSet<(int, int)>();
         foreach (PageState state in _pages.Where(page => page.Entry is not null))
         {
@@ -6151,22 +6152,48 @@ public sealed class PdfIncrementalPageEditor
                     continue;
                 PdfIndirectReference root = reference;
                 PdfDictionary current = annotation;
+                PdfDictionary? listedParent = null;
                 var chain = new HashSet<(int, int)> { (reference.ObjectNumber, reference.Generation) };
                 for (int depth = 0; depth < 256
                     && current.TryGetValue(ParentName, out PdfObject? parentValue); depth++)
                 {
                     var (parent, parentReference) = ResolveOutlineWithIdentity(_document, parentValue, "A form field parent");
                     if (parentReference is null || parent is not PdfDictionary parentField
-                        || visited.Contains((parentReference.ObjectNumber, parentReference.Generation))
                         || !chain.Add((parentReference.ObjectNumber, parentReference.Generation)))
                         break;
+                    if (visited.Contains((parentReference.ObjectNumber, parentReference.Generation)))
+                    {
+                        listedParent = parentField;
+                        break;
+                    }
                     root = parentReference;
                     current = parentField;
                 }
-                if (seen.Add((root.ObjectNumber, root.Generation))) roots.Add(root);
+                // A field whose parent was already walked keeps that parent's name in front of its own.
+                if (seen.Add((root.ObjectNumber, root.Generation)))
+                    roots.Add((root, listedParent is null ? null : QualifiedFieldName(listedParent)));
             }
         }
         return roots;
+    }
+
+    // The /T parts from the top of the field tree down to this field, joined with periods.
+    private string? QualifiedFieldName(PdfDictionary field)
+    {
+        var parts = new List<string>();
+        var chain = new HashSet<PdfDictionary>(ReferenceEqualityComparer.Instance);
+        PdfDictionary? current = field;
+        for (int depth = 0; current is not null && depth < 256 && chain.Add(current); depth++)
+        {
+            if (current.TryGetValue(FieldName, out PdfObject? nameValue)
+                && ResolveCatalogValue(_document, nameValue, "An AcroForm field /T value") is PdfString partial)
+                parts.Add(PdfUnicodeEncoding.DecodeTextString(partial.Bytes.Span, "An AcroForm field /T value"));
+            current = current.TryGetValue(ParentName, out PdfObject? parentValue)
+                ? ResolveOutlineWithIdentity(_document, parentValue, "A form field parent").Item1 as PdfDictionary
+                : null;
+        }
+        parts.Reverse();
+        return parts.Count == 0 ? null : string.Join('.', parts);
     }
 
     private static PdfArray FormFields(PdfDocument document, PdfDictionary form)
