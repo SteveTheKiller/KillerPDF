@@ -184,7 +184,10 @@ internal sealed class MergeFilesDialog : Window
         e.Handled = true;
         if (e.Data.GetData(RowFormat) is int from)
         {
-            int target = RowAt(e.GetPosition(_list));
+            // Below the last row moves to the end; let go outside the list and nothing moves.
+            Point at = e.GetPosition(_list);
+            if (at.X < 0 || at.Y < 0 || at.X > _list.ActualWidth || at.Y > _list.ActualHeight) return;
+            int target = RowAt(at);
             int to = target < 0 ? _files.Paths.Count - 1 : target;
             _files.Move(from, to);
             Refresh(Math.Clamp(to, 0, _files.Paths.Count - 1));

@@ -508,8 +508,16 @@ namespace KillerPDF.Shell
         private void EditSavedSignature(SavedSignature sig)
         {
             if (!CanEditSignature(sig)) return;
+            SignatureDraft draft;
+            // A damaged saved picture is reported like the placed-signature Edit does, not thrown.
+            try { draft = DraftFrom(sig); }
+            catch (Exception ex) when (ex is FormatException or NotSupportedException or System.IO.IOException or ArgumentException or InvalidOperationException)
+            {
+                KillerDialog.Show(this, Loc("Str_Err_ImportImageFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             HideSignaturePopup(cancelPendingField: false);
-            var edit = OpenSignatureEditor(DraftFrom(sig), Loc("Str_Sig_EditTitle"));
+            var edit = OpenSignatureEditor(draft, Loc("Str_Sig_EditTitle"));
             if (edit is not null)
             {
                 ApplyEdit(sig, edit);
