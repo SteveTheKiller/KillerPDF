@@ -600,17 +600,32 @@ public static partial class PdfContentRedaction
     private static readonly PdfName DestsName = Name("Dests");
     private static readonly PdfName[] FontFileNames = [Name("FontFile"), Name("FontFile2"), Name("FontFile3")];
 
+    private static readonly PdfName FontDescriptorName = Name("FontDescriptor");
+
     // The streams a font descriptor names as its program: binary, and read by no one for text.
+    // Only a real descriptor counts, one typed /FontDescriptor or named by a font's /FontDescriptor,
+    // so a stray /FontFile key elsewhere cannot hide a stream from the check.
     private static HashSet<int> FontPrograms(PdfDocument document)
     {
-        var programs = new HashSet<int>();
+        var dictionaries = new List<(int Number, PdfDictionary Dictionary)>();
+        var referencedDescriptors = new HashSet<int>();
         foreach (PdfCrossReferenceEntry entry in document.CrossReferences.Values)
         {
             if (entry.Type is not (PdfCrossReferenceEntryType.InUse or PdfCrossReferenceEntryType.Compressed)) continue;
             PdfObject value;
             try { value = document.Resolve(entry.ObjectNumber); }
             catch (Exception error) when (error is FormatException or InvalidOperationException) { continue; }
-            if (value is not PdfDictionary descriptor) continue;
+            if (value is not PdfDictionary dictionary) continue;
+            dictionaries.Add((entry.ObjectNumber, dictionary));
+            if (dictionary.TryGetValue(FontDescriptorName, out PdfObject? named) && named is PdfIndirectReference descriptorReference)
+                referencedDescriptors.Add(descriptorReference.ObjectNumber);
+        }
+        var programs = new HashSet<int>();
+        foreach ((int number, PdfDictionary descriptor) in dictionaries)
+        {
+            bool isDescriptor = referencedDescriptors.Contains(number)
+                || descriptor.TryGetValue(Name("Type"), out PdfObject? type) && type is PdfName typeName && typeName.Equals(FontDescriptorName);
+            if (!isDescriptor) continue;
             foreach (PdfName key in FontFileNames)
                 if (descriptor.TryGetValue(key, out PdfObject? file) && file is PdfIndirectReference reference)
                     programs.Add(reference.ObjectNumber);

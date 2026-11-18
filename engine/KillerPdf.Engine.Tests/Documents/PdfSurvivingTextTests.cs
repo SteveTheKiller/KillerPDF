@@ -1,5 +1,6 @@
 using System.Text;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
 using Xunit;
 
@@ -81,6 +82,84 @@ public sealed class PdfSurvivingTextTests
         PdfLinkInfo link = Assert.Single(PdfLinkReader.ReadPage(PdfDocument.Open(output), 0));
         Assert.Equal(0, link.DestinationPageIndex);
     }
+
+    [Fact]
+    public void AFontFileKeyOutsideAFontDescriptorDoesNotHideAStream()
+    {
+        byte[] pdf = Pdf(
+            "<< /Type /Catalog /Pages 2 0 R /Extra 6 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            Page.Replace(" /Annots [6 0 R]", ""),
+            Stream("BT /F1 12 Tf 10 100 Td (Ordinary words) Tj ET"),
+            Font,
+            "<< /FontFile 7 0 R >>",
+            Stream("The SECRET plan in plain text"));
+
+        Assert.False(PdfContentRedaction.FindSurvivingText(pdf, ["SECRET"]).Succeeded);
+    }
+
+    [Fact]
+    public void ApplyLeavesNoOldDestinationNamesInTheReturnedBytes()
+    {
+        byte[] pdf = Pdf(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Kids [7 0 R] >> >> /Dests 8 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            Page,
+            Stream("BT /F1 12 Tf 10 100 Td (Ordinary words) Tj ET"),
+            Font,
+            Link,
+            "<< /Limits [(SECRETCLAUSE) (SECRETCLAUSE)] /Names [(SECRETCLAUSE) [3 0 R /XYZ 0 100 0]] >>",
+            "<< /LEGACYSECRET [3 0 R /Fit] >>");
+
+        PdfDocument renamed = PdfNamedDestinationAnonymizer.Apply(PdfDocument.Open(pdf));
+        byte[] bytes = renamed.Source.ToArray();
+
+        Assert.DoesNotContain("SECRET", Encoding.Latin1.GetString(bytes), StringComparison.Ordinal);
+        Assert.True(PdfContentRedaction.FindSurvivingText(bytes, ["SECRET"]).Succeeded);
+        Assert.Equal(0, Assert.Single(PdfLinkReader.ReadPage(renamed, 0)).DestinationPageIndex);
+    }
+
+    [Fact]
+    public void AGoToActionWithAnIndirectTypeIsRenamed()
+    {
+        byte[] pdf = Pdf(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Names [(SECRETCLAUSE) [3 0 R /Fit]] >> >> /OpenAction << /S 7 0 R /D (SECRETCLAUSE) >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            Page.Replace(" /Annots [6 0 R]", ""),
+            Stream("BT /F1 12 Tf 10 100 Td (Ordinary words) Tj ET"),
+            Font,
+            "null",
+            "/GoTo");
+
+        PdfDocument renamed = PdfNamedDestinationAnonymizer.Apply(PdfDocument.Open(pdf));
+        byte[] output = PdfDocumentWriter.WriteWithReport(renamed, new PdfDocumentWriteOptions { PruneUnreachableObjects = true }).Data.ToArray();
+
+        Assert.True(PdfContentRedaction.FindSurvivingText(output, ["SECRET"]).Succeeded);
+    }
+
+    [Fact]
+    public void ALegacyNameAndATreeKeyWithTheSameTextShareOneNewName()
+    {
+        byte[] pdf = Pdf(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Names [(SAME) [3 0 R /Fit]] >> >> /Dests << /SAME [3 0 R /Fit] >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            Page.Replace(" /Annots [6 0 R]", ""),
+            Stream("BT /F1 12 Tf 10 100 Td (Ordinary words) Tj ET"),
+            Font);
+
+        PdfDocument renamed = PdfNamedDestinationAnonymizer.Apply(PdfDocument.Open(pdf));
+        var catalog = (PdfDictionary)renamed.Resolve((PdfIndirectReference)renamed.Trailer[new PdfName("Root"u8)]);
+        var names = (PdfDictionary)catalog[new PdfName("Names"u8)];
+        var tree = (PdfDictionary)Deref(renamed, names[new PdfName("Dests"u8)]);
+        var pairs = (PdfArray)tree[new PdfName("Names"u8)];
+        string treeName = Encoding.Latin1.GetString(((PdfString)pairs[0]).Bytes.Span);
+        var legacy = (PdfDictionary)Deref(renamed, catalog[new PdfName("Dests"u8)]);
+
+        Assert.Equal(treeName, Assert.Single(legacy.Keys).ValueAsLatin1());
+    }
+
+    private static PdfObject Deref(PdfDocument document, PdfObject value) =>
+        value is PdfIndirectReference reference ? document.Resolve(reference) : value;
 
     private static byte[] Pdf(params string[] objects)
     {

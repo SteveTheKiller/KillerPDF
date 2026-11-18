@@ -45,8 +45,12 @@ public static class PdfNamedDestinationAnonymizer
         if (legacy is not null)
             foreach ((PdfName key, PdfObject value) in legacy)
             {
-                string renamed = Next();
-                byName[key.ValueAsLatin1()] = renamed;
+                // A legacy name that spells the same text as a name-tree key is the same destination
+                // to a reader, so it takes the same new name.
+                string text = key.ValueAsLatin1();
+                string renamed = byString.TryGetValue(Convert.ToBase64String(Encoding.Latin1.GetBytes(text)), out string? shared)
+                    ? shared : Next();
+                byName[text] = renamed;
                 legacyEntries.Add(new(new PdfName(Encoding.ASCII.GetBytes(renamed)), value));
             }
         if (byString.Count == 0 && byName.Count == 0) return document;
@@ -91,7 +95,15 @@ public static class PdfNamedDestinationAnonymizer
         }
         if (catalogNumber < 0) throw new FormatException("The catalog is not an indirect object.");
         update.ReplaceObject(catalogNumber, new PdfDictionary(catalogEntries));
-        return PdfOptimizer.Reopen(document, update.Build());
+        // An incremental update keeps the earlier revision, old names included, and the replaced
+        // tree nodes stay in use, so the result is rewritten whole with unreachable objects dropped.
+        PdfDocument updated = PdfOptimizer.Reopen(document, update.Build());
+        PdfDocumentWriteResult written = PdfDocumentWriter.WriteWithReport(updated, new PdfDocumentWriteOptions
+        {
+            PruneUnreachableObjects = true,
+            AllowSignatureInvalidation = true
+        });
+        return PdfOptimizer.Reopen(updated, written.Data.ToArray());
 
         void CollectTree(PdfDictionary? node, int depth)
         {
@@ -118,7 +130,8 @@ public static class PdfNamedDestinationAnonymizer
             {
                 case PdfDictionary dictionary:
                 {
-                    bool goTo = dictionary.TryGetValue(SName, out PdfObject? kind) && kind is PdfName action && action.Equals(GoToName);
+                    bool goTo = dictionary.TryGetValue(SName, out PdfObject? kind)
+                        && ResolveQuietly(kind) is PdfName action && action.Equals(GoToName);
                     var rebuilt = new List<KeyValuePair<PdfName, PdfObject>>(dictionary.Count);
                     bool changed = false;
                     foreach ((PdfName key, PdfObject item) in dictionary)
@@ -143,6 +156,12 @@ public static class PdfNamedDestinationAnonymizer
                 default:
                     return value;
             }
+        }
+
+        PdfObject ResolveQuietly(PdfObject value)
+        {
+            try { return Resolve(document, value); }
+            catch (Exception error) when (error is FormatException or InvalidOperationException) { return value; }
         }
 
         PdfObject Target(PdfObject value) => value switch
