@@ -422,15 +422,15 @@ namespace KillerPDF
                 jpegValue.Text = $"{ev.NewValue:0}%";
             };
             var qualityReset = SmallButton(S("Str_Tf_Reset"));
-            qualityReset.HorizontalAlignment = HorizontalAlignment.Left;
+            // Reset sits right-aligned under the compression slider, on the readout's row, like the Color section's.
+            qualityReset.HorizontalAlignment = HorizontalAlignment.Right;
             qualityReset.Click += (_, _) => ResetQuality();
             var quality = Grid2(
                 PageWindowLayout.Labeled(S("Str_Tf_ColorMode"), _colorMode),
                 PageWindowLayout.Labeled(S("Str_Tf_Threshold"), Row(_bwThreshold), thresholdValue),
                 Cell(CheckOverSlider(_setDpi, null, _dpiSlider)),
                 Cell(CheckOverSlider(_useJpeg, jpegValue, _jpegSlider)),
-                Span(Cell(_dpiReadout)),
-                Cell(qualityReset), Empty());
+                Cell(_dpiReadout), Cell(qualityReset));
 
             // Transform shows the geometry sections and Color correction its own three, COLOR first.
             // Every section starts open; the controls of the other mode are built but never shown.
