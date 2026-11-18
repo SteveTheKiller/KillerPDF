@@ -135,6 +135,15 @@ public sealed class PdfPageContentReaderTests
     }
 
     [Fact]
+    public void LineTextHasSpacesWhereWordsAreSeparatedByPositionOnly()
+    {
+        // TeX separates words with TJ offsets and tables place cells with Td; neither draws a space glyph
+        var page = Read("BT /F1 12 Tf 30 60 Td [(Hello)-400(world)] TJ ET BT /F1 12 Tf 30 40 Td (6) Tj 20 0 Td (15.00) Tj ET " +
+            "BT /F1 12 Tf 30 20 Td [(Wo)-20(rd)] TJ ET");
+        Assert.Equal(["Hello world", "6 15.00", "Word"], page.Lines.Select(line => line.Text));
+    }
+
+    [Fact]
     public void FormResourcesAndMatrixDoNotLeakIntoFollowingPageText()
     {
         string form = "BT /F1 10 Tf 1 2 Td (B) Tj ET";

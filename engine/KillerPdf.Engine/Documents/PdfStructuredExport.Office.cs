@@ -203,10 +203,10 @@ public static partial class PdfStructuredExport
         {
             if (index > 0) output.Append("<w:r><w:br/></w:r>");
             PdfExtractedLine line = lines[index];
-            if (line.Runs.Count == 0 || string.Concat(line.Runs.Select(run => run.Text)) != line.Text)
+            if (line.Runs.Count == 0 || string.Concat(line.RunTexts) != line.Text)
                 AppendWordRun(output, line.Text, line.Runs.FirstOrDefault(), fonts);
             else
-                foreach (PdfExtractedTextRun run in line.Runs) AppendWordRun(output, run.Text, run, fonts);
+                for (int run = 0; run < line.Runs.Count; run++) AppendWordRun(output, line.RunTexts[run], line.Runs[run], fonts);
         }
         output.Append("</w:p>");
     }

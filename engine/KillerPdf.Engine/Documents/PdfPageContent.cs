@@ -128,13 +128,53 @@ public sealed record PdfExtractedMarkedContent(
     public bool IsOptionalContent => Tag == "OC";
 }
 
+internal static class PdfTextJoin
+{
+    /// <summary>
+    /// Joins letters into text, adding a space where the gap between two glyphs on the
+    /// baseline is a word gap. TeX and table cells often separate words by position only,
+    /// with no space glyph. Uses the same threshold as the word grouping.
+    /// </summary>
+    internal static string Join(IEnumerable<PdfExtractedLetter> letters)
+    {
+        var text = new System.Text.StringBuilder();
+        PdfExtractedLetter? previous = null;
+        foreach (var letter in letters)
+        {
+            if (previous is not null && IsWordGap(previous, letter)) text.Append(' ');
+            text.Append(letter.Value);
+            previous = letter;
+        }
+        return text.ToString();
+    }
+
+    /// <summary>Whether a word gap separates the end of one run from the start of the next.</summary>
+    internal static bool IsWordGap(PdfExtractedTextRun previous, PdfExtractedTextRun next) =>
+        IsWordGap(previous.Letters[^1], next.Letters[0]);
+
+    private static bool IsWordGap(PdfExtractedLetter previous, PdfExtractedLetter letter)
+    {
+        if (string.IsNullOrWhiteSpace(previous.Value) || string.IsNullOrWhiteSpace(letter.Value)) return false;
+        double dx = previous.EndBaseLine.X - previous.StartBaseLine.X;
+        double dy = previous.EndBaseLine.Y - previous.StartBaseLine.Y;
+        double length = Math.Sqrt(dx * dx + dy * dy);
+        double ux = length > 0.001 ? dx / length : 1, uy = length > 0.001 ? dy / length : 0;
+        double gapX = letter.StartBaseLine.X - previous.EndBaseLine.X;
+        double gapY = letter.StartBaseLine.Y - previous.EndBaseLine.Y;
+        double gap = gapX * ux + gapY * uy;
+        double across = Math.Abs(gapY * ux - gapX * uy);
+        double em = Math.Max(1, Math.Min(previous.PointSize, letter.PointSize));
+        return across <= em * 0.35 && gap > em * 0.22;
+    }
+}
+
 /// <summary>A contiguous sequence of extracted characters sharing font and writing direction.</summary>
 public sealed class PdfExtractedTextRun
 {
     internal PdfExtractedTextRun(IEnumerable<PdfExtractedLetter> letters)
     {
         Letters = Array.AsReadOnly(letters.ToArray());
-        Text = string.Concat(Letters.Select(letter => letter.Value));
+        Text = PdfTextJoin.Join(Letters);
         BoundingBox = PdfContentBounds.Union(Letters.Select(letter => letter.BoundingBox));
         FontName = Letters[0].FontName;
         FontSize = Letters[0].FontSize;
@@ -164,7 +204,9 @@ public sealed class PdfExtractedLine
     internal PdfExtractedLine(IEnumerable<PdfExtractedTextRun> runs)
     {
         Runs = Array.AsReadOnly(runs.ToArray());
-        Text = string.Concat(Runs.Select(run => run.Text));
+        RunTexts = Array.AsReadOnly(Runs.Select((run, index) =>
+            index > 0 && PdfTextJoin.IsWordGap(Runs[index - 1], run) ? " " + run.Text : run.Text).ToArray());
+        Text = string.Concat(RunTexts);
         BoundingBox = PdfContentBounds.Union(Runs.Select(run => run.BoundingBox));
         WritingDirection = Runs[0].WritingDirection;
     }
@@ -177,6 +219,8 @@ public sealed class PdfExtractedLine
     public PdfWritingDirection WritingDirection { get; }
     /// <summary>Gets the line's text runs in content order.</summary>
     public IReadOnlyList<PdfExtractedTextRun> Runs { get; }
+    /// <summary>Each run's text with the word space that comes before it on the line.</summary>
+    internal IReadOnlyList<string> RunTexts { get; }
 }
 
 /// <summary>Text and image geometry extracted from an unrotated page.</summary>
