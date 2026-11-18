@@ -52,4 +52,11 @@ public sealed class PublicAddressGuardTests
         await Assert.ThrowsAsync<HttpRequestException>(() => http.GetAsync("https://127.0.0.1:9/x.pdf"));
         await Assert.ThrowsAsync<HttpRequestException>(() => http.GetAsync("https://localhost:9/x.pdf"));
     }
+
+    [Fact]
+    public void ADownloadNeverGoesThroughAProxyThatWouldReachTheNetworkForIt()
+    {
+        using var handler = PublicAddressGuard.CreateHandler();
+        Assert.False(handler.UseProxy);
+    }
 }

@@ -14,7 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The Explorer and Outlook preview runs in Windows' low-integrity preview sandbox again, so a PDF that exploited it could not write to your files or settings. Open in KillerPDF still starts the full app normally.
 - Setup can no longer be hijacked by a program running without admin rights. A machine-wide install unpacks into a folder only administrators can change, a machine-wide uninstall runs its cleanup script from one, setup no longer loads DLLs from the folder it was downloaded to, and it starts Explorer and the command prompt by their full Windows paths.
 - Redact checks the finished file for the words it found. When one still appears in a bookmark, a link destination's name, a script, the document's details or any other text, the command line refuses to save and the app, macros and the Privacy guided task say which words remain. Removing hidden information now also renames link destinations, which can carry the words they point at, and links keep working.
-- A PDF link handed over from the browser downloads only from the public internet. A web page can no longer use it to reach a router, printer or other device on your network.
+- A PDF link handed over from the browser downloads only from the public internet. A web page can no longer use it to reach a router, printer or other device on your network. These downloads connect directly and skip the system proxy, which could otherwise fetch a local address on the link's behalf.
 - A file or link sent to the KillerPDF that's already running goes only to a copy running as you. Another account that started first can no longer collect what you open.
 - An embedded file named to fool Windows can no longer be extracted under a different name or onto a device. A name ending in a dot or space, such as `run.bat.`, which Windows would save as `run.bat`, is refused, and so are device names such as CON, NUL and COM1. Far more file types count as executable in the attachment safety check, including .hta, .url, .iso and macro-enabled Office files.
 - Files saved out of a PDF are marked as coming from the internet, so Windows SmartScreen and Office Protected View treat them like a download.
@@ -71,6 +71,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Mark pages on the Redact bar opens a small box under its button instead of a dialog. Find Text to Redact says plainly that it draws redaction boxes over the checked matches.
 - Edit paragraph has page arrows like Transform, and its Original checkbox sits with the other options.
 - On the command line, `--attachments` no longer replaces files already in the output folder. Add `--overwrite` to replace them.
+- JPEG 2000 images, common in scanned and archival PDFs, are decoded by OpenJPEG, the reference decoder for the format, instead of CoreJ2K.
 
 ### Added
 

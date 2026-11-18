@@ -15,6 +15,9 @@ internal static class PublicAddressGuard
 {
     internal static SocketsHttpHandler CreateHandler() => new()
     {
+        // Through a proxy the callback would only see the proxy's address, and the proxy would
+        // fetch any host for us, so the connection always goes direct.
+        UseProxy = false,
         ConnectCallback = async (context, cancel) =>
         {
             IPAddress[] addresses = await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancel).ConfigureAwait(false);
