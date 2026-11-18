@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.5] - Unreleased
 
-1.9.5 closes a round of security holes in updates, setup, the preview and Redact, adds a Merge files dialog, comb field editing and moving tabs between windows, and fixes paste, scan replacements and touchpad zoom.
+1.9.5 brings Trash Polka, a black theme with tattoo-style ink in your accent color, along with a Merge files dialog, comb field editing, moving tabs between windows and a round of security fixes.
 
 ### Security
 
@@ -31,12 +31,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Trash Polka, a new theme under 98SE: black with a tattoo-style ink background in your accent color, from eight accents with Blood red as the default. Under a Windows high contrast theme the ink and the tab shade step aside for the system colors.
 - Merge opens a Merge files dialog instead of a plain file picker. Drop PDF files or whole folders on it from File Explorer, or use Add files and Add folder, then drag files into the order you want, or use Move up and Move down. A folder adds the PDFs directly inside it, in name order. (#495)
 - A tab can move into another open KillerPDF window, either from its right-click menu, which lists every other window by the document it shows, or by dragging the tab onto that window. A window whose last document moves away closes. (#503)
 - Reopen Closed Tab, on a tab's right-click menu and on Ctrl+Shift+T, brings back the last tab you closed, in any KillerPDF window, and each use goes one tab further back. (#502)
 - Comb fields, the text fields printed as a row of boxes with one character each, can be edited like any other text: select, copy and paste across the cells, and change the font, size, bold, italic, underline, strikethrough and color. Form recognition finds a row of three or more boxes as a comb. Thanks to Signum21. (#500)
 - The open and save dialogs have a New folder button, also on Ctrl+Shift+N. The folder is created in the current folder and opened, so a Save As can go straight into it. A name Windows won't accept is explained before anything is created. (#498)
-- Trash Polka, a new theme under 98SE: black with a tattoo-style ink background in your accent color, from eight accents with Blood red as the default. Under a Windows high contrast theme the ink and the tab shade step aside for the system colors.
 - `--batch-render` takes `--secrets-stdin`, so an owner password stays out of the process list.
 
 ### Fixed
