@@ -71,7 +71,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Mark pages on the Redact bar opens a small box under its button instead of a dialog. Find Text to Redact says plainly that it draws redaction boxes over the checked matches.
 - Edit paragraph has page arrows like Transform, and its Original checkbox sits with the other options.
 - On the command line, `--attachments` no longer replaces files already in the output folder. Add `--overwrite` to replace them.
-- JPEG 2000 images, common in scanned and archival PDFs, are decoded by OpenJPEG, the reference decoder for the format, instead of CoreJ2K.
+- JPEG 2000 images, common in scanned and archival PDFs, are decoded by OpenJPEG, the reference decoder for the format, instead of CoreJ2K. The engine NuGet carries OpenJPEG for Windows x64, Linux x64 and macOS.
 
 ### Added
 
