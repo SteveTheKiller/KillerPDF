@@ -6,7 +6,10 @@
     <!-- Trash Polka: Dark's neutral grays and rounded corners, with the tattoo motif painted by
          Controls/ThemeMotif.cs (ThemeMotif = true). The base bakes the default Blood (Red) accent;
          Themes/Accents/TrashPolka holds the other seven. -->
-    <SolidColorBrush x:Key="TextFieldBrush" Color="#101010" po:Freeze="True"/>
+    <!-- Text fields are ink black (Steve, 2026-11-17). The closed dropdown face stays the
+         #101010 it mirrored from the field before, so only the text boxes change. -->
+    <SolidColorBrush x:Key="TextFieldBrush" Color="#000000" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ComboFieldBrush" Color="#101010" po:Freeze="True"/>
     <sys:Double x:Key="GrainOpacity">0.24</sys:Double>
     <sys:Double x:Key="IconShadowOpacity">0.9</sys:Double>
 

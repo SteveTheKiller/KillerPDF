@@ -316,6 +316,11 @@ namespace KillerPDF
             TextOptions.SetTextFormattingMode(win, TextFormattingMode.Display);
             TextOptions.SetTextRenderingMode(win, TextRenderingMode.Grayscale);
             if (fade) WindowFx.EnableFadeClose(win);
+            if (!PaneCentered.TryGetValue(win, out _))
+            {
+                PaneCentered.Add(win, new object());
+                win.SourceInitialized += (_, _) => CenterOnOwnerPane(win);
+            }
             // A dialog that declares itself resizable really is: edges, a maximize that respects
             // the taskbar, and never smaller than the size it opened at.
             if (resizable) EnableEdgeResize(win);
@@ -332,6 +337,7 @@ namespace KillerPDF
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window, object> Resizable = new();
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window, object> PageWindows = new();
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window, object> DeclaredMinimums = new();
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window, object> PaneCentered = new();
 
         /// <summary>
         /// Keeps the MinWidth and MinHeight a resizable dialog declares instead of raising them to the size it
@@ -426,6 +432,11 @@ namespace KillerPDF
                     // A window the work area shrank is centered on its owner again, then kept on screen.
                     CenterOnOwner(win);
                 }
+                // A page window always opens centered on the app window. The saved placement
+                // keeps its size and maximized state, but its position is not replayed: a left
+                // edge remembered from one open (or another monitor) put Transform at the far
+                // left of the app on every later open.
+                else if (win.WindowState == WindowState.Normal) CenterOnOwner(win);
                 WorkAreaFit.Fit(win, keepMargin: !restored);
                 // A placement restored as maximized drops the halo before the first frame.
                 ApplyWindowState(win);
@@ -461,8 +472,46 @@ namespace KillerPDF
                 area = new Rect(a, b);
             }
             else area = SystemParameters.WorkArea;
-            win.Left = Math.Round(area.Left + (area.Width - win.Width) / 2);
-            win.Top = Math.Round(area.Top + (area.Height - win.Height) / 2);
+            Point corner = PageWindowSizing.CenteredIn(area, new Size(win.Width, win.Height));
+            win.Left = corner.X;
+            win.Top = corner.Y;
+        }
+
+        // ---- Small dialogs over the pane they came from -------------------------------------
+        //
+        // With the document area split, a dialog opened from one pane opens centered on THAT pane
+        // (the pane that has focus: a click, a wheel or keyboard focus moves it before any
+        // command runs), the way the signatures picker opens inside its pane. Page windows
+        // (EnablePageSizing) and any dialog bigger than the pane keep centering on the app
+        // window. Unsplit, or owned by anything but the main window, WPF's CenterOwner stays.
+        private static void CenterOnOwnerPane(Window win)
+        {
+            if (PageWindows.TryGetValue(win, out _)) return;
+            if (win.WindowStartupLocation != WindowStartupLocation.CenterOwner) return;
+            if (win.Owner is not KillerPDF.Shell.MainWindow main || main.ActivePaneScreenArea() is not Rect pane) return;
+
+            Size size = OpeningSize(win);
+            if (!PageWindowSizing.FitsOnPane(pane, size)) return;
+            Point corner = PageWindowSizing.CenteredIn(pane, size);
+            win.WindowStartupLocation = WindowStartupLocation.Manual;
+            win.Left = corner.X;
+            win.Top = corner.Y;
+            WorkAreaFit.Fit(win, keepMargin: false);
+        }
+
+        // The size a dialog is about to open at. A size-to-content dialog has no Width or Height
+        // yet at SourceInitialized, so its content is measured the way WPF will size it.
+        private static Size OpeningSize(Window win)
+        {
+            double width = win.Width, height = win.Height;
+            if ((double.IsNaN(width) || double.IsNaN(height)) && win.Content is UIElement content)
+            {
+                content.Measure(new Size(double.IsNaN(width) ? double.PositiveInfinity : width,
+                                         double.IsNaN(height) ? double.PositiveInfinity : height));
+                if (double.IsNaN(width)) width = Math.Max(content.DesiredSize.Width, win.MinWidth);
+                if (double.IsNaN(height)) height = Math.Max(content.DesiredSize.Height, win.MinHeight);
+            }
+            return new Size(width, height);
         }
 
         private const int WM_GETMINMAXINFO = 0x0024;

@@ -52,6 +52,21 @@ namespace KillerPDF.Controls
             return restored;
         }
 
+        /// <summary>The top-left corner that centers a window of <paramref name="size"/> on
+        /// <paramref name="area"/>, rounded to whole DIPs. Used for a page window over the app
+        /// window and for a small dialog over the document pane it was opened from.</summary>
+        public static Point CenteredIn(Rect area, Size size)
+            => new(Math.Round(area.Left + (area.Width - size.Width) / 2),
+                   Math.Round(area.Top + (area.Height - size.Height) / 2));
+
+        /// <summary>A dialog centers on its document pane only when it fits inside that pane;
+        /// one wider or taller than the pane centers on the app window like a page window.</summary>
+        public static bool FitsOnPane(Rect pane, Size size)
+            => !pane.IsEmpty && pane.Width > 0 && pane.Height > 0
+               && double.IsFinite(size.Width) && double.IsFinite(size.Height)
+               && size.Width > 0 && size.Height > 0
+               && size.Width <= pane.Width && size.Height <= pane.Height;
+
         /// <summary>Saves this window type's size, position and maximized state.</summary>
         public static void Save(Window window, string windowType, Action<string, string> setSetting)
             => WindowPlacement.Save(window, (k, v) => setSetting(SettingKey(windowType, k), v));

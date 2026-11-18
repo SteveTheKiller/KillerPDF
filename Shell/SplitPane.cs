@@ -40,6 +40,19 @@ namespace KillerPDF.Shell
         /// even with one document, or their card tops sit at different heights.</summary>
         internal bool IsSplit => _isSplit;
 
+        /// <summary>The focused pane's card in screen DIPs while the document area is split, for
+        /// DialogFrame to center a small dialog over the pane it was opened from. Null unsplit,
+        /// minimized, or before the pane is laid out.</summary>
+        internal Rect? ActivePaneScreenArea()
+        {
+            if (!_isSplit || WindowState == WindowState.Minimized) return null;
+            if (ActiveViewer is not { IsVisible: true } pane || pane.ActualWidth <= 0 || pane.ActualHeight <= 0) return null;
+            if (PresentationSource.FromVisual(pane)?.CompositionTarget is not { } target) return null;
+            Point a = target.TransformFromDevice.Transform(pane.PointToScreen(new Point(0, 0)));
+            Point b = target.TransformFromDevice.Transform(pane.PointToScreen(new Point(pane.ActualWidth, pane.ActualHeight)));
+            return new Rect(a, b);
+        }
+
         private bool _draggingSplit;
         private double _splitDragStartX;
         private double _splitDragStartAWidth;
