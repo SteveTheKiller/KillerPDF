@@ -71,6 +71,15 @@
       <CopyToOutputDirectory Condition="'$(RuntimeIdentifier)' == 'win-x64' Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Windows')))">PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory Condition="'$(RuntimeIdentifier)' == 'win-x64' Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Windows')))">PreserveNewest</CopyToPublishDirectory>
     </None>
+    <None Include="..\..\third_party\OpenJPEG\linux-x64\libopenjp2.so" Link="libopenjp2.so"
+          Pack="true" PackagePath="runtimes/linux-x64/native/libopenjp2.so">
+      <CopyToOutputDirectory Condition="'$(RuntimeIdentifier)' == 'linux-x64' Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Linux')))">PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory Condition="'$(RuntimeIdentifier)' == 'linux-x64'">PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <None Include="..\..\third_party\OpenJPEG\osx-arm64\libopenjp2.dylib" Link="osx-arm64\libopenjp2.dylib"
+          Pack="true" PackagePath="runtimes/osx-arm64/native/libopenjp2.dylib" />
+    <None Include="..\..\third_party\OpenJPEG\osx-x64\libopenjp2.dylib" Link="osx-x64\libopenjp2.dylib"
+          Pack="true" PackagePath="runtimes/osx-x64/native/libopenjp2.dylib" />
     <None Include="..\..\third_party\OpenJPEG\LICENSE.txt" Link="OpenJPEG-LICENSE.txt"
           CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"
           Pack="true" PackagePath="third_party/openjpeg/" />
