@@ -57,6 +57,8 @@ public static partial class PdfStructuredExportMacro
                 PdfStructuredExport.ToXlsx(document, pages, cancellationToken),
             PdfStructuredExportFormat.Presentation =>
                 PdfStructuredExport.ToPptx(document, pages, cancellationToken: cancellationToken, officeMode: options.OfficeMode),
+            PdfStructuredExportFormat.Epub =>
+                KillerPdf.Engine.Formats.Epub.PdfEpubExport.Write(document, pages, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(step))
         };
     }

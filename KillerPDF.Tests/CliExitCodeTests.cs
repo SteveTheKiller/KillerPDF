@@ -353,6 +353,7 @@ public sealed class CliExitCodeTests : IDisposable
     [InlineData("out.docx")]
     [InlineData("out.xlsx")]
     [InlineData("out.pptx")]
+    [InlineData("out.epub")]
     public void EveryExportFormatLeavesARestrictedPdfOnlyWithTheOwnerPassword(string fileName)
     {
         string pdf = RestrictedPdf("export-" + fileName + ".pdf");

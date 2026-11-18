@@ -98,14 +98,14 @@ namespace KillerPDF.Features
         }
 
         // ============================================================
-        // --export <in.pdf> <out.docx|xlsx|pptx|html|md|txt|json> [--pages <range>] [--format <name>]
+        // --export <in.pdf> <out.docx|xlsx|pptx|html|md|txt|json|epub> [--pages <range>] [--format <name>]
         // ============================================================
         private static int CliExport(List<string> pos, Dictionary<string, string> options, TextWriter con)
         {
             if (pos.Count != 2)
             {
-                con.WriteLine("Usage: KillerPDF.exe --export <in.pdf> <out.docx|.xlsx|.pptx|.html|.md|.txt|.json> [--pages <range>]");
-                con.WriteLine("       [--format word|excel|powerpoint|html|markdown|text|json]   (default: from the output extension)");
+                con.WriteLine("Usage: KillerPDF.exe --export <in.pdf> <out.docx|.xlsx|.pptx|.html|.md|.txt|.json|.epub> [--pages <range>]");
+                con.WriteLine("       [--format word|excel|powerpoint|html|markdown|text|json|epub]   (default: from the output extension)");
                 con.WriteLine("       [--layout editable|images]   (Word and PowerPoint; default: editable)");
                 con.WriteLine("       [--password <p>]   (a PDF that forbids copying or editing exports only with the owner password)");
                 return 2;
@@ -123,6 +123,7 @@ namespace KillerPDF.Features
                 "markdown" or "md" => PdfStructuredExportFormat.Markdown,
                 "text" or "txt" => PdfStructuredExportFormat.PlainText,
                 "json" => PdfStructuredExportFormat.Json,
+                "epub" => PdfStructuredExportFormat.Epub,
                 _ => null,
             };
             if (format is null) { con.WriteLine("Name the format with the output extension or --format."); return 2; }

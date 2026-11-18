@@ -49,7 +49,8 @@ internal sealed class ExportDocumentDialog : Window
                 new FormatChoice("HTML (.html)", PdfStructuredExportFormat.Html),
                 new FormatChoice("Markdown (.md)", PdfStructuredExportFormat.Markdown),
                 new FormatChoice("Plain text (.txt)", PdfStructuredExportFormat.PlainText),
-                new FormatChoice("JSON (.json)", PdfStructuredExportFormat.Json)
+                new FormatChoice("JSON (.json)", PdfStructuredExportFormat.Json),
+                new FormatChoice("EPUB (.epub)", PdfStructuredExportFormat.Epub)
             },
             SelectedIndex = 0,
             Margin = new Thickness(0, 3, 0, 12)

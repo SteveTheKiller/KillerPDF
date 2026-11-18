@@ -117,7 +117,7 @@ namespace KillerPDF.Shell
             ["Str_KS_Print"] = "printer paper",
             ["Str_KS_DocInfo"] = "properties metadata title author info",
             ["Str_KS_NewBlank"] = "new blank create document",
-            ["Str_Menu_ExportDocument"] = "export convert word excel powerpoint html markdown docx xlsx pptx",
+            ["Str_Menu_ExportDocument"] = "export convert word excel powerpoint html markdown docx xlsx pptx epub ebook book",
             ["Str_Protect_Name"] = "password encrypt protect lock security",
             ["Str_KS_Find"] = "find search",
             ["Str_KS_Replace"] = "find replace substitute",

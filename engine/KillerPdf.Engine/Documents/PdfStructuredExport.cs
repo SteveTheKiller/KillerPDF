@@ -24,7 +24,9 @@ public enum PdfStructuredExportFormat
     /// <summary>Editable Excel workbook.</summary>
     Spreadsheet,
     /// <summary>Editable PowerPoint presentation.</summary>
-    Presentation
+    Presentation,
+    /// <summary>Reflowable EPUB 3 book.</summary>
+    Epub
 }
 
 /// <summary>Validated font replacements for editable structured exports.</summary>
@@ -330,6 +332,7 @@ public static class PdfStructuredExportBatchRunner
             PdfStructuredExportFormat.WordDocument => ".docx",
             PdfStructuredExportFormat.Spreadsheet => ".xlsx",
             PdfStructuredExportFormat.Presentation => ".pptx",
+            PdfStructuredExportFormat.Epub => ".epub",
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
         return stem + extension;
@@ -381,6 +384,8 @@ public static partial class PdfStructuredExport
                 ToXlsx(document, pageIndices, cancellationToken),
             PdfStructuredExportFormat.Presentation =>
                 ToPptx(document, pageIndices, fontSubstitutions, cancellationToken, officeMode),
+            PdfStructuredExportFormat.Epub =>
+                KillerPdf.Engine.Formats.Epub.PdfEpubExport.Write(document, pageIndices, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
     }
@@ -420,6 +425,12 @@ public static partial class PdfStructuredExport
                 var renderer = new KillerPdf.Engine.Rendering.PdfPageRenderer(document);
                 missingImages = page.Content.Images.Count(image => RenderOfficeImage(renderer, page.Content, image, cancellationToken) is null);
             }
+            else if (format == PdfStructuredExportFormat.Epub)
+            {
+                var renderer = new KillerPdf.Engine.Rendering.PdfPageRenderer(document);
+                missingImages = page.Content.Images.Count(image => KillerPdf.Engine.Formats.Epub.PdfEpubExport
+                    .RenderImage(renderer, page.Content, image, cancellationToken) is null);
+            }
             if (missingImages > 0)
             {
                 string message = format switch
@@ -438,6 +449,8 @@ public static partial class PdfStructuredExport
                         "Spreadsheet export omits image data.",
                     PdfStructuredExportFormat.Presentation =>
                         "Unsupported images are replaced with placeholders. Page-image mode can retain their rendered appearance.",
+                    PdfStructuredExportFormat.Epub =>
+                        "Images drawn with clipping, transparency or off-page placement are left out of the book.",
                     _ => throw new ArgumentOutOfRangeException(nameof(format))
                 };
                 findings.Add(new PdfStructuredExportFinding("ImageContentNotExported",
