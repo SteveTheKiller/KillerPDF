@@ -954,6 +954,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Otevřít složku se souborem</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Zavřít ostatní karty</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">Přesunout do nového okna</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">Přesunout do okna s {0}</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Znovu otevřít zavřenou kartu</sys:String>
 
     <!-- Transform tool -->
     <sys:String x:Key="Str_ColorCorrection">Korekce barev</sys:String>

@@ -1126,6 +1126,7 @@ namespace KillerPDF.Controls
                 s.NativeDoc = null;
                 _sessions.Remove(s);
                 App.ForgetClosedWindowFile(s.OriginalFile);
+                Services.ClosedTabs.Remember(s.OriginalFile ?? s.DeferredPath);
                 _renderLru.Remove(s);
                 s.RenderCache.Clear();
                 s.RenderCacheSize.Clear();
@@ -1164,6 +1165,7 @@ namespace KillerPDF.Controls
 
             _sessions.Remove(s);
             App.ForgetClosedWindowFile(s.OriginalFile);
+            Services.ClosedTabs.Remember(s.OriginalFile ?? s.DeferredPath);
             _renderLru.Remove(s);    // don't pin a closed tab's render cache in the LRU list
             s.RenderCache.Clear();
             s.RenderCacheSize.Clear();

@@ -897,6 +897,8 @@
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Odpri vsebujočo mapo</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Zapri druge zavihke</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">Premakni v novo okno</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">Premakni v okno z {0}</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Znova odpri zaprt zavihek</sys:String>
     <sys:String x:Key="Str_ColorCorrection">Popravek barv</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Preoblikuj</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">ZAVRTI</sys:String>

@@ -878,6 +878,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Dateipfad öffnen</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Andere Tabs schließen</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">In neues Fenster verschieben</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">In Fenster mit {0} verschieben</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Geschlossenen Tab wieder öffnen</sys:String>
 
     <!-- ── OCR ─────────────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Ocr_Region">OCR-Bereich...</sys:String>

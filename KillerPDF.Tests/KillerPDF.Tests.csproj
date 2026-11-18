@@ -31,6 +31,7 @@
     <Compile Include="..\Services\LiftedPicture.cs" Link="Services\LiftedPicture.cs" />
     <Compile Include="..\Services\ThumbnailOverlay.cs" Link="Services\ThumbnailOverlay.cs" />
     <Compile Include="..\Services\BlurSliderScale.cs" Link="Services\BlurSliderScale.cs" />
+    <Compile Include="..\Services\ClosedTabs.cs" Link="Services\ClosedTabs.cs" />
     <Compile Include="..\Services\PictureFile.cs" Link="Services\PictureFile.cs" />
     <Compile Include="..\Services\PictureTurn.cs" Link="Services\PictureTurn.cs" />
     <Compile Include="..\Services\WheelKeys.cs" Link="Services\WheelKeys.cs" />

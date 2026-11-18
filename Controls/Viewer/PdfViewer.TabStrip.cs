@@ -503,6 +503,19 @@ namespace KillerPDF.Controls
             var newWindow = MakeMenuItem(Loc("Str_Ctx_MoveToNewWindow"), (_, _) => Host?.TearOutTab(this, s), GestureFor("CtrlShift:N"), "\uE8A7");
             newWindow.IsEnabled = s.HasReadDocument || s.DeferredPath != null;
             menu.Items.Add(newWindow);
+            // #503: one row per other open KillerPDF window, named by the document it shows.
+            if (newWindow.IsEnabled && Host != null)
+                foreach (var (name, window) in Host.OtherDocumentWindows())
+                    menu.Items.Add(MakeMenuItem(string.Format(Loc("Str_Ctx_MoveToWindow"), name),
+                        (_, _) => Host?.MoveTabToWindow(this, s, window), null, ""));
+            menu.Items.Add(new Separator());
+            // #502: brings back the most recently closed tab, from any window.
+            var reopen = MakeMenuItem(Loc("Str_Ctx_ReopenClosedTab"), (_, _) =>
+            {
+                if (Services.ClosedTabs.Take() is { } path) OpenInNewTab(path);
+            }, null, "");
+            reopen.IsEnabled = Services.ClosedTabs.CanReopen;
+            menu.Items.Add(reopen);
             AddTabPlacementMenuItems(menu);
             menu.PlacementTarget = fe;
             menu.IsOpen = true;
@@ -700,7 +713,8 @@ namespace KillerPDF.Controls
 
             if (s != null && Host?.IsOutsideWindow(e) == true)
             {
-                Host.TearOutTab(this, s);
+                // #503: dropped on another KillerPDF window joins that window instead of opening a new one.
+                if (!Host.TryMoveTabToWindowUnderCursor(this, s)) Host.TearOutTab(this, s);
                 return;
             }
 

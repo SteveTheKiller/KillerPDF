@@ -964,6 +964,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">ファイルの場所を開く</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">他のタブを閉じる</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">新しいウィンドウに移動</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">ウィンドウに移動 ({0})</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">閉じたタブを再度開く</sys:String>
 
     <!-- 変換ツール -->
     <sys:String x:Key="Str_ColorCorrection">色補正</sys:String>

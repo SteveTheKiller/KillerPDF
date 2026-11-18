@@ -880,6 +880,8 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">開啟檔案所在資料夾</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">關閉其他分頁</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">移至新視窗</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">移至含 {0} 的視窗</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">重新開啟已關閉的分頁</sys:String>
 
     <!-- ── OCR 與頁面變形（新增） ───────────────────────────────────────── -->
     <sys:String x:Key="Str_Ocr_Region">OCR 區域...</sys:String>

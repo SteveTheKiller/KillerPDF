@@ -878,6 +878,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Dosyanın bulunduğu klasörü aç</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Diğer sekmeleri kapat</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">Yeni pencereye taşı</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">Pencereye taşı ({0})</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Kapatılan sekmeyi yeniden aç</sys:String>
 
     <!-- ── OCR + Dönüştürme + Kırpma (v1.x eklendi) ──────────────────── -->
     <sys:String x:Key="Str_Ocr_Region">OCR Bölgesi...</sys:String>

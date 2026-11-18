@@ -183,6 +183,9 @@ namespace KillerPDF.Features
             PdfViewer.DocumentSession session, MouseEventArgs e);
         bool IsOutsideWindow(MouseEventArgs e);
         void TearOutTab(PdfViewer source, PdfViewer.DocumentSession session);
+        System.Collections.Generic.IReadOnlyList<(string Name, System.Windows.Window Window)> OtherDocumentWindows();
+        void MoveTabToWindow(PdfViewer source, PdfViewer.DocumentSession session, System.Windows.Window target);
+        bool TryMoveTabToWindowUnderCursor(PdfViewer source, PdfViewer.DocumentSession session);
 
         void RunWithViewerContext(PdfViewer viewer, System.Action work);
     }

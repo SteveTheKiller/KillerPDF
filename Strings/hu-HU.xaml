@@ -964,6 +964,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Tartalmazó mappa megnyitása</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Többi lap bezárása</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">Áthelyezés új ablakba</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">Áthelyezés ablakba ({0})</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Bezárt lap újranyitása</sys:String>
 
     <!-- Transform tool -->
     <sys:String x:Key="Str_ColorCorrection">Színkorrekció</sys:String>

@@ -964,6 +964,8 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Åpne inneholdende mappe</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Lukk andre faner</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">Flytt til nytt vindu</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">Flytt til vinduet med {0}</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Åpne lukket fane igjen</sys:String>
 
     <!-- Transform tool -->
     <sys:String x:Key="Str_ColorCorrection">Fargekorrigering</sys:String>

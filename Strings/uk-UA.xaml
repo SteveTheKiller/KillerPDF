@@ -964,6 +964,8 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Відкрити папку розташування</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Закрити інші вкладки</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">Перемістити в нове вікно</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">Перемістити у вікно з {0}</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Відкрити закриту вкладку</sys:String>
 
     <!-- Transform tool -->
     <sys:String x:Key="Str_ColorCorrection">Корекція кольору</sys:String>

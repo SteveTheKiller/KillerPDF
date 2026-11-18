@@ -965,6 +965,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Open Containing Folder</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Close Other Tabs</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">Move to New Window</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">Move to Window with {0}</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Reopen Closed Tab</sys:String>
 
     <!-- Transform tool -->
     <sys:String x:Key="Str_ColorCorrection">Color Correction</sys:String>

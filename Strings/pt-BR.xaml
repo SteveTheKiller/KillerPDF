@@ -964,6 +964,8 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Abrir pasta de origem</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Fechar outras guias</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">Mover para uma nova janela</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">Mover para a janela com {0}</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Reabrir guia fechada</sys:String>
 
     <!-- Transform tool -->
     <sys:String x:Key="Str_ColorCorrection">Correção de cor</sys:String>

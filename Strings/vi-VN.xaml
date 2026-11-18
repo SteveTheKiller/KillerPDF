@@ -964,6 +964,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Mở thư mục chứa</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Đóng các tab khác</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">Chuyển sang cửa sổ mới</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">Chuyển sang cửa sổ có {0}</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Mở lại tab đã đóng</sys:String>
 
     <!-- Công cụ chuyển đổi -->
     <sys:String x:Key="Str_ColorCorrection">Chỉnh màu</sys:String>

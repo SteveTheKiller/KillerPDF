@@ -316,6 +316,12 @@ namespace KillerPDF.Shell
 
         void IViewerHost.TearOutTab(PdfViewer source, PdfViewer.DocumentSession session)
             => TearOutTab(source, session);
+        System.Collections.Generic.IReadOnlyList<(string Name, Window Window)> IViewerHost.OtherDocumentWindows()
+            => OtherDocumentWindows();
+        void IViewerHost.MoveTabToWindow(PdfViewer source, PdfViewer.DocumentSession session, Window target)
+            => MoveTabToWindow(source, session, target);
+        bool IViewerHost.TryMoveTabToWindowUnderCursor(PdfViewer source, PdfViewer.DocumentSession session)
+            => TryMoveTabToWindowUnderCursor(source, session);
 
         void IViewerHost.RunWithViewerContext(PdfViewer viewer, Action work)
         {

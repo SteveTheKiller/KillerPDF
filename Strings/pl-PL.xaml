@@ -945,6 +945,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Otwórz folder zawierający</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Zamknij pozostałe karty</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">Przenieś do nowego okna</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">Przenieś do okna z {0}</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Otwórz ponownie zamkniętą kartę</sys:String>
 
     <!-- Transform tool -->
     <sys:String x:Key="Str_ColorCorrection">Korekcja kolorów</sys:String>

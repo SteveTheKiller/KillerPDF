@@ -964,6 +964,8 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Apri cartella contenitore</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Chiudi altre schede</sys:String>
     <sys:String x:Key="Str_Ctx_MoveToNewWindow">Sposta in una nuova finestra</sys:String>
+    <sys:String x:Key="Str_Ctx_MoveToWindow">Sposta nella finestra con {0}</sys:String>
+    <sys:String x:Key="Str_Ctx_ReopenClosedTab">Riapri scheda chiusa</sys:String>
 
     <!-- Transform tool -->
     <sys:String x:Key="Str_ColorCorrection">Correzione colore</sys:String>
