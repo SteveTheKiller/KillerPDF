@@ -31,15 +31,33 @@ namespace KillerPDF.Shell
                 WindowStartupLocation = WindowStartupLocation.Manual,
             };
 
+            // What the source held, so a window that fails to show gives the tab back exactly as it was.
+            var sourceSessions = source.SessionsRef.ToList();
+            var sourceActive = source.ActiveSessionRef;
             source.DetachSessionExt(session);
             source.ApplyActiveSessionIfAny();
             source.RenderActiveSessionExt();
             source.RebuildTabStripExt();
 
-            detachedWindow.Show();
-            if (session.NativeDoc is { IsClosed: false } book)
-                detachedWindow.FollowNativePagination(book, Path.GetFileName(session.OriginalFile ?? session.CurrentFile ?? ""));
-            detachedWindow.Activate();
+            try
+            {
+                detachedWindow.Show();
+                if (session.NativeDoc is { IsClosed: false } book)
+                    detachedWindow.FollowNativePagination(book, Path.GetFileName(session.OriginalFile ?? session.CurrentFile ?? ""));
+                detachedWindow.Activate();
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                // The session leaves the half-made window before it closes, so closing it cannot take the document.
+                RestoreFailedMove(source, sourceSessions, sourceActive, session, detachedWindow);
+                System.Diagnostics.Debug.WriteLine("TearOutTab: the tab stayed: " + error);
+                try { detachedWindow.Close(); }
+                catch (Exception closeError) when (closeError is not OutOfMemoryException)
+                {
+                    System.Diagnostics.Debug.WriteLine("TearOutTab: closing the new window: " + closeError);
+                }
+                SetStatus(error.Message);
+            }
         }
 
         // #503: other visible KillerPDF windows a tab can move into, named by the document each shows.
@@ -61,17 +79,54 @@ namespace KillerPDF.Shell
                 || target.ActiveViewer == null || !source.SessionsRef.Contains(session)) return;
 
             source.CaptureActiveIfAny();
+            // What the source held, so a move the target cannot take puts the tab back exactly as it was
+            // (without the blank tab ApplyActiveSessionIfAny adds when the last one leaves).
+            var sourceSessions = source.SessionsRef.ToList();
+            var sourceActive = source.ActiveSessionRef;
             source.DetachSessionExt(session);
             source.ApplyActiveSessionIfAny();
             source.RenderActiveSessionExt();
             source.RebuildTabStripExt();
 
-            target.AdoptMovedTab(session);
+            try { target.AdoptMovedTab(session); }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                // The document stays in this window; the source does not close over a failed move.
+                RestoreFailedMove(source, sourceSessions, sourceActive, session, target);
+                System.Diagnostics.Debug.WriteLine("MoveTabToWindow: the tab stayed: " + error);
+                SetStatus(error.Message);
+                return;
+            }
 
             // The window the last document left has nothing to show, so it closes the way a
             // browser window does when its last tab is dragged away.
             if (!AllSessions().Any(s => s.HasReadDocument || !string.IsNullOrEmpty(s.DeferredPath)))
                 Close();
+        }
+
+        // Takes the session back out of the target if the adopt got that far, and gives the source its
+        // tabs and front tab back.
+        private static void RestoreFailedMove(PdfViewer source, List<PdfViewer.DocumentSession> sourceSessions,
+            PdfViewer.DocumentSession? sourceActive, PdfViewer.DocumentSession session, MainWindow target)
+        {
+            if (target.ActiveViewer is { } viewer && viewer.SessionsRef.Contains(session))
+            {
+                try
+                {
+                    viewer.DetachSessionExt(session);
+                    viewer.ApplyActiveSessionIfAny();
+                    viewer.RenderActiveSessionExt();
+                    viewer.RebuildTabStripExt();
+                }
+                catch (Exception error) when (error is not OutOfMemoryException)
+                {
+                    System.Diagnostics.Debug.WriteLine("RestoreFailedMove: " + error);
+                }
+            }
+            source.SetSessionsExt(sourceSessions, sourceActive);
+            if (sourceActive is not null) source.ApplySessionStateExt(sourceActive);
+            source.RebuildTabStripExt();
+            source.RenderActiveSessionExt();
         }
 
         private void AdoptMovedTab(PdfViewer.DocumentSession session)

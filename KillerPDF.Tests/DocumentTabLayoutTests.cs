@@ -110,6 +110,46 @@ public sealed class DocumentTabLayoutTests
         Assert.Contains("source.DetachSessionExt(session)", tearOut, StringComparison.Ordinal);
     }
 
+    // BF-A003: a move whose adopt throws puts the tab back where it was, takes it out of the target again,
+    // and leaves the source window open, so no document is lost.
+    [Fact]
+    public void AMoveThatFailsToAdoptPutsTheTabBack()
+    {
+        string tearOut = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Shell", "TabTearOut.cs"));
+        int start = tearOut.IndexOf("internal void MoveTabToWindow(", StringComparison.Ordinal);
+        string move = tearOut[start..tearOut.IndexOf("private void AdoptMovedTab(", start, StringComparison.Ordinal)];
+
+        int snapshot = move.IndexOf("var sourceSessions = source.SessionsRef.ToList();", StringComparison.Ordinal);
+        int detach = move.IndexOf("source.DetachSessionExt(session);", StringComparison.Ordinal);
+        int adopt = move.IndexOf("try { target.AdoptMovedTab(session); }", StringComparison.Ordinal);
+        int restore = move.IndexOf("RestoreFailedMove(source, sourceSessions, sourceActive, session, target);", StringComparison.Ordinal);
+        int close = move.IndexOf("Close();", StringComparison.Ordinal);
+        Assert.True(snapshot >= 0 && snapshot < detach && detach < adopt && adopt < restore && restore < close, move);
+        // The failure path returns before the empty-window close.
+        Assert.Contains("return;", move[restore..close], StringComparison.Ordinal);
+
+        string rollback = tearOut[tearOut.IndexOf("private static void RestoreFailedMove(", StringComparison.Ordinal)..];
+        Assert.Contains("viewer.DetachSessionExt(session)", rollback, StringComparison.Ordinal);
+        Assert.Contains("source.SetSessionsExt(sourceSessions, sourceActive)", rollback, StringComparison.Ordinal);
+    }
+
+    // A tear-out whose new window fails to show takes the tab back and closes the half-made window.
+    [Fact]
+    public void ATearOutThatFailsToShowPutsTheTabBack()
+    {
+        string tearOut = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Shell", "TabTearOut.cs"));
+        int start = tearOut.IndexOf("internal void TearOutTab(", StringComparison.Ordinal);
+        string body = tearOut[start..tearOut.IndexOf("internal IReadOnlyList<(string Name, Window Window)> OtherDocumentWindows()", start, StringComparison.Ordinal)];
+
+        int snapshot = body.IndexOf("var sourceSessions = source.SessionsRef.ToList();", StringComparison.Ordinal);
+        int detach = body.IndexOf("source.DetachSessionExt(session);", StringComparison.Ordinal);
+        int show = body.IndexOf("detachedWindow.Show();", StringComparison.Ordinal);
+        int restore = body.IndexOf("RestoreFailedMove(source, sourceSessions, sourceActive, session, detachedWindow);", StringComparison.Ordinal);
+        int close = body.IndexOf("detachedWindow.Close();", StringComparison.Ordinal);
+        Assert.True(snapshot >= 0 && snapshot < detach && detach < show && show < restore && restore < close, body);
+        Assert.Contains("catch (Exception error) when (error is not OutOfMemoryException)", body[show..restore], StringComparison.Ordinal);
+    }
+
     [Fact]
     public void DragGhostUsesTheLiveTabPreview()
     {
