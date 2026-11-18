@@ -206,16 +206,21 @@ namespace KillerPDF.Shell
             }));
         }
 
-        // True when any tab other than the one this edit just moved on still names the copy. The
-        // edited tab's own session can hold the old path until it is next captured, so it is skipped.
+        // True when any tab or window still names the copy: as its current file, as the file it was
+        // opened from, or as the file a tab not loaded yet will open. The edited tab's own session can
+        // hold the old current path until it is next captured, so only its other names count; its live
+        // original file is read from this window.
         private bool WorkingCopyInUse(string path)
         {
             Controls.PdfViewer.DocumentSession? edited = ActiveViewer.ActiveSessionRef;
-            return Application.Current.Windows.OfType<MainWindow>().Any(window =>
-                window.AllSessions().Any(session => !ReferenceEquals(session, edited)
-                    && string.Equals(session.CurrentFile, path, StringComparison.OrdinalIgnoreCase))
-                || (!ReferenceEquals(window, this)
-                    && string.Equals(window._currentFile, path, StringComparison.OrdinalIgnoreCase)));
+            var windows = Application.Current.Windows.OfType<MainWindow>().ToList();
+            var sessions = windows.SelectMany(window => window.AllSessions()).Select(session =>
+                new WorkingCopyReferences.SessionFiles(session.CurrentFile, session.OriginalFile, session.DeferredPath,
+                    IsEdited: ReferenceEquals(session, edited)));
+            var liveFiles = windows.Where(window => !ReferenceEquals(window, this))
+                .SelectMany(window => new[] { window._currentFile, window._originalFile })
+                .Append(_originalFile);
+            return WorkingCopyReferences.InUse(path, sessions, liveFiles);
         }
 
         // Best effort: a copy a reader still holds open stays for session cleanup to remove.
