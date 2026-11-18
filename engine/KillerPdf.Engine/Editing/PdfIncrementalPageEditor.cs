@@ -2625,6 +2625,8 @@ public sealed class PdfIncrementalPageEditor
                 ? [] : RepeatedFieldNames(fields);
         foreach (PdfObject field in fields)
             Visit(field, null, null, null, 0);
+        foreach (PdfIndirectReference unlisted in UnlistedFieldRoots(visited))
+            Visit(unlisted, null, null, null, 0);
         foreach ((string name, ExceptionDispatchInfo failure) in twinFailures)
             if (!matched.Contains(name) && !appearanceMatched.Contains(name))
                 failure.Throw();
@@ -3022,6 +3024,7 @@ public sealed class PdfIncrementalPageEditor
         var repeated = new HashSet<string>(StringComparer.Ordinal);
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
         foreach (PdfObject field in fields) Walk(field, null, 0);
+        foreach (PdfIndirectReference unlisted in UnlistedFieldRoots(visited)) Walk(unlisted, null, 0);
         return repeated;
 
         void Walk(PdfObject value, string? parentName, int depth)
@@ -3625,6 +3628,9 @@ public sealed class PdfIncrementalPageEditor
         var matched = new HashSet<string>(StringComparer.Ordinal);
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
         List<PdfObject> retained = RewriteList(fields, null, 0);
+        // Widgets on the pages that /Fields never lists still carry the reader's names (#466).
+        List<PdfIndirectReference> unlisted = UnlistedFieldRoots([.. visited, .. removedFields]);
+        if (unlisted.Count > 0) RewriteList(new PdfArray([.. unlisted]), null, 0);
         foreach (string requested in _removedFormFields)
             if (!matched.Contains(requested))
                 throw new InvalidOperationException(
@@ -6120,6 +6126,47 @@ public sealed class PdfIncrementalPageEditor
         value.Bytes.Span.CopyTo(bytes);
         suffixBytes.CopyTo(bytes, value.Bytes.Length);
         return new PdfString(bytes, value.Form);
+    }
+
+    /// <summary>
+    /// The top fields of page widgets that the /Fields tree never reached (#466: a stale /Fields list beside
+    /// widgets still on the pages). The widget reader names them by their own /T chain, so the editor walks
+    /// them under that same name.
+    /// </summary>
+    private List<PdfIndirectReference> UnlistedFieldRoots(HashSet<(int ObjectNumber, int Generation)> visited)
+    {
+        var roots = new List<PdfIndirectReference>();
+        var seen = new HashSet<(int, int)>();
+        foreach (PageState state in _pages.Where(page => page.Entry is not null))
+        {
+            if (!state.Entry!.Dictionary.TryGetValue(AnnotsName, out PdfObject? annotations)) continue;
+            foreach (PdfObject item in ResolveArray(_document, annotations, "A page /Annots value"))
+            {
+                var (value, reference) = ResolveOutlineWithIdentity(_document, item, "A page annotation");
+                if (reference is null || value is not PdfDictionary annotation
+                    || !annotation.TryGetValue(SubtypeName, out PdfObject? subtype)
+                    || ResolveCatalogValue(_document, subtype, "A page annotation /Subtype value") is not PdfName name
+                    || !name.Equals(WidgetName)
+                    || visited.Contains((reference.ObjectNumber, reference.Generation)))
+                    continue;
+                PdfIndirectReference root = reference;
+                PdfDictionary current = annotation;
+                var chain = new HashSet<(int, int)> { (reference.ObjectNumber, reference.Generation) };
+                for (int depth = 0; depth < 256
+                    && current.TryGetValue(ParentName, out PdfObject? parentValue); depth++)
+                {
+                    var (parent, parentReference) = ResolveOutlineWithIdentity(_document, parentValue, "A form field parent");
+                    if (parentReference is null || parent is not PdfDictionary parentField
+                        || visited.Contains((parentReference.ObjectNumber, parentReference.Generation))
+                        || !chain.Add((parentReference.ObjectNumber, parentReference.Generation)))
+                        break;
+                    root = parentReference;
+                    current = parentField;
+                }
+                if (seen.Add((root.ObjectNumber, root.Generation))) roots.Add(root);
+            }
+        }
+        return roots;
     }
 
     private static PdfArray FormFields(PdfDocument document, PdfDictionary form)

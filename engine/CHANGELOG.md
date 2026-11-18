@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.5] - Unreleased
 
+### Fixed
+
+- `PdfIncrementalPageEditor` finds form widgets that sit on a page but are missing from the AcroForm /Fields list, under the same names `PdfFormWidgetReader` gives them. Removing, filling and flattening those fields used to fail with "The AcroForm has no field named". (#466)
+
 ### Changed
 
 - The engine is licensed under the Mozilla Public License 2.0 instead of GPLv3. The KillerPDF desktop app remains GPLv3.
