@@ -568,12 +568,14 @@ namespace KillerPDF
                 // Keep the same action control while its decorative template follows live
                 // classic/radius resources. No application-wide theme subscription retains it.
                 Template = Classic ? BeveledButtonTemplate()
-                    : ButtonTemplate(outlined: !_accent && !SeeThroughFace(), radius: (CornerRadius)GetValue(RadiusProperty));
+                    : SeeThroughFace() ? ButtonTemplate(radius: (CornerRadius)GetValue(RadiusProperty), ink: true)
+                    : ButtonTemplate(outlined: !_accent, radius: (CornerRadius)GetValue(RadiusProperty));
                 ApplyBrushes();
             }
 
-            // A see-through face (Trash Polka's dark tint over the motif) can't sit on the outlined template's
-            // edge fill, which would show through it as a gray slab, so it gets the plain stroked border.
+            // A see-through face (Trash Polka) sits on its own ink layer, the document pane's motif piece, so
+            // the button reads like the app's panels and the face only tints it gray on hover. The outlined
+            // template's edge fill would show through such a face, so it gets the plain stroked border.
             private bool SeeThroughFace()
                 => !_accent && TryFindResource("ButtonFaceBrush") is SolidColorBrush { Color.A: < 255 };
 
@@ -648,8 +650,33 @@ namespace KillerPDF
         // outlined: the edge is drawn as an outer fill with the face inset by BorderThickness, not as a
         // Border stroke. A 1px stroke on a small radius lets the antialiased face show through at
         // each corner, which reads as a nick in the outline.
-        internal static ControlTemplate ButtonTemplate(bool outlined = false, CornerRadius? radius = null)
+        internal static ControlTemplate ButtonTemplate(bool outlined = false, CornerRadius? radius = null, bool ink = false)
         {
+            if (ink)
+            {
+                var grid = new FrameworkElementFactory(typeof(Grid));
+                var layer = new FrameworkElementFactory(typeof(Border));
+                layer.SetValue(Border.CornerRadiusProperty, radius ?? RadControl);
+                layer.SetValue(Controls.ThemeMotif.BaseBrushProperty, "ContentPaneBrush");
+                layer.SetValue(Controls.ThemeMotif.PartProperty, Controls.MotifPart.Window);
+                grid.AppendChild(layer);
+                var face = new FrameworkElementFactory(typeof(Border)) { Name = "bd" };
+                face.SetBinding(Border.BackgroundProperty, new Binding("Background") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
+                face.SetBinding(Border.PaddingProperty, new Binding("Padding") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
+                face.SetBinding(Border.BorderBrushProperty, new Binding("BorderBrush") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
+                face.SetBinding(Border.BorderThicknessProperty, new Binding("BorderThickness") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
+                face.SetValue(Border.CornerRadiusProperty, radius ?? RadControl);
+                var content = new FrameworkElementFactory(typeof(ContentPresenter));
+                content.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+                content.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+                face.AppendChild(content);
+                grid.AppendChild(face);
+                var inked = new ControlTemplate(typeof(Button)) { VisualTree = grid };
+                var off = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
+                off.Setters.Add(new Setter(UIElement.OpacityProperty, 0.45));
+                inked.Triggers.Add(off);
+                return inked;
+            }
             var bf = new FrameworkElementFactory(typeof(Border)) { Name = "bd" };
             bf.SetBinding(Border.BackgroundProperty, new Binding("Background") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
             bf.SetBinding(Border.PaddingProperty, new Binding("Padding") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });

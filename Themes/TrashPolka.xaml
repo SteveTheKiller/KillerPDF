@@ -99,7 +99,7 @@
     <SolidColorBrush x:Key="SelectionAccent"     Color="#D7263D" po:Freeze="True"/>
     <sys:Double x:Key="PaneShadowOpacity">0.6</sys:Double>
     <SolidColorBrush x:Key="SurfaceHoverBrush"   Color="#FF404040" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ButtonFaceBrush"      Color="#B4000000" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ButtonFaceBrush"      Color="#00000000" po:Freeze="True"/>
     <SolidColorBrush x:Key="ButtonHoverFaceBrush" Color="#FF5A5A5A" po:Freeze="True"/>
     <SolidColorBrush x:Key="WellFillBrush"        Color="#FF000000" po:Freeze="True"/>
     <sys:Double x:Key="TitleBarHeight">32</sys:Double>

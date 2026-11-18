@@ -28,7 +28,7 @@ internal sealed class MergeFilesDialog : Window
     internal MergeFilesDialog(Window owner, IEnumerable<string>? initial = null, bool offerOpenSeparately = false)
     {
         Title = "KillerPDF - " + L("Str_MergeFiles_Title");
-        Width = 680; Height = 500; MinWidth = 420; MinHeight = 320;
+        Width = 520; Height = 500; MinWidth = 420; MinHeight = 320;
         UseLayoutRounding = true;
         AllowDrop = true;
         DialogFrame.Configure(this, owner);
@@ -134,7 +134,12 @@ internal sealed class MergeFilesDialog : Window
         {
             var name = new TextBlock { Text = Path.GetFileName(path), TextTrimming = TextTrimming.CharacterEllipsis };
             var folder = new TextBlock { Text = Path.GetDirectoryName(path), FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis };
-            folder.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+            // The folder line takes the row's own foreground, faded, so it stays readable on the selection fill.
+            folder.SetBinding(TextBlock.ForegroundProperty, new System.Windows.Data.Binding("Foreground")
+            {
+                RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(ListBoxItem), 1)
+            });
+            folder.Opacity = 0.8;
             var row = new StackPanel { Margin = new Thickness(2, 2, 2, 2) };
             row.Children.Add(name);
             row.Children.Add(folder);
