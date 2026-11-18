@@ -94,6 +94,8 @@ namespace KillerPDF.Shell
             // The shadow caster is inside the control now, so it needs no margin of its own -
             // hiding it is still right, so nothing casts onto a full-screen canvas.
             DocPaneShadow.Visibility = v;
+            // A full-screen window can't be resized, so its corner grip goes too.
+            ResizeGripDots.Visibility = v;
 
             if (entering)
             {
