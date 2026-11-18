@@ -99,6 +99,21 @@ public sealed class PdfSurvivingTextTests
     }
 
     [Fact]
+    public void AnEmbeddedFileNamedAsAFontProgramIsStillChecked()
+    {
+        byte[] pdf = Pdf(
+            "<< /Type /Catalog /Pages 2 0 R /Extra 6 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            Page.Replace(" /Annots [6 0 R]", ""),
+            Stream("BT /F1 12 Tf 10 100 Td (Ordinary words) Tj ET"),
+            Font,
+            "<< /Type /FontDescriptor /FontName /Fake /FontFile3 7 0 R >>",
+            Stream("The SECRET plan in plain text", "/Type /EmbeddedFile"));
+
+        Assert.False(PdfContentRedaction.FindSurvivingText(pdf, ["SECRET"]).Succeeded);
+    }
+
+    [Fact]
     public void ApplyLeavesNoOldDestinationNamesInTheReturnedBytes()
     {
         byte[] pdf = Pdf(

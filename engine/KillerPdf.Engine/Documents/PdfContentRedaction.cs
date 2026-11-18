@@ -627,10 +627,29 @@ public static partial class PdfContentRedaction
                 || descriptor.TryGetValue(Name("Type"), out PdfObject? type) && type is PdfName typeName && typeName.Equals(FontDescriptorName);
             if (!isDescriptor) continue;
             foreach (PdfName key in FontFileNames)
-                if (descriptor.TryGetValue(key, out PdfObject? file) && file is PdfIndirectReference reference)
+                if (descriptor.TryGetValue(key, out PdfObject? file) && file is PdfIndirectReference reference
+                    && LooksLikeFontProgram(document, reference.ObjectNumber))
                     programs.Add(reference.ObjectNumber);
         }
         return programs;
+    }
+
+    private static readonly HashSet<string> FontProgramSubtypes = new(StringComparer.Ordinal)
+        { "Type1C", "CIDFontType0C", "OpenType" };
+
+    // A descriptor is easy to fake, so a stream it names is only skipped when it could be a font
+    // program: never an image, form, embedded file or metadata, and with a font /Subtype if any.
+    private static bool LooksLikeFontProgram(PdfDocument document, int objectNumber)
+    {
+        PdfObject value;
+        try { value = document.Resolve(objectNumber); }
+        catch (Exception error) when (error is FormatException or InvalidOperationException) { return false; }
+        if (value is not PdfStream stream) return false;
+        if (stream.Dictionary.TryGetValue(Name("Type"), out PdfObject? type) && type is PdfName typeName
+            && (typeName.Equals(Name("XObject")) || typeName.Equals(Name("EmbeddedFile")) || typeName.Equals(Name("Metadata"))))
+            return false;
+        return !stream.Dictionary.TryGetValue(Name("Subtype"), out PdfObject? subtype)
+            || subtype is PdfName subtypeName && FontProgramSubtypes.Contains(subtypeName.ValueAsLatin1());
     }
 
     private static void InspectObjects(PdfDocument document, string[] prohibited,
