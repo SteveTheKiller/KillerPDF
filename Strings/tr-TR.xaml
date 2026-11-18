@@ -739,6 +739,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Sig_Create">İmza Oluştur</sys:String>
     <sys:String x:Key="Str_Sig_Import">Görüntü İçe Aktar</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">İmzanızı buraya çizin</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">İmza çizim alanı</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Temizle</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">İmzayı Kaydet</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">İmzayı Ayarla</sys:String>

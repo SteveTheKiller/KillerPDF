@@ -827,6 +827,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Sig_Create">Create Signature</sys:String>
     <sys:String x:Key="Str_Sig_Import">Import Image</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Draw your signature here</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Signature drawing pad</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Clear</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Save Signature</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Adjust Signature</sys:String>

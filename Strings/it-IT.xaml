@@ -826,6 +826,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Sig_Create">Crea firma</sys:String>
     <sys:String x:Key="Str_Sig_Import">Importa immagine</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Disegna qui la firma</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Area di disegno della firma</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Azzera</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Salva firma</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Regola firma</sys:String>

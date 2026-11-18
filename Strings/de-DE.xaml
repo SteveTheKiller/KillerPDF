@@ -739,6 +739,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Sig_Create">Signatur erstellen</sys:String>
     <sys:String x:Key="Str_Sig_Import">Bild importieren</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Zeichnen Sie hier Ihre Signatur</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Zeichenfläche für die Signatur</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Löschen</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Signatur speichern</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Signatur anpassen</sys:String>

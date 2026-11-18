@@ -741,6 +741,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Sig_Create">建立簽名</sys:String>
     <sys:String x:Key="Str_Sig_Import">匯入圖片</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">在此繪製您的簽名</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">簽名繪製板</sys:String>
     <sys:String x:Key="Str_Sig_Clear">清除</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">儲存簽名</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">調整簽名</sys:String>

@@ -826,6 +826,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Sig_Create">Создать подпись</sys:String>
     <sys:String x:Key="Str_Sig_Import">Импорт изображения</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Поставьте здесь свою подпись</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Поле для рисования подписи</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Очистить</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Сохранить подпись</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Настройка подписи</sys:String>

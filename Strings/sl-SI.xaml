@@ -765,6 +765,7 @@
     <sys:String x:Key="Str_Sig_Create">Ustvari podpis</sys:String>
     <sys:String x:Key="Str_Sig_Import">Uvozi sliko</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Tukaj narišite svoj podpis</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Površina za risanje podpisa</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Počisti</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Shrani podpis</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Prilagodi podpis</sys:String>

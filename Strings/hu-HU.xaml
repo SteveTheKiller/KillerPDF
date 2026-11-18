@@ -826,6 +826,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Sig_Create">Aláírás létrehozása</sys:String>
     <sys:String x:Key="Str_Sig_Import">Kép importálása</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Rajzolja ide az aláírását</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Aláírásrajzoló terület</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Törlés</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Aláírás mentése</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Aláírás igazítása</sys:String>

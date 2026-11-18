@@ -163,9 +163,65 @@ public sealed class SignatureEditorTests
         byte[] pixels = SignatureInk.RasterizeStrokes(strokes, 1, 40, 16, 4);
         Assert.Equal(255, Alpha(pixels, 40, 20, 8));
         Assert.Equal(0, Alpha(pixels, 40, 20, 13));
-        // A single point is not a stroke.
+    }
+
+    [Fact]
+    public void RasterizeStrokes_DrawsASinglePointAsARoundDot()
+    {
+        // A tap on the pad is a dot (the i's dot, a full stop), not nothing (BF-A002).
         var dot = new List<IReadOnlyList<(double X, double Y)>> { new List<(double, double)> { (5, 5) } };
-        Assert.All(SignatureInk.RasterizeStrokes(dot, 4, 10, 10, 1), b => Assert.Equal(0, b));
+        byte[] pixels = SignatureInk.RasterizeStrokes(dot, 4, 10, 10, 1);
+        Assert.Equal(255, Alpha(pixels, 10, 5, 5));
+        Assert.Equal(255, Alpha(pixels, 10, 4, 4));
+        Assert.Equal(0, Alpha(pixels, 10, 0, 0));
+        Assert.Equal(0, Alpha(pixels, 10, 9, 9));
+        // Round: the same reach straight across as down.
+        Assert.Equal(Alpha(pixels, 10, 7, 5), Alpha(pixels, 10, 5, 7));
+    }
+
+    [Fact]
+    public void FinishStroke_KeepsATapAsADotEveryRendererDraws()
+    {
+        // The page, the ghost, the picker and the saved PDF skip strokes under two points, so a tap is stored as
+        // a tiny two-point segment that their round caps turn into a dot.
+        var tap = SignatureInk.FinishStroke([new System.Windows.Point(12, 30)]);
+        Assert.NotNull(tap);
+        Assert.Equal(2, tap!.Count);
+        Assert.Equal(new System.Windows.Point(12, 30), tap[0]);
+        Assert.True((tap[1] - tap[0]).Length is > 0 and < 0.1);
+
+        var line = new List<System.Windows.Point> { new(1, 1), new(5, 5) };
+        Assert.Same(line, SignatureInk.FinishStroke(line));
+        Assert.Equal(2, line.Count);
+        Assert.Null(SignatureInk.FinishStroke([]));
+        Assert.Null(SignatureInk.FinishStroke(null));
+    }
+
+    [Fact]
+    public void ThePadFinishesAStrokeTheSameWayOnReleaseAndOnLostCapture()
+    {
+        string editor = ShellSource.Read("Shell", "SignatureEditor.cs");
+        string pad = ShellSource.Between(editor, "canvas.MouseLeftButtonDown +=", "inkLayer = ink;");
+        // Losing the capture (Alt+Tab, a dialog, a touch cancel) keeps the stroke already on screen, so the preview
+        // and the saved signature match, and refreshes so a feathered look bakes again (BF-A001).
+        Assert.Contains("canvas.LostMouseCapture += (s, e) => EndStroke();", pad, StringComparison.Ordinal);
+        Assert.Contains("canvas.MouseLeftButtonUp += (s, e) => EndStroke();", pad, StringComparison.Ordinal);
+        string end = ShellSource.Between(editor, "void EndStroke()", "canvas.MouseLeftButtonDown +=");
+        Assert.Contains("SignatureInk.FinishStroke(", end, StringComparison.Ordinal);
+        Assert.Contains("refresh();", end, StringComparison.Ordinal);
+        // The finisher clears its state before releasing capture, since the release raises LostMouseCapture again.
+        Assert.True(end.IndexOf("current = null;", StringComparison.Ordinal) < end.IndexOf("ReleaseMouseCapture()", StringComparison.Ordinal));
+        Assert.DoesNotContain("Count: > 1", editor, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ThePadHasANameAndANewSignatureOpensWithFocusOnTheControls()
+    {
+        string editor = ShellSource.Read("Shell", "SignatureEditor.cs");
+        Assert.Contains("AutomationProperties.SetName(canvas, Loc(\"Str_Sig_DrawingPad\"))", editor, StringComparison.Ordinal);
+        // Every editor, a new empty pad included, puts keyboard focus on its first slider (BF-A007).
+        Assert.Contains("win.Loaded += (s, e) => focusTarget.Focus();", editor, StringComparison.Ordinal);
+        Assert.DoesNotContain("if (imageMode || strokes.Count > 0) win.Loaded", editor, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -826,6 +826,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Sig_Create">署名を作成</sys:String>
     <sys:String x:Key="Str_Sig_Import">画像を読み込み</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">ここに署名を描画してください</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">署名の描画パッド</sys:String>
     <sys:String x:Key="Str_Sig_Clear">クリア</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">署名を保存</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">署名を調整</sys:String>

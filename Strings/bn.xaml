@@ -739,6 +739,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Sig_Create">স্বাক্ষর তৈরি করুন</sys:String>
     <sys:String x:Key="Str_Sig_Import">ছবি আমদানি করুন</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">এখানে আপনার স্বাক্ষর আঁকুন</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">স্বাক্ষর আঁকার প্যাড</sys:String>
     <sys:String x:Key="Str_Sig_Clear">সাফ করুন</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">স্বাক্ষর সংরক্ষণ করুন</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">স্বাক্ষর সমন্বয় করুন</sys:String>

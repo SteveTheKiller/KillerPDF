@@ -826,6 +826,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Sig_Create">Tạo chữ ký</sys:String>
     <sys:String x:Key="Str_Sig_Import">Nhập hình ảnh</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Vẽ chữ ký của bạn vào đây</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Vùng vẽ chữ ký</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Xóa</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Lưu chữ ký</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Điều chỉnh chữ ký</sys:String>

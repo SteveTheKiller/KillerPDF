@@ -745,6 +745,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Sig_Create">Қолтаңба жасау</sys:String>
     <sys:String x:Key="Str_Sig_Import">Сурет импорттау</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Қолтаңбаңызды осында сызыңыз</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Қолтаңба сызу алаңы</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Тазалау</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Қолтаңбаны сақтау</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Қолтаңбаны реттеу</sys:String>

@@ -739,6 +739,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Sig_Create">创建签名</sys:String>
     <sys:String x:Key="Str_Sig_Import">导入图片</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">在此处绘制您的签名</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">签名绘制板</sys:String>
     <sys:String x:Key="Str_Sig_Clear">清除</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">保存签名</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">调整签名</sys:String>

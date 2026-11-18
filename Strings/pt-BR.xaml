@@ -826,6 +826,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Sig_Create">Criar assinatura</sys:String>
     <sys:String x:Key="Str_Sig_Import">Importar imagem</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Desenhe sua assinatura aqui</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Área para desenhar a assinatura</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Limpar</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Salvar assinatura</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Ajustar assinatura</sys:String>

@@ -145,6 +145,27 @@ namespace KillerPDF.Shell
                         new SignatureLook(null, false, 0, feather, inkColor ?? SignatureBlack)) : null;
                     ink.Opacity = bake ? 0 : 1;
                 };
+                // Release and a lost capture (Alt+Tab, a dialog, a cancelled touch) end a stroke the same way: the
+                // line already on the pad is kept, a tap becomes a dot, and the preview refreshes so it shows what
+                // Save keeps. State is cleared before the release, which raises LostMouseCapture again.
+                void EndStroke()
+                {
+                    if (current is null) return;
+                    var finished = SignatureInk.FinishStroke(current);
+                    var line = currentLine;
+                    current = null;
+                    currentLine = null;
+                    if (finished is not null)
+                    {
+                        strokes.Add(finished);
+                        if (line is not null && line.Points.Count < finished.Count)
+                            for (int i = line.Points.Count; i < finished.Count; i++) line.Points.Add(finished[i]);
+                    }
+                    else if (line is not null) ink.Children.Remove(line);
+                    if (canvas.IsMouseCaptured) canvas.ReleaseMouseCapture();
+                    refresh();
+                }
+                System.Windows.Automation.AutomationProperties.SetName(canvas, Loc("Str_Sig_DrawingPad"));
                 canvas.MouseLeftButtonDown += (s, e) =>
                 {
                     hint.Visibility = Visibility.Collapsed;
@@ -164,15 +185,8 @@ namespace KillerPDF.Shell
                     current.Add(pos);
                     currentLine.Points.Add(pos);
                 };
-                canvas.MouseLeftButtonUp += (s, e) =>
-                {
-                    if (current is { Count: > 1 }) strokes.Add(current);
-                    else if (currentLine is not null) ink.Children.Remove(currentLine);
-                    current = null;
-                    currentLine = null;
-                    canvas.ReleaseMouseCapture();
-                    refresh();
-                };
+                canvas.MouseLeftButtonUp += (s, e) => EndStroke();
+                canvas.LostMouseCapture += (s, e) => EndStroke();
                 inkLayer = ink;   // the Clear button below empties this layer
             }
 
@@ -353,7 +367,8 @@ namespace KillerPDF.Shell
 
             refresh();
             win.Content = DialogFrame.Frame(win, this, "KillerPDF - " + title, () => win.Close(), contentArea);
-            if (imageMode || strokes.Count > 0) win.Loaded += (s, e) => focusTarget.Focus();
+            // Keyboard focus starts on the first slider, a new empty pad included, so Tab and the arrows work at once.
+            win.Loaded += (s, e) => focusTarget.Focus();
             win.ShowDialog();
             return result;
         }

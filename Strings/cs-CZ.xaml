@@ -817,6 +817,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Sig_Create">Vytvořit podpis</sys:String>
     <sys:String x:Key="Str_Sig_Import">Importovat obrázek</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Zde nakreslete svůj podpis</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Plocha pro kreslení podpisu</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Vymazat</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Uložit podpis</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Upravit podpis</sys:String>

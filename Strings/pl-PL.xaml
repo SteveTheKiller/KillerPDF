@@ -807,6 +807,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Sig_Create">Utwórz podpis</sys:String>
     <sys:String x:Key="Str_Sig_Import">Importuj obraz</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Narysuj tutaj swój podpis</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Pole do rysowania podpisu</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Wyczyść</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Zapisz podpis</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Dostosuj podpis</sys:String>

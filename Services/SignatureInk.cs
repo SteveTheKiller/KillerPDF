@@ -269,6 +269,19 @@ namespace KillerPDF.Services
             return result;
         }
 
+        // How far a tap's second point sits from its first: far below a pixel, so the round caps draw a dot.
+        private const double DotLength = 0.01;
+
+        /// <summary>The stroke the pad keeps when the pen lifts, or null when nothing was drawn. A tap is a
+        /// dot: its one point gets a second a hair away, because the page, the placing ghost, the picker and
+        /// the saved PDF draw only strokes of two points or more, and their round caps make that a dot.</summary>
+        internal static List<System.Windows.Point>? FinishStroke(List<System.Windows.Point>? points)
+        {
+            if (points is not { Count: > 0 }) return null;
+            if (points.Count == 1) points.Add(new System.Windows.Point(points[0].X + DotLength, points[0].Y));
+            return points;
+        }
+
         /// <summary>Draws pen strokes as black ink on transparent pixels. Points are in canvas units; the
         /// picture is canvas size times <paramref name="scale"/>. Coverage comes from each pixel's distance
         /// to the nearest segment, so the edges are antialiased and the caps and joins are round.</summary>
@@ -279,10 +292,11 @@ namespace KillerPDF.Services
             double half = Math.Max(0.5, strokeWidth * scale / 2);
             foreach (var stroke in strokes)
             {
-                if (stroke.Count < 2) continue;
-                for (int i = 1; i < stroke.Count; i++)
+                if (stroke.Count == 0) continue;
+                // A single point is a dot: a zero-length segment, which the distance test draws as a disc.
+                for (int i = stroke.Count == 1 ? 0 : 1; i < stroke.Count; i++)
                 {
-                    double x0 = stroke[i - 1].X * scale, y0 = stroke[i - 1].Y * scale;
+                    double x0 = stroke[Math.Max(0, i - 1)].X * scale, y0 = stroke[Math.Max(0, i - 1)].Y * scale;
                     double x1 = stroke[i].X * scale, y1 = stroke[i].Y * scale;
                     int left = Math.Max(0, (int)Math.Floor(Math.Min(x0, x1) - half - 1));
                     int right = Math.Min(width - 1, (int)Math.Ceiling(Math.Max(x0, x1) + half + 1));

@@ -826,6 +826,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Sig_Create">Створити підпис</sys:String>
     <sys:String x:Key="Str_Sig_Import">Імпортувати зображення</sys:String>
     <sys:String x:Key="Str_Sig_DrawHere">Намалюйте свій підпис тут</sys:String>
+    <sys:String x:Key="Str_Sig_DrawingPad">Поле для малювання підпису</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Очистити</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Зберегти підпис</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Налаштування підпису</sys:String>
