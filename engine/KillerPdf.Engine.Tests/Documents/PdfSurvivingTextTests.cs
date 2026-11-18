@@ -158,6 +158,25 @@ public sealed class PdfSurvivingTextTests
         Assert.Equal(treeName, Assert.Single(legacy.Keys).ValueAsLatin1());
     }
 
+    [Fact]
+    public async Task ANameTreeNodeThatListsItselfTwiceIsWalkedOnce()
+    {
+        // Each node naming itself twice doubles the walk at every level down to the depth limit.
+        byte[] pdf = Pdf(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests 7 0 R >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            Page,
+            Stream("BT /F1 12 Tf 10 100 Td (Ordinary words) Tj ET"),
+            Font,
+            Link,
+            "<< /Kids [7 0 R 7 0 R] /Names [(SECRETCLAUSE) [3 0 R /XYZ 0 100 0]] >>");
+
+        Task<PdfDocument> apply = Task.Run(() => PdfNamedDestinationAnonymizer.Apply(PdfDocument.Open(pdf)));
+
+        PdfDocument renamed = await apply.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(PdfContentRedaction.FindSurvivingText(renamed.Source.ToArray(), ["SECRET"]).Succeeded);
+    }
+
     private static PdfObject Deref(PdfDocument document, PdfObject value) =>
         value is PdfIndirectReference reference ? document.Resolve(reference) : value;
 

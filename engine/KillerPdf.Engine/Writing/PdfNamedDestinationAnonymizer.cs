@@ -33,6 +33,7 @@ public static class PdfNamedDestinationAnonymizer
             ?? throw new FormatException("The document has no catalog.");
         // One new name per old one, shared by the name tree's strings and the legacy dictionary's names.
         var byString = new Dictionary<string, string>(StringComparer.Ordinal);
+        var visitedNodes = new HashSet<PdfDictionary>(ReferenceEqualityComparer.Instance);
         var byName = new Dictionary<string, string>(StringComparer.Ordinal);
         var entries = new List<(string NewName, PdfObject Value)>();
         string Next() => "D" + (byString.Count + byName.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -107,7 +108,9 @@ public static class PdfNamedDestinationAnonymizer
 
         void CollectTree(PdfDictionary? node, int depth)
         {
-            if (node is null || depth > MaximumTreeDepth) return;
+            // A node reached twice, through repeated or cyclic /Kids, is walked once.
+            if (node is null || depth > MaximumTreeDepth || !visitedNodes.Add(node)) return;
+            cancellationToken.ThrowIfCancellationRequested();
             if (node.TryGetValue(NamesName, out PdfObject? pairs) && Resolve(document, pairs) is PdfArray array)
                 for (int index = 0; index + 1 < array.Count; index += 2)
                     if (Resolve(document, array[index]) is PdfString key)
