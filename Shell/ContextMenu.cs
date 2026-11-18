@@ -240,12 +240,11 @@ namespace KillerPDF.Shell
             };
             // Then editing and the view, in the same grid so the columns line up; the ones that only apply sometimes
             // stay conditional. Markup selected elsewhere on the page can still go from here.
-            if (hasSelection)
-                pageTiles.Add(new("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, true));
-            if (CanPasteInView())
-                pageTiles.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(pageIdx), false, true));
+            // Nine tiles, three full rows: Delete and Paste keep their spots (dimmed when they can't act), Full Screen
+            // lives in the footer, and Book layout sits on the nav row.
+            pageTiles.Add(new("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, hasSelection));
+            pageTiles.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(pageIdx), false, CanPasteInView()));
             pageTiles.Add(new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true));
-            pageTiles.AddRange(ViewTiles());
             var pageStrip = QuickStrip(_ctxMenu, 3, [.. pageTiles]);
             _ctxMenu.Items.Add(CardSlot(pageStrip, new Thickness(0)));
         }
@@ -288,6 +287,13 @@ namespace KillerPDF.Shell
             buttons.Children.Add(NavRowButton(menu, "\uE7A7", "Str_Ctx_UndoLast", "Ctrl:Z", () => Undo_Click(this, new RoutedEventArgs()), edit.Undo));
             buttons.Children.Add(NavRowButton(menu, "\uE7A6", "Str_Ctx_Redo", "Ctrl:Y", () => Redo_Click(this, new RoutedEventArgs()), edit.Redo));
             buttons.Children.Add(NavRowButton(menu, "\uE749", "Str_Ctx_Print", "Ctrl:P", () => Print_Click(this, new RoutedEventArgs()), _doc is not null && _currentFile is not null));
+            // Book layout, in the two-page views, follows print on every menu's nav row (filled while it's on).
+            if (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
+            {
+                var book = NavRowButton(menu, GlyphText(0xE736), "Str_View_BookMode", "B", ToggleBookMode, true);
+                if (Controls.PdfViewer.BookMode) book.SetResourceReference(Control.BackgroundProperty, "RowSelectedBrush");
+                buttons.Children.Add(book);
+            }
             DockPanel.SetDock(buttons, Dock.Left);
             row.Children.Add(buttons);
             if (zoomIn is not null && zoomOut is not null)
@@ -296,12 +302,6 @@ namespace KillerPDF.Shell
                 var zoom = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
                 zoom.Children.Add(NavRowButton(menu, zoomOut, "Str_Lbl_ZoomOut", "Ctrl:Minus", () => ZoomOut_Click(this, new RoutedEventArgs()), true));
                 zoom.Children.Add(NavRowButton(menu, zoomIn, "Str_Lbl_ZoomIn", "Ctrl:Equals", () => ZoomIn_Click(this, new RoutedEventArgs()), true));
-                if (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
-                {
-                    var book = NavRowButton(menu, GlyphText(0xE736), "Str_View_BookMode", "B", ToggleBookMode, true);
-                    if (Controls.PdfViewer.BookMode) book.SetResourceReference(Control.BackgroundProperty, "RowSelectedBrush");
-                    zoom.Children.Add(book);
-                }
                 row.Children.Add(zoom);
             }
             int pageCount = _doc?.PageCount ?? ActiveViewer.ReadPageCountExt;

@@ -211,7 +211,8 @@ public sealed class CardMenuTests
         Assert.Contains("FlyoutTile(\"\\uE8A1\", Loc(\"Str_FieldPreset_Menu\"), null, BuildFieldPresetMenu(pt, pageIdx))", page);
         Assert.Contains("Loc(\"Str_TT_ComparePDFs\"), \"AltShift:V\", BuildComparisonContextItem())", page);
         Assert.Contains("Loc(\"Str_Card_PageTools\"), null, tools)", page);
-        Assert.Contains("pageTiles.AddRange(ViewTiles());", page);
+        // Full Screen is in the footer and Book layout on the nav row, so the grid stays three full rows.
+        Assert.DoesNotContain("ViewTiles()", page);
         Assert.DoesNotContain("AppendViewItems", page);
         // Full Screen and Book layout show their state on the tile, as the checkable rows did.
         string view = Between(Read("Shell", "ContextMenu.cs"), "private List<CardTile> ViewTiles()", "return tiles;");
