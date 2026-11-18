@@ -203,10 +203,15 @@ public static class PdfFormRecognizer
             // so it becomes a single comb text field rather than a checkbox per cell.
             var combs = new Dictionary<int, List<PdfContentBounds>>();
             var consumed = new HashSet<int>();
-            foreach (var row in candidates.Where(candidate => candidate.Square)
+            // Cells share a row when their bottoms are within a point of the row's first cell, so a
+            // row drawn at 100.45 and 100.55 is not split by rounding.
+            var rows = new List<List<(int PathIndex, PdfContentBounds Bounds, bool Square)>>();
+            foreach (var candidate in candidates.Where(candidate => candidate.Square)
                          .OrderBy(candidate => candidate.Bounds.Bottom)
-                         .ThenBy(candidate => candidate.Bounds.Left)
-                         .GroupBy(candidate => Math.Round(candidate.Bounds.Bottom)))
+                         .ThenBy(candidate => candidate.Bounds.Left))
+                if (rows.Count > 0 && candidate.Bounds.Bottom - rows[^1][0].Bounds.Bottom <= 1) rows[^1].Add(candidate);
+                else rows.Add([candidate]);
+            foreach (var row in rows)
             {
                 var run = new List<(int PathIndex, PdfContentBounds Bounds, bool Square)>();
                 foreach (var cell in row.OrderBy(candidate => candidate.Bounds.Left)
