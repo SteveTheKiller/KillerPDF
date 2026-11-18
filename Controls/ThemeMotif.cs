@@ -278,6 +278,7 @@ namespace KillerPDF.Controls
 
             Rect pane;
             Size window;
+            Transform? unflip = null;
             // Popups float free of the window, so they draw from their own corner; everything else is pinned to it.
             if (part is MotifPart.Popup)
             {
@@ -287,8 +288,7 @@ namespace KillerPDF.Controls
             else
             {
                 if (Window.GetWindow(element) is not { Content: FrameworkElement root } host) return;
-                Point at = element.TranslatePoint(new Point(0, 0), root);
-                pane = new Rect(at, new Size(element.ActualWidth, element.ActualHeight));
+                (pane, unflip) = MotifPlacement.PlaceInWindow(element, root);
                 window = new Size(root.ActualWidth, root.ActualHeight);
             }
 
@@ -335,6 +335,11 @@ namespace KillerPDF.Controls
                 piece = cached.Piece;
             }
             var brush = TrashPolkaMotif.Compose(baseBrush.Color, piece, pane, window, scale: TrashPolkaInk.Scale, opacity: opacity);
+            if (unflip is not null)
+            {
+                if (brush.IsFrozen) brush = brush.Clone();
+                brush.Transform = unflip;
+            }
             element.SetValue(PaintedProperty, stamp);
             // First paint since the last restore: remember whether the background we are about to replace was local.
             if (BackgroundProperty(element) is { } bg && element.ReadLocalValue(PaintedBrushProperty) == DependencyProperty.UnsetValue)
