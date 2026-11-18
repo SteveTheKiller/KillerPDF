@@ -6,10 +6,23 @@ using System.Runtime.InteropServices;
 
 namespace KillerPdf.Engine.Filters;
 
-// OpenJPEG 2.5.4 C ABI. The packaged native library targets Windows x64.
+// OpenJPEG 2.5.4 C ABI. The packaged native libraries cover Windows x64, Linux x64 and macOS.
 internal static class OpenJpegDecoder
 {
     private const string ImportName = "openjp2";
+
+    // On Windows the library loads by full path from the app's folder or its NuGet runtimes folder,
+    // which also covers an engine loaded from memory with no folder of its own.
+    static OpenJpegDecoder() =>
+        NativeLibrary.SetDllImportResolver(typeof(OpenJpegDecoder).Assembly, (name, _, _) =>
+        {
+            if (name != ImportName || !OperatingSystem.IsWindows()) return IntPtr.Zero;
+            string folder = AppContext.BaseDirectory;
+            foreach (string candidate in new[] { Path.Combine(folder, "openjp2.dll"),
+                Path.Combine(folder, "runtimes", "win-x64", "native", "openjp2.dll") })
+                if (File.Exists(candidate) && NativeLibrary.TryLoad(candidate, out IntPtr handle)) return handle;
+            return IntPtr.Zero;
+        });
 
     internal static Jpeg2000DecodedImage Decode(byte[] codestream, Jpeg2000Shape shape,
         int reduction, int width, int height, int rowBytes, int length, int maximumParallelism)
