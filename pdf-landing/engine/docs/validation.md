@@ -46,6 +46,22 @@ if (!report.Passed || !report.Complete)
 
 A preflight profile selects checks for structure, metadata, language, tagging, forms, links, page boxes, output intents, images, fonts, transparency, color and ink limits, layers, and declared PDF/A, PDF/UA, and PDF/X boundaries. Reports identify source objects and checks that could not run. `PdfAccessibilityInspector` and `PdfPrintProductionReport` produce focused reports, and correction plans preview a change before you apply it. A clean report is not certification.
 
+## Check PDF/UA-1 with the Matterhorn Protocol
+
+```csharp
+using KillerPdf.Engine.Diagnostics;
+
+PdfUaReport report = PdfUaValidator.Validate(document);
+
+Console.WriteLine(report.Verdict);
+foreach (PdfUaFailure failure in report.Failures)
+    Console.WriteLine($"{failure.Condition} {failure.Clause} page {failure.PageIndex}: {failure.Message}");
+```
+
+`PdfUaValidator` checks a document against PDF/UA-1 (ISO 14289-1) and returns one result for each of the 31 Matterhorn Protocol 1.1 checkpoints. A checkpoint is `Passed`, `Failed`, `Incomplete`, or `NeedsHumanReview`. Each failure carries its Matterhorn condition ID, such as 06-003 for a missing title, the ISO clause, and the page and object when they apply. Conditions a person must judge, and machine conditions the validator does not check yet, are listed by ID on each checkpoint.
+
+The verdict is `Failed`, `Incomplete`, or `PassedMachineChecks`. It never claims full conformance, because part of the protocol needs a person. A PDF/UA-2 document is checked against the same checkpoints, and `DeclaredPart` records which part it claims. `ToText` and `ToJson` give the same report shapes as the accessibility inspector. Preflight runs this validator on any document whose XMP metadata declares PDF/UA-1.
+
 ## Understand what this proves
 
 | Check | What it establishes |

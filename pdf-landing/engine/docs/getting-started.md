@@ -8,6 +8,8 @@ Install The KillerPDF.Engine, create a PDF 2.0 document, and reopen it in less t
 - A .NET console, desktop, web, or service project
 - Windows, Linux, or macOS for the engine itself
 
+JPEG 2000 images decode with OpenJPEG. The package bundles OpenJPEG 2.5.4 for Windows x64, where it needs the Microsoft Visual C++ runtime. On other platforms, JPEG 2000 decoding needs a compatible OpenJPEG library that the .NET native loader can find as `openjp2`. Without one, decoding a JPEG 2000 stream throws `PdfFilterException`.
+
 The library is UI-free. Your application chooses its own renderer, interface, storage, and deployment model.
 
 ## Install from NuGet

@@ -16,7 +16,7 @@ The public API is organized by PDF responsibility. Start with high-level documen
 | `KillerPdf.Engine.Signing` | Signature creation, discovery, verification, certification, and revision analysis |
 | `KillerPdf.Engine.Rendering` | Render pages to BGRA32 pixel buffers or float32 frames, with printer proof options and gamut masks |
 | `KillerPdf.Engine.ColorManagement` | Load ICC profiles, convert color between profiles, describe printer proofs and presets, check printer gamut, and supply the bundled working CMYK profile |
-| `KillerPdf.Engine.Formats.Epub` | Open EPUB packages, read metadata, text, and navigation, lay out and render pages, and convert books to PDF |
+| `KillerPdf.Engine.Formats.Epub` | Open EPUB packages, read metadata, text, and navigation, lay out and render pages, convert books to PDF, and write a PDF as an EPUB 3 book |
 | `KillerPdf.Engine.Formats.Djvu` | Open DjVu documents, read page information, text, and navigation, render pages, and convert documents to PDF |
 | `KillerPdf.Engine.Fonts` | Font loading, text codes, glyph outlines, and host font resolvers |
 | `KillerPdf.Engine.Objects` | Typed PDF objects for lower-level work |
@@ -42,6 +42,8 @@ The public API is organized by PDF responsibility. Start with high-level documen
 | Open an EPUB | `EpubDocument.Open`, `PdfReadSnapshot.OpenEpub`, and `PdfReadSnapshot.OpenEpubProgressive` |
 | Open a DjVu document | `DjvuDocument.Open` and `PdfReadSnapshot.OpenDjvu` |
 | Convert EPUB or DjVu to PDF | `EpubDocument.ConvertToPdf` and `DjvuDocument.ConvertToPdf` |
+| Write a PDF as an EPUB 3 book | `PdfEpubExport.Write` |
+| Check PDF/UA-1 | `PdfUaValidator.Validate` |
 | Redact content | `PdfRedactionSearch` and `PdfContentRedaction` |
 | Optimize a file | `PdfOptimizer` |
 | Export to Office, HTML, Markdown, or JSON | `PdfStructuredExport` |
