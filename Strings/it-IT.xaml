@@ -876,6 +876,9 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Arrange_SameWidth">Stessa larghezza</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Stessa altezza</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Stesse dimensioni</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Adatta larghezza al testo</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Adatta altezza al testo</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Adatta dimensioni al testo</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Separa</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Rimuovi dal gruppo</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Copia</sys:String>

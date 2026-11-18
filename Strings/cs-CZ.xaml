@@ -867,6 +867,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Arrange_SameWidth">Stejná šířka</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Stejná výška</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Stejná velikost</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Přizpůsobit šířku textu</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Přizpůsobit výšku textu</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Přizpůsobit velikost textu</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Zrušit skupinu</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Odebrat ze skupiny</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Kopírovat</sys:String>

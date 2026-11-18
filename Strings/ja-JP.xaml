@@ -876,6 +876,9 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Arrange_SameWidth">幅を揃える</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">高さを揃える</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">サイズを揃える</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">幅をテキストに合わせる</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">高さをテキストに合わせる</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">サイズをテキストに合わせる</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">グループ解除</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">グループから削除</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">コピー</sys:String>

@@ -789,6 +789,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Arrange_SameWidth">একই প্রস্থ</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">একই উচ্চতা</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">একই আকার</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">লেখা অনুযায়ী প্রস্থ</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">লেখা অনুযায়ী উচ্চতা</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">লেখা অনুযায়ী আকার</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">গ্রুপ বাতিল করুন</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">গ্রুপ থেকে সরান</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">কপি করুন</sys:String>

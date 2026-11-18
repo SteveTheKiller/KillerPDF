@@ -876,6 +876,9 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Arrange_SameWidth">Cùng chiều rộng</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Cùng chiều cao</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Cùng kích thước</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Vừa chiều rộng với văn bản</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Vừa chiều cao với văn bản</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Vừa kích thước với văn bản</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Bỏ nhóm</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Xóa khỏi nhóm</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Sao chép</sys:String>

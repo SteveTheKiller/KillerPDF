@@ -876,6 +876,9 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Arrange_SameWidth">Même largeur</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Même hauteur</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Même taille</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Ajuster la largeur au texte</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Ajuster la hauteur au texte</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Ajuster la taille au texte</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Dégrouper</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Retirer du groupe</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Copier</sys:String>

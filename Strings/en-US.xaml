@@ -877,6 +877,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Arrange_SameWidth">Same width</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Same height</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Same size</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Fit width to text</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Fit height to text</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Fit size to text</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Ungroup</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Remove from group</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Copy</sys:String>

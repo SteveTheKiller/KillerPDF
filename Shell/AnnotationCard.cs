@@ -99,6 +99,10 @@ namespace KillerPDF.Shell
             Row("Str_Arrange_SameWidth", Services.AnnotationArrange.Action.SameWidth);
             Row("Str_Arrange_SameHeight", Services.AnnotationArrange.Action.SameHeight);
             Row("Str_Arrange_SameSize", Services.AnnotationArrange.Action.SameSize);
+            rows.Items.Add(new Separator());
+            Row("Str_Arrange_FitWidth", Services.AnnotationArrange.Action.FitWidth);
+            Row("Str_Arrange_FitHeight", Services.AnnotationArrange.Action.FitHeight);
+            Row("Str_Arrange_FitSize", Services.AnnotationArrange.Action.FitSize);
             return rows;
         }
 

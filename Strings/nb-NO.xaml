@@ -876,6 +876,9 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Arrange_SameWidth">Samme bredde</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Samme høyde</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Samme størrelse</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Tilpass bredde til tekst</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Tilpass høyde til tekst</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Tilpass størrelse til tekst</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Opphev gruppering</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Fjern fra gruppe</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Kopier</sys:String>

@@ -876,6 +876,9 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Arrange_SameWidth">Azonos szélesség</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Azonos magasság</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Azonos méret</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Szélesség igazítása a szöveghez</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Magasság igazítása a szöveghez</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Méret igazítása a szöveghez</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Csoport bontása</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Eltávolítás a csoportból</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Másolás</sys:String>

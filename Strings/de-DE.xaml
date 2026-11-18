@@ -789,6 +789,9 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Arrange_SameWidth">Gleiche Breite</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Gleiche Höhe</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Gleiche Größe</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Breite an Text anpassen</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Höhe an Text anpassen</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Größe an Text anpassen</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Gruppierung aufheben</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Aus Gruppe entfernen</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Kopieren</sys:String>

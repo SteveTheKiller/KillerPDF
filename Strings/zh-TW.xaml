@@ -791,6 +791,9 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Arrange_SameWidth">相同寬度</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">相同高度</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">相同大小</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">寬度符合文字</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">高度符合文字</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">大小符合文字</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">取消群組</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">從群組移除</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">複製</sys:String>

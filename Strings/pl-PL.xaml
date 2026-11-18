@@ -857,6 +857,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Arrange_SameWidth">Ta sama szerokość</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Ta sama wysokość</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Ten sam rozmiar</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Dopasuj szerokość do tekstu</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Dopasuj wysokość do tekstu</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Dopasuj rozmiar do tekstu</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Rozgrupuj</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Usuń z grupy</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Kopiuj</sys:String>

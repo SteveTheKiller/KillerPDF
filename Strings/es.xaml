@@ -789,6 +789,9 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Arrange_SameWidth">Mismo ancho</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Misma altura</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Mismo tamaño</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Ajustar ancho al texto</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Ajustar alto al texto</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Ajustar tamaño al texto</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Desagrupar</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Quitar del grupo</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Copiar</sys:String>

@@ -12,14 +12,43 @@ internal static class AnnotationArrange
         AlignLeft, AlignCenter, AlignRight, AlignTop, AlignMiddle, AlignBottom,
         DistributeHorizontally, DistributeVertically,
         MoreHorizontalSpace, LessHorizontalSpace, MoreVerticalSpace, LessVerticalSpace,
-        SameWidth, SameHeight, SameSize
+        SameWidth, SameHeight, SameSize,
+        FitWidth, FitHeight, FitSize
     }
 
     // How far one press of More or Less space moves each gap, in canvas units.
     internal const double SpacingStep = 4;
 
+    internal static bool IsFit(Action action) => action is Action.FitWidth or Action.FitHeight or Action.FitSize;
+
+    // Fitting works box by box, so one box is enough.
     internal static bool Applies(Action action, int count) =>
-        count >= (action is Action.DistributeHorizontally or Action.DistributeVertically ? 3 : 2);
+        count >= (IsFit(action) ? 1 : action is Action.DistributeHorizontally or Action.DistributeVertically ? 3 : 2);
+
+    // Snaps each text box's frame to its text, keeping its top-left corner. fitted(i, width) gives
+    // box i's text size laid out at that width (null for one line, unwrapped), or null when box i
+    // holds no text and stays as it is.
+    internal static Rect[] Fit(IReadOnlyList<Rect> boxes, Action action, Func<int, double?, Size?> fitted)
+    {
+        Rect[] result = [.. boxes];
+        for (int i = 0; i < result.Length; i++)
+        {
+            Rect box = result[i];
+            switch (action)
+            {
+                case Action.FitWidth when fitted(i, null) is { } line:
+                    result[i] = box with { Width = line.Width };
+                    break;
+                case Action.FitHeight when fitted(i, box.Width) is { } wrapped:
+                    result[i] = box with { Height = wrapped.Height };
+                    break;
+                case Action.FitSize when fitted(i, null) is { } natural:
+                    result[i] = new Rect(box.Location, natural);
+                    break;
+            }
+        }
+        return result;
+    }
 
     internal static Rect[] Apply(IReadOnlyList<Rect> boxes, Action action)
     {

@@ -811,6 +811,9 @@
     <sys:String x:Key="Str_Arrange_SameWidth">Enaka širina</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Enaka višina</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Enaka velikost</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Prilagodi širino besedilu</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Prilagodi višino besedilu</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Prilagodi velikost besedilu</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Razdruži skupino</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Odstrani iz skupine</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Kopiraj</sys:String>

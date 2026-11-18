@@ -876,6 +876,9 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Arrange_SameWidth">Однакова ширина</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Однакова висота</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Однаковий розмір</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Ширина за текстом</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Висота за текстом</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Розмір за текстом</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Розгрупувати</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Вилучити з групи</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Копіювати</sys:String>

@@ -14,6 +14,30 @@ public sealed class AnnotationArrangeTests
         new(60, 120, 20, 10)
     ];
 
+    // Box 1 holds no text (an image, say), so fitting leaves it alone.
+    private static Size? Fitted(int index, double? width) => index == 1 ? null
+        : width is { } at ? new Size(at, 44) : new Size(90, 18);
+
+    [Theory]
+    [InlineData("FitWidth", 90, 20, 90, 10)]
+    [InlineData("FitHeight", 40, 44, 20, 44)]
+    [InlineData("FitSize", 90, 18, 90, 18)]
+    public void FitToTextSizesTextBoxesFromTheirCorner(string action, double w0, double h0, double w2, double h2)
+    {
+        Rect[] result = AnnotationArrange.Fit(Boxes, Parse(action), Fitted);
+
+        Assert.Equal(new Rect(10, 50, w0, h0), result[0]);
+        Assert.Equal(Boxes[1], result[1]);
+        Assert.Equal(new Rect(60, 120, w2, h2), result[2]);
+    }
+
+    [Fact]
+    public void FitToTextWorksOnASingleBox()
+    {
+        Assert.True(AnnotationArrange.Applies(AnnotationArrange.Action.FitSize, 1));
+        Assert.False(AnnotationArrange.Applies(AnnotationArrange.Action.SameSize, 1));
+    }
+
     [Theory]
     [InlineData("AlignLeft", 10, 10, 10)]
     [InlineData("AlignRight", 120, 100, 140)]

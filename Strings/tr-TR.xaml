@@ -789,6 +789,9 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Arrange_SameWidth">Aynı genişlik</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Aynı yükseklik</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Aynı boyut</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Genişliği metne sığdır</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Yüksekliği metne sığdır</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Boyutu metne sığdır</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Grubu çöz</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Gruptan çıkar</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Kopyala</sys:String>

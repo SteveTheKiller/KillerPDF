@@ -1090,7 +1090,9 @@ namespace KillerPDF.Controls
             var plans = pages.Select(page =>
             {
                 Rect[] before = [.. page.Select(AnnotBounds)];
-                return (page, before, after: AnnotationArrange.Apply([.. before], action));
+                return (page, before, after: AnnotationArrange.IsFit(action)
+                    ? AnnotationArrange.Fit(before, action, (i, width) => FittedTextSize(page[i], width))
+                    : AnnotationArrange.Apply([.. before], action));
             }).Where(plan => !plan.before.SequenceEqual(plan.after)).ToList();
             // Marks already arranged leave nothing to undo and the document unchanged.
             if (plans.Count == 0) return false;
@@ -1139,6 +1141,44 @@ namespace KillerPDF.Controls
                         return false;
                 }
             }
+        }
+
+        // The canvas footprint a text box needs for its text (#504): unwrapped when width is null, or
+        // wrapped at the given width. Measured the way RenderTextAnnotation lays it out, with its 2-unit
+        // padding on every side and the letter spacing per column. Null for anything but a text box.
+        private static Size? FittedTextSize(PageAnnotation annotation, double? width)
+        {
+            if (annotation is not TextAnnotation text) return null;
+            bool sideways = text.Rotation % 180 != 0;
+            Typeface typeface;
+            try
+            {
+                typeface = new Typeface(new FontFamily(string.IsNullOrEmpty(text.FontName) ? "Segoe UI" : text.FontName),
+                    text.Italic ? FontStyles.Italic : FontStyles.Normal, text.Bold ? FontWeights.Bold : FontWeights.Normal, FontStretches.Normal);
+            }
+            catch { typeface = new Typeface("Segoe UI"); }
+            string content = string.IsNullOrEmpty(text.Content) ? " " : text.Content;
+            string[] lines = content.Replace("\r\n", "\n").Split('\n');
+            double spacing = double.IsFinite(text.LetterSpacing) ? Math.Max(0, text.LetterSpacing) : 0;
+            FormattedText Layout(string value, double? wrap)
+            {
+                var formatted = new FormattedText(value.Length == 0 ? " " : value, System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight, typeface, Math.Max(1, text.FontSize), Brushes.Black, 1.0);
+                if (wrap is { } at) formatted.MaxTextWidth = Math.Max(1, at - 4);
+                return formatted;
+            }
+            // The widest line, unwrapped, plus a unit of slack so Display-mode glyph snapping never
+            // pushes the last letter onto a new line.
+            double lineWidth = Math.Ceiling(lines.Max(line => Layout(line, null).WidthIncludingTrailingWhitespace
+                + spacing * Math.Max(0, line.Length - 1))) + 5;
+            if (width is null)
+            {
+                Size natural = new(lineWidth, Math.Ceiling(Layout(content, lineWidth).Height) + 4);
+                return sideways ? new Size(natural.Height, natural.Width) : natural;
+            }
+            // A turned box's canvas height runs along its lines, so fitting it fits the line length.
+            if (sideways) return new Size(width.Value, lineWidth);
+            return new Size(width.Value, Math.Ceiling(Layout(content, width.Value).Height) + 4);
         }
 
         private void DrawHiddenLayerOutline(PageAnnotation hidden)

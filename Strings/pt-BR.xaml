@@ -876,6 +876,9 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Arrange_SameWidth">Mesma largura</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Mesma altura</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Mesmo tamanho</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Ajustar largura ao texto</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Ajustar altura ao texto</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Ajustar tamanho ao texto</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Desagrupar</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Remover do grupo</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Copiar</sys:String>

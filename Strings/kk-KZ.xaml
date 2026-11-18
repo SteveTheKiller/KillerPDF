@@ -795,6 +795,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Arrange_SameWidth">Бірдей ен</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Бірдей биіктік</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Бірдей өлшем</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Енін мәтінге сәйкестендіру</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Биіктігін мәтінге сәйкестендіру</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Өлшемін мәтінге сәйкестендіру</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Топтан шығару</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Топтан алу</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Көшіру</sys:String>

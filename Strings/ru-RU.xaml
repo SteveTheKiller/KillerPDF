@@ -876,6 +876,9 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Arrange_SameWidth">Одинаковая ширина</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">Одинаковая высота</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">Одинаковый размер</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">Ширина по тексту</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">Высота по тексту</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">Размер по тексту</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">Разгруппировать</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">Удалить из группы</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">Копировать</sys:String>

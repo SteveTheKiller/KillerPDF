@@ -789,6 +789,9 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Arrange_SameWidth">相同宽度</sys:String>
     <sys:String x:Key="Str_Arrange_SameHeight">相同高度</sys:String>
     <sys:String x:Key="Str_Arrange_SameSize">相同大小</sys:String>
+    <sys:String x:Key="Str_Arrange_FitWidth">宽度适应文本</sys:String>
+    <sys:String x:Key="Str_Arrange_FitHeight">高度适应文本</sys:String>
+    <sys:String x:Key="Str_Arrange_FitSize">大小适应文本</sys:String>
     <sys:String x:Key="Str_Ctx_Ungroup">取消组合</sys:String>
     <sys:String x:Key="Str_Ctx_RemoveFromGroup">从组中移除</sys:String>
     <sys:String x:Key="Str_Ctx_Copy">复制</sys:String>
