@@ -27,8 +27,8 @@ public sealed class ChordMoveTests
         Assert.Contains("GestureFor(clockwise ? \"Ctrl:R\" : \"Ctrl:L\")", Read("Shell", "ContextMenu.cs"));
         Assert.Contains("\"Ctrl:L\", () => RotatePages_Click(-90)", Read("Shell", "PageCard.cs"));
         Assert.Contains("Short(\"Str_Ocr_ScanToText\"), \"CtrlShift:R\", ConvertScanToText", Read("Shell", "Ocr.cs"));
-        Assert.True(Regex.IsMatch(Read("Controls", "Viewer", "PdfViewer.TabStrip.cs"),
-            @"Str_Ctx_ReopenClosedTab.*?GestureFor\(""CtrlShift:T""\)", RegexOptions.Singleline));
+        Assert.Contains("Loc(\"Str_Ctx_ReopenClosedTab\"), \"CtrlShift:T\", ReopenClosedTab",
+            Read("Controls", "Viewer", "PdfViewer.TabStrip.cs"));
     }
 
     private static string FindRepositoryRoot()

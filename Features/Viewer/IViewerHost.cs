@@ -78,6 +78,9 @@ namespace KillerPDF.Features
         FrameworkElement ShortcutsOverlay { get; }
         CheckBox LinkConfirmCheck { get; }
         ContextMenu MakeThemedMenu();
+        /// <summary>Fills a themed menu with the card style's tile grid (Shell/PageCard.cs QuickStrip),
+        /// so the viewer's own menus (the tab menu) match the page and gray-area cards.</summary>
+        void FillCardMenu(ContextMenu menu, int columns, IReadOnlyList<ViewerCardTile> tiles);
         void CloseSearchBar();
         void HideSignaturePopup();
         void SaveTempAndReload(bool keepAnnotations, bool preserveZoom,
@@ -188,5 +191,14 @@ namespace KillerPDF.Features
         bool TryMoveTabToWindowUnderCursor(PdfViewer source, PdfViewer.DocumentSession session);
 
         void RunWithViewerContext(PdfViewer viewer, System.Action work);
+    }
+
+    /// <summary>One tile of a card menu the viewer asks the host to build (IViewerHost.FillCardMenu).
+    /// Gesture is a shortcut cap such as "Ctrl:W", shown in the tooltip. Flyout: the tile opens these
+    /// rows beside itself. Checked: an on/off tile, filled while on.</summary>
+    internal sealed record ViewerCardTile(string Glyph, string Caption, string? Gesture, System.Action? Act, bool Enabled)
+    {
+        public MenuItem? Flyout { get; init; }
+        public bool? Checked { get; init; }
     }
 }

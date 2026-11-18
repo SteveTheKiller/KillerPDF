@@ -51,6 +51,16 @@ namespace KillerPDF.Shell
         FrameworkElement IViewerHost.ShortcutsOverlay => ShortcutsOverlay;
         System.Windows.Controls.CheckBox IViewerHost.LinkConfirmCheck => LinkConfirmCheck;
         System.Windows.Controls.ContextMenu IViewerHost.MakeThemedMenu() => MakeThemedMenu();
+        void IViewerHost.FillCardMenu(System.Windows.Controls.ContextMenu menu, int columns,
+            System.Collections.Generic.IReadOnlyList<ViewerCardTile> tiles)
+        {
+            if (TryFindResource("CardMenu") is Style card) menu.Style = card;
+            var grid = QuickStrip(menu, columns, [.. tiles.Select(t => t.Flyout is { } rows
+                ? FlyoutTile(t.Glyph, t.Caption, t.Gesture, rows) with { Enabled = t.Enabled && rows.IsEnabled }
+                : new CardTile(t.Glyph, t.Caption, t.Gesture, t.Act, false, t.Enabled) { Checked = t.Checked })]);
+            menu.Items.Add(CardSlot(grid, new Thickness(0)));
+            FocusFirstActionFromKeyboard(menu, grid);
+        }
         void IViewerHost.CloseSearchBar() => CloseSearchBar();
         void IViewerHost.HideSignaturePopup() => HideSignaturePopup();
         void IViewerHost.SaveTempAndReload(bool keepAnnotations, bool preserveZoom,

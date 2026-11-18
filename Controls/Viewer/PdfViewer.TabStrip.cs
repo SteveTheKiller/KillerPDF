@@ -492,37 +492,44 @@ namespace KillerPDF.Controls
         private void Tab_RightClick(object sender, MouseButtonEventArgs e)
         {
             if (sender is not FrameworkElement fe || fe.DataContext is not DocumentSession s) return;
+            if (Host is not { } host) return;
             var menu = MakeThemedMenu();
             string? sourcePath = s.OriginalFile ?? s.DeferredPath;
-            var openFolder = MakeMenuItem(Loc("Str_Ctx_OpenContainingFolder"), (_, _) => OpenContainingFolder(sourcePath), null, "");
-            openFolder.IsEnabled = !string.IsNullOrWhiteSpace(sourcePath) && System.IO.File.Exists(sourcePath);
-            menu.Items.Add(openFolder);
-            menu.Items.Add(new Separator());
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_CloseTab"), (_, _) => CloseTab(s), GestureFor("Ctrl:W"), ""));
-            var others = MakeMenuItem(Loc("Str_Ctx_CloseOthers"), (_, _) => CloseOtherTabs(s), GestureFor("CtrlShift:W"), "");
-            others.IsEnabled = _sessions.Count(z => z.HasReadDocument || z.DeferredPath != null) > 1;
-            menu.Items.Add(others);
-            var closeAll = MakeMenuItem(Loc("Str_Ctx_CloseAllTabs"), (_, _) => CloseAllTabs(), GestureFor("CtrlShift:Q"));
-            closeAll.IsEnabled = _sessions.Any(z => z.HasReadDocument || z.DeferredPath != null);
-            menu.Items.Add(closeAll);
-            // Ctrl+Shift+N moves the active tab the same way; dragging a tab out of the window does too.
-            var newWindow = MakeMenuItem(Loc("Str_Ctx_MoveToNewWindow"), (_, _) => Host?.TearOutTab(this, s), GestureFor("CtrlShift:N"), "\uE8A7");
-            newWindow.IsEnabled = s.HasReadDocument || s.DeferredPath != null;
-            menu.Items.Add(newWindow);
-            // #503: one row per other open KillerPDF window, named by the document it shows.
-            if (newWindow.IsEnabled && Host != null)
-                foreach (var (name, window) in Host.OtherDocumentWindows())
-                    menu.Items.Add(MakeMenuItem(string.Format(Loc("Str_Ctx_MoveToWindow"), name),
-                        (_, _) => Host?.MoveTabToWindow(this, s, window), null, ""));
-            menu.Items.Add(new Separator());
-            // #502: brings back the most recently closed tab, from any window.
-            var reopen = MakeMenuItem(Loc("Str_Ctx_ReopenClosedTab"), (_, _) => ReopenClosedTab(), GestureFor("CtrlShift:T"), "");
-            reopen.IsEnabled = Services.ClosedTabs.CanReopen;
-            menu.Items.Add(reopen);
-            AddTabPlacementMenuItems(menu);
-            menu.PlacementTarget = fe;            menu.IsOpen = true;
+            bool movable = s.HasReadDocument || s.DeferredPath != null;
+            // #503: the other open KillerPDF windows, named by the document each shows, behind one flyout tile.
+            var moveTo = new MenuItem();
+            if (movable)
+                foreach (var (name, window) in host.OtherDocumentWindows())
+                    moveTo.Items.Add(MakeMenuItem(string.Format(Loc("Str_Ctx_MoveToWindow"), name),
+                        (_, _) => Host?.MoveTabToWindow(this, s, window), null, GlyphText(0xE8A7)));
+            moveTo.IsEnabled = moveTo.Items.Count > 0;
+            // The tab card: three full rows of three. A tile that does not apply stays in place, disabled.
+            host.FillCardMenu(menu, 3,
+            [
+                new(GlyphText(0xE8BB), Loc("Str_Ctx_CloseTab"), "Ctrl:W", () => CloseTab(s), true),
+                new(GlyphText(0xED62), Loc("Str_Ctx_CloseOthers"), "CtrlShift:W", () => CloseOtherTabs(s),
+                    _sessions.Count(z => z.HasReadDocument || z.DeferredPath != null) > 1),
+                new(GlyphText(0xE894), Loc("Str_Ctx_CloseAllTabs"), "CtrlShift:Q", CloseAllTabs,
+                    _sessions.Any(z => z.HasReadDocument || z.DeferredPath != null)),
+                // #502: brings back the most recently closed tab, from any window.
+                new(GlyphText(0xE7A7), Loc("Str_Ctx_ReopenClosedTab"), "CtrlShift:T", ReopenClosedTab, Services.ClosedTabs.CanReopen),
+                new(GlyphText(0xE8B7), Loc("Str_Ctx_OpenContainingFolder"), null, () => OpenContainingFolder(sourcePath),
+                    !string.IsNullOrWhiteSpace(sourcePath) && System.IO.File.Exists(sourcePath)),
+                // Ctrl+Shift+N moves the active tab the same way; dragging a tab out of the window does too.
+                new(GlyphText(0xE8A7), Loc("Str_Ctx_MoveToNewWindow"), "CtrlShift:N", () => Host?.TearOutTab(this, s), movable),
+                new(GlyphText(0xE8AB), Loc("Str_Card_Move"), null, null, moveTo.IsEnabled) { Flyout = moveTo },
+                new(GlyphText(0xE70E), Loc("Str_Layout_TabsTop"), "AltShift:Up", () => Host?.SetTabPlacement(false), true)
+                    { Checked = !TabsAtBottom },
+                new(GlyphText(0xE70D), Loc("Str_Layout_TabsBottom"), "AltShift:Down", () => Host?.SetTabPlacement(true), true)
+                    { Checked = TabsAtBottom },
+            ]);
+            menu.PlacementTarget = fe;
+            menu.IsOpen = true;
             e.Handled = true;
         }
+
+        // An icon-font glyph from its code point, so no private-use character is written into the source.
+        private static string GlyphText(int codePoint) => char.ConvertFromUtf32(codePoint);
 
         private static void OpenContainingFolder(string? path)
         {
