@@ -59,6 +59,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Dropping several PDFs on the window opens the Merge files dialog, where you can order them and merge, open them separately, or cancel.
 - The Save menu groups Reduce Size, the exports and Export Table into a tile strip, like the page right-click menus.
 - The right-click menus on the page, around the page, on the page list and on tabs show their commands as icon tiles in full rows of three, with zoom and Book layout beside undo and print.
+- The OCR menu is two full rows of tiles with Language last. Form-aware OCR moved into the Language list.
+- Menu tiles show a short name when the full one would be cut off, and the full name appears on hover.
+- Bookmark data, Form data and Preflight open a small tile card under their icon in Document tools instead of a dialog.
+- Dropdown lists open on the same surface and border as menus.
 - With the document split in two, a dialog opens centered on the pane it came from. Large page windows such as Transform, Color Correction, Stamp and Print preview center on the app.
 - Mark pages on the Redact bar opens a small box under its button instead of a dialog. Find Text to Redact says plainly that it draws redaction boxes over the checked matches.
 - Edit paragraph has page arrows like Transform, and its Original checkbox sits with the other options.
