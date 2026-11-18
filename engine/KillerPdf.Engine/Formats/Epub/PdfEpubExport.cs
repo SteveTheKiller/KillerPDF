@@ -42,8 +42,22 @@ public static partial class PdfEpubExport
             pages.Add(new SourcePage(index, reader.Read(index, cancellationToken)));
         }
 
-        List<Block> blocks = ReadTagged(document, pages, cancellationToken)
-            ?? ReadVisual(pages, cancellationToken);
+        List<Block> blocks;
+        var tagged = ReadTagged(document, pages, cancellationToken);
+        if (tagged is null) blocks = ReadVisual(pages, cancellationToken);
+        else
+        {
+            // Pages the structure tree does not reach, such as pages inserted from an untagged
+            // file, are read from their layout and placed in page order.
+            blocks = tagged.Value.Blocks;
+            var untagged = pages.Where(page => tagged.Value.Uncovered.Contains(page.Index)).ToList();
+            if (untagged.Count > 0)
+                foreach (var group in ReadVisual(untagged, cancellationToken).GroupBy(block => block.PageIndex))
+                {
+                    int after = blocks.FindLastIndex(block => block.PageIndex < group.Key);
+                    blocks.InsertRange(after + 1, group);
+                }
+        }
         var images = new List<byte[]>();
         PlaceImages(document, pages, blocks, images, cancellationToken);
 
@@ -371,8 +385,8 @@ public static partial class PdfEpubExport
 
     private sealed record TaggedBlock(string Role, List<(int Page, int Mcid)> Content, string? ActualText);
 
-    private static List<Block>? ReadTagged(PdfDocument document, List<SourcePage> pages,
-        CancellationToken cancellationToken)
+    private static (List<Block> Blocks, HashSet<int> Uncovered)? ReadTagged(PdfDocument document,
+        List<SourcePage> pages, CancellationToken cancellationToken)
     {
         List<TaggedBlock>? tagged;
         try { tagged = ReadStructure(document); }
@@ -384,27 +398,40 @@ public static partial class PdfEpubExport
         if (tagged is null || tagged.Count == 0) return null;
 
         var selected = pages.ToDictionary(page => page.Index);
+        var reached = tagged.SelectMany(item => item.Content).ToHashSet();
         var letters = new Dictionary<(int, int), List<PdfExtractedLetter>>();
-        int tagged_letters = 0, all_letters = 0;
+        var uncovered = new HashSet<int>();
+        bool anyText = false;
         foreach (SourcePage page in pages)
+        {
+            int visible = 0, inTree = 0;
             foreach (PdfExtractedLetter letter in page.Content.Letters)
             {
                 if (string.IsNullOrWhiteSpace(letter.Value)) continue;
-                all_letters++;
-                if (letter.MarkedContentId is not int mcid) continue;
-                tagged_letters++;
+                visible++;
+                if (letter.MarkedContentId is not int mcid || !reached.Contains((page.Index, mcid))) continue;
+                inTree++;
                 if (!letters.TryGetValue((page.Index, mcid), out var list))
                     letters[(page.Index, mcid)] = list = [];
                 list.Add(letter);
             }
-        // A tree that reaches none of the page text is no guide to reading it.
-        if (all_letters > 0 && tagged_letters == 0) return null;
+            // Untagged text and artifacts both lack a tree reference. A page where the tree
+            // reaches under half the text is read from its layout instead of losing that text.
+            if (visible == 0) continue;
+            anyText = true;
+            if (inTree * 2 < visible) uncovered.Add(page.Index);
+        }
+        // A tree that reaches almost none of the text is no guide to reading it.
+        if (anyText && pages.All(page => uncovered.Contains(page.Index)
+            || page.Content.Letters.All(letter => string.IsNullOrWhiteSpace(letter.Value))))
+            return null;
 
         var blocks = new List<Block>();
         foreach (TaggedBlock item in tagged)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var pieces = item.Content.Where(content => selected.ContainsKey(content.Page)).ToList();
+            var pieces = item.Content.Where(content => selected.ContainsKey(content.Page)
+                && !uncovered.Contains(content.Page)).ToList();
             if (pieces.Count == 0) continue;
             var blockLetters = new List<PdfExtractedLetter>();
             foreach (var piece in pieces)
@@ -431,7 +458,7 @@ public static partial class PdfEpubExport
                 Top = blockLetters.Count > 0 ? bounds.Top : 0
             });
         }
-        return blocks.Count == 0 ? null : blocks;
+        return blocks.Count == 0 && uncovered.Count == 0 ? null : (blocks, uncovered);
     }
 
     private static int HeadingLevel(string role) => role switch
@@ -553,20 +580,40 @@ public static partial class PdfEpubExport
         List<byte[]> images, CancellationToken cancellationToken)
     {
         var renderer = new Rendering.PdfPageRenderer(document);
+        var rendered = new List<(SourcePage Page, PdfExtractedImage Image, byte[] Png, string Hash, bool Margin)>();
         foreach (SourcePage page in pages)
-        {
             foreach (PdfExtractedImage image in page.Content.Images)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 byte[]? png = RenderImage(renderer, page.Content, image, cancellationToken);
                 if (png is null) continue;
-                images.Add(png);
+                PdfContentBounds bounds = image.BoundingBox;
+                bool margin = bounds.Bottom >= page.Content.Height * 0.9 || bounds.Top <= page.Content.Height * 0.1;
+                rendered.Add((page, image, png, Convert.ToHexString(SHA256.HashData(png)), margin));
+            }
+        // A logo or ornament repeated in the page margins is running furniture, like a header.
+        int threshold = pages.Count <= 3 ? 2 : 3;
+        var marginRepeats = rendered.Where(item => item.Margin)
+            .GroupBy(item => item.Hash)
+            .Where(group => group.Select(item => item.Page.Index).Distinct().Count() >= threshold)
+            .Select(group => group.Key).ToHashSet();
+        var numbers = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var (page, image, png, hash, margin) in rendered)
+        {
+            {
+                if (margin && marginRepeats.Contains(hash)) continue;
+                // The same picture is stored once however often it appears.
+                if (!numbers.TryGetValue(hash, out int number))
+                {
+                    images.Add(png);
+                    numbers[hash] = number = images.Count;
+                }
                 var block = new Block
                 {
                     Kind = BlockKind.Image,
                     PageIndex = page.Index,
                     Top = image.BoundingBox.Top,
-                    ImageNumber = images.Count
+                    ImageNumber = number
                 };
                 double middle = (image.BoundingBox.Top + image.BoundingBox.Bottom) / 2;
                 int lastOnPage = blocks.FindLastIndex(item => item.PageIndex == page.Index);
@@ -604,7 +651,7 @@ public static partial class PdfEpubExport
         string title = Sanitize(!string.IsNullOrWhiteSpace(information?.Title) ? information!.Title!.Trim()
             : firstHeading ?? "Untitled");
         if (title.Length == 0) title = "Untitled";
-        string language = !string.IsNullOrWhiteSpace(information?.Language) ? information!.Language!.Trim() : "und";
+        string language = LanguageTag(information?.Language);
         string? author = string.IsNullOrWhiteSpace(information?.Author) ? null : Sanitize(information!.Author!.Trim());
         DateTimeOffset modified = information?.ModificationDate ?? information?.CreationDate ?? ZipTimestamp;
         string modifiedText = modified.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
@@ -709,6 +756,18 @@ public static partial class PdfEpubExport
                 Entry(archive, $"OEBPS/images/image{image + 1}.png", images[image], CompressionLevel.NoCompression);
         }
         return output.ToArray();
+    }
+
+    [GeneratedRegex(@"^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$", RegexOptions.CultureInvariant)]
+    private static partial Regex LanguagePattern();
+
+    // Producers write /Lang with underscores, padding or trailing NULs; an EPUB needs a BCP 47 tag.
+    internal static string LanguageTag(string? language)
+    {
+        if (language is null) return "und";
+        string cleaned = new string([.. language.Where(character => !char.IsControl(character))])
+            .Trim().Replace('_', '-');
+        return LanguagePattern().IsMatch(cleaned) ? cleaned : "und";
     }
 
     private static string ChapterName(int chapter) => $"text/chapter{chapter + 1:D3}.xhtml";

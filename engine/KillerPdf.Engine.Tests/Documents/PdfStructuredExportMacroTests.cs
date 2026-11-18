@@ -43,6 +43,21 @@ public sealed class PdfStructuredExportMacroTests
     }
 
     [Fact]
+    public void EpubExportStepRoundTripsAndWritesABook()
+    {
+        byte[] source = new PdfDocumentBuilder().AddPage(200, 300, Text("Chapter text")).Build();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Book", [
+            PdfStructuredExportMacro.Step(PdfStructuredExportFormat.Epub)]).ToJson());
+        PdfMacroStep step = Assert.Single(macro.Steps);
+
+        byte[] epub = PdfStructuredExportMacro.Execute(step, source).ToArray();
+
+        Assert.Equal(PdfStructuredExportFormat.Epub, PdfStructuredExportMacro.ReadFormat(step));
+        Assert.Equal(".epub", PdfStructuredExportMacro.Extension(PdfStructuredExportFormat.Epub));
+        Assert.Equal("mimetypeapplication/epub+zip", Encoding.ASCII.GetString(epub, 30, 28));
+    }
+
+    [Fact]
     public void ExportStepValidatesOperationSettingsAndSelection()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();

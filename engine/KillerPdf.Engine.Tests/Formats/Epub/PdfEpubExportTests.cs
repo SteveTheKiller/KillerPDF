@@ -209,6 +209,75 @@ public sealed class PdfEpubExportTests
     }
 
     [Fact]
+    public void UntaggedPagesInATaggedDocumentKeepTheirText()
+    {
+        string tagged = "/P << /MCID 0 >> BDC BT /F1 12 Tf 72 700 Td (Tagged first page.) Tj ET EMC";
+        string plain = "BT /F1 12 Tf 72 700 Td (Inserted untagged page.) Tj ET";
+        PdfDocument document = PdfDocument.Open(CreatePdf(
+        [
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 7 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 6 0 R /StructParents 0 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 9 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            Stream(tagged),
+            "<< /Type /StructTreeRoot /K [8 0 R] >>",
+            "<< /Type /StructElem /S /P /P 7 0 R /Pg 3 0 R /K 0 >>",
+            Stream(plain)
+        ]));
+
+        Package package = ReadPackage(PdfEpubExport.Write(document));
+
+        Assert.Equal(["Tagged first page.", "Inserted untagged page."], package.Blocks.Select(block => block.Text));
+    }
+
+    [Theory]
+    [InlineData("(en_US)", "en-US")]
+    [InlineData("(English)", "English")]
+    [InlineData("(de\\000)", "de")]
+    [InlineData("(not a tag!)", "und")]
+    public void DocumentLanguageBecomesAValidLanguageTag(string lang, string expected)
+    {
+        string content = "BT /F1 12 Tf 72 700 Td (Hello.) Tj ET";
+        PdfDocument document = PdfDocument.Open(CreatePdf(
+        [
+            $"<< /Type /Catalog /Pages 2 0 R /Lang {lang} >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            Stream(content)
+        ]));
+
+        Package package = ReadPackage(PdfEpubExport.Write(document));
+
+        Assert.Equal(expected, package.Opf.Descendants(Dc + "language").Single().Value);
+    }
+
+    [Fact]
+    public void RepeatedImagesAreStoredOnceAndMarginLogosAreDropped()
+    {
+        byte[] pixels = new byte[4 * 4 * 3];
+        Array.Fill(pixels, (byte)90);
+        PdfImage picture = PdfImage.FromRgb(4, 4, pixels);
+        var builder = new PdfDocumentBuilder();
+        for (int page = 1; page <= 3; page++)
+        {
+            var content = new PdfContentStreamBuilder();
+            content.DrawImage(picture, 500, 750, 30, 30);   // a logo in the top margin
+            Text(content, 11, 72, 700, $"Page {page} words above the figure.");
+            content.DrawImage(picture, 72, 450, 200, 200);
+            Text(content, 11, 72, 400, $"Page {page} words below the figure.");
+            builder.AddPage(612, 792, content);
+        }
+        PdfDocument document = PdfDocument.Open(builder.Build());
+
+        Package package = ReadPackage(PdfEpubExport.Write(document));
+
+        Assert.Equal(3, package.Blocks.Count(block => block.Name == "img"));
+        Assert.Single(package.Manifest, item => item.MediaType == "image/png");
+    }
+
+    [Fact]
     public void StructuredExportRoutesEpubAndReportsNoUnsupportedFormat()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
