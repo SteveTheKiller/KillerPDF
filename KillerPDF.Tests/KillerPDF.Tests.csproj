@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Compile Include="..\Controls\MotifPlacement.cs" Link="Controls\MotifPlacement.cs" />
+    <Compile Include="..\Features\Cli\PdfUaBatch.cs" Link="Features\Cli\PdfUaBatch.cs" />
     <Compile Include="..\Models\EditingTypes.cs" Link="Models\EditingTypes.cs" />
     <Compile Include="..\Models\UndoTypes.cs" Link="Models\UndoTypes.cs" />
     <Compile Include="..\Models\RedactionMark.cs" Link="Models\RedactionMark.cs" />

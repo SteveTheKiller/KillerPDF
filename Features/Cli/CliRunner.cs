@@ -88,7 +88,7 @@ namespace KillerPDF.Features
             [
                 "batch-resave", "batch-render", "help", "version", "verify", "merge",
                 "extract-pages", "split", "optimize", "number-pages", "bates", "preflight",
-                "accessibility", "attachments", "booklet", "nup", "auto-bookmarks", "decrypt",
+                "accessibility", "pdfua", "attachments", "booklet", "nup", "auto-bookmarks", "decrypt",
                 "to-image", "flatten", "print", "ocr", "scan-to-text", "rotate-pages",
                 "delete-pages", "move-pages", "insert-blank", "duplicate-page", "document-info", "search-text",
                 "reverse-pages", "fix-orientation", "straighten", "divide-spreads", "rasterize-region", "print-production",
@@ -113,7 +113,7 @@ namespace KillerPDF.Features
                 Eq(a, "--verify") || Eq(a, "/verify") ||
                 Eq(a, "--merge") || Eq(a, "--extract-pages") || Eq(a, "--split") ||
                 Eq(a, "--optimize") || Eq(a, "--number-pages") || Eq(a, "--bates") ||
-                Eq(a, "--preflight") || Eq(a, "--accessibility") || Eq(a, "--attachments") ||
+                Eq(a, "--preflight") || Eq(a, "--accessibility") || Eq(a, "--pdfua") || Eq(a, "--attachments") ||
                 Eq(a, "--booklet") || Eq(a, "--nup") || Eq(a, "--auto-bookmarks") ||
                 Eq(a, "--decrypt") || Eq(a, "--to-image") || Eq(a, "--flatten") ||
                 Eq(a, "--print") || Eq(a, "--ocr") || Eq(a, "--scan-to-text") || Eq(a, "--rotate-pages") ||
@@ -216,6 +216,9 @@ namespace KillerPDF.Features
                         break;
                     case "--accessibility":
                         exitCode = CliAccessibility(positionals, options, con);
+                        break;
+                    case "--pdfua":
+                        exitCode = PdfUaBatch.Run(positionals, options.ContainsKey("--json"), con);
                         break;
                     case "--attachments":
                         exitCode = CliAttachments(positionals, options, con);
@@ -454,6 +457,9 @@ namespace KillerPDF.Features
             "  killerpdf preflight <in.pdf> [--profile general|attachments|print|<profile.json>]",
             "                                           [--json] [--password <p>]   exit 3 when findings",
             "  killerpdf accessibility <in.pdf> [--json]        report accessibility findings; exit 3 when found",
+            "  killerpdf pdfua <in.pdf|folder> [more...] [--json]",
+            "                                           check PDF/UA-1 per Matterhorn checkpoint for each file and",
+            "                                           summarize; exit 3 when any file fails or is partly checked",
             "  killerpdf attachments <in.pdf> [<outDir>] [--json] [--password <p>]",
             "                                           list embedded files, or extract them to a folder",
             "  killerpdf decrypt <in.pdf> <out.pdf> [--password <p>]",

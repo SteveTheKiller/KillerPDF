@@ -84,7 +84,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The open and save dialogs have a New folder button, also on Ctrl+Shift+N. The folder is created in the current folder and opened, so a Save As can go straight into it. A name Windows won't accept is explained before anything is created. (#498)
 - Create Signature is now a signature editor, also opened from a saved signature's pencil and from Edit on a placed one. It has threshold for scanned signatures, pen width, edge feathering and ink color.
 - `--batch-render` takes `--secrets-stdin`, so an owner password stays out of the process list.
-- Preflight checks a document that declares PDF/UA-1 against the Matterhorn Protocol, the PDF Association's checklist for ISO 14289-1, and names each failed condition by its Matterhorn ID, such as 06-003 for a missing title, with its page. It used to say only that PDF/UA-1 validation was not available. (#491)
+- Preflight checks a document that declares PDF/UA-1 against the Matterhorn Protocol, the PDF Association's checklist for ISO 14289-1, and names each failed condition by its Matterhorn ID, such as 06-003 for a missing title, with its page. It used to say only that PDF/UA-1 validation was not available. `--pdfua` checks files and whole folders on the command line and prints a report per file and a summary, in text or with `--json`. The check also flags list, table, table of contents, Ruby and Warichu tags placed where they don't belong. (#491)
 
 ## [1.9.4] - 2026-11-15
 
