@@ -134,7 +134,7 @@ internal sealed class MergeFilesDialog : Window
         {
             var name = new TextBlock { Text = Path.GetFileName(path), TextTrimming = TextTrimming.CharacterEllipsis };
             var folder = new TextBlock { Text = Path.GetDirectoryName(path), FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis };
-            folder.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
+            folder.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
             var row = new StackPanel { Margin = new Thickness(2, 2, 2, 2) };
             row.Children.Add(name);
             row.Children.Add(folder);

@@ -964,6 +964,13 @@ namespace KillerPDF.Services
             // opaque tile. 98SE states #c0c0c0 - there, a toolbar button IS a raised button.
             SetIfAbsent("SortButtonBrush", Transparent);
             Mirror("SurfaceHoverBrush", "RowHoverBrush");
+            // A plain (non-accent) dialog button's face and hovered face. Every theme keeps the
+            // pane and surface wash it always had; Trash Polka states black with a gray hover.
+            Mirror("ButtonFaceBrush", "PaneBrush");
+            Mirror("ButtonHoverFaceBrush", "SurfaceHoverBrush");
+            // A dialog list well's tint, drawn at half opacity. Trash Polka states black so its motif
+            // darkens behind the rows the way the app's panels do, instead of washing gray.
+            Mirror("WellFillBrush", "PaneBrush");
             // The toolbar buttons' hovered face (Controls.xaml ViewToggleBtn). Mirrors the wash
             // above so it reads its source AFTER it exists; 98SE states the flat button face.
             Mirror("ToolHoverFaceBrush", "SurfaceHoverBrush");

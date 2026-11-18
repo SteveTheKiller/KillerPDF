@@ -100,7 +100,7 @@ internal static class DialogParts
         }
         var well = new Grid();
         var fill = new Border { Opacity = 0.5, IsHitTestVisible = false };
-        fill.SetResourceReference(Border.BackgroundProperty, "PaneBrush");
+        fill.SetResourceReference(Border.BackgroundProperty, "WellFillBrush");
         fill.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
         var edge = new Border { BorderThickness = new Thickness(1), IsHitTestVisible = false };
         edge.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");

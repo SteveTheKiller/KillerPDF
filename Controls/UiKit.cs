@@ -568,9 +568,14 @@ namespace KillerPDF
                 // Keep the same action control while its decorative template follows live
                 // classic/radius resources. No application-wide theme subscription retains it.
                 Template = Classic ? BeveledButtonTemplate()
-                    : ButtonTemplate(outlined: !_accent, radius: (CornerRadius)GetValue(RadiusProperty));
+                    : ButtonTemplate(outlined: !_accent && !SeeThroughFace(), radius: (CornerRadius)GetValue(RadiusProperty));
                 ApplyBrushes();
             }
+
+            // A see-through face (Trash Polka's dark tint over the motif) can't sit on the outlined template's
+            // edge fill, which would show through it as a gray slab, so it gets the plain stroked border.
+            private bool SeeThroughFace()
+                => !_accent && TryFindResource("ButtonFaceBrush") is SolidColorBrush { Color.A: < 255 };
 
             private void ApplyBrushes()
             {
@@ -583,7 +588,7 @@ namespace KillerPDF
                 }
                 bool hover = IsMouseOver;
                 SetResourceReference(BackgroundProperty, _accent
-                    ? hover ? "OutlineHoverBrush" : "OutlineFaceBrush" : hover ? "SurfaceHoverBrush" : "PaneBrush");
+                    ? hover ? "OutlineHoverBrush" : "OutlineFaceBrush" : hover ? "ButtonHoverFaceBrush" : "ButtonFaceBrush");
                 SetResourceReference(ForegroundProperty, _accent
                     ? hover ? "OutlineHoverTextBrush" : "OutlineTextBrush" : "TextBrush");
                 SetResourceReference(BorderBrushProperty, _accent
