@@ -29,16 +29,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The crash window's Report on GitHub link no longer carries folder names, so your Windows user name and document folders stay out of a public issue.
 - OCR languages download from a fixed version of the Tesseract language files, so a later change to those files cannot reach KillerPDF unreviewed.
 
-### Added
-
-- Trash Polka, a new theme under 98SE: black with a tattoo-style ink background in your accent color, from eight accents with Blood red as the default. Under a Windows high contrast theme the ink and the tab shade step aside for the system colors.
-- Merge opens a Merge files dialog instead of a plain file picker. Drop PDF files or whole folders on it from File Explorer, or use Add files and Add folder, then drag files into the order you want, or use Move up and Move down. A folder adds the PDFs directly inside it, in name order. (#495)
-- A tab can move into another open KillerPDF window, either from its right-click menu, which lists every other window by the document it shows, or by dragging the tab onto that window. A window whose last document moves away closes. (#503)
-- Reopen Closed Tab, on a tab's right-click menu and on Ctrl+Shift+T, brings back the last tab you closed, in any KillerPDF window, and each use goes one tab further back. (#502)
-- Comb fields, the text fields printed as a row of boxes with one character each, can be edited like any other text: select, copy and paste across the cells, and change the font, size, bold, italic, underline, strikethrough and color. Form recognition finds a row of three or more boxes as a comb. (#500) (Thanks @Signum21)
-- The open and save dialogs have a New folder button, also on Ctrl+Shift+N. The folder is created in the current folder and opened, so a Save As can go straight into it. A name Windows won't accept is explained before anything is created. (#498)
-- `--batch-render` takes `--secrets-stdin`, so an owner password stays out of the process list.
-
 ### Fixed
 
 - Paste pastes what was copied last. Once a picture, shape or text box had been copied, every paste brought it back, even after copying text or an image somewhere else, in every open document until a restart. (#497)
@@ -63,6 +53,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Three shortcuts moved so each one matches what it does and what other apps use. Rotate counterclockwise is now Ctrl+L, beside Ctrl+R for clockwise. Convert Scan to Text is now Ctrl+Shift+R, the recognize key in ABBYY FineReader. Ctrl+Shift+T reopens the last closed tab, as it does in web browsers.
 - On the command line, `--redact` removes hidden information by default and fails when a redacted word survives anywhere in the file. Add `--no-sanitize` to skip that step, or `--sanitize` with a list to choose what is removed.
 - On the command line, `--attachments` no longer replaces files already in the output folder. Add `--overwrite` to replace them.
+
+### Added
+
+- Trash Polka, a new theme under 98SE: black with a tattoo-style ink background in your accent color, from eight accents with Blood red as the default. Under a Windows high contrast theme the ink and the tab shade step aside for the system colors.
+- Merge opens a Merge files dialog instead of a plain file picker. Drop PDF files or whole folders on it from File Explorer, or use Add files and Add folder, then drag files into the order you want, or use Move up and Move down. A folder adds the PDFs directly inside it, in name order. (#495)
+- A tab can move into another open KillerPDF window, either from its right-click menu, which lists every other window by the document it shows, or by dragging the tab onto that window. A window whose last document moves away closes. (#503)
+- Reopen Closed Tab, on a tab's right-click menu and on Ctrl+Shift+T, brings back the last tab you closed, in any KillerPDF window, and each use goes one tab further back. (#502)
+- Comb fields, the text fields printed as a row of boxes with one character each, can be edited like any other text: select, copy and paste across the cells, and change the font, size, bold, italic, underline, strikethrough and color. Form recognition finds a row of three or more boxes as a comb. (#500) (Thanks @Signum21)
+- The open and save dialogs have a New folder button, also on Ctrl+Shift+N. The folder is created in the current folder and opened, so a Save As can go straight into it. A name Windows won't accept is explained before anything is created. (#498)
+- `--batch-render` takes `--secrets-stdin`, so an owner password stays out of the process list.
 
 ## [1.9.4] - 2026-11-15
 
