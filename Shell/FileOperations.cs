@@ -1355,6 +1355,8 @@ namespace KillerPDF.Shell
         {
             e.Handled = true;   // also fired by right-click on the Save button; don't let it bubble
             var menu = MakeThemedMenu();
+            if (TryFindResource("CardMenu") is Style card) menu.Style = card;
+            string Short(string key) => Loc(key).TrimEnd('.', '…');
 
             if (_doc is null)
             {
@@ -1364,11 +1366,19 @@ namespace KillerPDF.Shell
             {
                 menu.Items.Add(MakeMenuItem(Loc("Str_Menu_Save"), (_, _) => SaveInPlace(), GestureFor("Ctrl:S"), ""));
                 menu.Items.Add(MakeMenuItem(Loc("Str_Menu_SaveAs"), (s2, e2) => SaveAs_Click(s2, e2), GestureFor("CtrlShift:S"), ""));
-                menu.Items.Add(MakeMenuItem(Loc("Str_Menu_ReduceSize"), (s2, e2) => ReduceFileSize_Click(s2, e2)));   // #433
-                menu.Items.Add(MakeMenuItem(Loc("Str_Menu_CompressZip"), (s2, e2) => CompressToZip_Click(s2, e2), null, ""));
-                menu.Items.Add(MakeMenuItem(Loc("Str_Menu_ExportImages"), (s2, e2) => ExportImages_Click(s2, e2), null, ""));   // #132
-                menu.Items.Add(MakeMenuItem(Loc("Str_Menu_ExportDocument"), (s2, e2) => ExportDocument_Click(s2, e2), GestureFor("CtrlShift:E"), ""));
-                menu.Items.Add(MakeMenuItem(Loc("Str_TableExport_Title"), (_, _) => ExportTable(PageList.SelectedIndex)));
+                // The card frame and icon strip the page menus use (19e88a9): every export is a tile with its icon,
+                // and its shortcut rides on the tooltip. Reduce File Size (#433) and Export table had no icon before.
+                static (string, string, string?, Action, bool, bool) Tile(string caption, string gesture, Action act, string glyph)
+                    => (glyph, caption, gesture, act, false, true);
+                var zip = (Tile(Short("Str_Menu_CompressZip"), "AltShift:C", () => CompressToZip_Click(this, new RoutedEventArgs()), ""));
+                var images = (Tile(Short("Str_Menu_ExportImages"), "AltShift:E", () => ExportImages_Click(this, new RoutedEventArgs()), ""));   // #132
+                var document = (Tile(Short("Str_Menu_ExportDocument"), "CtrlShift:E", () => ExportDocument_Click(this, new RoutedEventArgs()), ""));
+                var exports = QuickStrip(menu, 3,
+                    Tile(Short("Str_Menu_ReduceSize"), "AltShift:Z", () => ReduceFileSize_Click(this, new RoutedEventArgs()), GlyphText(0xE73F)),
+                    zip, images, document,
+                    Tile(Short("Str_TableExport_Title"), "AltShift:T", () => ExportTable(PageList.SelectedIndex), GlyphText(0xE80A)));
+                menu.Items.Add(CardSlot(LabelledStrip(Loc("Str_ExportImg_Export"), exports), new Thickness(0)));
+                FocusFirstActionFromKeyboard(menu, exports);
                 menu.Items.Add(new Separator());
                 // #149: visible always (discoverability, the PDF Viewer Plus way), enabled only when the
                 // open file actually had a password/encryption. A regular save keeps the encryption,
@@ -2205,6 +2215,7 @@ namespace KillerPDF.Shell
                 PdfStructuredExportFormat.Markdown => Loc("Str_Filter_Markdown"),
                 PdfStructuredExportFormat.PlainText => Loc("Str_Filter_Text"),
                 PdfStructuredExportFormat.Json => Loc("Str_Filter_Json"),
+                PdfStructuredExportFormat.Epub => Loc("Str_Filter_Epub"),
                 _ => Loc("Str_Filter_AllFiles")
             };
             var save = new Controls.FileDialog(Controls.FileDialogMode.Save)

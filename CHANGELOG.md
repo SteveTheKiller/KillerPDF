@@ -48,11 +48,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A PDF rewritten in place at the same size within the same instant no longer shows its old pages in the background render or thumbnails.
 - The Mourning theme highlights selections in its original peach with dark text again, instead of pink.
 - The tab beside the active document tab no longer draws a second divider line against it.
+- Gray buttons in the Trash Polka theme now visibly lighten on hover.
 
 ### Changed
 
 - Three shortcuts moved so each one matches what it does and what other apps use. Rotate counterclockwise is now Ctrl+L, beside Ctrl+R for clockwise. Convert Scan to Text is now Ctrl+Shift+R, the recognize key in ABBYY FineReader. Ctrl+Shift+T reopens the last closed tab, as it does in web browsers.
 - On the command line, `--redact` removes hidden information by default and fails when a redacted word survives anywhere in the file. Add `--no-sanitize` to skip that step, or `--sanitize` with a list to choose what is removed.
+- Dropping several PDFs on the window opens the Merge files dialog, where you can order them and merge, open them separately, or cancel.
+- The Save menu groups Reduce Size, the exports and Export Table into a tile strip, like the page right-click menus.
 - On the command line, `--attachments` no longer replaces files already in the output folder. Add `--overwrite` to replace them.
 
 ### Added

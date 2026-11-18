@@ -98,7 +98,7 @@
     <SolidColorBrush x:Key="RadioAccent"         Color="#D7263D" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionAccent"     Color="#D7263D" po:Freeze="True"/>
     <sys:Double x:Key="PaneShadowOpacity">0.6</sys:Double>
-    <SolidColorBrush x:Key="SurfaceHoverBrush"   Color="#FF404040" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SurfaceHoverBrush"   Color="#FF5A5A5A" po:Freeze="True"/>
     <sys:Double x:Key="TitleBarHeight">32</sys:Double>
     <sys:Double x:Key="BarShadowOpacity">0.38</sys:Double>
     <SolidColorBrush x:Key="DialogTitleBarBrush" Color="Transparent" po:Freeze="True"/>

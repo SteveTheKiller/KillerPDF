@@ -119,6 +119,20 @@ namespace KillerPDF.Shell
                     found = found.GetRange(0, MaxDropFiles);
                 }
                 if (!batch.Expanded && found.Count == 1) { OpenDropped(found[0].Path); return; }
+                // Several dropped PDFs open the Merge files dialog (#495) directly: put them in order and merge, open
+                // them separately, or cancel. A drop with pictures in it keeps the plain question, because the dialog
+                // lists only PDFs.
+                if (found.All(file => PdfImport.IsPdfPath(file.Path)))
+                {
+                    var dlg = new MergeFilesDialog(this, found.Select(file => file.Path), offerOpenSeparately: true);
+                    if (dlg.ShowDialog() != true || dlg.Paths.Count == 0) return;
+                    var kept = dlg.Paths.Select(path => found.First(file =>
+                        string.Equals(Path.GetFullPath(file.Path), path, StringComparison.OrdinalIgnoreCase))).ToList();
+                    if (dlg.OpenSeparately) { await OpenSeparately(kept, batch); return; }
+                    handedToMerge = true;
+                    OpenMerged([.. kept.Select(file => file.Path)], batch);
+                    return;
+                }
                 int choice = KillerDialog.ShowChoices(this,
                     string.Format(Loc("Str_Drop_Prompt"), found.Count),
                     [Loc("Str_Drop_Merge"), Loc("Str_Drop_Separate"), Loc("Str_Stamp_Cancel")], accentIndex: 0);

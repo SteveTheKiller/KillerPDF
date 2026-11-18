@@ -22,7 +22,10 @@ internal sealed class MergeFilesDialog : Window
 
     internal IReadOnlyList<string> Paths => _files.Paths;
 
-    internal MergeFilesDialog(Window owner, IEnumerable<string>? initial = null)
+    /// <summary>True when the dialog closed through Open separately, which only a drop offers.</summary>
+    internal bool OpenSeparately { get; private set; }
+
+    internal MergeFilesDialog(Window owner, IEnumerable<string>? initial = null, bool offerOpenSeparately = false)
     {
         Title = "KillerPDF - " + L("Str_MergeFiles_Title");
         Width = 680; Height = 500; MinWidth = 420; MinHeight = 320;
@@ -37,7 +40,10 @@ internal sealed class MergeFilesDialog : Window
         _merge = UiKit.Make(L("Str_MergeFiles_Merge"), accent: true);
         _merge.IsDefault = true;
         _merge.Click += (_, _) => { if (_files.Paths.Count > 0) DialogResult = true; };
-        DockPanel footer = DialogParts.Footer([cancel, _merge]);
+        // A drop of several files opens this dialog directly, so the other answer to the drop lives here too.
+        var separate = UiKit.Make(L("Str_Drop_Separate"), accent: false);
+        separate.Click += (_, _) => { if (_files.Paths.Count > 0) { OpenSeparately = true; DialogResult = true; } };
+        DockPanel footer = DialogParts.Footer(offerOpenSeparately ? [cancel, separate, _merge] : [cancel, _merge]);
         DockPanel.SetDock(footer, Dock.Bottom);
         body.Children.Add(footer);
 
