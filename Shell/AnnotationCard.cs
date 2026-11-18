@@ -27,7 +27,7 @@ namespace KillerPDF.Shell
             bool canRaise = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, hit, +1) >= 0;
             bool canLower = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, hit, -1) >= 0;
             var quick = new List<(string, string, string?, Action, bool, bool)>();
-            if (!multi) quick.Add(("\uE70F", Loc("Str_Ctx_Edit"), null, () => EditAnnotation(hit), false, true));
+            if (!multi && CanEditAnnotation(hit)) quick.Add(("\uE70F", Loc("Str_Ctx_Edit"), null, () => EditAnnotation(hit), false, true));
             quick.Add(("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true));
             quick.Add(("\uE70E", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(hit, +1), false, canRaise));
             quick.Add(("\uE70D", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(hit, -1), false, canLower));

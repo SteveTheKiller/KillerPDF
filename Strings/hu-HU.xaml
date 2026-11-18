@@ -832,6 +832,15 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Sig_Sensitivity">Érzékenység</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Világosabb</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Sötétebb</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Aláírás szerkesztése</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Küszöb</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Lágy szél</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Tinta színe</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Eredeti színek</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Fekete</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Kék</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Sötétkék</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Egyéni szín</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Ennek az oldalnak a levágása (Enter)</sys:String>

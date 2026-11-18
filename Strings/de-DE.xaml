@@ -745,6 +745,15 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Sig_Sensitivity">Empfindlichkeit</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Heller</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Dunkler</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Unterschrift bearbeiten</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Schwellenwert</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Weiche Kante</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Tintenfarbe</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Originalfarben</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Schwarz</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Blau</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Marineblau</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Eigene Farbe</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Diese Seite zuschneiden (Enter)</sys:String>

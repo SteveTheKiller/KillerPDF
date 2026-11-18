@@ -832,6 +832,15 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Sig_Sensitivity">感度</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">薄く</sys:String>
     <sys:String x:Key="Str_Sig_Darker">濃く</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">署名を編集</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">しきい値</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">ぼかし</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">インクの色</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">元の色</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">黒</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">青</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">紺</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">カスタム色</sys:String>
 
     <!-- トリミング確認バーのツールチップ -->
     <sys:String x:Key="Str_TT_CropThisPage">このページをトリミング (Enter)</sys:String>

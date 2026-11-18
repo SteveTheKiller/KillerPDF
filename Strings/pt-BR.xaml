@@ -832,6 +832,15 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Sig_Sensitivity">Sensibilidade</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Mais claro</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Mais escuro</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Editar assinatura</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Limiar</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Suavização</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Cor da tinta</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Cores originais</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Preto</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Azul</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Azul-marinho</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Cor personalizada</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Cortar esta página (Enter)</sys:String>

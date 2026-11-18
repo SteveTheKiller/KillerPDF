@@ -747,6 +747,15 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Sig_Sensitivity">靈敏度</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">較淺</sys:String>
     <sys:String x:Key="Str_Sig_Darker">較深</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">編輯簽名</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">臨界值</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">羽化</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">墨水色彩</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">原始色彩</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">黑色</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">藍色</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">藏青色</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">自訂色彩</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">裁切此頁 (Enter)</sys:String>

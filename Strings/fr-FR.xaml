@@ -832,6 +832,15 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Sig_Sensitivity">Sensibilité</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Plus clair</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Plus foncé</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Modifier la signature</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Seuil</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Adoucissement</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Couleur de l’encre</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Couleurs d’origine</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Noir</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Bleu</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Bleu marine</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Couleur personnalisée</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Recadrer cette page (Entrée)</sys:String>

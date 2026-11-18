@@ -832,6 +832,15 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Sig_Sensitivity">Sensibilità</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Più chiaro</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Più scuro</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Modifica firma</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Soglia</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Sfumatura</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Colore inchiostro</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Colori originali</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Nero</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Blu</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Blu navy</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Colore personalizzato</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Ritaglia questa pagina (Invio)</sys:String>

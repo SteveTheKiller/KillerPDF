@@ -546,6 +546,31 @@ namespace KillerPDF.Shell
                     ShowSignaturePopup(); // refresh
                 };
                 itemGrid.Children.Add(delBtn);
+
+                // Edit opens the signature editor on this saved signature (SVG signatures keep their own look).
+                if (CanEditSignature(sigCopy))
+                {
+                    var editBtn = new Button
+                    {
+                        Content = GlyphText(0xE70F),
+                        FontSize = 10,
+                        Width = 18, Height = 18,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Top,
+                        Margin = new Thickness(0, 0, 22, 0),
+                        Background = new SolidColorBrush(Color.FromArgb(200, 30, 30, 30)),
+                        BorderThickness = new Thickness(0),
+                        Cursor = Cursors.Hand,
+                        Padding = new Thickness(0),
+                        Style = (Style)FindResource("ToolbarButton"),
+                        ToolTip = Loc("Str_Sig_EditTitle")
+                    };
+                    editBtn.SetResourceReference(Control.ForegroundProperty, "PrimaryBrush");
+                    System.Windows.Automation.AutomationProperties.SetName(editBtn, Loc("Str_Sig_EditTitle") + ": " + sigCopy.Name);
+                    System.Windows.Automation.AutomationProperties.SetAutomationId(editBtn, "EditSignature_" + sigCopy.Id);
+                    editBtn.Click += (s, e) => EditSavedSignature(sigCopy);
+                    itemGrid.Children.Add(editBtn);
+                }
                 return itemGrid;
             }
 
@@ -722,206 +747,7 @@ namespace KillerPDF.Shell
             }
         }
 
-        private void OpenSignatureCreator(SignatureKind kind = SignatureKind.Signature)
-        {
-            var win = new Window
-            {
-                Title = Loc("Str_Sig_Create"),
-                Width = 460,
-                SizeToContent = SizeToContent.Height   // size to content so there's no empty padding below
-            };
-            DialogFrame.Configure(win, this);
-            // This separate window can't see MainWindow's ChromeCloseCorner, so the close button's
-            // {DynamicResource ChromeCloseCorner} fell back to 0 (square hover). Provide it here so the
-            // hover rounds the top-right corner to match the window.
-            win.Resources["ChromeCloseCorner"] = new CornerRadius(0, UiKit.RadWindow.TopRight, 0, 0);
-
-            var contentArea = new StackPanel();
-
-            // Drawing canvas
-            var canvasBorder = new Border
-            {
-                Background = Brushes.White,
-                // Faint outline so the white drawing pane reads as a distinct field on the modal.
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0xcc, 0xcc, 0xcc)),
-                BorderThickness = new Thickness(1),
-                Margin = new Thickness(12, 12, 12, 4),
-                CornerRadius = UiKit.RadControl,
-                Height = 170
-            };
-            var drawCanvas = new Canvas
-            {
-                Background = Brushes.White,
-                ClipToBounds = true,
-                Cursor = Cursors.Pen
-            };
-            canvasBorder.Child = drawCanvas;
-
-            // Placeholder text
-            // In a Canvas, alignment is ignored, so position the hint with a little padding rather
-            // than leaving it jammed in the top-left corner. A script face suits a signature prompt.
-            var placeholder = new TextBlock
-            {
-                Text = Loc("Str_Sig_DrawHere"),
-                Foreground = new SolidColorBrush(Color.FromRgb(0xb0, 0xb0, 0xb0)),
-                FontFamily = new FontFamily("Segoe Script, Segoe UI"),
-                FontSize = 18,
-                IsHitTestVisible = false
-            };
-            Canvas.SetLeft(placeholder, 18);
-            Canvas.SetTop(placeholder, 14);
-            drawCanvas.Children.Add(placeholder);
-
-            // Drawing state
-            var strokes = new List<List<Point>>();
-            List<Point>? currentStroke = null;
-            Polyline? currentPoly = null;
-            double penWidth = 2.5;   // medium; set by the pen-width selector below
-
-            drawCanvas.MouseLeftButtonDown += (s, e) =>
-            {
-                if (placeholder.Visibility == Visibility.Visible)
-                    placeholder.Visibility = Visibility.Collapsed;
-                currentStroke = [];
-                var pos = e.GetPosition(drawCanvas);
-                currentStroke.Add(pos);
-                currentPoly = new Polyline
-                {
-                    Stroke = Brushes.Black,
-                    StrokeThickness = penWidth,
-                    StrokeLineJoin = PenLineJoin.Round,
-                    StrokeStartLineCap = PenLineCap.Round,
-                    StrokeEndLineCap = PenLineCap.Round
-                };
-                currentPoly.Points.Add(pos);
-                drawCanvas.Children.Add(currentPoly);
-                drawCanvas.CaptureMouse();
-            };
-
-            drawCanvas.MouseMove += (s, e) =>
-            {
-                if (currentStroke is null || currentPoly is null) return;
-                var pos = e.GetPosition(drawCanvas);
-                pos.X = Math.Max(0, Math.Min(drawCanvas.ActualWidth, pos.X));
-                pos.Y = Math.Max(0, Math.Min(drawCanvas.ActualHeight, pos.Y));
-                currentStroke.Add(pos);
-                currentPoly.Points.Add(pos);
-            };
-
-            drawCanvas.MouseLeftButtonUp += (s, e) =>
-            {
-                if (currentStroke is not null && currentStroke.Count > 1)
-                    strokes.Add(currentStroke);
-                else if (currentPoly is not null)
-                    drawCanvas.Children.Remove(currentPoly);
-                currentStroke = null;
-                currentPoly = null;
-                drawCanvas.ReleaseMouseCapture();
-            };
-
-            contentArea.Children.Add(canvasBorder);
-
-            // Pen-width selector: three preset thicknesses, active one highlighted. On the left so the
-            // modal does not read bottom-right-heavy.
-            var penRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(14, 6, 12, 0), VerticalAlignment = VerticalAlignment.Center };
-            penRow.Children.Add(new TextBlock { Text = Loc("Str_Sig_Pen"), Foreground = (Brush)FindResource("MutedTextBrush"), FontFamily = UiKit.UiFont, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) });
-            var penOptions = new (string Label, double W)[] { (Loc("Str_Sig_Thin"), 2.0), (Loc("Str_Sig_Medium"), 4.5), (Loc("Str_Sig_Thick"), 9.0) };
-            var penBtns = new List<Button>();
-            void RefreshPen()
-            {
-                for (int bi = 0; bi < penBtns.Count; bi++)
-                {
-                    bool active = Math.Abs(penOptions[bi].W - penWidth) < 0.01;
-                    penBtns[bi].Background  = active ? (Brush)FindResource("SelectionBg") : (Brush)FindResource("PaneBrush");
-                    penBtns[bi].Foreground  = active ? (Brush)FindResource("SelectionFg") : (Brush)FindResource("TextBrush");
-                    penBtns[bi].BorderBrush = active ? (Brush)FindResource("PrimaryBrush")      : (Brush)FindResource("CardBorderBrush");
-                }
-            }
-            foreach (var (lbl, w) in penOptions)
-            {
-                double ww = w;
-                var pb = new Button
-                {
-                    Content = lbl,
-                    Style = (Style)FindResource("DarkButton"),
-                    Padding = new Thickness(12, 3, 12, 3),
-                    Margin = new Thickness(0, 0, 6, 0),
-                    BorderThickness = new Thickness(1),
-                    Cursor = Cursors.Hand,
-                    FontFamily = UiKit.UiFont,
-                    FontSize = 11
-                };
-                pb.Click += (s2, e2) => { penWidth = ww; RefreshPen(); };
-                penBtns.Add(pb);
-                penRow.Children.Add(pb);
-            }
-            RefreshPen();
-
-            // Buttons
-            var btnPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-
-            var clearBtn = UiKit.Make(Loc("Str_Sig_Clear"), accent: false);
-            clearBtn.Margin = new Thickness(0, 0, 8, 0);
-            clearBtn.Click += (s, e) =>
-            {
-                strokes.Clear();
-                drawCanvas.Children.Clear();
-                placeholder.Visibility = Visibility.Visible;
-                drawCanvas.Children.Add(placeholder);
-            };
-
-            var saveBtn = UiKit.Make(Loc("Str_Sig_SaveSig"), accent: true);
-            saveBtn.Click += (s, e) =>
-            {
-                if (strokes.Count == 0)
-                {
-                    KillerDialog.Show(this, Loc("Str_Dlg_DrawSignatureFirst"), "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                double cw = drawCanvas.ActualWidth > 0 ? drawCanvas.ActualWidth : 400;
-                double ch = drawCanvas.ActualHeight > 0 ? drawCanvas.ActualHeight : 150;
-
-                var saved = new SavedSignature
-                {
-                    Kind = kind,
-                    StrokeWidth = penWidth,
-                    CanvasWidth = cw,
-                    CanvasHeight = ch,
-                    Name = $"{(kind == SignatureKind.Initials ? "Initials" : "Signature")} {_signatureStore.Signatures.Count(x => x.Kind == kind) + 1}"
-                };
-                foreach (var stroke in strokes)
-                {
-                    var sPts = stroke.Select(p => new SerializablePoint { X = p.X, Y = p.Y }).ToList();
-                    saved.Strokes.Add(sPts);
-                }
-                _signatureStore.Add(saved);
-                bool kept = PersistSignatures();
-
-                // Auto-select the new signature for placement
-                _pendingSignature = saved;
-                _annotationCanvas.Cursor = Cursors.Cross;
-                SetStatus(Loc(kept ? "Str_St_SignatureSaved" : "Str_Err_SignatureLibrarySave"));
-
-                win.Close();
-            };
-
-            btnPanel.Children.Add(clearBtn);
-            btnPanel.Children.Add(saveBtn);
-
-            // Pen-size selector on its own row above the buttons. A single shared row doesn't survive
-            // longer translated labels (e.g. Bengali Clear/Save) - the last pen option ("Thick") clipped.
-            contentArea.Children.Add(penRow);
-            btnPanel.Margin = new Thickness(12, 4, 12, 12);
-            contentArea.Children.Add(btnPanel);
-
-            win.Content = DialogFrame.Frame(win, this, "KillerPDF - " + Loc("Str_Sig_Create"), () => win.Close(), contentArea);
-            win.ShowDialog();
-        }
+        // OpenSignatureCreator and the editor it opens live in SignatureEditor.cs.
 
         // A new signature is armed for placing, so the picker stays out of the way of the page. It
         // returns when nothing was added, or when a form field is still waiting for a pick.
@@ -946,20 +772,11 @@ namespace KillerPDF.Shell
                     return;
                 }
                 var bmp = new System.Windows.Media.Imaging.BitmapImage(new Uri(dlg.SelectedPath));
-                // A scanned or photographed signature carries its paper with it. The sensitivity
-                // dialog drops the paper and lets the user lighten or darken the ink before saving.
-                var inked = ShowSignatureSensitivityDialog(bmp);
-                if (inked is null) return;
-                byte[] pngBytes = SignatureInk.EncodePng(inked);
-
-                var saved = new SavedSignature
-                {
-                    Kind = kind,
-                    Name = dlg.SelectedName ?? System.IO.Path.GetFileNameWithoutExtension(dlg.SelectedPath),
-                    CanvasWidth = bmp.PixelWidth,
-                    CanvasHeight = bmp.PixelHeight,
-                    ImageData = Convert.ToBase64String(pngBytes)
-                };
+                // A scanned or photographed signature carries its paper with it. The signature editor
+                // drops the paper and sets the weight, feather and ink color before saving.
+                var saved = ImportPictureSignature(bmp,
+                    dlg.SelectedName ?? System.IO.Path.GetFileNameWithoutExtension(dlg.SelectedPath), kind);
+                if (saved is null) return;
                 _signatureStore.Add(saved);
                 bool kept = PersistSignatures();
 
@@ -996,98 +813,5 @@ namespace KillerPDF.Shell
             SetStatus(Loc(kept ? "Str_St_ImageLoaded" : "Str_Err_SignatureLibrarySave"));
         }
 
-        // Preview of an imported signature with a Sensitivity slider. Returns the full-size ink on a
-        // transparent background, or null when the user cancels.
-        private System.Windows.Media.Imaging.BitmapSource? ShowSignatureSensitivityDialog(
-            System.Windows.Media.Imaging.BitmapSource source)
-        {
-            var win = new Window
-            {
-                Title = Loc("Str_Sig_AdjustImage"),
-                Width = 460,
-                SizeToContent = SizeToContent.Height
-            };
-            DialogFrame.Configure(win, this);
-            win.Resources["ChromeCloseCorner"] = new CornerRadius(0, UiKit.RadWindow.TopRight, 0, 0);
-
-            var contentArea = new StackPanel();
-
-            // White like the page the signature lands on, so the preview shows the real result.
-            var previewBorder = new Border
-            {
-                Background = Brushes.White,
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0xcc, 0xcc, 0xcc)),
-                BorderThickness = new Thickness(1),
-                Margin = new Thickness(12, 12, 12, 4),
-                CornerRadius = UiKit.RadControl,
-                Height = 170,
-                Padding = new Thickness(8)
-            };
-            var preview = new Image { Stretch = Stretch.Uniform };
-            RenderOptions.SetBitmapScalingMode(preview, BitmapScalingMode.HighQuality);
-            previewBorder.Child = preview;
-            contentArea.Children.Add(previewBorder);
-
-            // The slider re-inks a reduced copy so a large phone photo still follows the thumb.
-            var previewSource = SignatureInk.PreviewSource(source, 900);
-            byte[] previewPixels = SignatureInk.ReadPixels(previewSource, out int pw, out int ph);
-            void RefreshPreview(double sensitivity) =>
-                preview.Source = SignatureInk.ToBitmap(SignatureInk.Apply(previewPixels, sensitivity), pw, ph);
-
-            var sensitivityRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(14, 6, 12, 0), VerticalAlignment = VerticalAlignment.Center };
-            TextBlock MutedLabel(string text, Thickness margin)
-            {
-                var label = new TextBlock { Text = text, FontFamily = UiKit.UiFont, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = margin };
-                label.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-                return label;
-            }
-            sensitivityRow.Children.Add(MutedLabel(Loc("Str_Sig_Sensitivity"), new Thickness(0, 0, 10, 0)));
-            sensitivityRow.Children.Add(MutedLabel(Loc("Str_Sig_Lighter"), new Thickness(0, 0, 6, 0)));
-            var sensitivitySlider = new Slider
-            {
-                Minimum = SignatureInk.MinSensitivity,
-                Maximum = SignatureInk.MaxSensitivity,
-                Value = SignatureInk.DefaultSensitivity,
-                SmallChange = 1,
-                LargeChange = 10,
-                IsSnapToTickEnabled = true,
-                TickFrequency = 1,
-                Width = 160,
-                VerticalAlignment = VerticalAlignment.Center,
-                Style = (Style)FindResource("DarkSlider")
-            };
-            System.Windows.Automation.AutomationProperties.SetName(sensitivitySlider, Loc("Str_Sig_Sensitivity"));
-            sensitivityRow.Children.Add(sensitivitySlider);
-            sensitivityRow.Children.Add(MutedLabel(Loc("Str_Sig_Darker"), new Thickness(6, 0, 0, 0)));
-            sensitivitySlider.ValueChanged += (s, e) => RefreshPreview(e.NewValue);
-            contentArea.Children.Add(sensitivityRow);
-            RefreshPreview(sensitivitySlider.Value);
-
-            System.Windows.Media.Imaging.BitmapSource? result = null;
-            var btnPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(12, 10, 12, 12)
-            };
-            var cancelBtn = UiKit.Make(Loc("Str_Btn_Cancel"), accent: false);
-            cancelBtn.Margin = new Thickness(0, 0, 8, 0);
-            cancelBtn.Click += (s, e) => win.Close();
-            var saveBtn = UiKit.Make(Loc("Str_Sig_SaveSig"), accent: true);
-            saveBtn.Click += (s, e) =>
-            {
-                byte[] pixels = SignatureInk.ReadPixels(source, out int w, out int h);
-                result = SignatureInk.ToBitmap(SignatureInk.Apply(pixels, sensitivitySlider.Value), w, h);
-                win.Close();
-            };
-            btnPanel.Children.Add(cancelBtn);
-            btnPanel.Children.Add(saveBtn);
-            contentArea.Children.Add(btnPanel);
-
-            win.Content = DialogFrame.Frame(win, this, "KillerPDF - " + Loc("Str_Sig_AdjustImage"), () => win.Close(), contentArea);
-            win.Loaded += (s, e) => sensitivitySlider.Focus();
-            win.ShowDialog();
-            return result;
-        }
     }
 }

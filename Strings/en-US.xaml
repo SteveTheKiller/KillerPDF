@@ -833,6 +833,15 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Sig_Sensitivity">Sensitivity</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Lighter</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Darker</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Edit Signature</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Threshold</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Feather</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Ink color</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Original colors</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Black</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Blue</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Navy</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Custom color</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Crop this page (Enter)</sys:String>

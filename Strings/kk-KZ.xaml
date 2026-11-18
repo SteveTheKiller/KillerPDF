@@ -751,6 +751,15 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Sig_Sensitivity">Сезімталдық</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Ашығырақ</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Қоюырақ</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Қолтаңбаны өңдеу</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Шек</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Жиекті жұмсарту</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Сия түсі</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Бастапқы түстер</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Қара</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Көк</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Қою көк</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Таңдамалы түс</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Осы бетті қию (Enter)</sys:String>

@@ -813,6 +813,15 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Sig_Sensitivity">Czułość</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Jaśniej</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Ciemniej</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Edytuj podpis</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Próg</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Zmiękczenie krawędzi</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Kolor atramentu</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Oryginalne kolory</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Czarny</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Niebieski</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Granatowy</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Kolor niestandardowy</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Przytnij tę stronę (Enter)</sys:String>

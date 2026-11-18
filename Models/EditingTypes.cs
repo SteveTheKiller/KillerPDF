@@ -324,6 +324,20 @@ namespace KillerPDF
         /// <summary>Outlines of a signature imported from SVG (#398), in CanvasWidth/Height units.
         /// Null for drawn and image signatures.</summary>
         public List<SignatureVector>? Vectors { get; set; }
+
+        // The signature editor's settings, kept so Edit reopens the signature as it was left. ImageData is the
+        // finished look; a drawn signature with a color or feather keeps its Strokes beside that picture, and an
+        // imported one keeps the scan in SourceImageData so its threshold can be loosened again later.
+        /// <summary>The untouched scan or photo (PNG, base-64) an imported signature was cleaned from.</summary>
+        public string? SourceImageData { get; set; }
+        /// <summary>Ink color as ARGB; null keeps the ink's own colors (drawn ink is black).</summary>
+        public uint? InkColor { get; set; }
+        /// <summary>Edge softness in signature units.</summary>
+        public double Feather { get; set; }
+        /// <summary>Threshold of an imported signature (0 to 100); null uses the default.</summary>
+        public double? Threshold { get; set; }
+        /// <summary>Grow or thin an imported signature's ink, in signature units.</summary>
+        public double Weight { get; set; }
     }
 
     /// <summary>

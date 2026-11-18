@@ -745,6 +745,15 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Sig_Sensitivity">Hassasiyet</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Daha açık</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Daha koyu</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">İmzayı düzenle</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Eşik</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Kenar yumuşatma</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Mürekkep rengi</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Özgün renkler</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Siyah</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Mavi</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Lacivert</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Özel renk</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Bu sayfayı kırp (Enter)</sys:String>

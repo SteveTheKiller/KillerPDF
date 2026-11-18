@@ -832,6 +832,15 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Sig_Sensitivity">Чувствительность</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Светлее</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Темнее</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Изменить подпись</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Порог</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Растушёвка</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Цвет чернил</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Исходные цвета</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Чёрный</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Синий</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Тёмно-синий</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Свой цвет</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Обрезать эту страницу (Enter)</sys:String>

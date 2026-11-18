@@ -832,6 +832,15 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Sig_Sensitivity">Følsomhet</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Lysere</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Mørkere</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Rediger signatur</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Terskel</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Myk kant</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Blekkfarge</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Originalfarger</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Svart</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Blå</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Marineblå</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Egendefinert farge</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Beskjær denne siden (Enter)</sys:String>

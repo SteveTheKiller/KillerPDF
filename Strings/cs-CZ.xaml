@@ -823,6 +823,15 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Sig_Sensitivity">Citlivost</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Světlejší</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Tmavší</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Upravit podpis</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Práh</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Změkčení okrajů</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Barva inkoustu</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Původní barvy</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Černá</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Modrá</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Námořnická modř</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Vlastní barva</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Oříznout tuto stránku (Enter)</sys:String>

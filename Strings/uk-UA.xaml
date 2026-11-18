@@ -832,6 +832,15 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Sig_Sensitivity">Чутливість</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Світліше</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Темніше</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Редагувати підпис</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Поріг</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Розмиття країв</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Колір чорнила</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Початкові кольори</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Чорний</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Синій</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Темно-синій</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Власний колір</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Обрізати цю сторінку (Enter)</sys:String>

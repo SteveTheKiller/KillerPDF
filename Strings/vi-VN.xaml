@@ -832,6 +832,15 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Sig_Sensitivity">Độ nhạy</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Nhạt hơn</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Đậm hơn</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Sửa chữ ký</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Ngưỡng</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Làm mềm viền</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Màu mực</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Màu gốc</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Đen</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Xanh dương</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Xanh navy</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Màu tùy chỉnh</sys:String>
 
     <!-- Mẹo công cụ thanh xác nhận cắt -->
     <sys:String x:Key="Str_TT_CropThisPage">Cắt trang này (Enter)</sys:String>

@@ -700,7 +700,17 @@ namespace KillerPDF.Shell
                                   ta.Position.Y + Math.Min(Math.Max(footprint.Height, 8) / 2, 8));
                 EditTextAtPosition(p, ta.PageIndex);
             }
+            else if (hit is SignatureAnnotation signature)
+                EditPlacedSignature(signature);
         }
+
+        // The marks Edit can open; the card shows no Edit button on the rest, so it never does nothing.
+        private static bool CanEditAnnotation(PageAnnotation hit) => hit switch
+        {
+            TextAnnotation => true,
+            SignatureAnnotation signature => CanEditSignature(signature),
+            _ => false
+        };
 
         // The other half of a text/cover pair, if any.
         private PageAnnotation? PairPartner(PageAnnotation a)

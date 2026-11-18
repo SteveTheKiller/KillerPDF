@@ -745,6 +745,15 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Sig_Sensitivity">সংবেদনশীলতা</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">হালকা</sys:String>
     <sys:String x:Key="Str_Sig_Darker">গাঢ়</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">স্বাক্ষর সম্পাদনা</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">থ্রেশহোল্ড</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">নরম প্রান্ত</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">কালির রং</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">মূল রং</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">কালো</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">নীল</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">গাঢ় নীল</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">নিজস্ব রং</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">এই পৃষ্ঠা ক্রপ করুন (Enter)</sys:String>

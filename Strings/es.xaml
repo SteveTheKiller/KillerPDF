@@ -745,6 +745,15 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Sig_Sensitivity">Sensibilidad</sys:String>
     <sys:String x:Key="Str_Sig_Lighter">Más claro</sys:String>
     <sys:String x:Key="Str_Sig_Darker">Más oscuro</sys:String>
+    <sys:String x:Key="Str_Sig_EditTitle">Editar firma</sys:String>
+    <sys:String x:Key="Str_Sig_Threshold">Umbral</sys:String>
+    <sys:String x:Key="Str_Sig_Feather">Difuminado</sys:String>
+    <sys:String x:Key="Str_Sig_InkColor">Color de tinta</sys:String>
+    <sys:String x:Key="Str_Sig_ColorOriginal">Colores originales</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlack">Negro</sys:String>
+    <sys:String x:Key="Str_Sig_ColorBlue">Azul</sys:String>
+    <sys:String x:Key="Str_Sig_ColorNavy">Azul marino</sys:String>
+    <sys:String x:Key="Str_Sig_ColorCustom">Color personalizado</sys:String>
 
     <!-- Crop confirm bar tooltips -->
     <sys:String x:Key="Str_TT_CropThisPage">Recortar esta página (Entrar)</sys:String>
