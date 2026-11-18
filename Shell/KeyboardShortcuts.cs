@@ -432,12 +432,21 @@ namespace KillerPDF.Shell
                 DeleteSelected();
                 e.Handled = true;
             }
-            else if (key == Key.R &&
-                     (mods == ModifierKeys.Control ||
-                      mods == (ModifierKeys.Control | ModifierKeys.Shift)))
+            // Ctrl+R turns pages right, Ctrl+L turns them left.
+            else if (key == Key.R && mods == ModifierKeys.Control)
             {
-                if (!e.IsRepeat)
-                    RotatePages_Click(mods == ModifierKeys.Control ? 90 : -90);
+                if (!e.IsRepeat) RotatePages_Click(90);
+                e.Handled = true;
+            }
+            else if (key == Key.L && mods == ModifierKeys.Control)
+            {
+                if (!e.IsRepeat) RotatePages_Click(-90);
+                e.Handled = true;
+            }
+            // Ctrl+Shift+T reopens the last closed tab, the browsers' key (#502).
+            else if (key == Key.T && mods == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                if (!e.IsRepeat) ActiveViewer.ReopenClosedTab();
                 e.Handled = true;
             }
             else if (key == Key.Z && mods == ModifierKeys.Control)
@@ -503,7 +512,8 @@ namespace KillerPDF.Shell
             }
             // 1.9 commands. Each matches its menu gesture text and its ShortcutTable row; key repeat
             // is ignored so holding the chord opens one dialog, not a queue of them.
-            else if (key == Key.T && mods == (ModifierKeys.Control | ModifierKeys.Shift))
+            // Ctrl+Shift+R recognizes a scan, FineReader's key.
+            else if (key == Key.R && mods == (ModifierKeys.Control | ModifierKeys.Shift))
             {
                 if (!e.IsRepeat) ConvertScanToText();
                 e.Handled = true;

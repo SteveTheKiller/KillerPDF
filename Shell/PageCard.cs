@@ -33,7 +33,7 @@ namespace KillerPDF.Shell
             FocusFirstActionFromKeyboard(menu, strip);
             // Rotation is a second row of the same tiles: the outline buttons stuck out (Steve 2026-11-14).
             var turns = QuickStrip(menu,
-                (GlyphText(0xE7AD), Loc("Str_Ctx_RotateCCWShort"), "CtrlShift:R", () => RotatePages_Click(-90), true, true),
+                (GlyphText(0xE7AD), Loc("Str_Ctx_RotateCCWShort"), "Ctrl:L", () => RotatePages_Click(-90), true, true),
                 (GlyphText(0xE895), Loc("Str_Ctx_UpsideDown"), null, () => RotatePages_Click(180), false, true),
                 (GlyphText(0xE7AD), Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90), false, true));
             menu.Items.Add(CardSlot(turns, new Thickness(0)));

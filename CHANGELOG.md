@@ -6,59 +6,61 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.5] - Unreleased
 
+1.9.5 closes a round of security holes in updates, setup, the preview and Redact, adds a Merge files dialog, comb field editing and moving tabs between windows, and fixes paste, scan replacements and touchpad zoom.
+
 ### Security
 
-- The Explorer and Outlook preview runs in Windows' low-integrity preview sandbox again, so a PDF that exploited it could not write to your files or settings. Open in KillerPDF still starts the full app normally.
-- A PDF built to multiply its own drawing work can no longer hang KillerPDF, the Explorer and Outlook preview, or the page thumbnails. A tiling pattern that paints with itself is skipped, nested drawings share one work limit for the page however wide they branch, and a preview page or thumbnail that takes longer than 15 seconds stops and shows as incomplete.
-- A damaged PDF built to make repair slow opens or fails in seconds. The search for a lost cross-reference stream skips objects that cannot be one and stops after a fixed number of tries, and a broken object stream is read once instead of once for every object inside it.
-- An embedded file named to fool Windows can no longer be extracted under a different name or onto a device. A name ending in a dot or space, such as `run.bat.`, which Windows would save as `run.bat`, is refused, and so are device names such as CON, NUL and COM1. Far more file types count as executable in the attachment safety check, including .hta, .url, .iso and macro-enabled Office files.
-- Files saved out of a PDF are marked as coming from the internet, so Windows SmartScreen and Office Protected View treat them like a download.
-- Redact checks the finished file for the words it found. When one still appears in a bookmark, a link destination's name, a script, the document's details or any other text, the command line refuses to save and the app, macros and the Privacy guided task say which words remain. Removing hidden information now also renames link destinations, which can carry the words they point at, and links keep working.
-- The Signatures panel shows "Certification broken" for a document certified to allow no changes that was changed afterward. It used to say "Valid, changed after signing", which read as a pass.
-- The working copies KillerPDF keeps while you edit are deleted as soon as an edit replaces them, so text a redaction removed no longer sits in a temporary file until KillerPDF closes.
 - An update installs only when its signing certificate chains to the certificate authority that issues KillerPDF's own, and a revoked certificate is refused. A certificate that only carries the right name no longer passes.
-- A machine-wide install unpacks into a folder only administrators can change, and a machine-wide uninstall runs its cleanup script from one, so a program running without admin rights cannot swap files in while setup works.
-- Setup no longer loads DLLs from the folder it was downloaded to, and it starts Explorer and the command prompt by their full Windows paths.
+- The Explorer and Outlook preview runs in Windows' low-integrity preview sandbox again, so a PDF that exploited it could not write to your files or settings. Open in KillerPDF still starts the full app normally.
+- Setup can no longer be hijacked by a program running without admin rights. A machine-wide install unpacks into a folder only administrators can change, a machine-wide uninstall runs its cleanup script from one, setup no longer loads DLLs from the folder it was downloaded to, and it starts Explorer and the command prompt by their full Windows paths.
+- Redact checks the finished file for the words it found. When one still appears in a bookmark, a link destination's name, a script, the document's details or any other text, the command line refuses to save and the app, macros and the Privacy guided task say which words remain. Removing hidden information now also renames link destinations, which can carry the words they point at, and links keep working.
 - A PDF link handed over from the browser downloads only from the public internet. A web page can no longer use it to reach a router, printer or other device on your network.
 - A file or link sent to the KillerPDF that's already running goes only to a copy running as you. Another account that started first can no longer collect what you open.
-- OCR languages download from a fixed version of the Tesseract language files, so a later change to those files cannot reach KillerPDF unreviewed.
+- An embedded file named to fool Windows can no longer be extracted under a different name or onto a device. A name ending in a dot or space, such as `run.bat.`, which Windows would save as `run.bat`, is refused, and so are device names such as CON, NUL and COM1. Far more file types count as executable in the attachment safety check, including .hta, .url, .iso and macro-enabled Office files.
+- Files saved out of a PDF are marked as coming from the internet, so Windows SmartScreen and Office Protected View treat them like a download.
+- The Signatures panel shows "Certification broken" for a document certified to allow no changes that was changed afterward. It used to say "Valid, changed after signing", which read as a pass.
 - Converting a Word or Excel file no longer refreshes its links to other files, and Excel 4.0 macros in a workbook stay off while it converts.
+- A PDF built to multiply its own drawing work can no longer hang KillerPDF, the Explorer and Outlook preview, or the page thumbnails. A tiling pattern that paints with itself is skipped, nested drawings share one work limit for the page however wide they branch, and a preview page or thumbnail that takes longer than 15 seconds stops and shows as incomplete.
+- A damaged PDF built to make repair slow opens or fails in seconds. The search for a lost cross-reference stream skips objects that cannot be one and stops after a fixed number of tries, and a broken object stream is read once instead of once for every object inside it.
 - A password-protected save gets a random document identifier instead of one made from the unencrypted content, which let anyone holding the file confirm a guess at what it says.
-- The crash window's Report on GitHub link no longer carries folder names, so your Windows user name and document folders stay out of a public issue.
+- The working copies KillerPDF keeps while you edit are deleted as soon as an edit replaces them, so text a redaction removed no longer sits in a temporary file until KillerPDF closes.
 - A password typed for a file whose protection could not be read is forgotten after two minutes instead of being kept until the tab closes.
 - A signing certificate loaded from a .pfx file can no longer have its private key exported from KillerPDF while it signs.
-- `--batch-render` takes `--secrets-stdin`, so an owner password stays out of the process list.
+- The crash window's Report on GitHub link no longer carries folder names, so your Windows user name and document folders stay out of a public issue.
+- OCR languages download from a fixed version of the Tesseract language files, so a later change to those files cannot reach KillerPDF unreviewed.
 
 ### Added
 
-- Trash Polka, a new theme under 98SE: black with a tattoo-style ink background in your accent color, from eight accents with Blood red as the default. Under a Windows high contrast theme the ink and the tab shade step aside for the system colors.
 - Merge opens a Merge files dialog instead of a plain file picker. Drop PDF files or whole folders on it from File Explorer, or use Add files and Add folder, then drag files into the order you want, or use Move up and Move down. A folder adds the PDFs directly inside it, in name order. (#495)
-- The open and save dialogs have a New folder button, also on Ctrl+Shift+N. The folder is created in the current folder and opened, so a Save As can go straight into it. A name Windows won't accept is explained before anything is created. (#498)
-- Comb fields, the text fields printed as a row of boxes with one character each, can be edited like any other text: select, copy and paste across the cells, and change the font, size, bold, italic, underline, strikethrough and color. Form recognition finds a row of three or more boxes as a comb. Thanks to Signum21. (#500)
-- Reopen Closed Tab on a tab's right-click menu brings back the last tab you closed, in any KillerPDF window, and each use goes one tab further back. (#502)
 - A tab can move into another open KillerPDF window, either from its right-click menu, which lists every other window by the document it shows, or by dragging the tab onto that window. A window whose last document moves away closes. (#503)
+- Reopen Closed Tab, on a tab's right-click menu and on Ctrl+Shift+T, brings back the last tab you closed, in any KillerPDF window, and each use goes one tab further back. (#502)
+- Comb fields, the text fields printed as a row of boxes with one character each, can be edited like any other text: select, copy and paste across the cells, and change the font, size, bold, italic, underline, strikethrough and color. Form recognition finds a row of three or more boxes as a comb. Thanks to Signum21. (#500)
+- The open and save dialogs have a New folder button, also on Ctrl+Shift+N. The folder is created in the current folder and opened, so a Save As can go straight into it. A name Windows won't accept is explained before anything is created. (#498)
+- Trash Polka, a new theme under 98SE: black with a tattoo-style ink background in your accent color, from eight accents with Blood red as the default. Under a Windows high contrast theme the ink and the tab shade step aside for the system colors.
+- `--batch-render` takes `--secrets-stdin`, so an owner password stays out of the process list.
 
 ### Fixed
 
-- A PDF rewritten in place at the same size within the same instant no longer shows its old pages in the background render or thumbnails.
-- The Mourning theme highlights selections in its original peach with dark text again, instead of pink.
 - Paste pastes what was copied last. Once a picture, shape or text box had been copied, every paste brought it back, even after copying text or an image somewhere else, in every open document until a restart. (#497)
 - Turning a replacement's layers on or off in More settings no longer freezes the window. The menu used to stay open with nothing under it and hold the mouse until another window took it back, which also kept the arrow keys from moving the text box or its cover. (#467)
-- With a replacement's text box locked, the arrow keys and a drag move its cover, as 1.9.4 promised. It worked only after the two were linked, and a fresh edit never is. The selection frame now follows the mark when the arrow keys move it, instead of staying where the mark was. After a click in More settings, the arrow keys go back to the selection instead of changing the Font box, and with a screen reader or other accessibility tool running they move a selected mark instead of the reading caret. (#467)
-- Edit paragraph on recognized text over a scan opens the same line edit the Text tool does, instead of saying the paragraph cannot be edited.
-- Selecting a text box shows its own font, bold, italic, strikethrough and underline on the text bar. The bar used to keep the Text tool's font, so changing any setting while a replacement was selected could restyle it in the wrong font.
-- Pinching on a precision touchpad zooms the page again, as it did before 1.9.3, instead of scrolling it. (#494)
 - Redact no longer fails with "Pages ... cannot be redacted without replacing them with an image" when saving the document leaves a page that has to become an image. It asks about those pages the same way it asks about the others, and canceling leaves the document as it was. (#499)
-- The tab beside the active document tab no longer draws a second divider line against it.
-- A Chinese or Japanese file name in the title bar is drawn in Microsoft YaHei UI or Yu Gothic UI, matching the menus, instead of the system's default face. Document tab names follow the same rule in every theme, including 98SE, whose Microsoft Sans Serif now hands Chinese and Japanese characters to those faces. (#490)
-- A save with annotations that fails at the last step no longer keeps a working copy open until KillerPDF closes.
+- Pinching on a precision touchpad zooms the page again, as it did before 1.9.3, instead of scrolling it. (#494)
 - Two portable copies sharing one data folder no longer lose each other's settings changes, and a power cut while settings save can no longer leave an empty settings file.
+- With a replacement's text box locked, the arrow keys and a drag move its cover, as 1.9.4 promised. It worked only after the two were linked, and a fresh edit never is. The selection frame now follows the mark when the arrow keys move it, instead of staying where the mark was. After a click in More settings, the arrow keys go back to the selection instead of changing the Font box, and with a screen reader or other accessibility tool running they move a selected mark instead of the reading caret. (#467)
+- Selecting a text box shows its own font, bold, italic, strikethrough and underline on the text bar. The bar used to keep the Text tool's font, so changing any setting while a replacement was selected could restyle it in the wrong font.
+- Edit paragraph on recognized text over a scan opens the same line edit the Text tool does, instead of saying the paragraph cannot be edited.
+- A Chinese or Japanese file name in the title bar is drawn in Microsoft YaHei UI or Yu Gothic UI, matching the menus, instead of the system's default face. Document tab names follow the same rule in every theme, including 98SE, whose Microsoft Sans Serif now hands Chinese and Japanese characters to those faces. (#490)
+- A macro's Redact step in the app works on a slightly damaged PDF the way the command line always did, instead of failing on a file KillerPDF opens fine.
+- A save with annotations that fails at the last step no longer keeps a working copy open until KillerPDF closes.
 - A saved report replaces the old file only once it is completely written.
 - A file that fails to open, or whose open you cancel, no longer shows up in Recent.
-- A macro's Redact step in the app works on a slightly damaged PDF the way the command line always did, instead of failing on a file KillerPDF opens fine.
+- A PDF rewritten in place at the same size within the same instant no longer shows its old pages in the background render or thumbnails.
+- The Mourning theme highlights selections in its original peach with dark text again, instead of pink.
+- The tab beside the active document tab no longer draws a second divider line against it.
 
 ### Changed
 
+- Three shortcuts moved so each one matches what it does and what other apps use. Rotate counterclockwise is now Ctrl+L, beside Ctrl+R for clockwise. Convert Scan to Text is now Ctrl+Shift+R, the recognize key in ABBYY FineReader. Ctrl+Shift+T reopens the last closed tab, as it does in web browsers.
 - On the command line, `--redact` removes hidden information by default and fails when a redacted word survives anywhere in the file. Add `--no-sanitize` to skip that step, or `--sanitize` with a list to choose what is removed.
 - On the command line, `--attachments` no longer replaces files already in the output folder. Add `--overwrite` to replace them.
 

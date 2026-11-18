@@ -246,7 +246,10 @@ namespace KillerPDF.Tests
             Assert.Equal("Str_Lbl_Redact", map[KbLayer.Base]["X"].Label);
             Assert.Equal("Str_Menu_ExportDocument", map[KbLayer.CtrlShift]["E"].Label);
             Assert.Equal("Str_Protect_Name", map[KbLayer.CtrlShift]["P"].Label);
-            Assert.Equal("Str_Ocr_ScanToText", map[KbLayer.CtrlShift]["T"].Label);
+            Assert.Equal("Str_Ocr_ScanToText", map[KbLayer.CtrlShift]["R"].Label);
+            Assert.Equal("Str_Ctx_ReopenClosedTab", map[KbLayer.CtrlShift]["T"].Label);
+            Assert.Equal("Str_Ctx_RotateCW", map[KbLayer.Ctrl]["R"].Label);
+            Assert.Equal("Str_Ctx_RotateCCW", map[KbLayer.Ctrl]["L"].Label);
             Assert.Equal("Str_Theme_FilmGrain", map[KbLayer.AltShift]["G"].Label);
             Assert.Equal("Str_Ctx_MoveToNewWindow", map[KbLayer.CtrlShift]["N"].Label);
             Assert.Equal("Str_DocumentTools", map[KbLayer.CtrlShift]["D"].Label);

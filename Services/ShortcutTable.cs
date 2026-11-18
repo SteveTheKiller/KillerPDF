@@ -244,7 +244,7 @@ namespace KillerPDF
             B("C",               "Str_Lbl_Crop",      "Tools", Cap("C")),
             B("R",               "Str_Lbl_Rotate",    "Tools", Cap("R")),
             B("%ctrl%+R",        "Str_Ctx_RotateCW", "Tools", Cap("Ctrl:R")),
-            B("%ctrl%+%shift%+R", "Str_Ctx_RotateCCW", "Tools", Cap("CtrlShift:R")),
+            B("%ctrl%+L",        "Str_Ctx_RotateCCW", "Tools", Cap("Ctrl:L")),
             B("S",               "Str_Ctx_StampPages","Tools", Cap("S")),
             B("F",               "Str_KS_FormField",  "Tools", Cap("F")),
             B("E",               "Str_ColorCorrection", "Tools", Cap("E")),
@@ -302,6 +302,7 @@ namespace KillerPDF
             B("%alt%+%shift%+Up", "Str_Layout_TabsTop", "View", Cap("AltShift:Up")),
             B("%alt%+%shift%+Down", "Str_Layout_TabsBottom", "View", Cap("AltShift:Down")),
             B("%ctrl%+%shift%+N", "Str_Ctx_MoveToNewWindow", "Nav", Cap("CtrlShift:N")),
+            B("%ctrl%+%shift%+T", "Str_Ctx_ReopenClosedTab", "Nav", Cap("CtrlShift:T")),
 
             B("F5",            "Str_View_Continuous", "View", Cap("F5")),
             B("F6",            "Str_View_Single",     "View", Cap("F6")),
@@ -331,7 +332,7 @@ namespace KillerPDF
 
             B("%ctrl%+%shift%+O", "Str_Ctx_OcrPage", "Ocr", Cap("CtrlShift:O")),
             B("%ctrl%+%shift%+I", "Str_Ocr_Region",  "Ocr", Cap("CtrlShift:I")),
-            B("%ctrl%+%shift%+T", "Str_Ocr_ScanToText", "Ocr", Cap("CtrlShift:T")),
+            B("%ctrl%+%shift%+R", "Str_Ocr_ScanToText", "Ocr", Cap("CtrlShift:R")),
 
             B("%ctrl%+K",                  "Str_ToolSearch",        "Search", Cap("Ctrl:K")),
             B("%ctrl%+F",                  "Str_KS_Find",           "Search", Cap("Ctrl:F")),

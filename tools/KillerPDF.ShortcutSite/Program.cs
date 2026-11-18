@@ -5,8 +5,8 @@ using KillerPDF;
 Console.OutputEncoding = new System.Text.UTF8Encoding(false);
 
 // Emits the app's shortcut data for the landing page without maintaining another binding table.
-if (args.Length is < 1 or > 2 || args.Length == 2 && args[1] != "--check")
-    throw new ArgumentException("Usage: KillerPDF.ShortcutSite REPOSITORY [--check]");
+if (args.Length is < 1 or > 2 || args.Length == 2 && args[1] is not ("--check" or "--write"))
+    throw new ArgumentException("Usage: KillerPDF.ShortcutSite REPOSITORY [--check | --write]");
 string root = Path.GetFullPath(args[0]);
 XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
 var locales = new Dictionary<string, object>();
@@ -37,7 +37,13 @@ string output = "window.KillerPDFShortcuts = " + JsonSerializer.Serialize(new { 
     { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }).Replace("<", "\\u003c") + ";\n";
 if (output.IndexOfAny(['\u2013', '\u2014']) >= 0)
     throw new InvalidDataException("Shortcut text contains a prohibited dash character.");
-if (args.Length == 2)
+if (args.Length == 2 && args[1] == "--write")
+{
+    // Regenerates the landing data in place, with the same line endings --check compares.
+    File.WriteAllText(Path.Combine(root, "pdf-landing", "shortcuts.generated.js"), output, new System.Text.UTF8Encoding(false));
+    Console.WriteLine($"Wrote landing shortcut data for {locales.Count} languages.");
+}
+else if (args.Length == 2)
 {
     string current = File.ReadAllText(Path.Combine(root, "pdf-landing", "shortcuts.generated.js")).Replace("\r\n", "\n");
     if (current != output) throw new InvalidDataException("Landing shortcuts are out of date. Regenerate them from the app table.");

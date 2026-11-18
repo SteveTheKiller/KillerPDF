@@ -483,6 +483,12 @@ namespace KillerPDF.Controls
             if (e.ChangedButton == MouseButton.Middle) { e.Handled = true; CloseTab(s); }
         }
 
+        /// <summary>#502: opens the most recently closed tab again, from any window (menu and Ctrl+Shift+T).</summary>
+        internal void ReopenClosedTab()
+        {
+            if (Services.ClosedTabs.Take() is { } path) OpenInNewTab(path);
+        }
+
         private void Tab_RightClick(object sender, MouseButtonEventArgs e)
         {
             if (sender is not FrameworkElement fe || fe.DataContext is not DocumentSession s) return;
@@ -510,15 +516,11 @@ namespace KillerPDF.Controls
                         (_, _) => Host?.MoveTabToWindow(this, s, window), null, ""));
             menu.Items.Add(new Separator());
             // #502: brings back the most recently closed tab, from any window.
-            var reopen = MakeMenuItem(Loc("Str_Ctx_ReopenClosedTab"), (_, _) =>
-            {
-                if (Services.ClosedTabs.Take() is { } path) OpenInNewTab(path);
-            }, null, "");
+            var reopen = MakeMenuItem(Loc("Str_Ctx_ReopenClosedTab"), (_, _) => ReopenClosedTab(), GestureFor("CtrlShift:T"), "");
             reopen.IsEnabled = Services.ClosedTabs.CanReopen;
             menu.Items.Add(reopen);
             AddTabPlacementMenuItems(menu);
-            menu.PlacementTarget = fe;
-            menu.IsOpen = true;
+            menu.PlacementTarget = fe;            menu.IsOpen = true;
             e.Handled = true;
         }
 

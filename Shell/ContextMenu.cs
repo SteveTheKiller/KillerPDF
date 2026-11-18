@@ -948,7 +948,7 @@ namespace KillerPDF.Shell
 
         private MenuItem MakeRotateMenuItem(string header, RoutedEventHandler click, bool clockwise)
         {
-            string gesture = GestureFor(clockwise ? "Ctrl:R" : "CtrlShift:R");
+            string gesture = GestureFor(clockwise ? "Ctrl:R" : "Ctrl:L");
             var item = MakeMenuItem(header, click, gesture, glyph: "\uE7AD");
             if (item.Icon is TextBlock icon)
             {
