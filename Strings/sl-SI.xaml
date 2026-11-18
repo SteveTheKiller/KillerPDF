@@ -1649,6 +1649,14 @@
     <sys:String x:Key="Str_KS_EnabledStatus">Bližnjice na tipkovnici so omogočene</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Bližnjice na tipkovnici so onemogočene. Za vklop pritisnite Ctrl+Shift+K.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Ob zagonu preveri posodobitve</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Obnovi zadnjo sejo</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Vedno</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Vprašaj</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Nikoli</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Obnovim zadnjo sejo (število datotek: {0})?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Obnovi</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Zapri</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Ni znova odprto, ker so bile datoteke premaknjene ali izbrisane: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">Datoteka »{0}« je zaščitena z geslom.</sys:String>
     <sys:String x:Key="Str_About_Aka">ZNAN TUDI KOT</sys:String>
     <sys:String x:Key="Str_Btn_Run">Zaženi</sys:String>

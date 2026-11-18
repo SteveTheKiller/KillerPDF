@@ -1756,6 +1756,14 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_KS_EnabledStatus">キーボードショートカットは有効です</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">キーボードショートカットは無効です。Ctrl+Shift+K を押すと有効になります。</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">起動時に更新を確認する</sys:String>
+    <sys:String x:Key="Str_RestoreSession">前回のセッションを復元</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">常に</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">確認する</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">しない</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">前回のセッションを復元しますか（{0} 個のファイル）？</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">復元</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">閉じる</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">移動または削除されたため、再度開けませんでした: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">「{0}」はパスワードで保護されています。</sys:String>
     <sys:String x:Key="Str_About_Aka">別名</sys:String>
     <sys:String x:Key="Str_Btn_Run">実行</sys:String>

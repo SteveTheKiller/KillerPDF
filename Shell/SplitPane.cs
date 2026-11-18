@@ -154,9 +154,9 @@ namespace KillerPDF.Shell
         /// pane had focus at exit is not saved yet.</summary>
         private bool _restoringSplit;   // set only during that restore - see OpenSplit
 
-        private void RestorePaneB()
+        private void RestorePaneB(Services.SessionPane? stored)
         {
-            try { RestorePaneBCore(); }
+            try { RestorePaneBCore(stored); }
             catch (Exception ex)
             {
                 // A failed restore must never take the window down with it. Whatever went wrong,
@@ -166,9 +166,9 @@ namespace KillerPDF.Shell
             }
         }
 
-        private void RestorePaneBCore()
+        private void RestorePaneBCore(Services.SessionPane? stored)
         {
-            if (App.GetSetting("SplitOpen") != "1") return;
+            if (App.GetSetting("SplitOpen") != "1" && stored is not { Tabs.Count: > 0 }) return;
 
             // Seed pane A's fixed width from the saved setting BEFORE opening the split.
             // OpenSplit's own fallback (Viewer.ActualWidth) is always 0 at this point - the window
@@ -186,21 +186,10 @@ namespace KillerPDF.Shell
             try { OpenSplit(); }
             finally { _restoringSplit = false; }
 
-            var saved = App.GetSetting("OpenTabsB");
-            if (string.IsNullOrEmpty(saved)) return;
-
-            var restored = new System.Collections.Generic.List<PdfViewer.DocumentSession>();
-            foreach (var f in saved!.Split('|'))
-                if (!string.IsNullOrEmpty(f) && System.IO.File.Exists(f))
-                    restored.Add(PdfViewer.MakeDeferredSession(f));
-            if (restored.Count == 0) return;
-
-            var wantActive = App.GetSetting("ActiveTabB");
-            var target = (!string.IsNullOrEmpty(wantActive)
-                    ? restored.FirstOrDefault(s => string.Equals(s.OriginalFile, wantActive,
-                                                                 StringComparison.OrdinalIgnoreCase))
-                    : null)
-                ?? restored[0];
+            // #502: pane B's tabs come from the stored session, already without missing files.
+            if (stored is null) return;
+            var (restored, active) = PdfViewer.MakeDeferredSessions(stored);
+            if (active is not { } target) return;
 
             ViewerB.SetSessionsExt(restored, target);
             FocusPane(ViewerB);

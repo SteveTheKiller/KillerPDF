@@ -1766,6 +1766,14 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_KS_EnabledStatus">Keyboard shortcuts enabled</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Keyboard shortcuts disabled. Press Ctrl+Shift+K to enable them.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Check for updates on startup</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Restore last session</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Always</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Ask</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Never</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Restore last session ({0} files)?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Restore</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Dismiss</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Not reopened because they were moved or deleted: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">“{0}” is password protected.</sys:String>
     <sys:String x:Key="Str_About_Aka">AKA</sys:String>
     <sys:String x:Key="Str_Btn_Run">Run</sys:String>

@@ -1756,6 +1756,14 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_KS_EnabledStatus">Atalhos de teclado ativados</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Atalhos de teclado desativados. Pressione Ctrl+Shift+K para ativá-los.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Verificar atualizações ao iniciar</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Restaurar a última sessão</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Sempre</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Perguntar</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Nunca</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Restaurar a última sessão ({0} arquivos)?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Restaurar</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Fechar</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Não reabertos porque foram movidos ou excluídos: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">“{0}” é protegido por senha.</sys:String>
     <sys:String x:Key="Str_About_Aka">AKA</sys:String>
     <sys:String x:Key="Str_Btn_Run">Executar</sys:String>

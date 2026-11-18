@@ -1745,6 +1745,14 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_KS_EnabledStatus">Tastenkürzel aktiviert</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Tastenkürzel deaktiviert. Zum Aktivieren Strg+Umschalt+K drücken.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Beim Start nach Updates suchen</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Letzte Sitzung wiederherstellen</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Immer</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Fragen</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Nie</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Letzte Sitzung wiederherstellen ({0} Dateien)?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Wiederherstellen</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Schließen</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Nicht wieder geöffnet, weil verschoben oder gelöscht: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">„{0}“ ist passwortgeschützt.</sys:String>
     <sys:String x:Key="Str_About_Aka">Auch bekannt als</sys:String>
     <sys:String x:Key="Str_Btn_Run">Starten</sys:String>

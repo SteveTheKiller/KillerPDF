@@ -1756,6 +1756,14 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_KS_EnabledStatus">Raccourcis clavier activés</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Raccourcis clavier désactivés. Appuyez sur Ctrl+Maj+K pour les activer.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Rechercher les mises à jour au démarrage</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Restaurer la dernière session</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Toujours</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Demander</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Jamais</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Restaurer la dernière session ({0} fichiers) ?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Restaurer</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Fermer</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Non rouverts, car déplacés ou supprimés : {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">« {0} » est protégé par un mot de passe.</sys:String>
     <sys:String x:Key="Str_About_Aka">Aussi connu sous le nom de</sys:String>
     <sys:String x:Key="Str_Btn_Run">Exécuter</sys:String>

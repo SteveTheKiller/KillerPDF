@@ -87,6 +87,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Create Signature is now a signature editor, also opened from a saved signature's pencil and from Edit on a placed one. It has threshold for scanned signatures, pen width, edge feathering and ink color.
 - `--batch-render` takes `--secrets-stdin`, so an owner password stays out of the process list.
 - Preflight checks a document that declares PDF/UA-1 against the Matterhorn Protocol, the PDF Association's checklist for ISO 14289-1, and names each failed condition by its Matterhorn ID, such as 06-003 for a missing title, with its page. It used to say only that PDF/UA-1 validation was not available. `--pdfua` checks files and whole folders on the command line and prints a report per file and a summary, in text or with `--json`. The check also flags list, table, table of contents, Ruby and Warichu tags placed where they don't belong. (#491)
+- Restore last session, in About next to the startup options, brings back your open tabs, from every window, with their page and zoom: Always reopens them, Ask offers a Restore bar at launch, and Never forgets them. Tabs load when you first open them, files that were moved or deleted are named once in the status bar, and opening a file directly starts without the old session.
 
 ## [1.9.4] - 2026-11-15
 

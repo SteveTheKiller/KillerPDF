@@ -1759,6 +1759,14 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_KS_EnabledStatus">Пернелер тіркесімі қосулы</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Пернелер тіркесімі өшірулі. Қосу үшін Ctrl+Shift+K басыңыз.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Іске қосылғанда жаңартуларды тексеру</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Соңғы сеансты қалпына келтіру</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Әрқашан</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Сұрау</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Ешқашан</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Соңғы сеансты қалпына келтіру керек пе ({0} файл)?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Қалпына келтіру</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Жабу</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Жылжытылған немесе жойылған, сондықтан қайта ашылмады: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">«{0}» құпиясөзбен қорғалған.</sys:String>
     <sys:String x:Key="Str_About_Aka">Басқа аты</sys:String>
     <sys:String x:Key="Str_Btn_Run">Іске қосу</sys:String>

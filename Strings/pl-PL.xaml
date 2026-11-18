@@ -1744,6 +1744,14 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_KS_EnabledStatus">Skróty klawiaturowe włączone</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Skróty klawiaturowe wyłączone. Naciśnij Ctrl+Shift+K, aby je włączyć.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Sprawdzaj aktualizacje przy uruchamianiu</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Przywracaj ostatnią sesję</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Zawsze</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Pytaj</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Nigdy</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Przywrócić ostatnią sesję (liczba plików: {0})?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Przywróć</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Zamknij</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Nie otwarto ponownie, bo pliki przeniesiono lub usunięto: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">Plik „{0}” jest chroniony hasłem.</sys:String>
     <sys:String x:Key="Str_About_Aka">Znany także jako</sys:String>
     <sys:String x:Key="Str_Btn_Run">Uruchom</sys:String>

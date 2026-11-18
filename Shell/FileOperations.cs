@@ -333,6 +333,7 @@ namespace KillerPDF.Shell
             }
             string openedStatus = string.Format(Loc("Str_Opened"), System.IO.Path.GetFileName(displayPath), pageCount);
             SetStatus(ActiveViewer.ProofPreferenceNoticeKeyExt is { } notice ? openedStatus + " " + Loc(notice) : openedStatus);
+            NoteDocumentOpenedForSession();   // #502: an open into the same tab changes no tab list
             SyncSidebarToDocState(hasDoc: true, startup: false);   // a document is up: open the rail, show page controls
             ActiveViewer.CompleteTabLoadExt();
         }

@@ -1741,6 +1741,14 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_KS_EnabledStatus">Klávesové zkratky jsou zapnuté</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Klávesové zkratky jsou vypnuté. Zapnete je stisknutím Ctrl+Shift+K.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Kontrolovat aktualizace při spuštění</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Obnovit poslední relaci</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Vždy</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Zeptat se</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Nikdy</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Obnovit poslední relaci (počet souborů: {0})?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Obnovit</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Zavřít</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Znovu neotevřeno, protože soubory byly přesunuty nebo odstraněny: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">Soubor „{0}“ je chráněn heslem.</sys:String>
     <sys:String x:Key="Str_About_Aka">Také známý jako</sys:String>
     <sys:String x:Key="Str_Btn_Run">Spustit</sys:String>

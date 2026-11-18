@@ -1,0 +1,98 @@
+using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
+using System.Windows.Controls;
+using KillerFamily.Accessibility;
+
+namespace KillerPDF.Controls
+{
+    // #502: the Restore last session bar. With the setting on Ask, a plain launch opens the empty
+    // window and this one line offers the stored session at the top of the pane, built like the book
+    // diagnostics notice beside it. Nothing waits on it: the window works as usual meanwhile.
+    public partial class PdfViewer
+    {
+        private Border? _sessionNotice;
+
+        internal bool SessionNoticeShown => _sessionNotice is { Visibility: Visibility.Visible };
+
+        internal void ShowSessionNotice(int fileCount, Action restore, Action dismiss)
+        {
+            if (PagePreviewPanel.Parent is not Grid previewArea || Host is null) return;
+            HideSessionNotice();
+            var host = Host;
+
+            var glyph = new Glyph
+            {
+                Text = "",
+                FontFamily = UiKit.IconFont,
+                FontSize = 14,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            glyph.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+
+            var message = new TextBlock
+            {
+                Text = string.Format(host.Loc("Str_RestoreSession_Prompt"), fileCount),
+                FontFamily = UiKit.UiFont,
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            message.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            AutomationProperties.SetLiveSetting(message, AutomationLiveSetting.Polite);
+
+            var restoreButton = UiKit.Make(host.Loc("Str_RestoreSession_Restore"), accent: true);
+            restoreButton.Name = "RestoreSessionRestore";
+            restoreButton.Margin = new Thickness(12, 0, 0, 0);
+            restoreButton.VerticalAlignment = VerticalAlignment.Center;
+            restoreButton.Click += (_, _) => { HideSessionNotice(); restore(); };
+
+            var dismissButton = UiKit.Make(host.Loc("Str_RestoreSession_Dismiss"), accent: false);
+            dismissButton.Name = "RestoreSessionDismiss";
+            dismissButton.Margin = new Thickness(6, 0, 0, 0);
+            dismissButton.VerticalAlignment = VerticalAlignment.Center;
+            dismissButton.Click += (_, _) => { HideSessionNotice(); dismiss(); };
+
+            var row = new DockPanel { LastChildFill = true, Margin = new Thickness(6, 2, 2, 2) };
+            DockPanel.SetDock(glyph, Dock.Left);
+            DockPanel.SetDock(dismissButton, Dock.Right);
+            DockPanel.SetDock(restoreButton, Dock.Right);
+            row.Children.Add(glyph);
+            row.Children.Add(dismissButton);
+            row.Children.Add(restoreButton);
+            row.Children.Add(message);
+
+            var bar = new Border
+            {
+                Child = host.BuildBarHost(row),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                MaxWidth = 640,
+                Margin = new Thickness(0, 12, 0, 0),
+                Effect = host.AnnotBarShadow()
+            };
+            bar.SetResourceReference(Border.BackgroundProperty, "AnnotationBarBrush");
+            bar.SetResourceReference(Border.CornerRadiusProperty, "AnnotationBarCornerRadius");
+            bar.SetResourceReference(Border.BorderBrushProperty, "AnnotationBarBorderBrush");
+            bar.SetResourceReference(Border.BorderThicknessProperty, "BarEdgeThickness");
+            bar.SetResourceReference(Border.PaddingProperty, "BarPadding");
+            AutomationProperties.SetName(bar, message.Text);
+            Panel.SetZIndex(bar, 90);
+            _sessionNotice = bar;
+            previewArea.Children.Add(bar);
+
+            Dispatcher.BeginInvoke(() =>
+                UIElementAutomationPeer.CreatePeerForElement(message)
+                    ?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        internal void HideSessionNotice()
+        {
+            if (_sessionNotice is null) return;
+            (_sessionNotice.Parent as Panel)?.Children.Remove(_sessionNotice);
+            _sessionNotice = null;
+        }
+    }
+}

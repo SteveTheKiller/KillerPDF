@@ -3233,6 +3233,21 @@
                                   Click="AboutStartupUpdateCheck_Click">
                             <TextBlock Text="{DynamicResource Str_StartupUpdateCheck}" TextWrapping="Wrap"/>
                         </CheckBox>
+                        <!-- #502: what a plain launch does with the last session's tabs. Beside the
+                             other startup choice; Ask is the default. -->
+                        <DockPanel Margin="0,6,0,0" LastChildFill="True">
+                            <ComboBox x:Name="RestoreSessionCombo" DockPanel.Dock="Right" FontSize="11"
+                                      MinWidth="84" Height="22" VerticalAlignment="Center" Margin="8,0,0,0"
+                                      AutomationProperties.Name="{DynamicResource Str_RestoreSession}"
+                                      SelectionChanged="RestoreSessionCombo_SelectionChanged">
+                                <ComboBoxItem Tag="always" Content="{DynamicResource Str_RestoreSession_Always}"/>
+                                <ComboBoxItem Tag="ask" Content="{DynamicResource Str_RestoreSession_Ask}"/>
+                                <ComboBoxItem Tag="never" Content="{DynamicResource Str_RestoreSession_Never}"/>
+                            </ComboBox>
+                            <TextBlock Text="{DynamicResource Str_RestoreSession}" FontFamily="{DynamicResource UiFont}"
+                                       FontSize="11" Foreground="{DynamicResource TextBrush}"
+                                       TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        </DockPanel>
                         <CheckBox x:Name="AboutCloseToTray" VerticalAlignment="Top" Margin="0,6,0,0" Padding="10,0,10,0"
                                   Style="{StaticResource ThemeCheck}" FontSize="11"
                                   ToolTip="{DynamicResource Str_About_CloseToTrayHint}"

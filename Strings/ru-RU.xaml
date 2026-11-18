@@ -1759,6 +1759,14 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_KS_EnabledStatus">Сочетания клавиш включены</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Сочетания клавиш отключены. Нажмите Ctrl+Shift+K, чтобы включить их.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Проверять обновления при запуске</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Восстанавливать последний сеанс</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Всегда</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Спрашивать</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Никогда</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Восстановить последний сеанс (файлов: {0})?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Восстановить</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Закрыть</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Не открыты повторно, так как перемещены или удалены: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">«{0}» защищен паролем.</sys:String>
     <sys:String x:Key="Str_About_Aka">Также известен как</sys:String>
     <sys:String x:Key="Str_Btn_Run">Запустить</sys:String>

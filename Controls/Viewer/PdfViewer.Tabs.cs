@@ -976,9 +976,14 @@ namespace KillerPDF.Controls
         /// goes through here - a raw assignment leaves the old tab drawn as the front one.</summary>
         private void SetActiveSession(DocumentSession? s)
         {
+            bool changed = !ReferenceEquals(_active, s);
             _active = s;
             foreach (var t in _sessions) t.IsActive = ReferenceEquals(t, s);
+            if (changed) ActiveSessionChanged?.Invoke();
         }
+
+        /// <summary>#502: the front tab changed, so the stored session is due a fresh copy.</summary>
+        internal event Action? ActiveSessionChanged;
 
         // Save, Don't Save or Cancel for closing a document with unsaved changes.
         private MessageBoxResult AskToSaveBeforeClose(string message)

@@ -1756,6 +1756,14 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_KS_EnabledStatus">Hurtigtaster er slått på</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Hurtigtaster er slått av. Trykk Ctrl+Shift+K for å slå dem på.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Se etter oppdateringer ved oppstart</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Gjenopprett forrige økt</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Alltid</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Spør</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Aldri</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Gjenopprette forrige økt ({0} filer)?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Gjenopprett</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Lukk</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Ikke åpnet på nytt fordi de er flyttet eller slettet: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">«{0}» er passordbeskyttet.</sys:String>
     <sys:String x:Key="Str_About_Aka">AKA</sys:String>
     <sys:String x:Key="Str_Btn_Run">Kjør</sys:String>

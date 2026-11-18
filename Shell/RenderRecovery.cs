@@ -181,6 +181,8 @@ namespace KillerPDF.Shell
             {
                 foreach ((string key, string? value) in RenderFailureRecovery.SessionSettingsWithout(App.GetSetting, recovered))
                     if (value is not null) App.SetSetting(key, value); else App.RemoveSetting(key);
+                SessionStore.RemoveFiles(SessionStore.DefaultFile,
+                    recovered.Select(document => document.OriginalPath).OfType<string>());
             }
             catch (Exception ex) when (ex is not OutOfMemoryException) { CrashReporter.Capture(ex, "Recovery session settings"); }
             return manifest;

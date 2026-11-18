@@ -169,5 +169,6 @@ public partial class MainWindow
         _paginatingOpenStatus = opened.IsPaginating ? (opened, StatusText.Text) : default;
         SyncSidebarToDocState(hasDoc: true, startup: false);
         ActiveViewer.CompleteTabLoadExt();
+        NoteDocumentOpenedForSession();   // #502
     }
 }

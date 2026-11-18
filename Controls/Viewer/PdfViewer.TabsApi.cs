@@ -293,6 +293,18 @@ namespace KillerPDF.Controls
         internal static DocumentSession MakeDeferredSession(string path)
             => new() { OriginalFile = path, CurrentFile = path, DeferredPath = path };
 
+        /// <summary>#502: one stored pane as deferred tabs, with each tab's last page and zoom, and
+        /// the tab to front. Nothing is read from disk here, so a password-protected file asks for
+        /// its password only when its tab is first opened. The per-file view state the open path
+        /// keeps still decides the view once a tab loads, since it also holds fit and scroll.</summary>
+        internal static (List<DocumentSession> Sessions, DocumentSession? Active) MakeDeferredSessions(
+            Services.SessionPane pane)
+            => Services.SessionStore.Build(pane, MakeDeferredSession, static (session, tab) =>
+            {
+                session.PageIndex = tab.Page;
+                session.ZoomLevel = tab.Zoom;
+            });
+
         // ── This pane's strip elements, for the window chrome that still positions them ──────
         // AppScale scales them, FullScreen hides them, SidebarLayout flips their margins - all of
         // which now have to act on BOTH panes rather than one window-level band.

@@ -439,6 +439,7 @@ namespace KillerPDF.Shell
             NoRecentCheck.IsChecked = App.GetSetting(App.NoRecentFilesSetting) == "1";
             // Same deal for the link-confirm toggle beside it (default off).
             LinkConfirmCheck.IsChecked = App.GetSetting(ConfirmLinksSetting) == "1";
+            SyncRestoreSessionChoice();   // #502: Always / Ask / Never, change-guarded the same way
             _sidebarSide = SidebarSides.Parse(App.GetSetting(SidebarSides.SettingName));
             RestoreToolSettings();   // Draw + Text tool styles carry across sessions
             Loaded += (_, _) => AdjustZoomBoxWidth();   // fit the zoom box to the longest localized term
@@ -522,6 +523,7 @@ namespace KillerPDF.Shell
                 // Unconditional: the XAML default is small icons / no text, but the family default
                 // is Large/Under, so a first run needs the apply pass too.
                 ApplyToolbarStyle();
+                WireSessionStore();   // #502: tab opens, closes and switches keep the stored session fresh
 
                 // The release startup check initializes the real empty window without restoring
                 // documents, accepting handoffs, or starting update UI/network work.
@@ -586,45 +588,13 @@ namespace KillerPDF.Shell
                 }
                 else
                 {
-                    // Reopen every tab from the last session (falls back to the single LastFile for
-                    // settings written before multi-tab restore existed).
-                    var saved = App.GetSetting("OpenTabs");
-                    string[] paths = !string.IsNullOrEmpty(saved)
-                        ? saved!.Split('|')
-                        : (App.GetSetting("LastFile") is { Length: > 0 } lf ? [lf] : []);
-                    // Lazy restore: create a placeholder tab for each saved file but load only the
-                    // focused one. The rest materialize (load + render) the first time they're clicked,
-                    // so startup cost no longer scales with how many tabs were open last session.
-                    // Built as a local list and handed to the pane, rather than mutating _sessions
-                    // in place: the session list belongs to a PdfViewer, so the restore has to say
-                    // WHICH pane. `OpenTabs` / `ActiveTab` are pane A; pane B is restored from
-                    // `OpenTabsB` / `ActiveTabB` by RestorePaneB below, once the split is reopened.
-                    var restored = new List<Controls.PdfViewer.DocumentSession>();
-                    foreach (var f in paths)
-                        if (!string.IsNullOrEmpty(f) && System.IO.File.Exists(f))
-                            restored.Add(Controls.PdfViewer.MakeDeferredSession(f));
-
-                    if (restored.Count == 0)
-                    {
-                        SetRestoredSessions(restored, null);
-                        PopulateRecentFilesList();   // empty state: show the recent list
-                        EnsureInitialSession();
-                        RebuildTabStrip();
-                    }
-                    else
-                    {
-                        var wantActive = App.GetSetting("ActiveTab");
-                        var activeTarget = (!string.IsNullOrEmpty(wantActive)
-                                ? restored.FirstOrDefault(ss => string.Equals(ss.OriginalFile, wantActive, StringComparison.OrdinalIgnoreCase))
-                                : null)
-                            ?? restored[0];
-                        SetRestoredSessions(restored, activeTarget);
-                        ApplySessionState(activeTarget);
-                        MaterializeDeferred(activeTarget);   // load + render only the focused tab
-                        RebuildTabStrip();
-                    }
-                    RestorePaneB();
+                    // #502: the last session comes back as the Restore last session setting says:
+                    // silently, after the bar asks, or not at all (Shell/SessionRestore.cs).
+                    RestoreLastSession(args);
                 }
+                // Every other launch path has settled its tabs by now, so the store may follow them.
+                // An unanswered restore bar keeps it held, so the offered list is not overwritten.
+                if (!_sessionPromptPending) App.ReleaseSessionWrites();
                 OpenRenderRecovery();   // #456: no-op unless this launch replaced a failed window
                 if (App.TakeUpdateRestartReadFailure())
                     SetStatus(Loc("Str_UpdateRestartRestoreFailed"));
@@ -710,8 +680,19 @@ namespace KillerPDF.Shell
                 // #105: honor the "remember open files" privacy choice. Unset or "1" = remember
                 // (default, preserves prior behavior); "0" = forget the session so nothing persists.
                 bool rememberFiles = App.GetSetting("RememberOpenFiles") != "0";
-                if (rememberFiles)
+                // #502: while the restore bar is still unanswered, or with Never chosen, the stored
+                // session is left exactly as it is, so quitting from the empty window keeps the list
+                // the bar offered.
+                bool keepStoredSession = App.SessionWritesHeld
+                    || App.SessionRestoreMode == Services.SessionRestoreMode.Never;
+                if (rememberFiles && keepStoredSession)
                 {
+                    // Nothing about the open tabs is written: the older session keys stay as the
+                    // store left them too, so an upgrade's first session is not lost either.
+                }
+                else if (rememberFiles)
+                {
+                    App.SaveSessionNow();
                     if (_originalFile is not null)
                         App.SetSetting("LastFile", _originalFile);
                     else
@@ -771,6 +752,7 @@ namespace KillerPDF.Shell
                 {
                     // Privacy: drop any remembered session so no file paths linger on disk.
                     App.ForgetClosedWindowFiles();
+                    Services.SessionStore.Delete(Services.SessionStore.DefaultFile);
                     App.RemoveSetting("LastFile");
                     App.RemoveSetting("OpenTabs");
                     App.RemoveSetting("ActiveTab");

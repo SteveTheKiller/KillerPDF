@@ -1736,6 +1736,14 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_KS_EnabledStatus">Klavye kısayolları etkin</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Klavye kısayolları devre dışı. Etkinleştirmek için Ctrl+Shift+K tuşlarına basın.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Başlangıçta güncellemeleri denetle</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Son oturumu geri yükle</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Her zaman</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Sor</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Asla</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Son oturum geri yüklensin mi ({0} dosya)?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Geri yükle</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Kapat</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Taşındığı veya silindiği için yeniden açılmadı: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">“{0}” parola korumalıdır.</sys:String>
     <sys:String x:Key="Str_About_Aka">Diğer adıyla</sys:String>
     <sys:String x:Key="Str_Btn_Run">Çalıştır</sys:String>

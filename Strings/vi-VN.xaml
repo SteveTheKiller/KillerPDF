@@ -1756,6 +1756,14 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_KS_EnabledStatus">Đã bật phím tắt</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Đã tắt phím tắt. Nhấn Ctrl+Shift+K để bật lại.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Kiểm tra cập nhật khi khởi động</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Khôi phục phiên trước</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Luôn luôn</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Hỏi</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Không bao giờ</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Khôi phục phiên trước ({0} tệp)?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Khôi phục</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Đóng</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Không mở lại vì đã bị di chuyển hoặc xóa: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">“{0}” được bảo vệ bằng mật khẩu.</sys:String>
     <sys:String x:Key="Str_About_Aka">CÒN GỌI LÀ</sys:String>
     <sys:String x:Key="Str_Btn_Run">Chạy</sys:String>

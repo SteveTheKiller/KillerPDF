@@ -1736,6 +1736,14 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_KS_EnabledStatus">কীবোর্ড শর্টকাট চালু আছে</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">কীবোর্ড শর্টকাট বন্ধ আছে। চালু করতে Ctrl+Shift+K চাপুন।</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">অ্যাপ চালু হলে আপডেট পরীক্ষা করুন</sys:String>
+    <sys:String x:Key="Str_RestoreSession">শেষ সেশন পুনরুদ্ধার করুন</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">সবসময়</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">জিজ্ঞাসা করুন</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">কখনও না</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">শেষ সেশন পুনরুদ্ধার করবেন ({0}টি ফাইল)?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">পুনরুদ্ধার করুন</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">বন্ধ করুন</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">সরানো বা মুছে ফেলার কারণে আবার খোলা হয়নি: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">“{0}” পাসওয়ার্ড দিয়ে সুরক্ষিত।</sys:String>
     <sys:String x:Key="Str_About_Aka">অন্য নাম</sys:String>
     <sys:String x:Key="Str_Btn_Run">চালু করুন</sys:String>

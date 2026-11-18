@@ -1738,6 +1738,14 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_KS_EnabledStatus">鍵盤快速鍵已啟用</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">鍵盤快速鍵已停用。按 Ctrl+Shift+K 即可啟用。</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">啟動時檢查更新</sys:String>
+    <sys:String x:Key="Str_RestoreSession">還原上次工作階段</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">一律</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">詢問</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">永不</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">要還原上次工作階段（{0} 個檔案）嗎？</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">還原</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">關閉</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">以下檔案已移動或刪除，未重新開啟：{0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">「{0}」受密碼保護。</sys:String>
     <sys:String x:Key="Str_About_Aka">別名</sys:String>
     <sys:String x:Key="Str_Btn_Run">執行</sys:String>

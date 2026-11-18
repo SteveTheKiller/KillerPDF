@@ -1756,6 +1756,14 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_KS_EnabledStatus">Комбінації клавіш увімкнено</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Комбінації клавіш вимкнено. Натисніть Ctrl+Shift+K, щоб увімкнути їх.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Перевіряти оновлення під час запуску</sys:String>
+    <sys:String x:Key="Str_RestoreSession">Відновлювати останній сеанс</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Always">Завжди</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Ask">Питати</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Never">Ніколи</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Prompt">Відновити останній сеанс (файлів: {0})?</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Restore">Відновити</sys:String>
+    <sys:String x:Key="Str_RestoreSession_Dismiss">Закрити</sys:String>
+    <sys:String x:Key="Str_St_SessionMissing">Не відкрито повторно, бо файли переміщено або видалено: {0}</sys:String>
     <sys:String x:Key="Str_PasswordProtected">«{0}» захищено паролем.</sys:String>
     <sys:String x:Key="Str_About_Aka">AKA</sys:String>
     <sys:String x:Key="Str_Btn_Run">Виконати</sys:String>

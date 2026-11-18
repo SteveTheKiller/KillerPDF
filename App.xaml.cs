@@ -386,6 +386,7 @@ namespace KillerPDF
             if (first)
             {
                 ClosedWindowFiles.Clear();
+                ForgetClosedSessionWindows();
                 HadMultipleDocumentWindows = false;
             }
             else HadMultipleDocumentWindows = true;
@@ -400,6 +401,7 @@ namespace KillerPDF
         {
             if (GetSetting("RememberOpenFiles") == "0") ClosedWindowFiles.Clear();
             else ClosedWindowFiles.UnionWith(window.FilesForSessionRestore());
+            RememberClosedSessionWindow(window);
         }
 
         internal static void ForgetClosedWindowFile(string? path)
@@ -407,7 +409,11 @@ namespace KillerPDF
             if (path is not null) ClosedWindowFiles.Remove(path);
         }
 
-        internal static void ForgetClosedWindowFiles() => ClosedWindowFiles.Clear();
+        internal static void ForgetClosedWindowFiles()
+        {
+            ClosedWindowFiles.Clear();
+            ForgetClosedSessionWindows();
+        }
 
         internal static MainWindow? PrimaryWindow(MainWindow? excluded = null)
         {
@@ -1465,6 +1471,10 @@ namespace KillerPDF
                 TryDeleteDir(Services.AppDataPaths.UserRoot);
             else
                 try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\KillerPDF\Settings", throwOnMissingSubKey: false); } catch { }
+            // #502: the stored session lives beside the settings, outside the registry.
+            _sessionSaveTimer?.Stop();
+            ForgetClosedSessionWindows();
+            SessionStore.Delete(SessionStore.DefaultFile);
 
             TryDeleteDir(Services.AppDataPaths.TessDataDirectory);
             TryDeleteDir(Path.Combine(Services.AppDataPaths.LocalRoot, "ocr"));
