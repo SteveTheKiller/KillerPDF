@@ -154,9 +154,9 @@ namespace KillerPDF.Shell
         };
 
         // Page-level menu shown when the right-click lands on empty page space (no annotation under it). Its top row
-        // carries Back, Forward, Undo, Redo, Print and the page; a text selection and the place-here tools are icon
-        // strips; the page tools sit under one Page submenu, the same tools the thumbnail card offers. Every item and
-        // shortcut is the one the old flat list had.
+        // carries Back, Forward, Undo, Redo, Print and the page; everything under it is icon strips: a text selection,
+        // the place-here tools, the page's tools (the Page tile opens the same tools the thumbnail card offers) and the
+        // editing and view commands. Every item and shortcut is the one the old flat list had.
         private void AddPageMenuItems(Point pt, int pageIdx)
         {
             if (ActiveViewer.NativeDocumentRef is not null) { AddNativePageMenuItems(pageIdx); return; }
@@ -209,9 +209,6 @@ namespace KillerPDF.Shell
             FocusFirstActionFromKeyboard(_ctxMenu, placeStrip);   // only when no selected-text strip came first
 
             _ctxMenu.Items.Add(new Separator());
-            _ctxMenu.Items.Add(BuildFieldPresetMenu(pt, pageIdx));
-            _ctxMenu.Items.Add(BuildComparisonContextItem());
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_OcrPage"), (s, e) => OcrPageToClipboard(pageIdx), GestureFor("CtrlShift:O"), "\uEE6F"));
 
             var tools = MakeMenuItem(Loc("Str_Card_PageTools"), (_, _) => { }, gesture: "", glyph: "\uE7C3");
             tools.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCW"), (s, e) => RotatePages_Click(90, pageIdx), clockwise: true));
@@ -228,20 +225,29 @@ namespace KillerPDF.Shell
             tools.Items.Add(new Separator());
             tools.Items.Add(MakeMenuItem(Loc("Str_Ctx_DuplicatePage"), (s, e) => DuplicatePage(pageIdx), glyph: "\uE8C8"));
             tools.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeletePage"), (_, _) => DeletePages(pageIdx), glyph: "\uE74D"));
-            _ctxMenu.Items.Add(tools);
-            _ctxMenu.Items.Add(new Separator());
 
-            // Markup selected elsewhere on the page can still go from here.
+            // The page's tools as tiles (Steve: go all out on the icons). Field presets, Compare and the Page tools
+            // open their rows beside the tile. Four across, the width of the place strip above.
+            bool canClearPage = (_annotations.TryGetValue(pageIdx, out var pageMarks) && pageMarks.Count > 0) || ActiveViewer.HasPendingAnnotationExt;
+            var pageTiles = new List<CardTile>
+            {
+                FlyoutTile("\uE8A1", Loc("Str_FieldPreset_Menu"), null, BuildFieldPresetMenu(pt, pageIdx)),
+                FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
+                new("\uEE6F", Loc("Str_Ctx_OcrPage"), "CtrlShift:O", () => OcrPageToClipboard(pageIdx), false, true),
+                FlyoutTile("\uE7C3", Loc("Str_Card_PageTools"), null, tools),
+                new("\uE932", Loc("Str_Ctx_StampPages"), "S", () => OpenStampTool(pageIdx), false, true),
+                new("\uE75C", Loc("Str_Ctx_ClearPage"), null, () => ClearAnnotations_Click(this, new RoutedEventArgs()), false, canClearPage),
+            };
+            // Then editing and the view, in the same grid so the columns line up; the ones that only apply sometimes
+            // stay conditional. Markup selected elsewhere on the page can still go from here.
             if (hasSelection)
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeleteSel"), (s, e) => DeleteSelected(), GestureFor("Del"), "\uE74D"));
+                pageTiles.Add(new("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, true));
             if (CanPasteInView())
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (s, e) => PasteInView(pageIdx), GestureFor("Ctrl:V"), "\uE77F"));
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SelectAll"), (s, e) => SelectAllInView(), GestureFor("Ctrl:A"), "\uE8B3"));
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampPages"), (s, e) => OpenStampTool(pageIdx), GestureFor("S"), "\uE932"));
-            var clearPage = MakeMenuItem(Loc("Str_Ctx_ClearPage"), (s, e) => ClearAnnotations_Click(s!, e), glyph: "\uE75C");
-            clearPage.IsEnabled = (_annotations.TryGetValue(pageIdx, out var pageMarks) && pageMarks.Count > 0) || ActiveViewer.HasPendingAnnotationExt;
-            _ctxMenu.Items.Add(clearPage);
-            AppendViewItems(_ctxMenu);
+                pageTiles.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(pageIdx), false, true));
+            pageTiles.Add(new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true));
+            pageTiles.AddRange(ViewTiles());
+            var pageStrip = QuickStrip(_ctxMenu, 4, [.. pageTiles]);
+            _ctxMenu.Items.Add(CardSlot(pageStrip, new Thickness(0)));
         }
 
         // A small caption over a card strip ("Selected text", "Place here").
@@ -335,24 +341,24 @@ namespace KillerPDF.Shell
         private void AppendViewItems(ContextMenu menu)
         {
             menu.Items.Add(new Separator());
-            var fullScreen = MakeMenuItem(Loc("Str_Ctx_FullScreen"), (s, e) => ToggleFullScreen(), GestureFor("F11"), "\uE740");
-            fullScreen.IsCheckable = true;
-            fullScreen.IsChecked = _fullScreen;
-            menu.Items.Add(fullScreen);
-            AppendBookLayoutItem(menu);
+            foreach (var view in ViewTiles())
+            {
+                var row = MakeMenuItem(view.Caption, (_, _) => view.Act!(), GestureFor(view.Gesture!), view.Glyph);
+                row.IsCheckable = true;
+                row.IsChecked = view.Checked == true;
+                menu.Items.Add(row);
+            }
         }
 
-        // Book layout changes the whole two-page viewport, so it belongs on both the page menu and
-        // the surrounding-canvas menu. Keeping the item construction here prevents the two menus
-        // from drifting apart (including the live check state and keyboard hint).
-        private void AppendBookLayoutItem(ContextMenu menu)
+        // Full Screen, and Book layout in the two-page views: rows on the book and gray-area menus, tiles on the page
+        // menu, built here once so the surfaces keep one icon, shortcut and live checked state. Book layout changes
+        // the whole two-page viewport, so it belongs on both the page menu and the surrounding-canvas menu.
+        private List<CardTile> ViewTiles()
         {
-            if (_viewMode is not (ViewMode.TwoPage or ViewMode.TwoPageContinuous)) return;
-
-            var book = MakeMenuItem(Loc("Str_View_BookMode"), (s, e) => ToggleBookMode(), GestureFor("B"), "\uE736");
-            book.IsCheckable = true;
-            book.IsChecked = Controls.PdfViewer.BookMode;
-            menu.Items.Add(book);
+            var tiles = new List<CardTile> { new("\uE740", Loc("Str_Ctx_FullScreen"), "F11", ToggleFullScreen, false, true) { Checked = _fullScreen } };
+            if (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
+                tiles.Add(new("\uE736", Loc("Str_View_BookMode"), "B", ToggleBookMode, false, true) { Checked = Controls.PdfViewer.BookMode });
+            return tiles;
         }
 
         // Deep-copies page pageIdx and inserts the copy right after it. The engine imports the complete

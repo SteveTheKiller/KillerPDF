@@ -10,9 +10,10 @@ using System.Windows.Threading;
 namespace KillerPDF.Shell
 {
     // The page thumbnail's right-click card (KillerUI card menu): a header naming the page with its size, orientation
-    // and markup count, the six things done most as quick buttons, then a short list in which the scanner cleanup,
-    // the extract-from-page tools and the moves sit in submenus. Every action and shortcut is the one the old 21-row
-    // list had. With several thumbnails selected the header says so, and the actions take the selection as before.
+    // and markup count, then rows of tiles: the page actions, the rotations, the page tools, and the scanner cleanup,
+    // the extract-from-page tools and the moves as chevron tiles that open their rows beside them. Every action and
+    // shortcut is the one the old 21-row list had. With several thumbnails selected the header says so, and the
+    // actions take the selection as before.
     public partial class MainWindow
     {
         private ContextMenu BuildPageCard(int page)
@@ -38,40 +39,47 @@ namespace KillerPDF.Shell
                 (GlyphText(0xE7AD), Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90), false, true));
             menu.Items.Add(CardSlot(turns, new Thickness(0)));
 
-            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Merge"), async (_, _) => await MergeAtIndex(page + 1), gesture: "", glyph: "\uE710"));
-            menu.Items.Add(MakeTransformMenuItem(Loc("Str_Tf_Suffix"), (_, _) => OpenTransformWindow(), GestureFor("R")));
-            menu.Items.Add(MakeMenuItem(Loc("Str_ColorCorrection"), (_, _) =>
-                OpenTransformWindow(TransformWindowMode.ColorCorrection), gesture: GestureFor("E"), glyph: "\uE790"));
+            // The page tools are tiles too (Steve: go all out on the icons). Merge names no shortcut: Alt+Shift+B merges
+            // at the end, this tile after the clicked page.
+            var tools = QuickStrip(menu, 3,
+                ("\uE710", Loc("Str_Lbl_Merge"), null, async () => await MergeAtIndex(page + 1), false, true),
+                ("\uE7C2", Loc("Str_Tf_Suffix"), "R", () => OpenTransformWindow(), false, true),
+                ("\uE790", Loc("Str_ColorCorrection"), "E", () => OpenTransformWindow(TransformWindowMode.ColorCorrection), false, true),
+                // The thumbnails' own Ctrl+Shift+O: every selected page, not only the clicked one.
+                ("\uEE6F", Loc("Str_Ctx_OcrPage"), "CtrlShift:O", OcrSelectedPagesToClipboard, false, true),
+                // #207: the shared export dialog, scoped to the clicked selection (still editable).
+                ("\uEB9F", Loc("Str_Ctx_ExportPageImage"), null, () =>
+                {
+                    var nums = PageList.SelectedItems.Cast<PageThumbnailVm>().Select(vm => vm.PageIndex + 1).OrderBy(n => n);
+                    _ = ExportImagesFlow(string.Join(",", nums));
+                }, false, true),
+                ("\uE932", Loc("Str_Ctx_StampPages"), "S", () => OpenStampTool(), false, true));
+            menu.Items.Add(CardSlot(tools, new Thickness(0)));
 
             // #436: with two or more pages selected these act on the selection, otherwise on the whole document.
-            var cleanUp = MakeMenuItem(Loc("Str_Card_CleanUp"), (_, _) => { }, glyph: "\uE771");
+            var cleanUp = MakeMenuItem(Loc("Str_Card_CleanUp"), (_, _) => { });
             cleanUp.Items.Add(MakeMenuItem(Loc("Str_Pages_FixOrientation"), (_, _) => FixPageOrientation(), GestureFor("AltShift:O"), "\uE7AD"));
             cleanUp.Items.Add(MakeMenuItem(Loc("Str_Pages_Straighten"), (_, _) => StraightenScannedPages(), glyph: "\uE809"));
             cleanUp.Items.Add(MakeMenuItem(Loc("Str_Pages_DivideSpreads"), (_, _) => DivideSpreads(), glyph: "\uE89F"));
-            menu.Items.Add(cleanUp);
 
-            var fromPage = MakeMenuItem(Loc("Str_Card_FromPage"), (_, _) => { }, glyph: "\uE8B9");
+            var fromPage = MakeMenuItem(Loc("Str_Card_FromPage"), (_, _) => { });
             fromPage.Items.Add(MakeMenuItem(Loc("Str_Pages_RasterizeRegion"), (_, _) => RasterizeRegion(page), glyph: "\uE91B"));
             fromPage.Items.Add(MakeMenuItem(Loc("Str_ExtractImage_Menu"), (_, _) => ExtractImage(page), glyph: "\uEB9F"));
             fromPage.Items.Add(MakeMenuItem(Loc("Str_TableExport_Title"), (_, _) => ExportTable(page), glyph: "\uE80A"));
             fromPage.Items.Add(MakeMenuItem(Loc("Str_Paragraph_Title"), (_, _) => EditParagraph(page), GestureFor("AltShift:P"), "\uE8E4"));
-            menu.Items.Add(fromPage);
 
-            var move = MakeMenuItem(Loc("Str_Card_Move"), (_, _) => { }, glyph: "\uE7C2");
+            var move = MakeMenuItem(Loc("Str_Card_Move"), (_, _) => { });
             move.Items.Add(MakeMenuItem(Loc("Str_Lbl_MoveUp"), (s, e) => MoveUp_Click(s!, e), glyph: "\uE74A"));
             move.Items.Add(MakeMenuItem(Loc("Str_Lbl_MoveDown"), (s, e) => MoveDown_Click(s!, e), glyph: "\uE74B"));
             move.Items.Add(MakeMenuItem(Loc("Str_Pages_Reverse"), (_, _) => ReversePageOrder(), glyph: "\uE8CB"));
-            menu.Items.Add(move);
 
-            // The thumbnails' own Ctrl+Shift+O: every selected page, not only the clicked one.
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_OcrPage"), (_, _) => OcrSelectedPagesToClipboard(), GestureFor("CtrlShift:O"), "\uEE6F"));
-            // #207: the shared export dialog, scoped to the clicked selection (still editable).
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_ExportPageImage"), (_, _) =>
-            {
-                var nums = PageList.SelectedItems.Cast<PageThumbnailVm>().Select(vm => vm.PageIndex + 1).OrderBy(n => n);
-                _ = ExportImagesFlow(string.Join(",", nums));
-            }, glyph: "\uEB9F"));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_StampPages"), (_, _) => OpenStampTool(), GestureFor("S"), "\uE932"));
+            // The three submenus are tiles with a chevron; each opens its rows beside it.
+            var groups = QuickStrip(menu, 3,
+                FlyoutTile("\uE771", Loc("Str_Card_CleanUp"), null, cleanUp),
+                FlyoutTile("\uE8B9", Loc("Str_Card_FromPage"), null, fromPage),
+                // Not the Move row's old arrows: those are the Transform tile's, two tiles up.
+                FlyoutTile("\uE8AB", Loc("Str_Card_Move"), null, move));
+            menu.Items.Add(CardSlot(groups, new Thickness(0)));
             return menu;
         }
 
@@ -155,7 +163,10 @@ namespace KillerPDF.Shell
 
         private static void FocusFirstActionFromKeyboard(ContextMenu menu, FrameworkElement strip)
         {
-            if (strip is not Border { Child: UniformGrid grid } || grid.Children.OfType<Button>().FirstOrDefault(b => b.IsEnabled) is not { } first) return;
+            // A flyout tile sits in a cell with its chevron.
+            if (strip is not Border { Child: UniformGrid grid }
+                || grid.Children.Cast<UIElement>().Select(c => c as Button ?? (c as Panel)?.Children.OfType<Button>().FirstOrDefault())
+                    .FirstOrDefault(b => b is { IsEnabled: true }) is not { } first) return;
             if (!s_keyboardFocusTargets.TryGetValue(menu, out var targets))
             {
                 targets = [];
@@ -197,15 +208,46 @@ namespace KillerPDF.Shell
 
         // columns > 0 wraps the strip into rows of that many, which keeps a long strip from widening the menu.
         private FrameworkElement QuickStrip(ContextMenu menu, int columns, params (string Glyph, string Caption, string? Gesture, Action Act, bool Mirror, bool Enabled)[] buttons)
+            => QuickStrip(menu, columns, [.. buttons.Select(b => new CardTile(b.Glyph, b.Caption, b.Gesture, b.Act, b.Mirror, b.Enabled))]);
+
+        // One tile of a card strip. Flyout: the tile opens these rows next to itself instead of acting, and carries
+        // a small chevron beside its icon, the way the toolbar's split buttons do. Checked: an on/off command whose
+        // tile is filled while it is on. KeepsOpen: the tile flips in place and the card stays open.
+        private sealed record CardTile(string Glyph, string Caption, string? Gesture, Action? Act, bool Mirror, bool Enabled)
         {
-            var grid = columns > 0 && buttons.Length > columns ? new UniformGrid { Columns = columns } : new UniformGrid { Rows = 1 };
-            foreach (var (glyph, caption, gesture, act, mirror, enabled) in buttons)
+            public MenuItem? Flyout { get; init; }
+            public bool? Checked { get; init; }
+            public bool KeepsOpen { get; init; }
+        }
+
+        // A tile that opens the rows of a submenu built for a menu row (Compare, Fillable Field Preset, Clean up...).
+        private static CardTile FlyoutTile(string glyph, string caption, string? gesture, MenuItem rows)
+            => new(glyph, caption, gesture, null, false, rows.IsEnabled) { Flyout = rows };
+
+        private FrameworkElement QuickStrip(ContextMenu menu, int columns, params CardTile[] tiles)
+        {
+            var grid = columns > 0 && tiles.Length > columns ? new UniformGrid { Columns = columns } : new UniformGrid { Rows = 1 };
+            foreach (var tile in tiles)
             {
+                var (glyph, caption, gesture, act, mirror, enabled) = tile;
                 var button = new Button { Content = glyph, Tag = caption, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled };
                 // The caption alone is the accessible name; the tooltip adds the shortcut.
                 System.Windows.Automation.AutomationProperties.SetName(button, caption);
                 ToolTipService.SetShowOnDisabled(button, true);
                 if (TryFindResource("CardQuickButton") is Style style) button.Style = style;
+                bool on = tile.Checked == true;
+                if (tile.Checked is not null) ShowTileState(button, on);
+                if (tile.Flyout is { } rows)
+                {
+                    ContextMenu? flyout = null;
+                    button.Click += (_, _) =>
+                    {
+                        flyout ??= BuildTileFlyout(menu, button, rows);
+                        flyout.IsOpen = true;
+                    };
+                    grid.Children.Add(WithFlyoutChevron(button));
+                    continue;
+                }
                 if (mirror)
                     button.Loaded += (_, _) =>
                     {
@@ -215,7 +257,10 @@ namespace KillerPDF.Shell
                             g.RenderTransform = new ScaleTransform(-1, 1);
                         }
                     };
-                button.Click += (_, _) => { menu.IsOpen = false; act(); };
+                if (tile.KeepsOpen)
+                    button.Click += (_, _) => { act?.Invoke(); on = !on; ShowTileState(button, on); };
+                else
+                    button.Click += (_, _) => { menu.IsOpen = false; act?.Invoke(); };
                 grid.Children.Add(button);
             }
             // KillerUI's CardBuilder insets its strip 8 so the strip's top and bottom rules start on the icon column.
@@ -224,6 +269,67 @@ namespace KillerPDF.Shell
             strip.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
             System.Windows.Automation.AutomationProperties.SetName(strip, Loc("Str_Card_Actions"));
             return strip;
+        }
+
+        // An on/off tile is filled with the selected-row color while it is on (the template paints its Background).
+        private static void ShowTileState(Button button, bool on)
+        {
+            if (on) button.SetResourceReference(Control.BackgroundProperty, "RowSelectedBrush");
+            else button.ClearValue(Control.BackgroundProperty);
+        }
+
+        // The quick-button template draws its content as one glyph, so the chevron is laid over the tile beside the
+        // icon and lets clicks through to it (the same trick as the page card's add-page plus).
+        private static Grid WithFlyoutChevron(Button button)
+        {
+            var chevron = new TextBlock
+            {
+                Text = GlyphText(0xE76C), FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 8, IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(30, 12, 0, 0)
+            };
+            chevron.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
+            var cell = new Grid();
+            cell.Children.Add(button);
+            cell.Children.Add(chevron);
+            return cell;
+        }
+
+        // The submenu a flyout tile opens, beside the tile. Its rows are moved off the menu row they were built for.
+        // Picking a row closes the card as well; Escape, Left or a click back on the card returns to the card, and a
+        // click anywhere else closes both.
+        private ContextMenu BuildTileFlyout(ContextMenu card, Button tile, MenuItem rows)
+        {
+            var flyout = MakeThemedMenu();
+            foreach (object row in rows.Items.Cast<object>().ToList())
+            {
+                rows.Items.Remove(row);
+                flyout.Items.Add(row);
+            }
+            flyout.PlacementTarget = tile;
+            flyout.Placement = PlacementMode.Right;
+            bool picked = false, byKeyboard = false;
+            flyout.AddHandler(MenuItem.ClickEvent, new RoutedEventHandler((_, e) =>
+            {
+                if (e.OriginalSource is not MenuItem { HasItems: false, StaysOpenOnClick: false }) return;
+                picked = true;
+                card.IsOpen = false;
+            }));
+            flyout.PreviewKeyDown += (_, e) => byKeyboard = e.Key is Key.Escape or Key.Left;
+            flyout.Opened += (_, _) =>
+            {
+                picked = byKeyboard = false;
+                if (InputManager.Current.MostRecentInputDevice is KeyboardDevice
+                    && flyout.Items.OfType<MenuItem>().FirstOrDefault(item => item.IsEnabled) is { } first)
+                    first.Dispatcher.BeginInvoke(DispatcherPriority.Input, () => first.Focus());
+            };
+            flyout.Closed += (_, _) =>
+            {
+                if (picked || !card.IsOpen) return;
+                if (!byKeyboard && card.InputHitTest(Mouse.GetPosition(card)) is null) { card.IsOpen = false; return; }
+                Mouse.Capture(card, CaptureMode.SubTree);
+                if (byKeyboard) tile.Focus();
+            };
+            return flyout;
         }
     }
 }

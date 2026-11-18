@@ -54,7 +54,11 @@ public sealed class PageMenuLogicTests
         Assert.DoesNotContain("_undoStack.Count", refresh);
         Assert.DoesNotContain("UndoBtn.IsEnabled", nav);
 
-        Assert.Contains("IsEnabled", ShellSource.Between(PageMenuBody, "Loc(\"Str_Ctx_ClearPage\")", "AppendViewItems(_ctxMenu)"));
+        // Clear Page Annotations is a tile, enabled only while the page has marks or one is still being drawn.
+        string canClear = ShellSource.Between(PageMenuBody, "bool canClearPage =", ";");
+        Assert.Contains("pageMarks.Count > 0", canClear);
+        Assert.Contains("ActiveViewer.HasPendingAnnotationExt", canClear);
+        Assert.Contains("ClearAnnotations_Click(this, new RoutedEventArgs()), false, canClearPage)", ShellSource.Between(PageMenuBody, "Loc(\"Str_Ctx_ClearPage\")", "\n"));
         Assert.DoesNotContain("_ctxMenu.Items.Add(MakeMenuItem(Loc(\"Str_Ctx_ClearPage\")", PageMenuBody);
         string agnostic = ShellSource.Between(ContextMenu, "private void FillPageAgnosticMenu(", "internal void DocPaneBackground_RightClick");
         Assert.Contains("EditAvailability().Clear", ShellSource.Between(agnostic, "Loc(\"Str_Lbl_Clear\")", "AppendViewItems(menu)"));
@@ -71,7 +75,7 @@ public sealed class PageMenuLogicTests
     [Fact]
     public void RotateTransformColorCorrectionAndStampActOnTheClickedPage()
     {
-        string tools = ShellSource.Between(PageMenuBody, "var tools = ", "_ctxMenu.Items.Add(tools);");
+        string tools = ShellSource.Between(PageMenuBody, "var tools = ", "bool canClearPage");
         Assert.Contains("RotatePages_Click(90, pageIdx)", tools);
         Assert.Contains("RotatePages_Click(-90, pageIdx)", tools);
         Assert.Contains("OpenTransformWindow(page: pageIdx)", tools);

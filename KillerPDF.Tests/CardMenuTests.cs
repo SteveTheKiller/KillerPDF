@@ -190,6 +190,44 @@ public sealed class CardMenuTests
     }
 
     [Fact]
+    public void TheMenusShowTheirCommandsAsTilesAndSubmenusAsChevronTiles()
+    {
+        // Steve 2026-11-17: go all out on the icons. Submenus become tiles with a chevron that open their rows
+        // beside the tile; each command keeps one entry.
+        string card = Read("Shell", "PageCard.cs");
+        string tools = Between(card, "var tools = QuickStrip(menu, 3,", "menu.Items.Add(CardSlot(tools");
+        foreach (string key in new[] { "Str_Lbl_Merge", "Str_Tf_Suffix", "Str_ColorCorrection", "Str_Ctx_OcrPage", "Str_Ctx_ExportPageImage", "Str_Ctx_StampPages" })
+        {
+            Assert.Contains($"Loc(\"{key}\")", tools);
+            Assert.Equal(1, Count(card, $"Loc(\"{key}\")"));
+        }
+        string groups = Between(card, "var groups = QuickStrip(menu, 3,", "menu.Items.Add(CardSlot(groups");
+        foreach (string row in new[] { "cleanUp)", "fromPage)", "move)" }) Assert.Contains(row, groups);
+        Assert.DoesNotContain("menu.Items.Add(cleanUp)", card);
+        Assert.Contains("WithFlyoutChevron(button)", card);
+        Assert.Contains("PlacementMode.Right", Between(card, "private ContextMenu BuildTileFlyout(", "return flyout;"));
+
+        string page = Between(Read("Shell", "ContextMenu.cs"), "private void AddPageMenuItems(", "private FrameworkElement LabelledStrip(");
+        Assert.Contains("FlyoutTile(\"\\uE8A1\", Loc(\"Str_FieldPreset_Menu\"), null, BuildFieldPresetMenu(pt, pageIdx))", page);
+        Assert.Contains("Loc(\"Str_TT_ComparePDFs\"), \"AltShift:V\", BuildComparisonContextItem())", page);
+        Assert.Contains("Loc(\"Str_Card_PageTools\"), null, tools)", page);
+        Assert.Contains("pageTiles.AddRange(ViewTiles());", page);
+        Assert.DoesNotContain("AppendViewItems", page);
+        // Full Screen and Book layout show their state on the tile, as the checkable rows did.
+        string view = Between(Read("Shell", "ContextMenu.cs"), "private List<CardTile> ViewTiles()", "return tiles;");
+        Assert.Contains("{ Checked = _fullScreen }", view);
+        Assert.Contains("{ Checked = Controls.PdfViewer.BookMode }", view);
+
+        string ocr = Between(Read("Shell", "Ocr.cs"), "private void OcrMenu_Click(", "private static void SetBusyMessage(");
+        Assert.Contains("\"CardMenu\"", ocr);
+        foreach (string key in new[] { "Str_Ocr_Region", "Str_Ocr_SearchablePdf", "Str_Ocr_ScanToText", "Str_Ocr_ExtractText" })
+            Assert.Contains($"Short(\"{key}\")", ocr);
+        Assert.Contains("FlyoutTile(GlyphText(0xF2B7), Loc(\"Str_Ocr_Language\"), null, BuildLanguageMenu())", ocr);
+        Assert.Contains("{ Checked = OcrFormAware, KeepsOpen = true }", ocr);
+        Assert.DoesNotContain("menu.Items.Add(MakeMenuItem(", ocr);
+    }
+
+    [Fact]
     public void SelectingAMarkLendsItTheBarAndDeselectingGivesTheToolsLookBack()
     {
         // The borrow and release rules themselves are exercised in DrawToolLookTests; these pin the wiring.

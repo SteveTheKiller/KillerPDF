@@ -28,9 +28,9 @@ public sealed class MenuShortcutDisplayTests
     [Fact]
     public void TheCardMergeRowShowsNoShortcutBecauseTheGestureRunsAnotherMerge()
     {
-        // Alt+Shift+B merges at the end; the card's row inserts after its own page.
+        // Alt+Shift+B merges at the end; the card's tile inserts after its own page, so its tooltip names no shortcut.
         string row = Line(ShellSource.Read("Shell", "PageCard.cs"), "Loc(\"Str_Lbl_Merge\")");
-        Assert.Contains("gesture: \"\"", row);
+        Assert.Contains("Loc(\"Str_Lbl_Merge\"), null, async () => await MergeAtIndex(page + 1)", row);
     }
 
     [Fact]

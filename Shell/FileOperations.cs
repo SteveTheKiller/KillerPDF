@@ -1165,14 +1165,15 @@ namespace KillerPDF.Shell
                     hdr.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // name
                     hdr.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                    // remove X
                     var nameText = new TextBlock { Text = System.IO.Path.GetFileName(path), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
-                    Grid.SetColumn(fileIcon, 0);
                     Grid.SetColumn(nameText, 1);
                     Grid.SetColumn(rmBtn, 2);
-                    hdr.Children.Add(fileIcon);
                     hdr.Children.Add(nameText);
                     hdr.Children.Add(rmBtn);
+                    // The file icon sits in the menu's own icon column, lined up with Clear list's icon, instead of
+                    // inside the header after that empty column, which left a wide gap on the left.
+                    fileIcon.Margin = new Thickness(0);
+                    item.Icon = fileIcon;
                     item.Header = hdr;
-                    item.Padding = new Thickness(20, 6, 8, 6);
 
                     menu.Items.Add(item);
                 }
