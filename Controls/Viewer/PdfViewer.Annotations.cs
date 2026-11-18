@@ -836,6 +836,9 @@ namespace KillerPDF.Controls
                     sy = PointsPerCanvasUnit(tsel.PageIndex, rd.h);
                 _textFontSize = Math.Max(1, Math.Round(tsel.FontSize * sy));
                 _textLetterSpacing = tsel.LetterSpacing * sy;
+                // The box's own typeface too, or a bar change would restyle it in the tool's face.
+                _textFontName = string.IsNullOrEmpty(tsel.FontName) ? "Segoe UI" : tsel.FontName;
+                _textBold = tsel.Bold; _textItalic = tsel.Italic; _textStrike = tsel.Strike; _textUnderline = tsel.Underline;
                 if (borrowing) _selectedTextLook = CurrentTextToolDefaults();
                 if (!KeepsOwnBar(_currentTool)) ShowTextSettings();   // r4 BF-002
             }

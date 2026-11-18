@@ -190,6 +190,7 @@ namespace KillerPDF.Controls
         internal void CancelActiveTextEditExt() => CancelActiveTextEdit();
         internal void RemoveTextEditHandlesExt() => RemoveTextEditHandles();
         internal void EditTextAtPositionExt(Point canvasPos, int pageIdx) => EditTextAtPosition(canvasPos, pageIdx);
+        internal bool IsTextAtPositionExt(int pageIdx, Point canvasPos) => IsTextAtPosition(pageIdx, canvasPos);
         internal void PlaceTextBoxExt(Point pos, int pageIdx) => PlaceTextBox(pos, pageIdx);
         internal Brush TextEditBackgroundExt() => TextEditBackground();
         internal static ControlTemplate FlatTextBoxTemplateExt() => FlatTextBoxTemplate();

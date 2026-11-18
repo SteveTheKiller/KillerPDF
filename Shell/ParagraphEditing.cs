@@ -37,6 +37,12 @@ public partial class MainWindow
             PdfParagraphCandidateInspection inspection = PdfParagraphEditor.InspectCandidates(document, pageIndex);
             if (inspection.Candidates.Count == 0)
             {
+                // Text the paragraph editor cannot rebuild, such as recognized text over a scan, still
+                // has the Text tool's line edit, which covers the line and matches the scan.
+                if (canvasPoint is Point clicked && ActiveViewer.IsTextAtPositionExt(pageIndex, clicked))
+                {
+                    EditTextAtPosition(clicked, pageIndex); return;
+                }
                 KillerDialog.Show(this, ParagraphEditDialog.RefusalMessage(inspection)); return;
             }
             Point? point = null;

@@ -250,6 +250,9 @@ namespace KillerPDF.Shell
             System.Windows.Automation.AutomationProperties.SetName(fontBox, LabelName(Loc("Str_Bar_Font")));
             System.Windows.Automation.AutomationProperties.SetAutomationId(fontBox, "TextFont");
             foreach (var fn in SystemFontNames) fontBox.Items.Add(fn);
+            // A face the box was set in but WPF does not list, such as a bundled Liberation face,
+            // still shows as itself instead of leaving the box on another name.
+            if (!fontBox.Items.Contains(_textFontName)) fontBox.Items.Insert(0, _textFontName);
             fontBox.SelectedItem = _textFontName;
             fontBox.SelectionChanged += (s, e) =>
             {
