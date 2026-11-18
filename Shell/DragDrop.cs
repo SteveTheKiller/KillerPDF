@@ -137,6 +137,9 @@ namespace KillerPDF.Shell
                 {
                     if (!thumbnailContent) break;
                     _pageDragArmed = true;
+                    // A plain click on another page's thumbnail is a jump, so Back returns to the page you left.
+                    if (!pressed.IsSelected && (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == ModifierKeys.None)
+                        RecordNavJump();
                     if (pressed.IsSelected && PageList.SelectedItems.Count > 1
                         && (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == ModifierKeys.None)
                     {
