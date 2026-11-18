@@ -169,7 +169,7 @@ internal static class PdfUaMatterhorn
         ("06", "Metadata", "001 M* 7.1-8; 002 M* 5; 003 M* 7.1-8; 004 H 7.1-8"),
         ("07", "Dictionary", "001 M* 7.1-9; 002 M* 7.1-9"),
         ("08", "OCR validation", "001 H 7.1-10; 002 H 7.1-10"),
-        ("09", "Appropriate tags", "001 H 7.2-1; 002 H 7.2-1; 003 H 7.2-1; 004 M 7.2-1; 005 M 7.2-1; 006 M 7.2-1; 007 M 7.2-1; 008 M 7.2-1"),
+        ("09", "Appropriate tags", "001 H 7.2-1; 002 H 7.2-1; 003 H 7.2-1; 004 M* 7.2-1; 005 M* 7.2-1; 006 M* 7.2-1; 007 M* 7.2-1; 008 M* 7.2-1"),
         ("10", "Character mappings", "001 M 7.2-2"),
         ("11", "Declared natural language", "001 M* 7.2-3; 002 M* 7.2-3; 003 M* 7.2-3; 004 M* 7.2-3; 005 M* 7.2-3; 006 M* 7.2-3; 007 H 7.2-3"),
         ("12", "Stretchable characters", "001 H 7.2-4"),

@@ -269,6 +269,56 @@ public sealed class PdfUaValidatorTests
         Assert.Contains(findings, finding => finding.Code == "Conformance.PdfUa1.06-003");
     }
 
+    [Fact]
+    public void ListTableTocRubyAndWarichuElementsOutOfPlaceFailCheckpointNine()
+    {
+        static PdfDictionary Element(string type, params PdfObject[] kids) => new(
+        [
+            new(Name("S"), Name(type)),
+            new(Name("K"), new PdfArray(kids))
+        ]);
+        byte[] pdf = Patch(TaggedDocument(), (document, update, catalog) =>
+        {
+            var rootReference = (PdfIndirectReference)catalog[Name("StructTreeRoot")];
+            var root = ((PdfDictionary)document.Resolve(rootReference))
+                .ToDictionary(item => item.Key, item => item.Value);
+            root[Name("K")] = new PdfArray(
+            [
+                root[Name("K")],
+                Element("L", Element("LI", Element("Lbl"), Element("LBody"))),
+                Element("Table", Element("TR", Element("TH"), Element("TD"))),
+                Element("TD"),
+                Element("L", Element("P")),
+                Element("TOCI"),
+                Element("Ruby", Element("RB"), Element("Span")),
+                Element("WT")
+            ]);
+            update.ReplaceObject(rootReference.ObjectNumber, new PdfDictionary(root));
+        });
+
+        PdfUaReport report = PdfUaValidator.Validate(PdfDocument.Open(pdf));
+
+        PdfUaCheckpointResult tags = Checkpoint(report, "09");
+        Assert.Equal(PdfUaCheckpointStatus.Failed, tags.Status);
+        Assert.Empty(tags.UncheckedConditions);
+        Assert.Equal(["09-004", "09-005", "09-006", "09-007", "09-008"],
+            tags.Failures.Select(failure => failure.Condition).Order());
+        Assert.Contains(tags.Failures, failure => failure.Message.Contains("TD", StringComparison.Ordinal)
+            && failure.Message.Contains("structure tree root", StringComparison.Ordinal));
+        Assert.Contains(tags.Failures, failure => failure.Message.Contains("L element contains P", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void WellFormedListAndTableNestingPassesCheckpointNine()
+    {
+        PdfUaReport report = PdfUaValidator.Validate(PdfDocument.Open(TaggedDocument()));
+
+        PdfUaCheckpointResult tags = Checkpoint(report, "09");
+        Assert.Empty(tags.Failures);
+        Assert.Empty(tags.UncheckedConditions);
+        Assert.Equal(PdfUaCheckpointStatus.NeedsHumanReview, tags.Status);
+    }
+
     private static PdfUaCheckpointResult Checkpoint(PdfUaReport report, string number) =>
         Assert.Single(report.Checkpoints, checkpoint => checkpoint.Number == number);
 

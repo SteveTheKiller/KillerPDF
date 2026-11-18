@@ -235,12 +235,65 @@ public static class PdfUaValidator
                 walk.PreviousHeadingLevel = level;
             }
             if (type == "Table") CheckTable(element, page, objectNumber, generation, depth);
+            CheckNesting(type, parentType, element, page, objectNumber, generation);
             if (element.TryGetValue(Name("K"), out PdfObject? children))
             {
                 if (ChildTypes(children).Count(child => child == "H") > 1)
                     Fail("14-006", "A structure element contains more than one H heading.",
                         page, objectNumber, generation);
                 Visit(children, type, depth + 1, walk, visited);
+            }
+        }
+
+        // ISO 32000-1 tables 336 and 337 fix where list, table, TOC, Ruby and Warichu elements may
+        // sit. Each rule names the parents an element needs, or the only children a group may hold.
+        private static readonly (string Condition, string Group, string Type, string[] Parents)[] ParentRules =
+        [
+            ("09-004", "table", "TR", ["Table", "THead", "TBody", "TFoot"]),
+            ("09-004", "table", "TH", ["TR"]),
+            ("09-004", "table", "TD", ["TR"]),
+            ("09-004", "table", "THead", ["Table"]),
+            ("09-004", "table", "TBody", ["Table"]),
+            ("09-004", "table", "TFoot", ["Table"]),
+            ("09-005", "list", "LI", ["L"]),
+            ("09-005", "list", "LBody", ["LI"]),
+            ("09-006", "table of contents", "TOCI", ["TOC"]),
+            ("09-007", "Ruby", "RB", ["Ruby"]),
+            ("09-007", "Ruby", "RT", ["Ruby"]),
+            ("09-007", "Ruby", "RP", ["Ruby"]),
+            ("09-008", "Warichu", "WT", ["Warichu"]),
+            ("09-008", "Warichu", "WP", ["Warichu"])
+        ];
+
+        private static readonly (string Condition, string Type, string[] Children)[] ChildRules =
+        [
+            ("09-004", "Table", ["TR", "THead", "TBody", "TFoot", "Caption"]),
+            ("09-004", "THead", ["TR"]),
+            ("09-004", "TBody", ["TR"]),
+            ("09-004", "TFoot", ["TR"]),
+            ("09-004", "TR", ["TH", "TD"]),
+            ("09-005", "L", ["L", "LI", "Caption"]),
+            ("09-005", "LI", ["Lbl", "LBody"]),
+            ("09-006", "TOC", ["TOC", "TOCI", "Caption"]),
+            ("09-007", "Ruby", ["RB", "RT", "RP"]),
+            ("09-008", "Warichu", ["WT", "WP"])
+        ];
+
+        private void CheckNesting(string type, string? parentType, PdfDictionary element,
+            int? page, int? objectNumber, int? generation)
+        {
+            foreach ((string condition, string group, string child, string[] parents) in ParentRules)
+                if (child == type && (parentType is null || !parents.Contains(parentType)))
+                    Fail(condition, $"A {type} {group} element sits in {parentType ?? "the structure tree root"}, "
+                        + $"not in {string.Join(" or ", parents)}.", page, objectNumber, generation);
+            if (!element.TryGetValue(Name("K"), out PdfObject? kids)) return;
+            foreach ((string condition, string parent, string[] allowed) in ChildRules)
+            {
+                if (parent != type) continue;
+                foreach (string kid in ChildTypes(kids).Distinct())
+                    if (!allowed.Contains(kid))
+                        Fail(condition, $"A {type} element contains {kid}, which it may not hold.",
+                            page, objectNumber, generation);
             }
         }
 
