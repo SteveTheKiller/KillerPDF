@@ -7,7 +7,9 @@ namespace KillerPDF.Tests;
 
 // The viewer leaves a signed /Sig field without an overlay (#425), so the page raster that
 // PdfViewer.PreparePrimaryBitmap gets from PdfBackgroundRenderCache.Lease.Render must paint the
-// signed appearance itself. Unsigned fields stay out of the raster because their overlays draw them.
+// signed appearance itself. A field whose signature was cleared, as redacting a signed file does,
+// still paints the signer appearance it carries (#505) under its translucent Sign box, which never
+// draws an appearance.
 public sealed class SignedSignatureViewerRasterTests
 {
     private const int Width = 200, Height = 100;
@@ -20,10 +22,10 @@ public sealed class SignedSignatureViewerRasterTests
     }
 
     [Fact]
-    public void ViewerRasterLeavesUnsignedSignatureFieldToItsOverlay()
+    public void ViewerRasterPaintsTheAppearanceOfAClearedSignatureField()
     {
         byte[] pixels = RenderThroughViewerPath(signed: false);
-        Assert.False(IsGreen(pixels, 70, 50), "An unsigned signature field was baked into the viewer raster.");
+        Assert.True(IsGreen(pixels, 70, 50), "A cleared signature field lost its signer appearance in the viewer raster.");
     }
 
     [Fact]
