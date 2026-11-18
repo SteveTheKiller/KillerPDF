@@ -376,10 +376,10 @@ namespace KillerPDF.Features
             }
             PdfDocument document = PdfDocument.Open(File.ReadAllBytes(source));
             PdfFormDataImportReport report = PdfFormDataImporter.CreateReport(document, data);
+            con.WriteLine(report.ToText());
             CliEnsureParentDir(output);
             AtomicFileOutput.Write(output, PdfFormDataImporter.Apply(document, data,
                 options.ContainsKey("--flatten") ? PdfFormDataImportOutputMode.Flattened : PdfFormDataImportOutputMode.Editable));
-            con.WriteLine(report.ToText());
             con.WriteLine($"-> {output}");
             return 0;
         }

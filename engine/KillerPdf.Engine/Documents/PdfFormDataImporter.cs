@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Parsing;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -34,8 +36,11 @@ public static class PdfFormDataImporter
                 PdfFormWidgetInfo widget = fieldWidgets[0];
                 kind = widget.FieldKind;
                 flags = widget.Flags;
+                // A damaged form can leave fields of different types under one name, and
+                // filling that name would write into the wrong one.
+                bool mixedKinds = fieldWidgets.Any(other => other.FieldKind != kind);
                 status = (flags & 1) != 0 ? PdfFormDataMatchStatus.ReadOnly
-                    : kind == PdfFormFieldKind.Signature || kind == PdfFormFieldKind.Unknown
+                    : mixedKinds || kind == PdfFormFieldKind.Signature || kind == PdfFormFieldKind.Unknown
                         || (kind == PdfFormFieldKind.Button && (flags & (1L << 16)) != 0)
                         ? PdfFormDataMatchStatus.Incompatible
                         : ValuesAreValid(field, fieldWidgets)
@@ -112,9 +117,15 @@ public static class PdfFormDataImporter
         }
         PdfDocument updatedDocument = fieldsChanged
             ? PdfDocument.Open(editor.Build()) : document;
-        bool annotationsChanged = data.Annotations.Count > 0;
+        // Data exported from this same file carries its comments, so a comment whose name
+        // is already on its page is the one that is there, not a new one.
+        HashSet<(int, string)> present = ExistingAnnotationNames(updatedDocument);
+        PdfFormDataAnnotation[] newAnnotations = [.. data.Annotations.Where(annotation =>
+            string.IsNullOrEmpty(annotation.Name)
+            || !present.Contains((annotation.PageIndex, annotation.Name)))];
+        bool annotationsChanged = newAnnotations.Length > 0;
         if (annotationsChanged)
-            updatedDocument = PdfDocument.Open(ApplyAnnotations(updatedDocument, data.Annotations));
+            updatedDocument = PdfDocument.Open(ApplyAnnotations(updatedDocument, newAnnotations));
         if (!fieldsChanged && !annotationsChanged)
             throw new InvalidOperationException(
                 "The form data has no applicable field values or annotations.");
@@ -175,6 +186,34 @@ public static class PdfFormDataImporter
                     $"Importing {annotation.Subtype} annotations is not supported.");
         }
         return editor.Build();
+    }
+
+    private static HashSet<(int, string)> ExistingAnnotationNames(PdfDocument document)
+    {
+        var names = new HashSet<(int, string)>();
+        var annotsName = new PdfName("Annots"u8.ToArray());
+        var nmName = new PdfName("NM"u8.ToArray());
+        foreach (PdfPageTreeEntry page in PdfPageTree.Read(document).Pages)
+        {
+            if (!page.Dictionary.TryGetValue(annotsName, out PdfObject? annotsValue)
+                || ResolveDirect(document, annotsValue) is not PdfArray annots) continue;
+            foreach (PdfObject item in annots)
+            {
+                if (ResolveDirect(document, item) is PdfDictionary annotation
+                    && annotation.TryGetValue(nmName, out PdfObject? nameValue)
+                    && ResolveDirect(document, nameValue) is PdfString name)
+                    names.Add((page.Index, PdfUnicodeEncoding.DecodeTextString(
+                        name.Bytes.Span, "An annotation /NM value")));
+            }
+        }
+        return names;
+    }
+
+    private static PdfObject ResolveDirect(PdfDocument document, PdfObject value)
+    {
+        for (int depth = 0; value is PdfIndirectReference reference && depth < 32; depth++)
+            value = document.Resolve(reference);
+        return value;
     }
 
     private static PdfAnnotationMetadata Metadata(PdfFormDataAnnotation annotation) => new()

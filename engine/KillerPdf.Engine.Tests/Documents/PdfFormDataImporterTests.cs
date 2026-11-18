@@ -74,6 +74,76 @@ public sealed class PdfFormDataImporterTests
     }
 
     [Fact]
+    public void ImportSkipsANameSharedByFieldsOfDifferentTypesAndFillsTheRest()
+    {
+        // A form whose fields lost their parents can leave a text field and a check box
+        // under one name (#466). Filling that name would hit the wrong field type.
+        PdfDocument document = PdfDocument.Open(SharedNameForm());
+        var data = new PdfFormDataSet
+        {
+            Fields = Array.AsReadOnly(new[]
+            {
+                new PdfFormDataField { Name = "dupA", Values = Array.AsReadOnly(new[] { "x" }) },
+                new PdfFormDataField { Name = "city", Values = Array.AsReadOnly(new[] { "Lyon" }) }
+            })
+        };
+
+        IReadOnlyList<PdfFormDataMatch> preview = PdfFormDataImporter.Preview(document, data);
+        Assert.Equal(PdfFormDataMatchStatus.Incompatible, preview[0].Status);
+        Assert.Equal(PdfFormDataMatchStatus.Matched, preview[1].Status);
+
+        PdfDocument imported = PdfDocument.Open(PdfFormDataImporter.Apply(document, data));
+        Assert.Contains(PdfFormWidgetReader.ReadPage(imported, 0),
+            widget => widget.FieldName == "city" && widget.Value == "Lyon");
+    }
+
+    [Fact]
+    public void ImportingAnExportBackIntoItsOwnFileKeepsOneCopyOfEachComment()
+    {
+        PdfDocument form = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(200, 200)
+            .AddTextField(0, "name", 10, 10, 100, 20, "Ada").Build());
+        PdfDocument source = PdfDocument.Open(new PdfIncrementalAnnotationEditor(form)
+            .AddRectangle(0, 20, 40, 60, 30, new PdfRgbColor(1, 0, 0), lineWidth: 1,
+                opacity: 1, name: "box")
+            .Build());
+        PdfFormDataSet exported = PdfFormDataExporter.Export(source);
+        Assert.Single(exported.Annotations);
+
+        PdfDocument imported = PdfDocument.Open(PdfFormDataImporter.Apply(source, exported));
+
+        Assert.Single(PdfFormDataExporter.Export(imported).Annotations);
+        Assert.Contains(PdfFormWidgetReader.ReadPage(imported, 0),
+            widget => widget.FieldName == "name" && widget.Value == "Ada");
+    }
+
+    private static byte[] SharedNameForm()
+    {
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [4 0 R 5 0 R 6 0 R] /DA (/Helv 10 Tf 0 g) >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [4 0 R 5 0 R 6 0 R] >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (dupA) /Rect [10 10 110 30] /DA (/Helv 10 Tf 0 g) /P 3 0 R >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Btn /T (dupA) /Rect [10 40 30 60] /AS /Off /AP << /N << /Yes 7 0 R /Off 7 0 R >> >> /P 3 0 R >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (city) /Rect [10 70 110 90] /DA (/Helv 10 Tf 0 g) /P 3 0 R >>",
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Length 0 >>\nstream\n\nendstream"
+        ];
+        var pdf = new System.Text.StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int i = 0; i < objects.Length; i++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append(i + 1).Append(" 0 obj\n").Append(objects[i]).Append("\nendobj\n");
+        }
+        int xref = pdf.Length;
+        pdf.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append(offset.ToString("D10")).Append(" 00000 n \n");
+        pdf.Append("trailer\n<< /Size ").Append(objects.Length + 1)
+            .Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        return System.Text.Encoding.Latin1.GetBytes(pdf.ToString());
+    }
+
+    [Fact]
     public void PreviewReportsMatchedReadOnlyAndUnmatchedFields()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
