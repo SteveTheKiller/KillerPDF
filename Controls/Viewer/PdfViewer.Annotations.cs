@@ -1087,17 +1087,28 @@ namespace KillerPDF.Controls
                 .Select(page => page.ToList()).ToList();
             if (pages.Count == 0) return false;
 
-            PushPagesSnapshotUndo(pages.Select(page => page[0].PageIndex));
-            foreach (var page in pages)
+            var plans = pages.Select(page =>
+            {
+                Rect[] before = [.. page.Select(AnnotBounds)];
+                return (page, before, after: AnnotationArrange.Apply([.. before], action));
+            }).Where(plan => !plan.before.SequenceEqual(plan.after)).ToList();
+            // Marks already arranged leave nothing to undo and the document unchanged.
+            if (plans.Count == 0) return false;
+
+            PushPagesSnapshotUndo(plans.Select(plan => plan.page[0].PageIndex));
+            foreach (var (page, before, after) in plans)
             {
                 var (pageWidth, pageHeight) = _renderDims[page[0].PageIndex];
-                Rect[] before = [.. page.Select(AnnotBounds)];
-                Rect[] after = AnnotationArrange.Apply(before, action);
                 for (int i = 0; i < page.Count; i++)
                 {
                     PageAnnotation annotation = page[i];
-                    if (after[i].Size != before[i].Size && Resize(annotation, new Vector(after[i].Width - before[i].Width, after[i].Height - before[i].Height)) is false)
-                        after[i] = new Rect(after[i].Location, before[i].Size);
+                    if (after[i].Size != before[i].Size)
+                    {
+                        // A mark has a minimum size, so it is placed by the size it actually took.
+                        Size made = Resize(annotation, new Vector(after[i].Width - before[i].Width, after[i].Height - before[i].Height))
+                            ? AnnotBounds(annotation).Size : before[i].Size;
+                        after[i] = new Rect(after[i].Location, made);
+                    }
                     double x = Math.Clamp(after[i].X, 0, Math.Max(0, pageWidth - after[i].Width));
                     double y = Math.Clamp(after[i].Y, 0, Math.Max(0, pageHeight - after[i].Height));
                     Point position = AnnotGetPos(annotation);
