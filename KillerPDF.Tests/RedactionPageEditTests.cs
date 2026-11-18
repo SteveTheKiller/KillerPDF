@@ -27,7 +27,7 @@ public sealed class RedactionPageEditTests
                     .MoveText(10, 50).ShowLatin1Text("SECRET").EndText()).Build();
             File.WriteAllBytes(path, source);
             var mark = new RedactionMark(1, 5, 40, 80, 65, "Hidden", Colors.Black, AnnotationFlags: 36);
-            var marks = new RedactionMarkSnapshot([mark]);
+            var marks = new RedactionMarkSnapshot([mark], foundText: ["SECRET"]);
             RedactionMarkSnapshot mapped = RedactionPageEdit.Apply(path, marks, file =>
             {
                 switch (operation)
@@ -39,6 +39,7 @@ public sealed class RedactionPageEditTests
                 }
             });
             Assert.Equal(operation == "duplicate" ? 2 : 1, mapped.Marks.Count);
+            Assert.Equal(["SECRET"], mapped.FoundText);
             Assert.Equal(mark with { PageIndex = expectedPage }, mapped.Marks[0]);
             if (operation == "duplicate") Assert.Equal(mark with { PageIndex = 2 }, mapped.Marks[1]);
             PdfEngineIntegration.ApplyRedaction(path, mapped.Marks.Select(item => new PdfRedactionRegion(

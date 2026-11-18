@@ -232,9 +232,12 @@ public partial class MainWindow
         if (_macroRedaction.Terms.Length == 0) return null;
         PdfRedactionVerificationReport report;
         try { report = PdfContentRedaction.FindSurvivingText(output, _macroRedaction.Terms); }
-        catch (Exception error) when (error is FormatException or InvalidOperationException or NotSupportedException)
+        catch (Exception error) when (error is FormatException or InvalidOperationException or NotSupportedException
+            or ArgumentException or OverflowException or IOException)
         {
-            return null;
+            // A check that could not run proves nothing, so every word is reported as possibly left.
+            return string.Format(Loc("Str_Redact_TextSurvives"),
+                string.Join(", ", _macroRedaction.Terms.Select(term => "“" + term + "”")));
         }
         if (report.Succeeded) return null;
         string[] left = [.. _macroRedaction.Terms.Where(term => report.Findings.Any(finding =>

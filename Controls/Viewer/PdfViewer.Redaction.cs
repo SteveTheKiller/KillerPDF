@@ -26,12 +26,15 @@ namespace KillerPDF.Controls
         // The words searches marked, checked for in the finished file once hidden information is dealt with.
         private readonly HashSet<string> _redactFoundText = new(StringComparer.OrdinalIgnoreCase);
 
-        internal RedactionMarkSnapshot CaptureRedactionMarksExt() => new(_redactMarks, _redactionSourceFingerprint);
+        internal RedactionMarkSnapshot CaptureRedactionMarksExt() =>
+            new(_redactMarks, _redactionSourceFingerprint, _redactFoundText);
 
         internal void RestoreRedactionMarksExt(RedactionMarkSnapshot snapshot)
         {
             _redactMarks = [.. snapshot.Marks];
             _redactionSourceFingerprint = snapshot.SourceFingerprint;
+            _redactFoundText.Clear();
+            _redactFoundText.UnionWith(snapshot.FoundText);
             UpdateRedactionCount();
             RepaintRedactionMarks();
         }
@@ -774,13 +777,16 @@ namespace KillerPDF.Controls
             string[] terms = [.. _redactFoundText];
             if (_redactMarks.Count == 0) _redactFoundText.Clear();
             PdfRedactionVerificationReport report;
+            bool checkFailed = false;
             try { report = PdfEngineIntegration.FindSurvivingText(_currentFile, terms, matchCase: false); }
             catch (Exception error) when (error is System.IO.IOException or FormatException or InvalidOperationException
-                or NotSupportedException or UnauthorizedAccessException)
+                or NotSupportedException or UnauthorizedAccessException or ArgumentException or OverflowException)
             {
-                return;
+                // A check that could not run proves nothing, so every word is named as possibly left.
+                report = new PdfRedactionVerificationReport([]);
+                checkFailed = true;
             }
-            if (report.Succeeded) return;
+            if (report.Succeeded && !checkFailed) return;
             string[] left = [.. terms.Where(term => report.Findings.Any(finding =>
                 finding.Message.Contains("'" + term + "'", StringComparison.OrdinalIgnoreCase)))];
             string words = string.Join(", ", (left.Length > 0 ? left : terms).Select(term => "“" + term + "”"));

@@ -27,7 +27,7 @@ internal static class RedactionPageEdit
                 mark.FillColor is { } fill ? Color.FromRgb(Component(fill.Red), Component(fill.Green), Component(fill.Blue)) : null,
                 mark.AnnotationFlags));
         }
-        return new(mapped);
+        return new(mapped, foundText: marks.FoundText);
     }
 
     private static byte Component(double value) => (byte)Math.Round(Math.Clamp(value, 0, 1) * 255);
