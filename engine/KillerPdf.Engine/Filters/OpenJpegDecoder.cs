@@ -1,5 +1,9 @@
 using System.Runtime.InteropServices;
 
+// openjp2 loads only from beside the engine or from System32, never from the current or download
+// folder or PATH, where a planted copy would run inside the app. Other platforms ignore System32.
+[assembly: DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.System32)]
+
 namespace KillerPdf.Engine.Filters;
 
 // OpenJPEG 2.5.4 C ABI. The packaged native library targets Windows x64.
