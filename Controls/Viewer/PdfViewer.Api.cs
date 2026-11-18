@@ -183,6 +183,7 @@ namespace KillerPDF.Controls
         internal void UndoClickExt(object sender, RoutedEventArgs e) => Undo_Click(sender, e);
         internal void RedoClickExt(object sender, RoutedEventArgs e) => Redo_Click(sender, e);
         internal void ClearAnnotationsClickExt(object sender, RoutedEventArgs e) => ClearAnnotations_Click(sender, e);
+        internal void ClearPageAnnotationsExt(int pageIdx) => ClearPageAnnotations(pageIdx);
         internal void ClearAllAnnotationsClickExt(object sender, RoutedEventArgs e) => ClearAllAnnotations_Click(sender, e);
 
         // ── Text editing ─────────────────────────────────────────────────────────────────────

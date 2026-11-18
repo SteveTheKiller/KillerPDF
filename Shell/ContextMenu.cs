@@ -236,7 +236,7 @@ namespace KillerPDF.Shell
                 new("\uEE6F", Loc("Str_Ctx_OcrPage"), "CtrlShift:O", () => OcrPageToClipboard(pageIdx), false, true),
                 FlyoutTile("\uE7C3", Loc("Str_Card_PageTools"), null, tools),
                 new("\uE932", Loc("Str_Ctx_StampPages"), "S", () => OpenStampTool(pageIdx), false, true),
-                new("\uE75C", Loc("Str_Ctx_ClearPage"), null, () => ClearAnnotations_Click(this, new RoutedEventArgs()), false, canClearPage),
+                new("\uE75C", Loc("Str_Ctx_ClearPage"), null, () => ActiveViewer.ClearPageAnnotationsExt(pageIdx), false, canClearPage),
             };
             // Then editing and the view, in the same grid so the columns line up; the ones that only apply sometimes
             // stay conditional. Markup selected elsewhere on the page can still go from here.

@@ -58,7 +58,18 @@ public sealed class PageMenuLogicTests
         string canClear = ShellSource.Between(PageMenuBody, "bool canClearPage =", ";");
         Assert.Contains("pageMarks.Count > 0", canClear);
         Assert.Contains("ActiveViewer.HasPendingAnnotationExt", canClear);
-        Assert.Contains("ClearAnnotations_Click(this, new RoutedEventArgs()), false, canClearPage)", ShellSource.Between(PageMenuBody, "Loc(\"Str_Ctx_ClearPage\")", "\n"));
+        // The tile clears the page that was right-clicked, the same page its enabled state reads (BF-C001).
+        Assert.Contains("ActiveViewer.ClearPageAnnotationsExt(pageIdx), false, canClearPage)", ShellSource.Between(PageMenuBody, "Loc(\"Str_Ctx_ClearPage\")", "\n"));
+        string annotations = ShellSource.Read("Controls", "Viewer", "PdfViewer.Annotations.cs");
+        string click = ShellSource.Between(annotations, "private void ClearAnnotations_Click(", "internal void ClearPageAnnotations(");
+        Assert.Contains("ClearPageAnnotations(_currentPage)", click);
+        string clearPage = ShellSource.Between(annotations, "internal void ClearPageAnnotations(int pageIdx)", "private void ClearAllAnnotations_Click(");
+        Assert.Contains("PushUndo(new UndoEntry(UndoKind.ClearAnnotations, WasDirty: _isDirty, AnnotSnapshot: snap))", clearPage);
+        Assert.DoesNotContain("_currentPage;", clearPage);
+        // A page with no tile on screen must not be painted onto the single-page canvas over the current page.
+        Assert.Contains("VisibleCanvasForPage(pageIdx)", clearPage);
+        Assert.Contains("internal void ClearPageAnnotationsExt(int pageIdx) => ClearPageAnnotations(pageIdx);",
+            ShellSource.Read("Controls", "Viewer", "PdfViewer.Api.cs"));
         Assert.DoesNotContain("_ctxMenu.Items.Add(MakeMenuItem(Loc(\"Str_Ctx_ClearPage\")", PageMenuBody);
         string agnostic = ShellSource.Between(ContextMenu, "private void FillPageAgnosticMenu(", "internal void DocPaneBackground_RightClick");
         Assert.Contains("EditAvailability().Clear", ShellSource.Between(agnostic, "Loc(\"Str_Lbl_Clear\")", "var grid"));

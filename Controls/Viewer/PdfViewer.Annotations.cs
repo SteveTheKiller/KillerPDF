@@ -3309,11 +3309,14 @@ namespace KillerPDF.Controls
                 RenderAllAnnotations(_currentPage);
         }
 
-        // Context-menu "Clear Page Annotations": removes annotations on the current page only.
-        private void ClearAnnotations_Click(object sender, RoutedEventArgs e)
+        // "Clear Page Annotations" on the current page.
+        private void ClearAnnotations_Click(object sender, RoutedEventArgs e) => ClearPageAnnotations(_currentPage);
+
+        // Removes the annotations on one page as a single undo. The page menu passes the page that was
+        // right-clicked, which in a multi-page view need not be the current one.
+        internal void ClearPageAnnotations(int pageIdx)
         {
             if (_activeTextBox is not null) CommitActiveTextBox();
-            int pageIdx = _currentPage;
             if (pageIdx < 0) return;
             if (_annotations.TryGetValue(pageIdx, out var list) && list.Count > 0)
             {
@@ -3325,8 +3328,10 @@ namespace KillerPDF.Controls
             }
             ClearSelection();
             // Redraw the page on whichever surface it lives on (overlay in multi-page views, the
-            // single canvas otherwise) so the cleared page actually updates in continuous/grid mode.
-            RenderAllAnnotations(pageIdx);
+            // single canvas otherwise) so the cleared page actually updates in continuous/grid mode. A page
+            // with no tile on screen only refreshes its thumbnail; drawing it would paint the single canvas.
+            if (pageIdx == _currentPage || VisibleCanvasForPage(pageIdx) is not null) RenderAllAnnotations(pageIdx);
+            else QueueThumbnailOverlay(pageIdx);
             SetStatus(Loc("Str_St_ClearedPageAnnotations"));
         }
 
