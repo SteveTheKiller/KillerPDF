@@ -1068,6 +1068,68 @@ namespace KillerPDF.Controls
             return true;
         }
 
+        // Lines up, spaces or sizes the selected marks against each other (#504), one page at a time,
+        // since marks on different pages share no edges. Moves follow NudgeSelection: the members free
+        // to move, one undo step, and the page clamp. Only text boxes and shapes change size; an image or
+        // a drawing keeps its proportions and is only moved.
+        private bool ArrangeSelection(AnnotationArrange.Action action)
+        {
+            var selected = new List<PageAnnotation>();
+            if (_selectedAnnotation is not null && IsDraggable(_selectedAnnotation))
+                selected.Add(_selectedAnnotation);
+            foreach (var annotation in _selectedSet)
+                if (IsDraggable(annotation) && !selected.Contains(annotation))
+                    selected.Add(annotation);
+            if (MovingMembers(selected) is not { } movable) return false;
+
+            var pages = movable.GroupBy(annotation => annotation.PageIndex)
+                .Where(page => AnnotationArrange.Applies(action, page.Count()) && _renderDims.ContainsKey(page.Key))
+                .Select(page => page.ToList()).ToList();
+            if (pages.Count == 0) return false;
+
+            PushPagesSnapshotUndo(pages.Select(page => page[0].PageIndex));
+            foreach (var page in pages)
+            {
+                var (pageWidth, pageHeight) = _renderDims[page[0].PageIndex];
+                Rect[] before = [.. page.Select(AnnotBounds)];
+                Rect[] after = AnnotationArrange.Apply(before, action);
+                for (int i = 0; i < page.Count; i++)
+                {
+                    PageAnnotation annotation = page[i];
+                    if (after[i].Size != before[i].Size && Resize(annotation, new Vector(after[i].Width - before[i].Width, after[i].Height - before[i].Height)) is false)
+                        after[i] = new Rect(after[i].Location, before[i].Size);
+                    double x = Math.Clamp(after[i].X, 0, Math.Max(0, pageWidth - after[i].Width));
+                    double y = Math.Clamp(after[i].Y, 0, Math.Max(0, pageHeight - after[i].Height));
+                    Point position = AnnotGetPos(annotation);
+                    AnnotSetPos(annotation, new Point(position.X + x - before[i].X, position.Y + y - before[i].Y));
+                }
+                RenderAllAnnotations(page[0].PageIndex);
+            }
+            ReattachSelectionVisuals();
+            MoveSelectionVisuals();
+            if (_selectedSet.Count > 0) ReattachMultiOutlines();
+            MarkDirty();
+            return true;
+
+            static bool Resize(PageAnnotation annotation, Vector change)
+            {
+                switch (annotation)
+                {
+                    case TextAnnotation text:
+                        bool sideways = text.Rotation % 180 != 0;
+                        text.Width = Math.Max(8, text.Width + (sideways ? change.Y : change.X));
+                        text.Height = Math.Max(8, text.Height + (sideways ? change.X : change.Y));
+                        return true;
+                    case HighlightAnnotation { IsShape: true } shape:
+                        shape.Bounds = new Rect(shape.Bounds.Location, new Size(
+                            Math.Max(1, shape.Bounds.Width + change.X), Math.Max(1, shape.Bounds.Height + change.Y)));
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        }
+
         private void DrawHiddenLayerOutline(PageAnnotation hidden)
         {
             Rect box = AnnotBounds(hidden);

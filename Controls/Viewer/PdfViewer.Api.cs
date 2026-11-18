@@ -44,6 +44,7 @@ namespace KillerPDF.Controls
         internal void ReattachSelectionVisualsExt() => ReattachSelectionVisuals();
         internal void ReattachMultiOutlinesExt() => ReattachMultiOutlines();
         internal bool NudgeSelectionExt(Vector requested, bool createUndo) => NudgeSelection(requested, createUndo);
+        internal bool ArrangeSelectionExt(AnnotationArrange.Action action) => ArrangeSelection(action);
         internal void UnpairSelectedExt() => UnpairSelected();
         internal void GroupSelectedExt() => GroupSelected();
         internal void UngroupAnnotationExt(PageAnnotation a) => UngroupAnnotation(a);

@@ -34,7 +34,10 @@ namespace KillerPDF.Shell
             if (hit.GroupId.Length > 0) quick.Add(("\uF168", Loc("Str_Ctx_Ungroup"), null, () => UngroupAnnotation(hit), false, true));
             else if (multi) quick.Add(("\uF168", Loc("Str_Ctx_Group"), null, GroupSelected, false, true));
             quick.Add(("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, true));
-            var strip = QuickStrip(_ctxMenu, [.. quick]);
+            var tiles = quick.Select(b => new CardTile(b.Item1, b.Item2, b.Item3, b.Item4, b.Item5, b.Item6)).ToList();
+            // Several marks get one Arrange tile whose rows line them up, space them and size them (#504).
+            if (multi) tiles.Insert(tiles.Count - 1, FlyoutTile("\uE8E4", Loc("Str_Ctx_Arrange"), null, ArrangeRows(targets.Count)));
+            var strip = QuickStrip(_ctxMenu, 0, [.. tiles]);
             _ctxMenu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(_ctxMenu, strip);
 
@@ -67,6 +70,36 @@ namespace KillerPDF.Shell
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_RemoveFromGroup"), (_, _) => RemoveFromGroup(hit), glyph: "\uE738"));
             // A list with nothing in it after the rule reads as broken; the rule goes when it would end the card.
             if (_ctxMenu.Items[^1] is Separator) _ctxMenu.Items.RemoveAt(_ctxMenu.Items.Count - 1);
+        }
+
+        // The Arrange tile's rows. Distributing needs three marks, so with two its rows are off.
+        private MenuItem ArrangeRows(int count)
+        {
+            var rows = new MenuItem { Header = Loc("Str_Ctx_Arrange") };
+            void Row(string key, Services.AnnotationArrange.Action action)
+            {
+                var item = MakeMenuItem(Loc(key), (_, _) => ArrangeSelection(action));
+                item.IsEnabled = Services.AnnotationArrange.Applies(action, count);
+                rows.Items.Add(item);
+            }
+            Row("Str_Arrange_AlignLeft", Services.AnnotationArrange.Action.AlignLeft);
+            Row("Str_Arrange_AlignCenter", Services.AnnotationArrange.Action.AlignCenter);
+            Row("Str_Arrange_AlignRight", Services.AnnotationArrange.Action.AlignRight);
+            Row("Str_Arrange_AlignTop", Services.AnnotationArrange.Action.AlignTop);
+            Row("Str_Arrange_AlignMiddle", Services.AnnotationArrange.Action.AlignMiddle);
+            Row("Str_Arrange_AlignBottom", Services.AnnotationArrange.Action.AlignBottom);
+            rows.Items.Add(new Separator());
+            Row("Str_Arrange_DistributeHorizontally", Services.AnnotationArrange.Action.DistributeHorizontally);
+            Row("Str_Arrange_DistributeVertically", Services.AnnotationArrange.Action.DistributeVertically);
+            Row("Str_Arrange_MoreHorizontalSpace", Services.AnnotationArrange.Action.MoreHorizontalSpace);
+            Row("Str_Arrange_LessHorizontalSpace", Services.AnnotationArrange.Action.LessHorizontalSpace);
+            Row("Str_Arrange_MoreVerticalSpace", Services.AnnotationArrange.Action.MoreVerticalSpace);
+            Row("Str_Arrange_LessVerticalSpace", Services.AnnotationArrange.Action.LessVerticalSpace);
+            rows.Items.Add(new Separator());
+            Row("Str_Arrange_SameWidth", Services.AnnotationArrange.Action.SameWidth);
+            Row("Str_Arrange_SameHeight", Services.AnnotationArrange.Action.SameHeight);
+            Row("Str_Arrange_SameSize", Services.AnnotationArrange.Action.SameSize);
+            return rows;
         }
 
         // The right-clicked annotation and the rest of the selection, the same set the bar restyles.

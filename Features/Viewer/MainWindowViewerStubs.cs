@@ -50,6 +50,7 @@ namespace KillerPDF.Shell
         private int SelectionCount() => ActiveViewer.SelectionCountExt();
         private void ReattachSelectionVisuals() => ActiveViewer.ReattachSelectionVisualsExt();
         private bool NudgeSelection(Vector requested, bool createUndo) => ActiveViewer.NudgeSelectionExt(requested, createUndo);
+        private bool ArrangeSelection(Services.AnnotationArrange.Action action) => ActiveViewer.ArrangeSelectionExt(action);
         private void UnpairSelected() => ActiveViewer.UnpairSelectedExt();
         private void GroupSelected() => ActiveViewer.GroupSelectedExt();
         private void UngroupAnnotation(PageAnnotation a) => ActiveViewer.UngroupAnnotationExt(a);
