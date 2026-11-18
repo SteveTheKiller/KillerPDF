@@ -48,7 +48,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A PDF rewritten in place at the same size within the same instant no longer shows its old pages in the background render or thumbnails.
 - The Mourning theme highlights selections in its original peach with dark text again, instead of pink.
 - The tab beside the active document tab no longer draws a second divider line against it.
-- Gray buttons in the Trash Polka theme now visibly lighten on hover.
 
 ### Changed
 
