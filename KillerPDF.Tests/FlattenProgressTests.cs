@@ -66,6 +66,8 @@ public sealed class FlattenProgressTests : IDisposable
     public void TheFlattenReadsItsSourceOnce()
     {
         string source = Pages(3);
+        // The parse cache skips a file written within its racy-timestamp window; the file was just written.
+        File.SetLastWriteTimeUtc(source, DateTime.UtcNow.AddMinutes(-5));
 
         PdfDocument read = PdfRasterize.OpenFlattenSource(source);
 
