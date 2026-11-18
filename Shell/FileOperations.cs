@@ -1082,13 +1082,19 @@ namespace KillerPDF.Shell
             e.Handled = true;   // also fired by right-click on the Open button; don't let it bubble
             var menu = MakeThemedMenu();
 
-            menu.Items.Add(MakeMenuItem(Loc("Str_Menu_Import") + "...", (s2, e2) => ImportImages_Click(s2, e2), null, ""));
-            foreach (OpenMenuCommand command in DocumentCreationCommands())
+            if (TryFindResource("CardMenu") is Style card) menu.Style = card;
+            string importGlyph = ((""));
+            // The three ways to make a new PDF are one strip of tiles, like the Save menu's card (Steve, 2026-11-18).
+            var create = new List<(string, string, string?, Action, bool, bool)>
             {
-                MenuItem item = MakeMenuItem(Loc(command.LabelKey), (_, _) => command.Run(), null, command.Icon);
-                item.IsEnabled = !command.RequiresDocument || _doc is not null;
-                menu.Items.Add(item);
-            }
+                (importGlyph, Loc("Str_Menu_Import"), null, () => ImportImages_Click(this, new RoutedEventArgs()), false, true)
+            };
+            foreach (OpenMenuCommand command in DocumentCreationCommands())
+                create.Add((command.Icon, Loc(command.LabelKey).TrimEnd('.', '…'), null, command.Run, false,
+                    !command.RequiresDocument || _doc is not null));
+            var createStrip = QuickStrip(menu, 3, [.. create]);
+            menu.Items.Add(CardSlot(createStrip, new Thickness(0)));
+            FocusFirstActionFromKeyboard(menu, createStrip);
             menu.Items.Add(new Separator());
 
             var recents = App.GetRecentFiles();
@@ -1364,8 +1370,10 @@ namespace KillerPDF.Shell
             }
             else
             {
-                menu.Items.Add(MakeMenuItem(Loc("Str_Menu_Save"), (_, _) => SaveInPlace(), GestureFor("Ctrl:S"), ""));
-                menu.Items.Add(MakeMenuItem(Loc("Str_Menu_SaveAs"), (s2, e2) => SaveAs_Click(s2, e2), GestureFor("CtrlShift:S"), ""));
+                // One card of nine tiles (Steve, 2026-11-18): saving, the exports and the password commands,
+                // each keeping the icon its menu row had.
+                string saveGlyph = ((""));
+                string saveAsGlyph = ((""));
                 // The card frame and icon strip the page menus use (19e88a9): every export is a tile with its icon,
                 // and its shortcut rides on the tooltip. Reduce File Size (#433) and Export table had no icon before.
                 static (string, string, string?, Action, bool, bool) Tile(string caption, string gesture, Action act, string glyph)
@@ -1373,20 +1381,22 @@ namespace KillerPDF.Shell
                 var zip = (Tile(Short("Str_Menu_CompressZip"), "AltShift:C", () => CompressToZip_Click(this, new RoutedEventArgs()), ""));
                 var images = (Tile(Short("Str_Menu_ExportImages"), "AltShift:E", () => ExportImages_Click(this, new RoutedEventArgs()), ""));   // #132
                 var document = (Tile(Short("Str_Menu_ExportDocument"), "CtrlShift:E", () => ExportDocument_Click(this, new RoutedEventArgs()), ""));
-                var exports = QuickStrip(menu, 3,
-                    Tile(Short("Str_Menu_ReduceSize"), "AltShift:Z", () => ReduceFileSize_Click(this, new RoutedEventArgs()), GlyphText(0xE73F)),
-                    zip, images, document,
-                    Tile(Short("Str_TableExport_Title"), "AltShift:T", () => ExportTable(PageList.SelectedIndex), GlyphText(0xE80A)));
-                menu.Items.Add(CardSlot(LabelledStrip(Loc("Str_ExportImg_Export"), exports), new Thickness(0)));
-                FocusFirstActionFromKeyboard(menu, exports);
-                menu.Items.Add(new Separator());
                 // #149: visible always (discoverability, the PDF Viewer Plus way), enabled only when the
                 // open file actually had a password/encryption. A regular save keeps the encryption,
                 // so this is the one command that takes it off.
-                var removePw = MakeMenuItem(Loc("Str_Menu_RemovePassword"), (_, _) => RemovePassword(), null, "");
-                removePw.IsEnabled = _openedFromProtected && !_restrictedByCertificate;
-                menu.Items.Add(removePw);
-                menu.Items.Add(MakeMenuItem(Loc("Str_Menu_ProtectDocument"), (_, _) => OpenProtectDialog(), GestureFor("CtrlShift:P"), ""));
+                string unlockGlyph = ("");
+                bool canUnlock = _openedFromProtected && !_restrictedByCertificate;
+                string lockGlyph = ((""));
+                var tiles = QuickStrip(menu, 3,
+                    Tile(Short("Str_Menu_Save"), "Ctrl:S", SaveInPlace, saveGlyph),
+                    Tile(Short("Str_Menu_SaveAs"), "CtrlShift:S", () => SaveAs_Click(this, new RoutedEventArgs()), saveAsGlyph),
+                    Tile(Short("Str_Menu_ReduceSize"), "AltShift:Z", () => ReduceFileSize_Click(this, new RoutedEventArgs()), GlyphText(0xE73F)),
+                    zip, images, document,
+                    Tile(Short("Str_TableExport_Title"), "AltShift:T", () => ExportTable(PageList.SelectedIndex), GlyphText(0xE80A)),
+                    (unlockGlyph, Short("Str_Menu_RemovePassword"), null, RemovePassword, false, canUnlock),
+                    Tile(Short("Str_Menu_ProtectDocument"), "CtrlShift:P", OpenProtectDialog, lockGlyph));
+                menu.Items.Add(CardSlot(tiles, new Thickness(0)));
+                FocusFirstActionFromKeyboard(menu, tiles);
             }
 
             menu.PlacementTarget = (UIElement)sender;
