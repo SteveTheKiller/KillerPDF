@@ -162,6 +162,8 @@ namespace KillerPDF.Controls
             ("BackgroundBrush", MotifPart.Chrome), ("TitleBarBrush", MotifPart.Chrome),
             ("BgCanvas", MotifPart.Window), ("ContentPaneBrush", MotifPart.Window),
             ("MenuBackgroundBrush", MotifPart.Popup), ("AnnotationBarBrush", MotifPart.Popup),
+            // Dropdown lists: without the popup piece an open list was flat gray and blended into the panel under it.
+            ("ComboPopupBrush", MotifPart.Popup),
         ];
 
         private static (string Key, MotifPart Part)? SurfaceOf(FrameworkElement el)
