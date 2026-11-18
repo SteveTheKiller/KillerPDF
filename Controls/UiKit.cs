@@ -655,13 +655,14 @@ namespace KillerPDF
             if (ink)
             {
                 var grid = new FrameworkElementFactory(typeof(Grid));
-                var layer = new FrameworkElementFactory(typeof(Border));
+                // The ink is the pane's piece (a different image from the dialog's background) on a black base;
+                // hover swaps only the base to gray, so the pattern stays and the face never covers it.
+                var layer = new FrameworkElementFactory(typeof(Border)) { Name = "ink" };
                 layer.SetValue(Border.CornerRadiusProperty, radius ?? RadControl);
-                layer.SetValue(Controls.ThemeMotif.BaseBrushProperty, "ContentPaneBrush");
+                layer.SetValue(Controls.ThemeMotif.BaseBrushProperty, "BackgroundBrush");
                 layer.SetValue(Controls.ThemeMotif.PartProperty, Controls.MotifPart.Window);
                 grid.AppendChild(layer);
                 var face = new FrameworkElementFactory(typeof(Border)) { Name = "bd" };
-                face.SetBinding(Border.BackgroundProperty, new Binding("Background") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
                 face.SetBinding(Border.PaddingProperty, new Binding("Padding") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
                 face.SetBinding(Border.BorderBrushProperty, new Binding("BorderBrush") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
                 face.SetBinding(Border.BorderThicknessProperty, new Binding("BorderThickness") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
@@ -672,6 +673,9 @@ namespace KillerPDF
                 face.AppendChild(content);
                 grid.AppendChild(face);
                 var inked = new ControlTemplate(typeof(Button)) { VisualTree = grid };
+                var over = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+                over.Setters.Add(new Setter(Controls.ThemeMotif.BaseBrushProperty, "ButtonHoverFaceBrush", "ink"));
+                inked.Triggers.Add(over);
                 var off = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
                 off.Setters.Add(new Setter(UIElement.OpacityProperty, 0.45));
                 inked.Triggers.Add(off);
