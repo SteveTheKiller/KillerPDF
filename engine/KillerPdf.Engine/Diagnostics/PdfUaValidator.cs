@@ -24,6 +24,7 @@ public static class PdfUaValidator
 {
     private const int MaximumDepth = 256;
     private const int MaximumDecodedBytes = 64 * 1024 * 1024;
+    private const int MaximumFormDrawsPerPage = 10_000;
 
     /// <summary>Validates an authenticated document against the Matterhorn Protocol checkpoints.</summary>
     public static PdfUaReport Validate(PdfDocument document, CancellationToken cancellationToken = default)
@@ -60,6 +61,7 @@ public static class PdfUaValidator
         private PdfPageTree _tree = null!;
         private Dictionary<(int, int), int> _pageIndexes = [];
         private bool _hasDocumentLanguage;
+        private int _formDraws;
 
         internal int? DeclaredPart { get; private set; }
         internal IReadOnlyList<PdfUaFailure> Failures => _failures;
@@ -467,6 +469,7 @@ public static class PdfUaValidator
             PdfDictionary? resources = page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? value)
                 ? Resolve(value) as PdfDictionary : null;
             var stack = new List<MarkKind>();
+            _formDraws = 0;
             WalkContent(instructions, resources, page.Index, stack, new ContentState(), 0,
                 new HashSet<(int, int)>());
         }
@@ -551,6 +554,11 @@ public static class PdfUaValidator
                 return;
             }
             if (!IsName(xobject.Dictionary, "Subtype", "Form")) return;
+            // The active set stops only true cycles, so a form that draws its child twice at every
+            // level doubles the walk per level. A page budget bounds that.
+            if (++_formDraws > MaximumFormDrawsPerPage)
+                throw new InvalidOperationException(
+                    $"The page draws form XObjects more than {MaximumFormDrawsPerPage} times.");
             (int, int)? key = entry is PdfIndirectReference reference
                 ? (reference.ObjectNumber, reference.Generation) : null;
             if (xobject.Dictionary.ContainsKey(Name("Ref")))

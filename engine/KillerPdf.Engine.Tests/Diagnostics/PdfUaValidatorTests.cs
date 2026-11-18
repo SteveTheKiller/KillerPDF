@@ -319,6 +319,52 @@ public sealed class PdfUaValidatorTests
         Assert.Equal(PdfUaCheckpointStatus.NeedsHumanReview, tags.Status);
     }
 
+    [Fact]
+    public void FormXObjectsThatDrawTheirChildTwiceAtEveryLevelFinishQuickly()
+    {
+        // Forty forms deep, each drawing the next one twice, is 2^40 walks without a budget.
+        byte[] pdf = Patch(TaggedDocument(), (document, update, catalog) =>
+        {
+            var pages = (PdfDictionary)document.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+            var pageReference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+            var page = ((PdfDictionary)document.Resolve(pageReference))
+                .ToDictionary(item => item.Key, item => item.Value);
+            PdfIndirectReference child = update.AddObject(Form("0 0 1 1 re f", null));
+            for (int level = 0; level < 40; level++)
+                child = update.AddObject(Form("/C Do /C Do", child));
+            page[Name("Resources")] = new PdfDictionary(
+            [
+                new(Name("XObject"), new PdfDictionary([new(Name("X"), child)]))
+            ]);
+            byte[] drawing = Encoding.ASCII.GetBytes("/Artifact BMC /X Do EMC");
+            page[Name("Contents")] = update.AddObject(new PdfStream(new PdfDictionary(
+                [new(Name("Length"), new PdfInteger(drawing.Length))]), drawing));
+            update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page));
+        });
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+
+        PdfUaReport report = PdfUaValidator.Validate(PdfDocument.Open(pdf), timeout.Token);
+
+        Assert.Contains(report.Failures, failure => failure.Condition == "01-005"
+            && failure.PageIndex == 0 && failure.Message.Contains("form XObject", StringComparison.Ordinal));
+    }
+
+    private static PdfStream Form(string content, PdfIndirectReference? child)
+    {
+        byte[] data = Encoding.ASCII.GetBytes(content);
+        var entries = new List<KeyValuePair<PdfName, PdfObject>>
+        {
+            new(Name("Type"), Name("XObject")),
+            new(Name("Subtype"), Name("Form")),
+            new(Name("BBox"), new PdfArray([new PdfInteger(0), new PdfInteger(0), new PdfInteger(1), new PdfInteger(1)])),
+            new(Name("Length"), new PdfInteger(data.Length))
+        };
+        if (child is not null)
+            entries.Add(new(Name("Resources"), new PdfDictionary(
+                [new(Name("XObject"), new PdfDictionary([new(Name("C"), child)]))])));
+        return new PdfStream(new PdfDictionary(entries), data);
+    }
+
     private static PdfUaCheckpointResult Checkpoint(PdfUaReport report, string number) =>
         Assert.Single(report.Checkpoints, checkpoint => checkpoint.Number == number);
 
