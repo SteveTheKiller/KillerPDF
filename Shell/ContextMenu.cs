@@ -246,7 +246,7 @@ namespace KillerPDF.Shell
                 pageTiles.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(pageIdx), false, true));
             pageTiles.Add(new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true));
             pageTiles.AddRange(ViewTiles());
-            var pageStrip = QuickStrip(_ctxMenu, 4, [.. pageTiles]);
+            var pageStrip = QuickStrip(_ctxMenu, 3, [.. pageTiles]);
             _ctxMenu.Items.Add(CardSlot(pageStrip, new Thickness(0)));
         }
 
@@ -275,7 +275,7 @@ namespace KillerPDF.Shell
 
         // The top row of the page menus, laid out the way a browser's is: Back and Forward retrace the jump history
         // (Alt+Left, Alt+Right, the mouse's side buttons), then Undo, Redo and Print, and the page on the right.
-        private void AddNavRow(ContextMenu menu, int pageIdx = -1)
+        private void AddNavRow(ContextMenu menu, int pageIdx = -1, string? zoomIn = null, string? zoomOut = null)
         {
             var row = new DockPanel { Margin = new Thickness(4, 0, 4, 2), LastChildFill = true };
             var buttons = new StackPanel { Orientation = Orientation.Horizontal };
@@ -290,6 +290,14 @@ namespace KillerPDF.Shell
             buttons.Children.Add(NavRowButton(menu, "\uE749", "Str_Ctx_Print", "Ctrl:P", () => Print_Click(this, new RoutedEventArgs()), _doc is not null && _currentFile is not null));
             DockPanel.SetDock(buttons, Dock.Left);
             row.Children.Add(buttons);
+            if (zoomIn is not null && zoomOut is not null)
+            {
+                // Zoom on the gray-area menu sits at the row's right end, beside the print button's row.
+                var zoom = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+                zoom.Children.Add(NavRowButton(menu, zoomOut, "Str_Lbl_ZoomOut", "Ctrl:Minus", () => ZoomOut_Click(this, new RoutedEventArgs()), true));
+                zoom.Children.Add(NavRowButton(menu, zoomIn, "Str_Lbl_ZoomIn", "Ctrl:Equals", () => ZoomIn_Click(this, new RoutedEventArgs()), true));
+                row.Children.Add(zoom);
+            }
             int pageCount = _doc?.PageCount ?? ActiveViewer.ReadPageCountExt;
             if (pageIdx >= 0 && pageCount > 0)
             {
@@ -888,28 +896,28 @@ namespace KillerPDF.Shell
             // page reads like the menu on it. Every action and shortcut the old flat list had is still here.
             if (TryFindResource("CardMenu") is Style card) menu.Style = card;
             AddOwnerPasswordItem(menu);
-            AddNavRow(menu);
-            // One row with no label over it, the same shape as the page menu's strip, so the two menus match.
-            var pages = QuickStrip(menu,
-                ("\uE7C3", Loc("Str_Ctx_AddBlankPage"), "AltShift:A", AddBlankPageAtEnd, false, true),
-                ("\uE8CB", Loc("Str_Pages_Reverse"), "AltShift:R", ReversePageOrder, false, true),
-                ("\uE7AD", Loc("Str_Pages_FixOrientation"), "AltShift:O", FixPageOrientation, false, true),
-                ("\uE809", Loc("Str_Pages_Straighten"), "AltShift:S", StraightenScannedPages, false, true),
-                ("\uE89F", Loc("Str_Pages_DivideSpreads"), "AltShift:D", DivideSpreads, false, true));
-            menu.Items.Add(CardSlot(pages, new Thickness(0)));
-            FocusFirstActionFromKeyboard(menu, pages);
-            menu.Items.Add(new Separator());
-            menu.Items.Add(BuildComparisonContextItem());
-            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_ZoomIn"), (s, e) => ZoomIn_Click(s!, e), GestureFor("Ctrl:Equals"), ""));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_ZoomOut"), (s, e) => ZoomOut_Click(s!, e), GestureFor("Ctrl:Minus"), ""));
-            menu.Items.Add(new Separator());
+            string zoomInGlyph = ((""));
+            string zoomOutGlyph = ((""));
+            // Zoom in and out sit at the right end of the nav row, after print.
+            AddNavRow(menu, zoomIn: zoomInGlyph, zoomOut: zoomOutGlyph);
+            // Every other action as one grid, three tiles across like the page menu.
+            var tiles = new List<CardTile>
+            {
+                new("\uE7C3", Loc("Str_Ctx_AddBlankPage"), "AltShift:A", AddBlankPageAtEnd, false, true),
+                new("\uE8CB", Loc("Str_Pages_Reverse"), "AltShift:R", ReversePageOrder, false, true),
+                new("\uE7AD", Loc("Str_Pages_FixOrientation"), "AltShift:O", FixPageOrientation, false, true),
+                new("\uE809", Loc("Str_Pages_Straighten"), "AltShift:S", StraightenScannedPages, false, true),
+                new("\uE89F", Loc("Str_Pages_DivideSpreads"), "AltShift:D", DivideSpreads, false, true),
+                FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
+            };
             if (CanPasteInView())
-                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (s, e) => PasteInView(PageList.SelectedIndex), GestureFor("Ctrl:V"), "\uE77F"));
-            menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SelectAll"), (s, e) => SelectAllInView(), GestureFor("Ctrl:A"), "\uE8B3"));
-            var clearAll = MakeMenuItem(Loc("Str_Lbl_Clear"), (s, e) => ClearAllAnnotations_Click(s!, e), glyph: "\uED62");
-            clearAll.IsEnabled = EditAvailability().Clear;
-            menu.Items.Add(clearAll);
-            AppendViewItems(menu);
+                tiles.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(PageList.SelectedIndex), false, true));
+            tiles.Add(new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true));
+            tiles.Add(new("\uED62", Loc("Str_Lbl_Clear"), null, () => ClearAllAnnotations_Click(this, new RoutedEventArgs()), false, EditAvailability().Clear));
+            tiles.AddRange(ViewTiles());
+            var grid = QuickStrip(menu, 3, [.. tiles]);
+            menu.Items.Add(CardSlot(grid, new Thickness(0)));
+            FocusFirstActionFromKeyboard(menu, grid);
         }
 
         // Opens the page-agnostic menu for a right-click on the gray area around the page (the document
