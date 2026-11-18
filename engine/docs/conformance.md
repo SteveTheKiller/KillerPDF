@@ -65,9 +65,32 @@ An absent declaration produces no declaration-specific finding. That absence
 does not establish compliance or automatically select a target standard.
 
 For a PDF/A-4 declaration, this check examines encryption and output-intent
-boundaries. For PDF/UA-2, it uses the accessibility inspector. Other declared
-PDF/A or PDF/UA parts produce unsupported findings. These implemented checks
-are not exhaustive validators for either standard.
+boundaries. For PDF/UA-1, it runs `PdfUaValidator` and reports each failure as
+`Conformance.PdfUa1.<condition>`. For PDF/UA-2, it uses the accessibility
+inspector. Other declared PDF/A or PDF/UA parts produce unsupported findings.
+These implemented checks are not exhaustive validators for either standard.
+
+## Validate PDF/UA
+
+`PdfUaValidator.Validate(document)` picks its rule set from the declared part.
+A document whose XMP declares `pdfuaid:part` 2 is checked against the PDF/UA-2
+(ISO 14289-2) machine rules, named by the rule IDs of the veraPDF PDF/UA-2
+validation profile, such as `8.2.5.12-1`, and grouped by clause (5, 6, 8.2,
+8.4, 8.6 through 8.11, and 8.14). Any other document is checked against the 31
+Matterhorn Protocol 1.1 checkpoints for PDF/UA-1. `PdfUaReport.Standard` and
+`PdfUaReport.RuleSet` name what ran, and `ToText` and `ToJson` carry both.
+
+The PDF/UA-2 checks resolve structure types through namespaces. An element
+without `NS` belongs to the PDF 1.7 namespace and follows the `RoleMap`; an
+element with `NS` follows that namespace's `RoleMapNS`. The PDF 1.7, PDF 2.0
+and MathML namespaces are standard. A PDF 1.7 type mapped onto a PDF 2.0 type,
+such as `Note` onto `FENote`, is accepted.
+
+Rules the validator does not implement, including glyph, CMap and font program
+rules, table regularity, structure destinations and the ISO 32005 containment
+table, are listed as not checked by ID, so a PDF/UA-2 verdict is at best
+`Incomplete`. A separate review entry stands for the requirements a person must
+judge. Neither verdict claims full conformance.
 
 A PDF/X declaration checks encryption and output-intent boundaries and reports
 full PDF/X validation as unavailable. Preserve that incomplete result.

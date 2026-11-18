@@ -349,6 +349,30 @@ public sealed class PdfUaValidatorTests
             && failure.PageIndex == 0 && failure.Message.Contains("form XObject", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void PdfUa1ReportsMatchTheirOutputFromBeforePdfUa2Support()
+    {
+        // Hashes of ToText and indented ToJson captured before the PDF/UA-2 rule set was added,
+        // so a UA-1 file's verdicts, checkpoints, conditions and wording stay exactly as they were.
+        PdfUaReport tagged = PdfUaValidator.Validate(PdfDocument.Open(TaggedDocument()));
+        PdfUaReport untagged = PdfUaValidator.Validate(PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(200, 200, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(20, 100).ShowLatin1Text("Plain").EndText())
+            .Build()));
+
+        Assert.Equal("06A3A2A5227E2D9D07D3A78E", Hash(tagged));
+        Assert.Equal("247E28824B924EE845ED77BB", Hash(untagged));
+
+        static string Hash(PdfUaReport report)
+        {
+            string output = report.ToText().ReplaceLineEndings("\n") + "\n"
+                + report.ToJson(indented: true).ReplaceLineEndings("\n");
+            byte[] digest = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(output));
+            return Convert.ToHexString(digest)[..24];
+        }
+    }
+
     private static PdfStream Form(string content, PdfIndirectReference? child)
     {
         byte[] data = Encoding.ASCII.GetBytes(content);

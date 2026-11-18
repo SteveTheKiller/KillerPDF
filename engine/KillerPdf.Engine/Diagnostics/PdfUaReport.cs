@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace KillerPdf.Engine.Diagnostics;
 
-/// <summary>The overall PDF/UA-1 result for one document.</summary>
+/// <summary>The overall PDF/UA result for one document.</summary>
 public enum PdfUaVerdict
 {
     /// <summary>At least one machine-checkable failure condition failed.</summary>
@@ -15,7 +15,7 @@ public enum PdfUaVerdict
     PassedMachineChecks
 }
 
-/// <summary>The result of one Matterhorn Protocol checkpoint.</summary>
+/// <summary>The result of one checkpoint: a Matterhorn Protocol checkpoint for PDF/UA-1, or a clause group for PDF/UA-2.</summary>
 public enum PdfUaCheckpointStatus
 {
     /// <summary>A machine-checkable failure condition in this checkpoint failed.</summary>
@@ -28,9 +28,9 @@ public enum PdfUaCheckpointStatus
     Passed
 }
 
-/// <summary>One failed Matterhorn failure condition at a document location.</summary>
-/// <param name="Condition">The Matterhorn failure condition ID, such as 06-003.</param>
-/// <param name="Clause">The ISO 14289-1 requirement, such as UA1:7.1-8.</param>
+/// <summary>One failed condition at a document location.</summary>
+/// <param name="Condition">The Matterhorn failure condition ID for PDF/UA-1, such as 06-003, or the veraPDF PDF/UA-2 rule ID, such as 8.2.5.12-1.</param>
+/// <param name="Clause">The requirement, such as UA1:7.1-8 or UA2:8.2.5.12.</param>
 /// <param name="Message">A readable description of what was found.</param>
 public sealed record PdfUaFailure(string Condition, string Clause, string Message)
 {
@@ -42,29 +42,35 @@ public sealed record PdfUaFailure(string Condition, string Clause, string Messag
     public int? ObjectGeneration { get; init; }
 }
 
-/// <summary>The result of one Matterhorn Protocol checkpoint.</summary>
-/// <param name="Number">The two-digit checkpoint number, 01 to 31.</param>
+/// <summary>The result of one checkpoint.</summary>
+/// <param name="Number">The two-digit Matterhorn checkpoint number, 01 to 31, or the PDF/UA-2 clause, such as 8.2.</param>
 /// <param name="Name">The checkpoint name.</param>
 /// <param name="Status">The checkpoint result.</param>
 /// <param name="Failures">Failed conditions, in check order.</param>
-/// <param name="HumanReviewConditions">Conditions the protocol leaves to a person.</param>
-/// <param name="UncheckedConditions">Machine-checkable conditions this validator does not implement.</param>
+/// <param name="HumanReviewConditions">Conditions left to a person.</param>
+/// <param name="UncheckedConditions">Machine-checkable conditions or rules this validator does not implement.</param>
 public sealed record PdfUaCheckpointResult(
     string Number, string Name, PdfUaCheckpointStatus Status,
     IReadOnlyList<PdfUaFailure> Failures,
     IReadOnlyList<string> HumanReviewConditions,
     IReadOnlyList<string> UncheckedConditions);
 
-/// <summary>A PDF/UA-1 validation report with one result per Matterhorn Protocol checkpoint.</summary>
+/// <summary>
+/// A PDF/UA validation report. A PDF/UA-1 report has one result per Matterhorn Protocol checkpoint;
+/// a PDF/UA-2 report has one result per ISO 14289-2 clause group, named by veraPDF PDF/UA-2 rule IDs.
+/// </summary>
 public sealed partial class PdfUaReport
 {
     private const int SchemaVersion = 1;
     private static readonly PdfUaCompactJsonContext CompactJson = new(JsonOptions(false));
     private static readonly PdfUaIndentedJsonContext IndentedJson = new(JsonOptions(true));
 
-    internal PdfUaReport(int? declaredPart, IReadOnlyList<PdfUaCheckpointResult> checkpoints)
+    internal PdfUaReport(int? declaredPart, IReadOnlyList<PdfUaCheckpointResult> checkpoints,
+        string standard = "PDF/UA-1", string ruleSet = "Matterhorn Protocol 1.1")
     {
         DeclaredPart = declaredPart;
+        Standard = standard;
+        RuleSet = ruleSet;
         Checkpoints = checkpoints;
         Failures = Array.AsReadOnly(checkpoints.SelectMany(checkpoint => checkpoint.Failures).ToArray());
         Verdict = checkpoints.Any(checkpoint => checkpoint.Status == PdfUaCheckpointStatus.Failed)
@@ -76,9 +82,13 @@ public sealed partial class PdfUaReport
 
     /// <summary>Gets the PDF/UA part the document's XMP metadata declares, or null.</summary>
     public int? DeclaredPart { get; }
+    /// <summary>Gets the standard the checks ran against: PDF/UA-2 for a document declaring part 2, otherwise PDF/UA-1.</summary>
+    public string Standard { get; }
+    /// <summary>Gets the rule set that ran: the Matterhorn Protocol for PDF/UA-1, or the veraPDF PDF/UA-2 rule IDs.</summary>
+    public string RuleSet { get; }
     /// <summary>Gets the summary verdict. It never claims full conformance, since people must judge some conditions.</summary>
     public PdfUaVerdict Verdict { get; }
-    /// <summary>Gets all 31 checkpoints in protocol order.</summary>
+    /// <summary>Gets the checkpoints in order: the 31 Matterhorn checkpoints, or the PDF/UA-2 clause groups.</summary>
     public IReadOnlyList<PdfUaCheckpointResult> Checkpoints { get; }
     /// <summary>Gets every failure across the checkpoints.</summary>
     public IReadOnlyList<PdfUaFailure> Failures { get; }
@@ -86,12 +96,13 @@ public sealed partial class PdfUaReport
     /// <summary>Formats a readable report with one line per checkpoint and its failures beneath.</summary>
     public string ToText()
     {
-        var output = new StringBuilder().Append("PDF/UA-1 result: ").AppendLine(Verdict switch
+        var output = new StringBuilder().Append(Standard).Append(" result: ").AppendLine(Verdict switch
         {
             PdfUaVerdict.Failed => "Failed",
             PdfUaVerdict.Incomplete => "Incomplete (no failures, some machine checks not implemented)",
             _ => "Passed machine checks (human review still required)"
         });
+        if (Standard != "PDF/UA-1") output.Append("Rule set: ").AppendLine(RuleSet);
         output.Append("Declared conformance: ")
             .AppendLine(DeclaredPart is int part ? $"PDF/UA-{part}" : "none");
         foreach (PdfUaCheckpointResult checkpoint in Checkpoints)
@@ -120,7 +131,7 @@ public sealed partial class PdfUaReport
     /// <summary>Serializes the report with stable camel-case names and string enums.</summary>
     public string ToJson(bool indented = false)
     {
-        var report = new PdfUaReportJson(SchemaVersion, "PDF/UA-1", "Matterhorn Protocol 1.1",
+        var report = new PdfUaReportJson(SchemaVersion, Standard, RuleSet,
             DeclaredPart, Verdict, Checkpoints);
         return JsonSerializer.Serialize(report, indented
             ? IndentedJson.PdfUaReportJson

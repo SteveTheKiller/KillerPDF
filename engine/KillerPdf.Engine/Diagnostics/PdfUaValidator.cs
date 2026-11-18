@@ -10,15 +10,16 @@ using KillerPdf.Engine.Parsing;
 namespace KillerPdf.Engine.Diagnostics;
 
 /// <summary>
-/// Validates a document against PDF/UA-1 (ISO 14289-1) and reports a result for each of the 31
-/// Matterhorn Protocol 1.1 checkpoints. Machine-checkable failure conditions that are implemented
-/// pass or fail; conditions the protocol leaves to a person, and machine conditions not yet
+/// Validates a document against PDF/UA and reports a result per checkpoint. A document whose XMP
+/// declares PDF/UA-2 (pdfuaid:part 2) is checked against the PDF/UA-2 (ISO 14289-2) machine rules,
+/// named by the veraPDF PDF/UA-2 profile rule IDs; any other document is checked against PDF/UA-1
+/// (ISO 14289-1) and its 31 Matterhorn Protocol 1.1 checkpoints. Machine-checkable conditions that
+/// are implemented pass or fail; conditions left to a person, and machine conditions not yet
 /// implemented, are listed by ID so the report never claims more than it checked.
 /// </summary>
 /// <remarks>
-/// The same checkpoints run whatever conformance the document declares. A PDF/UA-2 document is
-/// validated against the PDF/UA-1 checkpoints, since the Matterhorn Protocol covers only part 1;
-/// <see cref="PdfUaReport.DeclaredPart"/> records what the document claims.
+/// <see cref="PdfUaReport.Standard"/> and <see cref="PdfUaReport.RuleSet"/> name the rule set that
+/// ran, and <see cref="PdfUaReport.DeclaredPart"/> records what the document claims.
 /// </remarks>
 public static class PdfUaValidator
 {
@@ -26,7 +27,7 @@ public static class PdfUaValidator
     private const int MaximumDecodedBytes = 64 * 1024 * 1024;
     private const int MaximumFormDrawsPerPage = 10_000;
 
-    /// <summary>Validates an authenticated document against the Matterhorn Protocol checkpoints.</summary>
+    /// <summary>Validates an authenticated document against the rule set for the PDF/UA part it declares.</summary>
     public static PdfUaReport Validate(PdfDocument document, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -34,6 +35,10 @@ public static class PdfUaValidator
             throw new InvalidOperationException("Authenticate the document before PDF/UA validation.");
         var context = new Context(document, cancellationToken);
         context.Run();
+        if (context.DeclaredPart == 2)
+            return new PdfUaReport(2,
+                PdfUa2Rules.Evaluate(PdfUa2Checks.Run(document, context.Failures, cancellationToken)),
+                PdfUa2Rules.Standard, PdfUa2Rules.Protocol);
         return new PdfUaReport(context.DeclaredPart, PdfUaMatterhorn.Evaluate(context.Failures));
     }
 

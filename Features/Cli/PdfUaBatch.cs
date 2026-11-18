@@ -10,9 +10,10 @@ using KillerPdf.Engine.Documents;
 namespace KillerPDF.Features
 {
     /// <summary>
-    /// Runs the PDF/UA-1 validator over files and folders for --pdfua and reports each file, then a
-    /// summary. Folders are searched with their subfolders, and the files run in path order so two
-    /// runs over one corpus line up.
+    /// Runs the PDF/UA validator over files and folders for --pdfua and reports each file, then a
+    /// summary. A file declaring PDF/UA-2 is checked against the PDF/UA-2 rules and the rest against
+    /// PDF/UA-1; each file's report names its standard and rule set. Folders are searched with their
+    /// subfolders, and the files run in path order so two runs over one corpus line up.
     /// </summary>
     internal static class PdfUaBatch
     {
