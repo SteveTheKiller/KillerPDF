@@ -21,6 +21,7 @@ namespace KillerPDF.Shell
         // run stops promptly. _busyOpLabel names the op in the cancel prompt.
         private CancellationTokenSource? _busyCts;
         private OperationHold? _busyHold;   // set by a page job that waits while the cancel prompt is open
+        private Task? _busyCancelPrompt;    // completes when the open cancel prompt is answered
         private string _busyOpLabel = "operation";
 
         // Registers a cancellable long-running operation and returns its token to thread through the work.

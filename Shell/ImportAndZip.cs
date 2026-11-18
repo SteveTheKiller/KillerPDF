@@ -195,6 +195,8 @@ namespace KillerPDF.Shell
                 // Build off the UI thread so the window stays responsive (and movable) while it works.
                 (string? tempPath, int leftOut) = await Task.Run(() => BuildCombinedPdf(found, ct));
                 completedPath = tempPath;
+                // A merge that finishes while the cancel prompt is open honors the answer.
+                if (_busyCancelPrompt is { } prompt) await prompt;
                 target.LoadPending = false;
                 if (!ReclaimAsyncOwner(owner))
                 {

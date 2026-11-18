@@ -316,13 +316,21 @@ namespace KillerPDF.Shell
                 // cancel it.
                 OperationHold? hold = _busyHold;
                 hold?.Hold();
+                // Work that finishes while the prompt is open waits for the answer before it adopts its result.
+                var answered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                _busyCancelPrompt = answered.Task;
                 try
                 {
                     if (KillerDialog.Show(this, string.Format(Loc("Str_Dlg_CancelBusy"), _busyOpLabel), "KillerPDF",
                             MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                         _busyCts?.Cancel();
                 }
-                finally { if (ReferenceEquals(hold, _busyHold)) hold?.Release(); }
+                finally
+                {
+                    if (ReferenceEquals(hold, _busyHold)) hold?.Release();
+                    if (ReferenceEquals(_busyCancelPrompt, answered.Task)) _busyCancelPrompt = null;
+                    answered.SetResult();
+                }
                 e.Handled = true;
             }
             // #153: matched by the character the key TYPES, not its position. On a German layout
