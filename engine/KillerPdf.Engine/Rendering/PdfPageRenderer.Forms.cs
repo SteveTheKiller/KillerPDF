@@ -50,10 +50,27 @@ public sealed partial class PdfPageRenderer
     }
 
     // A signature field holds a signature when its inherited /FT is /Sig and its /V is a signature
-    // dictionary.
+    // dictionary. A field whose signature was cleared, as a redaction of a signed document does,
+    // still shows the signer's appearance it carries, the way other readers show it (#505). An
+    // empty field drawing nothing stays hidden, so a viewer's Sign box is all that shows there.
     private bool IsSignedSignatureWidget(PdfDictionary widget)
         => InheritedField(widget, "FT") is PdfName { } type && type.ToString() == "/Sig"
-            && InheritedField(widget, "V") is PdfDictionary;
+            && (InheritedField(widget, "V") is PdfDictionary || HasDrawnAppearance(widget));
+
+    private bool HasDrawnAppearance(PdfDictionary widget)
+    {
+        if (!widget.TryGetValue(Name("AP"), out PdfObject? value)
+            || Resolve(value) is not PdfDictionary appearances
+            || !appearances.TryGetValue(Name("N"), out PdfObject? normal)
+            || Resolve(normal) is not PdfStream stream) return false;
+        try
+        {
+            foreach (byte item in _document.DecodeStream(stream, 16 * 1024 * 1024))
+                if (item is not ((byte)' ' or (byte)'\r' or (byte)'\n' or (byte)'\t' or 0)) return true;
+        }
+        catch (Exception error) when (error is FormatException or NotSupportedException or InvalidOperationException) { }
+        return false;
+    }
 
     // A push button is a /Btn field with the Pushbutton flag (bit 17) set.
     private bool IsPushButtonWidget(PdfDictionary widget)

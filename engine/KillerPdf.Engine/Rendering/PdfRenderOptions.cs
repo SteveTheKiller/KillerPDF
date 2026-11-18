@@ -81,7 +81,8 @@ public sealed record PdfRenderOptions
     /// </summary>
     public bool IncludeMeasurementAnnotations { get; init; } = true;
     /// <summary>
-    /// Gets whether signature fields that already hold a signature are painted when
+    /// Gets whether signature fields that already hold a signature, or that still carry a drawn
+    /// appearance after their signature was cleared, are painted when
     /// <see cref="IncludeFormFields"/> is off. A viewer that draws the other fields as live controls
     /// turns this on, because nothing else shows a signed field's appearance.
     /// </summary>

@@ -77,7 +77,9 @@ public sealed class PdfPrecisionWidgetFilteringTests
     [Theory]
     [InlineData("/FT /Sig /V << >>", true, false, true)]
     [InlineData("/FT /Sig /V << >>", false, true, false)]
-    [InlineData("/FT /Sig", true, false, false)]
+    // A field whose signature was cleared still shows the signer appearance it carries (#505).
+    [InlineData("/FT /Sig", true, false, true)]
+    [InlineData("/FT /Sig", false, true, false)]
     [InlineData("/FT /Btn /Ff 65536", false, true, true)]
     [InlineData("/FT /Btn /Ff 65536", true, false, false)]
     [InlineData("/FT /Btn /Ff 0", false, true, false)]

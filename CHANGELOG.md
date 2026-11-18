@@ -37,6 +37,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Paste pastes what was copied last. Once a picture, shape or text box had been copied, every paste brought it back, even after copying text or an image somewhere else, in every open document until a restart. (#497)
 - Turning a replacement's layers on or off in More settings no longer freezes the window. The menu used to stay open with nothing under it and hold the mouse until another window took it back, which also kept the arrow keys from moving the text box or its cover. (#467)
 - Redact no longer fails with "Pages ... cannot be redacted without replacing them with an image" when saving the document leaves a page that has to become an image. It asks about those pages the same way it asks about the others, and canceling leaves the document as it was. (#499)
+- Redacting a signed PDF no longer turns the visible signature box blank. The redaction still invalidates the signature, but the box keeps showing the signer's name, date and timestamp, as other readers show it. (#505)
 - Flatten Forms, Optimize with form fields stripped, and form data import no longer fail with "The AcroForm has no field named" on a form whose field list lost track of fields still on its pages. (#466)
 - Pinching on a precision touchpad zooms the page again, as it did before 1.9.3, instead of scrolling it. (#494)
 - Two portable copies sharing one data folder no longer lose each other's settings changes, and a power cut while settings save can no longer leave an empty settings file.
