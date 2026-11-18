@@ -156,61 +156,117 @@ namespace KillerPDF.Services
             return result;
         }
 
-        /// <summary>Softens the ink's edges: three box-blur passes (close to a Gaussian) over premultiplied
-        /// pixels, so transparent paper never bleeds its leftover color into the edge as a halo.</summary>
+        /// <summary>Feathers the ink's edges without blurring it. The ink's outline (alpha at least half) stays
+        /// where it is, so a line keeps its width; a ramp <paramref name="radius"/> pixels wide is laid across that
+        /// outline, half inside and half outside, so the core stays fully opaque and sharp. A line thinner than the
+        /// ramp gets a ramp only as deep as the line, so its middle never fades. New edge pixels outside the ink
+        /// take the nearest ink pixel's color, so transparent paper never shows as a halo.</summary>
         internal static byte[] Feather(byte[] bgra, int width, int height, double radius)
         {
-            int r = (int)Math.Round(radius);
-            if (r <= 0 || width <= 0 || height <= 0) return (byte[])bgra.Clone();
+            if (radius < 0.5 || width <= 0 || height <= 0) return (byte[])bgra.Clone();
             int n = width * height;
-            var planes = new double[4][];
-            for (int c = 0; c < 4; c++) planes[c] = new double[n];
-            for (int p = 0; p < n; p++)
-            {
-                double a = bgra[p * 4 + 3] / 255.0;
-                planes[0][p] = bgra[p * 4] * a;
-                planes[1][p] = bgra[p * 4 + 1] * a;
-                planes[2][p] = bgra[p * 4 + 2] * a;
-                planes[3][p] = bgra[p * 4 + 3];
-            }
-            var scratch = new double[n];
-            foreach (var plane in planes)
-                for (int pass = 0; pass < 3; pass++)
-                {
-                    BoxBlur(plane, scratch, width, height, r, horizontal: true);
-                    BoxBlur(scratch, plane, width, height, r, horizontal: false);
-                }
+            var ink = new bool[n];
+            bool any = false;
+            for (int p = 0; p < n; p++) any |= ink[p] = bgra[p * 4 + 3] >= 128;
+            if (!any) return (byte[])bgra.Clone();
+
+            // Distance from each pixel's center to the outline: inside to the nearest paper pixel, outside to the
+            // nearest ink pixel (which also gives the color an outside pixel borrows).
+            float[] inside = Distance(ink, width, height, toInk: false, out _);
+            float[] outside = Distance(ink, width, height, toInk: true, out int[] nearestInk);
+
+            // How deep the ink around each pixel goes: the deepest inside distance within one ramp's reach. A thick
+            // stroke gets the full half ramp inside its edge; a thin one only as much as it has.
+            double half = radius / 2;
+            int reach = Math.Max(1, (int)Math.Ceiling(radius));
+            float[] depth = MaxFilter(inside, width, height, reach);
+
             var result = new byte[bgra.Length];
             for (int p = 0; p < n; p++)
             {
-                double alpha = planes[3][p];
-                double a = alpha / 255.0;
-                result[p * 4 + 3] = (byte)Math.Round(Math.Clamp(alpha, 0, 255));
-                for (int c = 0; c < 3; c++)
-                    result[p * 4 + c] = a <= 1e-6 ? (byte)0 : (byte)Math.Round(Math.Clamp(planes[c][p] / a, 0, 255));
+                // Signed distance from the pixel's center to the outline. A fully covered edge pixel sits half a
+                // pixel inside it and a bare neighbor half a pixel outside; an antialiased pixel's own coverage moves
+                // the outline within it, so the smallest ramp gives back the original edge.
+                double c = bgra[p * 4 + 3] / 255.0;
+                double s = ink[p] ? inside[p] - 1.5 + c : c + 0.5 - outside[p];
+                double h = Math.Clamp(Math.Min(half, depth[p] - 0.5), 0.5, Math.Max(0.5, half));
+                double a = Math.Clamp(0.5 + s / (2 * h), 0, 1);
+                int src = ink[p] ? p : nearestInk[p];
+                if (a <= 0 || src < 0) continue;
+                result[p * 4] = bgra[src * 4];
+                result[p * 4 + 1] = bgra[src * 4 + 1];
+                result[p * 4 + 2] = bgra[src * 4 + 2];
+                result[p * 4 + 3] = (byte)Math.Round(a * 255);
             }
             return result;
         }
 
-        // A running-sum box blur along rows or columns; outside the picture counts as transparent.
-        private static void BoxBlur(double[] src, double[] dst, int width, int height, int r, bool horizontal)
+        // Two-pass chamfer distance (steps of 1 and the square root of 2) from every pixel to the nearest pixel of
+        // the other kind; a target pixel is 0. Off the picture counts as paper, so ink at the border has an edge.
+        private static float[] Distance(bool[] ink, int width, int height, bool toInk, out int[] nearest)
         {
-            int lineCount = horizontal ? height : width, lineLength = horizontal ? width : height;
-            double norm = 1.0 / (2 * r + 1);
-            for (int line = 0; line < lineCount; line++)
+            const float Diag = 1.41421356f;
+            int n = width * height;
+            var d = new float[n];
+            nearest = new int[n];
+            for (int p = 0; p < n; p++)
             {
-                double sum = 0;
-                for (int k = 0; k <= Math.Min(r, lineLength - 1); k++) sum += src[Index(line, k)];
-                for (int pos = 0; pos < lineLength; pos++)
-                {
-                    dst[Index(line, pos)] = sum * norm;
-                    int add = pos + r + 1, drop = pos - r;
-                    if (add < lineLength) sum += src[Index(line, add)];
-                    if (drop >= 0) sum -= src[Index(line, drop)];
-                }
+                bool target = ink[p] == toInk;
+                d[p] = target ? 0 : float.MaxValue;
+                nearest[p] = target ? p : -1;
             }
+            int[] near = nearest;
+            void Relax(int p, int x, int y, int dx, int dy, float step)
+            {
+                int qx = x + dx, qy = y + dy;
+                if (qx < 0 || qy < 0 || qx >= width || qy >= height)
+                {
+                    // The border: paper lies just beyond it.
+                    if (!toInk && d[p] > step) { d[p] = step; }
+                    return;
+                }
+                int q = qy * width + qx;
+                if (d[q] + step < d[p]) { d[p] = d[q] + step; near[p] = near[q]; }
+            }
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    int p = y * width + x;
+                    if (d[p] == 0) continue;
+                    Relax(p, x, y, -1, 0, 1); Relax(p, x, y, 0, -1, 1);
+                    Relax(p, x, y, -1, -1, Diag); Relax(p, x, y, 1, -1, Diag);
+                }
+            for (int y = height - 1; y >= 0; y--)
+                for (int x = width - 1; x >= 0; x--)
+                {
+                    int p = y * width + x;
+                    if (d[p] == 0) continue;
+                    Relax(p, x, y, 1, 0, 1); Relax(p, x, y, 0, 1, 1);
+                    Relax(p, x, y, 1, 1, Diag); Relax(p, x, y, -1, 1, Diag);
+                }
+            return d;
+        }
 
-            int Index(int line, int pos) => horizontal ? line * width + pos : pos * width + line;
+        // The largest value within a square of the given reach around each pixel (rows, then columns).
+        private static float[] MaxFilter(float[] src, int width, int height, int reach)
+        {
+            var rows = new float[src.Length];
+            var result = new float[src.Length];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    float m = 0;
+                    for (int k = Math.Max(0, x - reach); k <= Math.Min(width - 1, x + reach); k++) m = Math.Max(m, src[y * width + k]);
+                    rows[y * width + x] = m;
+                }
+            for (int x = 0; x < width; x++)
+                for (int y = 0; y < height; y++)
+                {
+                    float m = 0;
+                    for (int k = Math.Max(0, y - reach); k <= Math.Min(height - 1, y + reach); k++) m = Math.Max(m, rows[k * width + x]);
+                    result[y * width + x] = m;
+                }
+            return result;
         }
 
         /// <summary>Draws pen strokes as black ink on transparent pixels. Points are in canvas units; the

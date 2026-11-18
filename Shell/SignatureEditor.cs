@@ -125,6 +125,13 @@ namespace KillerPDF.Shell
                     return line;
                 }
                 foreach (var stroke in strokes) ink.Children.Add(MakeLine(stroke));
+                // A feathered look shows the same baked pixels the signature saves (at half the bake's scale), since
+                // a vector blur would show a fuzzy line the feather never makes. The vector strokes show while drawing.
+                var feathered = new Image { Width = draft.CanvasWidth, Height = draft.CanvasHeight, IsHitTestVisible = false, Stretch = Stretch.Fill };
+                RenderOptions.SetBitmapScalingMode(feathered, BitmapScalingMode.HighQuality);
+                canvas.Children.Add(feathered);
+                List<Point>? current = null;
+                Polyline? currentLine = null;
                 refresh = () =>
                 {
                     var brush = new SolidColorBrush(ColorFromArgb(inkColor ?? SignatureBlack));
@@ -133,15 +140,11 @@ namespace KillerPDF.Shell
                         line.Stroke = brush;
                         line.StrokeThickness = penWidth;
                     }
-                    // The bake blurs three box passes of the feather radius; a Gaussian about three times that
-                    // wide matches it closely enough for a live preview.
-                    ink.Effect = feather > 0
-                        ? new System.Windows.Media.Effects.BlurEffect { Radius = feather * 3 * SignaturePixelsPerUnit((int)draft.CanvasWidth) }
-                        : null;
+                    bool bake = feather > 0 && current is null && strokes.Count > 0;
+                    feathered.Source = bake ? PreviewDrawnSignature(strokes, penWidth, draft.CanvasWidth, draft.CanvasHeight,
+                        new SignatureLook(null, false, 0, feather, inkColor ?? SignatureBlack)) : null;
+                    ink.Opacity = bake ? 0 : 1;
                 };
-
-                List<Point>? current = null;
-                Polyline? currentLine = null;
                 canvas.MouseLeftButtonDown += (s, e) =>
                 {
                     hint.Visibility = Visibility.Collapsed;
@@ -168,6 +171,7 @@ namespace KillerPDF.Shell
                     current = null;
                     currentLine = null;
                     canvas.ReleaseMouseCapture();
+                    refresh();
                 };
                 inkLayer = ink;   // the Clear button below empties this layer
             }
@@ -322,6 +326,7 @@ namespace KillerPDF.Shell
                     strokes.Clear();
                     inkLayer?.Children.Clear();
                     if (placeholder is not null) placeholder.Visibility = Visibility.Visible;
+                    refresh();
                 };
                 btnPanel.Children.Add(clearBtn);
             }
@@ -370,6 +375,19 @@ namespace KillerPDF.Shell
             pixels = SignatureInk.Process(pixels, w, h, look with { Threshold = null, Weight = 0, InkColor = look.InkColor ?? SignatureBlack },
                 SignaturePixelsPerUnit(w));
             return Convert.ToBase64String(SignatureInk.EncodePng(SignatureInk.ToBitmap(pixels, w, h)));
+        }
+
+        // The editor's feathered preview: the bake's own pipeline at half its scale, so the pad follows the slider.
+        private static BitmapSource PreviewDrawnSignature(IReadOnlyList<List<Point>> strokes, double penWidth,
+            double canvasWidth, double canvasHeight, SignatureLook look)
+        {
+            const double scale = 2;
+            int w = Math.Max(1, (int)Math.Ceiling(canvasWidth * scale));
+            int h = Math.Max(1, (int)Math.Ceiling(canvasHeight * scale));
+            var points = strokes.Select(s => (IReadOnlyList<(double X, double Y)>)s.Select(p => (p.X, p.Y)).ToList()).ToList();
+            byte[] pixels = SignatureInk.RasterizeStrokes(points, penWidth, w, h, scale);
+            pixels = SignatureInk.Process(pixels, w, h, look, SignaturePixelsPerUnit(w));
+            return SignatureInk.ToBitmap(pixels, w, h);
         }
 
         private static string BakeSignaturePicture(BitmapSource picture, SignatureLook look)

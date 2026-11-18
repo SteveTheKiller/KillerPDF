@@ -75,30 +75,62 @@ public sealed class SignatureEditorTests
         Assert.Equal(255, Alpha(thinned, 3, 1, 1));   // only the middle is more than one pixel from the edge
     }
 
-    [Fact]
-    public void Feather_SoftensEdgesWithoutAHaloFromPaperColor()
+    // A 16-pixel-tall navy bar across the middle of a transparent field whose leftover color is near-white paper.
+    private static byte[] Bar(int width, int height, int top, int bottom, int left, int right)
     {
-        byte[] dot = Dot(15, out int c);
-        byte[] soft = SignatureInk.Feather(dot, 15, 15, 2);
+        var pixels = Solid(width, height, 250, 250, 250, 0);
+        for (int y = top; y <= bottom; y++)
+            for (int x = left; x <= right; x++)
+            {
+                int o = (y * width + x) * 4;
+                pixels[o] = 10; pixels[o + 1] = 20; pixels[o + 2] = 200; pixels[o + 3] = 255;
+            }
+        return pixels;
+    }
 
-        Assert.True(Alpha(soft, 15, c, c) < 255);
-        Assert.True(Alpha(soft, 15, c + 2, c) > 0);
-        Assert.True(Alpha(soft, 15, c, c) > Alpha(soft, 15, c + 2, c));
-        // Premultiplied blur: every pixel that picked up alpha carries the ink's color, never the near-white
-        // paper left in the transparent pixels.
-        for (int i = 0; i < soft.Length; i += 4)
-            if (soft[i + 3] > 0) Assert.Equal(new byte[] { 10, 20, 200 }, soft[i..(i + 3)]);
-        Assert.Equal(dot, SignatureInk.Feather(dot, 15, 15, 0));
+    private static int SolidRun(byte[] pixels, int width, int height, int x)
+    {
+        int run = 0;
+        for (int y = 0; y < height; y++) if (Alpha(pixels, width, x, y) >= 128) run++;
+        return run;
     }
 
     [Fact]
-    public void Feather_KeepsTheInksTotalAmountAwayFromTheEdges()
+    public void Feather_KeepsAThickStrokesCoreSolidAndItsWidth()
     {
-        byte[] dot = Dot(31, out _);
-        byte[] soft = SignatureInk.Feather(dot, 31, 31, 1);
-        long before = 0, after = 0;
-        for (int i = 3; i < dot.Length; i += 4) { before += dot[i]; after += soft[i]; }
-        Assert.InRange(after, before - 30, before + 30);   // a 7x7 spread, so rounding only
+        const int w = 60, h = 40;
+        byte[] bar = Bar(w, h, 12, 27, 10, 49);
+        byte[] soft = SignatureInk.Feather(bar, w, h, 12);   // the widest ramp the slider reaches at 2 px per unit
+
+        // The core is untouched: fully opaque, not blurred.
+        Assert.Equal(255, Alpha(soft, w, 30, 20));
+        Assert.Equal(255, Alpha(soft, w, 30, 19));
+        // The edge is a ramp: pixels on both sides of the outline sit between paper and ink.
+        foreach (int y in new[] { 9, 10, 11, 12, 13, 14, 25, 26, 27, 28, 29 })
+            Assert.InRange(Alpha(soft, w, 30, y), (byte)1, (byte)254);
+        Assert.True(Alpha(soft, w, 30, 13) > Alpha(soft, w, 30, 11));
+        // The line keeps its width: the run of at-least-half pixels is the original 16, give or take one.
+        Assert.InRange(SolidRun(soft, w, h, 30), SolidRun(bar, w, h, 30) - 1, SolidRun(bar, w, h, 30) + 1);
+        // Every pixel that has ink carries the ink's color, never the near-white paper.
+        for (int i = 0; i < soft.Length; i += 4)
+            if (soft[i + 3] > 0) Assert.Equal(new byte[] { 10, 20, 200 }, soft[i..(i + 3)]);
+        // Feather 0 leaves the ink exactly as it was.
+        Assert.Equal(bar, SignatureInk.Feather(bar, w, h, 0));
+    }
+
+    [Fact]
+    public void Feather_NeverFadesTheMiddleOfAThinLine()
+    {
+        const int w = 40, h = 20;
+        byte[] line = Bar(w, h, 9, 11, 5, 34);   // three pixels tall
+        byte[] soft = SignatureInk.Feather(line, w, h, 12);
+        Assert.Equal(255, Alpha(soft, w, 20, 10));
+        Assert.InRange(Alpha(soft, w, 20, 8), (byte)1, (byte)254);
+        Assert.InRange(SolidRun(soft, w, h, 20), 2, 4);
+        // A single dot has no room for a ramp and stays as it was.
+        byte[] dot = Dot(15, out _);
+        byte[] fed = SignatureInk.Feather(dot, 15, 15, 12);
+        for (int i = 3; i < dot.Length; i += 4) Assert.Equal(dot[i], fed[i]);
     }
 
     [Fact]
@@ -147,10 +179,11 @@ public sealed class SignatureEditorTests
         byte[] plain = SignatureInk.Process(scan, 9, 9, new SignatureLook(50, true, 0, 0, null), 1);
         Assert.Equal(SignatureInk.Apply(scan, 50), plain);
 
-        byte[] look = SignatureInk.Process(scan, 9, 9, new SignatureLook(50, true, 1, 1, 0xFF14286E), 1);
+        byte[] look = SignatureInk.Process(scan, 9, 9, new SignatureLook(50, true, 1, 2, 0xFF14286E), 1);
         Assert.Equal(new byte[] { 0x6E, 0x28, 0x14 }, look[o..(o + 3)]);
         Assert.Equal(0, Alpha(look, 9, 0, 0));
-        Assert.True(Alpha(look, 9, 6, 4) > 0);       // grown by one, then softened by one more
+        Assert.Equal(255, Alpha(look, 9, 4, 4));     // the core stays solid
+        Assert.True(Alpha(look, 9, 6, 4) > 0);       // grown by one, then a feather ramp past the new edge
         Assert.True(Alpha(look, 9, 4, 4) > Alpha(look, 9, 7, 4));
     }
 
