@@ -83,7 +83,7 @@ public sealed class InstallerRegistrationTests
         Assert.Contains("if (!registered && movedExisting && Directory.Exists(backup))", install);
         // A previous copy left behind earlier is removed by the next install.
         int sweep = install.IndexOf("foreach (string leftover in PortableDirectoryCleanup.LeftoverSiblings(destination))", StringComparison.Ordinal);
-        Assert.True(sweep >= 0 && sweep < install.IndexOf("ExtractAndVerify(staging);", StringComparison.Ordinal));
+        Assert.True(sweep >= 0 && sweep < install.IndexOf("ExtractAndVerify(staging", StringComparison.Ordinal));
     }
 
     // Owner decision, 2026-10-23: an optional desktop shortcut that Windows refuses no longer fails

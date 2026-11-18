@@ -134,7 +134,8 @@ public sealed class ProtectDocumentIntegrationTests
         string files = File.ReadAllText(Path.Combine(root, "Shell", "FileOperations.cs"));
 
         Assert.Contains("if (!e.IsRepeat) OpenProtectDialog();", keyboard, StringComparison.Ordinal);
-        Assert.Contains("(_, _) => OpenProtectDialog(), GestureFor(\"CtrlShift:P\")", files, StringComparison.Ordinal);
+        // The Save menu's Protect tile (the menu is a tile strip now).
+        Assert.Contains("Tile(Short(\"Str_Menu_ProtectDocument\"), \"CtrlShift:P\", OpenProtectDialog,", files, StringComparison.Ordinal);
     }
 
     private static string RepoRoot()
