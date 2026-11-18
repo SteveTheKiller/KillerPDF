@@ -61,4 +61,8 @@ The monorepo keeps the engine, application integration, tests, and corpus gates 
 
 ## Source and license
 
-The engine is developed in the [KillerPDF repository](https://github.com/SteveTheKiller/KillerPDF/tree/main/engine) and licensed under GPLv3. Detailed capability history is recorded in the [engine changelog](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/CHANGELOG.md).
+The engine is developed in the [KillerPDF repository](https://github.com/SteveTheKiller/KillerPDF/tree/main/engine) and licensed under the [Mozilla Public License 2.0](https://www.mozilla.org/MPL/2.0/). The KillerPDF desktop app stays GPLv3.
+
+MPL 2.0 works file by file. You can use the engine in an app of your own, open or closed source, under whatever license you choose. If you change one of the engine's own files and ship it, that file's source stays open under MPL 2.0. Your code around it stays yours.
+
+Detailed capability history is recorded in the [engine changelog](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/CHANGELOG.md).
