@@ -24,6 +24,12 @@ namespace KillerPDF.Services
         /// <summary>Lacquer over the interface stack: the heading stack.</summary>
         internal static string Heading(string? cultureName) => "./Fonts/#Lacquer, " + For(cultureName);
 
+        /// <summary>A theme's own single face (98SE's Microsoft Sans Serif) over the system faces, so
+        /// Chinese and Japanese text still lands on the language's CJK face (#490). A stack the
+        /// theme already wrote out is left alone.</summary>
+        internal static string WithFallbacks(string face, string? cultureName) =>
+            face.IndexOf(',') >= 0 ? face : face + ", " + Fallbacks(cultureName);
+
         private static string CjkFace(string name)
         {
             if (IsLanguage(name, "ja")) return "Yu Gothic UI, ";

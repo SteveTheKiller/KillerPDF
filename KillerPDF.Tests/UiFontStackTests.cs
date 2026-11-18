@@ -106,6 +106,25 @@ public sealed class UiFontStackTests
     }
 
     [Fact]
+    public void AThemesSingleFaceKeepsTheLanguagesCjkFallback()
+    {
+        Assert.Equal("Microsoft Sans Serif, Segoe UI, Microsoft YaHei UI, Microsoft JhengHei UI, Nirmala UI",
+            UiFontStack.WithFallbacks("Microsoft Sans Serif", "zh-CN"));
+        Assert.Equal("Microsoft Sans Serif, Segoe UI, Yu Gothic UI, Microsoft JhengHei UI, Nirmala UI",
+            UiFontStack.WithFallbacks("Microsoft Sans Serif", "ja-JP"));
+        Assert.Equal("Tahoma, Segoe UI", UiFontStack.WithFallbacks("Tahoma, Segoe UI", "zh-CN"));
+    }
+
+    // Source pin: theme-stated faces go through the fallback before the kit fills its defaults.
+    [Fact]
+    public void ThemeStatedFacesGetTheLanguageFallbacks()
+    {
+        string kit = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Services", "ThemeManager.cs"));
+        Assert.Contains("UiFontStack.WithFallbacks(", kit);
+        Assert.Contains("\"ChromeFontFamily\", \"UiFont\", \"MonoFont\", \"MenuFontFamily\"", kit);
+    }
+
+    [Fact]
     public void SwitchingTheLanguageRebuildsTheThemeStacks()
     {
         // Registers the pack:// scheme the stacks are built on, as a running app does.

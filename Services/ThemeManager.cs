@@ -509,6 +509,12 @@ namespace KillerPDF.Services
             // have restyled every secondary button in the app.
             Mirror("ChipFaceBrush", "PaneBrush");
             Mirror("ChipHoverBrush", "RowHoverBrush");
+            // #490: a theme that names one face (98SE's Microsoft Sans Serif) has no CJK glyphs,
+            // so Chinese and Japanese file names fell to the system default face. The face keeps
+            // its look for Latin text and hands CJK to the language's own face.
+            foreach (string fontKey in new[] { "ChromeFontFamily", "UiFont", "MonoFont", "MenuFontFamily" })
+                if (combined.Contains(fontKey) && combined[fontKey] is FontFamily stated && stated.Source.IndexOf('#') < 0)
+                    combined[fontKey] = new FontFamily(stated.BaseUri, UiFontStack.WithFallbacks(stated.Source, UiLanguage));
             SetIfAbsent("ChromeFontFamily", KillerSansUiStack);
             SetIfAbsent("DialogWordmarkVisibility", Visibility.Visible);
             SetIfAbsent("DialogPlainTitleVisibility", Visibility.Collapsed);
@@ -1141,7 +1147,7 @@ namespace KillerPDF.Services
                 // template's 12px blur at FlyoutShadowOpacity, and the flyout cards' shared
                 // CardShadowEffect.
                 combined["MenuShadowOpacity"] = flat ? 1.0 : combined["FlyoutShadowOpacity"];
-                if (!combined.Contains("MenuFontFamily")) combined["MenuFontFamily"] = flat ? new FontFamily("Microsoft Sans Serif") : KillerSansUiStack;
+                if (!combined.Contains("MenuFontFamily")) combined["MenuFontFamily"] = flat ? new FontFamily(UiFontStack.WithFallbacks("Microsoft Sans Serif", UiLanguage)) : KillerSansUiStack;
                 if (!combined.Contains("MenuFontSize")) combined["MenuFontSize"] = flat ? 11.0 : 12.0;
                 if (!combined.Contains("MenuItemPadding")) combined["MenuItemPadding"] = new Thickness(8, 6, 10, 6);
                 if (flat)

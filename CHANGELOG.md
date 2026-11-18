@@ -48,7 +48,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Pinching on a precision touchpad zooms the page again, as it did before 1.9.3, instead of scrolling it. (#494)
 - Redact no longer fails with "Pages ... cannot be redacted without replacing them with an image" when saving the document leaves a page that has to become an image. It asks about those pages the same way it asks about the others, and canceling leaves the document as it was. (#499)
 - The tab beside the active document tab no longer draws a second divider line against it.
-- A Chinese or Japanese file name in the title bar is drawn in Microsoft YaHei UI or Yu Gothic UI, matching the menus, instead of the system's default face. Document tab names follow the same rule in every theme. (#490)
+- A Chinese or Japanese file name in the title bar is drawn in Microsoft YaHei UI or Yu Gothic UI, matching the menus, instead of the system's default face. Document tab names follow the same rule in every theme, including 98SE, whose Microsoft Sans Serif now hands Chinese and Japanese characters to those faces. (#490)
 - A save with annotations that fails at the last step no longer keeps a working copy open until KillerPDF closes.
 - Two portable copies sharing one data folder no longer lose each other's settings changes, and a power cut while settings save can no longer leave an empty settings file.
 - A saved report replaces the old file only once it is completely written.
