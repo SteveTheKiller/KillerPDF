@@ -509,7 +509,7 @@ public sealed class CliExitCodeTests : IDisposable
     public void EveryCommandIsDocumentedOnTheHelpPage()
     {
         string runner = ReadSource("Features", "Cli", "CliRunner.cs");
-        int start = runner.IndexOf("\"accessibility\", \"attachments\"", StringComparison.Ordinal);
+        int start = runner.IndexOf("\"accessibility\",", StringComparison.Ordinal);
         string list = runner[start..runner.IndexOf("], \"--\")", start, StringComparison.Ordinal)];
         string page = ReadSource("pdf-landing", "help.html");
         string[] verbs = [.. System.Text.RegularExpressions.Regex.Matches(list, "\"([a-z-]+)\"").Select(match => match.Groups[1].Value)];
@@ -521,7 +521,7 @@ public sealed class CliExitCodeTests : IDisposable
     public void EveryLanguageListsTheSameCommandsByGroupAsEnglish()
     {
         string runner = ReadSource("Features", "Cli", "CliRunner.cs");
-        int start = runner.IndexOf("\"accessibility\", \"attachments\"", StringComparison.Ordinal);
+        int start = runner.IndexOf("\"accessibility\",", StringComparison.Ordinal);
         string list = runner[start..runner.IndexOf("], \"--\")", start, StringComparison.Ordinal)];
         string[] verbs = [.. System.Text.RegularExpressions.Regex.Matches(list, "\"([a-z-]+)\"").Select(match => match.Groups[1].Value)];
         string page = ReadSource("pdf-landing", "help.html");
