@@ -1501,8 +1501,8 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_RedactFind_CheckAll">Барлығын белгілеу</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Белгілерді алу</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">{0}-бет</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Белгіленгендерді таңбалау</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Белгіленген нәтижелер бетте таңбаланады. Жасыру тақтасындағы Жасыру түймесін баспайынша ештеңе жойылмайды.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Жасыру қорапшаларын салу</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Беттегі әрбір белгіленген нәтиженің үстіне жасыру қорапшасын салады. Жасыру тақтасындағы Жасыру түймесін баспайынша ештеңе жойылмайды.</sys:String>
     <sys:String x:Key="Str_Lbl_Measure">Өлшеу</sys:String>
     <sys:String x:Key="Str_Ocr_FormAware">Пішінді ескеретін OCR</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Әріп аралығы:</sys:String>
@@ -2060,6 +2060,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Paragraph_Preparing">Алдын ала қарау дайындалуда...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Құжат өзгерді. Жалғастыру үшін абзацты өңдеуді қайта ашыңыз.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Түпнұсқа</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Бұл абзац өңдеуі әлі қолданылмаған. Оны тастап, басқа бетке өтесіз бе?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Өңделген нұсқаны алдын ала қарау</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Нұсқаулықпен орындалатын тапсырмалар</sys:String>

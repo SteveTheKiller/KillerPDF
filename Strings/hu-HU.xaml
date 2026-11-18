@@ -112,8 +112,8 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_RedactFind_CheckAll">Összes bejelölése</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Bejelölések törlése</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">{0}. oldal</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Bejelöltek megjelölése</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">A bejelölt találatok megjelölést kapnak az oldalon. Semmi sem törlődik, amíg a Kitakarás sávon nem kattint a Kitakarás gombra.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Kitakaró dobozok rajzolása</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Minden bejelölt találat fölé kitakaró dobozt rajzol az oldalon. Semmi sem törlődik, amíg a Kitakarás sávon nem kattint a Kitakarás gombra.</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Oldal átalakítása: forgatás, méretezés, tükrözés, kiegyenesítés vagy perspektíva javítása (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Összes jegyzet törlése</sys:String>
     <sys:String x:Key="Str_TT_Search">Szöveg keresése (Ctrl+F)</sys:String>
@@ -2044,6 +2044,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Paragraph_Preparing">Előnézet előkészítése...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">A dokumentum megváltozott. A folytatáshoz nyissa meg újra a bekezdésszerkesztést.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Eredeti</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">A bekezdés módosítása még nincs alkalmazva. Elveti, és a másik oldalra lép?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Szerkesztett előnézet</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Irányított feladatok</sys:String>

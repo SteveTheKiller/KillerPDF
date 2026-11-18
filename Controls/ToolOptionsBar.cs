@@ -352,8 +352,10 @@ namespace KillerPDF.Controls
             return glyph;
         }
 
-        // Opens below its own button, 4 below, with the family grain over the items.
-        private static Popup MakePopup(UIElement? target, FrameworkElement content, bool rightAligned)
+        // Opens below its own button, 4 below, with the family grain over the items. Bar buttons that
+        // need a small flyout of their own (the Redact bar's Mark pages) use it too, so every bar
+        // dropdown stays attached to its trigger the same way.
+        internal static Popup MakePopup(UIElement? target, FrameworkElement content, bool rightAligned)
         {
             var grain = new Border { CornerRadius = new CornerRadius(4), IsHitTestVisible = false };
             grain.SetResourceReference(UIElement.OpacityProperty, "GrainOpacity");

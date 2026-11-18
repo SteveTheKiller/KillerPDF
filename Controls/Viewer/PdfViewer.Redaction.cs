@@ -64,7 +64,7 @@ namespace KillerPDF.Controls
             _redactCountText.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
             bar.Add(ToolOptionGroup.Count, _redactCountText);
 
-            void BarButton(string id, string key, string tipKey, bool accent, RoutedEventHandler click)
+            Button BarButton(string id, string key, string tipKey, bool accent, RoutedEventHandler click)
             {
                 var button = UiKit.Make(Loc(key), accent);
                 button.SetResourceReference(ContentControl.ContentProperty, key);
@@ -75,11 +75,14 @@ namespace KillerPDF.Controls
                 System.Windows.Automation.AutomationProperties.SetAutomationId(button, "Redact" + id);
                 button.Click += click;
                 bar.Add(id, button);
+                return button;
             }
 
             BarButton(ToolOptionGroup.Find, "Str_Redact_Find", "Str_Redact_FindTip", false, (_, _) => FindTextForRedaction());
             BarButton(ToolOptionGroup.MarkSearch, "Str_Redact_MarkSearch", "Str_Redact_MarkSearchTip", false, (_, _) => MarkSearchResultsForRedaction());
-            BarButton(ToolOptionGroup.MarkPages, "Str_Redact_MarkPages", "Str_Redact_MarkPagesTip", false, (_, _) => MarkPagesForRedaction());
+            Button? markPagesButton = null;
+            markPagesButton = BarButton(ToolOptionGroup.MarkPages, "Str_Redact_MarkPages", "Str_Redact_MarkPagesTip", false,
+                (_, _) => { if (markPagesButton is not null) OpenMarkPagesFlyout(markPagesButton); });
             BarButton(ToolOptionGroup.Properties, "Str_Redact_Properties", "Str_Redact_PropertiesTip", false, (_, _) => EditRedactionProperties());
             BarButton(ToolOptionGroup.Clear, "Str_Redact_Clear", "Str_Redact_ClearTip", false, (_, _) => ClearRedactionMarks());
             BarButton(ToolOptionGroup.Apply, "Str_Redact_Apply", "Str_Redact_ApplyTip", true, (_, _) => ApplyRedaction());
@@ -100,6 +103,7 @@ namespace KillerPDF.Controls
                 _redactBar = null;
             }
             _redactCountText = null;
+            if (_markPagesFlyout is not null) _markPagesFlyout.IsOpen = false;
             CancelRedactionDrag();
             if (_annotBarTool == EditTool.Redact) _annotBarTool = null;
         }
@@ -473,15 +477,72 @@ namespace KillerPDF.Controls
         }
 
         // The Redact bar's Mark pages: each listed page gets one mark over its whole visible area,
-        // so everything drawn on it goes when the redaction is applied.
-        private void MarkPagesForRedaction()
+        // so everything drawn on it goes when the redaction is applied. The page list is asked for in a
+        // small flyout under the bar's own Mark pages button (a bar dropdown stays on its trigger),
+        // not a dialog of its own.
+        private System.Windows.Controls.Primitives.Popup? _markPagesFlyout;
+
+        private void OpenMarkPagesFlyout(Button anchor)
+        {
+            if (_doc is null) return;
+            if (_markPagesFlyout is { IsOpen: true }) { _markPagesFlyout.IsOpen = false; return; }
+
+            var prompt = new TextBlock
+            {
+                Text = Loc("Str_Redact_MarkPagesPrompt"),
+                FontFamily = UiKit.UiFont,
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            prompt.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            TextBox box = UiKit.Field();
+            box.Text = (CurrentPageIndex + 1).ToString(System.Globalization.CultureInfo.CurrentCulture);
+            System.Windows.Automation.AutomationProperties.SetName(box, Loc("Str_Redact_MarkPages"));
+            System.Windows.Automation.AutomationProperties.SetAutomationId(box, "RedactMarkPagesRange");
+            var mark = UiKit.Make(Loc("Str_Redact_MarkPagesConfirm"), accent: true);
+            var cancel = UiKit.Make(Loc("Str_Btn_Cancel"), accent: false);
+            var buttons = UiKit.ButtonRow(mark, cancel);
+            buttons.Margin = new Thickness(0, 10, 0, 0);
+            var body = new StackPanel { Width = 260, Margin = new Thickness(12, 10, 12, 12) };
+            body.Children.Add(prompt);
+            body.Children.Add(box);
+            body.Children.Add(buttons);
+
+            var flyout = ToolOptionsBar.MakePopup(anchor, body, rightAligned: false);
+            void Commit()
+            {
+                string range = box.Text;
+                flyout.IsOpen = false;
+                MarkPagesForRedaction(range);
+            }
+            mark.Click += (_, _) => Commit();
+            cancel.Click += (_, _) => flyout.IsOpen = false;
+            box.PreviewKeyDown += (_, e) =>
+            {
+                if (e.Key != Key.Enter) return;
+                e.Handled = true;
+                Commit();
+            };
+            box.GotKeyboardFocus += (_, _) => box.SelectAll();
+            // While the flyout is open its button takes no clicks, so the click that closes a
+            // StaysOpen=false popup does not reopen it at once (the bar menus do the same).
+            flyout.Opened += (_, _) => anchor.IsHitTestVisible = false;
+            flyout.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_markPagesFlyout, flyout)) _markPagesFlyout = null;
+                anchor.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input,
+                    new Action(() => anchor.IsHitTestVisible = true));
+            };
+            _markPagesFlyout = flyout;
+            flyout.IsOpen = true;
+        }
+
+        private void MarkPagesForRedaction(string range)
         {
             if (_doc is null) return;
             PdfEngineDocumentSession session = EnsureEngineDocumentSession();
             Window? owner = Window.GetWindow(this);
-            string? range = KillerDialog.PromptText(owner, Loc("Str_Redact_MarkPages"), Loc("Str_Redact_MarkPagesPrompt"),
-                (CurrentPageIndex + 1).ToString(System.Globalization.CultureInfo.CurrentCulture), Loc("Str_Redact_MarkPagesConfirm"));
-            if (range is null) return;
             List<int>? pages = string.IsNullOrWhiteSpace(range) ? null
                 : Features.CliRunner.CliParsePageRange(range, session.PageCount, out _);
             if (pages is null || pages.Count == 0)

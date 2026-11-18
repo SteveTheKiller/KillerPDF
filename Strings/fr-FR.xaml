@@ -112,8 +112,8 @@ La page peut être remplacée par une image d'elle-même avec les zones marquée
     <sys:String x:Key="Str_RedactFind_CheckAll">Tout cocher</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Tout décocher</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Page {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Marquer la sélection</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Les résultats cochés sont marqués sur la page. Rien n'est supprimé avant que vous cliquiez sur Caviarder dans la barre Caviarder.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Dessiner les zones de caviardage</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Dessine une zone de caviardage sur chaque résultat coché de la page. Rien n'est supprimé avant que vous cliquiez sur Caviarder dans la barre Caviarder.</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Transformer la page : pivoter, mettre à l'échelle, retourner, redresser ou corriger la perspective (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Supprimer toutes les annotations</sys:String>
     <sys:String x:Key="Str_TT_Search">Rechercher du texte (Ctrl+F)</sys:String>
@@ -2057,6 +2057,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Paragraph_Preparing">Préparation de l’aperçu...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Le document a changé. Rouvrez la modification de paragraphe pour continuer.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Original</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Cette modification du paragraphe n'a pas été appliquée. L'abandonner et aller à l'autre page ?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Aperçu modifié</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Tâches guidées</sys:String>

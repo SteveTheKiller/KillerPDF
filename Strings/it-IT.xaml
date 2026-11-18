@@ -112,8 +112,8 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_RedactFind_CheckAll">Seleziona tutto</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Deseleziona tutto</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Pagina {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Contrassegna selezionati</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">I risultati selezionati vengono contrassegnati sulla pagina. Non viene rimosso nulla finché non fai clic su Oscura nella barra Oscura.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Disegna riquadri di oscuramento</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Disegna un riquadro di oscuramento su ogni risultato selezionato nella pagina. Non viene rimosso nulla finché non fai clic su Oscura nella barra Oscura.</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Trasforma pagina: ruota, ridimensiona, capovolgi, raddrizza o correggi la prospettiva (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Cancella tutte le annotazioni</sys:String>
     <sys:String x:Key="Str_TT_Search">Trova testo (Ctrl+F)</sys:String>
@@ -2057,6 +2057,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Paragraph_Preparing">Preparazione dell’anteprima...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Il documento è cambiato. Riapri la modifica del paragrafo per continuare.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Originale</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Questa modifica del paragrafo non è stata applicata. Scartarla e passare all'altra pagina?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Anteprima modificata</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Attività guidate</sys:String>

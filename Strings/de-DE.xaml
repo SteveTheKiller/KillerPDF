@@ -112,8 +112,8 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_RedactFind_CheckAll">Alle auswählen</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Auswahl aufheben</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Seite {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Ausgewählte markieren</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Ausgewählte Ergebnisse werden auf der Seite markiert. Entfernt wird erst, wenn Sie auf der Schwärzen-Leiste auf Schwärzen klicken.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Schwärzungsfelder zeichnen</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Zeichnet über jeden ausgewählten Treffer auf der Seite ein Schwärzungsfeld. Entfernt wird erst, wenn Sie auf der Schwärzen-Leiste auf Schwärzen klicken.</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Alle Anmerkungen entfernen</sys:String>
     <sys:String x:Key="Str_TT_UndoLast">Letzte Aktion rückgängig machen (Strg+Z)</sys:String>
     <sys:String x:Key="Str_TT_MultiPageGrid">Mehrseitige Rasteransicht (F8)</sys:String>
@@ -2046,6 +2046,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Paragraph_Preparing">Vorschau wird vorbereitet...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Das Dokument wurde geändert. Öffnen Sie die Absatzbearbeitung erneut, um fortzufahren.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Original</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Diese Absatzänderung wurde noch nicht übernommen. Verwerfen und zur anderen Seite wechseln?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Bearbeitete Vorschau</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Geführte Aufgaben</sys:String>

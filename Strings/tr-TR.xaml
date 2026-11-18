@@ -112,8 +112,8 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_RedactFind_CheckAll">Tümünü seç</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Seçimi kaldır</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Sayfa {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Seçilenleri işaretle</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Seçilen sonuçlar sayfada işaretlenir. Karart çubuğunda Karart'a tıklayana kadar hiçbir şey kaldırılmaz.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Karartma kutuları çiz</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Sayfadaki her seçili sonucun üzerine bir karartma kutusu çizer. Karart çubuğunda Karart'a tıklayana kadar hiçbir şey kaldırılmaz.</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Tüm Açıklamaları Temizle</sys:String>
     <sys:String x:Key="Str_TT_UndoLast">Son İşlemi Geri Al (Ctrl+Z)</sys:String>
     <sys:String x:Key="Str_TT_MultiPageGrid">Çok sayfalı ızgara görünümü (F8)</sys:String>
@@ -2037,6 +2037,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Paragraph_Preparing">Önizleme hazırlanıyor...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Belge değişti. Devam etmek için paragraf düzenlemeyi yeniden açın.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Özgün</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Bu paragraf düzenlemesi henüz uygulanmadı. Vazgeçip diğer sayfaya gidilsin mi?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Düzenlenmiş önizleme</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Rehberli görevler</sys:String>

@@ -112,8 +112,8 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_RedactFind_CheckAll">Chọn tất cả</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Bỏ chọn tất cả</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Trang {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Đánh dấu mục đã chọn</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Các kết quả đã chọn được đánh dấu trên trang. Không có gì bị xóa cho đến khi bạn bấm Che trên thanh Che.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Vẽ ô che</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Vẽ một ô che lên từng kết quả đã chọn trên trang. Không có gì bị xóa cho đến khi bạn bấm Che trên thanh Che.</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Chuyển đổi trang: xoay, thu phóng, lật, làm thẳng hoặc chỉnh phối cảnh (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Xóa tất cả chú thích</sys:String>
     <sys:String x:Key="Str_TT_Search">Tìm văn bản (Ctrl+F)</sys:String>
@@ -2057,6 +2057,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Paragraph_Preparing">Đang chuẩn bị bản xem trước...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Tài liệu đã thay đổi. Hãy mở lại công cụ chỉnh sửa đoạn văn để tiếp tục.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Bản gốc</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Chỉnh sửa đoạn văn này chưa được áp dụng. Bỏ nó và chuyển sang trang khác?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Bản xem trước sau khi sửa</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Tác vụ có hướng dẫn</sys:String>

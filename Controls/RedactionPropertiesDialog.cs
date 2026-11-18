@@ -40,7 +40,9 @@ internal sealed class RedactionPropertiesDialog : Window
     {
         Fill = fill;
         Title = "KillerPDF - " + L("Str_RedactProps_Title");
-        Width = 440;
+        // Sized to its content: a swatch, a code list, one line of overlay text and its preview
+        // (Steve, 2026-11-17).
+        Width = 340;
         SizeToContent = SizeToContent.Height;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);

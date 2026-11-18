@@ -112,8 +112,8 @@ A página pode ser substituída por uma imagem dela mesma com as áreas marcadas
     <sys:String x:Key="Str_RedactFind_CheckAll">Marcar tudo</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Desmarcar tudo</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Página {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Marcar selecionados</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Os resultados selecionados são marcados na página. Nada é removido até você clicar em Tarjar na barra Tarjar.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Desenhar caixas de tarja</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Desenha uma caixa de tarja sobre cada resultado selecionado na página. Nada é removido até você clicar em Tarjar na barra Tarjar.</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Transformar página: girar, dimensionar, espelhar, corrigir inclinação ou perspectiva (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Limpar todas as anotações</sys:String>
     <sys:String x:Key="Str_TT_Search">Localizar texto (Ctrl+F)</sys:String>
@@ -2057,6 +2057,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Paragraph_Preparing">Preparando prévia...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">O documento foi alterado. Reabra a edição de parágrafo para continuar.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Original</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Esta edição do parágrafo não foi aplicada. Descartá-la e ir para a outra página?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Prévia editada</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Tarefas guiadas</sys:String>

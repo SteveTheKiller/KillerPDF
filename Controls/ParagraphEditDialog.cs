@@ -18,10 +18,20 @@ namespace KillerPDF;
 internal sealed class ParagraphEditDialog : Window
 {
     private readonly PdfDocument _document;
-    private readonly int _pageIndex;
-    private readonly PdfPageInformation _page;
-    private readonly IReadOnlyList<PdfParagraphCandidate> _candidates;
-    private readonly IReadOnlyList<PdfParagraphInspection> _refusals;
+    private readonly IReadOnlyList<PdfPageInformation> _pages;
+    private readonly Func<int, bool> _pageRotated;
+    private int _pageIndex;
+    private PdfPageInformation _page;
+    private IReadOnlyList<PdfParagraphCandidate> _candidates;
+    private IReadOnlyList<PdfParagraphInspection> _refusals;
+    private readonly Grid _pageView;
+    private readonly Button? _previousPage;
+    private readonly Button? _nextPage;
+    private readonly TextBlock? _pageCounter;
+    // Each page load bumps this, so a render that finishes after a flip is dropped.
+    private int _pageGeneration;
+    // Typing, resizing or a preview since the paragraph was picked; a page flip asks before dropping it.
+    private bool _userEdited;
     private readonly ComboBox _candidateBox;
     private readonly TextBox _text;
     private readonly TextBox[] _numbers = new TextBox[6];
@@ -35,7 +45,7 @@ internal sealed class ParagraphEditDialog : Window
     private readonly CheckBox _original;
     private readonly Button _preview;
     private readonly Button _apply;
-    private readonly double _pixelsPerPoint;
+    private double _pixelsPerPoint;
     private BitmapSource? _originalImage;
     private BitmapSource? _editedImage;
     private PdfParagraphPlan? _plan;
@@ -46,15 +56,19 @@ internal sealed class ParagraphEditDialog : Window
     private bool _closed;
 
     internal PdfParagraphPlan? Result { get; private set; }
+    // The page the dialog shows when it closes; Apply's plan belongs to this page.
+    internal int PageIndex => _pageIndex;
 
     internal ParagraphEditDialog(Window owner, PdfDocument document, int pageIndex, double scale, Point? pagePoint = null)
         : this(owner, document, pageIndex, scale, pagePoint, PdfParagraphEditor.InspectCandidates(document, pageIndex)) { }
 
     internal ParagraphEditDialog(Window owner, PdfDocument document, int pageIndex, double scale, Point? pagePoint,
-        PdfParagraphCandidateInspection inspection)
+        PdfParagraphCandidateInspection inspection, Func<int, bool>? pageRotated = null)
     {
         _document = document; _pageIndex = pageIndex;
-        _page = PdfPageInformation.Read(document)[pageIndex];
+        _pageRotated = pageRotated ?? (_ => false);
+        _pages = PdfPageInformation.Read(document);
+        _page = _pages[pageIndex];
         _pixelsPerPoint = Math.Min(1000 / _page.Width, 1000 / _page.Height);
         _candidates = inspection.Candidates;
         _refusals = inspection.Refusals;
@@ -97,8 +111,7 @@ internal sealed class ParagraphEditDialog : Window
         hint.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
         content.Children.Add(hint);
         _candidateBox = new ComboBox { Style = UiKit.DarkComboStyle, Margin = new Thickness(0, 8, 0, 8),
-            ItemsSource = _candidates.Select((candidate, index) => $"{index + 1}. " +
-                candidate.Text.Replace('\n', ' ')[..Math.Min(100, candidate.Text.Length)]).ToArray() };
+            ItemsSource = CandidateItems() };
         Id(_candidateBox, "ParagraphCandidates", "Str_Paragraph_Select");
         content.Children.Add(_candidateBox);
         content.Children.Add(UiKit.GroupLabel(L("Str_Lbl_Text")));
@@ -116,7 +129,7 @@ internal sealed class ParagraphEditDialog : Window
             TextBox input = UiKit.Field(); _numbers[i] = input;
             Id(input, "Paragraph" + names[i], labels[i]);
             bool boxField = i < 4;
-            input.TextChanged += (_, _) => { if (!_setting) { _boxEdited |= boxField; Invalidate(); } };
+            input.TextChanged += (_, _) => { if (!_setting) { _boxEdited |= boxField; _userEdited = true; Invalidate(); } };
             field.Children.Add(input); fields.Children.Add(field);
         }
         var alignmentField = new StackPanel { Margin = new Thickness(0, 2, 8, 4) };
@@ -125,6 +138,13 @@ internal sealed class ParagraphEditDialog : Window
             ItemsSource = new[] { L("Str_Paragraph_Left"), L("Str_Paragraph_Center"), L("Str_Paragraph_Right") }, SelectedIndex = 0 };
         Id(_alignment, "ParagraphAlignment", "Str_Paragraph_Alignment");
         alignmentField.Children.Add(_alignment); fields.Children.Add(alignmentField); content.Children.Add(fields);
+        // Before and after sits with the other options, as Transform keeps its settings in the right column.
+        _original = UiKit.CheckBox(L("Str_Paragraph_Original"));
+        _original.IsChecked = true; _original.Margin = new Thickness(0, 8, 8, 4);
+        Id(_original, "ParagraphOriginal");
+        _original.Checked += (_, _) => _image.Source = _originalImage;
+        _original.Unchecked += (_, _) => _image.Source = _editedImage ?? _originalImage;
+        content.Children.Add(_original);
         var sideScroll = new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         sideScroll.SizeChanged += (_, _) => _text.Height = ScaledDialogFit.FieldHeight(200, 80, sideScroll.ActualHeight);
@@ -132,12 +152,26 @@ internal sealed class ParagraphEditDialog : Window
         sidebar.Child = side; root.Children.Add(sidebar);
 
         var pageColumn = new DockPanel();
-        _original = UiKit.CheckBox(L("Str_Paragraph_Original"));
-        _original.IsChecked = true; _original.Margin = new Thickness(8, 0, 8, 12);
-        Id(_original, "ParagraphOriginal");
-        _original.Checked += (_, _) => _image.Source = _originalImage;
-        _original.Unchecked += (_, _) => _image.Source = _editedImage ?? _originalImage;
-        DockPanel.SetDock(_original, Dock.Bottom); pageColumn.Children.Add(_original);
+        if (_pages.Count > 1)
+        {
+            // The same flippers and "4 / 6" counter Transform shows under its page.
+            var navigation = new Grid { Height = 36, Margin = new Thickness(8, 2, 8, 6) };
+            navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            navigation.ColumnDefinitions.Add(new ColumnDefinition());
+            navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            _previousPage = PageNavButtons.Previous(() => ShowPage(_pageIndex - 1));
+            Id(_previousPage, "ParagraphPreviousPage");
+            Grid.SetColumn(_previousPage, 0); navigation.Children.Add(_previousPage);
+            _pageCounter = new TextBlock { FontFamily = UiKit.MonoFont, FontSize = 12,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            _pageCounter.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            Id(_pageCounter, "ParagraphPageCounter");
+            Grid.SetColumn(_pageCounter, 1); navigation.Children.Add(_pageCounter);
+            _nextPage = PageNavButtons.Next(() => ShowPage(_pageIndex + 1));
+            Id(_nextPage, "ParagraphNextPage");
+            Grid.SetColumn(_nextPage, 2); navigation.Children.Add(_nextPage);
+            DockPanel.SetDock(navigation, Dock.Bottom); pageColumn.Children.Add(navigation);
+        }
         var pageWrap = new Border { BorderThickness = new Thickness(1), CornerRadius = UiKit.RadCard,
             Margin = new Thickness(8, 4, 8, 8), ClipToBounds = true };
         pageWrap.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
@@ -150,7 +184,7 @@ internal sealed class ParagraphEditDialog : Window
                     Viewport = new Rect(0, 0, 256, 256), Stretch = Stretch.None } });
         double pixelWidth = Math.Ceiling(_page.Width * _pixelsPerPoint);
         double pixelHeight = Math.Ceiling(_page.Height * _pixelsPerPoint);
-        var pageView = new Grid { Width = pixelWidth, Height = pixelHeight, Background = Brushes.White };
+        var pageView = _pageView = new Grid { Width = pixelWidth, Height = pixelHeight, Background = Brushes.White };
         RenderOptions.SetBitmapScalingMode(_image, BitmapScalingMode.HighQuality);
         _image.Stretch = Stretch.Fill; pageView.Children.Add(_image);
         _overlay = new Canvas { Background = Brushes.Transparent };
@@ -184,21 +218,84 @@ internal sealed class ParagraphEditDialog : Window
         root.Children.Add(pageColumn);
         Content = DialogFrame.Frame(this, owner, Title, Close, root);
         _candidateBox.SelectionChanged += (_, _) => SelectCandidate();
-        _text.TextChanged += (_, _) => { if (!_setting) Invalidate(); };
-        _alignment.SelectionChanged += (_, _) => { if (!_setting) Invalidate(); };
+        _text.TextChanged += (_, _) => { if (!_setting) { _userEdited = true; Invalidate(); } };
+        _alignment.SelectionChanged += (_, _) => { if (!_setting) { _userEdited = true; Invalidate(); } };
         _candidateBox.SelectedIndex = _candidates.Count > 0 ? 0 : -1;
         if (_candidates.Count == 0) _status.Text = RefusalMessage(inspection);
         if (pagePoint is Point pointOnPage) SelectAt(pointOnPage);
         _preview.IsEnabled = _candidates.Count > 0;
         _text.IsEnabled = _candidates.Count > 0;
-        Loaded += async (_, _) =>
-        {
-            try { _originalImage = await Task.Run(() => Render(_document, CancellationToken.None));
-                if (!_closed) { _image.Source = _original.IsChecked == true ? _originalImage : _editedImage ?? _originalImage; _text.Focus(); } }
-            catch (Exception error) when (error is not OutOfMemoryException)
-            { if (!_closed) { _status.Text = L("Str_Paragraph_Unsupported"); _preview.IsEnabled = false; } }
-        };
+        UpdatePageNavigation();
+        Loaded += async (_, _) => { await LoadOriginalImage(); if (!_closed) _text.Focus(); };
         Closed += (_, _) => { _closed = true; _operation?.Cancel(); };
+    }
+
+    private string[] CandidateItems() => _candidates.Select((candidate, index) => $"{index + 1}. " +
+        candidate.Text.Replace('\n', ' ')[..Math.Min(100, candidate.Text.Length)]).ToArray();
+
+    private async Task LoadOriginalImage()
+    {
+        int generation = _pageGeneration, pageIndex = _pageIndex;
+        PdfPageInformation page = _page;
+        try
+        {
+            BitmapSource image = await Task.Run(() => Render(_document, pageIndex, page, CancellationToken.None));
+            if (_closed || generation != _pageGeneration) return;
+            _originalImage = image;
+            _image.Source = _original.IsChecked == true ? _originalImage : _editedImage ?? _originalImage;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            if (!_closed && generation == _pageGeneration) { _status.Text = L("Str_Paragraph_Unsupported"); _preview.IsEnabled = false; }
+        }
+    }
+
+    // Flipping reads the new page's paragraphs into the picker. A preview or typing not yet applied
+    // belongs to the page it was made on, so a flip asks first and then drops it; a preview still
+    // running holds the page, as Transform holds its page while busy.
+    private void ShowPage(int index)
+    {
+        if (_operation is not null || index < 0 || index >= _pages.Count || index == _pageIndex) return;
+        if (_userEdited && KillerDialog.Show(this, L("Str_Paragraph_DiscardOnFlip"), "KillerPDF",
+                MessageBoxButton.YesNo, MessageBoxImage.Question, defaultResult: MessageBoxResult.No) != MessageBoxResult.Yes)
+            return;
+        PdfParagraphCandidateInspection inspection;
+        try
+        {
+            inspection = _pageRotated(index)
+                ? new PdfParagraphCandidateInspection([], [])
+                : PdfParagraphEditor.InspectCandidates(_document, index);
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        { _status.Text = L("Str_Paragraph_Unsupported"); return; }
+        _pageGeneration++;
+        _pageIndex = index; _page = _pages[index];
+        _pixelsPerPoint = Math.Min(1000 / _page.Width, 1000 / _page.Height);
+        _pageView.Width = Math.Ceiling(_page.Width * _pixelsPerPoint);
+        _pageView.Height = Math.Ceiling(_page.Height * _pixelsPerPoint);
+        _candidates = inspection.Candidates; _refusals = inspection.Refusals;
+        _originalImage = null; _image.Source = null;
+        _setting = true;
+        _candidateBox.ItemsSource = CandidateItems(); _candidateBox.SelectedIndex = -1;
+        _text.Text = ""; foreach (TextBox number in _numbers) number.Text = "";
+        _alignment.SelectedIndex = 0;
+        _setting = false;
+        _boxEdited = false; _userEdited = false;
+        Invalidate();
+        if (_candidates.Count > 0) _candidateBox.SelectedIndex = 0;
+        else _status.Text = _pageRotated(index)
+            ? RefusalText(PdfParagraphRefusalCode.RotatedPage) : RefusalMessage(inspection);
+        _preview.IsEnabled = _text.IsEnabled = _candidates.Count > 0;
+        UpdatePageNavigation();
+        _ = LoadOriginalImage();
+    }
+
+    private void UpdatePageNavigation()
+    {
+        if (_pageCounter is null || _previousPage is null || _nextPage is null) return;
+        _pageCounter.Text = $"{_pageIndex + 1} / {_pages.Count}";
+        _previousPage.IsEnabled = _operation is null && _pageIndex > 0;
+        _nextPage.IsEnabled = _operation is null && _pageIndex + 1 < _pages.Count;
     }
 
     private void SelectAt(Point point)
@@ -220,7 +317,7 @@ internal sealed class ParagraphEditDialog : Window
         if (index < 0 || index >= _candidates.Count) return;
         PdfParagraphCandidate candidate = _candidates[index];
         _setting = true; _text.Text = candidate.Text; _alignment.SelectedIndex = 0; _setting = false;
-        _boxEdited = false;
+        _boxEdited = false; _userEdited = false;
         ShowBox(PdfParagraphEditor.DefaultBox(candidate, _page.Width, _page.Height), candidate.FontSize, candidate.Leading);
         Invalidate();
     }
@@ -289,9 +386,12 @@ internal sealed class ParagraphEditDialog : Window
             values[0] + values[2], _page.Height - values[1]);
         string text = _text.Text;
         PdfParagraphAlignment alignment = (PdfParagraphAlignment)Math.Clamp(_alignment.SelectedIndex, 0, 2);
+        int pageIndex = _pageIndex;
+        PdfPageInformation page = _page;
         var cts = new CancellationTokenSource(); _operation = cts;
         CancellationToken token = cts.Token;
         _preview.IsEnabled = _apply.IsEnabled = false; _status.Text = L("Str_Paragraph_Preparing");
+        UpdatePageNavigation();
         try
         {
             bool fit = !_boxEdited;
@@ -301,17 +401,17 @@ internal sealed class ParagraphEditDialog : Window
                 if (PdfEngineIntegration.LoadParagraphFont(candidate, text) is not { } font) return (null, "", null);
                 // Fitting works from the exact box, since rounded fields would move the text a little.
                 PdfParagraphPlan plan = fit
-                    ? PdfParagraphEditor.PlanFitted(_document, _pageIndex, candidate, _page.Width, _page.Height, text, font.Font, values[4], values[5], alignment)
-                    : PdfParagraphEditor.Plan(_document, _pageIndex, candidate.SourceRegion, bounds, text, font.Font, values[4], values[5], alignment);
+                    ? PdfParagraphEditor.PlanFitted(_document, pageIndex, candidate, page.Width, page.Height, text, font.Font, values[4], values[5], alignment)
+                    : PdfParagraphEditor.Plan(_document, pageIndex, candidate.SourceRegion, bounds, text, font.Font, values[4], values[5], alignment);
                 token.ThrowIfCancellationRequested();
-                return (plan, font.Family, plan.HasOverflow ? null : Render(PdfDocument.Open(plan.GetPreviewDocument()), token));
+                return (plan, font.Family, plan.HasOverflow ? null : Render(PdfDocument.Open(plan.GetPreviewDocument()), pageIndex, page, token));
             }, token);
             token.ThrowIfCancellationRequested();
             if (_closed) return;
             if (result.Plan is not { } planned) { _status.Text = L("Str_Paragraph_Unsupported"); return; }
             if (planned.HasOverflow) { _status.Text = L("Str_Paragraph_Overflow"); return; }
             if (fit) { ShowBox(planned.TargetBounds, values[4], values[5]); PlaceBox(); }
-            _plan = planned; _editedImage = result.Image;
+            _plan = planned; _editedImage = result.Image; _userEdited = true;
             _original.IsChecked = false; _image.Source = _editedImage;
             string hyphens = HyphenNote();
             _status.Text = L("Str_Paragraph_Ready") + (candidate.MixedStyles ? "\n" + L("Str_Paragraph_MixedStyles") : "")
@@ -325,15 +425,16 @@ internal sealed class ParagraphEditDialog : Window
         { if (!_closed) _status.Text = string.Format(L("Str_Paragraph_Refused"), error.Message); }
         catch (Exception error) when (error is not OutOfMemoryException)
         { if (!_closed) _status.Text = L("Str_Paragraph_Unsupported"); }
-        finally { _operation = null; cts.Dispose(); if (!_closed) _preview.IsEnabled = true; }
+        finally { _operation = null; cts.Dispose(); if (!_closed) { _preview.IsEnabled = true; UpdatePageNavigation(); } }
     }
 
-    private BitmapSource Render(PdfDocument document, CancellationToken cancellation)
+    private static BitmapSource Render(PdfDocument document, int pageIndex, PdfPageInformation source, CancellationToken cancellation)
     {
+        double pixelsPerPoint = Math.Min(1000 / source.Width, 1000 / source.Height);
         var renderer = new PdfPageRenderer(document, InstalledPdfFontResolver.Instance);
-        var page = renderer.Render(_pageIndex, KillerPDF.Services.WorkingCmykProfiles.Apply(new PdfRenderOptions(
-            (int)Math.Ceiling(_page.Width * _pixelsPerPoint), (int)Math.Ceiling(_page.Height * _pixelsPerPoint))), cancellation);
-        PdfRenderCompleteness.RequireComplete(_pageIndex, PdfRenderCompleteness.Classify(page.Diagnostics));
+        var page = renderer.Render(pageIndex, KillerPDF.Services.WorkingCmykProfiles.Apply(new PdfRenderOptions(
+            (int)Math.Ceiling(source.Width * pixelsPerPoint), (int)Math.Ceiling(source.Height * pixelsPerPoint))), cancellation);
+        PdfRenderCompleteness.RequireComplete(pageIndex, PdfRenderCompleteness.Classify(page.Diagnostics));
         BitmapSource bitmap = BitmapSource.Create(page.Width, page.Height, 96, 96, PixelFormats.Bgra32,
             null, page.Pixels.ToArray(), page.Width * 4);
         bitmap.Freeze(); return bitmap;

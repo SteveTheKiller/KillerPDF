@@ -112,8 +112,8 @@ La página se puede sustituir por una imagen de sí misma con las áreas marcada
     <sys:String x:Key="Str_RedactFind_CheckAll">Marcar todo</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Desmarcar todo</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Página {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Marcar seleccionados</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Los resultados seleccionados se marcan en la página. No se elimina nada hasta que hagas clic en Censurar en la barra Censurar.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Dibujar cuadros de censura</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Dibuja un cuadro de censura sobre cada resultado seleccionado en la página. No se elimina nada hasta que hagas clic en Censurar en la barra Censurar.</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Eliminar todas las anotaciones</sys:String>
     <sys:String x:Key="Str_TT_UndoLast">Deshacer último (Ctrl+Z)</sys:String>
     <sys:String x:Key="Str_TT_MultiPageGrid">Vista de cuadrícula multipágina (F8)</sys:String>
@@ -2037,6 +2037,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Paragraph_Preparing">Preparando vista previa...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">El documento ha cambiado. Vuelve a abrir la edición de párrafos para continuar.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Original</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Esta edición del párrafo no se ha aplicado. ¿Descartarla e ir a la otra página?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Vista previa editada</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Tareas guiadas</sys:String>

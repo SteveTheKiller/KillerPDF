@@ -112,8 +112,8 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_RedactFind_CheckAll">Zaznacz wszystko</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Odznacz wszystko</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Strona {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Zaznacz wybrane</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Wybrane wyniki są zaznaczane na stronie. Nic nie zostanie usunięte, dopóki nie klikniesz Zaczernij na pasku Zaczernij.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Narysuj pola zaczernienia</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Rysuje pole zaczernienia na każdym wybranym wyniku na stronie. Nic nie zostanie usunięte, dopóki nie klikniesz Zaczernij na pasku Zaczernij.</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Przekształć stronę: obrót, skalowanie, odbicie, korekcja zniekształceń lub perspektywy (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Wyczyść wszystkie adnotacje</sys:String>
     <sys:String x:Key="Str_TT_Search">Znajdź tekst (Ctrl+F)</sys:String>
@@ -2045,6 +2045,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Paragraph_Preparing">Przygotowywanie podglądu...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Dokument został zmieniony. Otwórz ponownie edycję akapitu, aby kontynuować.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Oryginał</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Ta zmiana akapitu nie została zastosowana. Odrzucić ją i przejść do innej strony?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Podgląd po edycji</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Zadania z przewodnikiem</sys:String>

@@ -104,8 +104,8 @@
     <sys:String x:Key="Str_RedactFind_CheckAll">Označi vse</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Počisti vse izbire</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Stran {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Označi izbrano</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Izbrani rezultati se označijo na strani. Vsebina se odstrani šele, ko v vrstici za prekrivanje kliknete Prekrij.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Nariši polja prekrivanja</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Čez vsak izbrani zadetek na strani nariše polje prekrivanja. Vsebina se odstrani šele, ko v vrstici za prekrivanje kliknete Prekrij.</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Preoblikuj stran: zavrti, spremeni merilo, zrcali, poravnaj ali popravi perspektivo (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Počisti vse pripombe</sys:String>
     <sys:String x:Key="Str_TT_Search">Poišči besedilo (Ctrl+F)</sys:String>
@@ -1947,6 +1947,7 @@
     <sys:String x:Key="Str_Paragraph_Preparing">Pripravljanje predogleda...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Dokument se je spremenil. Za nadaljevanje znova odprite urejanje odstavka.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Izvirnik</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Ta sprememba odstavka še ni uporabljena. Jo zavržem in grem na drugo stran?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Predogled sprememb</sys:String>
     <sys:String x:Key="Str_Guided_Title" xml:space="preserve">Vodena opravila</sys:String>
     <sys:String x:Key="Str_Guided_Email" xml:space="preserve">Pripravi za e-pošto</sys:String>

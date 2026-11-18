@@ -112,8 +112,8 @@
     <sys:String x:Key="Str_RedactFind_CheckAll">Вибрати все</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Зняти вибір</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Сторінка {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Позначити вибрані</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Вибрані результати позначаються на сторінці. Нічого не видаляється, доки ви не натиснете «Приховати» на панелі «Приховати».</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Намалювати поля приховування</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Малює поле приховування поверх кожного вибраного результату на сторінці. Нічого не видаляється, доки ви не натиснете «Приховати» на панелі «Приховати».</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Перетворити сторінку: повернути, змінити масштаб, віддзеркалити, вирівняти нахил або виправити перспективу (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Очистити всі анотації</sys:String>
     <sys:String x:Key="Str_TT_Search">Знайти текст (Ctrl+F)</sys:String>
@@ -2057,6 +2057,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Paragraph_Preparing">Підготовка попереднього перегляду...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Документ змінився. Знову відкрийте редагування абзацу, щоб продовжити.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Оригінал</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Цю зміну абзацу не застосовано. Скасувати її та перейти на іншу сторінку?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Попередній перегляд змін</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Завдання з підказками</sys:String>

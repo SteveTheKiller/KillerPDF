@@ -52,9 +52,14 @@ public partial class MainWindow
                     page.Width, page.Height, dimensions.w, dimensions.h, rotation);
                 point = new Point(bounds.Left, bounds.Bottom);
             }
-            var dialog = new ParagraphEditDialog(this, document, pageIndex, _appScale, point, inspection);
+            // The dialog's page flippers refuse a page the viewer shows turned, as this opening check does.
+            var pages = session.Pages;
+            bool PageRotated(int index) => index >= 0 && index < pages.Count
+                && ((_pageRotations.TryGetValue(index, out int quarter) ? quarter : pages[index].Rotation) % 360 + 360) % 360 != 0;
+            var dialog = new ParagraphEditDialog(this, document, pageIndex, _appScale, point, inspection, PageRotated);
             dialog.ShowDialog();
             if (dialog.Result is not { } plan) return;
+            pageIndex = dialog.PageIndex;
             if (!sourceCurrent() || !File.Exists(sourcePath)
                 || !SHA256.HashData(File.ReadAllBytes(sourcePath)).AsSpan().SequenceEqual(sourceHash))
             {

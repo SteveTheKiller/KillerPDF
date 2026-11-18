@@ -114,8 +114,8 @@
     <sys:String x:Key="Str_RedactFind_CheckAll">全部勾選</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">全部取消勾選</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">第 {0} 頁</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">標記已勾選項目</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">已勾選的結果會在頁面上標記。在塗黑列上按一下「塗黑」之前，不會移除任何內容。</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">繪製塗黑方塊</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">在頁面上每個已勾選的結果上繪製一個塗黑方塊。在塗黑列上按一下「塗黑」之前，不會移除任何內容。</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">清除所有注釋</sys:String>
     <sys:String x:Key="Str_TT_UndoLast">復原上一步 (Ctrl+Z)</sys:String>
     <sys:String x:Key="Str_TT_MultiPageGrid">多頁格檢視 (F8)</sys:String>
@@ -2039,6 +2039,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Paragraph_Preparing">正在準備預覽...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">文件已變更。請重新開啟段落編輯以繼續。</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">原文</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">此段落編輯尚未套用。要捨棄它並前往另一頁嗎?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">編輯後預覽</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">引導式工作</sys:String>

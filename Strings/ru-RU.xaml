@@ -112,8 +112,8 @@
     <sys:String x:Key="Str_RedactFind_CheckAll">Выбрать все</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Снять выбор</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Страница {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Отметить выбранные</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Выбранные результаты отмечаются на странице. Ничего не удаляется, пока вы не нажмёте «Скрыть» на панели «Скрыть».</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Нарисовать поля скрытия</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Рисует поле скрытия поверх каждого выбранного результата на странице. Ничего не удаляется, пока вы не нажмёте «Скрыть» на панели «Скрыть».</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Трансформация страницы: поворот, масштабирование, отражение, выравнивание или коррекция перспективы (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Очистите все аннотации</sys:String>
     <sys:String x:Key="Str_TT_Search">Найти текст (Ctrl+F)</sys:String>
@@ -2060,6 +2060,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Paragraph_Preparing">Подготовка предпросмотра...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Документ изменился. Снова откройте редактирование абзаца, чтобы продолжить.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Оригинал</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Это изменение абзаца не применено. Отменить его и перейти на другую страницу?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Предпросмотр изменений</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Задачи с подсказками</sys:String>

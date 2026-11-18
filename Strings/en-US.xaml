@@ -112,8 +112,8 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_RedactFind_CheckAll">Check all</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Uncheck all</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Page {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Mark checked</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Checked results are marked on the page. Nothing is removed until you click Redact on the Redact bar.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Draw redaction boxes</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Draws a redaction box over each checked match on the page. Nothing is removed until you click Redact on the Redact bar.</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Transform page: rotate, scale, flip, deskew, or correct perspective (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Clear All Annotations</sys:String>
     <sys:String x:Key="Str_TT_Search">Find Text (Ctrl+F)</sys:String>
@@ -2068,6 +2068,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Paragraph_Preparing">Preparing preview...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">The document changed. Reopen paragraph editing to continue.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Original</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">This paragraph edit has not been applied. Discard it and go to the other page?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Edited preview</sys:String>
     <sys:String x:Key="Str_Guided_Title">Guided tasks</sys:String>
     <sys:String x:Key="Str_Guided_Email">Prepare for email</sys:String>

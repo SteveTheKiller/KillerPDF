@@ -112,8 +112,8 @@
     <sys:String x:Key="Str_RedactFind_CheckAll">সব চিহ্নিত করুন</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">সব চিহ্ন সরান</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">পৃষ্ঠা {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">চিহ্নিতগুলো মার্ক করুন</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">চিহ্নিত ফলাফল পৃষ্ঠায় মার্ক করা হয়। রিড্যাক্ট বারে রিড্যাক্ট ক্লিক না করা পর্যন্ত কিছুই সরানো হয় না।</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">রিড্যাক্ট বাক্স আঁকুন</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">পৃষ্ঠায় প্রতিটি চিহ্নিত ফলাফলের উপর একটি রিড্যাক্ট বাক্স আঁকা হয়। রিড্যাক্ট বারে রিড্যাক্ট ক্লিক না করা পর্যন্ত কিছুই সরানো হয় না।</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">সব অ্যানোটেশন মুছুন</sys:String>
     <sys:String x:Key="Str_TT_UndoLast">শেষ কাজ পূর্বাবস্থায় ফেরান (Ctrl+Z)</sys:String>
     <sys:String x:Key="Str_TT_MultiPageGrid">বহু-পৃষ্ঠা গ্রিড ভিউ (F8)</sys:String>
@@ -2037,6 +2037,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Paragraph_Preparing">পূর্বরূপ প্রস্তুত হচ্ছে...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">নথিটি পরিবর্তিত হয়েছে। চালিয়ে যেতে অনুচ্ছেদ সম্পাদনা আবার খুলুন।</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">মূল</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">এই অনুচ্ছেদ সম্পাদনাটি এখনও প্রয়োগ করা হয়নি। এটি বাতিল করে অন্য পৃষ্ঠায় যাবেন?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">সম্পাদিত পূর্বরূপ</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">নির্দেশিত কাজ</sys:String>

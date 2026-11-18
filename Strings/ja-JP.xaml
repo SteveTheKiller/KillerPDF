@@ -112,8 +112,8 @@
     <sys:String x:Key="Str_RedactFind_CheckAll">すべてチェック</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">すべてのチェックを外す</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">{0} ページ</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">チェックした項目をマーク</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">チェックした結果がページ上でマークされます。墨消しバーの [墨消し] をクリックするまで何も削除されません。</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">墨消しボックスを描画</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">チェックした各結果の上に、ページ上で墨消しボックスを描画します。墨消しバーの [墨消し] をクリックするまで何も削除されません。</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">ページ変換: 回転、拡大縮小、反転、傾き補正、遠近補正 (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">すべての注釈をクリア</sys:String>
     <sys:String x:Key="Str_TT_Search">テキストを検索 (Ctrl+F)</sys:String>
@@ -2057,6 +2057,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Paragraph_Preparing">プレビューを準備中...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">ドキュメントが変更されました。段落編集を開き直して続行してください。</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">元の内容</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">この段落の編集はまだ適用されていません。破棄して別のページに移動しますか?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">編集後のプレビュー</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">ガイド付きタスク</sys:String>

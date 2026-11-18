@@ -112,8 +112,8 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_RedactFind_CheckAll">Zaškrtnout vše</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Zrušit zaškrtnutí</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Strana {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Označit zaškrtnuté</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Zaškrtnuté výsledky se na stránce označí. Nic se neodstraní, dokud na panelu Začernit neklepnete na Začernit.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Nakreslit začerňovací rámečky</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Přes každý zaškrtnutý výsledek na stránce nakreslí začerňovací rámeček. Nic se neodstraní, dokud na panelu Začernit neklepnete na Začernit.</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Transformace stránky: otočení, změna měřítka, převrácení, narovnání nebo oprava perspektivy (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Odstranit všechny anotace</sys:String>
     <sys:String x:Key="Str_TT_Search">Najít text (Ctrl+F)</sys:String>
@@ -2042,6 +2042,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Paragraph_Preparing">Příprava náhledu...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Dokument se změnil. Pokračujte opětovným otevřením úprav odstavce.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Originál</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Tato úprava odstavce nebyla použita. Zahodit ji a přejít na jinou stránku?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Náhled úprav</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Průvodci úlohami</sys:String>

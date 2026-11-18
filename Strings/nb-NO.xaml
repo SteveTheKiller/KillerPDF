@@ -112,8 +112,8 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_RedactFind_CheckAll">Merk av alle</sys:String>
     <sys:String x:Key="Str_RedactFind_UncheckAll">Fjern alle avmerkinger</sys:String>
     <sys:String x:Key="Str_RedactFind_Page">Side {0}</sys:String>
-    <sys:String x:Key="Str_RedactFind_Mark">Merk avkryssede</sys:String>
-    <sys:String x:Key="Str_RedactFind_Hint">Avkryssede resultater merkes på siden. Ingenting fjernes før du klikker Sladd på Sladd-linjen.</sys:String>
+    <sys:String x:Key="Str_RedactFind_Mark">Tegn sladdebokser</sys:String>
+    <sys:String x:Key="Str_RedactFind_Hint">Tegner en sladdeboks over hvert avkrysset treff på siden. Ingenting fjernes før du klikker Sladd på Sladd-linjen.</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Transformer side: roter, skaler, speilvend, rett opp skjevhet eller korriger perspektiv (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Fjern alle merknader</sys:String>
     <sys:String x:Key="Str_TT_Search">Finn tekst (Ctrl+F)</sys:String>
@@ -2057,6 +2057,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Paragraph_Preparing">Forbereder forhåndsvisning...</sys:String>
     <sys:String x:Key="Str_Paragraph_Changed">Dokumentet er endret. Åpne avsnittsredigeringen på nytt for å fortsette.</sys:String>
     <sys:String x:Key="Str_Paragraph_Original">Original</sys:String>
+    <sys:String x:Key="Str_Paragraph_DiscardOnFlip">Denne avsnittsendringen er ikke tatt i bruk. Forkaste den og gå til den andre siden?</sys:String>
     <sys:String x:Key="Str_Paragraph_Result">Redigert forhåndsvisning</sys:String>
 
     <sys:String x:Key="Str_Guided_Title">Veiledede oppgaver</sys:String>

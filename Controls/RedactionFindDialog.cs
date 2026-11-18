@@ -42,7 +42,9 @@ internal sealed class RedactionFindDialog : Window
         _loadDocument = loadDocument;
         _searchCurrent = searchCurrent;
         Title = "KillerPDF - " + L("Str_RedactFind_Title");
-        Width = 520;
+        // Sized to its content: the kind list, a few lines of terms and a results list of page
+        // numbers and short snippets, which never needed half a screen across (Steve, 2026-11-17).
+        Width = 400;
         SizeToContent = SizeToContent.Height;
         MaxHeight = Math.Max(420, SystemParameters.WorkArea.Height * 0.85);
         UseLayoutRounding = true;
