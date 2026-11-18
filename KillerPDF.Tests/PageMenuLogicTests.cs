@@ -61,7 +61,7 @@ public sealed class PageMenuLogicTests
         Assert.Contains("ClearAnnotations_Click(this, new RoutedEventArgs()), false, canClearPage)", ShellSource.Between(PageMenuBody, "Loc(\"Str_Ctx_ClearPage\")", "\n"));
         Assert.DoesNotContain("_ctxMenu.Items.Add(MakeMenuItem(Loc(\"Str_Ctx_ClearPage\")", PageMenuBody);
         string agnostic = ShellSource.Between(ContextMenu, "private void FillPageAgnosticMenu(", "internal void DocPaneBackground_RightClick");
-        Assert.Contains("EditAvailability().Clear", ShellSource.Between(agnostic, "Loc(\"Str_Lbl_Clear\")", "ViewTiles()"));
+        Assert.Contains("EditAvailability().Clear", ShellSource.Between(agnostic, "Loc(\"Str_Lbl_Clear\")", "var grid"));
     }
 
     [Fact]

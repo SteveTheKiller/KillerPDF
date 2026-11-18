@@ -296,6 +296,12 @@ namespace KillerPDF.Shell
                 var zoom = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
                 zoom.Children.Add(NavRowButton(menu, zoomOut, "Str_Lbl_ZoomOut", "Ctrl:Minus", () => ZoomOut_Click(this, new RoutedEventArgs()), true));
                 zoom.Children.Add(NavRowButton(menu, zoomIn, "Str_Lbl_ZoomIn", "Ctrl:Equals", () => ZoomIn_Click(this, new RoutedEventArgs()), true));
+                if (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
+                {
+                    var book = NavRowButton(menu, GlyphText(0xE736), "Str_View_BookMode", "B", ToggleBookMode, true);
+                    if (Controls.PdfViewer.BookMode) book.SetResourceReference(Control.BackgroundProperty, "RowSelectedBrush");
+                    zoom.Children.Add(book);
+                }
                 row.Children.Add(zoom);
             }
             int pageCount = _doc?.PageCount ?? ActiveViewer.ReadPageCountExt;
@@ -896,8 +902,8 @@ namespace KillerPDF.Shell
             // page reads like the menu on it. Every action and shortcut the old flat list had is still here.
             if (TryFindResource("CardMenu") is Style card) menu.Style = card;
             AddOwnerPasswordItem(menu);
-            string zoomInGlyph = ((""));
-            string zoomOutGlyph = ((""));
+            string zoomInGlyph = GlyphText(0xECC8);
+            string zoomOutGlyph = GlyphText(0xECC9);
             // Zoom in and out sit at the right end of the nav row, after print.
             AddNavRow(menu, zoomIn: zoomInGlyph, zoomOut: zoomOutGlyph);
             // Every other action as one grid, three tiles across like the page menu.
@@ -910,11 +916,11 @@ namespace KillerPDF.Shell
                 new("\uE89F", Loc("Str_Pages_DivideSpreads"), "AltShift:D", DivideSpreads, false, true),
                 FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
             };
-            if (CanPasteInView())
-                tiles.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(PageList.SelectedIndex), false, true));
+            tiles.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(PageList.SelectedIndex), false, CanPasteInView()));
             tiles.Add(new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true));
             tiles.Add(new("\uED62", Loc("Str_Lbl_Clear"), null, () => ClearAllAnnotations_Click(this, new RoutedEventArgs()), false, EditAvailability().Clear));
-            tiles.AddRange(ViewTiles());
+            // Nine tiles, three full rows: Paste always holds its spot (dimmed with nothing to paste), Full Screen
+            // lives in the footer, and Book layout sits on the nav row beside zoom.
             var grid = QuickStrip(menu, 3, [.. tiles]);
             menu.Items.Add(CardSlot(grid, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, grid);

@@ -134,7 +134,9 @@ namespace KillerPDF.Controls
             if (sender is not FrameworkElement element || element.GetValue(PaintedProperty) is null) return;
             if (BackgroundProperty(element) is { } property && ReferenceEquals(element.GetValue(property), element.GetValue(PaintedBrushProperty))) return;
             element.ClearValue(PaintedProperty);
-            Paint(element);
+            // Repaint after the change that raised this finishes: setting the background again inside it threw
+            // "not a context for this Freezable" (full screen sets the document pane's backdrop).
+            element.Dispatcher.BeginInvoke(() => Paint(element), System.Windows.Threading.DispatcherPriority.Render);
         }
 
         private static DependencyProperty? BackgroundProperty(FrameworkElement element) => element switch
