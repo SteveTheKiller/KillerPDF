@@ -14,6 +14,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - The engine is licensed under the Mozilla Public License 2.0 instead of GPLv3. The KillerPDF desktop app remains GPLv3.
 - Decode JPEG 2000 with OpenJPEG and bundle the native decoder for Windows x64.
+- `PdfPreflightCheck.ConformanceDeclarations` runs `PdfUaValidator` on a document whose XMP declares `pdfuaid:part` 1 and reports each failure as `Conformance.PdfUa1.<condition>`, instead of `Conformance.UnsupportedPdfUa`. (#491)
+
+### Added
+
+- `PdfUaValidator.Validate` checks a document against PDF/UA-1 (ISO 14289-1) and returns a `PdfUaReport` with one result for each of the 31 Matterhorn Protocol 1.1 checkpoints. Each checkpoint is Passed, Failed, Incomplete or NeedsHumanReview, failures carry the Matterhorn condition ID, the ISO clause, the page and the object, and the conditions a person must judge or that are not checked yet are listed by ID. The summary verdict is Failed, Incomplete or PassedMachineChecks, so it never claims full conformance. `ToText` and `ToJson` give the same report shapes as the accessibility inspector. The checks cover untagged content and artifact nesting, Suspects, role mapping, XMP metadata and title, DisplayDocTitle, document language, figure and formula alternate text, heading order, table header scope, note IDs, optional content configurations, embedded file names, dynamic XFA, the accessibility permission bit, annotation tagging, descriptions and tab order, reference XObjects, form XObjects reused with marked content, and unembedded fonts. A PDF/UA-2 document is checked against the same checkpoints, and `DeclaredPart` records which part it claims. (#491)
 
 ## [1.9.4] - 2026-11-15
 

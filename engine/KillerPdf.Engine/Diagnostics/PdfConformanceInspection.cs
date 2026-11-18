@@ -56,7 +56,14 @@ internal static class PdfConformanceInspection
             }
             if (pdfUaPart is not null)
             {
-                if (pdfUaPart != "2")
+                if (pdfUaPart == "1")
+                    findings.AddRange(PdfUaValidator.Validate(document).Failures
+                        .Select(failure => new PdfPreflightFinding(
+                            "Conformance.PdfUa1." + failure.Condition,
+                            PdfDiagnosticSeverity.Error,
+                            $"{failure.Message} ({failure.Clause})",
+                            failure.PageIndex, failure.ObjectNumber)));
+                else if (pdfUaPart != "2")
                     findings.Add(Unsupported("Conformance.UnsupportedPdfUa",
                         $"PDF/UA-{pdfUaPart} validation is not implemented.", metadataObjectNumber));
                 else
