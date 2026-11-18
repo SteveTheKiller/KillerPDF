@@ -2306,4 +2306,11 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Il file dell'immagine è danneggiato.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Supera i limiti di sicurezza del lettore.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">Il suo markup è danneggiato.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Apri cartella</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">PDF ricercabile</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">OCR pagina</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Lingua documento</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Rimuovi riquadro</sys:String>
 </ResourceDictionary>

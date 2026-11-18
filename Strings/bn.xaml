@@ -2285,4 +2285,11 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">ছবির ফাইলটি ক্ষতিগ্রস্ত।</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">এটি রিডারের নিরাপত্তা সীমার চেয়ে বড়।</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">এর মার্কআপ ক্ষতিগ্রস্ত।</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">ফোল্ডার খুলুন</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">অনুসন্ধানযোগ্য PDF</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">পৃষ্ঠা OCR</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">নথির ভাষা</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">পৃষ্ঠা বক্স সরান</sys:String>
 </ResourceDictionary>

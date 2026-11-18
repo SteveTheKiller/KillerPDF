@@ -24,7 +24,7 @@ public sealed class CommandLauncherTests
         foreach (string file in new[] { "DataExchange.cs", "DocumentRepairs.cs", "ProductionTools.cs" })
         {
             string text = File.ReadAllText(Path.Combine(Root(), "Shell", file));
-            foreach (Match call in Regex.Matches(text, @"OpenExchangeCommands\(""[^""]+""(?<args>.*?)\);", RegexOptions.Singleline))
+            foreach (Match call in Regex.Matches(text, @"(?:OpenExchangeCommands|OpenDocumentToolCard)\(""[^""]+""(?<args>.*?)\);", RegexOptions.Singleline))
             {
                 var launcher = new List<string>();
                 foreach (Match key in Regex.Matches(call.Groups["args"].Value, @"\(""(?<key>Str_[A-Za-z_]+)"""))
@@ -59,9 +59,9 @@ public sealed class CommandLauncherTests
     }
 
     [Theory]
-    [InlineData(2, 0)]  // Bookmark data: a full row keeps Close on its own footer row
-    [InlineData(5, 1)]  // Form data: Close takes the sixth cell
-    [InlineData(6, 0)]  // Preflight
+    [InlineData(2, 0)]  // a full row keeps Close on its own footer row
+    [InlineData(5, 1)]  // Close takes the sixth cell
+    [InlineData(6, 0)]
     [InlineData(7, 1)]  // Production layouts: Close takes the eighth cell
     [InlineData(3, 0)]
     [InlineData(4, 0)]
@@ -86,6 +86,33 @@ public sealed class CommandLauncherTests
         Assert.Contains("\"CardQuickButton\"", dialog);
         Assert.Contains("new UniformGrid { Columns = CommandLauncher.Columns(commands.Length) }", dialog);
         Assert.Contains("CommandLauncher.GlyphFor(command.Label)", File.ReadAllText(Path.Combine(Root(), "Shell", "DataExchange.cs")));
+    }
+
+    [Fact]
+    public void FormBookmarkAndPreflightOpenATileCardUnderTheirIcon()
+    {
+        // Steve 2026-11-17: these three were small windows of big buttons with a Close button. Each is now a card of
+        // tiles under its icon in the Document tools panel, three across, closed by a pick, a click outside or Esc.
+        string exchange = File.ReadAllText(Path.Combine(Root(), "Shell", "DataExchange.cs"));
+        string repairs = File.ReadAllText(Path.Combine(Root(), "Shell", "DocumentRepairs.cs"));
+        Assert.Contains("private void OpenFormDataTools() => OpenDocumentToolCard(\"Str_DocumentTools_FormData\",", exchange);
+        Assert.Contains("private void OpenBookmarkDataTools() => OpenDocumentToolCard(\"Str_DocumentTools_BookmarkData\",", exchange);
+        Assert.Contains("private void OpenPreflightTools() => OpenDocumentToolCard(\"Str_DocumentTools_Preflight\",", repairs);
+        foreach (string key in new[] { "Str_DocumentTools_FormData", "Str_DocumentTools_BookmarkData", "Str_DocumentTools_Preflight" })
+        {
+            Assert.DoesNotContain($"OpenExchangeCommands(\"{key}\"", exchange);
+            Assert.DoesNotContain($"OpenExchangeCommands(\"{key}\"", repairs);
+        }
+        int start = exchange.IndexOf("private void ShowDocumentToolCard(", StringComparison.Ordinal);
+        Assert.True(start >= 0);
+        string card = exchange[start..exchange.IndexOf("menu.IsOpen = true;", start, StringComparison.Ordinal)];
+        Assert.Contains("TryFindResource(\"CardMenu\")", card);
+        Assert.Contains("QuickStrip(menu, 3,", card);
+        Assert.Contains("FocusFirstActionFromKeyboard(menu, tiles);", card);
+        Assert.Contains("menu.PlacementTarget = anchor;", card);
+        Assert.Contains("if (isSourceCurrent()) command.Run();", card);
+        Assert.DoesNotContain("Str_Btn_Close", card);
+        Assert.DoesNotContain("DocumentCommandDialog", card);
     }
 
     [Theory]

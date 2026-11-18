@@ -9,7 +9,7 @@ namespace KillerPDF.Shell;
 
 public partial class MainWindow
 {
-    private void OpenPreflightTools() => OpenExchangeCommands("Str_DocumentTools_Preflight",
+    private void OpenPreflightTools() => OpenDocumentToolCard("Str_DocumentTools_Preflight",
         ("Str_DocumentTools_Preflight", () => ShowDocumentReport(Loc("Str_DocumentTools_Preflight"),
             (path, protection) => PdfEngineIntegration.InspectPreflight(path, protection).ToText())),
         ("Str_DocumentTools_PreflightProfile", PreflightWithProfileFile),

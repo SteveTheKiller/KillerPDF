@@ -2293,4 +2293,11 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Plik obrazu jest uszkodzony.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Przekracza limity bezpieczeństwa czytnika.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">Jego znaczniki są uszkodzone.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Otwórz folder</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">PDF z wyszukiwaniem</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">OCR strony</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Język dokumentu</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Usuń ramkę strony</sys:String>
 </ResourceDictionary>

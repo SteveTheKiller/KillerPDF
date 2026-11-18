@@ -2305,4 +2305,11 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Bildefilen er skadet.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Den overskrider leserens sikkerhetsgrenser.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">Markeringen er skadet.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Åpne mappe</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">Søkbar PDF</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">OCR av side</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Dokumentspråk</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Fjern sideboks</sys:String>
 </ResourceDictionary>

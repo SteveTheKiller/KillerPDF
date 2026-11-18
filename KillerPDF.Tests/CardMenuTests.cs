@@ -223,9 +223,26 @@ public sealed class CardMenuTests
         Assert.Contains("\"CardMenu\"", ocr);
         foreach (string key in new[] { "Str_Ocr_Region", "Str_Ocr_SearchablePdf", "Str_Ocr_ScanToText", "Str_Ocr_ExtractText" })
             Assert.Contains($"Short(\"{key}\")", ocr);
-        Assert.Contains("FlyoutTile(GlyphText(0xF2B7), Loc(\"Str_Ocr_Language\"), null, BuildLanguageMenu())", ocr);
-        Assert.Contains("{ Checked = OcrFormAware, KeepsOpen = true }", ocr);
+        Assert.Contains("FlyoutTile(GlyphText(0xF2B7), Loc(\"Str_Ocr_Language\"), null, BuildLanguageMenu()));", ocr);
         Assert.DoesNotContain("menu.Items.Add(MakeMenuItem(", ocr);
+    }
+
+    [Fact]
+    public void TheOcrMenuIsTwoFullRowsOfThreeWithLanguageLast()
+    {
+        // Steve 2026-11-17: the standard tile grid, three across and two full rows, Language's chevron tile last on
+        // the right of the second row, no separator gap. Form-aware OCR moved into Language's list beside High quality.
+        string ocr = Between(Read("Shell", "Ocr.cs"), "private void OcrMenu_Click(", "private static void SetBusyMessage(");
+        string grid = Between(ocr, "var tiles = QuickStrip(menu, 3,", "menu.Items.Add(CardSlot(tiles");
+        Assert.Equal(5, Count(grid, "new CardTile("));
+        Assert.Equal(1, Count(grid, "FlyoutTile("));
+        Assert.EndsWith("BuildLanguageMenu()));", grid.TrimEnd());
+        Assert.Equal(1, Count(ocr, "QuickStrip("));
+        Assert.DoesNotContain("new Separator()", ocr);
+        Assert.DoesNotContain("Str_Ocr_FormAware", ocr);
+        string language = Between(Read("Shell", "Ocr.cs"), "private MenuItem BuildLanguageMenu()", "private async void DownloadOcrLanguage(");
+        Assert.Contains("Header = Loc(\"Str_Ocr_FormAware\")", language);
+        Assert.Contains("App.SetSetting(\"OcrFormAware\"", language);
     }
 
     [Fact]

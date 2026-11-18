@@ -153,6 +153,7 @@
     <Compile Include="..\Services\PageSplit.cs" Link="Services\PageSplit.cs" />
     <Compile Include="..\Controls\Viewer\DrawToolLook.cs" Link="Controls\Viewer\DrawToolLook.cs" />
     <Compile Include="..\Controls\CommandLauncher.cs" Link="Controls\CommandLauncher.cs" />
+    <Compile Include="..\Services\TileCaptions.cs" Link="Services\TileCaptions.cs" />
     <Compile Include="..\Services\AnnotationRotate.cs" Link="Services\AnnotationRotate.cs" />
     <Compile Include="..\Services\AnnotationNudge.cs" Link="Services\AnnotationNudge.cs" />
     <Compile Include="..\Services\WheelPageFlipGate.cs" Link="Services\WheelPageFlipGate.cs" />

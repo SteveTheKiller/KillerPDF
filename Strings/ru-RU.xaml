@@ -2308,4 +2308,11 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Файл изображения повреждён.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Он превышает ограничения безопасности программы чтения.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">Его разметка повреждена.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Открыть папку</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">PDF с поиском</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">OCR страницы</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Язык документа</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Убрать рамку</sys:String>
 </ResourceDictionary>

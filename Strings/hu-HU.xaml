@@ -2292,4 +2292,11 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">A képfájl sérült.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Meghaladja az olvasó biztonsági korlátait.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">A jelölőkódja sérült.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Mappa megnyitása</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">Kereshető PDF</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">Oldal OCR</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Dokumentum nyelve</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Oldaldoboz törlése</sys:String>
 </ResourceDictionary>

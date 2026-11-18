@@ -232,9 +232,12 @@ namespace KillerPDF.Shell
                 var (glyph, caption, gesture, act, mirror, enabled) = tile;
                 // A trailing "..." on a tile reads as a cut-off caption, so tiles drop it.
                 caption = caption.TrimEnd('.', '…').TrimEnd();
+                // A name too long for two lines of the tile ("Open Containing Folder" read "Open Containi...") shows
+                // its short caption; the tooltip and the accessible name keep the full name.
+                string shown = ShortTileCaption(caption);
                 // MaxWidth: the grid sizes every column to its widest tile, so one long caption ("Clear Page
                 // Annotations") stretched the whole card. Capped, a long caption wraps to its second line instead.
-                var button = new Button { Content = glyph, Tag = caption, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled, MaxWidth = 84 };
+                var button = new Button { Content = glyph, Tag = shown, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled, MaxWidth = 84 };
                 // The caption alone is the accessible name; the tooltip adds the shortcut.
                 System.Windows.Automation.AutomationProperties.SetName(button, caption);
                 ToolTipService.SetShowOnDisabled(button, true);
@@ -273,6 +276,14 @@ namespace KillerPDF.Shell
             strip.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
             System.Windows.Automation.AutomationProperties.SetName(strip, Loc("Str_Card_Actions"));
             return strip;
+        }
+
+        // The short caption (TileCaptions.ShortKeys) of a tile whose full name is this caption, or the caption itself.
+        private string ShortTileCaption(string caption)
+        {
+            foreach (var (full, shortKey) in Services.TileCaptions.ShortKeys)
+                if (string.Equals(Loc(full).TrimEnd('.', '…').TrimEnd(), caption, StringComparison.Ordinal)) return Loc(shortKey);
+            return caption;
         }
 
         // An on/off tile is filled with the selected-row color while it is on (the template paints its Background).

@@ -2285,4 +2285,11 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Görsel dosyası hasarlı.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Okuyucunun güvenlik sınırlarını aşıyor.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">İşaretlemesi hasarlı.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Klasörü aç</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">Aranabilir PDF</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">Sayfa OCR</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Belge dili</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Kutuyu kaldır</sys:String>
 </ResourceDictionary>

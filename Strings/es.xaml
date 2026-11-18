@@ -2285,4 +2285,11 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">El archivo de la imagen está dañado.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Supera los límites de seguridad del lector.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">Su marcado está dañado.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Abrir carpeta</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">PDF buscable</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">OCR de página</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Idioma del documento</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Quitar cuadro</sys:String>
 </ResourceDictionary>

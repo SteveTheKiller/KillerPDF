@@ -168,6 +168,16 @@ namespace KillerPDF.Shell
                 if (now) RedownloadSelectedHighQuality();
             };
             root.Items.Add(hq);
+            // Form-aware OCR, a setting like High quality: it was a seventh tile on the OCR card, which left a half row.
+            var formAware = new MenuItem
+            {
+                Header = Loc("Str_Ocr_FormAware"),
+                IsCheckable = true,
+                IsChecked = OcrFormAware,
+                StaysOpenOnClick = true,
+            };
+            formAware.Click += (_, _) => App.SetSetting("OcrFormAware", formAware.IsChecked ? "1" : "0");
+            root.Items.Add(formAware);
             return root;
         }
 
@@ -457,24 +467,19 @@ namespace KillerPDF.Shell
                 // Make Searchable PDF's old row glyph:""));
                 string scanGlyph = ((""));
                 string textGlyph = ((""));
-                // The card frame and tiles of the Save dropdown: every command a tile, its shortcut on the tooltip.
+                // The card frame and tiles of the Save dropdown: every command a tile, its shortcut on the tooltip. Two
+                // full rows of three with Language last, its chevron on the right; Form-aware OCR is a setting in
+                // Language's list beside High quality, so the grid has no half row and no separator.
                 if (TryFindResource("CardMenu") is Style card) menu.Style = card;
                 var tiles = QuickStrip(menu, 3,
-                    ("", Loc("Str_Ctx_OcrPage"), "CtrlShift:O", () => OcrPageToClipboard(pageIdx), false, true),
-                    (regionGlyph, Short("Str_Ocr_Region"), "CtrlShift:I", BeginOcrRegion, false, true),
-                    (GlyphText(0xE8A5), Short("Str_Ocr_SearchablePdf"), null, MakeSearchablePdf, false, true),
-                    (scanGlyph, Short("Str_Ocr_ScanToText"), "CtrlShift:R", ConvertScanToText, false, true),
-                    (textGlyph, Short("Str_Ocr_ExtractText"), null, ExtractAllText, false, true));
+                    new CardTile("", Loc("Str_Ctx_OcrPage"), "CtrlShift:O", () => OcrPageToClipboard(pageIdx), false, true),
+                    new CardTile(regionGlyph, Short("Str_Ocr_Region"), "CtrlShift:I", BeginOcrRegion, false, true),
+                    new CardTile(GlyphText(0xE8A5), Short("Str_Ocr_SearchablePdf"), null, MakeSearchablePdf, false, true),
+                    new CardTile(scanGlyph, Short("Str_Ocr_ScanToText"), "CtrlShift:R", ConvertScanToText, false, true),
+                    new CardTile(textGlyph, Short("Str_Ocr_ExtractText"), null, ExtractAllText, false, true),
+                    FlyoutTile(GlyphText(0xF2B7), Loc("Str_Ocr_Language"), null, BuildLanguageMenu()));
                 menu.Items.Add(CardSlot(tiles, new Thickness(0)));
                 FocusFirstActionFromKeyboard(menu, tiles);
-                // The settings: Language opens its list beside the tile; Form-aware OCR flips in place and the card
-                // stays open, as the checkable row did.
-                var settings = QuickStrip(menu, 3,
-                    FlyoutTile(GlyphText(0xF2B7), Loc("Str_Ocr_Language"), null, BuildLanguageMenu()),
-                    new CardTile(GlyphText(0xE9D5), Loc("Str_Ocr_FormAware"), null,
-                        () => App.SetSetting("OcrFormAware", OcrFormAware ? "0" : "1"), false, true) { Checked = OcrFormAware, KeepsOpen = true });
-                menu.Items.Add(new Separator());
-                menu.Items.Add(CardSlot(settings, new Thickness(0)));
             }
             menu.PlacementTarget = (UIElement)sender;
             menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;

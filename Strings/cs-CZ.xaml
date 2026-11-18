@@ -2290,4 +2290,11 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Soubor obrázku je poškozen.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Překračuje bezpečnostní limity čtečky.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">Jeho značkování je poškozeno.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Otevřít složku</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">Prohledávatelné PDF</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">OCR stránky</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Jazyk dokumentu</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Odebrat rámeček</sys:String>
 </ResourceDictionary>

@@ -2305,4 +2305,11 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Tệp ảnh bị hỏng.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Mục này vượt quá giới hạn an toàn của trình đọc.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">Mã đánh dấu của mục này bị hỏng.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Mở thư mục</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">PDF tìm kiếm được</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">OCR trang</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Ngôn ngữ tài liệu</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Bỏ hộp trang</sys:String>
 </ResourceDictionary>

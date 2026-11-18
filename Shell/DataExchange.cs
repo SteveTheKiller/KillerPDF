@@ -1,6 +1,8 @@
 using System.IO;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using KillerPdf.Engine.Documents;
 using KillerPDF.Services;
 
@@ -8,16 +10,79 @@ namespace KillerPDF.Shell;
 
 public partial class MainWindow
 {
-    private void OpenFormDataTools() => OpenExchangeCommands("Str_DocumentTools_FormData",
+    private void OpenFormDataTools() => OpenDocumentToolCard("Str_DocumentTools_FormData",
         ("Str_Exchange_ExportForms", () => ExportExchangeData(bookmarks: false)),
         ("Str_Exchange_ImportForms", () => ImportExchangeData(bookmarks: false)),
         ("Str_FormTools_Recognize", RecognizeFormFields),
         ("Str_FormTools_ConvertXfa", ConvertXfaForm),
         ("Str_FormTools_Flatten", FlattenFormFields));
 
-    private void OpenBookmarkDataTools() => OpenExchangeCommands("Str_DocumentTools_BookmarkData",
+    private void OpenBookmarkDataTools() => OpenDocumentToolCard("Str_DocumentTools_BookmarkData",
         ("Str_Exchange_ExportBookmarks", () => ExportExchangeData(bookmarks: true)),
         ("Str_Exchange_ImportBookmarks", () => ImportExchangeData(bookmarks: true)));
+
+    // Form data, Bookmark data and Preflight are a handful of commands each. They were small windows of big buttons
+    // with a Close button; now each is a card of tiles under its own icon in the Document tools panel, three across,
+    // the tile look of the page and OCR cards. Picking a tile, a click outside or Esc closes it. Opened from Search
+    // Tools or its chord letter with the panel shut, the panel opens first and the card opens under the tool there.
+    private void OpenDocumentToolCard(string toolKey, params (string Label, Action Run)[] commands)
+    {
+        if (_doc is null) { SetStatus(Loc("Str_Msg_OpenFirst")); return; }
+        if (DocumentToolButton(toolKey) is { } anchor)
+        {
+            ShowDocumentToolCard(toolKey, anchor, commands);
+            return;
+        }
+        if (_sidebarCollapsed || _sidebarPanel != SidebarPanel.DocumentTools) OpenSidebarPanel(SidebarPanel.DocumentTools);
+        else RefreshDocumentToolsPanel();
+        bool byKeyboard = InputManager.Current.MostRecentInputDevice is KeyboardDevice;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+            (Action)(() => ShowDocumentToolCard(toolKey, DocumentToolButton(toolKey), commands, byKeyboard)));
+    }
+
+    // The tool's own icon in the Document tools panel, when the panel shows it.
+    private Button? DocumentToolButton(string toolKey) =>
+        _documentToolsRows.Where(row => row.Tool.LabelKey == toolKey && row.Button.IsVisible).Select(row => row.Button).FirstOrDefault();
+
+    private void ShowDocumentToolCard(string toolKey, Button? anchor, (string Label, Action Run)[] commands, bool? byKeyboard = null)
+    {
+        if (_doc is null) return;
+        // The card does not hold the window, so a tile acts only on the document it was opened for.
+        var isSourceCurrent = CaptureDocumentOrigin();
+        bool keyboard = byKeyboard ?? InputManager.Current.MostRecentInputDevice is KeyboardDevice;
+        var menu = MakeThemedMenu();
+        if (TryFindResource("CardMenu") is Style card) menu.Style = card;
+        System.Windows.Automation.AutomationProperties.SetName(menu, Loc(toolKey));
+        var tiles = QuickStrip(menu, 3, [.. commands.Select(command => new CardTile(
+            Controls.CommandLauncher.GlyphFor(command.Label), Loc(command.Label), null,
+            () => { if (isSourceCurrent()) command.Run(); }, false, true))]);
+        menu.Items.Add(CardSlot(tiles, new Thickness(0)));
+        FocusFirstActionFromKeyboard(menu, tiles);
+        if (anchor is not null)
+        {
+            menu.PlacementTarget = anchor;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            // While the card is open its icon takes no clicks, so the click that closes the card does not open it
+            // again at once (the Redact bar's Mark pages flyout does the same).
+            anchor.IsHitTestVisible = false;
+        }
+        else
+        {
+            menu.PlacementTarget = this;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Center;
+        }
+        menu.Closed += (_, _) =>
+        {
+            if (anchor is null) return;
+            anchor.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, new Action(() => anchor.IsHitTestVisible = true));
+            // Opened from the keyboard, the keyboard goes back to the tool, unless the picked command already moved
+            // it (a dialog it opened).
+            if (keyboard && (Keyboard.FocusedElement is not DependencyObject focused
+                || ReferenceEquals(focused, menu) || menu.IsAncestorOf(focused)))
+                anchor.Focus();
+        };
+        menu.IsOpen = true;
+    }
 
     private void OpenExchangeCommands(string titleKey, params (string Label, Action Run)[] commands)
     {

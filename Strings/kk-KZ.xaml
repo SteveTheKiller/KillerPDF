@@ -2308,4 +2308,11 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Сурет файлы бүлінген.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Ол оқу құралының қауіпсіздік шектеулерінен асып тұр.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">Оның белгілеуі бүлінген.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Қалтаны ашу</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">Ізделетін PDF</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">Бет OCR</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Құжат тілі</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Бет жиегін алу</sys:String>
 </ResourceDictionary>

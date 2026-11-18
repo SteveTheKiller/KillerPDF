@@ -2305,4 +2305,11 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">O arquivo da imagem está danificado.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Ele excede os limites de segurança do leitor.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">A marcação dele está danificada.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Abrir pasta</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">PDF pesquisável</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">OCR da página</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Idioma do documento</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Remover caixa</sys:String>
 </ResourceDictionary>

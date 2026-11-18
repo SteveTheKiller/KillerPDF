@@ -2305,4 +2305,11 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Le fichier de l'image est endommagé.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Il dépasse les limites de sécurité du lecteur.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">Son balisage est endommagé.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Ouvrir le dossier</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">PDF interrogeable</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">OCR de la page</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Langue du document</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Retirer la zone</sys:String>
 </ResourceDictionary>

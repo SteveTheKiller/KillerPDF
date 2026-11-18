@@ -2287,4 +2287,11 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">該影像檔案已損毀。</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">它超出了閱讀器的安全限制。</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">它的標記已損毀。</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">開啟資料夾</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">可搜尋 PDF</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">頁面 OCR</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">文件語言</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">移除頁面方塊</sys:String>
 </ResourceDictionary>

@@ -2194,4 +2194,11 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Datoteka slike je poškodovana.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Presega varnostne omejitve bralnika.</sys:String>
     <sys:String x:Key="Str_Epub_Reason_InvalidContent">Njegova oznaka je poškodovana.</sys:String>
+
+    <!-- Card tiles: short captions for names too long for a tile (the full name stays the tooltip) -->
+    <sys:String x:Key="Str_Ctx_OpenContainingFolderShort">Odpri mapo</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdfShort">Iskalni PDF</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPageShort">OCR strani</sys:String>
+    <sys:String x:Key="Str_Repair_LanguageShort">Jezik dokumenta</sys:String>
+    <sys:String x:Key="Str_Repair_PageBoxShort">Odstrani okvir</sys:String>
 </ResourceDictionary>
