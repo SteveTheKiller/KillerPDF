@@ -147,6 +147,25 @@ public sealed class PdfCrossReferenceReaderTests
         Assert.Equal(prefix.Length, section.Offset);
     }
 
+    [Fact]
+    public void ReadSection_CompatibilityRecoveryFindsCrossReferenceStreamPastManyOrdinaryDictionaries()
+    {
+        var filler = new StringBuilder("endobj\n");
+        for (int number = 1; number <= 600; number++)
+            filler.Append(number).Append(" 0 obj\n<< /Type /Annot /N ").Append(number).Append(" >>\nendobj\n");
+        byte[] prefix = Encoding.ASCII.GetBytes(filler.ToString());
+        byte[] stream = XrefStream(
+            [0, 0, 0, 255, 255],
+            "<< /Type /XRef /Size 1 /W [1 2 2] /Length 5 >>");
+        byte[] source = [.. prefix, .. stream];
+
+        PdfCrossReferenceSection section = PdfCrossReferenceReader.ReadSection(
+            source, 0, compatibilityRecovery: true);
+
+        Assert.True(section.IsStream);
+        Assert.Equal(prefix.Length, section.Offset);
+    }
+
     [Theory]
     [InlineData("1 0 obj ( ")]
     [InlineData("1 0 obj << /A ( ")]

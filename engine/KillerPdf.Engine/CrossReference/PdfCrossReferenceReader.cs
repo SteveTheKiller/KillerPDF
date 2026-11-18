@@ -112,7 +112,8 @@ public static class PdfCrossReferenceReader
                     || bytes[candidate] is < (byte)'0' or > (byte)'9'
                     || candidate > 0 && !IsBoundary(bytes[candidate - 1])
                     || !MayStartIndirectObject(bytes, candidate)
-                    || !MayStartDictionaryObject(bytes, candidate))
+                    || !MayStartDictionaryObject(bytes, candidate)
+                    || IsPlainlyNotCrossReferenceStream(bytes, candidate))
                     continue;
                 // Every full parse can read to the end of the file, as an unclosed string does,
                 // so a file packed with object headers is limited to a fixed number of tries.
@@ -169,6 +170,22 @@ public static class PdfCrossReferenceReader
         if (position >= bytes.Length) return false;
         if (bytes[position] == (byte)'%') return true;
         return position + 1 < bytes.Length && bytes[position] == (byte)'<' && bytes[position + 1] == (byte)'<';
+    }
+
+    /// <summary>
+    /// An ordinary dictionary object, one whose text up to its "stream" or "endobj" keyword never
+    /// says "/XRef", is skipped without a parse, so the parse budget goes to real candidates.
+    /// A name written with # escapes, or a dictionary too long to see the end of, still gets parsed.
+    /// </summary>
+    private static bool IsPlainlyNotCrossReferenceStream(ReadOnlySpan<byte> bytes, int candidate)
+    {
+        ReadOnlySpan<byte> window = bytes.Slice(candidate, Math.Min(4096, bytes.Length - candidate));
+        int streamAt = window.IndexOf("stream"u8);
+        int endAt = window.IndexOf("endobj"u8);
+        int end = streamAt < 0 ? endAt : endAt < 0 ? streamAt : Math.Min(streamAt, endAt);
+        if (end < 0) return false;
+        ReadOnlySpan<byte> head = window[..end];
+        return head.IndexOf("/XRef"u8) < 0 && head.IndexOf((byte)'#') < 0;
     }
 
     private static int SkipWhitespace(ReadOnlySpan<byte> bytes, int position)
