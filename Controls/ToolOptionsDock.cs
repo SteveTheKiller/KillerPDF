@@ -444,6 +444,13 @@ namespace KillerPDF.Controls
                 if (_bar is not null)
                 {
                     double left = FloatingLeft(final.Width), width = BarWidth(final.Width);
+                    // Slid flush against the pane's left edge, the bar drops its own left border so the pane's
+                    // border is its edge, as the right edge already reads when the bar sits against it.
+                    if (_plainChrome is { Bar: var chromed } && ReferenceEquals(chromed, _bar))
+                    {
+                        var sides = new Thickness(left < 0.5 ? 0 : 1, 0, 1, 1);
+                        if (chromed.BorderThickness != sides) chromed.BorderThickness = sides;
+                    }
                     _bar.Arrange(new Rect(left, 0, width, barHeight));
                     if (ShowsStrip)
                     {
