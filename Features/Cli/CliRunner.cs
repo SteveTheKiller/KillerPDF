@@ -539,7 +539,7 @@ namespace KillerPDF.Features
             "  killerpdf redact <in.pdf> <out.pdf> [--text <phrase>] [--terms <file>] [--regex <pattern>]",
             "                                           [--find email,phone,ssn,card,iban] [--whole-pages <range>] [--marked]",
             "                                           [--match-case] [--fill <color>] [--overlay <text>] [--rasterize]",
-            "                                           [--sanitize all|<list>] [--dry-run]   permanently remove content;",
+            "                                           [--sanitize all|<list> | --no-sanitize] [--dry-run]   permanently remove content;",
             "                                           exit 3 and no output when pages could not be read",
             "  killerpdf protect <in.pdf> <out.pdf> [--user-password <p>] [--owner-password <p>] [--allow print,copy,edit]",
             "                                           [--recipients <cert.cer>,...] [--invalidate-signatures]   AES-256 copy",

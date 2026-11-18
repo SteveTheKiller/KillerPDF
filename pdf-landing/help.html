@@ -359,7 +359,7 @@ Existing --command forms stay compatible.
   killerpdf redact &lt;in.pdf&gt; &lt;out.pdf&gt; [--text &lt;phrase&gt;] [--terms &lt;file&gt;] [--regex &lt;pattern&gt;]
                                            [--find email,phone,ssn,card,iban] [--whole-pages &lt;range&gt;] [--marked]
                                            [--match-case] [--fill &lt;color&gt;] [--overlay &lt;text&gt;] [--rasterize]
-                                           [--sanitize all|&lt;list&gt;] [--dry-run]   permanently remove content;
+                                           [--sanitize all|&lt;list&gt; | --no-sanitize] [--dry-run]   permanently remove content;
                                            exit 3 and no output when pages could not be read
   killerpdf protect &lt;in.pdf&gt; &lt;out.pdf&gt; [--user-password &lt;p&gt;] [--owner-password &lt;p&gt;] [--allow print,copy,edit]
                                            [--recipients &lt;cert.cer&gt;,...] [--invalidate-signatures]   AES-256 copy
