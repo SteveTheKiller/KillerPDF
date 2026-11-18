@@ -48,6 +48,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A PDF rewritten in place at the same size within the same instant no longer shows its old pages in the background render or thumbnails.
 - The Mourning theme highlights selections in its original peach with dark text again, instead of pink.
 - The tab beside the active document tab no longer draws a second divider line against it.
+- Back and Forward work after clicking a page thumbnail. Only bookmarks, links and the page box used to record where you were.
+- Edit on a signature's right-click card opens it in the signature editor. It used to do nothing. Edit no longer shows on marks it cannot edit.
+- The Transform window no longer reopens against the left edge of the app.
 
 ### Changed
 
@@ -55,6 +58,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - On the command line, `--redact` removes hidden information by default and fails when a redacted word survives anywhere in the file. Add `--no-sanitize` to skip that step, or `--sanitize` with a list to choose what is removed.
 - Dropping several PDFs on the window opens the Merge files dialog, where you can order them and merge, open them separately, or cancel.
 - The Save menu groups Reduce Size, the exports and Export Table into a tile strip, like the page right-click menus.
+- The right-click menus on the page, around the page, on the page list and on tabs show their commands as icon tiles in full rows of three, with zoom and Book layout beside undo and print.
+- With the document split in two, a dialog opens centered on the pane it came from. Large page windows such as Transform, Color Correction, Stamp and Print preview center on the app.
+- Mark pages on the Redact bar opens a small box under its button instead of a dialog. Find Text to Redact says plainly that it draws redaction boxes over the checked matches.
+- Edit paragraph has page arrows like Transform, and its Original checkbox sits with the other options.
 - On the command line, `--attachments` no longer replaces files already in the output folder. Add `--overwrite` to replace them.
 
 ### Added
@@ -66,6 +73,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Export Document saves a PDF as an EPUB 3 book, and so does `--export` with an `.epub` output on the command line. The text reflows like a real ebook: columns read in order, lines join into paragraphs, words split by a hyphen at a line end are put back together, larger type becomes headings and chapters with a table of contents, running headers, footers and page numbers are left out, and images sit where they appear in the text. A tagged PDF follows its own structure for reading order, headings and paragraphs. (#493)
 - Comb fields, the text fields printed as a row of boxes with one character each, can be edited like any other text: select, copy and paste across the cells, and change the font, size, bold, italic, underline, strikethrough and color. Form recognition finds a row of three or more boxes as a comb. (#500) (Thanks @Signum21)
 - The open and save dialogs have a New folder button, also on Ctrl+Shift+N. The folder is created in the current folder and opened, so a Save As can go straight into it. A name Windows won't accept is explained before anything is created. (#498)
+- Create Signature is now a signature editor, also opened from a saved signature's pencil and from Edit on a placed one. It has threshold for scanned signatures, pen width, edge feathering and ink color.
 - `--batch-render` takes `--secrets-stdin`, so an owner password stays out of the process list.
 - Preflight checks a document that declares PDF/UA-1 against the Matterhorn Protocol, the PDF Association's checklist for ISO 14289-1, and names each failed condition by its Matterhorn ID, such as 06-003 for a missing title, with its page. It used to say only that PDF/UA-1 validation was not available. (#491)
 
