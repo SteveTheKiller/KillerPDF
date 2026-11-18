@@ -63,6 +63,31 @@ public sealed class MacroRedactionPassTests : IDisposable
             (_, _, _) => throw new InvalidOperationException("No page should need a decision."), null, CancellationToken.None));
     }
 
+    // BF-C002: a word only in a bookmark title gives the step no area to remove, so the step passes the
+    // document on with Areas 0, yet the word is still in the output. The app's survivor check must run
+    // whenever there are terms, the way the command line's does, not only when something was redacted.
+    [Fact]
+    public void AWordOnlyInABookmarkRedactsNothingYetSurvives()
+    {
+        byte[] source = Pdf(
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 6 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            Stream("BT /F1 12 Tf 72 700 Td (Nothing private) Tj ET"),
+            "<< /Type /Outlines /First 7 0 R /Last 7 0 R /Count 1 >>",
+            "<< /Title (Jordan's file) /Parent 6 0 R /Dest [3 0 R /Fit] >>");
+
+        Assert.Null(MacroRedactionPass.Run(source, ["Jordan"], [], WorkingPath(),
+            (_, _, _) => throw new InvalidOperationException("No page should need a decision."), null, CancellationToken.None));
+        Assert.False(PdfContentRedaction.FindSurvivingText(source, ["Jordan"]).Succeeded);
+
+        string macros = ShellSource.Read("Shell", "Macros.cs");
+        string note = ShellSource.Between(macros, "private string? MacroSurvivorNote(", "PdfRedactionVerificationReport report;");
+        Assert.Contains("if (_macroRedaction.Terms.Length == 0) return null;", note);
+        Assert.DoesNotContain("Areas", note);
+    }
+
     private static string Stream(string content) =>
         $"<< /Length {Encoding.Latin1.GetByteCount(content)} >>\nstream\n{content}\nendstream";
 

@@ -224,9 +224,12 @@ public partial class MainWindow
 
     // A warning for the run report when the words a Redact step removed still appear in what the
     // whole macro made, such as in a bookmark, destination name or script no later step removed.
+    // It runs even when the step redacted nothing: a word only in a bookmark gives the step no area,
+    // and skipping every page that would become an image leaves the words in place (the command line
+    // checks whenever there are terms too).
     private string? MacroSurvivorNote(ReadOnlyMemory<byte> output)
     {
-        if (_macroRedaction.Terms.Length == 0 || _macroRedaction.Areas == 0) return null;
+        if (_macroRedaction.Terms.Length == 0) return null;
         PdfRedactionVerificationReport report;
         try { report = PdfContentRedaction.FindSurvivingText(output, _macroRedaction.Terms); }
         catch (Exception error) when (error is FormatException or InvalidOperationException or NotSupportedException)
