@@ -51,6 +51,21 @@ public sealed class AnnotationArrangeTests
     }
 
     [Fact]
+    public void DistributeEvensTheCentersWhenTheBoxesOverlapTooMuchForGaps()
+    {
+        // A 300-wide mark under two small ones leaves no room for gaps, so the centers are evened
+        // between the outermost ones instead of piling the boxes up past where they started.
+        Rect[] boxes = [new(0, 0, 300, 10), new(50, 20, 20, 10), new(100, 40, 20, 10)];
+
+        Rect[] result = AnnotationArrange.Apply(boxes, AnnotationArrange.Action.DistributeHorizontally);
+
+        // Centers 150, 60 and 110: lowest 60 and highest 150 stay, the middle one goes to 105.
+        Assert.Equal(0, result[0].X);
+        Assert.Equal(50, result[1].X);
+        Assert.Equal(95, result[2].X);
+    }
+
+    [Fact]
     public void DistributeVerticallyUsesTheTopToBottomOrder()
     {
         Rect[] result = AnnotationArrange.Apply(Boxes, AnnotationArrange.Action.DistributeVertically);

@@ -64,11 +64,27 @@ internal static class AnnotationArrange
         Rect first = boxes[order[0]], last = boxes[order[^1]];
         double span = horizontal ? last.Right - first.Left : last.Bottom - first.Top;
         double gap = (span - order.Sum(i => Length(boxes[i], horizontal))) / (order.Length - 1);
+        // Boxes that overlap too much for any gap get evenly spaced centers between the outermost
+        // centers instead, so nothing piles up past where the selection started.
+        if (gap < 0) return DistributeCenters(boxes, horizontal);
         double at = Start(first, horizontal);
         foreach (int i in order)
         {
             boxes[i] = Moved(boxes[i], horizontal, at);
             at += Length(boxes[i], horizontal) + gap;
+        }
+        return boxes;
+    }
+
+    private static Rect[] DistributeCenters(Rect[] boxes, bool horizontal)
+    {
+        double Center(Rect box) => Start(box, horizontal) + Length(box, horizontal) / 2;
+        int[] order = [.. Enumerable.Range(0, boxes.Length).OrderBy(i => Center(boxes[i]))];
+        double low = Center(boxes[order[0]]), step = (Center(boxes[order[^1]]) - low) / (order.Length - 1);
+        for (int n = 1; n < order.Length - 1; n++)
+        {
+            Rect box = boxes[order[n]];
+            boxes[order[n]] = Moved(box, horizontal, low + step * n - Length(box, horizontal) / 2);
         }
         return boxes;
     }
