@@ -230,7 +230,9 @@ namespace KillerPDF.Shell
             foreach (var tile in tiles)
             {
                 var (glyph, caption, gesture, act, mirror, enabled) = tile;
-                var button = new Button { Content = glyph, Tag = caption, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled };
+                // MaxWidth: the grid sizes every column to its widest tile, so one long caption ("Clear Page
+                // Annotations") stretched the whole card. Capped, a long caption wraps to its second line instead.
+                var button = new Button { Content = glyph, Tag = caption, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled, MaxWidth = 84 };
                 // The caption alone is the accessible name; the tooltip adds the shortcut.
                 System.Windows.Automation.AutomationProperties.SetName(button, caption);
                 ToolTipService.SetShowOnDisabled(button, true);
