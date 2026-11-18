@@ -28,9 +28,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A signing certificate loaded from a .pfx file can no longer have its private key exported from KillerPDF while it signs.
 - The crash window's Report on GitHub link no longer carries folder names, so your Windows user name and document folders stay out of a public issue.
 - OCR languages download from a fixed version of the Tesseract language files, so a later change to those files cannot reach KillerPDF unreviewed.
+- A `killerpdf://open` download refuses NAT64, 6to4 and IPv4-compatible addresses that lead to a private network, and the reserved documentation ranges.
 
 ### Fixed
 
+- Clear Page on a page's right-click card clears that page. It cleared the page you were on instead.
+- A Redact step in a macro warns about words that survive in bookmarks or names even when it redacted nothing on the pages.
 - Paste pastes what was copied last. Once a picture, shape or text box had been copied, every paste brought it back, even after copying text or an image somewhere else, in every open document until a restart. (#497)
 - Turning a replacement's layers on or off in More settings no longer freezes the window. The menu used to stay open with nothing under it and hold the mouse until another window took it back, which also kept the arrow keys from moving the text box or its cover. (#467)
 - Redact no longer fails with "Pages ... cannot be redacted without replacing them with an image" when saving the document leaves a page that has to become an image. It asks about those pages the same way it asks about the others, and canceling leaves the document as it was. (#499)
