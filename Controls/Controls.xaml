@@ -1309,7 +1309,7 @@
                          ordinary theme, so nothing changes there. -->
                     <Border x:Name="bd" Background="Transparent"
                             CornerRadius="3"
-                            Margin="-8,0,2,0" Padding="4,4,10,4">
+                            Margin="-8,0,2,0" Padding="4,2,10,6">
                         <!-- DockPanel (not a horizontal StackPanel) so the content fills the row
                              width, letting a right-aligned column (e.g. language codes) reach the
                              right edge. -->
@@ -1371,7 +1371,7 @@
                 <ControlTemplate TargetType="CheckBox">
                     <Border x:Name="bd" Background="Transparent"
                             CornerRadius="3"
-                            Margin="-8,0,2,0" Padding="4,4,10,4">
+                            Margin="-8,0,2,0" Padding="4,2,10,6">
                         <DockPanel LastChildFill="True" Background="Transparent">
                             <!-- Centered on the label's capitals for whatever font the theme uses (Controls/CapCenterMargin.cs). A fixed nudge only fits one face. -->
                             <Grid Width="16" Height="16" VerticalAlignment="Center" DockPanel.Dock="Left">

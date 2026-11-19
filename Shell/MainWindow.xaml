@@ -1384,7 +1384,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
                         <Border x:Name="bd" Background="Transparent" CornerRadius="3"
-                                Margin="-8,0,2,0" Padding="4,4,10,4">
+                                Margin="-8,0,2,0" Padding="4,2,10,6">
                             <!-- DockPanel (not a horizontal StackPanel) so the content fills the row
                                  width, letting a right-aligned column (e.g. language codes) reach the
                                  right edge. -->
