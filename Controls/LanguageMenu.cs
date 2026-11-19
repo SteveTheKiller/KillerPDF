@@ -74,7 +74,9 @@ namespace KillerPDF.Controls
 
             // Two columns, so the last row stays on screen in a short window. The left column fills
             // first, which keeps reading order and English at the top.
-            var columns = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(10) };
+            // Each hover row sits 8px from the card's outer edge (family rule): the 1px border, then 15 left
+            // less the row's -8, 7 top and bottom, and 5 right plus the row's own 2.
+            var columns = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(15, 7, 5, 7) };
             var left = new StackPanel { Width = 200 };
             var right = new StackPanel { Width = 200 };
             var divider = new Border
@@ -131,6 +133,10 @@ namespace KillerPDF.Controls
                 item.Checked += LocaleItem_Checked;
                 (index++ < half ? left : right).Children.Add(item);
             }
+            // The rows' 8px gap is for between rows; under the last one it would double the bottom edge.
+            foreach (var column in new[] { left, right })
+                if (column.Children.Count > 0 && column.Children[^1] is FrameworkElement last)
+                    last.Margin = new Thickness(last.Margin.Left, last.Margin.Top, last.Margin.Right, 0);
 
             // A raw panel added to a ContextMenu is wrapped in the normal MenuItem template, which
             // reserves an icon gutter and row padding around the WHOLE picker. PanelMenuItem is the

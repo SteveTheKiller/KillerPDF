@@ -96,10 +96,11 @@ namespace KillerPDF.Controls
             _menu.Items.Clear();
             _accentHost = null;
             _accentDots.Clear();
-            // Hover rows sit 4px in from both menu edges: 12 left less the row's -8, and 2 right
-            // plus the row's own 2. The theme column fills the menu (*), so when the menu is wider
-            // than the list the hover still reaches across instead of stopping short.
-            var panel = new Grid { Margin = new Thickness(12, 10, 2, 10) };
+            // Every hover row and accent pill sits 8px in from the card's outer edge (family rule):
+            // the flyout card's 1px border, then 15 left less the row's -8, 7 top and bottom, and 5 right
+            // plus the strip's own 2. The theme column fills the menu (*), so when the menu is wider than
+            // the list the hover still reaches across.
+            var panel = new Grid { Margin = new Thickness(15, 7, 5, 7) };
             panel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             panel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -238,7 +239,7 @@ namespace KillerPDF.Controls
             divider.SetResourceReference(Border.BackgroundProperty, "MenuBorderBrush");
             host.Children.Add(divider);
 
-            var strip = new Grid { Margin = new Thickness(7, 6, 2, 6) };
+            var strip = new Grid { Margin = new Thickness(7, 0, 2, 6) };
             // One Tab stop for the whole strip; the arrow keys move between accents.
             KeyboardNavigation.SetTabNavigation(strip, KeyboardNavigationMode.Once);
             KeyboardNavigation.SetDirectionalNavigation(strip, KeyboardNavigationMode.Cycle);

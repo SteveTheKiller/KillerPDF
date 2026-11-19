@@ -235,9 +235,10 @@ namespace KillerPDF.Shell
                 // A name too long for two lines of the tile ("Open Containing Folder" read "Open Containi...") shows
                 // its short caption; the tooltip and the accessible name keep the full name.
                 string shown = ShortTileCaption(caption);
-                // MaxWidth: the grid sizes every column to its widest tile, so one long caption ("Clear Page
-                // Annotations") stretched the whole card. Capped, a long caption wraps to its second line instead.
-                var button = new Button { Content = glyph, Tag = shown, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled, MaxWidth = 84 };
+                // The caption is capped at 80 in CardQuickButton, so one long caption ("Clear Page Annotations") wraps
+                // instead of stretching the card, while the tile itself fills its column and its hover reaches the
+                // card's 8px edge.
+                var button = new Button { Content = glyph, Tag = shown, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled };
                 // The caption alone is the accessible name; the tooltip adds the shortcut.
                 System.Windows.Automation.AutomationProperties.SetName(button, caption);
                 // The tile's second line shows these keys in brackets while Show Shortcuts in Menus is on.
@@ -274,7 +275,7 @@ namespace KillerPDF.Shell
             }
             // KillerUI's CardBuilder insets its strip 8 so the strip's top and bottom rules start on the icon column.
             // This strip draws no rules, and the inset only took width: "Extract Page(s)" wrapped onto two lines.
-            var strip = new Border { Padding = new Thickness(2, 4, 2, 4), Child = grid };
+            var strip = new Border { Padding = new Thickness(0), Child = grid };
             strip.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
             System.Windows.Automation.AutomationProperties.SetName(strip, Loc("Str_Card_Actions"));
             return strip;

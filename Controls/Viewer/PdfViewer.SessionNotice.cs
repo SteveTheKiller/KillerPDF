@@ -54,7 +54,7 @@ namespace KillerPDF.Controls
             dismissButton.VerticalAlignment = VerticalAlignment.Center;
             dismissButton.Click += (_, _) => { HideSessionNotice(); dismiss(); };
 
-            var row = new DockPanel { LastChildFill = true, Margin = new Thickness(6, 2, 2, 2) };
+            var row = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(glyph, Dock.Left);
             DockPanel.SetDock(dismissButton, Dock.Right);
             DockPanel.SetDock(restoreButton, Dock.Right);
@@ -77,7 +77,8 @@ namespace KillerPDF.Controls
             bar.SetResourceReference(Border.CornerRadiusProperty, "FlyoutCornerRadius");
             bar.SetResourceReference(UIElement.EffectProperty, "CardShadowEffect");
             bar.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
-            bar.SetResourceReference(Border.PaddingProperty, "BarPadding");
+            // 7 plus the 1px edge: the buttons and the glyph sit 8px from every edge (family rule).
+            bar.Padding = new Thickness(7);
             AutomationProperties.SetName(bar, message.Text);
             Panel.SetZIndex(bar, 90);
             _sessionNotice = bar;

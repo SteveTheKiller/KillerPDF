@@ -927,7 +927,8 @@
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
         <Setter Property="FontFamily" Value="{DynamicResource MenuFontFamily}"/>
         <Setter Property="FontSize" Value="{DynamicResource MenuFontSize}"/>
-        <Setter Property="Padding" Value="0,4"/>
+        <!-- 7 plus the 1px border: a row's hover sits 8px from every edge of the menu (family rule). -->
+        <Setter Property="Padding" Value="7"/>
         <Setter Property="HasDropShadow" Value="False"/>
         <!-- Compensates the shadow halo so a menu lands where it did when that halo was 5 (this
              template) or 6 (FlyoutCard). Those two differ by a pixel, so the rail flyouts sit
@@ -1483,7 +1484,8 @@
     <Style x:Key="CardMenu" TargetType="ContextMenu" BasedOn="{StaticResource {x:Type ContextMenu}}">
         <Setter Property="MinWidth" Value="280"/>
         <Setter Property="MaxWidth" Value="404"/>
-        <Setter Property="Padding" Value="6"/>
+        <!-- 7 plus the 1px border: a tile's hover sits 8px from every edge of the card (family rule). -->
+        <Setter Property="Padding" Value="7"/>
         <Setter Property="KeyboardNavigation.TabNavigation" Value="Cycle"/>
     </Style>
 
@@ -1536,7 +1538,7 @@
                                        HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryBrush}"/>
                             <TextBlock x:Name="Caption" Text="{TemplateBinding Tag}" FontSize="11" Margin="0,5,0,0"
                                        HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
-                                       TextTrimming="CharacterEllipsis" MaxHeight="30"/>
+                                       TextTrimming="CharacterEllipsis" MaxHeight="30" MaxWidth="80"/>
                             <!-- The shortcut on its own line, in brackets. AcceleratorKey carries it, so a screen reader
                                  announces the same keys, and Show Shortcuts in Menus hides the line. -->
                             <TextBlock x:Name="Shortcut" FontSize="10" Margin="0,2,0,0" HorizontalAlignment="Center"

@@ -52,11 +52,11 @@ public sealed class CardMenuTests
         string annotation = Read("Shell", "AnnotationCard.cs");
         Assert.DoesNotMatch(@"CardSlot\([^;]*new Thickness\(24,", annotation);
         Assert.Equal(4, System.Text.RegularExpressions.Regex.Matches(annotation, @"new Thickness\(8, \d, 4, \d\)").Count);
-        // The quick strip draws no rules, so it keeps its full width instead of the kit's 8 px rule inset; with the
-        // inset, "Extract Page(s)" wrapped onto two lines on SN02 (2026-11-13).
+        // The quick strip draws no rules and adds no padding: with CardMenu's 7 and the 1px border, a tile's hover sits
+        // 8 px from every edge of the card (family rule, Steve 2026-11-19).
         string strip = Between(Read("Shell", "PageCard.cs"), "var strip = new Border", "return strip;");
         Assert.DoesNotContain("BorderThickness", strip);
-        Assert.Contains("Padding = new Thickness(2, 4, 2, 4)", strip);
+        Assert.Contains("Padding = new Thickness(0)", strip);
         Assert.DoesNotContain("Margin = new Thickness(8", strip);
     }
 

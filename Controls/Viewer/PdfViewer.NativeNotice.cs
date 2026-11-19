@@ -151,7 +151,7 @@ namespace KillerPDF.Controls
             close.SetResourceReference(AutomationProperties.NameProperty, "Str_Restricted_Dismiss");
             close.Click += (_, _) => dismiss();
 
-            var row = new DockPanel { LastChildFill = true, Margin = new Thickness(6, 2, 2, 2) };
+            var row = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(infoGlyph, Dock.Left);
             DockPanel.SetDock(close, Dock.Right);
             DockPanel.SetDock(open, Dock.Right);
@@ -173,7 +173,8 @@ namespace KillerPDF.Controls
             bar.SetResourceReference(Border.CornerRadiusProperty, "FlyoutCornerRadius");
             bar.SetResourceReference(UIElement.EffectProperty, "CardShadowEffect");
             bar.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
-            bar.SetResourceReference(Border.PaddingProperty, "BarPadding");
+            // 7 plus the 1px edge: the buttons and the glyph sit 8px from every edge (family rule).
+            bar.Padding = new Thickness(7);
             Panel.SetZIndex(bar, 90);
             return (bar, message);
         }
