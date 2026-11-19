@@ -194,6 +194,12 @@ followed by its second half, and unselected pages keep their order.
 | Low-level indirect-object revisions | `PdfIncrementalUpdateBuilder` |
 | Full rewrite and output serialization policy | `PdfDocumentWriter` |
 
+Form edits through `PdfIncrementalPageEditor` keep a comb field's `/MaxLen` and
+`/Rect`, refuse a value longer than `/MaxLen`, and also reach page widgets that a
+stale `/Fields` list no longer lists, under the names `PdfFormWidgetReader`
+reports. `SetTextFieldTextStyle` sets a text field's font, color, underline, and
+strikethrough. The [forms guide](forms.md) covers these rules.
+
 For low-level updates, `AddObject` allocates an indirect reference, `ReserveObject`
 and `SetObject` support forward references, and `ReplaceObject` supersedes an
 existing object. These methods require valid PDF object graphs. Prefer typed

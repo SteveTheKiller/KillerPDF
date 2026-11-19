@@ -39,6 +39,15 @@ or establishes that every requirement of a PDF standard was tested.
 `PageIndex` is zero-based when present. `ObjectNumber` identifies a source object
 when available. `ToText()` and `ToJson(indented: true)` export reports.
 
+Each `PdfPreflightFinding` also has `Arguments`, the values its English message
+names, in message order, so a host can word the finding in another language from
+its `Code`. Numbers are invariant-culture strings, and Boolean values are `true`
+or `false`. The list is empty when the message names no values, and holds the
+exception text when the message is an exception's own text. Structural findings
+carry the byte offset, attachment findings the file name, PDF/UA-1 declaration
+findings the condition ID and clause, and unsupported declarations the standard
+name. `Arguments` is not written by `ToJson`.
+
 ## Select and share checks
 
 `PdfPreflightProfile.General` selects structural integrity only.
@@ -66,8 +75,8 @@ does not establish compliance or automatically select a target standard.
 
 For a PDF/A-4 declaration, this check examines encryption and output-intent
 boundaries. For PDF/UA-1, it runs `PdfUaValidator` and reports each failure as
-`Conformance.PdfUa1.<condition>`. For PDF/UA-2, it uses the accessibility
-inspector. Other declared PDF/A or PDF/UA parts produce unsupported findings.
+`Conformance.PdfUa1.<condition>`. A PDF/UA-2 declaration adds no findings of its
+own; call `PdfUaValidator.Validate` for the PDF/UA-2 rules. Other declared PDF/A or PDF/UA parts produce unsupported findings.
 These implemented checks are not exhaustive validators for either standard.
 
 ## Validate PDF/UA
@@ -86,11 +95,79 @@ element with `NS` follows that namespace's `RoleMapNS`. The PDF 1.7, PDF 2.0
 and MathML namespaces are standard. A PDF 1.7 type mapped onto a PDF 2.0 type,
 such as `Note` onto `FENote`, is accepted.
 
+Validation needs an authenticated document. Form XObject draws are capped at
+10,000 per page during the check, so nested repeats cannot multiply the work
+without limit.
+
 Rules the validator does not implement, including glyph, CMap and font program
 rules, table regularity, structure destinations and the ISO 32005 containment
 table, are listed as not checked by ID, so a PDF/UA-2 verdict is at best
 `Incomplete`. A separate review entry stands for the requirements a person must
 judge. Neither verdict claims full conformance.
+
+`PdfUaReport.Verdict` is `Failed` when any implemented condition failed,
+`Incomplete` when nothing failed but some machine conditions were not checked,
+and `PassedMachineChecks` only when every machine condition passed. Each entry in
+`Checkpoints` has a `PdfUaCheckpointStatus` of `Failed`, `Incomplete`,
+`NeedsHumanReview`, or `Passed`, with its failures, the conditions left to a
+person, and the machine conditions not checked. Each `PdfUaFailure` names its
+condition or rule ID, its clause (such as `UA1:7.1-8` or `UA2:8.2.5.12`), and a
+page and object when known.
+
+### PDF/UA-1 coverage
+
+The PDF/UA-1 report has one entry for each of the 31 Matterhorn checkpoints. The
+validator checks these failure conditions:
+
+| Checkpoint | Conditions checked |
+| --- | --- |
+| 01 Real content tagged | 003, 004, 005, 007 |
+| 02 Role mapping | 001, 003, 004 |
+| 06 Metadata | 001, 002, 003 |
+| 07 Dictionary | 001, 002 |
+| 09 Appropriate tags | 004 through 008, which cover list, table, TOC, Ruby, and Warichu elements out of place |
+| 11 Declared natural language | 001 through 006 |
+| 13 Graphics | 004 |
+| 14 Headings | 002, 003, 006, 007 |
+| 15 Tables | 003 |
+| 17 Mathematical expressions | 002 |
+| 19 Notes and references | 003, 004 |
+| 20 Optional content | 001, 002, 003 |
+| 21 Embedded files | 001 |
+| 25 XFA | 001 |
+| 26 Security | 001, 002 |
+| 28 Annotations | 002, 004, 005, 007 through 012 |
+| 30 XObjects | 001, 002 |
+| 31 Fonts | 009 |
+
+Machine conditions not checked are 10-001, 17-003, 28-006, 28-014 through
+28-018, and every checkpoint 31 condition except 009 and the human condition 010.
+These are mostly character mapping and font program rules, so a PDF/UA-1 verdict
+is also at best `Incomplete`. Checkpoints 03, 04, 05, 08, 12, 16, 18, 22, 23, 24,
+27, and 29 have only conditions a person must judge.
+
+### PDF/UA-2 coverage
+
+The PDF/UA-2 report has one entry per clause group, plus a human review entry.
+The validator checks these veraPDF rule IDs:
+
+| Clause | Rules checked |
+| --- | --- |
+| 5 PDF/UA identification | 5-1 through 5-5 |
+| 6 File format | 6.1-1, 6.2-1 |
+| 8.2 Logical structure | 8.2.1-1, 8.2.1-2, 8.2.2-1, 8.2.4-1 through 8.2.4-4, 8.2.5.2-1, 8.2.5.2-2, 8.2.5.8-1, 8.2.5.12-1, 8.2.5.14-1, 8.2.5.14-4, 8.2.5.20-1, 8.2.5.23-1, 8.2.5.24-1, 8.2.5.25-1, 8.2.5.25-2, 8.2.5.27-1, 8.2.5.28.2-1, 8.2.5.29-1 |
+| 8.4 Text and fonts | 8.4.4-1, 8.4.4-2 (except marked-content property lists), 8.4.5.5.1-1 |
+| 8.7 Optional content | 8.7-1, 8.7-2 |
+| 8.9 Annotations | 8.9.2.2-1, 8.9.2.2-2, 8.9.2.3-1, 8.9.2.4.7-1 through 8.9.2.4.16-1, 8.9.2.4.19-1, 8.9.2.4.19-2, 8.9.3.3-1, 8.9.4.2-1 |
+| 8.10 Forms | 8.10.1-1, 8.10.1-2, 8.10.1-3, 8.10.2.3-2 |
+| 8.11 Metadata | 8.11.1-1, 8.11.1-2, 8.11.2-1 |
+| 8.14 Embedded files | 8.14.1-1 |
+
+Rules listed as not checked are 8.2.5.14-2, 8.2.5.14-3, 8.2.5.20-2, 8.2.5.26-1
+through 8.2.5.26-6, the ISO 32005 containment table, 8.4.3-1 through 8.4.3-3,
+8.4.5.3.1-1, 8.4.5.3.2-1, 8.4.5.4-1 through 8.4.5.4-3, 8.4.5.5.1-2, 8.4.5.6-1,
+8.4.5.7-1 through 8.4.5.7-4, 8.4.5.8-1, 8.4.5.8-2, 8.4.5.9-1, 8.6-1, 8.8-1,
+8.8-2, 8.9.2.3-2, 8.10.2.3-1, 8.10.3.3-1, and 8.10.3.5-1.
 
 A PDF/X declaration checks encryption and output-intent boundaries and reports
 full PDF/X validation as unavailable. Preserve that incomplete result.

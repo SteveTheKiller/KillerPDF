@@ -78,6 +78,27 @@ to the selected directory. `Extract` uses exclusive file creation by default;
 `overwrite: true` explicitly replaces a destination. The host owns directory
 selection and filesystem permissions. The API writes bytes and does not launch them.
 
+File names follow Windows naming rules on every platform, because a file
+extracted on Linux or macOS can later be copied to Windows. A name is unsafe, and
+extraction refuses it, when it contains a path separator, a control character, or
+any of `" < > | : * ?`, when it ends in a dot or a space, which Windows silently
+drops so that `run.bat.` would land as `run.bat`, or when its part before the
+first dot is a device name: `CON`, `PRN`, `AUX`, `NUL`, `CONIN$`, `CONOUT$`, or
+`COM` and `LPT` followed by a digit or a superscript one, two, or three. The
+`HasUnsafeFileName` flag reports the same rule.
+
+`IsPotentiallyExecutable` checks the extension after trailing dots and spaces
+are removed. The list covers Windows programs, installers, and packages
+(`.exe`, `.com`, `.msi`, `.msix`, `.appx`, `.appref-ms`, `.application`), scripts
+(`.bat`, `.cmd`, `.ps1`, `.psm1`, `.psd1`, `.js`, `.jse`, `.vbs`, `.vbe`, `.wsf`,
+`.wsh`, `.hta`, `.sh`, `.py`, `.pyw`), libraries and drivers, shortcuts and
+shell files (`.lnk`, `.url`, `.scf`, `.settingcontent-ms`, `.library-ms`,
+`.search-ms`), disk images (`.iso`, `.img`, `.vhd`, `.vhdx`), macro-enabled Office
+files, and macOS and Linux launchers (`.app`, `.command`, `.desktop`). The flag
+is a hint for the host's warning, not a block. The engine does not add a
+mark-of-the-web zone identifier to extracted files; a host that wants Windows to
+treat them as downloaded content writes that itself.
+
 `ExtractAll` validates names and duplicate destinations before writing, and checks
 existing files when overwrite is disabled. This prevents partial output from
 those validation failures. It is not a filesystem transaction: a later I/O error

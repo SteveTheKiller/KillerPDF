@@ -145,11 +145,69 @@ An encrypted source requires `RemoveEncryption`. A signed source requires
 signatures. The host should explain that consequence and obtain approval before
 enabling either option.
 
+Redaction clears the signature value, but a signature widget keeps its saved
+appearance. The renderer paints a signature field that still carries a normal
+appearance stream with drawn content, even though the field no longer holds a
+signature, so the signer's box stays visible the way other readers show it.
+`PdfRenderOptions.IncludeSignedSignatureFields` covers these fields as well as
+signed ones. An empty signature field whose appearance draws nothing stays
+hidden.
+
 `PdfContentRedactionResult.Verification` is the read-back report.
 `PdfContentRedaction.Verify` runs the same check on any output. If the output
 still exposes redacted content, `Apply` throws `PdfRedactionVerificationException`
 and the exception carries the failed report. Reports that list repaired
 references identify them without exporting sensitive dictionary keys.
+
+## Remove redacted words from destination names
+
+Authors often name destinations after headings or clauses, so a redacted phrase
+can survive as a destination name after the page that showed it is clean.
+`PdfNamedDestinationAnonymizer.Apply(document, cancellationToken)` in
+`KillerPdf.Engine.Writing` renames every named destination to `D1`, `D2`, and so
+on. It reads both the `/Names /Dests` name tree and the legacy catalog `/Dests`
+dictionary. A legacy name that spells the same text as a name-tree key gets the
+same new name. Each tree node is walked once, even through repeated or cyclic
+`/Kids`.
+
+Links, bookmarks, and other `/Dest` entries, plus the `/D` entry of every GoTo
+action, are pointed at the new names. An action whose `/S` is an indirect
+object is still recognized, and a destination given as an indirect string or
+name becomes the direct new name. The catalog receives a flat name tree in the
+new order. The result is then rewritten whole with unreachable objects pruned,
+so the old names and the objects that spelled them leave the file instead of
+surviving in an earlier revision.
+
+That full rewrite always allows signature invalidation, so a signed document
+loses its signatures. A document with no named destinations is returned as the
+same instance. The redaction pipeline does not call the anonymizer; the host
+calls it on the redacted output when destination names may carry removed text.
+
+## Check the finished file for surviving words
+
+`PdfContentRedaction.FindSurvivingText(output, terms, matchCase: false,
+cancellationToken)` reports where any of the removed words still appears in the
+final bytes. Run it last, after any destination renaming or other cleanup, with
+the terms the redaction removed. Blank terms are ignored and matching is a plain
+substring, ignoring case unless `matchCase` is true. It returns a
+`PdfRedactionVerificationReport`.
+
+The check reads each page's extracted text and reports matches as
+`ProhibitedText` with the page index. It reads the names in the legacy catalog
+`/Dests` dictionary and reports a match as `ProhibitedObjectText`. It then reads
+every object in use: text strings, which include name-tree destination names,
+bookmark titles, scripts, and metadata values, and every decodable stream other
+than images. A stream that cannot be decoded produces `ObjectInspectionFailure`,
+because it cannot be shown to be free of the words.
+
+Embedded font programs are binary, so a short number could match inside one by
+chance. The check skips a stream only when a font descriptor names it as
+`/FontFile`, `/FontFile2`, or `/FontFile3`, that descriptor belongs to a `/Font`
+dictionary reached from the pages or the AcroForm, and the stream could be a font
+program. A stream typed as an XObject, embedded file, or metadata is never
+skipped, and neither is a stream whose `/Subtype` is not `Type1C`,
+`CIDFontType0C`, or `OpenType`. A stray or orphan descriptor therefore cannot
+hide a stream from the check.
 
 ## Rebuild from host-sanitized pages
 

@@ -67,6 +67,16 @@ wrapped. Only streams with mismatched indexes allocate the additional lookup.
 Duplicate object numbers, invalid offsets, stream ownership, object-count limits,
 and strict index validation retain their existing checks.
 
+When a cross-reference stream is not at its declared offset, recovery searches up
+to 1 MiB on either side for it. Only an object whose value opens with `<<`, or
+with a comment, is a candidate. A dictionary whose text up to its `stream` or
+`endobj` keyword is visible within 4,096 bytes and never says `/XRef` is skipped
+without a parse; one that uses `#` name escapes is still parsed. At most 256
+candidates are fully parsed before the search gives up, so a file packed with
+object headers cannot spend unbounded work. An object stream that fails to read
+in recovery is remembered for that document, and later lookups of its objects
+return null instead of decoding and parsing the stream again.
+
 If a stream's declared length ends inside encoded data, compatibility parsing can
 use the existing bounded end-marker search even when those remaining bytes are
 not valid PDF tokens. The search extends at most 1 MiB beyond the declared end,

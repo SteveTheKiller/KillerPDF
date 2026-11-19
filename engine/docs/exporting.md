@@ -126,6 +126,7 @@ automatically by findings. Retain the source and inspect the result.
 | `WordDocument` | DOCX paragraphs, editable text and complete ruled tables, embedded pictures, and page breaks. |
 | `Spreadsheet` | XLSX with one sheet containing Page, Line, and Text columns; it does not reconstruct PDF tables. |
 | `Presentation` | PPTX with one slide per selected page, positioned editable text, complete ruled tables, and embedded pictures. |
+| `Epub` | Reflowable EPUB 3 book with chapters, headings, paragraphs, a table of contents, and PNG pictures. |
 
 Word and PowerPoint embed supported images as PNG pictures. Unsupported images
 retain placeholders and appear in the loss report. Clipping, external graphics
@@ -170,8 +171,8 @@ static byte[] ExportPages(byte[] source, PdfStructuredExportFormat format,
 }
 ```
 
-`Export` returns UTF-8 bytes for text formats and ZIP-based Office document
-bytes for DOCX, XLSX, and PPTX. The convenience methods `ToPlainText`, `ToHtml`,
+`Export` returns UTF-8 bytes for text formats, ZIP-based Office document
+bytes for DOCX, XLSX, and PPTX, and an EPUB package for `Epub`. The convenience methods `ToPlainText`, `ToHtml`,
 `ToMarkdown`, and `ToJson` return strings; `ToDocx`, `ToXlsx`, and `ToPptx` return
 bytes. The library does not choose or write a destination file.
 
@@ -186,6 +187,43 @@ These examples open unencrypted PDFs. For ordinary direct export of a protected
 PDF, supply an authenticated `PdfDocument` through the
 [reading workflow](reading.md). Batch, macro, and OCR-assisted paths reopen
 bytes without a password callback and are not general authenticated recipes.
+
+## Export an EPUB book
+
+`PdfStructuredExportFormat.Epub`, or `KillerPdf.Engine.Formats.Epub.PdfEpubExport.Write(document,
+pageIndices, cancellationToken)` directly, rebuilds the text flow of the selected
+pages as a reflowable EPUB 3 book. Batch, macro, and loss-report paths accept the
+same format.
+
+A tagged PDF's structure tree supplies the reading order, headings, and
+paragraphs, and content tagged directly under a grouping element still reads as
+a paragraph. A page where the tree reaches under half of the text, such as a
+page inserted from an untagged file, is read from its layout and placed in page
+order. A tree that reaches almost none of the text is ignored.
+
+An untagged document is read from its layout. A vertical gutter that narrow
+lines on both sides respect splits the page into columns, read left before
+right, while lines crossing the gutter, such as titles, divide the page into
+bands read top to bottom. Lines join into paragraphs, and words broken across
+lines by a hyphen are mended. Short paragraphs set clearly larger than the body
+size become headings ranked by size, while larger sentences that end in
+punctuation stay paragraphs. A paragraph continues across a column or page break
+only when the sentence plainly runs on. Running headers, footers, and page
+numbers in the top or bottom tenth of the page that repeat from page to page are
+dropped, including section running heads that repeat only within their section.
+
+Each picture is rendered and stored once as PNG however often it appears, and it
+is placed beside the text at its position on the page. A picture repeated in the
+page margins, such as a logo, is treated as running furniture and dropped. A
+page whose content uses an external graphics state or a clip has all of its
+pictures left out, as does any picture placed partly off the page; the loss
+report lists these.
+
+Chapters start at each top-level heading, and the navigation document lists the
+headings as a nested table of contents. The title comes from the document
+information, then the first heading, then `Untitled`. The author and
+modification date come from the document information, and the language is
+normalized to a BCP 47 tag, or `und` when it is missing or invalid. ZIP entries use a fixed timestamp.
 
 ## Supply export font names
 

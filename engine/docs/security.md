@@ -89,7 +89,11 @@ protection. `EncryptWithPasswords` applies Standard Security passwords, includin
 AES-256 and revision 7 AES-GCM with the same `PdfPasswordEncryptionOptions` as
 authoring. `EncryptForRecipients` applies AES-256 certificate-recipient
 encryption. Any source encryption is replaced, so the output carries only the new
-protection, and the document identifiers are preserved. The `WithReport`
+protection. The first, permanent trailer `/ID` string is kept so links to the
+document still resolve, or is a fresh random value when the source has none. The
+second string, which marks this version, is always a new random value. Neither
+is derived from the content, because a hash of the unencrypted bytes stored in
+the clear would let anyone confirm a guess at what the document says. The `WithReport`
 variants return a `PdfDocumentWriteResult` that lists explicit dangling-reference
 repairs.
 

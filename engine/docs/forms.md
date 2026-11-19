@@ -73,8 +73,12 @@ allowing partial application.
 | Matched | The field name and supplied value can be applied. |
 | Unmatched | No destination widget has this name. |
 | ReadOnly | The destination field is marked read-only. |
-| Incompatible | The field type cannot accept these imported values. |
+| Incompatible | The field type cannot accept these imported values, or the name is shared by fields of different types. |
 | InvalidValue | The value fails the destination field's constraints. |
+
+A damaged form can leave fields of different types under one name, and filling
+that name could write into the wrong one, so such a name is reported as
+`Incompatible` and skipped.
 
 Matching uses ordinal, case-sensitive names. Duplicate or empty input names
 throw. The preview reports required and NoExport flags, but it is not a complete
@@ -93,7 +97,10 @@ If neither field values nor annotations can be applied, it throws. The example
 checks all statuses first to avoid silently skipping requested values.
 
 Field updates use an incremental revision that preserves the original byte
-prefix. Imported annotations can add another revision. Select
+prefix. Imported annotations can add another revision. Data exported from the
+same file carries its own comments, so an imported comment whose `/NM` name is
+already on its page is skipped instead of being added a second time. Comments
+without a name are always added. Select
 `PdfFormDataImportOutputMode.Flattened` only when the host intends to paint
 field appearances into page content and remove the fields. Review the rendered
 result and retain the original file if future form editing matters. A preserved
@@ -110,11 +117,24 @@ incremental revision; the host chooses where to save them.
 | Method | Value contract |
 | --- | --- |
 | `SetTextFieldValue` | Sets text and regenerates widget appearances. Optional embedded font and positive font-size arguments control the generated text. |
+| `SetTextFieldTextStyle` | Sets a text field's font, text color, underline, and strikethrough and regenerates its appearance. A callback chooses the font to embed for the shown value; the color is also written to `/DA`, and the decorations to `/DS` as CSS `text-decoration`. A null argument keeps the field's own setting. |
 | `SetChoiceFieldValue` | Sets one combo-box or single-select list-box export value. |
 | `SetChoiceFieldValues` | Supplies distinct export values for a multiselect list box. |
 | `SetCheckBoxValue` | Selects the existing on or off state using a Boolean. |
 | `SetRadioButtonValue` | Selects a group value; null requests a cleared selection. An empty string is not a clear operation. |
 | `ResetFormField` | Restores the field's default value and matching appearance. |
+
+A comb text field keeps its `/MaxLen` and `/Rect` when its value changes. A value
+longer than `/MaxLen` is refused, so a shorter field that repeats the name keeps
+its own value. Underline and strikethrough already in a field's `/DS` survive a
+new value, and an empty `/MK /BG` array, which marks a field as deliberately
+clear, survives appearance regeneration.
+
+The editor also reaches widgets that sit on the pages but that a stale AcroForm
+`/Fields` list no longer reaches. It names them the way `PdfFormWidgetReader`
+does, by their own `/T` chain, and a widget whose parent is still listed keeps
+that parent's qualified name in front of its own. Names from the reader therefore
+work for these fields too.
 
 Choice values are export values, not display labels. A noneditable choice
 requires a declared option; an editable combo box can accept another value.
@@ -141,6 +161,22 @@ also offers `Align`, `Distribute`, and `Duplicate` for proposals, and it exports
 as text or JSON. Proposals respect nonzero page-box origins and skip existing
 widgets.
 
+A rectangle can be drawn with `re` or as a closed four-corner outline. A row of
+at least three touching squares of equal size, with bottoms within one point of
+each other, becomes one comb text field proposal instead of a checkbox per cell.
+Its `SuggestedMaximumLength` is the cell count, its suggested appearance is clear
+with an empty `/MK` background so the page's own cells show, and a frame drawn
+around the row is not proposed as a second field. Two boxes side by side stay
+checkboxes, since they are usually a Yes/No pair. `CoversPrintedText` is true
+when the page already prints text inside a proposed field, which suggests it is
+already filled in. Proposals that would share a name get `_2`, `_3`, and so on.
+
+When authoring fields with `PdfDocumentBuilder`, `PdfFormFieldAppearanceStyle`
+offers `Underline` and `StrikeThrough`, drawn as rules in the text color under
+or through the value, one per character in a comb field so the lines stop at the
+cell walls. `MarkedTransparent` writes empty `/MK /BG` and `/BC` arrays for a
+widget without colors, so a viewer that tints uncolored fields leaves it clear.
+
 `PdfTextFieldPresetCollection` keeps named text-field sizes and styles that
 a host can reuse and save as JSON. For fields that already exist,
 `PdfFormLayoutEditor.Align` and `Distribute` move widgets by object number as an
@@ -159,7 +195,10 @@ format, and validation scripts in order. Neither runs arbitrary JavaScript.
 ## Values and rendered appearances
 
 A field's current value and its saved widget appearance are separate PDF data.
-`PdfFormWidgetReader` reports field values; the renderer paints saved normal
+`PdfFormWidgetReader` reports field values; it also reports
+`AppearanceFontName`, the embedded font the normal appearance draws with, without
+a subset tag, along with `Underline` and `StrikeThrough` from the field's `/DS`
+and `MarkedTransparent` for an empty `/MK /BG`. The renderer paints saved normal
 appearances from `/AP /N`. A normal appearance can be a stream or a dictionary
 of states selected by the widget's `/AS` name. A missing appearance, or a state
 dictionary without a matching selected state, contributes no painted widget.

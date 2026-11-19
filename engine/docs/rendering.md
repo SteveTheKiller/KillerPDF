@@ -173,7 +173,7 @@ Other `PdfRenderOptions` members:
 | `ForPrinting` | Uses print visibility flags for annotations instead of screen visibility. |
 | `IncludeRedactionMarks` | Paints unapplied redaction marks. Turn it off when the viewer draws them itself. |
 | `IncludeMeasurementAnnotations` | Paints measurement annotations. Turn it off when the viewer draws them itself. |
-| `IncludeSignedSignatureFields` | Paints signed signature fields while `IncludeFormFields` is off. |
+| `IncludeSignedSignatureFields` | Paints signed signature fields, and signature fields whose signature was cleared but whose appearance still draws, while `IncludeFormFields` is off. |
 | `IncludePushButtonFields` | Paints push buttons while `IncludeFormFields` is off. |
 | `SeparationPlate` | Renders one ink plate as gray instead of the composite page. |
 | `MaximumParallelism` | Allows bounded parallel work on large row-independent operations. The output is identical, and the default of 1 stays single-threaded. |
@@ -248,8 +248,7 @@ Complex clip masks use scoped scratch storage. Restoring graphics state returns
 the discarded masks; leaving a form or page returns its remaining masks. Saved
 and inherited clipping state keeps its storage until that scope ends.
 
-Raster and Flate scratch arrays share a 32 MiB idle byte budget. JPEG 2000 integer
-and floating-point frames each have a 16 MiB idle budget. Pools reuse multiple
+Raster and Flate scratch arrays share a 32 MiB idle byte budget. Pools reuse multiple
 buffers of the same size and evict the oldest returned arrays when full. This
 avoids repeated large allocations without reserving buffers in every size bucket.
 Active rentals can exceed these budgets. Oversized arrays are exact-sized and
@@ -432,6 +431,15 @@ rendering conditions and should remain available to the host for troubleshooting
 An empty diagnostic list is not a visual correctness guarantee. Compare expected
 text, images, clipping, colors, and annotation appearances when validating changes.
 
+Nested drawing work has a per-page ceiling. Every Form XObject invocation and
+every tiling pattern cell below the page level counts toward a shared limit of
+2,000,000 runs, whatever its depth, so content that fans out widely without a
+cycle or deep nesting still stops. Exceeding it raises a `FormatException` with
+the message `Nested content work limit exceeded.` A tiling pattern that paints with itself,
+directly or through another pattern, is skipped at the repeated use with the
+diagnostic `Cyclic tiling pattern skipped.`, and the rest of the page still
+draws.
+
 Invalid options, inaccessible encrypted content, malformed structures, and
 implementation limits can reject a request. Cancellation can interrupt a render.
 For corpus work, also impose a process timeout so a single expensive input cannot
@@ -509,21 +517,29 @@ other blend modes, and smaller shapes keep the ordinary compositor.
 
 ## JPEG 2000 decoding and opacity channels
 
-Tile reconstruction reuses integer and floating-point sample arrays. Every rented
-array is cleared before decoding so incomplete code blocks cannot reuse samples
-from an earlier image. Buffers are returned at tile changes and decoder cleanup,
-including failures. Actual rented lengths count toward the 256 MiB temporary
-sample limit, along with the input line and contiguous column-output scratch
-buffers used for wavelet reconstruction. Exact-sized allocations are used when
-pool rounding would exceed the remaining allowance. This limit excludes other
-decoder state and buffers retained by the shared array pool, so it is not a
-process memory cap.
+JPEG 2000 images are decoded by OpenJPEG 2.5.4 through its native `openjp2`
+library. The NuGet package carries the library for Windows x64, Linux x64, macOS
+x64, and macOS ARM64 under `runtimes/<rid>/native`, and a Windows x64 build copies
+`openjp2.dll` beside the engine. On Windows the engine loads the DLL by full path
+from the application base folder or its `runtimes/win-x64/native` folder, which
+also covers an engine loaded from memory. Otherwise the native search is limited
+to the engine assembly's folder and, on Windows, System32, so a copy in the
+current folder, a download folder, or `PATH` is never loaded. Windows ARM64 and
+Linux ARM64 have no upstream build, so decoding there needs a compatible OpenJPEG
+library that the native loader can find. When the library cannot be loaded, the
+image fails to decode.
 
-On supported CPUs, floating-point 9/7 synthesis processes adjacent columns in
-SIMD lanes, preserving the scalar filter's arithmetic order and boundary rules.
-The optional grouped input and output buffers count toward the same sample
-budget. Insufficient headroom, unsupported hardware, integer transforms, and
-remainder columns use scalar synthesis. No image-quality setting changes.
+The engine reads the image size, components, sample depth, and resolution levels
+from the codestream header itself. It removes tile-length (`TLM`) marker segments
+from the main header before decoding, because OpenJPEG seeks by them and wrong
+values can corrupt its memory; tile parts are then read in order. The codestream
+is passed to OpenJPEG from memory through stream callbacks, without a temporary
+file. OpenJPEG threads are used only for images of at least one megapixel, since
+creating its thread pool costs more than decoding a small image. A decode whose
+32-bit sample planes would exceed 256 MiB is refused before OpenJPEG starts, and
+the decoded output must still fit the caller's decoded-size limit. Component
+geometry, count, and sample depth returned by OpenJPEG are checked against the
+header before samples are packed.
 
 The renderer reads a single global opacity channel from the JP2 channel-definition
 box and separates it from the color samples. `SMaskInData` controls its use: absent
