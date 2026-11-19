@@ -41,7 +41,8 @@ internal static class PdfConformanceInspection
             {
                 if (pdfAPart != "4")
                     findings.Add(Unsupported("Conformance.UnsupportedPdfA",
-                        $"PDF/A-{pdfAPart} validation is not implemented.", metadataObjectNumber));
+                        $"PDF/A-{pdfAPart} validation is not implemented.", metadataObjectNumber)
+                        with { Arguments = ["PDF/A-" + pdfAPart] });
                 else
                 {
                     if (document.Trailer.ContainsKey(Name("Encrypt")))
@@ -62,10 +63,14 @@ internal static class PdfConformanceInspection
                             "Conformance.PdfUa1." + failure.Condition,
                             PdfDiagnosticSeverity.Error,
                             $"{failure.Message} ({failure.Clause})",
-                            failure.PageIndex, failure.ObjectNumber)));
+                            failure.PageIndex, failure.ObjectNumber)
+                        {
+                            Arguments = [failure.Condition, failure.Clause]
+                        }));
                 else if (pdfUaPart != "2")
                     findings.Add(Unsupported("Conformance.UnsupportedPdfUa",
-                        $"PDF/UA-{pdfUaPart} validation is not implemented.", metadataObjectNumber));
+                        $"PDF/UA-{pdfUaPart} validation is not implemented.", metadataObjectNumber)
+                        with { Arguments = ["PDF/UA-" + pdfUaPart] });
                 else
                     findings.AddRange(PdfAccessibilityInspector.Inspect(document).Findings
                         .Select(finding => new PdfPreflightFinding(
@@ -85,7 +90,7 @@ internal static class PdfConformanceInspection
                     }));
                 findings.Add(Unsupported("Conformance.PdfXValidationUnavailable",
                     $"The document declares {pdfXVersion}; PDF/X validation is not implemented.",
-                    metadataObjectNumber));
+                    metadataObjectNumber) with { Arguments = [pdfXVersion] });
             }
             return Array.AsReadOnly(findings.ToArray());
         }

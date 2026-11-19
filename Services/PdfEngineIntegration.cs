@@ -321,6 +321,10 @@ internal static partial class PdfEngineIntegration
     internal static string InspectPortfolio(string path, OpenedProtection? protection) =>
         PdfCollectionReader.ToText(OpenTabFile(path, protection));
 
+    /// <summary>Reads portfolio metadata, or null when the document is not a portfolio.</summary>
+    internal static PdfCollectionInfo? ReadPortfolio(string path, OpenedProtection? protection) =>
+        PdfCollectionReader.Read(OpenTabFile(path, protection));
+
     internal static PortfolioEditorState ReadPortfolioEditorState(string path, OpenedProtection? protection)
     {
         PdfDocument document = OpenTabFile(path, protection);
@@ -759,7 +763,7 @@ internal static partial class PdfEngineIntegration
     /// preset (#340) when one is given.</summary>
     internal static string AddTextField(
         string path, int pageIndex, double x, double y, double width, double height,
-        PdfTextFieldPreset? preset = null)
+        PdfTextFieldPreset? preset = null, string? tooltipFormat = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
@@ -789,10 +793,20 @@ internal static partial class PdfEngineIntegration
             options: options,
             fieldMetadata: new PdfFormFieldMetadata
             {
-                Tooltip = $"Answer {suffix - 1}"
+                // The field's hover name, in the language of whoever placed it (#506).
+                Tooltip = AnswerTooltip(tooltipFormat, suffix - 1)
             }, appearanceStyle: appearance).Build();
         ReplaceWithBuiltResult(path, result);
         return name;
+    }
+
+    private static string AnswerTooltip(string? format, int number)
+    {
+        string text = number.ToString(System.Globalization.CultureInfo.CurrentCulture);
+        if (!string.IsNullOrWhiteSpace(format) && format.Contains("{0}", StringComparison.Ordinal))
+            try { return string.Format(System.Globalization.CultureInfo.CurrentCulture, format, text); }
+            catch (FormatException) { }
+        return "Answer " + text;
     }
 
     /// <summary>

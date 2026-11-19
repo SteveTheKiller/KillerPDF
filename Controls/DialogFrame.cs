@@ -26,6 +26,10 @@ namespace KillerPDF
             => (owner?.TryFindResource(key) ?? Application.Current?.TryFindResource(key)) as Brush ?? fallback;
         private static T Value<T>(Window? owner, string key, T fallback)
             => (owner?.TryFindResource(key) ?? Application.Current?.TryFindResource(key)) is T value ? value : fallback;
+        // #506: an ownerless dialog (uninstall, setup) still takes the app's close styles. Without
+        // the app fallback its close button lost its style and drew as a bare red box.
+        private static Style? CloseStyle(Window? owner, string key)
+            => (owner?.TryFindResource(key) ?? Application.Current?.TryFindResource(key)) as Style;
 
         internal static Image TitleIcon(Window? owner = null)
         {
@@ -238,13 +242,13 @@ namespace KillerPDF
             };
             // Dialogs use the family close (a bare X that turns red on hover, as on the About card);
             // only the classic caption themes keep the raised caption-style close.
-            if (!caption && owner?.TryFindResource("OverlayCloseButton") is Style overlayClose)
+            if (!caption && CloseStyle(owner, "OverlayCloseButton") is Style overlayClose)
             {
                 close.Style = overlayClose;
                 close.SetResourceReference(ContentControl.ContentProperty, "AboutCloseGlyph");
                 close.VerticalAlignment = VerticalAlignment.Center;
             }
-            else if (owner?.TryFindResource("ChromeCloseButton") is Style chromeClose)
+            else if (CloseStyle(owner, "ChromeCloseButton") is Style chromeClose)
             {
                 close.Style = chromeClose;
             }
@@ -284,7 +288,7 @@ namespace KillerPDF
                 titleRow.Margin = classic ? new Thickness(0) : new Thickness(6, 0, 0, 0);
                 string closeStyle = classic ? "ChromeCloseButton" : "OverlayCloseButton";
                 // An owned Window does not inherit its owner's local style dictionary.
-                if (owner?.TryFindResource(closeStyle) is Style style) close.Style = style;
+                if (CloseStyle(owner, closeStyle) is Style style) close.Style = style;
                 close.VerticalAlignment = classic ? VerticalAlignment.Top : VerticalAlignment.Center;
                 if (classic) close.ClearValue(ContentControl.ContentProperty);
                 else close.SetResourceReference(ContentControl.ContentProperty, "AboutCloseGlyph");

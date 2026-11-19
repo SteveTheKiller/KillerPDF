@@ -12,6 +12,28 @@ internal sealed record TwainScanResult(IReadOnlyList<string> Pages,
     internal bool Completed => Errors.Count == 0 && !Canceled;
 }
 
+internal enum ScannerStatus { Reported, NotClosed, NotStarted }
+
+/// <summary>A TWAIN return code the scan stopped on. The app words it in the interface language
+/// (<see cref="Key"/>, with the code as {0}); the English message is for logs.</summary>
+internal sealed class ScannerStatusException(ScannerStatus status, string code)
+    : InvalidOperationException(string.Format(status switch
+    {
+        ScannerStatus.NotClosed => "The scanner did not close ({0}).",
+        ScannerStatus.NotStarted => "The scanner did not start ({0}).",
+        _ => "The scanner reported an error ({0}).",
+    }, code))
+{
+    internal string Code { get; } = code;
+
+    internal string Key => status switch
+    {
+        ScannerStatus.NotClosed => "Str_Scan_NotClosed",
+        ScannerStatus.NotStarted => "Str_Scan_NotStarted",
+        _ => "Str_Scan_DeviceError",
+    };
+}
+
 /// <summary>
 /// Scan to PDF (#73): one TWAIN session on the window's message loop. Each page the scanner
 /// hands over is saved as an image, gray and black-and-white pages as PNG and color pages as
@@ -70,7 +92,7 @@ internal sealed class TwainScan : IDisposable
             }
         }
         void Failed(object? sender, TransferErrorEventArgs e) =>
-            errors.Add(e.Exception ?? new InvalidOperationException($"The scanner reported an error ({e.ReturnCode})."));
+            errors.Add(e.Exception ?? new ScannerStatusException(ScannerStatus.Reported, e.ReturnCode.ToString()));
         void Canceled(object? sender, TransferCanceledEventArgs e) => canceled = true;
         void Disabled(object? sender, EventArgs e)
         {
@@ -88,7 +110,7 @@ internal sealed class TwainScan : IDisposable
             {
                 ReturnCode close = source.Close();
                 if (close != ReturnCode.Success)
-                    errors.Add(new InvalidOperationException($"The scanner did not close ({close})."));
+                    errors.Add(new ScannerStatusException(ScannerStatus.NotClosed, close.ToString()));
             }
             catch (Exception ex) { errors.Add(ex); }
             done.TrySetResult(new(Array.AsReadOnly(pages.ToArray()), Array.AsReadOnly(errors.ToArray()), canceled));
@@ -105,7 +127,7 @@ internal sealed class TwainScan : IDisposable
                 code = source.Enable(showSettings ? SourceEnableMode.ShowUI : SourceEnableMode.NoUI, false, _window);
             if (code != ReturnCode.Success)
             {
-                errors.Add(new InvalidOperationException($"The scanner did not start ({code})."));
+                errors.Add(new ScannerStatusException(ScannerStatus.NotStarted, code.ToString()));
                 Complete();
             }
         }

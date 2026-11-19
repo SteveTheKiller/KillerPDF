@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Compile Include="..\Controls\MotifPlacement.cs" Link="Controls\MotifPlacement.cs" />
+    <Compile Include="..\Controls\FilmGrainTip.cs" Link="Controls\FilmGrainTip.cs" />
     <Compile Include="..\Features\Cli\PdfUaBatch.cs" Link="Features\Cli\PdfUaBatch.cs" />
     <Compile Include="..\Models\EditingTypes.cs" Link="Models\EditingTypes.cs" />
     <Compile Include="..\Models\UndoTypes.cs" Link="Models\UndoTypes.cs" />
@@ -173,6 +174,7 @@
     <Compile Include="..\Features\Cli\BatchRenderTally.cs" Link="Features\Cli\BatchRenderTally.cs" />
     <Compile Include="..\Services\PdfFonts.cs" Link="Services\PdfFonts.cs" />
     <Compile Include="..\Services\PdfEngineIntegration.cs" Link="Services\PdfEngineIntegration.cs" />
+    <Compile Include="..\Services\LocalizedReports.cs" Link="Services\LocalizedReports.cs" />
     <Compile Include="..\Services\PdfEngineIntegration.DamagedSave.cs" Link="Services\PdfEngineIntegration.DamagedSave.cs" />
     <Compile Include="..\Services\PrintJobTicket.cs" Link="Services\PrintJobTicket.cs" />
     <Compile Include="..\Services\PrinterDriverProperties.cs" Link="Services\PrinterDriverProperties.cs" />

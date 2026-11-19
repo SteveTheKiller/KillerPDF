@@ -34,6 +34,31 @@ public sealed class StringKeyCoverageTests
         Assert.True(missing.Count == 0, "String keys used but not defined in Strings/en-US.xaml:\n" + string.Join("\n", missing));
     }
 
+    // #506: a XAML attribute the user reads or hears, written as literal words instead of a string
+    // resource, shows English in every language. Icon glyphs, the wordmark pieces and web addresses
+    // are not words to translate.
+    [Fact]
+    public void NoVisibleXamlTextIsWrittenAsLiteralWords()
+    {
+        string root = FindRepositoryRoot();
+        var visible = new Regex(@"(?<![\w.:])(Text|Content|Header|ToolTip|Title|Label|Watermark|PlaceholderText|AutomationProperties\.Name|AutomationProperties\.HelpText|InputGestureText)=""(?!\{)([^""]*)""");
+        string[] brand = ["Killer", "PDF", "KillerPDF", "App"];
+        var literal = new List<string>();
+        foreach (string file in AppSources(root).Where(file => file.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase)))
+        {
+            string[] lines = File.ReadAllLines(file);
+            for (int index = 0; index < lines.Length; index++)
+                foreach (Match m in visible.Matches(lines[index]))
+                {
+                    string value = Regex.Replace(m.Groups[2].Value, "&#x[0-9A-Fa-f]+;", "");
+                    if (!Regex.IsMatch(value, "[A-Za-z]{2,}") || brand.Contains(value)
+                        || Regex.IsMatch(value, @"^(https?://\S+|[\w.-]+\.(net|com|org))$")) continue;
+                    literal.Add($"{Path.GetRelativePath(root, file)}:{index + 1}: {m.Value}");
+                }
+        }
+        Assert.True(literal.Count == 0, "Visible XAML text written as literal words; use a Str_ resource:\n" + string.Join("\n", literal));
+    }
+
     // The theme menu names each accent pill for screen readers with "Str_Color_" + the accent, a
     // prefix-built key the scan above skips, so every accent is checked here.
     [Fact]

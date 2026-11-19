@@ -17,7 +17,7 @@ internal static partial class ImagesToPdfCommand
     {
         if (files.Count == 0)
         {
-            ShowFailure(files, "No image was given.");
+            ShowFailure(files, () => NoImageText);
             return 2;
         }
         IReadOnlyList<string>? batch;
@@ -39,14 +39,15 @@ internal static partial class ImagesToPdfCommand
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            ShowFailure(ImagesToPdfPlan.Order(batch), ex.Message);
+            ShowFailure(ImagesToPdfPlan.Order(batch), () => ReasonText(ex));
             return 1;
         }
     }
 
     // Runs before the app's own startup, so it prepares what that startup would, as a failed shell print
     // does: closing the message must not end the process early, and it uses the user's theme and language.
-    private static void ShowFailure(IReadOnlyList<string> files, string reason)
+    // The reason is read after LocaleManager.Initialize, so the command's own reasons are translated.
+    private static void ShowFailure(IReadOnlyList<string> files, Func<string> reason)
     {
         if (!Environment.UserInteractive) return;
         try
@@ -57,7 +58,7 @@ internal static partial class ImagesToPdfCommand
             LocaleManager.Initialize();
             Controls.GrainTexture.Publish();
             string? format = Application.Current?.TryFindResource("Str_ImagesToPdf_Failed") as string;
-            KillerDialog.Show(null, FailureMessage(files, reason, format), "KillerPDF",
+            KillerDialog.Show(null, FailureMessage(files, reason(), format), "KillerPDF",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
         catch { /* a conversion that already failed must not also crash on its message */ }

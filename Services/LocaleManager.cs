@@ -83,6 +83,17 @@ namespace KillerPDF.Services
             ApplyInternal(_current);
         }
 
+        /// <summary>Setup and uninstall: apply the saved language, else the Windows display
+        /// language, without saving a choice. The first normal start saves it.</summary>
+        internal static void InitializeForSetup()
+        {
+            _current = SetupLocale(ThemeManager.GetSetting("Locale"), CultureInfo.CurrentUICulture);
+            ApplyInternal(_current);
+        }
+
+        internal static Locale SetupLocale(string? saved, CultureInfo culture)
+            => ParseSaved(saved) ?? LocaleForCulture(culture);
+
         /// <summary>
         /// The saved "Locale" setting, including names an app stored before the enum was unified:
         /// KillerScan saved Japanese as "Ja" where the family name is "JaJP", and Killendar,

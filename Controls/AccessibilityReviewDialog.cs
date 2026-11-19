@@ -118,7 +118,7 @@ internal sealed class AccessibilityReviewDialog : Window
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite); _detail.Children.Add(_status);
         copy.Click += (_, _) =>
         {
-            try { Clipboard.SetText(L("Str_A11y_Limit") + "\n\n" + _report.ToText()); _status.Text = L("Str_DocumentTools_Copied"); }
+            try { Clipboard.SetText(L("Str_A11y_Limit") + "\n\n" + KillerPDF.Services.LocalizedReports.Accessibility(_report)); _status.Text = L("Str_DocumentTools_Copied"); }
             catch (Exception error) when (error is not OutOfMemoryException) { _status.Text = L("Str_DocumentTools_Failed"); }
         };
         // These two open another window, so their names stay in view.

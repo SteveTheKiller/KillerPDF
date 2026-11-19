@@ -20,8 +20,8 @@ namespace KillerPDF.Shell
             void Report() => ShowDocumentReport(Loc("Str_DocumentTools_Separations"), (path, reportProtection) =>
             {
                 var production = PdfEngineIntegration.InspectPrintProduction(path, reportProtection);
-                return PdfEngineIntegration.CreateSeparationPreview(path,
-                    production.Colorants.Select(colorant => colorant.Name), reportProtection).ToText();
+                return Services.LocalizedReports.SeparationPreview(PdfEngineIntegration.CreateSeparationPreview(path,
+                    production.Colorants.Select(colorant => colorant.Name), reportProtection));
             });
             try
             {

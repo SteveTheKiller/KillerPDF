@@ -2129,7 +2129,8 @@ namespace KillerPDF
         private static int Uninstall(bool silent)
         {
             Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            if (!silent) { AppTheme.Configure(); ThemeManager.InitializeInstaller(); }
+            // #506: the chosen language loads before any dialog, so prompts are not English.
+            if (!silent) { AppTheme.Configure(); ThemeManager.InitializeInstaller(); LocaleManager.InitializeForSetup(); }
             string currentExe = Path.GetFullPath(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty);
             bool machine = IsRegisteredCopy(Registry.LocalMachine, currentExe);
             if (RelaunchMachineUninstallElevatedIfNeeded(machine, silent) is int elevatedExit) return elevatedExit;
@@ -2236,7 +2237,7 @@ namespace KillerPDF
             if (!silent)
             {
                 KillerDialog.Show(null,
-                    Application.Current.TryFindResource("Str_Dlg_Uninstalled") as string ?? "KillerPDF has been uninstalled.", AppName,
+                    SetupText("Str_Dlg_Uninstalled", "KillerPDF has been uninstalled."), AppName,
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             return 0;

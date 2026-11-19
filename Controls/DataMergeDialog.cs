@@ -206,7 +206,11 @@ internal sealed class DataMergeDialog : Window
     private void Safely(Action action)
     {
         try { action(); }
-        catch (Exception error) { KillerDialog.Show(this, L("Str_DataMerge_Failed") + "\n" + error.Message); }
+        catch (Exception error)
+        {
+            string reason = error is DataMergeNoColumnsException ? L("Str_DataMerge_NoColumns") : error.Message;
+            KillerDialog.Show(this, L("Str_DataMerge_Failed") + "\n" + reason);
+        }
     }
     private static string? Null(string text) => text.Length == 0 ? null : text;
     private static string L(string key) => Application.Current.TryFindResource(key) as string ?? key;

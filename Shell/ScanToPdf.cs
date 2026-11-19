@@ -62,7 +62,7 @@ namespace KillerPDF.Shell
             {
                 SetStatus(completion);
                 KillerDialog.Show(this, completion + "\n"
-                    + string.Join("\n", result.Errors.Select(error => error.Message))
+                    + string.Join("\n", result.Errors.Select(ScanErrorText))
                     + ScanRecoveryMessage(folder), "KillerPDF", MessageBoxButton.OK,
                     result.Errors.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
             }
@@ -100,6 +100,12 @@ namespace KillerPDF.Shell
                 if (opened && result.Completed) DeleteScanFolder(folder);
             }
         }
+
+        // The scanner's own status codes are worded by the app in the interface language (#506);
+        // errors from the driver or the file system keep their own text.
+        private static string ScanErrorText(Exception error) => error is ScannerStatusException status
+            ? string.Format(CultureInfo.CurrentCulture, Loc(status.Key), status.Code)
+            : error.Message;
 
         private string ScanRecoveryMessage(string folder) => Directory.Exists(folder)
             ? "\n\n" + string.Format(Loc("Str_Scan_RecoveryFiles"), folder) : string.Empty;

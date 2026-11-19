@@ -229,8 +229,13 @@ public sealed class PdfPreflightTests
             "not a pdf"u8.ToArray(), PdfPreflightProfile.General);
 
         Assert.False(report.Passed);
-        Assert.Contains(report.Findings,
+        PdfPreflightFinding header = Assert.Single(report.Findings,
             finding => finding.Code == "Structural.InvalidHeader");
+        Assert.True(header.Arguments.Count <= 1);
+        Assert.All(header.Arguments, offset => Assert.True(int.TryParse(offset,
+            System.Globalization.NumberStyles.None,
+            System.Globalization.CultureInfo.InvariantCulture, out _)));
+        Assert.DoesNotContain("arguments", report.ToJson(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -398,6 +403,9 @@ public sealed class PdfPreflightTests
         Assert.False(report.Passed);
         Assert.False(report.Complete);
         Assert.Contains("Result: Failed", report.ToText(), StringComparison.Ordinal);
+        Assert.Equal(["PDF/X-4"], report.Findings[1].Arguments);
+        Assert.Contains("declares PDF/X-4; PDF/X validation is not implemented.",
+            report.ToText(), StringComparison.Ordinal);
         Assert.Contains("\"complete\":false", report.ToJson(), StringComparison.Ordinal);
     }
 
@@ -448,6 +456,8 @@ public sealed class PdfPreflightTests
         Assert.Equal(PdfDiagnosticSeverity.Warning, finding.Severity);
         Assert.Equal(0, finding.PageIndex);
         Assert.Contains("50 by 100 DPI", finding.Message, StringComparison.Ordinal);
+        Assert.Equal([50d, 100d, 75d], finding.Arguments.Select(value =>
+            double.Parse(value, System.Globalization.CultureInfo.InvariantCulture)));
     }
 
     [Fact]
@@ -468,6 +478,11 @@ public sealed class PdfPreflightTests
         Assert.Equal(PdfDiagnosticSeverity.Warning, finding.Severity);
         Assert.Equal(0, finding.PageIndex);
         Assert.Contains("320% total ink", finding.Message, StringComparison.Ordinal);
+        Assert.Equal(2, finding.Arguments.Count);
+        Assert.Equal(320d, double.Parse(finding.Arguments[0],
+            System.Globalization.CultureInfo.InvariantCulture), 6);
+        Assert.Equal(310d, double.Parse(finding.Arguments[1],
+            System.Globalization.CultureInfo.InvariantCulture), 6);
     }
 
     [Fact]
@@ -491,6 +506,7 @@ public sealed class PdfPreflightTests
         Assert.Equal("FontEmbedding.NotEmbedded", finding.Code);
         Assert.Equal(0, finding.PageIndex);
         Assert.Contains("Helvetica", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("Helvetica", Assert.Single(finding.Arguments), StringComparison.Ordinal);
         Assert.Empty(embedded.Findings);
     }
 
@@ -606,6 +622,12 @@ public sealed class PdfPreflightTests
         Assert.Contains("visible=False", finding.Message, StringComparison.Ordinal);
         Assert.Contains("print=on", finding.Message, StringComparison.Ordinal);
         Assert.Contains("export=off", finding.Message, StringComparison.Ordinal);
+        Assert.Equal(5, finding.Arguments.Count);
+        Assert.Equal("Measurements", finding.Arguments[0]);
+        Assert.Equal("false", finding.Arguments[1]);
+        Assert.Contains(finding.Arguments[2], new[] { "true", "false" });
+        Assert.Equal("on", finding.Arguments[3]);
+        Assert.Equal("off", finding.Arguments[4]);
         Assert.NotNull(finding.ObjectNumber);
     }
 
@@ -658,6 +680,8 @@ public sealed class PdfPreflightTests
         Assert.Equal(PdfDiagnosticSeverity.Error, report.Findings[1].Severity);
         Assert.False(report.Passed);
         Assert.All(report.Findings, finding => Assert.NotNull(finding.ObjectNumber));
+        Assert.Equal(["installer.exe"], report.Findings[0].Arguments);
+        Assert.Equal(["notes.txt"], report.Findings[1].Arguments);
     }
 
     [Fact]
@@ -673,6 +697,7 @@ public sealed class PdfPreflightTests
 
         Assert.Equal("Attachment.EncryptedContent", finding.Code);
         Assert.Equal(PdfDiagnosticSeverity.Warning, finding.Severity);
+        Assert.Equal(["protected.docx"], finding.Arguments);
     }
 
     [Fact]
@@ -696,6 +721,7 @@ public sealed class PdfPreflightTests
         Assert.NotNull(finding.ObjectNumber);
         Assert.Contains("0.125 ft per PDF point, precision 3", finding.Message,
             StringComparison.Ordinal);
+        Assert.Equal(["0.125", "ft", "3"], finding.Arguments);
     }
 
     private static byte[] Profile()

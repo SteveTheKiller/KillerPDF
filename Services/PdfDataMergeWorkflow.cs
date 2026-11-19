@@ -13,6 +13,11 @@ internal sealed record PdfDataMergePlan(
 
 internal sealed record PdfDataMergeMacroPlan(PdfDataMergePlan Merge, IReadOnlyList<string> OutputPaths);
 
+/// <summary>No data column matches a form field or mapping name. The merge dialog says so in the
+/// interface language (Str_DataMerge_NoColumns); the English message serves the CLI and macros.</summary>
+internal sealed class DataMergeNoColumnsException()
+    : InvalidOperationException("No merge-data columns match the PDF form field names or mapping names.");
+
 internal static class PdfDataMergeWorkflow
 {
     private const string OutputNameField = "__KillerPDFOutputFileName";
@@ -128,8 +133,7 @@ internal static class PdfDataMergeWorkflow
                 mappings.Add(new PdfDataMergeFieldMapping(sourceName, field.Name));
         }
         if (mappings.Count == 0 && configuredProfile is null)
-            throw new InvalidOperationException(
-                "No merge-data columns match the PDF form field names or mapping names.");
+            throw new DataMergeNoColumnsException();
 
         string extension = Path.GetExtension(firstOutputFileName);
         if (!extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase)) extension = ".pdf";

@@ -288,7 +288,8 @@ namespace KillerPDF.Shell
         }
 
         private void ShowSignaturesReport() => ShowDocumentReport(Loc("Str_DocumentTools_Signatures"),
-            (path, protection) => PdfEngineIntegration.InspectSignatures(path, protection).ToText());
+            (path, protection) => Services.LocalizedReports.Signatures(
+                PdfEngineIntegration.InspectSignatures(path, protection)));
 
         // ── Refresh ─────────────────────────────────────────────────────────────────────────
 

@@ -835,10 +835,20 @@ namespace KillerPDF.Shell
         private bool EnsureProtectionReadable()
         {
             if (!_protection.IsUnreadable) return true;
-            KillerDialog.Show(this, string.Format(Loc("Str_Protection_Unreadable"), _protection.Access.Refusal), "KillerPDF",
+            KillerDialog.Show(this, string.Format(Loc("Str_Protection_Unreadable"), RefusalText(_protection.Access.Refusal)), "KillerPDF",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
+
+        // PdfRestrictions words its own refusals for the command line ("pass --password"); the app
+        // shows those in the interface language (#506). Other reasons come from the engine as they are.
+        internal static string? RefusalText(string? refusal) => refusal switch
+        {
+            Services.PdfRestrictions.LockedMessage => Loc("Str_Protection_ReasonLocked"),
+            Services.PdfRestrictions.WrongPasswordMessage => Loc("Str_Protection_ReasonWrongPassword"),
+            Services.PdfAccess.UnreadablePermissions => Loc("Str_Protection_ReasonPermissions"),
+            _ => refusal
+        };
 
         // Asks for the owner password and reopens the restricted PDF from an unrestricted working
         // copy. A wrong password, or the empty user password, leaves the document read-only.

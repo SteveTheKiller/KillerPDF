@@ -32,6 +32,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Everything now shows in your chosen language where it used to stay English. This covers the uninstall prompts, the print dialog's Reverse order and two-sided flip options, the film grain shortcut tip, key names in shortcuts, file sizes, scanner and Office conversion errors, and the report windows for print production, layers, portfolio, separations, signatures, structure compare, navigation audit, accessibility, preflight, data merge and macros. Preflight findings keep their font names, file names, DPI values and PDF/UA clauses in every language. Page box coordinates in the print production report round to two decimals instead of printing seventeen digits. The uninstall dialogs have their normal close button again. (#506)
 - Clear Page on a page's right-click card clears that page. It cleared the page you were on instead.
 - A Redact step in a macro warns about words that survive in bookmarks or names even when it redacted nothing on the pages.
 - Paste pastes what was copied last. Once a picture, shape or text box had been copied, every paste brought it back, even after copying text or an image somewhere else, in every open document until a restart. (#497)

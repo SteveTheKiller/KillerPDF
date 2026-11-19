@@ -266,7 +266,11 @@ public sealed class PdfUaValidatorTests
             new PdfPreflightProfile("Conformance", [PdfPreflightCheck.ConformanceDeclarations])).Findings;
 
         Assert.DoesNotContain(findings, finding => finding.Code == "Conformance.UnsupportedPdfUa");
-        Assert.Contains(findings, finding => finding.Code == "Conformance.PdfUa1.06-003");
+        PdfPreflightFinding ua = Assert.Single(findings,
+            finding => finding.Code == "Conformance.PdfUa1.06-003");
+        Assert.Equal(2, ua.Arguments.Count);
+        Assert.Equal("06-003", ua.Arguments[0]);
+        Assert.EndsWith($"({ua.Arguments[1]})", ua.Message, StringComparison.Ordinal);
     }
 
     [Fact]

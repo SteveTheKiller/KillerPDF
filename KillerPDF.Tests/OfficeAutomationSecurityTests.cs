@@ -64,7 +64,8 @@ public sealed class OfficeAutomationSecurityTests
         try
         {
             var elapsed = System.Diagnostics.Stopwatch.StartNew();
-            Assert.Throws<TimeoutException>(() => OfficeConversion.ToPdf(input, _ => app, TimeSpan.FromMilliseconds(300)));
+            // Typed so Convert shows a localized timeout reason (#506); it is still a TimeoutException.
+            Assert.IsAssignableFrom<TimeoutException>(Assert.Throws<OfficeConversionTimeoutException>(() => OfficeConversion.ToPdf(input, _ => app, TimeSpan.FromMilliseconds(300))));
             Assert.True(elapsed.Elapsed < TimeSpan.FromSeconds(10));
         }
         finally

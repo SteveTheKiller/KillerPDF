@@ -127,7 +127,7 @@ internal static class PdfPreflightDocumentChecks
                 if (horizontal < minimumDpi || vertical < minimumDpi)
                     findings.Add(Warning("ImageResolution.BelowMinimum",
                         string.Create(CultureInfo.InvariantCulture, $"An image is {horizontal:0.#} by {vertical:0.#} DPI; the minimum is {minimumDpi:0.#} DPI."),
-                        page.PageIndex));
+                        page.PageIndex) with { Arguments = [Invariant(horizontal), Invariant(vertical), Invariant(minimumDpi)] });
             }
         }
         return Array.AsReadOnly(findings.ToArray());
@@ -171,7 +171,7 @@ internal static class PdfPreflightDocumentChecks
                         string name = FontDisplayName(font, item.Key.ValueAsLatin1());
                         findings.Add(Warning("FontEmbedding.NotEmbedded",
                             $"Font {name} has no embedded font program.", pageIndex,
-                            reference?.ObjectNumber));
+                            reference?.ObjectNumber) with { Arguments = [name] });
                     }
                 }
             }
@@ -331,7 +331,7 @@ internal static class PdfPreflightDocumentChecks
                 .Where(coverage => coverage > maximumInkCoveragePercent))
                 findings.Add(Warning("ColorUsage.InkCoverageAboveMaximum",
                     string.Create(CultureInfo.InvariantCulture, $"A process color uses {coverage:0.#}% total ink; the maximum is {maximumInkCoveragePercent:0.#}%."),
-                    page.PageIndex));
+                    page.PageIndex) with { Arguments = [Invariant(coverage), Invariant(maximumInkCoveragePercent)] });
         }
         try
         {
@@ -462,7 +462,12 @@ internal static class PdfPreflightDocumentChecks
                 "OptionalContent.LayerState",
                 $"Layer {layer.Name}: visible={layer.IsInitiallyVisible}, locked={layer.IsLocked}, "
                     + $"print={State(layer.IsVisibleWhenPrinting)}, export={State(layer.IsVisibleWhenExporting)}.",
-                objectNumber: layer.ObjectNumber)).ToArray());
+                objectNumber: layer.ObjectNumber) with
+                {
+                    Arguments = [layer.Name, layer.IsInitiallyVisible ? "true" : "false",
+                        layer.IsLocked ? "true" : "false", State(layer.IsVisibleWhenPrinting),
+                        State(layer.IsVisibleWhenExporting)]
+                }).ToArray());
         }
         catch (Exception error) when (IsDocumentFailure(error))
         {
@@ -548,6 +553,14 @@ internal static class PdfPreflightDocumentChecks
         void AddFindings(PdfAttachmentInfo attachment, int? pageIndex)
         {
             int? objectNumber = attachment.FileSpecificationObjectNumber;
+            int first = findings.Count;
+            AddEach();
+            // Every attachment message names the file.
+            for (int index = first; index < findings.Count; index++)
+                findings[index] = findings[index] with { Arguments = [attachment.FileName] };
+
+            void AddEach()
+            {
             if (attachment.HasUnsafeFileName)
                 findings.Add(Error("Attachment.UnsafeFileName",
                     $"Attachment '{attachment.FileName}' has an unsafe file name.",
@@ -572,6 +585,7 @@ internal static class PdfPreflightDocumentChecks
                 findings.Add(Error("Attachment.ChecksumMismatch",
                     $"Attachment '{attachment.FileName}' does not match its declared checksum.",
                     pageIndex, objectNumber));
+            }
         }
     }
 
@@ -621,7 +635,11 @@ internal static class PdfPreflightDocumentChecks
                     }
                     findings.Add(Information("Measurement.Calibration",
                         string.Create(CultureInfo.InvariantCulture, $"Measurement scale: {scale:R} {unit} per PDF point, precision {precision}."),
-                        page.Index, objectNumber));
+                        page.Index, objectNumber) with
+                        {
+                            Arguments = [scale.ToString("R", CultureInfo.InvariantCulture), unit,
+                                precision.ToString(CultureInfo.InvariantCulture)]
+                        });
                 }
                 catch (Exception error) when (IsDocumentFailure(error))
                 {
@@ -726,6 +744,8 @@ internal static class PdfPreflightDocumentChecks
     private static PdfPreflightFinding Information(string code, string message,
         int? pageIndex = null, int? objectNumber = null) =>
         new(code, PdfDiagnosticSeverity.Information, message, pageIndex, objectNumber);
+
+    private static string Invariant(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     private sealed record PdfBox(double Left, double Bottom, double Right, double Top);

@@ -11,7 +11,7 @@ public partial class MainWindow
 {
     private void OpenPreflightTools() => OpenDocumentToolCard("Str_DocumentTools_Preflight",
         ("Str_DocumentTools_Preflight", () => ShowDocumentReport(Loc("Str_DocumentTools_Preflight"),
-            (path, protection) => PdfEngineIntegration.InspectPreflight(path, protection).ToText())),
+            (path, protection) => LocalizedReports.Preflight(PdfEngineIntegration.InspectPreflight(path, protection)))),
         ("Str_DocumentTools_PreflightProfile", PreflightWithProfileFile),
         ("Str_Repair_Language", SetPreflightLanguage),
         ("Str_Repair_Metadata", FillMissingMetadata),
@@ -36,7 +36,8 @@ public partial class MainWindow
             return;
         }
         ShowDocumentReport(Loc("Str_DocumentTools_PreflightProfile"),
-            (path, protection) => PdfEngineIntegration.InspectPreflight(path, profile, protection).ToText());
+            (path, protection) => LocalizedReports.Preflight(
+                PdfEngineIntegration.InspectPreflight(path, profile, protection)));
     }
 
     private void SetPreflightLanguage()
@@ -120,11 +121,11 @@ public partial class MainWindow
                 return;
             }
             string before = accessibility
-                ? PdfAccessibilityInspector.Inspect(PdfDocument.Open(original)).ToText()
-                : PdfPreflightRunner.Run(original, PdfPreflightProfile.PrintProduction).ToText();
+                ? LocalizedReports.Accessibility(PdfAccessibilityInspector.Inspect(PdfDocument.Open(original)))
+                : LocalizedReports.Preflight(PdfPreflightRunner.Run(original, PdfPreflightProfile.PrintProduction));
             string report = accessibility
-                ? PdfAccessibilityInspector.Inspect(PdfDocument.Open(proposed)).ToText()
-                : PdfPreflightRunner.Run(proposed, PdfPreflightProfile.PrintProduction).ToText();
+                ? LocalizedReports.Accessibility(PdfAccessibilityInspector.Inspect(PdfDocument.Open(proposed)))
+                : LocalizedReports.Preflight(PdfPreflightRunner.Run(proposed, PdfPreflightProfile.PrintProduction));
             var review = new ImportReviewDialog(this, title, title + "\n\n" + Loc("Str_Repair_Before") + "\n" + before
                 + "\n\n" + Loc("Str_Repair_After") + "\n" + report,
                 null, Loc("Str_Repair_Apply"));

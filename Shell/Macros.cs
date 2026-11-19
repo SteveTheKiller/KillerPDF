@@ -150,7 +150,7 @@ public partial class MainWindow
             SetStatus(result.Succeeded && written
                 ? macroCopy.Note(string.Format(Loc("Str_Macro_Complete"), outputDialog.FileName), Loc("Str_Save_PicturesSkipped"))
                 : Loc("Str_Macro_Failed"));
-            string reportText = report.ToText() + Environment.NewLine + writeReport;
+            string reportText = Services.LocalizedReports.MacroRun(report, MacroOperationName) + Environment.NewLine + writeReport;
             if (_macroRedaction.Areas > 0)
                 reportText += Environment.NewLine + string.Format(Loc("Str_Macro_Redacted"),
                     _macroRedaction.Areas, _macroRedaction.Pages);

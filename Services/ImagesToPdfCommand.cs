@@ -17,12 +17,14 @@ internal static partial class ImagesToPdfCommand
     internal static string Convert(IReadOnlyList<string> files)
     {
         IReadOnlyList<string> ordered = ImagesToPdfPlan.Order(files);
-        if (ordered.Count == 0) throw new ArgumentException("No image was given.", nameof(files));
+        if (ordered.Count == 0) throw Reason(new ArgumentException(NoImage.English, nameof(files)), NoImage);
         foreach (string file in ordered)
         {
-            if (!File.Exists(file)) throw new FileNotFoundException($"{Path.GetFileName(file)} was not found.", file);
+            string name = Path.GetFileName(file);
+            if (!File.Exists(file))
+                throw Reason(new FileNotFoundException(string.Format(NotFound.English, name), file), NotFound, name);
             if (!ImagesToPdfPlan.IsImage(file))
-                throw new InvalidDataException($"{Path.GetFileName(file)} is not a JPEG, PNG, BMP, GIF or TIFF image.");
+                throw Reason(new InvalidDataException(string.Format(NotImage.English, name)), NotImage, name);
         }
         byte[] pdf = PdfEngineIntegration.MergeFiles(ordered);
         for (int attempt = 1; attempt <= 10_000; attempt++)
@@ -36,7 +38,41 @@ internal static partial class ImagesToPdfCommand
             }
             catch (IOException) when (File.Exists(output)) { }   // another file took the name meanwhile
         }
-        throw new IOException("Every name for the PDF is already taken.");
+        throw Reason(new IOException(NamesTaken.English), NamesTaken);
+    }
+
+    // The reasons this command writes itself (#506). The exception keeps its English message for logs
+    // and tests and carries the key, so the failure dialog can say it in the interface language once
+    // the strings are loaded; that happens only after a failure, in ShowFailure.
+    private static readonly (string Key, string English) NoImage = ("Str_ImagesToPdf_NoImage", "No image was given.");
+    private static readonly (string Key, string English) NotFound = ("Str_ImagesToPdf_NotFound", "{0} was not found.");
+    private static readonly (string Key, string English) NotImage =
+        ("Str_ImagesToPdf_NotImage", "{0} is not a JPEG, PNG, BMP, GIF or TIFF image.");
+    private static readonly (string Key, string English) NamesTaken =
+        ("Str_ImagesToPdf_NamesTaken", "Every name for the PDF is already taken.");
+    private const string ReasonKey = "KillerPDF.ImagesToPdfReason";
+
+    private static T Reason<T>(T error, (string Key, string English) text, params object[] args) where T : Exception
+    {
+        error.Data[ReasonKey] = (text.Key, text.English, args);
+        return error;
+    }
+
+    /// <summary>The reason for a failure in the interface language when it is one of this command's
+    /// own, otherwise the exception's message.</summary>
+    internal static string ReasonText(Exception error)
+    {
+        if (error.Data[ReasonKey] is not ValueTuple<string, string, object[]> reason) return error.Message;
+        return Localized(reason.Item1, reason.Item2, reason.Item3);
+    }
+
+    internal static string NoImageText => Localized(NoImage.Key, NoImage.English, []);
+
+    private static string Localized(string key, string english, object[] args)
+    {
+        string format = System.Windows.Application.Current?.TryFindResource(key) as string ?? english;
+        try { return string.Format(System.Globalization.CultureInfo.CurrentCulture, format, args); }
+        catch (FormatException) { return string.Format(System.Globalization.CultureInfo.InvariantCulture, english, args); }
     }
 
     /// <summary>Names the first image, then gives the reason.</summary>

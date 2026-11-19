@@ -116,7 +116,7 @@ namespace KillerPDF
             if (producer.Length > 0) parts.Add($"{L("Str_DocInfo_Producer")}: {producer}");
             parts.Add($"{L("Str_Print_Pages")}: {_info.PageCount}");
             parts.Add($"PDF {_info.Version.Major}.{_info.Version.Minor}");
-            try { if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath)) parts.Add($"{new FileInfo(filePath).Length / 1024.0:N0} KB"); } catch { }
+            try { if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath)) parts.Add(Services.ByteSizeText.Kilobytes(new FileInfo(filePath).Length)); } catch { }
             return string.Join("\n", parts);
         }
 

@@ -35,7 +35,10 @@ namespace KillerPDF.Shell
             catch (Exception ex)
             {
                 SetStatus("");
-                KillerDialog.Show(this, Loc("Str_Convert_Failed") + "\n" + ex.Message, "KillerPDF",
+                string reason = ex is OfficeConversionTimeoutException timeout
+                    ? Loc(timeout.Word ? "Str_Convert_TimedOutWord" : "Str_Convert_TimedOutExcel")
+                    : ex.Message;
+                KillerDialog.Show(this, Loc("Str_Convert_Failed") + "\n" + reason, "KillerPDF",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }

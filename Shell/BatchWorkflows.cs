@@ -91,13 +91,13 @@ public partial class MainWindow
                         {
                             token.ThrowIfCancellationRequested();
                             if (file.OutputFileName is not null && file.OutputFileName != Path.GetFileName(outputs[index]))
-                                throw new InvalidOperationException("The macro output name differs from its approved plan.");
+                                throw new InvalidOperationException(Loc("Str_Macro_OutputNameDrift"));
                             bool written = WriteGeneratedMacroOutputs([new(data, Path.GetFileName(outputs[index]))
                                 { Exports = file.Exports }], plannedFiles[index], overwrite, report, token);
                             if (written) report.AppendLine(string.Format(Loc("Str_Macro_Complete"), outputs[index]));
                             if (written && MacroSurvivorNote(data) is { } survivors) report.AppendLine(survivors);
                         }
-                        else report.AppendLine(result.ToText());
+                        else report.AppendLine(Services.LocalizedReports.MacroRun(result, MacroOperationName));
                     }
                     catch (Exception error) when (error is IOException or UnauthorizedAccessException)
                     {

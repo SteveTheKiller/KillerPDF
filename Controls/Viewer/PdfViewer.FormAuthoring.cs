@@ -62,11 +62,12 @@ namespace KillerPDF.Controls
                 (double x1, double y1, double x2, double y2) = CanvasToPdfRect(
                     canvasRect, page.Width, page.Height, canvasWidth, canvasHeight, rotation);
 
+                string tooltipFormat = Loc("Str_FormField_AnswerTooltip");
                 SaveTempAndReload(
                     keepAnnotations: true,
                     preserveZoom: true,
                     finalizeSavedFile: path => fieldName = PdfEngineIntegration.AddTextField(
-                        path, pageIndex, x1, y1, x2 - x1, y2 - y1),
+                        path, pageIndex, x1, y1, x2 - x1, y2 - y1, tooltipFormat: tooltipFormat),
                     selectedPageAfterReload: pageIndex,
                     preserveRenderedPages: true);
             }

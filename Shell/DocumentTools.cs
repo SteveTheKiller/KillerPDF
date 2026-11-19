@@ -51,17 +51,21 @@ public partial class MainWindow
             DocumentToolItem("Str_DocumentTools_Preflight", OpenPreflightTools, "\uE9D9"),
             DocumentToolItem("Str_CM_Title", OpenColorManagement, "\uE790"),
             DocumentToolItem("Str_DocumentTools_PrintProduction", () => ShowDocumentReport(Loc("Str_DocumentTools_PrintProduction"),
-                (path, protection) => PdfEngineIntegration.InspectPrintProduction(path, protection).ToText()), "\uE749"),
+                (path, protection) => LocalizedReports.PrintProduction(
+                    PdfEngineIntegration.InspectPrintProduction(path, protection))), "\uE749"),
             DocumentToolItem("Str_DocumentTools_Separations", ShowSeparationPreview, "\uE8B9"),
             DocumentToolItem("Str_DocumentTools_Accessibility", OpenAccessibilityTools, "\uE776"),
             DocumentToolItem("Str_DocumentTools_Signatures", () => ShowDocumentReport(Loc("Str_DocumentTools_Signatures"),
-                (path, protection) => PdfEngineIntegration.InspectSignatures(path, protection).ToText()), "\uE8D7"),
+                (path, protection) => LocalizedReports.Signatures(
+                    PdfEngineIntegration.InspectSignatures(path, protection))), "\uE8D7"),
             DocumentToolItem("Str_CertCatalog_Title", OpenCertificateCatalog, "\uEB95"),
             DocumentToolItem("Str_DocumentTools_Layers", () => ShowDocumentReport(Loc("Str_DocumentTools_Layers"),
-                (path, protection) => PdfEngineIntegration.InspectLayers(path, protection).ToText()), "\uE81E"),
+                (path, protection) => LocalizedReports.Layers(
+                    PdfEngineIntegration.InspectLayers(path, protection))), "\uE81E"),
             DocumentToolItem("Str_DocumentTools_EditLayers", EditLayers, "\uE81E"),
             DocumentToolItem("Str_DocumentTools_Portfolio", () => ShowDocumentReport(Loc("Str_DocumentTools_Portfolio"),
-                PdfEngineIntegration.InspectPortfolio), "\uE7B8"),
+                (path, protection) => LocalizedReports.Portfolio(
+                    PdfEngineIntegration.ReadPortfolio(path, protection))), "\uE7B8"),
             DocumentToolItem("Str_DocumentTools_EditPortfolio", EditPortfolio, "\uE7B8"),
             DocumentToolItem("Str_DocumentTools_EditPortfolioStructure", EditPortfolioStructure, "\uE80A"),
             DocumentToolItem("Str_DocumentTools_EditAttachments", EditAttachments, "\uE723"),
@@ -387,7 +391,7 @@ public partial class MainWindow
                 : Services.PicturesSkippedNote.Append(string.Format(Loc("Str_DataMerge_Complete"),
                     report.SucceededRecords, report.FailedRecords), skippedPictures, Loc("Str_Save_PicturesSkipped")));
             new DocumentReportDialog(this, Loc("Str_DocumentTools_DataMerge"),
-                report.ToText()).ShowDialog();
+                Services.LocalizedReports.DataMerge(report)).ShowDialog();
         }
         catch (OperationCanceledException)
         {
@@ -664,7 +668,7 @@ public partial class MainWindow
             bool hasUnresolvedLinks = findings.Any(finding =>
                 finding.Code == PdfNavigationFindingCode.LinkUnresolvedDestination);
             var dialog = new NavigationRepairDialog(
-                this, PdfEngineIntegration.FormatNavigationAudit(_currentFile, _protection),
+                this, LocalizedReports.NavigationAudit(findings),
                 hasUnsafeLinks, hasUnresolvedLinks);
             if (dialog.ShowDialog() != true) return;
             if (!EnsureEditable()) return;
@@ -775,8 +779,8 @@ public partial class MainWindow
 
         try
         {
-            string report = PdfEngineIntegration.CompareStructure(
-                left, Viewer.ProtectionRef, right, ViewerB.ProtectionRef).ToText();
+            string report = LocalizedReports.StructuralComparison(PdfEngineIntegration.CompareStructure(
+                left, Viewer.ProtectionRef, right, ViewerB.ProtectionRef));
             new DocumentReportDialog(this,
                 Loc("Str_DocumentTools_StructuralComparison"), report).ShowDialog();
         }

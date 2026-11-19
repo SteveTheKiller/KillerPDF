@@ -12,6 +12,14 @@ internal sealed class OfficeNotInstalledException(string application)
     internal string Application { get; } = application;
 }
 
+/// <summary>Word or Excel did not finish the export in time. The app says so in its own words
+/// (Str_Convert_TimedOutWord / Str_Convert_TimedOutExcel); the English message serves the CLI.</summary>
+internal sealed class OfficeConversionTimeoutException(bool word)
+    : TimeoutException(word ? "Word did not finish converting the document." : "Excel did not finish converting the workbook.")
+{
+    internal bool Word { get; } = word;
+}
+
 /// <summary>
 /// Document to PDF (#74). Word .docx and Excel .xlsx files are converted by KillerPDF itself.
 /// The older binary .doc and .xls formats are exported through Word or Excel when installed,
@@ -67,9 +75,7 @@ internal static class OfficeConversion
             // The STA thread is stuck inside Office. An instance this export created is ended by
             // process, since no call into it will return; a user's own instance is left alone.
             session.EndOwnedProcess();
-            throw new TimeoutException(word
-                ? "Word did not finish converting the document."
-                : "Excel did not finish converting the workbook.");
+            throw new OfficeConversionTimeoutException(word);
         }
         try
         {

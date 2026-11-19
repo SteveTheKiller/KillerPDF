@@ -107,8 +107,8 @@ namespace KillerPDF.Services
                         read += n;
                         double mb = read / 1048576.0;
                         progress(total.HasValue
-                            ? $"{label} {mb:F1} / {total.Value / 1048576.0:F1} MB  {cancelHint}"
-                            : $"{label} {mb:F1} MB  {cancelHint}");
+                            ? $"{label} {ByteSizeText.MegabytesOf(mb, total.Value / 1048576.0)}  {cancelHint}"
+                            : $"{label} {ByteSizeText.Megabytes(mb)}  {cancelHint}");
                     }
                 }
                 File.Move(part, destFile, overwrite: true);

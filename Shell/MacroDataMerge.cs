@@ -89,7 +89,7 @@ public partial class MainWindow
                         [new ReadOnlyMemory<byte>(source)], PdfRenameMacro.CreateContext(Path.GetFileName(inputs[index]), index + 1), token), token);
                     PdfMacroFileResult result = AssertSingleResult(outcome);
                     if (result.WasCanceled || _macroRedaction.Canceled) throw new OperationCanceledException(token);
-                    report.AppendLine(outcome.ToText());
+                    report.AppendLine(Services.LocalizedReports.MacroRun(outcome, MacroOperationName));
                     if (result.Outputs is not null)
                         WriteGeneratedMacroOutputs(result.Outputs, plans[index].OutputPaths, overwrite, report, token);
                 }

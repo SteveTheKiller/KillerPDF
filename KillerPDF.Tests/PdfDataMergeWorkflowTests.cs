@@ -117,7 +117,8 @@ public sealed class PdfDataMergeWorkflowTests
         IReadOnlyList<IReadOnlyDictionary<string, string?>> records =
             [new Dictionary<string, string?> { ["Unrelated"] = "value" }];
 
-        Assert.Throws<InvalidOperationException>(() =>
+        // A typed exception so the dialog can show its own localized reason (#506).
+        Assert.Throws<DataMergeNoColumnsException>(() =>
             PdfDataMergeWorkflow.CreatePlan(template, records, "output.pdf"));
     }
 }

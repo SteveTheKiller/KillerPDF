@@ -157,7 +157,16 @@ public sealed partial record PdfPreflightProfile
 /// <summary>One finding produced by a preflight profile.</summary>
 public sealed record PdfPreflightFinding(
     string Code, PdfDiagnosticSeverity Severity, string Message,
-    int? PageIndex = null, int? ObjectNumber = null);
+    int? PageIndex = null, int? ObjectNumber = null)
+{
+    /// <summary>
+    /// Gets the values the message names, in message order, so a caller can word the finding in another
+    /// language. Numbers are invariant-culture strings. Empty when the message names no values; for a message
+    /// that is an exception's own text, the arguments hold that text.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<string> Arguments { get; init; } = [];
+}
 
 /// <summary>The repeatable result of running one preflight profile.</summary>
 public sealed partial class PdfPreflightReport
@@ -270,7 +279,12 @@ public static class PdfPreflightRunner
         if (profile.Checks.Contains(PdfPreflightCheck.StructuralIntegrity))
             findings.AddRange(inspection.Diagnostics.Select(diagnostic => new PdfPreflightFinding(
                 $"Structural.{diagnostic.Code}", diagnostic.Severity, diagnostic.Message,
-                ObjectNumber: diagnostic.ObjectNumber)));
+                ObjectNumber: diagnostic.ObjectNumber)
+            {
+                // The byte offset locates the problem; the object number already has its own field.
+                Arguments = diagnostic.Offset is int offset
+                    ? [offset.ToString(System.Globalization.CultureInfo.InvariantCulture)] : []
+            }));
         if (!inspection.IsStructurallyValid || inspection.RequiresAuthentication)
         {
             if (profile.Checks.Any(check => check != PdfPreflightCheck.StructuralIntegrity))

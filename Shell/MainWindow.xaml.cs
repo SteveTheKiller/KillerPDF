@@ -941,9 +941,7 @@ namespace KillerPDF.Shell
             if (path is null || !System.IO.File.Exists(path)) return;
             string prior = StatusText.Text;
             long bytes = new System.IO.FileInfo(path).Length;
-            string size = bytes >= 1L << 20 ? $"{bytes / (double)(1 << 20):0.##} MB"
-                        : bytes >= 1L << 10 ? $"{bytes / (double)(1 << 10):0.#} KB"
-                        : $"{bytes} B";
+            string size = Services.ByteSizeText.Format(bytes);
             SetStatusHeld($"{System.IO.Path.GetFileName(path)} - {size}", 2500);
             var restore = new System.Windows.Threading.DispatcherTimer
                 { Interval = TimeSpan.FromMilliseconds(2550) };
