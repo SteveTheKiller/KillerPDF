@@ -1345,6 +1345,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Card_Edit">Personalizar esta tarjeta</sys:String>
     <sys:String x:Key="Str_Card_EditDone">Listo</sys:String>
     <sys:String x:Key="Str_Card_EditReset">Restablecer valores predeterminados</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">Restablecer</sys:String>
     <sys:String x:Key="Str_Card_Hidden">Ocultos</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Arrastra un mosaico aquí para ocultarlo</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Siempre visible</sys:String>

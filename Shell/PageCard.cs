@@ -30,7 +30,7 @@ namespace KillerPDF.Shell
             [
                 new("\uE8C8", Loc("Str_Ctx_DuplicatePage"), null, () => DuplicatePage(page), false, true),
                 new("\uE8B1", Loc("Str_Ctx_ExtractPages"), "AltShift:X", () => Split_Click(this, new RoutedEventArgs()), false, true),
-                new("\uE74D", Loc("Str_Ctx_DeletePages"), "Del", () => Delete_Click(this, new RoutedEventArgs()), false, true),
+                new("\uE7C3", Loc("Str_Ctx_InsertBlank"), null, () => InsertBlankPage(page), false, true),
             ];
             // Rotation is a second row of the same tiles: the outline buttons stuck out (Steve 2026-11-14).
             CardTile[] turnRow =
@@ -101,7 +101,7 @@ namespace KillerPDF.Shell
             ];
             // One customizable grid (KillerUI CardEdit): Duplicate, Extract and Delete always show, every other tile
             // starts on the card in five full rows, and the spares start in the drawer.
-            var strip = EditableTileGroups(menu, "Thumbnail", ["\uE8C8", "\uE8B1", "\uE74D"], [], pageRow, turnRow, toolRow, groupRow, spares);
+            var strip = EditableTileGroups(menu, "Thumbnail", ["\uE8C8", "\uE8B1", "\uE7C3"], [], pageRow, turnRow, toolRow, groupRow, spares);
             menu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, strip);
             return menu;
@@ -134,29 +134,13 @@ namespace KillerPDF.Shell
             var header = new DockPanel();
             DockPanel.SetDock(thumb, Dock.Left);
             header.Children.Add(thumb);
-            // Insert a blank page after this one: an icon at the header's right, so the strip below keeps three tiles.
-            var insert = new Button
-            {
-                Content = "\uE7C3", Width = 34, Height = 30, Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center,
-                ToolTip = Loc("Str_Ctx_InsertBlank")
-            };
-            if (TryFindResource("CardQuickButton") is Style quick) insert.Style = quick;
-            insert.Padding = new Thickness(0, 6, 0, 0);
-            System.Windows.Automation.AutomationProperties.SetName(insert, Loc("Str_Ctx_InsertBlank"));
-            insert.Click += (_, _) => { menu.IsOpen = false; InsertBlankPage(page); };
-            // A plus inside the page glyph, so the icon reads as "add page". The quick-button template draws its content
-            // as one glyph, so the plus is laid over it and lets clicks through to the button.
-            var insertPlus = new TextBlock
-            {
-                Text = GlyphText(0xE710), FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 8, IsHitTestVisible = false,
-                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 7, 0, 0)
-            };
-            insertPlus.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryBrush");
-            var insertIcon = new Grid { VerticalAlignment = VerticalAlignment.Center };
-            insertIcon.Children.Add(insert);
-            insertIcon.Children.Add(insertPlus);
-            DockPanel.SetDock(insertIcon, Dock.Right);
-            header.Children.Add(insertIcon);
+            // Delete sits at the header's right, the same trash button the mark cards carry there (Steve 2026-11-19), and
+            // Insert Blank Page After took its tile.
+            var delete = NavRowButton(menu, "\uE74D", "Str_Ctx_DeletePages", "Del", () => Delete_Click(this, new RoutedEventArgs()), true);
+            delete.VerticalAlignment = VerticalAlignment.Center;
+            delete.Margin = new Thickness(8, 0, 0, 0);
+            DockPanel.SetDock(delete, Dock.Right);
+            header.Children.Add(delete);
             header.Children.Add(text);
             System.Windows.Automation.AutomationProperties.SetName(header, title.Text);
             return header;
@@ -269,6 +253,7 @@ namespace KillerPDF.Shell
                 EditTip = Loc("Str_Card_Edit"),
                 DoneTip = Loc("Str_Card_EditDone"),
                 ResetTip = Loc("Str_Card_EditReset"),
+                ResetLabel = Loc("Str_Card_EditResetShort"),
                 HiddenLabel = Loc("Str_Card_Hidden"),
                 HiddenHint = Loc("Str_Card_HiddenHint"),
                 LockedTip = Loc("Str_Card_AlwaysShown"),

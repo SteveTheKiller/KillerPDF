@@ -1345,6 +1345,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Card_Edit">Bu kartı özelleştir</sys:String>
     <sys:String x:Key="Str_Card_EditDone">Bitti</sys:String>
     <sys:String x:Key="Str_Card_EditReset">Varsayılana sıfırla</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">Sıfırla</sys:String>
     <sys:String x:Key="Str_Card_Hidden">Gizli</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Gizlemek için bir kutucuğu buraya sürükleyin</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Her zaman gösterilir</sys:String>

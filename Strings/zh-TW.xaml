@@ -1347,6 +1347,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Card_Edit">自訂此卡片</sys:String>
     <sys:String x:Key="Str_Card_EditDone">完成</sys:String>
     <sys:String x:Key="Str_Card_EditReset">還原為預設</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">重設</sys:String>
     <sys:String x:Key="Str_Card_Hidden">已隱藏</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">將圖格拖曳到此處即可隱藏</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">一律顯示</sys:String>

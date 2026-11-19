@@ -1352,6 +1352,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Card_Edit">Kártya testreszabása</sys:String>
     <sys:String x:Key="Str_Card_EditDone">Kész</sys:String>
     <sys:String x:Key="Str_Card_EditReset">Alapértelmezés visszaállítása</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">Visszaállítás</sys:String>
     <sys:String x:Key="Str_Card_Hidden">Rejtett</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Húzzon ide egy csempét az elrejtéséhez</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Mindig látható</sys:String>

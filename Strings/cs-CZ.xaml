@@ -1350,6 +1350,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Card_Edit">Přizpůsobit tuto kartu</sys:String>
     <sys:String x:Key="Str_Card_EditDone">Hotovo</sys:String>
     <sys:String x:Key="Str_Card_EditReset">Obnovit výchozí</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">Obnovit</sys:String>
     <sys:String x:Key="Str_Card_Hidden">Skryté</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Přetažením dlaždice sem ji skryjete</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Vždy zobrazeno</sys:String>

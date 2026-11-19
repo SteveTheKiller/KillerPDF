@@ -141,7 +141,7 @@ public sealed class TileCaptionTests
     {
         // The strip lives in the kit (KillerUI CardBuilder.TileStrip); KillerPDF passes the short caption and hint.
         string strip = ShellSource.Between(ShellSource.Read("Controls", "CardBuilder.cs"),
-            "public static Border TileStrip(", "private static void ShowTileState(");
+            "public static Border TileStrip(", "public static void ShowTileState(");
         Assert.Contains("Tag = shown", strip);
         Assert.Contains("ToolTip = tile.Hint ?? Tip(caption, tile.Keys)", strip);
         Assert.Contains("AutomationProperties.SetName(button, caption)", strip);

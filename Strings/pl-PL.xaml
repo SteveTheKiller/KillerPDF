@@ -1353,6 +1353,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Card_Edit">Dostosuj tę kartę</sys:String>
     <sys:String x:Key="Str_Card_EditDone">Gotowe</sys:String>
     <sys:String x:Key="Str_Card_EditReset">Przywróć domyślne</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">Resetuj</sys:String>
     <sys:String x:Key="Str_Card_Hidden">Ukryte</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Przeciągnij tu kafelek, aby go ukryć</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Zawsze widoczne</sys:String>

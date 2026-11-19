@@ -1358,6 +1358,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Card_Edit">Personnaliser cette carte</sys:String>
     <sys:String x:Key="Str_Card_EditDone">Terminé</sys:String>
     <sys:String x:Key="Str_Card_EditReset">Rétablir les valeurs par défaut</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">Réinitialiser</sys:String>
     <sys:String x:Key="Str_Card_Hidden">Masqués</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Faites glisser une tuile ici pour la masquer</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Toujours affiché</sys:String>

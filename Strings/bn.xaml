@@ -1345,6 +1345,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Card_Edit">এই কার্ড কাস্টমাইজ করুন</sys:String>
     <sys:String x:Key="Str_Card_EditDone">সম্পন্ন</sys:String>
     <sys:String x:Key="Str_Card_EditReset">ডিফল্টে ফিরিয়ে নিন</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">রিসেট</sys:String>
     <sys:String x:Key="Str_Card_Hidden">লুকানো</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">লুকাতে একটি টাইল এখানে টেনে আনুন</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">সবসময় দেখানো হয়</sys:String>

@@ -113,6 +113,9 @@
          translucent BLACK rather than the white the dark themes use: 98SE's surfaces are
          #c0c0c0 and #ffffff, so a white wash would be invisible on both. -->
     <SolidColorBrush x:Key="RowSelectedBrush" Color="#004f00" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <!-- A checked card tile's glyph, caption and shortcut (CardBuilder.ShowTileState). RowSelectedBrush is
+         the solid accent here, not a wash, so the tile takes the Win98 highlight text like a hovered menu row. -->
+    <SolidColorBrush x:Key="TileCheckedTextBrush" Color="#ffffff" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlinePressedBrush" Color="#a0a0a0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
     <SolidColorBrush x:Key="RowAltBrush" Color="#08000000" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 

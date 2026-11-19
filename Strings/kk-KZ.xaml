@@ -1253,6 +1253,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Card_Edit">Бұл картаны баптау</sys:String>
     <sys:String x:Key="Str_Card_EditDone">Дайын</sys:String>
     <sys:String x:Key="Str_Card_EditReset">Әдепкіге қайтару</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">Қалпына келтіру</sys:String>
     <sys:String x:Key="Str_Card_Hidden">Жасырын</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Жасыру үшін тақтаны осында сүйреңіз</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Әрқашан көрсетіледі</sys:String>

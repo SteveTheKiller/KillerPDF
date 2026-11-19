@@ -1358,6 +1358,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Card_Edit">Настроить эту карточку</sys:String>
     <sys:String x:Key="Str_Card_EditDone">Готово</sys:String>
     <sys:String x:Key="Str_Card_EditReset">Сбросить по умолчанию</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">Сбросить</sys:String>
     <sys:String x:Key="Str_Card_Hidden">Скрытые</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Перетащите плитку сюда, чтобы скрыть её</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Всегда видно</sys:String>

@@ -108,7 +108,7 @@ public sealed class MenuIconConsistencyTests
     [Fact]
     public void InsertBlankPageOnTheCardShowsTheBlankPageGlyph()
         => AllShow(Only(PageMenu, "Loc(\"Str_Ctx_AddBlankPage\")"), "Insert blank page",
-            ("page card header", Glyphs(PageCard, "var insert = new Button", span: 3)),
+            ("page card", Glyphs(PageCard, "Loc(\"Str_Ctx_InsertBlank\")")),
             ("toolbar New", [Only(Toolbar, "\"Str_Lbl_New\"")]));
 
     [Fact]

@@ -1351,6 +1351,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Card_Edit">Diese Karte anpassen</sys:String>
     <sys:String x:Key="Str_Card_EditDone">Fertig</sys:String>
     <sys:String x:Key="Str_Card_EditReset">Auf Standard zurücksetzen</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">Zurücksetzen</sys:String>
     <sys:String x:Key="Str_Card_Hidden">Ausgeblendet</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Kachel hierher ziehen, um sie auszublenden</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Immer sichtbar</sys:String>

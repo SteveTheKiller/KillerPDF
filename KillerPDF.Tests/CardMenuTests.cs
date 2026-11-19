@@ -95,9 +95,12 @@ public sealed class CardMenuTests
 
         string card = Read("Shell", "PageCard.cs");
         string strip = Between(card, "CardTile[] pageRow =", "CardTile[] turnRow");
-        // Three tiles; Blank page is an icon in the header and rotation sits under the tiles (Steve: narrower card).
+        // Three tiles; Delete is the trash button in the header, as on the mark cards, and Insert Blank Page After took
+        // its tile (Steve 2026-11-19). Rotation sits under the tiles (Steve: narrower card).
         Assert.Equal(3, Count(strip, "Loc(\"Str_"));
-        Assert.Contains("header.Children.Add(insertIcon);", card);
+        Assert.Contains("Str_Ctx_InsertBlank", strip);
+        Assert.DoesNotContain("Str_Ctx_DeletePages", strip);
+        Assert.Contains("NavRowButton(menu, \"\\uE74D\", \"Str_Ctx_DeletePages\"", Between(card, "private FrameworkElement PageCardHeader(", "private string PageCardMeta("));
         Assert.Contains("menu.MinWidth = menu.MaxWidth = 320;", card);
         // Rotation is a second tile row matching the first (Steve 2026-11-14: the outline buttons stuck out): Rotate CCW,
         // Upside Down (a half turn) and Rotate CW.
@@ -108,15 +111,11 @@ public sealed class CardMenuTests
         Assert.Contains("RotatePages_Click(180", rotate);
         Assert.Contains("Str_Ctx_RotateCWShort", rotate);
         Assert.DoesNotContain("RotateRow(", card);
-        // The add-page icon in the header carries a plus.
-        Assert.Contains("insertPlus", Between(card, "private FrameworkElement PageCardHeader(", "private string PageCardMeta("));
         // The sidebar side and two-page thumbnails sit in one Sidebar row's flyout, not four rows at the foot.
         string side = Between(Read("Shell", "ContextMenu.cs"), "private void AppendSidebarSideSection(", "private ContextMenu MakeThemedMenu(");
         Assert.Contains("Header = Loc(\"Str_Card_Sidebar\")", side);
         Assert.Contains("sidebar.Items.Add(row);", side);
         Assert.DoesNotContain("Header = Loc(\"Str_Sidebar\"), IsEnabled = false", side);
-        // The short caption keeps the full action as its tooltip and accessible name.
-        Assert.Contains("ToolTip = Loc(\"Str_Ctx_InsertBlank\")", card);
         Assert.Contains("\"CardMenu\"", card);
         // The scanner cleanup, the extract-from-page tools and the moves fold into three submenus.
         Assert.Contains("cleanUp.Items.Add(", card);
@@ -125,7 +124,7 @@ public sealed class CardMenuTests
         // Review BF-007: the card names the clicked page, because its single-page actions act on that page, and
         // Insert blank page goes after it.
         Assert.DoesNotContain("Str_Card_AllSelected", card);
-        Assert.Contains("InsertBlankPage(page);", card);
+        Assert.Contains("() => InsertBlankPage(page)", strip);
     }
 
     [Fact]

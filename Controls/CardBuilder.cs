@@ -64,6 +64,8 @@ namespace KillerFamily.Controls
         public string EditTip { get; init; } = "Customize this card";
         public string DoneTip { get; init; } = "Done";
         public string ResetTip { get; init; } = "Reset to default";
+        /// <summary>The drawer's Reset link text: a word, because a circular arrow reads as Refresh.</summary>
+        public string ResetLabel { get; init; } = "Reset";
         public string HiddenLabel { get; init; } = "Hidden";
         public string HiddenHint { get; init; } = "Drag a tile here to hide it";
         public string LockedTip { get; init; } = "Always shown";
@@ -283,7 +285,8 @@ namespace KillerFamily.Controls
             drawerHint.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
             var drawerTitle = new TextBlock { Text = edit.HiddenLabel, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0) };
             drawerTitle.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
-            var reset = SmallButton("", edit.ResetTip);
+            var reset = LinkButton(edit.ResetLabel, edit.ResetTip);
+            reset.Margin = new Thickness(4, 0, 4, 0);
             DockPanel.SetDock(reset, Dock.Right);
             var done = CloseButton(edit.DoneTip);
             done.Margin = new Thickness(2, 0, 0, 0);
@@ -304,10 +307,23 @@ namespace KillerFamily.Controls
             grain.SetResourceReference(UIElement.OpacityProperty, "GrainOpacity");
             grain.SetResourceReference(Border.BackgroundProperty, "GrainTileBrush");
             drawerBody.Margin = new Thickness(7);
-            var drawerFace = new Border { BorderThickness = new Thickness(0, 1, 1, 1), Child = new Grid { Children = { grain, drawerBody } }, RenderTransform = slide };
+            var drawerFace = new Border { BorderThickness = new Thickness(0, 1, 1, 1), Child = new Grid { Children = { grain, drawerBody } } };
             drawerFace.SetResourceReference(Border.BackgroundProperty, "MenuBackgroundBrush");
-            drawerFace.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush");
-            var drawerClip = new Border { ClipToBounds = true, Child = drawerFace };
+            // The menu's own bevels on a flat theme (98SE), as the card template draws them, minus the joined side.
+            var bevels = new (string Brush, string Thickness, bool Inner)[]
+            {
+                ("MenuBevelLightBrush", "MenuBevelLightThickness", true), ("MenuBevelDarkBrush", "MenuBevelDarkThickness", true),
+                ("MenuBevel2LightBrush", "MenuBevel2LightThickness", false), ("MenuBevel2DarkBrush", "MenuBevel2DarkThickness", false),
+            }.Select(b =>
+            {
+                var bevel = new Border { IsHitTestVisible = false, Tag = b };
+                bevel.SetResourceReference(Border.BorderBrushProperty, b.Brush);
+                return bevel;
+            }).ToList();
+            var slideHost = new Grid { RenderTransform = slide };
+            slideHost.Children.Add(drawerFace);
+            foreach (var bevel in bevels) slideHost.Children.Add(bevel);
+            var drawerClip = new Border { ClipToBounds = true, Child = slideHost };
             var drawer = new Popup
             {
                 AllowsTransparency = true, StaysOpen = true, Placement = PlacementMode.Right, PlacementTarget = card,
@@ -329,7 +345,8 @@ namespace KillerFamily.Controls
                     }
                 gridHost.Child = strip;
                 // The drawer's own grid, two across, each row only as tall as its tiles, like the card's.
-                var stashed = all.Where(t => hidden.Contains(t.Key)).ToList();
+                // Alphabetical by the name the tile shows, so a stocked drawer reads like an index.
+                var stashed = all.Where(t => hidden.Contains(t.Key)).OrderBy(t => t.Shown ?? t.Caption, StringComparer.CurrentCultureIgnoreCase).ToList();
                 var drawerStrip = GroupGrid(card, name, stashed.Count > 0 ? [stashed] : [], 2);
                 foreach (UIElement el in ((Panel)drawerStrip.Child).Children)
                     if (TileOf(el) is { } tile)
@@ -355,6 +372,17 @@ namespace KillerFamily.Controls
                 Rect r = face is not null && card.IsAncestorOf(face) ? face.TransformToAncestor(card).TransformBounds(new Rect(face.RenderSize)) : new Rect(card.RenderSize);
                 var radius = card.TryFindResource("PanelCornerRadius") is CornerRadius cr ? cr : new CornerRadius(0);
                 drawerFace.CornerRadius = new CornerRadius(0, radius.TopRight, radius.BottomRight, 0);
+                // A flat theme (98SE) has no accent edge on its menus: the drawer takes the menu's border and bevels.
+                bool flat = card.TryFindResource("UseDialogCaption") is true;
+                drawerFace.SetResourceReference(Border.BorderBrushProperty, flat ? "MenuBorderBrush" : "PrimaryBrush");
+                var innerMargin = card.TryFindResource("MenuBevelInnerMargin") is Thickness im ? im : new Thickness(0);
+                foreach (var bevel in bevels)
+                {
+                    var (_, thicknessKey, inner) = ((string, string, bool))bevel.Tag;
+                    var t = card.TryFindResource(thicknessKey) is Thickness th ? th : new Thickness(0);
+                    bevel.BorderThickness = new Thickness(0, t.Top, t.Right, t.Bottom);
+                    bevel.Margin = inner ? new Thickness(0, innerMargin.Top, innerMargin.Right, innerMargin.Bottom) : new Thickness(0);
+                }
                 grain.CornerRadius = new CornerRadius(0, Math.Max(0, radius.TopRight - 1), Math.Max(0, radius.BottomRight - 1), 0);
                 double inset = Math.Max(4, Math.Max(radius.TopRight, radius.BottomRight));
                 double room = Math.Max(60, r.Height - 2 * inset);
@@ -423,7 +451,7 @@ namespace KillerFamily.Controls
             pencil.Click += (_, _) => { if (!editing) SetEditing(true); };
             reset.Click += (_, _) => ResetLayout();
             done.Click += (_, _) => { if (editing) SetEditing(false); };
-            drawerClip.MouseLeave += (_, _) => HotDone(false);
+            drawerClip.MouseLeave += (_, _) => { HotDone(false); HotReset(false); };
             card.Closed += (_, _) => { if (editing) SetEditing(false, animate: false); };
 
             // The card holds the mouse while it is open, so the drawer's clicks arrive at the card: both surfaces are
@@ -433,6 +461,11 @@ namespace KillerFamily.Controls
             Point start = default;
             bool dragging = false, scrubbing = false;
             // The card holds the mouse, so the X never sees the pointer arrive: its red hover follows the pointer here.
+            // The Reset link underlines under the pointer, for the same reason.
+            void HotReset(bool on)
+            {
+                if (reset.Content is TextBlock text) text.TextDecorations = on && reset.IsEnabled ? TextDecorations.Underline : null;
+            }
             void HotDone(bool on)
             {
                 if (on == doneHot) return;
@@ -506,6 +539,7 @@ namespace KillerFamily.Controls
             {
                 if (!editing) return;
                 HotDone(Over(e, done));
+                HotReset(Over(e, reset));
                 if (scrubbing) { if (e.LeftButton == MouseButtonState.Pressed) Scrub(e); else scrubbing = false; return; }
                 if (pressed is null || e.LeftButton != MouseButtonState.Pressed || edit.Locked(pressed)) return;
                 if (!dragging && (e.GetPosition(card) - start).Length < 4) return;
@@ -556,12 +590,31 @@ namespace KillerFamily.Controls
             return outer;
         }
 
-        // A small dim icon button for a card's corner controls (the edit pencil, Reset).
+        // A small dim icon button for a card's corner controls (the edit pencil).
         private static Button SmallButton(string glyph, string tip)
         {
             var b = new Button { Content = glyph, ToolTip = tip, Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 11, FontFamily = new FontFamily("Segoe MDL2 Assets"), Cursor = Cursors.Hand };
             b.SetResourceReference(FrameworkElement.StyleProperty, "MenuRowButton");
             b.SetResourceReference(Control.ForegroundProperty, "DimTextBrush");
+            AutomationProperties.SetName(b, tip);
+            ToolTipService.SetShowOnDisabled(b, true);
+            return b;
+        }
+
+        // A text link at caption size: the accent color, dim while there is nothing to do, underlined under the pointer
+        // (the card drives that, since it holds the mouse). No face, no border.
+        private static Button LinkButton(string text, string tip)
+        {
+            var bd = new FrameworkElementFactory(typeof(Border));
+            bd.SetValue(Border.BackgroundProperty, Brushes.Transparent);
+            var content = new FrameworkElementFactory(typeof(ContentPresenter));
+            content.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            bd.AppendChild(content);
+            var label = new TextBlock { Text = text, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+            var b = new Button { Content = label, ToolTip = tip, Cursor = Cursors.Hand, Focusable = false, VerticalAlignment = VerticalAlignment.Center, Template = new ControlTemplate(typeof(Button)) { VisualTree = bd } };
+            void Paint() => label.SetResourceReference(TextBlock.ForegroundProperty, b.IsEnabled ? "PrimaryBrush" : "DimTextBrush");
+            Paint();
+            b.IsEnabledChanged += (_, _) => { Paint(); if (!b.IsEnabled) label.TextDecorations = null; };
             AutomationProperties.SetName(b, tip);
             ToolTipService.SetShowOnDisabled(b, true);
             return b;
@@ -675,10 +728,47 @@ namespace KillerFamily.Controls
         }
 
         // An on/off tile is filled with the selected-row color while it is on (the template paints its Background).
-        private static void ShowTileState(Button button, bool on)
+        // Most themes make that color a faint wash, so the glyph and caption keep their colors. A theme that makes
+        // it a solid fill states TileCheckedTextBrush (98SE: white on its navy), and the glyph, caption and
+        // shortcut take it while the tile is on, or they would sit dark on dark. Public so an app that repaints an
+        // open card's tiles in place shows them the same way.
+        public static void ShowTileState(Button button, bool on)
         {
             if (on) button.SetResourceReference(Control.BackgroundProperty, "RowSelectedBrush");
             else button.ClearValue(Control.BackgroundProperty);
+            bool stated = on && button.TryFindResource("TileCheckedTextBrush") is Brush;
+            // A theme that derives the selected-row color from its accent (Light) also makes it a solid fill without
+            // stating a text color, so any part that no longer reads on an opaque fill (4.5:1 for text, 3:1 for the
+            // glyph) takes black or white, whichever reads better. Parts that already read keep their colors.
+            var fill = on && !stated && button.TryFindResource("RowSelectedBrush") is SolidColorBrush { Color.A: 255 } solid
+                ? solid.Color : (Color?)null;
+            static double Luminance(Color c)
+            {
+                static double Channel(byte v) { double x = v / 255.0; return x <= 0.04045 ? x / 12.92 : Math.Pow((x + 0.055) / 1.055, 2.4); }
+                return 0.2126 * Channel(c.R) + 0.7152 * Channel(c.G) + 0.0722 * Channel(c.B);
+            }
+            static double Contrast(Color a, Color b)
+            {
+                double la = Luminance(a), lb = Luminance(b);
+                return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
+            }
+            void Paint()
+            {
+                foreach (string part in new[] { "Glyph", "Caption", "Shortcut" })
+                {
+                    if (button.Template?.FindName(part, button) is not TextBlock text) continue;
+                    if (stated) { text.SetResourceReference(TextBlock.ForegroundProperty, "TileCheckedTextBrush"); continue; }
+                    text.ClearValue(TextBlock.ForegroundProperty);
+                    if (fill is not { } back || text.Foreground is not SolidColorBrush { } current) continue;
+                    if (Contrast(current.Color, back) >= (part == "Glyph" ? 3.0 : 4.5)) continue;
+                    text.Foreground = Contrast(Colors.White, back) >= Contrast(Colors.Black, back) ? Brushes.White : Brushes.Black;
+                }
+            }
+            button.ApplyTemplate();
+            if (button.Template?.FindName("Glyph", button) is TextBlock) { Paint(); return; }
+            // Not templated yet (a tile built before its card is in the tree): paint once it loads.
+            void Once(object sender, RoutedEventArgs e) { button.Loaded -= Once; Paint(); }
+            button.Loaded += Once;
         }
 
         // The quick-button template draws its content as one glyph, so the chevron is laid over the tile beside the

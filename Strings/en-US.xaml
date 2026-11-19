@@ -1365,6 +1365,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Card_Edit">Customize this card</sys:String>
     <sys:String x:Key="Str_Card_EditDone">Done</sys:String>
     <sys:String x:Key="Str_Card_EditReset">Reset to default</sys:String>
+    <sys:String x:Key="Str_Card_EditResetShort">Reset</sys:String>
     <sys:String x:Key="Str_Card_Hidden">Hidden</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Drag a tile here to hide it</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Always shown</sys:String>
