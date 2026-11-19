@@ -507,7 +507,7 @@ namespace KillerPDF.Controls
         internal static Task? PrewarmTask;
 
         /// <summary>Test hook: the screen size, in DIPs, the ink is drawn for.</summary>
-        internal static Size? InkScreenOverride;
+        internal static Size? InkScreenOverride { get; set; }
 
         // The largest screen any motif window has covered, in DIPs, starting at the primary screen. It only grows, so
         // moving a window to a smaller monitor never redraws the art, and a larger secondary monitor or a window
