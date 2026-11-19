@@ -70,12 +70,13 @@ namespace KillerPDF.Controls
                 VerticalAlignment = VerticalAlignment.Top,
                 MaxWidth = 640,
                 Margin = new Thickness(0, 12, 0, 0),
-                Effect = host.AnnotBarShadow()
+                BorderThickness = new Thickness(1)
             };
             bar.SetResourceReference(Border.BackgroundProperty, "AnnotationBarBrush");
-            bar.SetResourceReference(Border.CornerRadiusProperty, "AnnotationBarCornerRadius");
-            bar.SetResourceReference(Border.BorderBrushProperty, "AnnotationBarBorderBrush");
-            bar.SetResourceReference(Border.BorderThicknessProperty, "BarEdgeThickness");
+            // A notice floats over the page, so it is a whole card: four rounded corners, an edge and the flyout shadow.
+            bar.SetResourceReference(Border.CornerRadiusProperty, "FlyoutCornerRadius");
+            bar.SetResourceReference(UIElement.EffectProperty, "CardShadowEffect");
+            bar.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
             bar.SetResourceReference(Border.PaddingProperty, "BarPadding");
             AutomationProperties.SetName(bar, message.Text);
             Panel.SetZIndex(bar, 90);

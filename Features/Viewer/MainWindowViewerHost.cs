@@ -113,7 +113,6 @@ namespace KillerPDF.Shell
         PageAnnotation? IViewerHost.CloneAnnotation(PageAnnotation annotation) => CloneAnnotation(annotation);
         System.Windows.TextDecorationCollection? IViewerHost.BuildDecorations(bool underline, bool strike)
             => BuildDecorations(underline, strike);
-        System.Windows.Media.Effects.DropShadowEffect IViewerHost.AnnotBarShadow() => AnnotBarShadow();
         void IViewerHost.FadeOverlayOut(UIElement element) => FadeOverlayOut(element);
         void IViewerHost.FadeOutAndRemoveBar(System.Windows.Controls.Border? bar) => FadeOutAndRemoveBar(bar);
         string IViewerHost.WordsToText(System.Collections.Generic.IEnumerable<KillerPdf.Engine.Documents.PdfExtractedWord> words)

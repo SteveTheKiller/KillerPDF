@@ -117,7 +117,6 @@ namespace KillerPDF.Features
         System.Windows.Media.SolidColorBrush SwatchDimBorder { get; }
         PageAnnotation? CloneAnnotation(PageAnnotation annotation);
         System.Windows.TextDecorationCollection? BuildDecorations(bool underline, bool strike);
-        System.Windows.Media.Effects.DropShadowEffect AnnotBarShadow();
         void FadeOverlayOut(UIElement element);
         void FadeOutAndRemoveBar(Border? bar);
         string WordsToText(System.Collections.Generic.IEnumerable<KillerPdf.Engine.Documents.PdfExtractedWord> words);

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using KillerPDF.Controls;
 using KillerPDF.Shell;
 using System.IO;
@@ -82,18 +82,13 @@ namespace KillerPDF.Shell
             Panel.SetZIndex(darkEdge, 20);
             host.Children.Add(darkEdge);
             var hostGrain = new Border { Margin = new Thickness(-4), IsHitTestVisible = false };
-            hostGrain.SetResourceReference(Border.CornerRadiusProperty, "AnnotationBarCornerRadius");
+            hostGrain.SetResourceReference(Border.CornerRadiusProperty, "FlyoutCornerRadius");
             hostGrain.SetResourceReference(UIElement.OpacityProperty, "GrainOpacity");
             hostGrain.SetResourceReference(Border.BackgroundProperty, "GrainBrushShared");
             host.Children.Add(hostGrain);
             host.Children.Add(content);
             return host;
         }
-
-        // Drop shadow for the viewer's floating notice bars: straight down, never above the bar.
-        private static System.Windows.Media.Effects.DropShadowEffect AnnotBarShadow()
-            => new() { Color = Colors.Black, BlurRadius = 6, ShadowDepth = 3, Direction = 270,
-                Opacity = Application.Current.TryFindResource("BarShadowOpacity") is double opacity ? opacity : 0.38 };
 
         private EditTool? _annotBarTool { get => ActiveViewer.AnnotBarToolRef; set => ActiveViewer.AnnotBarToolRef = value; }
 

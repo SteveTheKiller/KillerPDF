@@ -240,6 +240,8 @@ namespace KillerPDF.Shell
                 var button = new Button { Content = glyph, Tag = shown, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled, MaxWidth = 84 };
                 // The caption alone is the accessible name; the tooltip adds the shortcut.
                 System.Windows.Automation.AutomationProperties.SetName(button, caption);
+                // The tile's second line shows these keys in brackets while Show Shortcuts in Menus is on.
+                if (gesture is not null) System.Windows.Automation.AutomationProperties.SetAcceleratorKey(button, GesturesFor(gesture));
                 ToolTipService.SetShowOnDisabled(button, true);
                 if (TryFindResource("CardQuickButton") is Style style) button.Style = style;
                 bool on = tile.Checked == true;

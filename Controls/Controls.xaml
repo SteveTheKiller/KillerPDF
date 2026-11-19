@@ -1537,6 +1537,11 @@
                             <TextBlock x:Name="Caption" Text="{TemplateBinding Tag}" FontSize="11" Margin="0,5,0,0"
                                        HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
                                        TextTrimming="CharacterEllipsis" MaxHeight="30"/>
+                            <!-- The shortcut on its own line, in brackets. AcceleratorKey carries it, so a screen reader
+                                 announces the same keys, and Show Shortcuts in Menus hides the line. -->
+                            <TextBlock x:Name="Shortcut" FontSize="10" Margin="0,2,0,0" HorizontalAlignment="Center"
+                                       TextAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource DimTextBrush}"
+                                       Text="{Binding (AutomationProperties.AcceleratorKey), RelativeSource={RelativeSource TemplatedParent}, StringFormat=({0})}"/>
                         </StackPanel>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -1544,7 +1549,14 @@
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
                             <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
                             <Setter TargetName="Caption" Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
+                            <Setter TargetName="Shortcut" Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
                         </Trigger>
+                        <Trigger Property="AutomationProperties.AcceleratorKey" Value="">
+                            <Setter TargetName="Shortcut" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                        <DataTrigger Binding="{Binding Source={x:Static kl:ShortcutHints.Current}, Path=Enabled}" Value="False">
+                            <Setter TargetName="Shortcut" Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
                         </Trigger>
