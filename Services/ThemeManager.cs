@@ -169,28 +169,6 @@ namespace KillerPDF.Services
             return pick;
         }
 
-        /// <summary>
-        /// <paramref name="accent"/> unchanged when it clears 4.5:1 on <paramref name="ground"/>, otherwise
-        /// mixed toward white (dark ground) or near-black (light ground) in 5% steps until it does.
-        /// </summary>
-        private static SolidColorBrush ReadableTint(SolidColorBrush accent, Color ground)
-        {
-            Color start = accent.Color;
-            if (Contrast(start, ground) >= 4.5) return accent;
-            Color pole = Relative(ground) < 0.18 ? Colors.White : Color.FromRgb(0x10, 0x10, 0x10);
-            Color pick = pole;
-            for (int step = 1; step <= 20; step++)
-            {
-                double t = step / 20.0;
-                var mixed = Color.FromRgb((byte)Math.Round(start.R + (pole.R - start.R) * t),
-                    (byte)Math.Round(start.G + (pole.G - start.G) * t), (byte)Math.Round(start.B + (pole.B - start.B) * t));
-                if (Contrast(mixed, ground) >= 4.5) { pick = mixed; break; }
-            }
-            var brush = new SolidColorBrush(pick);
-            brush.Freeze();
-            return brush;
-        }
-
         /// <summary>WCAG 2.1 contrast ratio between two opaque colors, 1.0 to 21.0.</summary>
         private static double Contrast(Color a, Color b)
         {
@@ -375,13 +353,6 @@ namespace KillerPDF.Services
             Mirror("AccentLogo", "PrimaryBrush");
             SetIfAbsent("WordmarkAccentShadowOpacity", 0.0);   // halo behind the accent run; Light/Yellow turns it on
             Mirror("MenuSeparatorBrush", "MenuBorderBrush");
-            // Menu tile icons wear the accent, and a dark accent on a dark menu read dim (Trash Polka's red
-            // was 3.78:1). The icon keeps the accent's hue and is lifted toward the menu's far pole until it
-            // clears 4.5:1; a theme that states its own value keeps it.
-            if (!combined.Contains("MenuIconBrush") && combined["PrimaryBrush"] is SolidColorBrush iconAccent
-                && combined["MenuBackgroundBrush"] is SolidColorBrush iconGround)
-                combined["MenuIconBrush"] = ReadableTint(iconAccent, iconGround.Color);
-            else Mirror("MenuIconBrush", "PrimaryBrush");
 
             // The keyboard map's key caps. 98SE names its own, white rather than button-face gray.
             Mirror("KeyCapBrush", "PaneBrush");
