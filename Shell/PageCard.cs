@@ -217,19 +217,25 @@ namespace KillerPDF.Shell
             => new(glyph, caption, gesture, null, false, rows.IsEnabled) { Flyout = rows };
 
         private FrameworkElement QuickStrip(ContextMenu menu, int columns, params CardTile[] tiles)
-            => KillerFamily.Controls.CardBuilder.TileStrip(menu, Loc("Str_Card_Actions"), columns, tiles.Select(t =>
+            => KillerFamily.Controls.CardBuilder.TileStrip(menu, Loc("Str_Card_Actions"), columns, tiles.Select(KitTile));
+
+        // The family card grid (KillerUI CardBuilder.TileGroups): three across, one group of related tiles per row.
+        private FrameworkElement TileGroups(ContextMenu menu, params IEnumerable<CardTile>[] groups)
+            => KillerFamily.Controls.CardBuilder.TileGroups(menu, Loc("Str_Card_Actions"), groups.Select(g => g.Select(KitTile)));
+
+        private KillerFamily.Controls.CardTile KitTile(CardTile t)
+        {
+            string caption = t.Caption.TrimEnd('.', '…').TrimEnd();
+            return new KillerFamily.Controls.CardTile(t.Glyph, caption, t.Gesture is null ? null : GesturesFor(t.Gesture), t.Act, t.Mirror, t.Enabled)
             {
-                string caption = t.Caption.TrimEnd('.', '…').TrimEnd();
-                return new KillerFamily.Controls.CardTile(t.Glyph, caption, t.Gesture is null ? null : GesturesFor(t.Gesture), t.Act, t.Mirror, t.Enabled)
-                {
-                    // A name too long for two lines of the tile shows its short caption; tooltip and name keep it whole.
-                    Shown = ShortTileCaption(caption),
-                    Hint = t.Gesture is null ? caption : WithGesture(caption, t.Gesture),
-                    Flyout = t.Flyout?.Items.Cast<object>().ToList(),
-                    Checked = t.Checked,
-                    KeepsOpen = t.KeepsOpen,
-                };
-            }));
+                // A name too long for two lines of the tile shows its short caption; tooltip and name keep it whole.
+                Shown = ShortTileCaption(caption),
+                Hint = t.Gesture is null ? caption : WithGesture(caption, t.Gesture),
+                Flyout = t.Flyout?.Items.Cast<object>().ToList(),
+                Checked = t.Checked,
+                KeepsOpen = t.KeepsOpen,
+            };
+        }
 
         // The short caption (TileCaptions.ShortKeys) of a tile whose full name is this caption, or the caption itself.
         private string ShortTileCaption(string caption)

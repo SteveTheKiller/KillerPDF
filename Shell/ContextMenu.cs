@@ -169,23 +169,24 @@ namespace KillerPDF.Shell
             // tools would mark it, without switching tools first.
             if (ActiveViewer.HasTextSelectionRangeExt || hasTextSel)
             {
-                var text = new List<(string, string, string?, Action, bool, bool)>();
-                if (hasTextSel) text.Add(("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedText, false, true));
+                // Family card grid: Copy and Redact (what to do with the text), then the three text marks as one row.
+                var take = new List<CardTile>();
+                var marks = new List<CardTile>();
+                if (hasTextSel) take.Add(new("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedText, false, true));
                 if (ActiveViewer.HasTextSelectionRangeExt)
                 {
-                    text.Add(("\uE7E6", Loc("Str_Lbl_Highlight"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Highlight), false, true));
-                    text.Add(("\uE8DC", Loc("Str_Lbl_Underline"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Underline), false, true));
-                    text.Add(("\uEDE0", Loc("Str_Lbl_Strike"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Strikethrough), false, true));
-                    text.Add(("\uED1A", Loc("Str_Lbl_Redact"), null, ActiveViewer.MarkTextSelectionForRedaction, false, true));
+                    take.Add(new("\uED1A", Loc("Str_Lbl_Redact"), null, ActiveViewer.MarkTextSelectionForRedaction, false, true));
+                    marks.Add(new("\uE7E6", Loc("Str_Lbl_Highlight"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Highlight), false, true));
+                    marks.Add(new("\uE8DC", Loc("Str_Lbl_Underline"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Underline), false, true));
+                    marks.Add(new("\uEDE0", Loc("Str_Lbl_Strike"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Strikethrough), false, true));
                 }
-                // Two rows of three keep the page menu narrow (Steve: five across was too wide).
-                var textStrip = QuickStrip(_ctxMenu, 3, [.. text]);
+                var textStrip = TileGroups(_ctxMenu, take, marks);
                 _ctxMenu.Items.Add(CardSlot(LabelledStrip(Loc("Str_Card_SelectedText"), textStrip), new Thickness(0)));
                 FocusFirstActionFromKeyboard(_ctxMenu, textStrip);
             }
 
             // Placement drops the item exactly where the user right-clicked.
-            var placeStrip = QuickStrip(_ctxMenu,
+            var placeStrip = QuickStrip(_ctxMenu, KillerFamily.Controls.CardBuilder.CardColumns,
                 ("\uE8D2", Loc("Str_Lbl_Text"), "T", () =>
                 {
                     SetTool(EditTool.Text);
@@ -233,19 +234,25 @@ namespace KillerPDF.Shell
             // Nine tiles, three full rows: Delete and Paste keep their spots (dimmed when they can't act), Full Screen
             // lives in the footer, and Book layout sits on the nav row. Markup selected elsewhere on the page can
             // still go from here.
-            var pageTiles = new List<CardTile>
-            {
+            CardTile[] clipboard =
+            [
                 new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(pageIdx), false, CanPasteInView()),
                 new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true),
                 new("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, hasSelection),
+            ];
+            CardTile[] onPage =
+            [
                 new("\uEE6F", Loc("Str_Ctx_OcrPage"), "CtrlShift:O", () => OcrPageToClipboard(pageIdx), false, true),
                 new("\uE932", Loc("Str_Ctx_StampPages"), "S", () => OpenStampTool(pageIdx), false, true),
+                new("\uE75C", Loc("Str_Ctx_ClearPage"), null, () => ActiveViewer.ClearPageAnnotationsExt(pageIdx), false, canClearPage),
+            ];
+            CardTile[] more =
+            [
                 FlyoutTile("\uE7C3", Loc("Str_Card_PageTools"), null, tools),
                 FlyoutTile("\uE8A1", Loc("Str_FieldPreset_Menu"), null, BuildFieldPresetMenu(pt, pageIdx)),
                 FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
-                new("\uE75C", Loc("Str_Ctx_ClearPage"), null, () => ActiveViewer.ClearPageAnnotationsExt(pageIdx), false, canClearPage),
-            };
-            var pageStrip = QuickStrip(_ctxMenu, 3, [.. pageTiles]);
+            ];
+            var pageStrip = TileGroups(_ctxMenu, clipboard, onPage, more);
             _ctxMenu.Items.Add(CardSlot(pageStrip, new Thickness(0)));
         }
 
@@ -271,8 +278,7 @@ namespace KillerPDF.Shell
             if (!string.IsNullOrEmpty(_selectedText)) book.Add(new("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedText, false, true));
             book.Add(new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true));
             book.Add(new("\uE8AB", Loc("Str_NativePdf_Convert"), null, ConvertNativeDocumentToPdf, false, true));
-            book.AddRange(ViewTiles());
-            var bookStrip = QuickStrip(_ctxMenu, 0, [.. book]);
+            var bookStrip = TileGroups(_ctxMenu, book, ViewTiles());
             _ctxMenu.Items.Add(CardSlot(bookStrip, new Thickness(0)));
             FocusFirstActionFromKeyboard(_ctxMenu, bookStrip);
         }
@@ -910,21 +916,27 @@ namespace KillerPDF.Shell
             AddNavRow(menu, zoomIn: zoomInGlyph, zoomOut: zoomOutGlyph);
             // Every other action as one grid, three tiles across like the page menu.
             // Most used first: Paste, Select All and Add Blank Page lead, then the page fixes, and Clear goes last.
-            var tiles = new List<CardTile>
-            {
+            CardTile[] markup =
+            [
                 new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(PageList.SelectedIndex), false, CanPasteInView()),
                 new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true),
+                new("\uED62", Loc("Str_Lbl_Clear"), null, () => ClearAllAnnotations_Click(this, new RoutedEventArgs()), false, EditAvailability().Clear),
+            ];
+            CardTile[] pages =
+            [
                 new("\uE7C3", Loc("Str_Ctx_AddBlankPage"), "AltShift:A", AddBlankPageAtEnd, false, true),
+                new("\uE8CB", Loc("Str_Pages_Reverse"), "AltShift:R", ReversePageOrder, false, true),
+                FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
+            ];
+            CardTile[] cleanUp =
+            [
                 new("\uE7AD", Loc("Str_Pages_FixOrientation"), "AltShift:O", FixPageOrientation, false, true),
                 new("\uE809", Loc("Str_Pages_Straighten"), "AltShift:S", StraightenScannedPages, false, true),
                 new("\uE89F", Loc("Str_Pages_DivideSpreads"), "AltShift:D", DivideSpreads, false, true),
-                new("\uE8CB", Loc("Str_Pages_Reverse"), "AltShift:R", ReversePageOrder, false, true),
-                FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
-                new("\uED62", Loc("Str_Lbl_Clear"), null, () => ClearAllAnnotations_Click(this, new RoutedEventArgs()), false, EditAvailability().Clear),
-            };
+            ];
             // Nine tiles, three full rows: Paste always holds its spot (dimmed with nothing to paste), Full Screen
             // lives in the footer, and Book layout sits on the nav row beside zoom.
-            var grid = QuickStrip(menu, 3, [.. tiles]);
+            var grid = TileGroups(menu, markup, pages, cleanUp);
             menu.Items.Add(CardSlot(grid, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, grid);
         }

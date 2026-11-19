@@ -125,10 +125,51 @@ namespace KillerFamily.Controls
         /// </summary>
         public static Border TileStrip(ContextMenu card, string name, int columns, IEnumerable<CardTile> tiles)
         {
-            var list = tiles.ToList();
+            var list = tiles.Cast<CardTile?>().ToList();
             var grid = columns > 0 && list.Count > columns ? new UniformGrid { Columns = columns } : new UniformGrid { Rows = 1 };
+            return Strip(card, name, grid, list);
+        }
+
+        /// <summary>The family card width in tiles: three across, the page cards' width (Steve 2026-11-19).</summary>
+        public const int CardColumns = 3;
+
+        /// <summary>
+        /// The family card grid. Rules (Steve 2026-11-19), which this method enforces so apps don't relearn them:
+        /// 1. Three tiles across (CardColumns), so every card is the page cards' width. A long caption wraps inside its
+        ///    tile; it never widens the card.
+        /// 2. Related tiles are one group and share a row: Copy, Cut and Paste; the turns; Save and Replace; Raise and
+        ///    Lower. A group never shares a row with another group, and a group longer than a row continues on the
+        ///    next row; an unfilled row stays blank on the right instead of borrowing a tile from the next group.
+        /// 3. Groups run most used first: the clipboard row leads, a destructive tile (Clear) goes last, and Delete on
+        ///    a card for one thing sits in the header, not in the grid.
+        /// 4. A tile that only sometimes applies keeps its spot dimmed (Paste with nothing to paste), so the rows
+        ///    don't shift under the pointer from one right-click to the next.
+        /// 5. Cards carry no text rows; everything a card does is a tile or a flyout tile.
+        /// Empty groups are skipped.
+        /// </summary>
+        public static Border TileGroups(ContextMenu card, string name, IEnumerable<IEnumerable<CardTile>> groups, int columns = CardColumns)
+        {
+            var cells = new List<CardTile?>();
+            foreach (var group in groups)
+            {
+                var list = group.ToList();
+                if (list.Count == 0) continue;
+                cells.AddRange(list);
+                for (int pad = (columns - list.Count % columns) % columns; pad > 0; pad--) cells.Add(null);
+            }
+            return Strip(card, name, new UniformGrid { Columns = columns }, cells);
+        }
+
+        private static Border Strip(ContextMenu card, string name, UniformGrid grid, List<CardTile?> list)
+        {
             foreach (var tile in list)
             {
+                if (tile is null)
+                {
+                    // The blank end of a group's row: holds the column, takes no hover.
+                    grid.Children.Add(new Border { Focusable = false });
+                    continue;
+                }
                 // A trailing "..." on a tile reads as a cut-off caption, so tiles drop it.
                 string caption = tile.Caption.TrimEnd('.', '\u2026').TrimEnd();
                 string shown = (tile.Shown ?? caption).TrimEnd('.', '\u2026').TrimEnd();

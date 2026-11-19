@@ -21,31 +21,31 @@ namespace KillerPDF.Shell
             bool canRemove = placed || ActiveViewer.CanDeleteSelectedSourceImageExt;
             _ctxMenu.Items.Add(CardSlot(WithHeaderDelete(PictureCardHeader(picture), canRemove), new Thickness(4, 2, 4, 6)));
 
-            // Most used first: the clipboard (Delete sits in the header), then the picture's own file and turn tiles, then layer order.
-            // Every action is a tile; a card carries no text rows (family card rule).
-            var quick = new List<(string, string, string?, Action, bool, bool)>
+            // Family card grid (KillerUI CardBuilder.TileGroups): three across, one group per row, most used first.
+            // Delete sits in the header.
+            var clipboard = new List<CardTile>
             {
-                ("", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true),
-                ("", Loc("Str_Ctx_Cut"), placed ? null : "Ctrl:X", placed ? CutSelectedAnnotations : CutSelectedSourceImage, false, canRemove),
+                new("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true),
+                new("\uE8C6", Loc("Str_Ctx_Cut"), placed ? null : "Ctrl:X", placed ? CutSelectedAnnotations : CutSelectedSourceImage, false, canRemove),
             };
-            if (placed && MarkupToPaste())
-                quick.Add(("", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteAnnotations(picture.PageIndex), false, true));
-            quick.Add(("", Loc("Str_Ctx_SavePicture"), null, () => SavePicture(picture), false, true));
+            var turns = new List<CardTile>();
+            var file = new List<CardTile> { new("\uE74E", Loc("Str_Ctx_SavePicture"), null, () => SavePicture(picture), false, true) };
+            var layers = new List<CardTile>();
             if (placed)
             {
-                quick.Add(("", Loc("Str_Ctx_ReplacePicture"), null, () => ReplacePicture(picture), false, true));
+                clipboard.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteAnnotations(picture.PageIndex), false, MarkupToPaste()));
+                turns.Add(new("\uE7AD", Loc("Str_Ctx_RotateCCWShort"), null, () => TurnPicture(picture, 270), true, true));
+                turns.Add(new("\uE895", Loc("Str_Ctx_UpsideDown"), null, () => TurnPicture(picture, 180), false, true));
+                turns.Add(new("\uE7AD", Loc("Str_Ctx_RotateCWShort"), null, () => TurnPicture(picture, 90), false, true));
+                file.Add(new("\uE8AB", Loc("Str_Ctx_ReplacePicture"), null, () => ReplacePicture(picture), false, true));
                 _annotations.TryGetValue(picture.PageIndex, out var pageList);
                 int idx = pageList?.IndexOf(picture) ?? -1;
                 bool canRaise = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, picture, +1) >= 0;
                 bool canLower = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, picture, -1) >= 0;
-                quick.Add(("", Loc("Str_Ctx_RotateCCWShort"), null, () => TurnPicture(picture, 270), true, true));
-                quick.Add(("", Loc("Str_Ctx_RotateCWShort"), null, () => TurnPicture(picture, 90), false, true));
-                quick.Add(("", Loc("Str_Ctx_UpsideDown"), null, () => TurnPicture(picture, 180), false, true));
-                quick.Add(("", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(picture, +1), false, canRaise));
-                quick.Add(("", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(picture, -1), false, canLower));
+                layers.Add(new("\uE70E", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(picture, +1), false, canRaise));
+                layers.Add(new("\uE70D", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(picture, -1), false, canLower));
             }
-            // Rows of four keep the card the width of the others.
-            var strip = QuickStrip(_ctxMenu, 4, [.. quick]);
+            var strip = TileGroups(_ctxMenu, clipboard, turns, file, layers);
             _ctxMenu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(_ctxMenu, strip);
         }

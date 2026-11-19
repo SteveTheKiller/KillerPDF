@@ -20,7 +20,7 @@ public sealed class PageMenuLogicTests
         Assert.Contains("AddNativePageMenuItems(pageIdx)", guard);
 
         string book = ShellSource.Between(ContextMenu, "private void AddNativePageMenuItems(", "// The top row of the page menus");
-        foreach (string row in new[] { "AddNavRow(_ctxMenu, pageIdx)", "Str_Ctx_Copy", "Str_Ctx_SelectAll", "Str_NativePdf_Convert", "ConvertNativeDocumentToPdf", "book.AddRange(ViewTiles())" })
+        foreach (string row in new[] { "AddNavRow(_ctxMenu, pageIdx)", "Str_Ctx_Copy", "Str_Ctx_SelectAll", "Str_NativePdf_Convert", "ConvertNativeDocumentToPdf", "TileGroups(_ctxMenu, book, ViewTiles())" })
             Assert.Contains(row, book);
         foreach (string pdfOnly in new[] { "BuildFieldPresetMenu", "Str_Card_PageTools", "Str_Ctx_StampPages", "Str_Ctx_ClearPage", "Str_Lbl_Redact", "PlaceImageFromDialog", "Str_Ctx_DeleteSel", "Str_Ctx_Paste" })
             Assert.DoesNotContain(pdfOnly, book);

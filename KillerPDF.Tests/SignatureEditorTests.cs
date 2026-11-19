@@ -263,7 +263,7 @@ public sealed class SignatureEditorTests
         Assert.Contains("private static bool CanEditAnnotation(", edit, StringComparison.Ordinal);
 
         string card = ShellSource.Read("Shell", "AnnotationCard.cs");
-        Assert.Contains("if (!multi && CanEditAnnotation(hit)) quick.Add(", card, StringComparison.Ordinal);
+        Assert.Contains("if (!multi && CanEditAnnotation(hit)) clipboard.Add(", card, StringComparison.Ordinal);
     }
 
     [Fact]

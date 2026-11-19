@@ -26,28 +26,31 @@ namespace KillerPDF.Shell
             int idx = pageList?.IndexOf(hit) ?? -1;
             bool canRaise = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, hit, +1) >= 0;
             bool canLower = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, hit, -1) >= 0;
-            // Most used first: edit and the clipboard (Delete sits in the header), then layer order, grouping and pairing.
-            // Every action is a tile; a card carries no text rows (family card rule).
-            var quick = new List<(string, string, string?, Action, bool, bool)>();
-            if (!multi && CanEditAnnotation(hit)) quick.Add(("\uE70F", Loc("Str_Ctx_Edit"), null, () => EditAnnotation(hit), false, true));
-            quick.Add(("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true));
-            if (MarkupToPaste()) quick.Add(("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteAnnotations(hit.PageIndex), false, true));
-            quick.Add(("\uE70E", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(hit, +1), false, canRaise));
-            quick.Add(("\uE70D", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(hit, -1), false, canLower));
+            // Family card grid (KillerUI CardBuilder.TileGroups): three across, one group per row, most used first.
+            // Delete sits in the header; Paste keeps its spot, dimmed with nothing to paste.
+            var clipboard = new List<CardTile>();
+            if (!multi && CanEditAnnotation(hit)) clipboard.Add(new("\uE70F", Loc("Str_Ctx_Edit"), null, () => EditAnnotation(hit), false, true));
+            clipboard.Add(new("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true));
+            clipboard.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteAnnotations(hit.PageIndex), false, MarkupToPaste()));
+            var layers = new List<CardTile>
+            {
+                new("\uE70E", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(hit, +1), false, canRaise),
+                new("\uE70D", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(hit, -1), false, canLower),
+            };
+            var grouping = new List<CardTile>();
             if (hit.GroupId.Length > 0)
             {
-                quick.Add(("\uF168", Loc("Str_Ctx_Ungroup"), null, () => UngroupAnnotation(hit), false, true));
-                quick.Add(("\uE738", Loc("Str_Ctx_RemoveFromGroup"), null, () => RemoveFromGroup(hit), false, true));
+                grouping.Add(new("\uF168", Loc("Str_Ctx_Ungroup"), null, () => UngroupAnnotation(hit), false, true));
+                grouping.Add(new("\uE738", Loc("Str_Ctx_RemoveFromGroup"), null, () => RemoveFromGroup(hit), false, true));
             }
-            else if (multi) quick.Add(("\uF168", Loc("Str_Ctx_Group"), null, GroupSelected, false, true));
-            if (hit.PairId.Length > 0 && !multi && PairPartner(hit) is { } partner)
-                quick.Add(("\uE8B3", Loc(partner is CoverAnnotation ? "Str_Ctx_SelectCover" : "Str_Ctx_SelectText"), null, () => SelectPartner(hit), false, true));
-            if (SelectedPaired() is not null) quick.Add(("\uE738", Loc("Str_Ctx_Unpair"), null, UnpairSelected, false, true));
-            var tiles = quick.Select(b => new CardTile(b.Item1, b.Item2, b.Item3, b.Item4, b.Item5, b.Item6)).ToList();
+            else if (multi) grouping.Add(new("\uF168", Loc("Str_Ctx_Group"), null, GroupSelected, false, true));
             // Several marks get one Arrange tile whose rows line them up, space them and size them (#504).
-            if (multi) tiles.Add(FlyoutTile("\uE8E4", Loc("Str_Ctx_Arrange"), null, ArrangeRows(targets.Count)));
-            // Rows of four, the picture card's width, so extra tiles wrap instead of widening the card.
-            var strip = QuickStrip(_ctxMenu, 4, [.. tiles]);
+            if (multi) grouping.Add(FlyoutTile("\uE8E4", Loc("Str_Ctx_Arrange"), null, ArrangeRows(targets.Count)));
+            var pairing = new List<CardTile>();
+            if (hit.PairId.Length > 0 && !multi && PairPartner(hit) is { } partner)
+                pairing.Add(new("\uE8B3", Loc(partner is CoverAnnotation ? "Str_Ctx_SelectCover" : "Str_Ctx_SelectText"), null, () => SelectPartner(hit), false, true));
+            if (SelectedPaired() is not null) pairing.Add(new("\uE738", Loc("Str_Ctx_Unpair"), null, UnpairSelected, false, true));
+            var strip = TileGroups(_ctxMenu, clipboard, layers, grouping, pairing);
             _ctxMenu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(_ctxMenu, strip);
 
