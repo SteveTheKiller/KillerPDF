@@ -211,8 +211,6 @@ namespace KillerPDF.Shell
             _ctxMenu.Items.Add(new Separator());
 
             var tools = MakeMenuItem(Loc("Str_Card_PageTools"), (_, _) => { }, gesture: "", glyph: "\uE7C3");
-            tools.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCW"), (s, e) => RotatePages_Click(90, pageIdx), clockwise: true));
-            tools.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCCW"), (s, e) => RotatePages_Click(-90, pageIdx), clockwise: false));
             tools.Items.Add(MakeTransformMenuItem(Loc("Str_Lbl_Rotate"), (s, e) => OpenTransformWindow(page: pageIdx), GestureFor("R")));
             tools.Items.Add(MakeMenuItem(Loc("Str_ColorCorrection"), (s, e) =>
                 OpenTransformWindow(TransformWindowMode.ColorCorrection, pageIdx), gesture: GestureFor("E"), glyph: "\uE790"));
@@ -229,10 +227,17 @@ namespace KillerPDF.Shell
             // The page's tools as tiles (Steve: go all out on the icons). Field presets, Compare and the Page tools
             // open their rows beside the tile. Four across, the width of the place strip above.
             bool canClearPage = (_annotations.TryGetValue(pageIdx, out var pageMarks) && pageMarks.Count > 0) || ActiveViewer.HasPendingAnnotationExt;
-            // Most used first: Paste, Select All and Delete lead, then working on this page's content, then the page's
-            // tools. Nine tiles by default, three full rows: Delete and Paste keep their spots (dimmed when they can't
-            // act), and Compare PDFs, a whole-document action, starts in the Hidden drawer. Full Screen lives in the
-            // footer, and Book layout sits on the nav row. Markup selected elsewhere on the page can still go from here.
+            // Most used first: the three turns lead, as on the thumbnail card (Steve 2026-11-19), then Paste, Select All
+            // and Delete, then working on this page's content, then the page's tools. Twelve tiles by default, four full
+            // rows: Delete and Paste keep their spots (dimmed when they can't act), and Compare PDFs, a whole-document
+            // action, starts in the Hidden drawer. Full Screen lives in the footer, and Book layout sits on the nav row.
+            // Markup selected elsewhere on the page can still go from here.
+            CardTile[] turns =
+            [
+                new(GlyphText(0xE7AD), Loc("Str_Ctx_RotateCCWShort"), "Ctrl:L", () => RotatePages_Click(-90, pageIdx), true, true),
+                new(GlyphText(0xE895), Loc("Str_Ctx_UpsideDown"), null, () => RotatePages_Click(180, pageIdx), false, true),
+                new(GlyphText(0xE7AD), Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90, pageIdx), false, true),
+            ];
             CardTile[] clipboard =
             [
                 new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(pageIdx), false, CanPasteInView()),
@@ -255,9 +260,6 @@ namespace KillerPDF.Shell
             // Spares in the Hidden drawer: the Page tools rows as tiles of their own, plus Add Blank Page.
             CardTile[] spares =
             [
-                Spare("rotateccw", new(GlyphText(0xE7AD), Loc("Str_Ctx_RotateCCWShort"), null, () => RotatePages_Click(-90, pageIdx), true, true)),
-                Spare("upsidedown", new(GlyphText(0xE895), Loc("Str_Ctx_UpsideDown"), null, () => RotatePages_Click(180, pageIdx), false, true)),
-                Spare("rotatecw", new(GlyphText(0xE7AD), Loc("Str_Ctx_RotateCWShort"), null, () => RotatePages_Click(90, pageIdx), false, true)),
                 Spare("transform", new("\uE7C2", Loc("Str_Tf_Suffix"), "R", () => OpenTransformWindow(page: pageIdx), false, true)),
                 Spare("color", new("\uE790", Loc("Str_ColorCorrection"), "E", () => OpenTransformWindow(TransformWindowMode.ColorCorrection, pageIdx), false, true)),
                 Spare("fixorientation", new("\uE7AD", Loc("Str_Pages_FixOrientation"), "AltShift:O", FixPageOrientation, false, true)),
@@ -268,7 +270,7 @@ namespace KillerPDF.Shell
                 Spare("deletepage", new("\uE74D", Loc("Str_Ctx_DeletePage"), null, () => DeletePages(pageIdx), false, true)),
                 Spare("addblank", new("\uE7C3", Loc("Str_Ctx_AddBlankPage"), "AltShift:A", AddBlankPageAtEnd, false, true)),
             ];
-            var pageStrip = EditableTileGroups(_ctxMenu, "Page", ["\uE77F", "\uE8B3", "\uE74D"], ["\uE7C4"], clipboard, onPage, more, spares);
+            var pageStrip = EditableTileGroups(_ctxMenu, "Page", ["\uE77F", "\uE8B3", "\uE74D"], ["\uE7C4"], turns, clipboard, onPage, more, spares);
             _ctxMenu.Items.Add(CardSlot(pageStrip, new Thickness(0)));
         }
 
@@ -931,7 +933,8 @@ namespace KillerPDF.Shell
             // Zoom in and out sit at the right end of the nav row, after print.
             AddNavRow(menu, zoomIn: zoomInGlyph, zoomOut: zoomOutGlyph);
             // Every other action as one grid, three tiles across like the page menu.
-            // Most used first: Paste, Select All and Add Blank Page lead, then the page fixes, and Clear goes last.
+            // Most used first: Paste, Select All and Clear, then the everyday document jobs (Add Blank Page, Merge, Stamp),
+            // then the scan fixes and Compare. Reverse and Divide Spreads are rarer and start in the drawer.
             CardTile[] markup =
             [
                 new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(PageList.SelectedIndex), false, CanPasteInView()),
@@ -941,26 +944,26 @@ namespace KillerPDF.Shell
             CardTile[] pages =
             [
                 new("\uE7C3", Loc("Str_Ctx_AddBlankPage"), "AltShift:A", AddBlankPageAtEnd, false, true),
-                new("\uE8CB", Loc("Str_Pages_Reverse"), "AltShift:R", ReversePageOrder, false, true),
-                FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
+                new("\uE710", Loc("Str_Lbl_Merge"), "AltShift:B", () => Merge_Click(this, new RoutedEventArgs()), false, true),
+                new("\uE932", Loc("Str_Ctx_StampPages"), "S", () => OpenStampTool(), false, true),
             ];
-            CardTile[] cleanUp =
+            CardTile[] fixes =
             [
                 new("\uE7AD", Loc("Str_Pages_FixOrientation"), "AltShift:O", FixPageOrientation, false, true),
                 new("\uE809", Loc("Str_Pages_Straighten"), "AltShift:S", StraightenScannedPages, false, true),
-                new("\uE89F", Loc("Str_Pages_DivideSpreads"), "AltShift:D", DivideSpreads, false, true),
+                FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
             ];
             // Nine tiles, three full rows: Paste always holds its spot (dimmed with nothing to paste), Full Screen
             // lives in the footer, and Book layout sits on the nav row beside zoom.
-            // Spares in the Hidden drawer: document-wide tools that live on the toolbar.
+            // Spares in the Hidden drawer: the rarer page jobs, and document-wide tools that live on the toolbar.
             CardTile[] spares =
             [
-                Spare("merge", new("\uE710", Loc("Str_Lbl_Merge"), "AltShift:B", () => Merge_Click(this, new RoutedEventArgs()), false, true)),
-                Spare("stamp", new("\uE932", Loc("Str_Ctx_StampPages"), "S", () => OpenStampTool(), false, true)),
+                Spare("reverse", new("\uE8CB", Loc("Str_Pages_Reverse"), "AltShift:R", ReversePageOrder, false, true)),
+                Spare("dividespreads", new("\uE89F", Loc("Str_Pages_DivideSpreads"), "AltShift:D", DivideSpreads, false, true)),
                 Spare("transform", new("\uE7C2", Loc("Str_Tf_Suffix"), "R", () => OpenTransformWindow(), false, true)),
                 Spare("color", new("\uE790", Loc("Str_ColorCorrection"), "E", () => OpenTransformWindow(TransformWindowMode.ColorCorrection), false, true)),
             ];
-            var grid = EditableTileGroups(menu, "Sidebar", ["\uE77F", "\uE8B3"], [], markup, pages, cleanUp, spares);
+            var grid = EditableTileGroups(menu, "Sidebar", ["\uE77F", "\uE8B3"], [], markup, pages, fixes, spares);
             menu.Items.Add(CardSlot(grid, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, grid);
         }
@@ -1001,19 +1004,6 @@ namespace KillerPDF.Shell
                     VerticalAlignment = VerticalAlignment.Center,
                 };
                 item.Icon = icon;
-            }
-            return item;
-        }
-
-        private MenuItem MakeRotateMenuItem(string header, RoutedEventHandler click, bool clockwise)
-        {
-            string gesture = GestureFor(clockwise ? "Ctrl:R" : "Ctrl:L");
-            var item = MakeMenuItem(header, click, gesture, glyph: "\uE7AD");
-            if (item.Icon is TextBlock icon)
-            {
-                icon.FontSize = 15;
-                if (!clockwise)
-                    icon.LayoutTransform = new System.Windows.Media.ScaleTransform(-1, 1);
             }
             return item;
         }

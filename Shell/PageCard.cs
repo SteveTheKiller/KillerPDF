@@ -32,7 +32,8 @@ namespace KillerPDF.Shell
                 new("\uE8B1", Loc("Str_Ctx_ExtractPages"), "AltShift:X", () => Split_Click(this, new RoutedEventArgs()), false, true),
                 new("\uE7C3", Loc("Str_Ctx_InsertBlank"), null, () => InsertBlankPage(page), false, true),
             ];
-            // Rotation is a second row of the same tiles: the outline buttons stuck out (Steve 2026-11-14).
+            // Rotation is a row of the same tiles (the outline buttons stuck out, Steve 2026-11-14), and it comes first,
+            // as on the page card (Steve 2026-11-19).
             CardTile[] turnRow =
             [
                 new(GlyphText(0xE7AD), Loc("Str_Ctx_RotateCCWShort"), "Ctrl:L", () => RotatePages_Click(-90), true, true),
@@ -99,9 +100,9 @@ namespace KillerPDF.Shell
                 Spare("addblank", new("\uE7C3", Loc("Str_Ctx_AddBlankPage"), "AltShift:A", AddBlankPageAtEnd, false, true)),
                 Spare("compare", FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem())),
             ];
-            // One customizable grid (KillerUI CardEdit): Duplicate, Extract and Delete always show, every other tile
-            // starts on the card in five full rows, and the spares start in the drawer.
-            var strip = EditableTileGroups(menu, "Thumbnail", ["\uE8C8", "\uE8B1", "\uE7C3"], [], pageRow, turnRow, toolRow, groupRow, spares);
+            // One customizable grid (KillerUI CardEdit): Duplicate, Extract and Insert Blank Page After always show,
+            // every other tile starts on the card in five full rows, the turns first, and the spares start in the drawer.
+            var strip = EditableTileGroups(menu, "Thumbnail", ["\uE8C8", "\uE8B1", "\uE7C3"], [], turnRow, pageRow, toolRow, groupRow, spares);
             menu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, strip);
             return menu;

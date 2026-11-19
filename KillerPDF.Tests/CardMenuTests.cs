@@ -193,7 +193,7 @@ public sealed class CardMenuTests
     {
         string page = Between(Read("Shell", "ContextMenu.cs"), "private void AddPageMenuItems(", "private FrameworkElement LabelledStrip(");
         Assert.InRange(Count(page, "_ctxMenu.Items.Add("), 1, 14);
-        Assert.Equal(10, Count(page, "tools.Items.Add(Make"));
+        Assert.Equal(8, Count(page, "tools.Items.Add(Make"));
         Assert.Contains("AddNavRow(_ctxMenu, pageIdx);", page);
         // Review BF-008: Delete Page acts on the right-clicked page like its neighbours, not the sidebar selection.
         Assert.Contains("DeletePages(pageIdx)", page);

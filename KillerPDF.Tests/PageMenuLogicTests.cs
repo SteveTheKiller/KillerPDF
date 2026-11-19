@@ -87,8 +87,10 @@ public sealed class PageMenuLogicTests
     public void RotateTransformColorCorrectionAndStampActOnTheClickedPage()
     {
         string tools = ShellSource.Between(PageMenuBody, "var tools = ", "bool canClearPage");
-        Assert.Contains("RotatePages_Click(90, pageIdx)", tools);
-        Assert.Contains("RotatePages_Click(-90, pageIdx)", tools);
+        // The turns are the card's first tile row (Steve 2026-11-19), so the Page tools flyout has no rotate rows.
+        Assert.Contains("RotatePages_Click(90, pageIdx)", PageMenuBody);
+        Assert.Contains("RotatePages_Click(-90, pageIdx)", PageMenuBody);
+        Assert.DoesNotContain("RotatePages_Click(", tools);
         Assert.Contains("OpenTransformWindow(page: pageIdx)", tools);
         Assert.Contains("OpenTransformWindow(TransformWindowMode.ColorCorrection, pageIdx)", tools);
         Assert.Contains("OpenStampTool(pageIdx)", PageMenuBody);

@@ -24,7 +24,7 @@ public sealed class ChordMoveTests
     [Fact]
     public void MenusShowTheMovedChords()
     {
-        Assert.Contains("GestureFor(clockwise ? \"Ctrl:R\" : \"Ctrl:L\")", Read("Shell", "ContextMenu.cs"));
+        Assert.Contains("\"Ctrl:L\", () => RotatePages_Click(-90, pageIdx)", Read("Shell", "ContextMenu.cs"));
         Assert.Contains("\"Ctrl:L\", () => RotatePages_Click(-90)", Read("Shell", "PageCard.cs"));
         Assert.Contains("Short(\"Str_Ocr_ScanToText\"), \"CtrlShift:R\", ConvertScanToText", Read("Shell", "Ocr.cs"));
         Assert.Contains("Loc(\"Str_Ctx_ReopenClosedTab\"), \"CtrlShift:T\", ReopenClosedTab",
