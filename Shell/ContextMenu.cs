@@ -229,22 +229,22 @@ namespace KillerPDF.Shell
             // The page's tools as tiles (Steve: go all out on the icons). Field presets, Compare and the Page tools
             // open their rows beside the tile. Four across, the width of the place strip above.
             bool canClearPage = (_annotations.TryGetValue(pageIdx, out var pageMarks) && pageMarks.Count > 0) || ActiveViewer.HasPendingAnnotationExt;
+            // Most used first: Paste, Select All and Delete lead, then the page's tools, and Clear Page goes last.
+            // Nine tiles, three full rows: Delete and Paste keep their spots (dimmed when they can't act), Full Screen
+            // lives in the footer, and Book layout sits on the nav row. Markup selected elsewhere on the page can
+            // still go from here.
             var pageTiles = new List<CardTile>
             {
+                new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(pageIdx), false, CanPasteInView()),
+                new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true),
+                new("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, hasSelection),
+                new("\uEE6F", Loc("Str_Ctx_OcrPage"), "CtrlShift:O", () => OcrPageToClipboard(pageIdx), false, true),
+                new("\uE932", Loc("Str_Ctx_StampPages"), "S", () => OpenStampTool(pageIdx), false, true),
+                FlyoutTile("\uE7C3", Loc("Str_Card_PageTools"), null, tools),
                 FlyoutTile("\uE8A1", Loc("Str_FieldPreset_Menu"), null, BuildFieldPresetMenu(pt, pageIdx)),
                 FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
-                new("\uEE6F", Loc("Str_Ctx_OcrPage"), "CtrlShift:O", () => OcrPageToClipboard(pageIdx), false, true),
-                FlyoutTile("\uE7C3", Loc("Str_Card_PageTools"), null, tools),
-                new("\uE932", Loc("Str_Ctx_StampPages"), "S", () => OpenStampTool(pageIdx), false, true),
                 new("\uE75C", Loc("Str_Ctx_ClearPage"), null, () => ActiveViewer.ClearPageAnnotationsExt(pageIdx), false, canClearPage),
             };
-            // Then editing and the view, in the same grid so the columns line up; the ones that only apply sometimes
-            // stay conditional. Markup selected elsewhere on the page can still go from here.
-            // Nine tiles, three full rows: Delete and Paste keep their spots (dimmed when they can't act), Full Screen
-            // lives in the footer, and Book layout sits on the nav row.
-            pageTiles.Add(new("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, hasSelection));
-            pageTiles.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(pageIdx), false, CanPasteInView()));
-            pageTiles.Add(new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true));
             var pageStrip = QuickStrip(_ctxMenu, 3, [.. pageTiles]);
             _ctxMenu.Items.Add(CardSlot(pageStrip, new Thickness(0)));
         }
@@ -265,11 +265,16 @@ namespace KillerPDF.Shell
         private void AddNativePageMenuItems(int pageIdx)
         {
             AddNavRow(_ctxMenu, pageIdx);
-            if (!string.IsNullOrEmpty(_selectedText))
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Copy"), (_, _) => CopySelectedText(), GestureFor("Ctrl:C"), "\uE8C8"));
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SelectAll"), (_, _) => SelectAllInView(), GestureFor("Ctrl:A"), "\uE8B3"));
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_NativePdf_Convert") + "...", (_, _) => ConvertNativeDocumentToPdf(), "", "\uE8AB"));
-            AppendViewItems(_ctxMenu);
+            // Tiles, like every card (no text rows): Copy when text is selected, Select All, Convert to PDF, then the
+            // view tiles (Full Screen, and Book layout in the two-page views).
+            var book = new List<CardTile>();
+            if (!string.IsNullOrEmpty(_selectedText)) book.Add(new("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedText, false, true));
+            book.Add(new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true));
+            book.Add(new("\uE8AB", Loc("Str_NativePdf_Convert"), null, ConvertNativeDocumentToPdf, false, true));
+            book.AddRange(ViewTiles());
+            var bookStrip = QuickStrip(_ctxMenu, 0, [.. book]);
+            _ctxMenu.Items.Add(CardSlot(bookStrip, new Thickness(0)));
+            FocusFirstActionFromKeyboard(_ctxMenu, bookStrip);
         }
 
         // The top row of the page menus, laid out the way a browser's is: Back and Forward retrace the jump history
@@ -352,20 +357,7 @@ namespace KillerPDF.Shell
 
         // Full Screen and Book Layout end both page menus. Full Screen is checked while it is on,
         // so the same item is the way back out once the rail and toolbar are hidden.
-        private void AppendViewItems(ContextMenu menu)
-        {
-            menu.Items.Add(new Separator());
-            foreach (var view in ViewTiles())
-            {
-                var row = MakeMenuItem(view.Caption, (_, _) => view.Act!(), GestureFor(view.Gesture!), view.Glyph);
-                row.IsCheckable = true;
-                row.IsChecked = view.Checked == true;
-                menu.Items.Add(row);
-            }
-        }
-
-        // Full Screen, and Book layout in the two-page views: rows on the book and gray-area menus, tiles on the page
-        // menu, built here once so the surfaces keep one icon, shortcut and live checked state. Book layout changes
+        // Full Screen, and Book layout in the two-page views: tiles on the book menu, built here once so the surfaces keep one icon, shortcut and live checked state. Book layout changes
         // the whole two-page viewport, so it belongs on both the page menu and the surrounding-canvas menu.
         private List<CardTile> ViewTiles()
         {
@@ -917,18 +909,19 @@ namespace KillerPDF.Shell
             // Zoom in and out sit at the right end of the nav row, after print.
             AddNavRow(menu, zoomIn: zoomInGlyph, zoomOut: zoomOutGlyph);
             // Every other action as one grid, three tiles across like the page menu.
+            // Most used first: Paste, Select All and Add Blank Page lead, then the page fixes, and Clear goes last.
             var tiles = new List<CardTile>
             {
+                new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(PageList.SelectedIndex), false, CanPasteInView()),
+                new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true),
                 new("\uE7C3", Loc("Str_Ctx_AddBlankPage"), "AltShift:A", AddBlankPageAtEnd, false, true),
-                new("\uE8CB", Loc("Str_Pages_Reverse"), "AltShift:R", ReversePageOrder, false, true),
                 new("\uE7AD", Loc("Str_Pages_FixOrientation"), "AltShift:O", FixPageOrientation, false, true),
                 new("\uE809", Loc("Str_Pages_Straighten"), "AltShift:S", StraightenScannedPages, false, true),
                 new("\uE89F", Loc("Str_Pages_DivideSpreads"), "AltShift:D", DivideSpreads, false, true),
+                new("\uE8CB", Loc("Str_Pages_Reverse"), "AltShift:R", ReversePageOrder, false, true),
                 FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
+                new("\uED62", Loc("Str_Lbl_Clear"), null, () => ClearAllAnnotations_Click(this, new RoutedEventArgs()), false, EditAvailability().Clear),
             };
-            tiles.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteInView(PageList.SelectedIndex), false, CanPasteInView()));
-            tiles.Add(new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true));
-            tiles.Add(new("\uED62", Loc("Str_Lbl_Clear"), null, () => ClearAllAnnotations_Click(this, new RoutedEventArgs()), false, EditAvailability().Clear));
             // Nine tiles, three full rows: Paste always holds its spot (dimmed with nothing to paste), Full Screen
             // lives in the footer, and Book layout sits on the nav row beside zoom.
             var grid = QuickStrip(menu, 3, [.. tiles]);

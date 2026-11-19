@@ -139,11 +139,15 @@ public sealed class TileCaptionTests
     [Fact]
     public void ATileShowsTheShortCaptionAndKeepsTheFullNameForItsTooltipAndReader()
     {
-        string strip = ShellSource.Between(ShellSource.Read("Shell", "PageCard.cs"),
-            "private FrameworkElement QuickStrip(ContextMenu menu, int columns, params CardTile[] tiles)", "private static void ShowTileState(");
+        // The strip lives in the kit (KillerUI CardBuilder.TileStrip); KillerPDF passes the short caption and hint.
+        string strip = ShellSource.Between(ShellSource.Read("Controls", "CardBuilder.cs"),
+            "public static Border TileStrip(", "private static void ShowTileState(");
         Assert.Contains("Tag = shown", strip);
-        Assert.Contains("ToolTip = gesture is null ? caption : WithGesture(caption, gesture)", strip);
+        Assert.Contains("ToolTip = tile.Hint ?? Tip(caption, tile.Keys)", strip);
         Assert.Contains("AutomationProperties.SetName(button, caption)", strip);
+        string wrapper = ShellSource.Read("Shell", "PageCard.cs");
+        Assert.Contains("Shown = ShortTileCaption(caption)", wrapper);
+        Assert.Contains("Hint = t.Gesture is null ? caption : WithGesture(caption, t.Gesture)", wrapper);
         Assert.Contains("TileCaptions.ShortKeys", ShellSource.Read("Shell", "PageCard.cs"));
     }
 }

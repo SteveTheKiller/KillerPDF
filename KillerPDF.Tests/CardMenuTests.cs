@@ -54,10 +54,25 @@ public sealed class CardMenuTests
         Assert.Equal(4, System.Text.RegularExpressions.Regex.Matches(annotation, @"new Thickness\(8, \d, 4, \d\)").Count);
         // The quick strip draws no rules and adds no padding: with CardMenu's 7 and the 1px border, a tile's hover sits
         // 8 px from every edge of the card (family rule, Steve 2026-11-19).
-        string strip = Between(Read("Shell", "PageCard.cs"), "var strip = new Border", "return strip;");
+        string strip = Between(Read("Controls", "CardBuilder.cs"), "var strip = new Border", "return strip;");
         Assert.DoesNotContain("BorderThickness", strip);
         Assert.Contains("Padding = new Thickness(0)", strip);
         Assert.DoesNotContain("Margin = new Thickness(8", strip);
+    }
+
+    [Fact]
+    public void TheMarkCardsCarryNoTextRows()
+    {
+        // Steve 2026-11-19: cards are tiles only. Save Picture As, Replace Picture, Paste, Select Text, Unpair and
+        // Remove from Group were text rows under the tiles; they are tiles now, and nothing adds a row to the card.
+        foreach (string file in new[] { "PictureCard.cs", "AnnotationCard.cs" })
+        {
+            string card = Read("Shell", file);
+            Assert.DoesNotContain("_ctxMenu.Items.Add(MakeMenuItem(", card);
+            Assert.DoesNotContain("_ctxMenu.Items.Add(new Separator())", card);
+        }
+        // The page card's own rows only ever go into its flyout tiles.
+        Assert.DoesNotContain("menu.Items.Add(MakeMenuItem(", Read("Shell", "PageCard.cs"));
     }
 
     [Fact]
@@ -204,8 +219,9 @@ public sealed class CardMenuTests
         string groups = Between(card, "var groups = QuickStrip(menu, 3,", "menu.Items.Add(CardSlot(groups");
         foreach (string row in new[] { "cleanUp)", "fromPage)", "move)" }) Assert.Contains(row, groups);
         Assert.DoesNotContain("menu.Items.Add(cleanUp)", card);
-        Assert.Contains("WithFlyoutChevron(button)", card);
-        Assert.Contains("PlacementMode.Right", Between(card, "private ContextMenu BuildTileFlyout(", "return flyout;"));
+        string kit = Read("Controls", "CardBuilder.cs");
+        Assert.Contains("WithFlyoutChevron(button)", kit);
+        Assert.Contains("PlacementMode.Right", Between(kit, "private static ContextMenu TileFlyout(", "return flyout;"));
 
         string page = Between(Read("Shell", "ContextMenu.cs"), "private void AddPageMenuItems(", "private FrameworkElement LabelledStrip(");
         Assert.Contains("FlyoutTile(\"\\uE8A1\", Loc(\"Str_FieldPreset_Menu\"), null, BuildFieldPresetMenu(pt, pageIdx))", page);

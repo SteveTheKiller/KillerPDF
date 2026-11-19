@@ -193,16 +193,10 @@ namespace KillerPDF.Shell
         private static string GlyphText(int codePoint) => char.ConvertFromUtf32(codePoint);
 
         // A card row that holds controls rather than being a command (KillerUI CardSlot).
-        private MenuItem CardSlot(object content, Thickness padding)
-        {
-            var slot = new MenuItem { Header = content, Padding = padding };
-            if (TryFindResource("CardSlot") is Style style) slot.Style = style;
-            slot.Padding = padding;
-            return slot;
-        }
+        private static MenuItem CardSlot(object content, Thickness padding) => KillerFamily.Controls.CardBuilder.Slot(content, padding);
 
-        // The card's strip of glyph-over-caption buttons between two rules. Each closes the card, then acts; the
-        // tooltip carries the full name and its shortcut (the family shortcut rule).
+        // The card's strip of glyph-over-caption tiles (KillerUI CardBuilder.TileStrip). Each closes the card, then
+        // acts; the tooltip carries the full name and its shortcut (the family shortcut rule).
         private FrameworkElement QuickStrip(ContextMenu menu, params (string Glyph, string Caption, string? Gesture, Action Act, bool Mirror, bool Enabled)[] buttons)
             => QuickStrip(menu, 0, buttons);
 
@@ -210,9 +204,7 @@ namespace KillerPDF.Shell
         private FrameworkElement QuickStrip(ContextMenu menu, int columns, params (string Glyph, string Caption, string? Gesture, Action Act, bool Mirror, bool Enabled)[] buttons)
             => QuickStrip(menu, columns, [.. buttons.Select(b => new CardTile(b.Glyph, b.Caption, b.Gesture, b.Act, b.Mirror, b.Enabled))]);
 
-        // One tile of a card strip. Flyout: the tile opens these rows next to itself instead of acting, and carries
-        // a small chevron beside its icon, the way the toolbar's split buttons do. Checked: an on/off command whose
-        // tile is filled while it is on. KeepsOpen: the tile flips in place and the card stays open.
+        // One tile as KillerPDF writes it: Gesture is a shortcut cap name, turned into keys and hint text here.
         private sealed record CardTile(string Glyph, string Caption, string? Gesture, Action? Act, bool Mirror, bool Enabled)
         {
             public MenuItem? Flyout { get; init; }
@@ -225,61 +217,19 @@ namespace KillerPDF.Shell
             => new(glyph, caption, gesture, null, false, rows.IsEnabled) { Flyout = rows };
 
         private FrameworkElement QuickStrip(ContextMenu menu, int columns, params CardTile[] tiles)
-        {
-            var grid = columns > 0 && tiles.Length > columns ? new UniformGrid { Columns = columns } : new UniformGrid { Rows = 1 };
-            foreach (var tile in tiles)
+            => KillerFamily.Controls.CardBuilder.TileStrip(menu, Loc("Str_Card_Actions"), columns, tiles.Select(t =>
             {
-                var (glyph, caption, gesture, act, mirror, enabled) = tile;
-                // A trailing "..." on a tile reads as a cut-off caption, so tiles drop it.
-                caption = caption.TrimEnd('.', '…').TrimEnd();
-                // A name too long for two lines of the tile ("Open Containing Folder" read "Open Containi...") shows
-                // its short caption; the tooltip and the accessible name keep the full name.
-                string shown = ShortTileCaption(caption);
-                // The caption is capped at 80 in CardQuickButton, so one long caption ("Clear Page Annotations") wraps
-                // instead of stretching the card, while the tile itself fills its column and its hover reaches the
-                // card's 8px edge.
-                var button = new Button { Content = glyph, Tag = shown, ToolTip = gesture is null ? caption : WithGesture(caption, gesture), IsEnabled = enabled };
-                // The caption alone is the accessible name; the tooltip adds the shortcut.
-                System.Windows.Automation.AutomationProperties.SetName(button, caption);
-                // The tile's second line shows these keys in brackets while Show Shortcuts in Menus is on.
-                if (gesture is not null) System.Windows.Automation.AutomationProperties.SetAcceleratorKey(button, GesturesFor(gesture));
-                ToolTipService.SetShowOnDisabled(button, true);
-                if (TryFindResource("CardQuickButton") is Style style) button.Style = style;
-                bool on = tile.Checked == true;
-                if (tile.Checked is not null) ShowTileState(button, on);
-                if (tile.Flyout is { } rows)
+                string caption = t.Caption.TrimEnd('.', '…').TrimEnd();
+                return new KillerFamily.Controls.CardTile(t.Glyph, caption, t.Gesture is null ? null : GesturesFor(t.Gesture), t.Act, t.Mirror, t.Enabled)
                 {
-                    ContextMenu? flyout = null;
-                    button.Click += (_, _) =>
-                    {
-                        flyout ??= BuildTileFlyout(menu, button, rows);
-                        flyout.IsOpen = true;
-                    };
-                    grid.Children.Add(WithFlyoutChevron(button));
-                    continue;
-                }
-                if (mirror)
-                    button.Loaded += (_, _) =>
-                    {
-                        if (button.Template?.FindName("Glyph", button) is TextBlock g)
-                        {
-                            g.RenderTransformOrigin = new Point(0.5, 0.5);
-                            g.RenderTransform = new ScaleTransform(-1, 1);
-                        }
-                    };
-                if (tile.KeepsOpen)
-                    button.Click += (_, _) => { act?.Invoke(); on = !on; ShowTileState(button, on); };
-                else
-                    button.Click += (_, _) => { menu.IsOpen = false; act?.Invoke(); };
-                grid.Children.Add(button);
-            }
-            // KillerUI's CardBuilder insets its strip 8 so the strip's top and bottom rules start on the icon column.
-            // This strip draws no rules, and the inset only took width: "Extract Page(s)" wrapped onto two lines.
-            var strip = new Border { Padding = new Thickness(0), Child = grid };
-            strip.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
-            System.Windows.Automation.AutomationProperties.SetName(strip, Loc("Str_Card_Actions"));
-            return strip;
-        }
+                    // A name too long for two lines of the tile shows its short caption; tooltip and name keep it whole.
+                    Shown = ShortTileCaption(caption),
+                    Hint = t.Gesture is null ? caption : WithGesture(caption, t.Gesture),
+                    Flyout = t.Flyout?.Items.Cast<object>().ToList(),
+                    Checked = t.Checked,
+                    KeepsOpen = t.KeepsOpen,
+                };
+            }));
 
         // The short caption (TileCaptions.ShortKeys) of a tile whose full name is this caption, or the caption itself.
         private string ShortTileCaption(string caption)
@@ -287,67 +237,6 @@ namespace KillerPDF.Shell
             foreach (var (full, shortKey) in Services.TileCaptions.ShortKeys)
                 if (string.Equals(Loc(full).TrimEnd('.', '…').TrimEnd(), caption, StringComparison.Ordinal)) return Loc(shortKey);
             return caption;
-        }
-
-        // An on/off tile is filled with the selected-row color while it is on (the template paints its Background).
-        private static void ShowTileState(Button button, bool on)
-        {
-            if (on) button.SetResourceReference(Control.BackgroundProperty, "RowSelectedBrush");
-            else button.ClearValue(Control.BackgroundProperty);
-        }
-
-        // The quick-button template draws its content as one glyph, so the chevron is laid over the tile beside the
-        // icon and lets clicks through to it (the same trick as the page card's add-page plus).
-        private static Grid WithFlyoutChevron(Button button)
-        {
-            var chevron = new TextBlock
-            {
-                Text = GlyphText(0xE76C), FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 8, IsHitTestVisible = false,
-                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(30, 12, 0, 0)
-            };
-            chevron.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
-            var cell = new Grid();
-            cell.Children.Add(button);
-            cell.Children.Add(chevron);
-            return cell;
-        }
-
-        // The submenu a flyout tile opens, beside the tile. Its rows are moved off the menu row they were built for.
-        // Picking a row closes the card as well; Escape, Left or a click back on the card returns to the card, and a
-        // click anywhere else closes both.
-        private ContextMenu BuildTileFlyout(ContextMenu card, Button tile, MenuItem rows)
-        {
-            var flyout = MakeThemedMenu();
-            foreach (object row in rows.Items.Cast<object>().ToList())
-            {
-                rows.Items.Remove(row);
-                flyout.Items.Add(row);
-            }
-            flyout.PlacementTarget = tile;
-            flyout.Placement = PlacementMode.Right;
-            bool picked = false, byKeyboard = false;
-            flyout.AddHandler(MenuItem.ClickEvent, new RoutedEventHandler((_, e) =>
-            {
-                if (e.OriginalSource is not MenuItem { HasItems: false, StaysOpenOnClick: false }) return;
-                picked = true;
-                card.IsOpen = false;
-            }));
-            flyout.PreviewKeyDown += (_, e) => byKeyboard = e.Key is Key.Escape or Key.Left;
-            flyout.Opened += (_, _) =>
-            {
-                picked = byKeyboard = false;
-                if (InputManager.Current.MostRecentInputDevice is KeyboardDevice
-                    && flyout.Items.OfType<MenuItem>().FirstOrDefault(item => item.IsEnabled) is { } first)
-                    first.Dispatcher.BeginInvoke(DispatcherPriority.Input, () => first.Focus());
-            };
-            flyout.Closed += (_, _) =>
-            {
-                if (picked || !card.IsOpen) return;
-                if (!byKeyboard && card.InputHitTest(Mouse.GetPosition(card)) is null) { card.IsOpen = false; return; }
-                Mouse.Capture(card, CaptureMode.SubTree);
-                if (byKeyboard) tile.Focus();
-            };
-            return flyout;
         }
     }
 }

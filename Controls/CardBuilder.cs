@@ -21,6 +21,23 @@ namespace KillerFamily.Controls
     public sealed record CardChoice(string Text, string Tip, string? Gesture, bool On, Action Run, bool Enabled = true);
 
     /// <summary>
+    /// One tile of a card strip (TileStrip): an MDL2 glyph over a caption, the family card style. Caption is the
+    /// full name (tooltip and accessible name); Shown, when set, is the shorter text drawn under the glyph.
+    /// Keys is the shortcut as it reads ("Ctrl+C"), drawn on the tile's second line while shortcuts show in menus.
+    /// Mirror flips the glyph left to right. Flyout: the tile opens these rows beside itself instead of acting.
+    /// Checked: an on/off command, filled while on. KeepsOpen: the tile flips in place and the card stays open.
+    /// </summary>
+    public sealed record CardTile(string Glyph, string Caption, string? Keys, Action? Run, bool Mirror = false, bool Enabled = true)
+    {
+        public string? Shown { get; init; }
+        /// <summary>The tooltip, when the app words its shortcut hints its own way; otherwise "Caption (Keys)".</summary>
+        public string? Hint { get; init; }
+        public IList<object>? Flyout { get; init; }
+        public bool? Checked { get; init; }
+        public bool KeepsOpen { get; init; }
+    }
+
+    /// <summary>
     /// Builds card-menu rows in code, for the menus that are made at open time rather than in
     /// XAML (KillerNotes 1.7.0: the graph, sketch pad, dictation and Tags dialog cards). Every
     /// row is a MenuItem on the kit's card styles (CardSlot, CardQuickButton, CardToggle,
@@ -81,13 +98,149 @@ namespace KillerFamily.Controls
                 b.Click += (_, _) => { Close(b); run(); };
                 grid.Children.Add(b);
             }
-            // Inset 8 like the kit's separators, so the strip's rules start on the icon column.
-            var rule = new Border { Margin = new Thickness(8, 0, 8, 0), BorderThickness = new Thickness(0, 1, 0, 1), Padding = new Thickness(0, 4, 0, 4), Child = grid };
+            // No inset: with the card's 7px padding and border, a tile's hover sits 8px from the edge (family rule).
+            var rule = new Border { Margin = new Thickness(0), BorderThickness = new Thickness(0, 1, 0, 1), Padding = new Thickness(0, 4, 0, 4), Child = grid };
             rule.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
             var slot = Slot(rule);
             slot.Padding = new Thickness(0);
             AutomationProperties.SetName(slot, name);
+            // The rule below only separates the strip from rows under it; a card that ends at the
+            // strip drew a stray line at its bottom edge.
+            slot.Loaded += (_, _) => rule.BorderThickness = new Thickness(0, 1, 0, EndsCard(slot) ? 0 : 1);
             return slot;
+        }
+
+        /// <summary>A card row that holds controls rather than being a command (CardSlot), with its own padding.</summary>
+        public static MenuItem Slot(object content, Thickness padding)
+        {
+            var slot = Slot(content);
+            slot.Padding = padding;
+            return slot;
+        }
+
+        /// <summary>
+        /// The family tile strip: tiles in one row, or wrapped into rows of columns when there are more. A tile closes
+        /// its card, then acts. Each tile fills its cell, so with the card's 7px padding and 1px edge its hover sits
+        /// 8px from the card's edge (family rule). Put the result in a card with Slot(strip, new Thickness(0)).
+        /// </summary>
+        public static Border TileStrip(ContextMenu card, string name, int columns, IEnumerable<CardTile> tiles)
+        {
+            var list = tiles.ToList();
+            var grid = columns > 0 && list.Count > columns ? new UniformGrid { Columns = columns } : new UniformGrid { Rows = 1 };
+            foreach (var tile in list)
+            {
+                // A trailing "..." on a tile reads as a cut-off caption, so tiles drop it.
+                string caption = tile.Caption.TrimEnd('.', '\u2026').TrimEnd();
+                string shown = (tile.Shown ?? caption).TrimEnd('.', '\u2026').TrimEnd();
+                var button = new Button { Content = tile.Glyph, Tag = shown, ToolTip = tile.Hint ?? Tip(caption, tile.Keys), IsEnabled = tile.Enabled };
+                AutomationProperties.SetName(button, caption);
+                // The tile's second line shows these keys in brackets while shortcuts show in menus.
+                if (!string.IsNullOrEmpty(tile.Keys)) AutomationProperties.SetAcceleratorKey(button, tile.Keys);
+                ToolTipService.SetShowOnDisabled(button, true);
+                button.SetResourceReference(FrameworkElement.StyleProperty, "CardQuickButton");
+                bool on = tile.Checked == true;
+                if (tile.Checked is not null) ShowTileState(button, on);
+                if (tile.Flyout is { } rows)
+                {
+                    ContextMenu? flyout = null;
+                    button.Click += (_, _) =>
+                    {
+                        flyout ??= TileFlyout(card, button, rows);
+                        flyout.IsOpen = true;
+                    };
+                    grid.Children.Add(WithFlyoutChevron(button));
+                    continue;
+                }
+                if (tile.Mirror)
+                    button.Loaded += (_, _) =>
+                    {
+                        if (button.Template?.FindName("Glyph", button) is TextBlock g)
+                        {
+                            g.RenderTransformOrigin = new Point(0.5, 0.5);
+                            g.RenderTransform = new ScaleTransform(-1, 1);
+                        }
+                    };
+                var run = tile.Run;
+                if (tile.KeepsOpen)
+                    button.Click += (_, _) => { run?.Invoke(); on = !on; ShowTileState(button, on); };
+                else
+                    button.Click += (_, _) => { card.IsOpen = false; run?.Invoke(); };
+                grid.Children.Add(button);
+            }
+            var strip = new Border { Padding = new Thickness(0), Child = grid };
+            strip.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
+            AutomationProperties.SetName(strip, name);
+            return strip;
+        }
+
+        // An on/off tile is filled with the selected-row color while it is on (the template paints its Background).
+        private static void ShowTileState(Button button, bool on)
+        {
+            if (on) button.SetResourceReference(Control.BackgroundProperty, "RowSelectedBrush");
+            else button.ClearValue(Control.BackgroundProperty);
+        }
+
+        // The quick-button template draws its content as one glyph, so the chevron is laid over the tile beside the
+        // icon and lets clicks through to it.
+        private static Grid WithFlyoutChevron(Button button)
+        {
+            var chevron = new TextBlock
+            {
+                Text = char.ConvertFromUtf32(0xE76C), FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 8, IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(30, 12, 0, 0)
+            };
+            chevron.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
+            var cell = new Grid();
+            cell.Children.Add(button);
+            cell.Children.Add(chevron);
+            return cell;
+        }
+
+        // The rows a flyout tile opens, beside the tile, on the plain menu style. Picking a row closes the card as
+        // well; Escape, Left or a click back on the card returns to the card, and a click anywhere else closes both.
+        private static ContextMenu TileFlyout(ContextMenu card, Button tile, IList<object> rows)
+        {
+            var flyout = new ContextMenu();
+            if (card.TryFindResource(typeof(ContextMenu)) is Style style) flyout.Style = style;
+            TextOptions.SetTextFormattingMode(flyout, TextFormattingMode.Display);
+            TextOptions.SetTextRenderingMode(flyout, TextRenderingMode.Grayscale);
+            foreach (object row in rows.ToList())
+            {
+                if (row is FrameworkElement { Parent: ItemsControl owner } fe) owner.Items.Remove(fe);
+                flyout.Items.Add(row);
+            }
+            flyout.PlacementTarget = tile;
+            flyout.Placement = PlacementMode.Right;
+            bool picked = false, byKeyboard = false;
+            flyout.AddHandler(MenuItem.ClickEvent, new RoutedEventHandler((_, e) =>
+            {
+                if (e.OriginalSource is not MenuItem { HasItems: false, StaysOpenOnClick: false }) return;
+                picked = true;
+                card.IsOpen = false;
+            }));
+            flyout.PreviewKeyDown += (_, e) => byKeyboard = e.Key is Key.Escape or Key.Left;
+            flyout.Opened += (_, _) =>
+            {
+                picked = byKeyboard = false;
+                if (InputManager.Current.MostRecentInputDevice is KeyboardDevice
+                    && flyout.Items.OfType<MenuItem>().FirstOrDefault(item => item.IsEnabled) is { } first)
+                    first.Dispatcher.BeginInvoke(DispatcherPriority.Input, () => first.Focus());
+            };
+            flyout.Closed += (_, _) =>
+            {
+                if (picked || !card.IsOpen) return;
+                if (!byKeyboard && card.InputHitTest(Mouse.GetPosition(card)) is null) { card.IsOpen = false; return; }
+                Mouse.Capture(card, CaptureMode.SubTree);
+                if (byKeyboard) tile.Focus();
+            };
+            return flyout;
+        }
+
+        /// <summary>Whether this item is the last thing on its card.</summary>
+        internal static bool EndsCard(MenuItem item)
+        {
+            if (ItemsControl.ItemsControlFromItemContainer(item) is not { } owner) owner = item.Parent as ItemsControl;
+            return owner == null || owner.Items.IndexOf(item) == owner.Items.Count - 1;
         }
 
         /// <summary>A labeled row of independent on/off chips (CardToggle).</summary>

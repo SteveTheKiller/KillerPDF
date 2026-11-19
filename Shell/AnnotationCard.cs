@@ -26,18 +26,29 @@ namespace KillerPDF.Shell
             int idx = pageList?.IndexOf(hit) ?? -1;
             bool canRaise = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, hit, +1) >= 0;
             bool canLower = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, hit, -1) >= 0;
+            // Most used first: edit and the clipboard and delete row, then layer order, grouping and pairing.
+            // Every action is a tile; a card carries no text rows (family card rule).
             var quick = new List<(string, string, string?, Action, bool, bool)>();
             if (!multi && CanEditAnnotation(hit)) quick.Add(("\uE70F", Loc("Str_Ctx_Edit"), null, () => EditAnnotation(hit), false, true));
             quick.Add(("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true));
+            if (MarkupToPaste()) quick.Add(("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteAnnotations(hit.PageIndex), false, true));
+            quick.Add(("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, true));
             quick.Add(("\uE70E", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(hit, +1), false, canRaise));
             quick.Add(("\uE70D", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(hit, -1), false, canLower));
-            if (hit.GroupId.Length > 0) quick.Add(("\uF168", Loc("Str_Ctx_Ungroup"), null, () => UngroupAnnotation(hit), false, true));
+            if (hit.GroupId.Length > 0)
+            {
+                quick.Add(("\uF168", Loc("Str_Ctx_Ungroup"), null, () => UngroupAnnotation(hit), false, true));
+                quick.Add(("\uE738", Loc("Str_Ctx_RemoveFromGroup"), null, () => RemoveFromGroup(hit), false, true));
+            }
             else if (multi) quick.Add(("\uF168", Loc("Str_Ctx_Group"), null, GroupSelected, false, true));
-            quick.Add(("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, true));
+            if (hit.PairId.Length > 0 && !multi && PairPartner(hit) is { } partner)
+                quick.Add(("\uE8B3", Loc(partner is CoverAnnotation ? "Str_Ctx_SelectCover" : "Str_Ctx_SelectText"), null, () => SelectPartner(hit), false, true));
+            if (SelectedPaired() is not null) quick.Add(("\uE738", Loc("Str_Ctx_Unpair"), null, UnpairSelected, false, true));
             var tiles = quick.Select(b => new CardTile(b.Item1, b.Item2, b.Item3, b.Item4, b.Item5, b.Item6)).ToList();
             // Several marks get one Arrange tile whose rows line them up, space them and size them (#504).
-            if (multi) tiles.Insert(tiles.Count - 1, FlyoutTile("\uE8E4", Loc("Str_Ctx_Arrange"), null, ArrangeRows(targets.Count)));
-            var strip = QuickStrip(_ctxMenu, 0, [.. tiles]);
+            if (multi) tiles.Add(FlyoutTile("\uE8E4", Loc("Str_Ctx_Arrange"), null, ArrangeRows(targets.Count)));
+            // Rows of four, the picture card's width, so extra tiles wrap instead of widening the card.
+            var strip = QuickStrip(_ctxMenu, 4, [.. tiles]);
             _ctxMenu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(_ctxMenu, strip);
 
@@ -57,19 +68,6 @@ namespace KillerPDF.Shell
             var marks = targets.OfType<HighlightAnnotation>().Where(h => h is not CoverAnnotation && !h.IsShape).ToList();
             if (marks.Count > 0)
                 _ctxMenu.Items.Add(CardSlot(CardStyleRow(marks), new Thickness(8, 4, 4, 6)));
-
-            _ctxMenu.Items.Add(new Separator());
-            if (MarkupToPaste())
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (_, _) => PasteAnnotations(hit.PageIndex), GestureFor("Ctrl:V"), "\uE77F"));
-            if (hit.PairId.Length > 0 && !multi && PairPartner(hit) is { } partner)
-                _ctxMenu.Items.Add(MakeMenuItem(Loc(partner is CoverAnnotation ? "Str_Ctx_SelectCover" : "Str_Ctx_SelectText"),
-                    (_, _) => SelectPartner(hit), glyph: "\uE8B3"));
-            if (SelectedPaired() is not null)
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Unpair"), (_, _) => UnpairSelected(), glyph: "\uE738"));
-            if (hit.GroupId.Length > 0)
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_RemoveFromGroup"), (_, _) => RemoveFromGroup(hit), glyph: "\uE738"));
-            // A list with nothing in it after the rule reads as broken; the rule goes when it would end the card.
-            if (_ctxMenu.Items[^1] is Separator) _ctxMenu.Items.RemoveAt(_ctxMenu.Items.Count - 1);
         }
 
         // The Arrange tile's rows. Distributing needs three marks, so with two its rows are off.

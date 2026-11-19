@@ -21,35 +21,34 @@ namespace KillerPDF.Shell
             _ctxMenu.Items.Add(CardSlot(PictureCardHeader(picture), new Thickness(4, 2, 4, 6)));
 
             bool canRemove = placed || ActiveViewer.CanDeleteSelectedSourceImageExt;
+            // Most used first: the clipboard and delete row, then the picture's own file and turn tiles, then layer order.
+            // Every action is a tile; a card carries no text rows (family card rule).
             var quick = new List<(string, string, string?, Action, bool, bool)>
             {
                 ("", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true),
                 ("", Loc("Str_Ctx_Cut"), placed ? null : "Ctrl:X", placed ? CutSelectedAnnotations : CutSelectedSourceImage, false, canRemove),
             };
+            if (placed && MarkupToPaste())
+                quick.Add(("", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteAnnotations(picture.PageIndex), false, true));
+            quick.Add(("", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, canRemove));
+            quick.Add(("", Loc("Str_Ctx_SavePicture"), null, () => SavePicture(picture), false, true));
             if (placed)
             {
+                quick.Add(("", Loc("Str_Ctx_ReplacePicture"), null, () => ReplacePicture(picture), false, true));
                 _annotations.TryGetValue(picture.PageIndex, out var pageList);
                 int idx = pageList?.IndexOf(picture) ?? -1;
                 bool canRaise = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, picture, +1) >= 0;
                 bool canLower = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, picture, -1) >= 0;
+                quick.Add(("", Loc("Str_Ctx_RotateCCWShort"), null, () => TurnPicture(picture, 270), true, true));
+                quick.Add(("", Loc("Str_Ctx_RotateCWShort"), null, () => TurnPicture(picture, 90), false, true));
+                quick.Add(("", Loc("Str_Ctx_UpsideDown"), null, () => TurnPicture(picture, 180), false, true));
                 quick.Add(("", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(picture, +1), false, canRaise));
                 quick.Add(("", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(picture, -1), false, canLower));
-                quick.Add(("", Loc("Str_Ctx_RotateCCWShort"), null, () => TurnPicture(picture, 270), true, true));
-                quick.Add(("", Loc("Str_Ctx_UpsideDown"), null, () => TurnPicture(picture, 180), false, true));
-                quick.Add(("", Loc("Str_Ctx_RotateCWShort"), null, () => TurnPicture(picture, 90), false, true));
             }
-            quick.Add(("", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, canRemove));
-            // Eight buttons wrap into two rows of four so the card stays the width of the others.
+            // Rows of four keep the card the width of the others.
             var strip = QuickStrip(_ctxMenu, 4, [.. quick]);
             _ctxMenu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(_ctxMenu, strip);
-
-            _ctxMenu.Items.Add(new Separator());
-            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SavePicture"), (_, _) => SavePicture(picture), glyph: ""));
-            if (placed)
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_ReplacePicture"), (_, _) => ReplacePicture(picture), glyph: ""));
-            if (placed && MarkupToPaste())
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (_, _) => PasteAnnotations(picture.PageIndex), GestureFor("Ctrl:V"), ""));
         }
 
         private FrameworkElement PictureCardHeader(ImageAnnotation picture)
