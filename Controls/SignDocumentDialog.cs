@@ -310,13 +310,13 @@ namespace KillerPDF
             var previewBorder = new Border
             {
                 Background = Brushes.White,
-                BorderBrush = R("AccentBrush"),
+                BorderBrush = R("PrimaryBrush"),
                 BorderThickness = new Thickness(2),
                 CornerRadius = Kit.RadControl,
                 Padding = new Thickness(10, 6, 10, 6),
                 Height = 96
             };
-            previewBorder.SetResourceReference(Border.BorderBrushProperty, "AccentBrush");
+            previewBorder.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush");
             _appearancePreview = new TextBlock
             {
                 Foreground = Brushes.Black,

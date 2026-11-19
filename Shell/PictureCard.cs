@@ -65,7 +65,7 @@ namespace KillerPDF.Shell
                 Text = "", FontSize = 18, Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center,
                 FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets")
             };
-            glyph.SetResourceReference(TextBlock.ForegroundProperty, "AccentBrush");
+            glyph.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryBrush");
             var text = new StackPanel();
             text.Children.Add(title);
             text.Children.Add(sub);

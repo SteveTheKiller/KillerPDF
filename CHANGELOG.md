@@ -30,6 +30,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- The picture icon on a picture's right-click card shows in the theme's accent color. It was black, so it disappeared on dark themes. The signing dialog's preview border had the same missing color.
 - Paste pastes what was copied last. Once a picture, shape or text box had been copied, every paste brought it back, even after copying text or an image somewhere else, in every open document until a restart. (#497)
 - Clear Page on a page's right-click card clears that page. It cleared the page you were on instead.
 - Redact no longer fails with "Pages ... cannot be redacted without replacing them with an image" when saving the document leaves a page that has to become an image. It asks about those pages the same way it asks about the others, and canceling leaves the document as it was. (#499)
