@@ -2347,7 +2347,7 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_Rep_PP_Summary">Nyomdai előkészítés: {0} oldal, {1} színkivonat, {2} kimeneti szándék</sys:String>
     <sys:String x:Key="Str_Rep_PP_Box">{0}: {1}; {2} és {3}; {4} pt között ({5} x {6}, {7})</sys:String>
     <sys:String x:Key="Str_Rep_PP_Effective">érvényes</sys:String>
-    <sys:String x:Key="Str_Rep_PP_Explicit">explicit</sys:String>
+    <sys:String x:Key="Str_Rep_PP_Explicit">kifejezett</sys:String>
     <sys:String x:Key="Str_Rep_PP_Inherited">örökölt</sys:String>
     <sys:String x:Key="Str_Rep_ProcessColorant">Folyamatszín {0}: oldalak {1}</sys:String>
     <sys:String x:Key="Str_Rep_SpotColorant">Direkt szín {0}: oldalak {1}</sys:String>
