@@ -160,7 +160,11 @@ namespace KillerPDF.Controls
             };
             filmGrain.SetResourceReference(ContentControl.ContentProperty, "Str_Theme_FilmGrain");
             filmGrain.Click += (_, _) => FilmGrain.Set(filmGrain.IsChecked == true);
-            filmGrain.ToolTip = (_window.TryFindResource("Str_Theme_FilmGrain") as string) + " (Alt+Shift+G)";
+            // #506: key names come from the active language (German reads Alt+Umschalt+G), and the
+            // tip is rebuilt each time it opens so a language switch never leaves it stale.
+            filmGrain.ToolTip = FilmGrainTip.Text(key => _window.TryFindResource(key) as string);
+            filmGrain.ToolTipOpening += (_, _) =>
+                filmGrain.ToolTip = FilmGrainTip.Text(key => _window.TryFindResource(key) as string);
             _filmGrainCheck = filmGrain;
             grainRow.Children.Add(filmGrain);
             panel.Children.Add(grainRow);
