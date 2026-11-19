@@ -83,6 +83,27 @@ public sealed class CliPdfUaBatchTests : IDisposable
     }
 
     [Fact]
+    public void JsonNamesTheStandardTheFilesWereHeldTo()
+    {
+        string ua1 = Path.Combine(folder, "ua1.pdf");
+        string ua2 = Path.Combine(folder, "ua2.pdf");
+        File.WriteAllBytes(ua1, UntaggedPdf());
+        File.WriteAllBytes(ua2, UntaggedPdf(pdfUaPart: 2));
+
+        string Standard(params string[] inputs)
+        {
+            var output = new StringWriter();
+            PdfUaBatch.Run(inputs, json: true, output);
+            using JsonDocument json = JsonDocument.Parse(output.ToString());
+            return json.RootElement.GetProperty("standard").GetString()!;
+        }
+
+        Assert.Equal("PDF/UA-1", Standard(ua1));
+        Assert.Equal("PDF/UA-2", Standard(ua2));
+        Assert.Equal("mixed", Standard(ua1, ua2));
+    }
+
+    [Fact]
     public void AMissingInputOrAnEmptyFolderIsBadUsage()
     {
         string empty = Path.Combine(folder, "empty");
@@ -110,25 +131,32 @@ public sealed class CliPdfUaBatchTests : IDisposable
         return directory?.FullName ?? throw new InvalidOperationException("The repository root was not found.");
     }
 
-    private static byte[] UntaggedPdf()
+    // An untagged one-page file; pdfUaPart adds XMP declaring that PDF/UA part.
+    private static byte[] UntaggedPdf(int? pdfUaPart = null)
     {
-        string[] objects =
+        string xmp = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">"
+            + "<rdf:Description rdf:about=\"\" xmlns:pdfuaid=\"http://www.aiim.org/pdfua/ns/id/\"><pdfuaid:part>"
+            + pdfUaPart + "</pdfuaid:part></rdf:Description></rdf:RDF></x:xmpmeta>";
+        List<string> objects =
         [
-            "<< /Type /Catalog /Pages 2 0 R >>",
+            pdfUaPart is null ? "<< /Type /Catalog /Pages 2 0 R >>" : "<< /Type /Catalog /Pages 2 0 R /Metadata 4 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 300] /Resources << >> >>"
         ];
-        var pdf = new StringBuilder("%PDF-1.7\n");
+        if (pdfUaPart is not null)
+            objects.Add("<< /Type /Metadata /Subtype /XML /Length " + xmp.Length + " >>\nstream\n" + xmp + "\nendstream");
+        var pdf = new StringBuilder(pdfUaPart == 2 ? "%PDF-2.0\n" : "%PDF-1.7\n");
+        int count = objects.Count;
         var offsets = new List<int>();
-        for (int index = 0; index < objects.Length; index++)
+        for (int index = 0; index < count; index++)
         {
             offsets.Add(pdf.Length);
             pdf.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
         }
         int xref = pdf.Length;
-        pdf.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
+        pdf.Append("xref\n0 ").Append(count + 1).Append("\n0000000000 65535 f \n");
         foreach (int offset in offsets) pdf.Append(offset.ToString("D10")).Append(" 00000 n \n");
-        pdf.Append("trailer\n<< /Size ").Append(objects.Length + 1).Append(" /Root 1 0 R >>\nstartxref\n")
+        pdf.Append("trailer\n<< /Size ").Append(count + 1).Append(" /Root 1 0 R >>\nstartxref\n")
             .Append(xref).Append("\n%%EOF\n");
         return Encoding.ASCII.GetBytes(pdf.ToString());
     }

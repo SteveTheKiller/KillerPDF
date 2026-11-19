@@ -57,6 +57,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Back and Forward work after clicking a page thumbnail. Only bookmarks, links and the page box used to record where you were.
 - Edit on a signature's right-click card opens it in the signature editor. It used to do nothing. Edit no longer shows on marks it cannot edit.
 - The Transform window no longer reopens against the left edge of the app.
+- `--pdfua --json` names the standard the files were checked against, PDF/UA-2 or "mixed" when PDF/UA-2 files are in the run. It always said PDF/UA-1.
 
 ### Changed
 

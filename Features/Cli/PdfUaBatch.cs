@@ -124,7 +124,11 @@ namespace KillerPDF.Features
             {
                 writer.WriteStartObject();
                 writer.WriteNumber("schemaVersion", 1);
-                writer.WriteString("standard", "PDF/UA-1");
+                // The standard every checked file was held to; a run over PDF/UA-1 and PDF/UA-2
+                // files together says "mixed", and each file's report still names its own.
+                string[] standards = [.. results.Where(result => result.Report is not null)
+                    .Select(result => result.Report!.Standard).Distinct(StringComparer.Ordinal)];
+                writer.WriteString("standard", standards.Length switch { 0 => "PDF/UA-1", 1 => standards[0], _ => "mixed" });
                 writer.WriteStartArray("files");
                 foreach (FileResult result in results)
                 {
