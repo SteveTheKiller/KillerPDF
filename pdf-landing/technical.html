@@ -138,12 +138,16 @@
 <a href="#arch" data-i18n="pt_6">Architecture</a>
 <a href="#two-render-pipelines" class="sub" data-i18n="pt_56">Two render pipelines</a>
 <a href="#per-tab-sessions-an-lru-cache" class="sub" data-i18n="pt_58">Per-tab sessions &amp; an LRU cache</a>
+<a href="#tabs-across-windows" class="sub" data-i18n="pt195_tabs_h">Tabs across windows &amp; sessions</a>
+<a href="#merge-and-file-dialogs" class="sub" data-i18n="pt195_files_h">Merge files &amp; the file dialogs</a>
+<a href="#trash-polka-theme" class="sub" data-i18n="pt195_theme_h">The Trash Polka theme</a>
 <a href="#canvas-overlay-maps" class="sub" data-i18n="pt_60">Canvas &amp; overlay maps</a>
 <a href="#coords" data-i18n="pt_7">Coordinate space</a>
 <a href="#render-dim-space" class="sub" data-i18n="pt_68">1. A fixed internal size ("render-dim")</a>
 <a href="#decoupled-bitmap-resolution" class="sub" data-i18n="pt_70">2. Drawing sharpness follows zoom, not position</a>
 <a href="#the-coordinate-y-flip" class="sub" data-i18n="pt_72">3. The coordinate Y-flip</a>
 <a href="#annots" data-i18n="pt_8">Annotation model</a>
+<a href="#arrange-comb-signatures" class="sub" data-i18n="pt195_marks_h">Arrange, comb fields &amp; the signature editor</a>
 <a href="#one-funnel-every-repaint" class="sub" data-i18n="pt_92">One funnel, every repaint</a>
 <a href="#undo" class="sub" data-i18n="pt_94">Undo</a>
 <a href="#coverpair" data-i18n="pt_9">Editing text</a>
@@ -155,6 +159,7 @@
 <a href="#text-edit-cover" class="sub" data-i18n="te19_toc_cover">The cover fallback</a>
 <a href="#books" data-i18n="pt193_books_toc">Books &amp; color</a>
 <a href="#native-books" class="sub" data-i18n="pt193_native_h">EPUB and DjVu without conversion</a>
+<a href="#epub-export" class="sub" data-i18n="pt195_epub_h">EPUB 3 export</a>
 <a href="#color-management" class="sub" data-i18n="pt193_cm_h">Color management</a>
 <a href="#zoom" data-i18n="pt_10">Zoom &amp; interaction</a>
 <a href="#cursor-anchored-zoom" class="sub" data-i18n="pt_100">Cursor-anchored zoom</a>
@@ -166,8 +171,11 @@
 <a href="#encryption-is-stripped-at-open" class="sub" data-i18n="pt_221">Encryption and permissions</a>
 <a href="#network-and-partial-reads" class="sub" data-i18n="pt_126">Network and partial reads</a>
 <a href="#repair-works-on-a-copy" class="sub" data-i18n="pt_128">Repair works on a copy</a>
+<a href="#security-hardening" class="sub" data-i18n="pt195_sec_h">Security hardening</a>
+<a href="#command-line-defaults" class="sub" data-i18n="pt195_cli_h">Command-line defaults</a>
 <a href="#conformance" data-i18n="pt_conf_1">Standards conformance</a>
 <a href="#how-the-test-works" class="sub" data-i18n="pt_conf_2">How the test works</a>
+<a href="#pdfua-checks" class="sub" data-i18n="pt195_ua_h">PDF/UA-1 and PDF/UA-2 checks</a>
 <a href="#the-numbers" class="sub" data-i18n="pt_conf_3">The numbers</a>
 <a href="#patching-the-write-engine" class="sub" data-i18n="pt_236">Owning the document engine</a>
 <a href="#i18n" data-i18n="pt_13">Localization</a>
@@ -184,6 +192,7 @@
 <span class="page-title" data-i18n="pt_1">The Tech of</span>
 <img class="wm-logo" src="brand/killerpdf-logo-dark-green.svg" alt="KillerPDF">
 <p data-i18n="pt_2">A plain-English look at how KillerPDF works under the hood, with the deeper detail kept for the nerds who want it.</p>
+<p data-i18n="pt195_setup">A machine-wide install unpacks into a folder only administrators can change, and a machine-wide uninstall runs its cleanup script from one. Setup loads no DLLs from the folder it was downloaded to and starts Explorer and the command prompt by their full Windows paths, so a program running without admin rights cannot take it over.</p>
 </section>
 
 <div class="tech-grid">
@@ -202,11 +211,13 @@
 <tr><td data-i18n="pt_30">OCR</td><td data-i18n="pt_31">The KillerPDF.Engine; Tesseract 5.2</td></tr>
 <tr><td data-i18n="pt_32">Packaging</td><td data-i18n="pt_33">A compact framework-dependent installer and a self-contained portable launcher, each carrying a compressed, SHA-256-verified payload</td></tr>
 </table>
+<p data-i18n="pt195_jp2">JPEG 2000 images, common in scanned and archival PDFs, are decoded by OpenJPEG, the reference decoder for the format. The engine NuGet carries OpenJPEG for Windows x64, Linux x64 and macOS.</p>
 </div>
 
 <div class="tech-sec" id="install">
 <h2 data-i18n="pt_34">Install, folders &amp; data</h2>
 <p data-i18n="release_185_updates">KillerPDF checks GitHub for newer stable versions at startup by default and asks before installing an update. Always check on startup in the confirmation dialog shares the About setting and saves your choice even if you decline the update. There is no separate background service.</p>
+<p data-i18n="pt195_update">An update installs only when its signing certificate chains to the certificate authority that issues KillerPDF's own certificate, and a revoked certificate is refused. A certificate that only carries the right name does not pass.</p>
 <p data-i18n="release_185_shortcuts">At the bottom of the shortcut list, you can turn off all application keyboard shortcuts. Ctrl+Shift+K always works to turn them on or off, even when the others are disabled.</p>
 <p data-i18n="release_185_rotation">Ctrl+R rotates selected pages 90° clockwise. Ctrl+L rotates them 90° counterclockwise.</p>
 <p data-i18n="pt_35">KillerPDF ships in two forms. The compact installer is the standard download and supports per-user or all-users installation. The larger portable edition contains its own runtime and runs from anywhere without installation.</p>
@@ -226,6 +237,7 @@
 <p data-i18n="pt_49">All OCR language models, including English, download on first use and remain cached. Native Tesseract libraries extract to the versioned OCR cache.</p>
 <h3 id="temp-files" data-i18n="pt_50">Temp files</h3>
 <p data-i18n="pt_51">Working files are written as <code>killerpdf_&lt;tag&gt;_&lt;guid&gt;.pdf</code> and tracked for the session. They are deleted when you close the app. Anything a crash leaves behind is swept on the next launch, but only in the Temp folder's per-session subfolders (<code>Temp\session-&lt;guid&gt;</code>) and only once the process that owned the session has exited. Copies in the legacy <code>%TEMP%</code> location are removed only by Clear all data. Files still open in another instance are skipped and cleared later.</p>
+<p data-i18n="pt195_temp">A working copy is deleted as soon as an edit replaces it, so text a redaction removed does not wait in a temporary file until KillerPDF closes. An edit that fails partway deletes the copies it made, and a saved report replaces the old file only once it is completely written.</p>
 <h3 id="clear-all-data" data-i18n="pt_52">Clear all data</h3>
 <p data-i18n="pt_53">Clear all Data removes saved settings, OCR models and temporary files where possible. Locked files may remain. Installed copies keep saved signatures and logs; portable copies also remove the <code>KillerPDF-Data</code> folder. Your source PDFs are not deleted.</p>
 </div>
@@ -238,6 +250,14 @@
 <p data-i18n="pt19_render_thread">Since 1.9 the drawing itself happens on a background thread. Pages in the viewport are rendered first, work for pages that have scrolled away is canceled, and a zoomed page shows a scaled image at once and is redrawn sharp when the wheel rests. The app and engine ship precompiled, installed fonts are cached, and font discovery runs in the background, so startup does not wait on it.</p>
 <h3 id="per-tab-sessions-an-lru-cache" data-i18n="pt_58">Per-tab sessions &amp; an LRU cache</h3>
 <p data-i18n="pt_59_172">Each open document is a <b>DocumentSession</b> that remembers its own zoom, fit and view mode, grid columns, current tool, page, and scroll position, along with its per-document data (annotations, page sizes, rotations, form values, and undo history). Switching tabs simply points the app back at that session. Each session also keeps a cache of already-drawn page images, so flipping back to a recent tab is instant and skips the renderer entirely. To keep memory bounded, only the three most recently used tabs retain caches; each tab has an approximately 160 MB budget and a cap of 48 cached pages, and the page being shown is never evicted.</p>
+<h3 id="tabs-across-windows" data-i18n="pt195_tabs_h">Tabs across windows &amp; sessions</h3>
+<p data-i18n="ph195_tabs_move">To move a tab into another open KillerPDF window, pick that window on the tab's right-click menu or drag the tab onto it. <b>Reopen Closed Tab</b> (<code>Ctrl+Shift+T</code>) brings back the last tab you closed, and each use goes one tab further back.</p>
+<p data-i18n="ph195_session"><b>Restore last session</b>, on the About card (<code>F12</code>) next to the startup options, brings back your open tabs from every window, with their page and zoom. <b>Always</b> reopens them, <b>Ask</b> offers a Restore bar at launch, and <b>Never</b> forgets them. Tabs load when you first open them, files that were moved or deleted are named once in the status bar, and opening a file directly starts without the old session.</p>
+<h3 id="merge-and-file-dialogs" data-i18n="pt195_files_h">Merge files &amp; the file dialogs</h3>
+<p data-i18n="ph195_merge_dialog"><b>Merge</b> opens the <b>Merge files</b> dialog. Drop PDF files or whole folders on it, or use <b>Add files</b> and <b>Add folder</b>, then drag the files into order or use <b>Move up</b> and <b>Move down</b>. Dropping several PDFs on the main window opens the same dialog, where you can merge them, open them separately or cancel.</p>
+<p data-i18n="ph195_new_folder">KillerPDF's own open and save dialogs have a <b>New folder</b> button, also on <code>Ctrl+Shift+N</code> while the dialog is open. The folder is created in the current folder and opened, so a Save As can go straight into it, and a name Windows won't accept is explained before anything is created.</p>
+<h3 id="trash-polka-theme" data-i18n="pt195_theme_h">The Trash Polka theme</h3>
+<p data-i18n="pt195_theme">Trash Polka sits under 98SE in the theme list: black, with a tattoo-style ink background drawn in the accent color, from eight accents with Blood red as the default. Under a Windows high contrast theme the ink and the tab shade step aside for the system colors.</p>
 <h3 id="canvas-overlay-maps" data-i18n="pt_60">Canvas &amp; overlay maps</h3>
 <p data-i18n="pt_61">When KillerPDF displays a page, it stacks two things on top of each other: the page itself, drawn as a flat image, and a clear sheet sitting directly over it. That clear sheet is called an <b>overlay</b>, and it is where everything you add to a page (highlights, text boxes, drawn ink, signatures) is painted. The image underneath is never altered; your marks live on the overlay above it. A page's image-and-overlay pair is referred to as a <b>tile</b>.</p>
 <p data-i18n="pt_62">The wrinkle is that KillerPDF has five ways of showing pages: one at a time, a continuous scroll through the whole document, a grid of pages, two pages side by side, and a continuous scroll of two-page rows. Each of those lays pages out differently, so each page you can see needs its own overlay in its own place. There is no single fixed sheet to draw on. Instead KillerPDF keeps a <b>lookup table</b> that takes a page number and hands back that page's current overlay. In the code this table is named <code>_pages</code>, and it is the one place the app trusts: every time it repaints a page's annotations, it asks this table which overlay to use and draws there.</p>
@@ -354,6 +374,10 @@
 <tr><td data-i18n="pt_90">Image</td><td data-i18n="pt_91">Pasted or imported raster, freely resized</td></tr>
 <tr><td data-i18n="pt_mx_1">Measurement</td><td data-i18n="pt_mx_2">Dimension line, polyline or polygon with its scale, written to the file as a real PDF measurement annotation and never flattened</td></tr>
 </table>
+<h3 id="arrange-comb-signatures" data-i18n="pt195_marks_h">Arrange, comb fields &amp; the signature editor</h3>
+<p data-i18n="ph195_arrange">With several marks selected, <b>Arrange</b> on the card lines them up by their left, center, right, top, middle or bottom edges, spaces them evenly or steps the gaps wider or closer, and gives them the same width, height or size. Text boxes and shapes resize; images and drawings keep their proportions and only move.</p>
+<p data-i18n="ph195_comb">Comb fields, the text fields printed as a row of boxes with one character each, edit like any other text: select, copy and paste across the cells, and change the font, size, style and color. <b>Recognize form fields</b> finds a row of three or more boxes as a comb.</p>
+<p data-i18n="ph195_sig_editor"><b>Create Signature</b> opens the signature editor, which also opens from a saved signature's pencil and from <b>Edit</b> on a placed one. It sets the pen width, a threshold for scanned signatures, edge feathering and the ink color.</p>
 <h3 id="one-funnel-every-repaint" data-i18n="pt_92">One funnel, every repaint</h3>
 <p data-i18n="pt_93">No commit path paints annotations directly - they all call <b>RenderAllAnnotations(page)</b>, which clears that page's overlay, repaints every annotation in <code>_annotations[page]</code>, re-adds the live form fields, then re-applies the search highlights <b>last</b>. That tail ordering is why a highlight survives every re-render, scroll and zoom instead of being painted over.</p>
 <h3 id="undo" data-i18n="pt_94">Undo</h3>
@@ -413,6 +437,9 @@
 <p data-i18n="pt193_native_1">EPUB and DjVu files are not turned into PDFs to be shown. KillerPDF reads them natively and hands the viewer pages through the same tile pipeline a PDF uses, so tabs, thumbnails, the outline, search, copy and every view mode work the same way, and the original file is never written.</p>
 <p data-i18n="pt193_native_2">An EPUB is laid out with KillerPDF's own HTML and CSS layout. Unknown elements and style properties are ignored the way browsers ignore them, scripts are never run, and anything that cannot be laid out is listed in the book's diagnostics. Long books keep a small page index that records where each page's layout begins, so a page is laid out only when it is shown: on test hardware the Complete Works of Shakespeare holds about 22 MB, peaks at about 260 MB while it opens, and shows a page it jumps to in about 90 ms.</p>
 <p data-i18n="pt193_native_3">DjVu pages are decoded by KillerPDF's own decoder: bitonal JB2 text layers, IW44 grayscale and color backgrounds, shared letter shapes decoded once per open book, and the hidden text layer for search and copy. Thumbnails and fitted views decode only the detail they show. Explicit <b>Convert to PDF</b> writes a new PDF from either format: an EPUB book keeps its text, links, fonts, pictures and bookmarks, and a DjVu scan keeps its page images, hidden text layer and bookmarks. DjVu links are not read or converted.</p>
+<h3 id="epub-export" data-i18n="pt195_epub_h">EPUB 3 export</h3>
+<p data-i18n="ph195_epub_export"><b>Export Document</b> can also save a PDF as an EPUB 3 book. The text reflows: columns read in order, lines join into paragraphs, larger type becomes headings and chapters with a table of contents, running headers, footers and page numbers are left out, and images stay where they appear. A tagged PDF follows its own structure.</p>
+<p data-i18n="pt195_epub_cli">Words split by a hyphen at a line end are put back together. On the command line, <code>export in.pdf out.epub</code> writes the same book.</p>
 <h3 id="color-management" data-i18n="pt193_cm_h">Color management</h3>
 <p data-i18n="pt193_cm_1">Pages render in floating point and are converted to the monitor's ICC profile when it has one, and to plain sRGB when it does not. CMYK content without its own profile goes through one working CMYK profile, CGATS TR 001 by default, everywhere a page is shown, printed or exported, so the viewer, thumbnails, print, export and the command line agree.</p>
 <p data-i18n="pt193_cm_2">A printer proof converts the page through the chosen printer or paper profile with the selected intent, black-point compensation and paper and black simulation. Overprint is simulated the way a separation preview does it, eight bits a plate, before the proof conversion, and gamut warnings paint unreproducible colors flat gray. Proof settings are stored per document, not in the PDF. HDR output is still in progress.</p>
@@ -453,12 +480,22 @@
 <p data-i18n="pt_127">UNC shares and the WSL <code>\\wsl$</code> 9P filesystem sometimes hand back partial reads, which the parser sees as a truncated file. Before opening anything on a network path, KillerPDF copies it to a local temp with a single read-to-EOF, then opens the complete copy - while keeping your original path for display and Save.</p>
 <h3 id="repair-works-on-a-copy" data-i18n="pt_128">Repair works on a copy</h3>
 <p data-i18n="pt19_repair_copy">When a file cannot be opened even read-only, KillerPDF asks before attempting a repair, and the repair produces a copy: the engine rebuilds the cross-reference table and recovers what it can of the page tree into a fresh file, and the status line says you are looking at a repaired copy that needs Save to keep. The original on disk is never written. The dialog warns beforehand that a repaired copy can lose bookmarks, forms and other interactive features, and a repair that had to rasterize the pages says text is no longer selectable. Merge, Split and Extract read damaged files that open in the viewer, and a save that repaired broken references says so without claiming the missing content was recovered.</p>
+<h3 id="security-hardening" data-i18n="pt195_sec_h">Security hardening</h3>
+<p data-i18n="pt195_sec_1">The Explorer and Outlook preview runs in Windows' low-integrity preview sandbox, so a PDF that exploited it could not write to your files or settings, while Open in KillerPDF starts the full app. A PDF built to multiply its own drawing work cannot hang the app, the preview or the thumbnails: a tiling pattern that paints with itself is skipped, nested drawings share one work limit per page, and a preview page or thumbnail stops after 15 seconds and shows as incomplete. Repair is bounded too, so a damaged file built to make it slow opens or fails in seconds.</p>
+<p data-i18n="pt195_sec_2">A PDF link handed over from the browser downloads only from the public internet and connects directly, skipping the system proxy, so a web page cannot use it to reach a router, printer or other device on your network. NAT64, 6to4 and IPv4-compatible addresses that lead to a private network are refused, and so are the reserved documentation ranges. A file or link sent to a running KillerPDF goes only to a copy running as you.</p>
+<p data-i18n="pt195_sec_3">An embedded file is extracted only under its real name: a name ending in a dot or space, such as <code>run.bat.</code>, and device names such as CON, NUL and COM1 are refused. The attachment safety check counts far more file types as executable, including .hta, .url, .iso and macro-enabled Office files, and files saved out of a PDF are marked as coming from the internet, so SmartScreen and Office Protected View treat them like a download. Converting a Word or Excel file leaves its links to other files alone and keeps Excel 4.0 macros off.</p>
+<p data-i18n="pt195_sec_4">A password-protected save gets a random document identifier, so the identifier gives away nothing about the content. A password typed for a file whose protection could not be read is forgotten after two minutes, a certificate loaded from a .pfx file cannot have its private key exported while it signs, and the Signatures panel shows <b>Certification broken</b> for a document certified to allow no changes that was changed afterward. The crash window's Report on GitHub link carries no folder names, and OCR languages download from a fixed version of the Tesseract language files.</p>
+<h3 id="command-line-defaults" data-i18n="pt195_cli_h">Command-line defaults</h3>
+<p data-i18n="pt195_cli"><code>--redact</code> removes hidden information by default and fails when a redacted word survives anywhere in the file; <code>--no-sanitize</code> skips that step and <code>--sanitize</code> with a list chooses what is removed. <code>--attachments</code> leaves files already in the output folder alone unless <code>--overwrite</code> is given, and <code>--batch-render</code> takes <code>--secrets-stdin</code>, so an owner password stays out of the process list.</p>
 </div>
 
 <div class="tech-sec" id="conformance">
 <h2 data-i18n="pt_conf_1">Standards conformance</h2>
 <h3 id="how-the-test-works" data-i18n="pt_conf_2">How the test works</h3>
 <p data-i18n="pt_conf_8">Every corpus file is validated pristine, resaved through KillerPDF's normal open/save pipeline (headlessly, via <code>--batch-resave</code>), and validated again. A comparison script then flags any file that fails a rule after the resave that it did not fail before. The bar for release is zero regressions. A second pass runs <code>qpdf --check</code> on every original/resave pair and flags any file whose structural health worsened.</p>
+<h3 id="pdfua-checks" data-i18n="pt195_ua_h">PDF/UA-1 and PDF/UA-2 checks</h3>
+<p data-i18n="ph195_preflight_ua">A document that declares PDF/UA-1 is checked against the Matterhorn Protocol, the PDF Association's checklist for ISO 14289-1. Each failed condition is named by its Matterhorn ID, such as 06-003 for a missing title, with its page.</p>
+<p data-i18n="pt195_ua2">The PDF/UA-1 check also flags list, table, table of contents, Ruby and Warichu tags placed where they don't belong. <code>--pdfua</code> checks files and whole folders on the command line and prints a report per file and a summary, in text or with <code>--json</code>, which names the standard the run was checked against. A file that declares PDF/UA-2 is checked against the PDF/UA-2 rules: PDF 2.0, structure namespaces and role mapping, the PDF 2.0 tags such as FENote and Title, no plain H, Note only when mapped onto a PDF 2.0 tag, Ruby, Warichu, list and Caption order, MathML inside Formula, annotations, forms and metadata. Each finding carries its veraPDF PDF/UA-2 rule ID, and the rules not checked yet are listed by ID.</p>
 <h3 id="the-numbers" data-i18n="pt_223">Historical standards validation</h3>
 <p>Documented 1.8.1 standards run, August 29, 2026. See <a href="https://github.com/SteveTheKiller/KillerPDF/blob/v1.8.1/validation/RESULTS.md" target="_blank" rel="noopener">the validation report</a> for the method and full results.</p>
 <table class="spec-table"><tr><th data-i18n="pt_conf_9">Outcome</th><th data-i18n="pt_conf_10">Files</th></tr>
@@ -497,6 +534,8 @@
 <tr><td data-i18n="pt_147">Folder / zip import cap</td><td data-i18n="pt_148">50 files</td></tr>
 <tr><td data-i18n="pt_149">Signature reservation</td><td data-i18n="pt_150">32,768 bytes, SHA-256, whole chain</td></tr>
 <tr><td data-i18n="tech_languages_themes">Languages / themes</td><td data-i18n="tech_languages_themes_value">20 locales / 14 themes + accent variants</td></tr>
+<tr><td data-i18n="pt195_spec_1">Preview and thumbnail page time limit</td><td data-i18n="pt195_spec_1v">15 seconds, then shown as incomplete</td></tr>
+<tr><td data-i18n="pt195_spec_2">Password kept for unreadable protection</td><td data-i18n="pt195_spec_2v">2 minutes</td></tr>
 </table>
 <p style="margin-top:14px" data-i18n="pt_153_172">The feature guide includes the current shortcuts, all themes and languages, and an interactive sample form. It ships in the repo as <a href="https://github.com/SteveTheKiller/KillerPDF/blob/main/KillerPDF.pdf" target="_blank" rel="noopener"><code style="color:inherit">KillerPDF.pdf</code></a>. Open it in KillerPDF itself.</p>
 </div>
@@ -549,7 +588,7 @@
 <a class="reddit-community" href="https://www.reddit.com/r/KillerTools/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 8c2.648 0 5.028 .826 6.675 2.14a2.5 2.5 0 0 1 2.326 4.36c0 3.59 -4.03 6.5 -9 6.5c-4.875 0 -8.845 -2.8 -9 -6.294l-1 -.206a2.5 2.5 0 0 1 2.326 -4.36c1.646 -1.313 4.026 -2.14 6.674 -2.14l.999 0"/><path d="M12 8l1 -5l6 1"/><path d="M18 4a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M8.5 13a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0"/><path d="M14.5 13a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0"/><path d="M10 17c.667 .333 1.333 .5 2 .5s1.333 -.167 2 -.5"/></svg><span>r/KillerTools</span></a>
 </footer>
 <div class="egg-toast" id="eggToast"></div>
-<script src="kp-i18n.js?v=28"></script>
+<script src="kp-i18n.js?v=29"></script>
 <script src="engine/engine-site-facts.js?v=1.9.4"></script>
 <script src="kp-site-info.js?v=1"></script>
 <script src="kp.js?v=21"></script>

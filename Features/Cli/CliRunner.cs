@@ -461,7 +461,7 @@ namespace KillerPDF.Features
             "                                           check each file against the PDF/UA-1 Matterhorn checkpoints,",
             "                                           or the PDF/UA-2 rules when it declares part 2, and",
             "                                           summarize; exit 3 when any file fails or is partly checked",
-            "  killerpdf attachments <in.pdf> [<outDir>] [--json] [--password <p>]",
+            "  killerpdf attachments <in.pdf> [<outDir>] [--json] [--password <p>] [--overwrite]",
             "                                           list embedded files, or extract them to a folder",
             "  killerpdf decrypt <in.pdf> <out.pdf> [--password <p>]",
             "                                           remove encryption (lossless when possible); a PDF that",
