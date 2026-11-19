@@ -157,10 +157,21 @@ namespace KillerFamily.Controls
                 cells.AddRange(list);
                 for (int pad = (columns - list.Count % columns) % columns; pad > 0; pad--) cells.Add(null);
             }
-            return Strip(card, name, new UniformGrid { Columns = columns }, cells);
+            // Equal columns, but each row only as tall as its own tiles: a UniformGrid gave every row the height of the
+            // tallest (a tile with a shortcut line), which left a blank line under the rows without one.
+            var grid = new Grid();
+            for (int c = 0; c < columns; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            for (int r = 0; r < (cells.Count + columns - 1) / columns; r++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var strip = Strip(card, name, grid, cells);
+            for (int i = 0; i < grid.Children.Count; i++)
+            {
+                Grid.SetRow(grid.Children[i], i / columns);
+                Grid.SetColumn(grid.Children[i], i % columns);
+            }
+            return strip;
         }
 
-        private static Border Strip(ContextMenu card, string name, UniformGrid grid, List<CardTile?> list)
+        private static Border Strip(ContextMenu card, string name, Panel grid, List<CardTile?> list)
         {
             foreach (var tile in list)
             {
