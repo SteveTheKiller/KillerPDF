@@ -55,7 +55,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - `--pdfua --json` names the standard the files were checked against, PDF/UA-2 or "mixed" when PDF/UA-2 files are in the run. It always said PDF/UA-1.
 
 ### Changed
-- Menu text, icons and shortcuts are brighter in Dark and Trash Polka, so menus stay easy to read beside a white page. Secondary labels in 98SE are a shade darker. Every theme's menu text now clears WCAG AA contrast.
+- Menu text, icons and shortcuts are brighter in Dark and Trash Polka, so menus stay easy to read beside a white page. Secondary labels in 98SE are a shade darker. Menu tile icons keep the accent's hue but are lifted where the accent was too dark to read, so Trash Polka's red icons go from 3.78:1 to 4.57:1. Menu text and icons now clear WCAG AA contrast in every theme and accent.
 
 - On the command line, `--redact` removes hidden information by default and fails when a redacted word survives anywhere in the file. Add `--no-sanitize` to skip that step, or `--sanitize` with a list to choose what is removed.
 - Three shortcuts moved so each one matches what it does and what other apps use. Rotate counterclockwise is now Ctrl+L, beside Ctrl+R for clockwise. Convert Scan to Text is now Ctrl+Shift+R, the recognize key in ABBYY FineReader. Ctrl+Shift+T reopens the last closed tab, as it does in web browsers.

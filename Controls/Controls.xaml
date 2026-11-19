@@ -1530,10 +1530,10 @@
                     <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ControlCornerRadius}"
                             Padding="{TemplateBinding Padding}" BorderThickness="1" BorderBrush="Transparent">
                         <StackPanel HorizontalAlignment="Center">
-                            <!-- The glyph in the accent: the strip is the card's one splash of color,
+                            <!-- The glyph in the accent (MenuIconBrush, lifted to 4.5:1 where the accent is too dark): the strip is the card's one splash of color,
                                  and the caption under it stays the plain text color. -->
                             <TextBlock x:Name="Glyph" Text="{TemplateBinding Content}" FontFamily="Segoe MDL2 Assets" FontSize="16"
-                                       HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryBrush}"/>
+                                       HorizontalAlignment="Center" Foreground="{DynamicResource MenuIconBrush}"/>
                             <TextBlock x:Name="Caption" Text="{TemplateBinding Tag}" FontSize="11" Margin="0,5,0,0"
                                        HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
                                        TextTrimming="CharacterEllipsis" MaxHeight="30"/>
