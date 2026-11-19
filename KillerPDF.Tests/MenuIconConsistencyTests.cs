@@ -43,10 +43,12 @@ public sealed class MenuIconConsistencyTests
         return literal.Success ? literal.Value : "";
     }
 
+    // The one glyph an action shows in a file: it may appear more than once (a card's spare tile repeats a menu row),
+    // but always as the same glyph.
     private static string Only(string text, string anchor, int span = 0)
     {
         var all = Glyphs(text, anchor, span);
-        Assert.Single(all);
+        Assert.Single(all.Distinct());
         return all[0];
     }
 

@@ -83,9 +83,25 @@ namespace KillerPDF.Shell
                 // Not the Move row's old arrows: those are the Transform tile's, two tiles up.
                 FlyoutTile("\uE8AB", Loc("Str_Card_Move"), null, move),
             ];
-            // One customizable grid (KillerUI CardEdit): Duplicate, Extract and Delete always show; Color Correction starts
-            // hidden because Transform opens it too.
-            var strip = EditableTileGroups(menu, "Thumbnail", ["\uE8C8", "\uE8B1", "\uE74D"], ["\uE790"], pageRow, turnRow, toolRow, groupRow);
+            // Spares in the Hidden drawer: the submenus' rows as tiles of their own, plus Add Blank Page and Compare.
+            CardTile[] spares =
+            [
+                Spare("fixorientation", new("\uE7AD", Loc("Str_Pages_FixOrientation"), "AltShift:O", FixPageOrientation, false, true)),
+                Spare("straighten", new("\uE809", Loc("Str_Pages_Straighten"), "AltShift:S", StraightenScannedPages, false, true)),
+                Spare("dividespreads", new("\uE89F", Loc("Str_Pages_DivideSpreads"), "AltShift:D", DivideSpreads, false, true)),
+                Spare("rasterize", new("\uE91B", Loc("Str_Pages_RasterizeRegion"), null, () => RasterizeRegion(page), false, true)),
+                Spare("extractimage", new("\uEB9F", Loc("Str_ExtractImage_Menu"), null, () => ExtractImage(page), false, true)),
+                Spare("exporttable", new("\uE80A", Loc("Str_TableExport_Title"), null, () => ExportTable(page), false, true)),
+                Spare("paragraph", new("\uE8E4", Loc("Str_Paragraph_Title"), "AltShift:P", () => EditParagraph(page), false, true)),
+                Spare("moveup", new("\uE74A", Loc("Str_Lbl_MoveUp"), null, () => MoveUp_Click(this, new RoutedEventArgs()), false, true)),
+                Spare("movedown", new("\uE74B", Loc("Str_Lbl_MoveDown"), null, () => MoveDown_Click(this, new RoutedEventArgs()), false, true)),
+                Spare("reverse", new("\uE8CB", Loc("Str_Pages_Reverse"), "AltShift:R", ReversePageOrder, false, true)),
+                Spare("addblank", new("\uE7C3", Loc("Str_Ctx_AddBlankPage"), "AltShift:A", AddBlankPageAtEnd, false, true)),
+                Spare("compare", FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem())),
+            ];
+            // One customizable grid (KillerUI CardEdit): Duplicate, Extract and Delete always show, every other tile
+            // starts on the card in five full rows, and the spares start in the drawer.
+            var strip = EditableTileGroups(menu, "Thumbnail", ["\uE8C8", "\uE8B1", "\uE74D"], [], pageRow, turnRow, toolRow, groupRow, spares);
             menu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, strip);
             return menu;
@@ -218,7 +234,14 @@ namespace KillerPDF.Shell
             public MenuItem? Flyout { get; init; }
             public bool? Checked { get; init; }
             public bool KeepsOpen { get; init; }
+            /// <summary>A spare tile's stable name: it starts in the Hidden drawer, is never locked, and its glyph may
+            /// repeat one already on the card.</summary>
+            public string? Id { get; init; }
         }
+
+        // A spare tile for a customizable card: an action that has its home elsewhere and starts in the Hidden drawer,
+        // for anyone who wants it on the card.
+        private static CardTile Spare(string id, CardTile tile) => tile with { Id = "spare." + id };
 
         // A tile that opens the rows of a submenu built for a menu row (Compare, Fillable Field Preset, Clean up...).
         private static CardTile FlyoutTile(string glyph, string caption, string? gesture, MenuItem rows)
@@ -234,14 +257,15 @@ namespace KillerPDF.Shell
         // A big card the user can customize (KillerUI CardEdit, Steve 2026-11-19): a pencil in its corner hides and
         // shows tiles; the locked glyphs are the card's everyday actions and always show, and the hidden-by-default glyphs
         // start in the Hidden column (Reset returns there). Saved per card in settings.
+        // Spare tiles (Spare) start there too and are never locked.
         private FrameworkElement EditableTileGroups(ContextMenu menu, string card, string[] locked, string[] hiddenByDefault, params IEnumerable<CardTile>[] groups)
             => KillerFamily.Controls.CardBuilder.TileGroups(menu, Loc("Str_Card_Actions"), groups.Select(g => g.Select(KitTile)), CardEditFor(card, locked, hiddenByDefault));
 
         private static KillerFamily.Controls.CardEdit CardEditFor(string card, string[] locked, string[] hiddenByDefault)
             => new(() => App.GetSetting($"Card.{card}.Hidden"), value => App.SetSetting($"Card.{card}.Hidden", value ?? ""))
             {
-                Locked = t => locked.Contains(t.Glyph),
-                DefaultHidden = t => hiddenByDefault.Contains(t.Glyph),
+                Locked = t => t.Id is null && locked.Contains(t.Glyph),
+                DefaultHidden = t => t.Id is not null || hiddenByDefault.Contains(t.Glyph),
                 EditTip = Loc("Str_Card_Edit"),
                 DoneTip = Loc("Str_Card_EditDone"),
                 ResetTip = Loc("Str_Card_EditReset"),
@@ -261,6 +285,7 @@ namespace KillerPDF.Shell
                 Flyout = t.Flyout?.Items.Cast<object>().ToList(),
                 Checked = t.Checked,
                 KeepsOpen = t.KeepsOpen,
+                Id = t.Id,
             };
         }
 

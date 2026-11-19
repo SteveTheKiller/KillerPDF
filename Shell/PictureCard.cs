@@ -13,6 +13,8 @@ namespace KillerPDF.Shell
     // replaced by another file in the same spot.
     public partial class MainWindow
     {
+        private CardTile SavePictureTile(ImageAnnotation picture) => new("\uE74E", Loc("Str_Ctx_SavePicture"), null, () => SavePicture(picture), false, true);
+
         // placed: the picture is an ImageAnnotation on the page; otherwise it is the page's own picture under the
         // viewer's source selection.
         private void AddPictureCard(ImageAnnotation picture, bool placed)
@@ -21,23 +23,24 @@ namespace KillerPDF.Shell
             bool canRemove = placed || ActiveViewer.CanDeleteSelectedSourceImageExt;
             _ctxMenu.Items.Add(CardSlot(WithHeaderDelete(PictureCardHeader(picture), canRemove), new Thickness(4, 2, 4, 6)));
 
-            // Family card grid (KillerUI CardBuilder.TileGroups): three across, one group per row, most used first.
-            // Delete sits in the header.
+            // Family card grid (KillerUI CardBuilder.TileGroups): three across, full rows by default, most used first:
+            // Copy, Cut and Save; the three turns; Replace, Raise and Lower. Paste starts in the Hidden drawer and comes
+            // back after Cut. Delete sits in the header.
             var clipboard = new List<CardTile>
             {
                 new("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true),
                 new("\uE8C6", Loc("Str_Ctx_Cut"), placed ? null : "Ctrl:X", placed ? CutSelectedAnnotations : CutSelectedSourceImage, false, canRemove),
             };
             var turns = new List<CardTile>();
-            var file = new List<CardTile> { new("\uE74E", Loc("Str_Ctx_SavePicture"), null, () => SavePicture(picture), false, true) };
             var layers = new List<CardTile>();
             if (placed)
             {
                 clipboard.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteAnnotations(picture.PageIndex), false, MarkupToPaste()));
+                clipboard.Add(SavePictureTile(picture));
                 turns.Add(new("\uE7AD", Loc("Str_Ctx_RotateCCWShort"), null, () => TurnPicture(picture, 270), true, true));
                 turns.Add(new("\uE895", Loc("Str_Ctx_UpsideDown"), null, () => TurnPicture(picture, 180), false, true));
                 turns.Add(new("\uE7AD", Loc("Str_Ctx_RotateCWShort"), null, () => TurnPicture(picture, 90), false, true));
-                file.Add(new("\uE8AB", Loc("Str_Ctx_ReplacePicture"), null, () => ReplacePicture(picture), false, true));
+                layers.Add(new("\uE8AB", Loc("Str_Ctx_ReplacePicture"), null, () => ReplacePicture(picture), false, true));
                 _annotations.TryGetValue(picture.PageIndex, out var pageList);
                 int idx = pageList?.IndexOf(picture) ?? -1;
                 bool canRaise = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, picture, +1) >= 0;
@@ -45,7 +48,10 @@ namespace KillerPDF.Shell
                 layers.Add(new("\uE70E", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(picture, +1), false, canRaise));
                 layers.Add(new("\uE70D", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(picture, -1), false, canLower));
             }
-            var strip = EditableTileGroups(_ctxMenu, "Picture", ["\uE8C8", "\uE8C6"], ["\uE77F"], clipboard, turns, file, layers);
+            else clipboard.Add(SavePictureTile(picture));
+            // A spare in the Hidden drawer: Select All, for picking up everything on the page from here.
+            CardTile[] spares = [Spare("selectall", new("\uE8B3", Loc("Str_Ctx_SelectAll"), "Ctrl:A", SelectAllInView, false, true))];
+            var strip = EditableTileGroups(_ctxMenu, "Picture", ["\uE8C8", "\uE8C6"], ["\uE77F"], clipboard, turns, layers, spares);
             _ctxMenu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(_ctxMenu, strip);
         }

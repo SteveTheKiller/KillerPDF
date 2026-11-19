@@ -21,10 +21,11 @@ public sealed class PageMenuOrientationTests
         // On the page menu it sits under Page with the other page tools.
         Assert.Contains("tools.Items.Add(MakeMenuItem(Loc(\"Str_Pages_FixOrientation\")", pageMenu, StringComparison.Ordinal);
 
-        // The page menu, the empty-area menu and the thumbnail card each offer it once.
+        // The page menu, the empty-area menu and the thumbnail card each offer it once, and the page and thumbnail
+        // cards also keep a spare tile for it in their Hidden drawers.
         string menu = pageMenuFile + "\n" + File.ReadAllText(Path.Combine(root, "Shell", "PageCard.cs"));
         string[] rows = menu.Split('\n').Where(l => l.Contains("Loc(\"Str_Pages_FixOrientation\")", StringComparison.Ordinal)).ToArray();
-        Assert.Equal(3, rows.Length);
+        Assert.Equal(5, rows.Length);
         int at = 0;
         foreach (string _ in rows)
         {

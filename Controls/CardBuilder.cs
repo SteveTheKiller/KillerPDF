@@ -43,12 +43,14 @@ namespace KillerFamily.Controls
 
     /// <summary>
     /// Makes a card's tile grid customizable (Steve 2026-11-19). A small pencil in the card's top-left corner turns
-    /// on edit mode: the card stays open with an accent border, a Hidden column slides out on the right, and tiles
-    /// move between the card and that column by dragging (or a click, which also works from the keyboard). Locked
-    /// tiles, the card's most important actions, stay put and are drawn dimmed while editing. Reset to default
-    /// shows every tile again. Only big cards get this; a small card stays fixed.
-    /// DefaultHidden names the tiles that start in the Hidden column (an action that rarely belongs on that card, like
-    /// Paste on a picture); the user can drag them back, and Reset to default returns to exactly this set.
+    /// on edit mode: the card stays open with an accent border, a Hidden drawer two tiles wide slides out on the right,
+    /// and tiles move between the card and the drawer by dragging (or a click, which also works from the keyboard).
+    /// Locked tiles, the card's most important actions, stay put and are drawn dimmed while editing. The drawer's
+    /// close X ends editing, and Reset to default returns to the starting layout. Only big cards get this; a small
+    /// card stays fixed.
+    /// DefaultHidden names the tiles that start in the drawer (an action that rarely belongs on that card, like Paste
+    /// on a picture, or a spare the app offers); the user can drag them out, and Reset to default returns to exactly
+    /// this set.
     /// Load and Save carry the user's layout in the app's own settings: "v1:" plus the "|"-joined hidden tile ids once
     /// the user has changed anything, and null (store it as empty) for the defaults.
     /// </summary>
@@ -219,10 +221,10 @@ namespace KillerFamily.Controls
             return strip;
         }
 
-        // A customizable card lays out every tile it has in a hidden, zero-height copy of its grid. The shown grid holds
-        // each column at least as wide as that copy's, through a zero-height spacer per column (MinWidth on a star column
-        // would make all three as wide as the widest), so hiding tiles never collapses the card to two across, shifts a
-        // column, or changes the card's width.
+        // A customizable card lays out every tile it has, spares included, in a hidden, zero-height copy of its grid. Any
+        // tile can end up in any column once others hide, so the shown grid holds every column at least as wide as the
+        // widest tile in that copy, through a zero-height spacer per column. Hiding or showing tiles never collapses the
+        // card to two across, shifts a column, or changes the card's width.
         private sealed class TileGrid : Grid
         {
             public TileGrid? MeasureFrom { get; init; }
@@ -235,7 +237,7 @@ namespace KillerFamily.Controls
                 if (MeasureFrom is not null)
                     for (int c = 0; c < Spacers.Count; c++)
                     {
-                        double w = c < MeasureFrom.ColumnWidths.Length ? MeasureFrom.ColumnWidths[c] : 0;
+                        double w = MeasureFrom.ColumnWidths.DefaultIfEmpty(0).Max();
                         if (Spacers[c].Width is double old && (double.IsNaN(old) || old != w)) Spacers[c].Width = w;
                     }
                 var size = base.MeasureOverride(constraint);
@@ -274,21 +276,27 @@ namespace KillerFamily.Controls
             root.Children.Add(pencil);
 
             // The drawer: its own panel beside the card, its own shape and size, sliding out from behind the card's
-            // right edge. It only holds the tiles stashed away and Reset to default.
-            var drawerTiles = new StackPanel();
+            // right edge. It holds the tiles stashed away, two across and scrolling, under Reset to default and the
+            // red-hover close X that ends editing, the same X the windows close with.
+            var drawerTiles = new Border { HorizontalAlignment = HorizontalAlignment.Left };
             var drawerHint = new TextBlock { Text = edit.HiddenHint, TextWrapping = TextWrapping.Wrap, FontSize = 11, Margin = new Thickness(4, 6, 4, 6), TextAlignment = TextAlignment.Center };
             drawerHint.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
             var drawerTitle = new TextBlock { Text = edit.HiddenLabel, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0) };
             drawerTitle.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
             var reset = SmallButton("", edit.ResetTip);
             DockPanel.SetDock(reset, Dock.Right);
+            var done = CloseButton(edit.DoneTip);
+            done.Margin = new Thickness(2, 0, 0, 0);
+            DockPanel.SetDock(done, Dock.Right);
             var drawerHead = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
+            drawerHead.Children.Add(done);
             drawerHead.Children.Add(reset);
             drawerHead.Children.Add(drawerTitle);
             DockPanel.SetDock(drawerHead, Dock.Top);
             var drawerBody = new DockPanel();
             drawerBody.Children.Add(drawerHead);
-            drawerBody.Children.Add(new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = new StackPanel { Children = { drawerHint, drawerTiles } } });
+            var scroller = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Focusable = false, Content = new StackPanel { Children = { drawerHint, drawerTiles } } };
+            drawerBody.Children.Add(scroller);
             var slide = new TranslateTransform();
             // Open on the card side: no border and square corners where it joins the card, so the two read as one shape.
             // The same film grain as the card surface, so the drawer reads as the card's own material.
@@ -320,35 +328,43 @@ namespace KillerFamily.Controls
                         if (editing) PrepareForEdit(el, tile);
                     }
                 gridHost.Child = strip;
-                drawerTiles.Children.Clear();
-                foreach (var t in all.Where(t => hidden.Contains(t.Key)))
-                {
-                    var el = Strip(card, name, new UniformGrid { Columns = 1 }, [t]);
-                    owners[el] = t;
-                    PrepareForEdit(el, t);
-                    drawerTiles.Children.Add(el);
-                }
+                // The drawer's own grid, two across, each row only as tall as its tiles, like the card's.
+                var stashed = all.Where(t => hidden.Contains(t.Key)).ToList();
+                var drawerStrip = GroupGrid(card, name, stashed.Count > 0 ? [stashed] : [], 2);
+                foreach (UIElement el in ((Panel)drawerStrip.Child).Children)
+                    if (TileOf(el) is { } tile)
+                    {
+                        owners[el] = tile;
+                        PrepareForEdit(el, tile);
+                    }
+                drawerTiles.Child = drawerStrip;
                 drawerHint.Visibility = hidden.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
                 reset.IsEnabled = !hidden.SetEquals(defaults);
                 if (drawer.IsOpen) PlaceDrawer();
             }
 
+            double tileWidth = 0;
+            bool doneHot = false;
             void PlaceDrawer()
             {
                 // The card's visible face sits inside its shadow halo. The drawer is attached to that face's right edge,
-                // covering the card's border where they meet, level with the tiles it edits, and moves up rather than
-                // hang below the card. It stays clear of the card's rounded corners.
+                // covering the card's border where they meet. It starts just under the card's top corner and never runs
+                // past its bottom one: a full drawer scrolls instead.
                 card.UpdateLayout();
                 var face = Descendants(card).OfType<Border>().FirstOrDefault(b => ReferenceEquals(b.BorderBrush, card.BorderBrush) && b.BorderThickness.Left > 0);
                 Rect r = face is not null && card.IsAncestorOf(face) ? face.TransformToAncestor(card).TransformBounds(new Rect(face.RenderSize)) : new Rect(card.RenderSize);
                 var radius = card.TryFindResource("PanelCornerRadius") is CornerRadius cr ? cr : new CornerRadius(0);
                 drawerFace.CornerRadius = new CornerRadius(0, radius.TopRight, radius.BottomRight, 0);
                 grain.CornerRadius = new CornerRadius(0, Math.Max(0, radius.TopRight - 1), Math.Max(0, radius.BottomRight - 1), 0);
-                drawerFace.Measure(new Size(drawerFace.Width, double.PositiveInfinity));
-                double top = card.IsAncestorOf(gridHost) ? gridHost.TransformToAncestor(card).Transform(new Point()).Y : r.Top;
-                double inset = Math.Max(radius.TopRight, radius.BottomRight);
+                double inset = Math.Max(4, Math.Max(radius.TopRight, radius.BottomRight));
+                double room = Math.Max(60, r.Height - 2 * inset);
+                drawerTiles.Width = 2 * tileWidth;
+                drawerHint.MaxWidth = 2 * tileWidth;
+                drawerFace.MaxHeight = room;
+                drawerFace.MinHeight = Math.Min(120, room);
+                drawerFace.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 drawer.HorizontalOffset = r.Right - card.ActualWidth - (face?.BorderThickness.Right ?? 0);
-                drawer.VerticalOffset = Math.Max(r.Top + inset, Math.Min(top, r.Bottom - inset - drawerFace.DesiredSize.Height));
+                drawer.VerticalOffset = r.Top + inset;
             }
 
             void PrepareForEdit(UIElement el, CardTile t)
@@ -375,18 +391,19 @@ namespace KillerFamily.Controls
             {
                 editing = on;
                 card.StaysOpen = on;
-                pencil.Content = on ? "" : "";
-                pencil.ToolTip = on ? edit.DoneTip : edit.EditTip;
-                AutomationProperties.SetName(pencil, on ? edit.DoneTip : edit.EditTip);
+                // The pencil opens editing; while editing it steps aside and the drawer's X is the one way out.
+                pencil.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
+                HotDone(false);
                 Rebuild();
                 if (on)
                 {
                     card.SetResourceReference(Control.BorderBrushProperty, "PrimaryBrush");
-                    // The drawer is about a tile column wide and as tall as what it holds; it slides out from under the card.
-                    double width = Math.Max(110, owners.Keys.OfType<FrameworkElement>().Where(e => gridHost.IsAncestorOf(e)).Select(e => e.ActualWidth).DefaultIfEmpty(0).Max() + 16);
-                    drawerFace.Width = width;
-                    drawerFace.MinHeight = 120;
+                    // The drawer is two of the card's tiles wide and as tall as what it holds, up to the card's own
+                    // height; it slides out from under the card.
+                    card.UpdateLayout();
+                    tileWidth = Math.Max(54, owners.Keys.OfType<FrameworkElement>().Where(e => gridHost.IsAncestorOf(e)).Select(e => e.ActualWidth).DefaultIfEmpty(0).Max());
                     PlaceDrawer();
+                    double width = drawerFace.DesiredSize.Width;
                     drawer.IsOpen = true;
                     slide.BeginAnimation(TranslateTransform.XProperty, new System.Windows.Media.Animation.DoubleAnimation(-width, 0, TimeSpan.FromMilliseconds(180))
                     { EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut } });
@@ -403,8 +420,10 @@ namespace KillerFamily.Controls
                 }
             }
 
-            pencil.Click += (_, _) => SetEditing(!editing);
+            pencil.Click += (_, _) => { if (!editing) SetEditing(true); };
             reset.Click += (_, _) => ResetLayout();
+            done.Click += (_, _) => { if (editing) SetEditing(false); };
+            drawerClip.MouseLeave += (_, _) => HotDone(false);
             card.Closed += (_, _) => { if (editing) SetEditing(false, animate: false); };
 
             // The card holds the mouse while it is open, so the drawer's clicks arrive at the card: both surfaces are
@@ -412,7 +431,36 @@ namespace KillerFamily.Controls
             CardTile? pressed = null;
             UIElement? pressedEl = null;
             Point start = default;
-            bool dragging = false;
+            bool dragging = false, scrubbing = false;
+            // The card holds the mouse, so the X never sees the pointer arrive: its red hover follows the pointer here.
+            void HotDone(bool on)
+            {
+                if (on == doneHot) return;
+                doneHot = on;
+                if (on)
+                {
+                    done.SetResourceReference(Control.BackgroundProperty, "CaptionCloseHoverBrush");
+                    done.SetResourceReference(Control.ForegroundProperty, "CaptionCloseHoverFgBrush");
+                }
+                else
+                {
+                    done.Background = Brushes.Transparent;
+                    done.SetResourceReference(Control.ForegroundProperty, "DimTextBrush");
+                }
+            }
+            bool Over(MouseEventArgs e, FrameworkElement el)
+            {
+                if (!drawer.IsOpen || !el.IsVisible) return false;
+                var p = e.GetPosition(el);
+                return p.X >= 0 && p.Y >= 0 && p.X <= el.ActualWidth && p.Y <= el.ActualHeight;
+            }
+            ScrollBar? Bar() => Descendants(scroller).OfType<ScrollBar>().FirstOrDefault(b => b.Orientation == Orientation.Vertical && b.IsVisible);
+            void Scrub(MouseEventArgs e)
+            {
+                if (Bar() is not { } bar) return;
+                double f = Math.Clamp(e.GetPosition(bar).Y / Math.Max(1, bar.ActualHeight), 0, 1);
+                scroller.ScrollToVerticalOffset(f * scroller.ScrollableHeight);
+            }
             bool OverDrawer(MouseEventArgs e)
             {
                 if (!drawer.IsOpen) return false;
@@ -441,10 +489,13 @@ namespace KillerFamily.Controls
             {
                 if (!editing || e.ChangedButton != MouseButton.Left) return;
                 // The element under the click when the event reaches it directly, else the surface under the pointer.
-                var hit = Owner(e.OriginalSource as DependencyObject) is not null || Within(e.OriginalSource as DependencyObject, reset) || Within(e.OriginalSource as DependencyObject, pencil)
-                    ? e.OriginalSource as DependencyObject : HitAt(e);
-                if (Within(hit, pencil)) return;   // the pencil sits on the card: its own Click ends editing
+                var src = e.OriginalSource as DependencyObject;
+                var hit = Owner(src) is not null || Within(src, reset) || Within(src, done) ? src : HitAt(e);
+                if (Within(hit, done) || Over(e, done)) { SetEditing(false); e.Handled = true; return; }
                 if (Within(hit, reset)) { if (reset.IsEnabled) ResetLayout(); e.Handled = true; return; }
+                // The drawer's scroll bar: the card holds the mouse, so a press on it scrolls to that spot and a drag
+                // follows the pointer.
+                if (Bar() is { } bar && Over(e, bar)) { scrubbing = true; Scrub(e); e.Handled = true; return; }
                 pressed = Owner(hit);
                 if (pressed is null) { if (OverDrawer(e)) e.Handled = true; return; }
                 start = e.GetPosition(card);
@@ -453,6 +504,9 @@ namespace KillerFamily.Controls
             }
             void MoveMouse(object? sender, MouseEventArgs e)
             {
+                if (!editing) return;
+                HotDone(Over(e, done));
+                if (scrubbing) { if (e.LeftButton == MouseButtonState.Pressed) Scrub(e); else scrubbing = false; return; }
                 if (pressed is null || e.LeftButton != MouseButtonState.Pressed || edit.Locked(pressed)) return;
                 if (!dragging && (e.GetPosition(card) - start).Length < 4) return;
                 dragging = true;
@@ -462,6 +516,7 @@ namespace KillerFamily.Controls
             }
             void Up(object? sender, MouseButtonEventArgs e)
             {
+                if (scrubbing) { scrubbing = false; e.Handled = true; return; }
                 if (pressed is null) return;
                 var t = pressed;
                 pressed = null;
@@ -479,6 +534,13 @@ namespace KillerFamily.Controls
                 surface.AddHandler(UIElement.PreviewMouseDownEvent, new MouseButtonEventHandler(Down), true);
                 surface.AddHandler(UIElement.PreviewMouseMoveEvent, new MouseEventHandler(MoveMouse), true);
                 surface.AddHandler(UIElement.PreviewMouseUpEvent, new MouseButtonEventHandler(Up), true);
+                // The wheel scrolls the drawer while the pointer is over it.
+                surface.AddHandler(UIElement.PreviewMouseWheelEvent, new MouseWheelEventHandler((_, e) =>
+                {
+                    if (!editing || !OverDrawer(e)) return;
+                    scroller.ScrollToVerticalOffset(scroller.VerticalOffset - e.Delta / 3.0);
+                    e.Handled = true;
+                }), true);
             }
             // Keyboard: Enter or Space on a card tile moves it to the drawer while editing.
             root.PreviewKeyDown += (_, e) =>
@@ -502,6 +564,45 @@ namespace KillerFamily.Controls
             b.SetResourceReference(Control.ForegroundProperty, "DimTextBrush");
             AutomationProperties.SetName(b, tip);
             ToolTipService.SetShowOnDisabled(b, true);
+            return b;
+        }
+
+        // The windows' close X at a small button's size: red on hover (CaptionCloseHoverBrush), the pixel-art X on the
+        // flat 98SE theme. The card drives the hover itself while it holds the mouse.
+        private static Button CloseButton(string tip)
+        {
+            var bd = new FrameworkElementFactory(typeof(Border), "Bd");
+            bd.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Control.BackgroundProperty));
+            bd.SetResourceReference(Border.CornerRadiusProperty, "SmallCornerRadius");
+            var glyph = new FrameworkElementFactory(typeof(ContentPresenter));
+            glyph.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            glyph.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            glyph.SetResourceReference(UIElement.VisibilityProperty, "CaptionFontGlyphVisibility");
+            bd.AppendChild(glyph);
+            var pixels = new FrameworkElementFactory(typeof(System.Windows.Shapes.Path));
+            pixels.SetValue(FrameworkElement.WidthProperty, 10.0);
+            pixels.SetValue(FrameworkElement.HeightProperty, 9.0);
+            pixels.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            pixels.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            pixels.SetValue(UIElement.IsHitTestVisibleProperty, false);
+            pixels.SetValue(UIElement.SnapsToDevicePixelsProperty, true);
+            pixels.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
+            pixels.SetValue(System.Windows.Shapes.Shape.FillProperty, new TemplateBindingExtension(Control.ForegroundProperty));
+            pixels.SetValue(System.Windows.Shapes.Path.DataProperty, Geometry.Parse("M0,0h2v1h-2z M8,0h2v1h-2z M1,1h2v1h-2z M7,1h2v1h-2z M2,2h2v1h-2z M6,2h2v1h-2z M3,3h4v1h-4z M4,4h2v1h-2z M3,5h4v1h-4z M2,6h2v1h-2z M6,6h2v1h-2z M1,7h2v1h-2z M7,7h2v1h-2z M0,8h2v1h-2z M8,8h2v1h-2z"));
+            pixels.SetResourceReference(UIElement.VisibilityProperty, "CaptionDrawnGlyphVisibility");
+            var grid = new FrameworkElementFactory(typeof(Grid));
+            grid.AppendChild(bd);
+            grid.AppendChild(pixels);
+            var b = new Button
+            {
+                Content = "\uE8BB", ToolTip = tip, Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 10,
+                FontFamily = new FontFamily("Segoe MDL2 Assets"), Cursor = Cursors.Hand, Background = Brushes.Transparent,
+                Focusable = true, Template = new ControlTemplate(typeof(Button)) { VisualTree = grid },
+            };
+            b.SetResourceReference(Control.ForegroundProperty, "DimTextBrush");
+            b.MouseEnter += (_, _) => { b.SetResourceReference(Control.BackgroundProperty, "CaptionCloseHoverBrush"); b.SetResourceReference(Control.ForegroundProperty, "CaptionCloseHoverFgBrush"); };
+            b.MouseLeave += (_, _) => { b.Background = Brushes.Transparent; b.SetResourceReference(Control.ForegroundProperty, "DimTextBrush"); };
+            AutomationProperties.SetName(b, tip);
             return b;
         }
 
