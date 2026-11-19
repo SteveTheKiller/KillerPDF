@@ -11,6 +11,17 @@ namespace KillerPDF.Controls
     // diagnostics notice beside it. Nothing waits on it: the window works as usual meanwhile.
     public partial class PdfViewer
     {
+        // A notice's inside: the menu card's grain behind the row, stopping inside the 1px edge.
+        private static Grid NoticeCard(FrameworkElement row)
+        {
+            var grain = new Border { Margin = new Thickness(-7) };
+            grain.SetResourceReference(FrameworkElement.StyleProperty, "FlyoutGrain");
+            var card = new Grid();
+            card.Children.Add(grain);
+            card.Children.Add(row);
+            return card;
+        }
+
         private Border? _sessionNotice;
 
         internal bool SessionNoticeShown => _sessionNotice is { Visibility: Visibility.Visible };
@@ -65,18 +76,14 @@ namespace KillerPDF.Controls
 
             var bar = new Border
             {
-                Child = host.BuildBarHost(row),
+                Child = NoticeCard(row),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top,
                 MaxWidth = 640,
-                Margin = new Thickness(0, 12, 0, 0),
-                BorderThickness = new Thickness(1)
+                Margin = new Thickness(0, 12, 0, 0)
             };
-            bar.SetResourceReference(Border.BackgroundProperty, "AnnotationBarBrush");
-            // A notice floats over the page, so it is a whole card: four rounded corners, an edge and the flyout shadow.
-            bar.SetResourceReference(Border.CornerRadiusProperty, "FlyoutCornerRadius");
-            bar.SetResourceReference(UIElement.EffectProperty, "CardShadowEffect");
-            bar.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
+            // A notice floats over the page, so it is the menus' own card: FlyoutCard's fill, edge, corners and shadow.
+            bar.SetResourceReference(FrameworkElement.StyleProperty, "FlyoutCard");
             // 7 plus the 1px edge: the buttons and the glyph sit 8px from every edge (family rule).
             bar.Padding = new Thickness(7);
             AutomationProperties.SetName(bar, message.Text);

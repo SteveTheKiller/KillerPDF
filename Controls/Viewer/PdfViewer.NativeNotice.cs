@@ -162,17 +162,15 @@ namespace KillerPDF.Controls
 
             var bar = new Border
             {
-                Child = host.BuildBarHost(row),
+                Child = NoticeCard(row),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top,
-                MaxWidth = 640,
-                BorderThickness = new Thickness(1)
+                MaxWidth = 640
             };
-            bar.SetResourceReference(Border.BackgroundProperty, "AnnotationBarBrush");
-            // A notice floats over the page, so it is a whole card: four rounded corners, an edge and the flyout shadow.
-            bar.SetResourceReference(Border.CornerRadiusProperty, "FlyoutCornerRadius");
-            bar.SetResourceReference(UIElement.EffectProperty, "CardShadowEffect");
-            bar.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
+            // A notice floats over the page, so it is the menus' own card: FlyoutCard's fill, edge, corners and shadow.
+            bar.SetResourceReference(FrameworkElement.StyleProperty, "FlyoutCard");
+            // FlyoutCard's margin is popup shadow room; a notice sits in the page, so it has none.
+            bar.Margin = new Thickness(0);
             // 7 plus the 1px edge: the buttons and the glyph sit 8px from every edge (family rule).
             bar.Padding = new Thickness(7);
             Panel.SetZIndex(bar, 90);
