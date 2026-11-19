@@ -477,6 +477,13 @@ namespace KillerPDF.Services
                 var red = new SolidColorBrush(Color.FromRgb(0xE0, 0x44, 0x44)); red.Freeze();
                 combined["CaptionCloseHoverBrush"] = red;
             }
+            // The system menu's Close glyph: DangerRed's red on the dark menus, and a theme with a light gray menu
+            // (Light, 98SE) states a darker red so the glyph keeps 3:1 on it.
+            if (!combined.Contains("MenuDangerBrush"))
+            {
+                var menuRed = new SolidColorBrush(Color.FromRgb(0xE0, 0x44, 0x44)); menuRed.Freeze();
+                combined["MenuDangerBrush"] = menuRed;
+            }
             if (!combined.Contains("CaptionCloseHoverFgBrush"))
             {
                 var white = new SolidColorBrush(Colors.White); white.Freeze();

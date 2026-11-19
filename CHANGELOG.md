@@ -58,6 +58,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The Transform window no longer reopens against the left edge of the app.
 - Moving a tab to a new window or another window now loads the tab left in front when it had not been opened yet, instead of showing the start screen above the remaining tabs.
 - `--pdfua --json` names the standard the files were checked against, PDF/UA-2 or "mixed" when PDF/UA-2 files are in the run. It always said PDF/UA-1.
+- The red Close icon in the window menu was too faint to read on the gray menu in the Light and 98SE themes. It is a darker red there now.
 
 ### Changed
 - Every right-click card holds only tiles. Save Picture As, Replace Picture, Paste, Select Text, Unpair and Remove from Group, and on a book Select All, Convert to PDF, Full Screen and Book layout, used to be text rows under the tiles, without the shortcut the tiles show. Every card is three tiles across, and related tiles share a row: Copy, Cut and Paste; the three turns; Save and Replace; Raise and Lower; Highlight, Underline and Strike. The most used row comes first, and a long name wraps inside its tile instead of widening the card. Delete on a mark or picture card is the trash button at the right of the card's title.

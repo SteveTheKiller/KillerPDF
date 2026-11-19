@@ -47,6 +47,8 @@
 
 <SolidColorBrush x:Key="InputBorderBrush" Color="#c0c0c0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
     <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#d6d6d6" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <!-- System menu Close glyph: darker than DangerRed so it keeps 3:1 on this gray menu. -->
+    <SolidColorBrush x:Key="MenuDangerBrush" Color="#A81C1C" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 <SolidColorBrush x:Key="MenuBorderBrush" Color="#a8a8a8" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
     <SolidColorBrush x:Key="MenuTextBrush"       Color="#1a1a1a" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuHoverBrush" Color="#b2b2b2" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
