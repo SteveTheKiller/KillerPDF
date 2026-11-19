@@ -98,6 +98,11 @@ namespace KillerPDF
             TaskScheduler.UnobservedTaskException           += OnUnobservedTaskException;
 
             base.OnStartup(e);
+            if (Controls.ThemeMotif.TryRunCacheBuilder(e.Args, Services.AppInfo.DisplayName) is int builderExit)
+            {
+                Shutdown(builderExit);
+                return;
+            }
             StartupTrace.Mark("Application base startup complete");
 
             // The app-level grain tile normally comes from the main window. Install, uninstall
@@ -286,6 +291,7 @@ namespace KillerPDF
             var mainWindow = new MainWindow();
             StartupTrace.Mark("MainWindow constructed");
             mainWindow.Show();
+            Controls.ThemeMotif.PrewarmWhenIdle(mainWindow);
             StartupTrace.Mark("MainWindow.Show returned");
             // After Show: under OnLastWindowClose, a prompt shown before the main window is the app's
             // only window, and answering it closed KillerPDF instead of opening it.

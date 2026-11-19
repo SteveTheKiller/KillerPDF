@@ -13,6 +13,15 @@ namespace KillerPDF.Shell
         private void InitThemePicker()
         {
             _themePicker = new Controls.ThemePicker(this, ThemeMenu, ThemeButton, ContentPane);
+            // Trash Polka composes a new accent's ink on worker threads (Controls/ThemeMotif.cs); the crossfade's
+            // incoming snapshot waits for those pieces, so it never shows the old accent's ink or none at all.
+            Action<Action> crossFade = apply => Controls.ThemeTransition.CrossFade((FrameworkElement)Content, () =>
+            {
+                apply();
+                Controls.ThemeMotif.FinishComposes();
+            });
+            _themePicker.AccentChangeTransition = crossFade;
+            _themePicker.ThemeChangeTransition = crossFade;
             // ThemeChanged is static: the handler comes off when the window closes, or the closed
             // window stays reachable from it for the life of the app.
             Action refresh = () => _themePicker.Refresh();

@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -34,12 +36,20 @@ namespace KillerPDF.Controls
         private static void OnBaseBrushChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is not FrameworkElement element || GetPart(element) == MotifPart.None || element.GetValue(PaintedProperty) is null) return;
-            element.SetValue(PaintedProperty, "");
+            element.SetValue(PaintedProperty, Unstamped);
             if (element.IsLoaded) Paint(element);
         }
 
+        // What the element was last painted with (a PaintKey), or Unstamped to force the next paint; null when it shows
+        // its own background.
         private static readonly DependencyProperty PaintedProperty = DependencyProperty.RegisterAttached(
-            "Painted", typeof(string), typeof(ThemeMotif), new PropertyMetadata(null));
+            "Painted", typeof(object), typeof(ThemeMotif), new PropertyMetadata(null));
+
+        private static readonly object Unstamped = new();
+
+        // Everything a painted brush depends on. The window size is not in it: the pinned piece never reads it, so a
+        // pane whose own place is unchanged keeps its brush through a window resize.
+        private readonly record struct PaintKey(MotifPart Part, Color Accent, Color Base, Rect Pane, double Opacity, Drawing Piece);
 
         /// <summary>
         /// Inherited: set on the second document pane in split view. Its <c>Window</c> parts (the card and its active
@@ -70,32 +80,199 @@ namespace KillerPDF.Controls
 
         private static readonly Dictionary<MotifPart, (Color Accent, Size Size, Drawing Piece)> Pieces = [];
 
-        // The bitmap pieces, one per set of layers, tinted for the accent they were last painted with.
-        private sealed class TintedPiece(Color accent, Drawing piece)
+        // The bitmap pieces, one per set of layers, tinted for the current accent only. A new accent is composed on a
+        // worker (TrashPolkaRaster.TintAsync); the element keeps its brush until the new piece lands.
+        private sealed class TintedPiece
         {
+            internal Color Accent;
+            internal Drawing? Piece;
+            internal ComposeJob? Pending;
+            internal bool Failed;
+        }
+
+        private sealed class ComposeJob(TintedPiece target, TrashPolkaRaster.Layers layers, Size size, Color accent, TrashPolkaRaster.Tinting work)
+        {
+            internal TintedPiece Target { get; } = target;
+            internal TrashPolkaRaster.Layers Layers { get; } = layers;
+            internal Size Size { get; } = size;
             internal Color Accent { get; } = accent;
-            internal Drawing Piece { get; } = piece;
+            internal TrashPolkaRaster.Tinting Work { get; } = work;
+            internal bool Done;
         }
 
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TrashPolkaRaster.Layers, TintedPiece> RasterPieces = new();
+        private static readonly List<ComposeJob> Jobs = [];
 
+        private static bool _releaseHooked;
+
+        // Once any element takes a part: after every theme change, when the app's theme carries no motif, every element
+        // has already restored its plain background (Paint), so the pictures behind them are dropped too.
+        private static void HookRelease()
+        {
+            if (_releaseHooked) return;
+            _releaseHooked = true;
+            ThemeManager.ThemeChanged += () => System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
+                System.Windows.Threading.DispatcherPriority.ApplicationIdle, () =>
+                {
+                    if (Application.Current?.TryFindResource("ThemeMotif") is true) return;
+                    ReleaseAll();
+                });
+        }
+
+        /// <summary>Drops every picture: the vector pieces, the tinted bitmaps and the layers (a later motif theme
+        /// decodes them again from the disk cache).</summary>
+        internal static void ReleaseAll()
+        {
+            Pieces.Clear();
+            RasterPieces.Clear();
+            TrashPolkaRaster.ReleaseAll();
+            Releases++;
+        }
+
+        internal static int Releases;
+
+        /// <summary>Accent pieces still being composed (the self-test waits on them).</summary>
+        internal static int ComposesPending => Jobs.Count;
+
+        // The piece for this accent, or null while a worker composes it.
+        private static Drawing? Tinted(TrashPolkaRaster.Layers layers, Size size, Color tint)
+        {
+            var state = RasterPieces.GetValue(layers, _ => new TintedPiece());
+            if (state.Piece is not null && state.Accent == tint && state.Pending is null) return state.Piece;
+            if (state.Pending is { } running && running.Accent == tint) return null;
+            if (state.Piece is not null && state.Accent == tint) { state.Pending = null; return state.Piece; }
+            if (state.Failed) return null;
+            var job = new ComposeJob(state, layers, size, tint, TrashPolkaRaster.TintAsync(layers, tint));
+            state.Pending = job;
+            Jobs.Add(job);
+            var dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+            job.Work.Work.ContinueWith(_ => dispatcher.BeginInvoke(() => { if (Land(job)) Retune(); }), TaskScheduler.Default);
+            return null;
+        }
+
+        // Swaps a finished piece in, unless a newer accent has replaced the job; the previous tint is dropped with it.
+        private static bool Land(ComposeJob job)
+        {
+            if (job.Done) return false;
+            job.Done = true;
+            Jobs.Remove(job);
+            var state = job.Target;
+            if (!ReferenceEquals(state.Pending, job))
+            {
+                TrashPolkaRaster.Discard(job.Work);
+                return false;
+            }
+            state.Pending = null;
+            if (job.Work.Work.Status != TaskStatus.RanToCompletion) { TrashPolkaRaster.Discard(job.Work); state.Failed = true; return true; }
+            state.Accent = job.Accent;
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            state.Piece = TrashPolkaRaster.ToDrawing(job.Size, job.Work);
+            LandMs += timer.Elapsed.TotalMilliseconds;
+            ComposeCalls++;
+            return true;
+        }
+
+        /// <summary>
+        /// Waits for the accent pieces the last theme change started and paints them. The accent crossfade calls it
+        /// between applying the accent and taking its incoming snapshot, so the snapshot already shows the new ink.
+        /// The pieces compose in parallel, so the wait is one piece's pass rather than every piece's in turn.
+        /// </summary>
+        internal static void FinishComposes()
+        {
+            if (Jobs.Count == 0) return;
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            bool landed = false;
+            foreach (var job in Jobs.ToArray())
+            {
+                try { job.Work.Work.Wait(); } catch (AggregateException) { }
+                landed |= Land(job);
+            }
+            ComposeMs += timer.Elapsed.TotalMilliseconds;
+            if (landed) Retune();
+        }
+
+        // Loaded motif elements, for the layer trim. An element leaves on Unloaded or when its part goes to None.
+        private static readonly HashSet<FrameworkElement> Live = [];
+
+        private static readonly DependencyProperty LayersKeyProperty = DependencyProperty.RegisterAttached(
+            "LayersKey", typeof(object), typeof(ThemeMotif), new PropertyMetadata(null));
+
+        private static bool _sweepQueued;
+
+        private static void QueueSweep()
+        {
+            if (_sweepQueued) return;
+            _sweepQueued = true;
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, () =>
+            {
+                _sweepQueued = false;
+                var inUse = new HashSet<TrashPolkaRaster.LayerKey>();
+                foreach (var element in Live)
+                    if (element.GetValue(LayersKeyProperty) is TrashPolkaRaster.LayerKey key) inUse.Add(key);
+                TrashPolkaRaster.Trim(inUse);
+            });
+        }
+
+        // Subscriptions run only while the element is loaded, and every path out (Unloaded, Part = None) removes all of
+        // them: the static ThemeChanged and Retuned events and the property watchers would otherwise keep every popup
+        // and menu ever built alive.
         private static void OnPartChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is not FrameworkElement element) return;
-            element.Loaded -= Refresh;
+            HookRelease();
+            element.Loaded -= OnLoaded;
             element.SizeChanged -= Refresh;
-            element.Unloaded -= Detach;
+            element.Unloaded -= OnUnloaded;
+            Detach(element);
             if ((MotifPart)e.NewValue == MotifPart.None) { Restore(element); return; }
-            element.Loaded += Refresh;
+            element.Loaded += OnLoaded;
             element.SizeChanged += Refresh;
-            element.Unloaded += Detach;
-            ThemeManager.ThemeChanged -= Rebind(element);
-            ThemeManager.ThemeChanged += Rebind(element);
-            Retuned -= Rebind(element);
-            Retuned += Rebind(element);
+            element.Unloaded += OnUnloaded;
+            if (element.IsLoaded)
+            {
+                Attach(element);
+                Paint(element);
+            }
+        }
+
+        private static void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement element) return;
+            Attach(element);
+            Paint(element);
+        }
+
+        private static void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement element) return;
+            Detach(element);
+            // The vector piece is live (its accent brushes recolor), so a brush built on it stays reachable from the
+            // shared piece; hand the element its own brush back until it loads again. Frozen bitmap brushes stay.
+            if (element.GetValue(PaintedBrushProperty) is Brush { IsFrozen: false }) Restore(element);
+        }
+
+        private static void Attach(FrameworkElement element)
+        {
+            var handler = Rebind(element);
+            ThemeManager.ThemeChanged -= handler;
+            ThemeManager.ThemeChanged += handler;
+            Retuned -= handler;
+            Retuned += handler;
             WatchBackground(element);
             WatchHighContrast(element);
-            if (element.IsLoaded) Paint(element);
+            Live.Add(element);
+        }
+
+        private static void Detach(FrameworkElement element)
+        {
+            if (Handlers.TryGetValue(element, out var handler))
+            {
+                ThemeManager.ThemeChanged -= handler;
+                Retuned -= handler;
+            }
+            UnwatchBackground(element);
+            UnwatchHighContrast(element);
+            Live.Remove(element);
         }
 
         // High contrast swaps every palette brush for a system brush; the motif steps aside so the element shows it, and
@@ -109,6 +286,15 @@ namespace KillerPDF.Controls
             System.ComponentModel.DependencyPropertyDescriptor
                 .FromProperty(KillerFamily.Accessibility.HighContrastResources.IsActiveProperty, element.GetType())
                 ?.AddValueChanged(element, OnHighContrastChanged);
+        }
+
+        private static void UnwatchHighContrast(FrameworkElement element)
+        {
+            if (!WatchedContrast.TryGetValue(element, out _)) return;
+            WatchedContrast.Remove(element);
+            System.ComponentModel.DependencyPropertyDescriptor
+                .FromProperty(KillerFamily.Accessibility.HighContrastResources.IsActiveProperty, element.GetType())
+                ?.RemoveValueChanged(element, OnHighContrastChanged);
         }
 
         private static void OnHighContrastChanged(object? sender, EventArgs e)
@@ -127,6 +313,14 @@ namespace KillerPDF.Controls
             Watched.Add(element, property);
             System.ComponentModel.DependencyPropertyDescriptor.FromProperty(property, element.GetType())
                 ?.AddValueChanged(element, OnBackgroundChanged);
+        }
+
+        private static void UnwatchBackground(FrameworkElement element)
+        {
+            if (!Watched.TryGetValue(element, out var property)) return;
+            Watched.Remove(element);
+            System.ComponentModel.DependencyPropertyDescriptor.FromProperty((DependencyProperty)property, element.GetType())
+                ?.RemoveValueChanged(element, OnBackgroundChanged);
         }
 
         private static void OnBackgroundChanged(object? sender, EventArgs e)
@@ -237,6 +431,145 @@ namespace KillerPDF.Controls
             MarkTree(root);
         }
 
+        private static bool _prewarmQueued;
+
+        /// <summary>The hidden argument that runs this exe as the cache builder (<see cref="TryRunCacheBuilder"/>).</summary>
+        internal const string CacheBuilderArgument = "--build-motif-cache";
+
+        /// <summary>
+        /// Once the window is shown and the dispatcher has gone idle, and two seconds more, checks the disk cache for every
+        /// piece this window would paint at its screen size and scale. If any is missing it starts this exe again as a
+        /// windowless child at idle priority (<see cref="TryRunCacheBuilder"/>), which renders and saves them and exits,
+        /// so the render memory dies with it and this process does no work beyond the check. Runs once per process.
+        /// </summary>
+        internal static void PrewarmWhenIdle(Window window)
+        {
+            if (_prewarmQueued || MotifDiskCache.Root is not { } root || Environment.ProcessPath is not { } exe) return;
+            _prewarmQueued = true;
+            window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, async () =>
+            {
+                await Task.Delay(2000);
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                if (window.Content is not FrameworkElement content || !content.IsLoaded) { _prewarmQueued = false; return; }
+                var size = InkSize(content);
+                double dpi = VisualTreeHelper.GetDpi(content).DpiScaleX;
+                PrewarmTask = Task.Run(async () =>
+                {
+                    var keys = PrewarmSeeds.Select(seed => new TrashPolkaRaster.LayerKey(seed, size, TrashPolkaInk.Scale, dpi)).ToArray();
+                    if (keys.All(TrashPolkaRaster.IsCached)) return;
+                    var start = new System.Diagnostics.ProcessStartInfo(exe)
+                    {
+                        UseShellExecute = false, CreateNoWindow = true,
+                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+                    };
+                    foreach (var arg in new[] { CacheBuilderArgument, root,
+                        size.Width.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        size.Height.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        dpi.ToString("R", System.Globalization.CultureInfo.InvariantCulture) })
+                        start.ArgumentList.Add(arg);
+                    using var child = System.Diagnostics.Process.Start(start);
+                    if (child is null) return;
+                    try { child.PriorityClass = System.Diagnostics.ProcessPriorityClass.Idle; } catch (Exception) { }
+                    await child.WaitForExitAsync();
+                });
+            });
+        }
+
+        private static readonly int[] PrewarmSeeds = [TrashPolkaInk.WindowSeed, TrashPolkaInk.SplitSeed, TrashPolkaInk.BackgroundSeed];
+
+        /// <summary>
+        /// The child side of <see cref="PrewarmWhenIdle"/>: <c>--build-motif-cache &lt;root&gt; &lt;width&gt; &lt;height&gt; &lt;dpi&gt;</c>
+        /// builds and saves the missing pieces with no window and returns the exit code, or null for any other command line.
+        /// A named mutex keeps two builders from working at once; the second one just exits, and the atomic writes cover
+        /// a builder that dies halfway.
+        /// </summary>
+        internal static int? TryRunCacheBuilder(string[] args, string appName)
+        {
+            if (args.Length != 5 || args[0] != CacheBuilderArgument) return null;
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            if (!double.TryParse(args[2], System.Globalization.NumberStyles.Float, inv, out double w)
+                || !double.TryParse(args[3], System.Globalization.NumberStyles.Float, inv, out double h)
+                || !double.TryParse(args[4], System.Globalization.NumberStyles.Float, inv, out double dpi)) return 2;
+            using var gate = new System.Threading.Mutex(false, "Local\\" + appName + "-motif-cache-builder");
+            try { if (!gate.WaitOne(0)) return 0; }
+            catch (System.Threading.AbandonedMutexException) { }
+            try
+            {
+                MotifDiskCache.Root = System.IO.Path.GetFullPath(args[1]);
+                var keys = PrewarmSeeds.Select(seed => new TrashPolkaRaster.LayerKey(seed, new Size(w, h), TrashPolkaInk.Scale, dpi)).ToArray();
+                TrashPolkaRaster.Prewarm(keys).Wait();
+                return 0;
+            }
+            finally { gate.ReleaseMutex(); }
+        }
+
+        /// <summary>Test hook: the running prewarm, or null before it is queued.</summary>
+        internal static Task? PrewarmTask;
+
+        /// <summary>Test hook: the screen size, in DIPs, the ink is drawn for.</summary>
+        internal static Size? InkScreenOverride;
+
+        // The largest screen any motif window has covered, in DIPs, starting at the primary screen. It only grows, so
+        // moving a window to a smaller monitor never redraws the art, and a larger secondary monitor or a window
+        // spanning several never shows a bare right or bottom edge.
+        private static Size _inkScreen;
+
+        private static Size InkSize(FrameworkElement element)
+        {
+            Size screen;
+            if (InkScreenOverride is { } forced) screen = forced;
+            else
+            {
+                if (_inkScreen.IsEmpty || _inkScreen.Width == 0)
+                    _inkScreen = new Size(SystemParameters.PrimaryScreenWidth, SystemParameters.PrimaryScreenHeight);
+                if (CoveredMonitors(element) is { } covered)
+                    _inkScreen = new Size(Math.Max(_inkScreen.Width, covered.Width), Math.Max(_inkScreen.Height, covered.Height));
+                screen = _inkScreen;
+            }
+            return new Size(Math.Ceiling(screen.Width / TrashPolkaInk.Scale), Math.Ceiling(screen.Height / TrashPolkaInk.Scale));
+        }
+
+        // The bounds of every monitor the element's window touches, in the element's DIPs.
+        private static Size? CoveredMonitors(FrameworkElement element)
+        {
+            if (PresentationSource.FromVisual(element) is not System.Windows.Interop.HwndSource { Handle: var hwnd } || hwnd == IntPtr.Zero
+                || !GetWindowRect(hwnd, out var window)) return null;
+            _covering = window;
+            _covered = default;
+            _anyCovered = false;
+            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, CollectMonitor, IntPtr.Zero);
+            if (!_anyCovered) return null;
+            var scale = VisualTreeHelper.GetDpi(element);
+            return new Size((_covered.Right - _covered.Left) / scale.DpiScaleX, (_covered.Bottom - _covered.Top) / scale.DpiScaleY);
+        }
+
+        private static NativeRect _covering, _covered;
+        private static bool _anyCovered;
+        private static readonly MonitorEnumProc CollectMonitor = (IntPtr monitor, IntPtr hdc, ref NativeRect rc, IntPtr data) =>
+        {
+            if (rc.Left >= _covering.Right || rc.Right <= _covering.Left || rc.Top >= _covering.Bottom || rc.Bottom <= _covering.Top) return true;
+            _covered = _anyCovered
+                ? new NativeRect { Left = Math.Min(_covered.Left, rc.Left), Top = Math.Min(_covered.Top, rc.Top), Right = Math.Max(_covered.Right, rc.Right), Bottom = Math.Max(_covered.Bottom, rc.Bottom) }
+                : rc;
+            _anyCovered = true;
+            return true;
+        };
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct NativeRect { public int Left, Top, Right, Bottom; }
+
+        private delegate bool MonitorEnumProc(IntPtr monitor, IntPtr hdc, ref NativeRect rc, IntPtr data);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonitorEnumProc proc, IntPtr data);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hwnd, out NativeRect rect);
+
+        // Test counters (Shell/SelfTestThemeMotif.cs).
+        internal static int ComposeCalls, RasterPaints, VectorPaints;
+        internal static double ComposeMs, LandMs;
+
         private static event Action? Retuned;
 
         /// <summary>Repaints every motif element after TrashPolkaInk's opacities change.</summary>
@@ -246,15 +579,6 @@ namespace KillerPDF.Controls
         {
             var handler = Handlers.GetValue(element, e => () => Paint(e));
             return handler;
-        }
-
-        private static void Detach(object sender, RoutedEventArgs e)
-        {
-            if (sender is FrameworkElement element && Handlers.TryGetValue(element, out var handler))
-            {
-                ThemeManager.ThemeChanged -= handler;
-                Retuned -= handler;
-            }
         }
 
         private static void Refresh(object sender, EventArgs e)
@@ -298,15 +622,18 @@ namespace KillerPDF.Controls
                 MotifPart.Popup => TrashPolkaInk.PopupOpacity,
                 _ => TrashPolkaInk.PaneOpacity,
             };
-            var size = new Size(Math.Ceiling(SystemParameters.PrimaryScreenWidth / TrashPolkaInk.Scale),
-                Math.Ceiling(SystemParameters.PrimaryScreenHeight / TrashPolkaInk.Scale));
+            var size = InkSize(element);
             int seed = part switch { MotifPart.Window => TrashPolkaInk.WindowSeed, MotifPart.Split => TrashPolkaInk.SplitSeed, _ => TrashPolkaInk.BackgroundSeed };
             // The bitmap layers (TrashPolkaRaster) are built in the background at this monitor's scale; until they land the
             // element shows the vector piece, and Retune repaints every element once they do.
             double dpi = VisualTreeHelper.GetDpi(element).DpiScaleX;
-            var layers = TrashPolkaRaster.Get(seed, size, TrashPolkaInk.Scale, dpi, Retune);
-            string stamp = $"{part}|{accent.Color}|{baseBrush.Color}|{pane}|{window}|{opacity}|{(layers is null ? "vector" : "raster " + dpi)}";
-            if ((string?)element.GetValue(PaintedProperty) == stamp) return;
+            var layerKey = new TrashPolkaRaster.LayerKey(seed, size, TrashPolkaInk.Scale, dpi);
+            if (element.GetValue(LayersKeyProperty) is not TrashPolkaRaster.LayerKey lastKey || lastKey != layerKey)
+            {
+                element.SetValue(LayersKeyProperty, layerKey);
+                QueueSweep();
+            }
+            var layers = TrashPolkaRaster.Get(layerKey, Retune);
 
             // Every part carries a full ink piece (TrashPolkaInk): the document canvas and the split pane their own, the
             // window background and its chrome (title bar, toolbar, sidebar, frame) a third one, so the raised panes never
@@ -314,15 +641,17 @@ namespace KillerPDF.Controls
             // only shows more or less of the same image (Steve, 2026-11-16: "the images scrunch up and change").
             // An accent switch only recolors the shared accent brushes; the pieces are redrawn only for a new screen size.
             Drawing piece;
-            if (layers is not null)
+            if (layers is not null && !(RasterPieces.TryGetValue(layers, out var state) && state.Failed))
             {
-                var tint = Color.FromRgb(accent.Color.R, accent.Color.G, accent.Color.B);
-                if (!RasterPieces.TryGetValue(layers, out var composed) || composed.Accent != tint)
-                {
-                    RasterPieces.Remove(layers);
-                    RasterPieces.Add(layers, composed = new TintedPiece(tint, TrashPolkaRaster.Compose(layers, size, tint)));
-                }
-                piece = composed.Piece;
+                // A new accent's piece composes on a worker: keep what is painted until it lands (Land, then Retune).
+                if (Tinted(layers, size, Color.FromRgb(accent.Color.R, accent.Color.G, accent.Color.B)) is not { } tinted) return;
+                piece = tinted;
+                RasterPaints++;
+            }
+            else if (layers is null && TrashPolkaRaster.LoadingFromDisk(layerKey))
+            {
+                // The cached picture is decoding; the element keeps its plain background until Retune repaints it.
+                return;
             }
             else
             {
@@ -333,7 +662,10 @@ namespace KillerPDF.Controls
                     Pieces[part] = cached;
                 }
                 piece = cached.Piece;
+                VectorPaints++;
             }
+            var stamp = new PaintKey(part, accent.Color, baseBrush.Color, pane, opacity, piece);
+            if (element.GetValue(PaintedProperty) is PaintKey painted && painted == stamp) return;
             var brush = TrashPolkaMotif.Compose(baseBrush.Color, piece, pane, window, scale: TrashPolkaInk.Scale, opacity: opacity);
             if (unflip is not null)
             {
