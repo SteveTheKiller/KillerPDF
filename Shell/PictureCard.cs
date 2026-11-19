@@ -18,10 +18,10 @@ namespace KillerPDF.Shell
         private void AddPictureCard(ImageAnnotation picture, bool placed)
         {
             if (TryFindResource("CardMenu") is Style card) _ctxMenu.Style = card;
-            _ctxMenu.Items.Add(CardSlot(PictureCardHeader(picture), new Thickness(4, 2, 4, 6)));
-
             bool canRemove = placed || ActiveViewer.CanDeleteSelectedSourceImageExt;
-            // Most used first: the clipboard and delete row, then the picture's own file and turn tiles, then layer order.
+            _ctxMenu.Items.Add(CardSlot(WithHeaderDelete(PictureCardHeader(picture), canRemove), new Thickness(4, 2, 4, 6)));
+
+            // Most used first: the clipboard (Delete sits in the header), then the picture's own file and turn tiles, then layer order.
             // Every action is a tile; a card carries no text rows (family card rule).
             var quick = new List<(string, string, string?, Action, bool, bool)>
             {
@@ -30,7 +30,6 @@ namespace KillerPDF.Shell
             };
             if (placed && MarkupToPaste())
                 quick.Add(("", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteAnnotations(picture.PageIndex), false, true));
-            quick.Add(("", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, canRemove));
             quick.Add(("", Loc("Str_Ctx_SavePicture"), null, () => SavePicture(picture), false, true));
             if (placed)
             {

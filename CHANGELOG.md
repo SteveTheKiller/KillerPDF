@@ -60,7 +60,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - `--pdfua --json` names the standard the files were checked against, PDF/UA-2 or "mixed" when PDF/UA-2 files are in the run. It always said PDF/UA-1.
 
 ### Changed
-- Every right-click card holds only tiles. Save Picture As, Replace Picture, Paste, Select Text, Unpair and Remove from Group, and on a book Select All, Convert to PDF, Full Screen and Book layout, used to be text rows under the tiles, without the shortcut the tiles show. The most used actions come first: Edit, Copy, Cut, Paste and Delete lead, then the picture's own actions, then layer order and grouping.
+- Every right-click card holds only tiles. Save Picture As, Replace Picture, Paste, Select Text, Unpair and Remove from Group, and on a book Select All, Convert to PDF, Full Screen and Book layout, used to be text rows under the tiles, without the shortcut the tiles show. The most used actions come first: Edit, Copy, Cut and Paste lead, then the picture's own actions, then layer order and grouping. Delete on a mark or picture card is the trash button at the right of the card's title.
 - Menus, cards, the theme and language pickers, and the notices at the top of the page keep an even 8px edge. A highlighted row, tile or color sits 8px from every side, and a card tile's highlight fills its whole cell.
 - Menu text, icons and shortcuts are brighter in Dark and Trash Polka, so menus stay easy to read beside a white page. Secondary labels in 98SE are a shade darker. Every theme's menu text now clears WCAG AA contrast.
 

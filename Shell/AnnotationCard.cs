@@ -20,19 +20,18 @@ namespace KillerPDF.Shell
             bool multi = SelectionCount() > 1;
             var targets = CardTargets(hit);
 
-            _ctxMenu.Items.Add(CardSlot(AnnotationCardHeader(hit, multi, targets.Count), new Thickness(4, 2, 4, 6)));
+            _ctxMenu.Items.Add(CardSlot(WithHeaderDelete(AnnotationCardHeader(hit, multi, targets.Count), true), new Thickness(4, 2, 4, 6)));
 
             _annotations.TryGetValue(hit.PageIndex, out var pageList);
             int idx = pageList?.IndexOf(hit) ?? -1;
             bool canRaise = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, hit, +1) >= 0;
             bool canLower = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, hit, -1) >= 0;
-            // Most used first: edit and the clipboard and delete row, then layer order, grouping and pairing.
+            // Most used first: edit and the clipboard (Delete sits in the header), then layer order, grouping and pairing.
             // Every action is a tile; a card carries no text rows (family card rule).
             var quick = new List<(string, string, string?, Action, bool, bool)>();
             if (!multi && CanEditAnnotation(hit)) quick.Add(("\uE70F", Loc("Str_Ctx_Edit"), null, () => EditAnnotation(hit), false, true));
             quick.Add(("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true));
             if (MarkupToPaste()) quick.Add(("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteAnnotations(hit.PageIndex), false, true));
-            quick.Add(("\uE74D", Loc("Str_Ctx_DeleteSel"), "Del", DeleteSelected, false, true));
             quick.Add(("\uE70E", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(hit, +1), false, canRaise));
             quick.Add(("\uE70D", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(hit, -1), false, canLower));
             if (hit.GroupId.Length > 0)
@@ -68,6 +67,19 @@ namespace KillerPDF.Shell
             var marks = targets.OfType<HighlightAnnotation>().Where(h => h is not CoverAnnotation && !h.IsShape).ToList();
             if (marks.Count > 0)
                 _ctxMenu.Items.Add(CardSlot(CardStyleRow(marks), new Thickness(8, 4, 4, 6)));
+        }
+
+        // A mark card's Delete sits at the right end of its header, a nav-row icon button with the Del shortcut in its
+        // tooltip, so the strip below keeps its room for the other actions (Steve 2026-11-19). One entry: no Delete tile.
+        private FrameworkElement WithHeaderDelete(FrameworkElement header, bool enabled)
+        {
+            if (header is not DockPanel dock) return header;
+            var delete = NavRowButton(_ctxMenu!, "\uE74D", "Str_Ctx_DeleteSel", "Del", DeleteSelected, enabled);
+            delete.VerticalAlignment = VerticalAlignment.Center;
+            delete.Margin = new Thickness(8, 0, 0, 0);
+            DockPanel.SetDock(delete, Dock.Right);
+            dock.Children.Insert(dock.Children.Count - 1, delete);
+            return dock;
         }
 
         // The Arrange tile's rows. Distributing needs three marks, so with two its rows are off.
