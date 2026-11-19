@@ -1375,6 +1375,9 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Card_Picture">画像</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">画像に名前を付けて保存...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">画像を置換...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">左右反転</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">上下反転</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">サイズをリセット</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">画像を保存できませんでした：</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">選択したテキスト</sys:String>
     <sys:String x:Key="Str_Card_PageTools">ページ</sys:String>
@@ -1390,6 +1393,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Op_OcrRegion">OCR 領域</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">OCR を実行中...</sys:String>
     <sys:String x:Key="Str_Busy_Region">領域を認識中...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">画像を認識中...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">検索可能な PDF を作成中...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">スキャンしたテキストを変換中...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">テキストを抽出中...</sys:String>
@@ -1421,6 +1425,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR : ページ {1} から {0} 文字をコピーしました (信頼度 {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR : {1} ページから {0} 文字をコピーしました (信頼度 {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR : 領域から {0} 文字をコピーしました (信頼度 {1})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR : 画像から {0} 文字をコピーしました (信頼度 {1})</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">検索可能な PDF を保存しました : {0} ページ、{1} 語を認識</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">変換した PDF を保存しました：スキャンページ {0} 件、テキスト化した語 {1} 件</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">{0} ページからテキストを抽出 -> {1}</sys:String>

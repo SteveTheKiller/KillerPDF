@@ -1375,6 +1375,9 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Card_Picture">Hình ảnh</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Lưu hình ảnh thành...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Thay hình ảnh...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Lật ngang</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Lật dọc</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Đặt lại kích thước</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Không thể lưu hình ảnh:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Văn bản đã chọn</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Trang</sys:String>
@@ -1390,6 +1393,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Op_OcrRegion">vùng OCR</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">Đang chạy OCR...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Đang nhận dạng vùng...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Đang nhận dạng hình ảnh...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Đang tạo PDF có thể tìm kiếm...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Đang chuyển văn bản quét...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Đang trích xuất văn bản...</sys:String>
@@ -1421,6 +1425,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: đã sao chép {0} ký tự từ trang {1} (độ tin cậy {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: đã sao chép {0} ký tự từ {1} trang (độ tin cậy {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: đã sao chép {0} ký tự từ vùng đã chọn (độ tin cậy {1})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: đã sao chép {0} ký tự từ hình ảnh (độ tin cậy {1})</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">Đã lưu PDF có thể tìm kiếm: {0} trang, nhận dạng được {1} từ</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Đã lưu PDF đã chuyển đổi: {0} trang quét, {1} từ đã thành văn bản</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Đã trích xuất văn bản từ {0} trang -> {1}</sys:String>

@@ -1369,6 +1369,9 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Card_Picture">Kép</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Kép mentése másként...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Kép cseréje...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Vízszintes tükrözés</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Függőleges tükrözés</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Méret visszaállítása</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">A képet nem sikerült menteni:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Kijelölt szöveg</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Oldal</sys:String>
@@ -1382,6 +1385,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Op_OcrRegion">OCR-terület</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">OCR fut...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Terület felismerése...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Kép felismerése...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Kereshető PDF készítése...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Szkennelt szöveg átalakítása...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Szöveg kinyerése...</sys:String>
@@ -1411,6 +1415,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: {0} karakter másolva a(z) {1}. oldalról ({2} megbízhatóság)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: {0} karakter másolva {1} oldalról ({2} megbízhatóság)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: {0} karakter másolva a területről ({1} megbízhatóság)</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: {0} karakter másolva a képről ({1} megbízhatóság)</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">Kereshető PDF mentve: {0} oldal, {1} felismert szó</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Átalakított PDF mentve: {0} szkennelt oldal, {1} szó lett szöveg</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Szöveg kinyerve {0} oldalról -> {1}</sys:String>

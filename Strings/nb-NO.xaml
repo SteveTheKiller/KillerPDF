@@ -1375,6 +1375,9 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Card_Picture">Bilde</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Lagre bildet som...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Erstatt bildet...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Speilvend vannrett</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Speilvend loddrett</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Tilbakestill størrelse</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Bildet kunne ikke lagres:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Valgt tekst</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Side</sys:String>
@@ -1390,6 +1393,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Op_OcrRegion">OCR-område</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">Kjører OCR...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Gjenkjenner område...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Gjenkjenner bilde...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Lager søkbar PDF...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Konverterer skannet tekst...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Trekker ut tekst...</sys:String>
@@ -1421,6 +1425,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: kopierte {0} tegn fra side {1} ({2} sikkerhet)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: kopierte {0} tegn fra {1} sider ({2} sikkerhet)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: kopierte {0} tegn fra området ({1} sikkerhet)</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: kopierte {0} tegn fra bildet ({1} sikkerhet)</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">Søkbar PDF lagret: {0} sider, {1} ord gjenkjent</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Konvertert PDF lagret: {0} skannede sider, {1} ord er nå tekst</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Trakk ut tekst fra {0} sider -> {1}</sys:String>

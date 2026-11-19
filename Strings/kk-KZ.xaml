@@ -1270,6 +1270,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Card_Picture">Сурет</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Суретті басқаша сақтау...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Суретті ауыстыру...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Көлденеңінен айналау</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Тігінен айналау</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Өлшемді қалпына келтіру</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Суретті сақтау мүмкін болмады:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Таңдалған мәтін</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Бет</sys:String>
@@ -1285,6 +1288,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Op_OcrRegion">OCR аймағы</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">OCR орындалуда...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Аймақ танылуда...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Сурет танылуда...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Ізделетін PDF жасалуда...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Сканерленген мәтін түрлендірілуде...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Мәтін шығарылуда...</sys:String>
@@ -1316,6 +1320,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: {1} беттен {0} таңба көшірілді ({2} сенімділік)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: {1} беттен {0} таңба көшірілді ({2} сенімділік)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: аймақтан {0} таңба көшірілді ({1} сенімділік)</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: суреттен {0} таңба көшірілді ({1} сенімділік)</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">Ізделетін PDF сақталды: {0} бет, {1} сөз танылды</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Түрлендірілген PDF сақталды: {0} сканерленген бет, {1} сөз мәтінге айналды</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">{0} беттен мәтін шығарылды -> {1}</sys:String>

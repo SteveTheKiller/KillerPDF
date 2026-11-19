@@ -1362,6 +1362,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Card_Picture">ছবি</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">ছবি এভাবে সংরক্ষণ করুন...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">ছবি প্রতিস্থাপন করুন...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">অনুভূমিকভাবে উল্টান</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">উল্লম্বভাবে উল্টান</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">আকার রিসেট করুন</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">ছবিটি সংরক্ষণ করা যায়নি:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">নির্বাচিত টেক্সট</sys:String>
     <sys:String x:Key="Str_Card_PageTools">পৃষ্ঠা</sys:String>
@@ -1375,6 +1378,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Op_OcrRegion">OCR অঞ্চল</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">OCR চলছে...</sys:String>
     <sys:String x:Key="Str_Busy_Region">অঞ্চল শনাক্ত করা হচ্ছে...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">ছবি শনাক্ত করা হচ্ছে...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">অনুসন্ধানযোগ্য PDF তৈরি হচ্ছে...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">স্ক্যান করা লেখা রূপান্তর হচ্ছে...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">টেক্সট বের করা হচ্ছে...</sys:String>
@@ -1404,6 +1408,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: পাতা {1} থেকে {0}টি অক্ষর কপি হয়েছে ({2} আস্থা)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: {1}টি পৃষ্ঠা থেকে {0}টি অক্ষর কপি হয়েছে ({2} আস্থা)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: অঞ্চল থেকে {0}টি অক্ষর কপি হয়েছে ({1} আস্থা)</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: ছবি থেকে {0}টি অক্ষর কপি হয়েছে ({1} আস্থা)</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">অনুসন্ধানযোগ্য PDF সংরক্ষিত: {0} পাতা, {1}টি শব্দ শনাক্ত</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">রূপান্তরিত PDF সংরক্ষিত: {0}টি স্ক্যান করা পাতা, {1}টি শব্দ এখন লেখা</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">{0} পাতা থেকে টেক্সট বের হয়েছে -> {1}</sys:String>

@@ -1375,6 +1375,9 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Card_Picture">Image</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Enregistrer l'image sous...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Remplacer l'image...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Retourner horizontalement</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Retourner verticalement</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Rétablir la taille</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Impossible d'enregistrer l'image :</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Texte sélectionné</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Page</sys:String>
@@ -1390,6 +1393,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Op_OcrRegion">la région OCR</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">OCR en cours...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Reconnaissance de la région...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Reconnaissance de l'image...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Création du PDF interrogeable...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Conversion du texte numérisé...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Extraction du texte...</sys:String>
@@ -1421,6 +1425,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR : {0} caractères copiés de la page {1} (confiance {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR : {0} caractères copiés depuis {1} pages (confiance : {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR : {0} caractères copiés de la région (confiance {1})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR : {0} caractères copiés de l'image (confiance {1})</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">PDF interrogeable enregistré : {0} pages, {1} mots reconnus</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">PDF converti enregistré : {0} pages numérisées, {1} mots devenus du texte</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Texte extrait de {0} pages -> {1}</sys:String>

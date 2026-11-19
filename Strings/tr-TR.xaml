@@ -1362,6 +1362,9 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Card_Picture">Resim</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Resmi Farklı Kaydet...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Resmi Değiştir...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Yatay çevir</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Dikey çevir</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Boyutu Sıfırla</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Resim kaydedilemedi:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Seçili metin</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Sayfa</sys:String>
@@ -1375,6 +1378,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Op_OcrRegion">OCR bölgesi</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">OCR çalışıyor...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Bölge tanınıyor...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Resim tanınıyor...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Aranabilir PDF oluşturuluyor...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Taranmış metin dönüştürülüyor...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Metin çıkarılıyor...</sys:String>
@@ -1404,6 +1408,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: {1}. sayfadan {0} karakter kopyalandı ({2} güven)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: {1} sayfadan {0} karakter kopyalandı ({2} güven)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: bölgeden {0} karakter kopyalandı ({1} güven)</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: resimden {0} karakter kopyalandı ({1} güven)</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">Aranabilir PDF kaydedildi: {0} sayfa, {1} tanınan sözcük</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Dönüştürülen PDF kaydedildi: {0} taranmış sayfa, {1} sözcük artık metin</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">{0} sayfadan metin çıkarıldı -> {1}</sys:String>

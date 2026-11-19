@@ -1370,6 +1370,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Card_Picture">Obraz</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Zapisz obraz jako...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Zamień obraz...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Odwróć w poziomie</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Odwróć w pionie</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Resetuj rozmiar</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Nie udało się zapisać obrazu:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Zaznaczony tekst</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Strona</sys:String>
@@ -1383,6 +1386,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Op_OcrRegion">region OCR</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">Trwa OCR...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Rozpoznawanie regionu...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Rozpoznawanie obrazu...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Tworzenie przeszukiwalnego PDF...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Konwertowanie zeskanowanego tekstu...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Wyodrębnianie tekstu...</sys:String>
@@ -1412,6 +1416,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: skopiowano {0} znaków ze strony {1} (pewność {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: skopiowano {0} znaków z {1} stron (pewność {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: skopiowano {0} znaków z regionu (pewność {1})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: skopiowano {0} znaków z obrazu (pewność {1})</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">Zapisano przeszukiwalny PDF: {0} stron, {1} rozpoznanych słów</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Zapisano przekonwertowany PDF: zeskanowane strony: {0}, słowa zamienione na tekst: {1}</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Wyodrębniono tekst z {0} stron -> {1}</sys:String>

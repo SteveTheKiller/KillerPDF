@@ -1375,6 +1375,9 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Card_Picture">Зображення</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Зберегти зображення як...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Замінити зображення...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Віддзеркалити по горизонталі</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Віддзеркалити по вертикалі</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Скинути розмір</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Не вдалося зберегти зображення:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Виділений текст</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Сторінка</sys:String>
@@ -1390,6 +1393,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Op_OcrRegion">OCR області</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">Виконується OCR...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Розпізнавання області...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Розпізнавання зображення...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Створення PDF з пошуком...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Перетворення відсканованого тексту...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Видобування тексту...</sys:String>
@@ -1421,6 +1425,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: скопійовано символів: {0} зі сторінки {1} (достовірність {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: скопійовано символів: {0} зі сторінок: {1} (достовірність {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: скопійовано символів: {0} з області (достовірність {1})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: скопійовано символів: {0} із зображення (достовірність {1})</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">PDF з пошуком збережено: сторінок {0}, розпізнано слів {1}</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Перетворений PDF збережено: відсканованих сторінок: {0}, слів стало текстом: {1}</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Текст видобуто зі сторінок: {0} -> {1}</sys:String>

@@ -1368,6 +1368,9 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Card_Picture">Bild</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Bild speichern unter...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Bild ersetzen...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Horizontal spiegeln</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Vertikal spiegeln</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Größe zurücksetzen</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Das Bild konnte nicht gespeichert werden:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Ausgewählter Text</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Seite</sys:String>
@@ -1381,6 +1384,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Op_OcrRegion">OCR-Bereich</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">OCR läuft...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Bereich wird erkannt...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Bild wird erkannt...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Durchsuchbare PDF wird erstellt...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Gescannter Text wird umgewandelt...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Text wird extrahiert...</sys:String>
@@ -1410,6 +1414,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: {0} Zeichen von Seite {1} kopiert ({2} Konfidenz)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: {0} Zeichen aus {1} Seiten kopiert ({2} Konfidenz)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: {0} Zeichen aus dem Bereich kopiert ({1} Konfidenz)</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: {0} Zeichen aus dem Bild kopiert ({1} Konfidenz)</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">Durchsuchbare PDF gespeichert: {0} Seiten, {1} Wörter erkannt</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Umgewandelte PDF gespeichert: {0} gescannte Seiten, {1} Wörter jetzt als Text</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Text aus {0} Seiten extrahiert -> {1}</sys:String>

@@ -38,6 +38,7 @@
     <Compile Include="..\Services\SessionStore.cs" Link="Services\SessionStore.cs" />
     <Compile Include="..\Services\PictureFile.cs" Link="Services\PictureFile.cs" />
     <Compile Include="..\Services\PictureTurn.cs" Link="Services\PictureTurn.cs" />
+    <Compile Include="..\Services\PictureShape.cs" Link="Services\PictureShape.cs" />
     <Compile Include="..\Services\WheelKeys.cs" Link="Services\WheelKeys.cs" />
     <Compile Include="..\Services\MarkupClipboard.cs" Link="Services\MarkupClipboard.cs" />
     <Compile Include="..\Controls\FolderNameRule.cs" Link="Controls\FolderNameRule.cs" />

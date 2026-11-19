@@ -1375,6 +1375,9 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Card_Picture">Изображение</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Сохранить изображение как...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Заменить изображение...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Перевернуть горизонтально</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Перевернуть вертикально</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Сбросить размер</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Не удалось сохранить изображение:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Выделенный текст</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Страница</sys:String>
@@ -1390,6 +1393,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Op_OcrRegion">Распознавание области</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">Запуск распознавания текста...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Распознаю область...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Распознаю изображение...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Создание PDF-файла с возможностью поиска...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Преобразование отсканированного текста...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Извлечение текста...</sys:String>
@@ -1421,6 +1425,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_St_OcrCopiedPage">Распознавание: скопировано {0} символов со страницы {1} (уверенность {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">Распознавание: скопировано {0} символов с {1} страниц (уверенность {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: из области скопировано символов: {0} (уверенность {1})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: из изображения скопировано символов: {0} (уверенность {1})</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">Сохранен PDF-файл с возможностью поиска: {0} страниц, {1} слов распознано</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Преобразованный PDF сохранен: отсканированных страниц: {0}, слов стало текстом: {1}</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Текст извлечен из {0} страниц -&gt; {1}</sys:String>

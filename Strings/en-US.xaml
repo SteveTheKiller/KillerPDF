@@ -1382,6 +1382,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Card_Picture">Picture</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Save Picture As...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Replace Picture...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Flip Horizontal</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Flip Vertical</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Reset Size</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">The picture could not be saved:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Selected text</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Page</sys:String>
@@ -1397,6 +1400,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Op_OcrRegion">OCR region</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">Running OCR...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Recognizing region...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Recognizing picture...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Making searchable PDF...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Converting scanned text...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Extracting text...</sys:String>
@@ -1428,6 +1432,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: copied {0} chars from page {1} ({2} confidence)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: copied {0} chars from {1} pages ({2} confidence)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: copied {0} chars from the region ({1} confidence)</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: copied {0} chars from the picture ({1} confidence)</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">Searchable PDF saved: {0} pages, {1} words recognized</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Converted PDF saved: {0} scanned pages, {1} words now text</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Text extracted from {0} pages -> {1}</sys:String>

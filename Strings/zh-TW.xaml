@@ -1364,6 +1364,9 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Card_Picture">圖片</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">另存圖片為...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">取代圖片...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">水平翻轉</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">垂直翻轉</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">重設大小</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">無法儲存圖片：</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">選取的文字</sys:String>
     <sys:String x:Key="Str_Card_PageTools">頁面</sys:String>
@@ -1377,6 +1380,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Op_OcrRegion">OCR 區域</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">正在執行 OCR...</sys:String>
     <sys:String x:Key="Str_Busy_Region">正在辨識區域...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">正在辨識圖片...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">正在製作可搜尋的 PDF...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">正在轉換掃描文字...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">正在擷取文字...</sys:String>
@@ -1406,6 +1410,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR：已從第 {1} 頁複製 {0} 個字元（信賴度 {2}）</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR：已從 {1} 頁複製 {0} 個字元（信賴度 {2}）</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR：已從區域複製 {0} 個字元（信賴度 {1}）</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR：已從圖片複製 {0} 個字元（信賴度 {1}）</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">可搜尋 PDF 已儲存：{0} 頁，辨識 {1} 個字詞</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">轉換後的 PDF 已儲存：{0} 個掃描頁，{1} 個字詞已轉為文字</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">已從 {0} 頁擷取文字 -> {1}</sys:String>

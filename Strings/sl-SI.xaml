@@ -1278,6 +1278,9 @@
     <sys:String x:Key="Str_Card_Picture">Slika</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Shrani sliko kot...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Zamenjaj sliko...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Zrcali vodoravno</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Zrcali navpično</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Ponastavi velikost</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Slike ni bilo mogoče shraniti:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Izbrano besedilo</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Stran</sys:String>
@@ -1291,6 +1294,7 @@
     <sys:String x:Key="Str_Op_OcrRegion">OCR območja</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">Izvajanje OCR...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Prepoznavanje območja...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Prepoznavanje slike...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Ustvarjanje iskalnega PDF-ja...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Pretvarjanje optično prebranega besedila...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Izločanje besedila...</sys:String>
@@ -1320,6 +1324,7 @@
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: kopirani znaki: {0}, s strani {1} (zanesljivost {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: kopirani znaki: {0}, s strani: {1} (zanesljivost {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: iz območja je kopiranih {0} znakov (zanesljivost {1})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: iz slike je kopiranih {0} znakov (zanesljivost {1})</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">Iskalni PDF je shranjen: strani {0}, prepoznane besede {1}</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Pretvorjeni PDF je shranjen: optično prebrane strani {0}, besede, pretvorjene v besedilo {1}</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Besedilo je izločeno s strani: {0} -&gt; {1}</sys:String>

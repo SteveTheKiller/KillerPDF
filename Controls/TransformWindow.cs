@@ -15,7 +15,9 @@ namespace KillerPDF
     internal enum TransformWindowMode
     {
         Transform,
-        ColorCorrection
+        ColorCorrection,
+        // Color correction for one picture from the picture card: the Color and Levels sections, no page settings.
+        PictureColorCorrection
     }
 
     /// <summary>
@@ -441,6 +443,8 @@ namespace KillerPDF
                     (S("Str_Tf_Rotate"), rotate), (S("Str_Tf_Flip"), flip), (S("Str_Tf_Scale"), scale),
                     (S("Str_Tf_Skew"), skew), (S("Str_Tf_Perspective"), perspective)
                 }
+                : mode == TransformWindowMode.PictureColorCorrection
+                ? new (string Title, UIElement Body)[] { (S("Str_Cc_Color"), color), (S("Str_Tf_Levels"), levels) }
                 : new (string Title, UIElement Body)[]
                 {
                     (S("Str_Cc_Color"), color), (S("Str_Tf_Levels"), levels), (S("Str_Tf_Quality"), quality)
@@ -532,7 +536,7 @@ namespace KillerPDF
 
             previewWrap.Child = previewGrid;
             _previewArea = previewWrap;
-            if (mode == TransformWindowMode.ColorCorrection)
+            if (mode != TransformWindowMode.Transform)
             {
                 _preview.RenderTransform = _previewTransform;
                 previewGrid.PreviewMouseWheel += (_, e) =>
@@ -628,7 +632,7 @@ namespace KillerPDF
             // Color correction opens with focus on its first setting, Exposure, so Tab and the arrow keys
             // start there; a slider leaves Enter to Apply. Transform keeps today's open focus: its first
             // control is the 90-degree button, which would take Enter away from Apply.
-            if (mode == TransformWindowMode.ColorCorrection)
+            if (mode != TransformWindowMode.Transform)
                 Loaded += (_, _2) => _colorAdjustmentSliders[0].Focus();
             // As tall as the open options and the footer, resizable from every edge, remembered per
             // mode; the first open widens until the page fills the preview's height.

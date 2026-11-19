@@ -206,20 +206,32 @@ public partial class PdfViewer
         try
         {
             SaveTempAndReload(keepAnnotations: true, preserveZoom: true,
-                selectedPageAfterReload: selection.Occurrence.PageIndex, finalizeSavedFile: path =>
-                {
-                    var document = PdfDocument.Open(File.ReadAllBytes(path));
-                    var placements = new PdfPageContentReader(document).ReadImagePlacements(selection.Occurrence.PageIndex);
-                    var current = ResolveSelectedPlacement(placements, selection.Occurrence, selection.Ordinal);
-                    byte[] asset = PdfImagePlacementExtractor.Extract(document, current).ToPdfBytes();
-                    if (!asset.AsSpan().SequenceEqual(selection.Asset.ToPdfBytes()))
-                        throw new InvalidOperationException("The selected image resource has changed.");
-                    AtomicFileOutput.Write(path, PdfImagePlacementEditor.Remove(document, current));
-                });
+                selectedPageAfterReload: selection.Occurrence.PageIndex, finalizeSavedFile: RemoveSelectedPlacement(selection));
         }
         catch (Exception error) when (error is not OutOfMemoryException) { ReportEditFailure(error); }
         return true;
     }
+
+    /// <summary>The selected picture, with its bytes, and the step that takes it out of a saved copy of the page, for
+    /// an edit that lifts it off the page into a placed picture (a turn, a flip, new pixels). Null when no picture of
+    /// this document is selected or it cannot leave the page.</summary>
+    internal (ImageAnnotation Image, Action<string> Remove)? SelectedSourceImageRemovalExt =>
+        CanDeleteSelectedSourceImageExt && _sourceImageSelection is { } selection && MaterializedSourceImage() is { } image
+            ? (image, RemoveSelectedPlacement(selection)) : null;
+
+    // Takes the selected picture out of the saved copy, after checking the copy still holds that same picture.
+    private static Action<string> RemoveSelectedPlacement(
+        (PdfWorkingDocument Owner, PdfImagePlacementSelection Occurrence, ImageAnnotation Image, int Ordinal, PdfImageAsset Asset) selection) =>
+        path =>
+        {
+            var document = PdfDocument.Open(File.ReadAllBytes(path));
+            var placements = new PdfPageContentReader(document).ReadImagePlacements(selection.Occurrence.PageIndex);
+            var current = ResolveSelectedPlacement(placements, selection.Occurrence, selection.Ordinal);
+            byte[] asset = PdfImagePlacementExtractor.Extract(document, current).ToPdfBytes();
+            if (!asset.AsSpan().SequenceEqual(selection.Asset.ToPdfBytes()))
+                throw new InvalidOperationException("The selected image resource has changed.");
+            AtomicFileOutput.Write(path, PdfImagePlacementEditor.Remove(document, current));
+        };
 
     internal bool TrySelectSourceImageExt(int page, Point point) => TrySelectSourceImage(page, point, out _);
 

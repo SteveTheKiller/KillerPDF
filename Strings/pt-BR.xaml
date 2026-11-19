@@ -1375,6 +1375,9 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Card_Picture">Imagem</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Salvar imagem como...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Substituir imagem...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Espelhar horizontalmente</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Espelhar verticalmente</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Redefinir tamanho</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Não foi possível salvar a imagem:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Texto selecionado</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Página</sys:String>
@@ -1390,6 +1393,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Op_OcrRegion">OCR de região</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">Executando OCR...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Reconhecendo região...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Reconhecendo imagem...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Criando PDF pesquisável...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Convertendo texto digitalizado...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Extraindo texto...</sys:String>
@@ -1421,6 +1425,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: {0} caracteres copiados da página {1} ({2} de confiança)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: {0} caracteres copiados de {1} páginas ({2} de confiança)</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: {0} caracteres copiados da região ({1} de confiança)</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: {0} caracteres copiados da imagem ({1} de confiança)</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">PDF pesquisável salvo: {0} páginas, {1} palavras reconhecidas</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">PDF convertido salvo: {0} páginas digitalizadas, {1} palavras agora são texto</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Texto extraído de {0} páginas -> {1}</sys:String>

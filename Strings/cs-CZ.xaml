@@ -1367,6 +1367,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Card_Picture">Obrázek</sys:String>
     <sys:String x:Key="Str_Ctx_SavePicture">Uložit obrázek jako...</sys:String>
     <sys:String x:Key="Str_Ctx_ReplacePicture">Nahradit obrázek...</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipHorizontal">Převrátit vodorovně</sys:String>
+    <sys:String x:Key="Str_Ctx_FlipVertical">Převrátit svisle</sys:String>
+    <sys:String x:Key="Str_Ctx_ResetSize">Obnovit velikost</sys:String>
     <sys:String x:Key="Str_Err_SavePictureFailed">Obrázek se nepodařilo uložit:</sys:String>
     <sys:String x:Key="Str_Card_SelectedText">Vybraný text</sys:String>
     <sys:String x:Key="Str_Card_PageTools">Stránka</sys:String>
@@ -1380,6 +1383,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Op_OcrRegion">oblast OCR</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">Probíhá OCR...</sys:String>
     <sys:String x:Key="Str_Busy_Region">Rozpoznávání oblasti...</sys:String>
+    <sys:String x:Key="Str_Busy_Picture">Rozpoznávání obrázku...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Vytváření prohledávatelného PDF...</sys:String>
     <sys:String x:Key="Str_Busy_ScanText">Převádění naskenovaného textu...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Extrakce textu...</sys:String>
@@ -1409,6 +1413,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR: zkopírováno {0} znaků ze stránky {1} (spolehlivost {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPages">OCR: zkopírováno {0} znaků z {1} stránek (spolehlivost {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: zkopírováno {0} znaků z oblasti (spolehlivost {1})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPicture">OCR: zkopírováno {0} znaků z obrázku (spolehlivost {1})</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">Prohledávatelné PDF uloženo: {0} stránek, {1} rozpoznaných slov</sys:String>
     <sys:String x:Key="Str_St_ScanTextSaved">Převedené PDF uloženo: {0} naskenovaných stránek, {1} slov je nyní text</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">Text extrahován z {0} stránek -> {1}</sys:String>

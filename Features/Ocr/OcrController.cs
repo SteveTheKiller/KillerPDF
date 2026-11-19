@@ -144,35 +144,62 @@ namespace KillerPDF.Features
             string lang = _host.OcrLanguageString;
             Rect cb = canvasBounds;
 
-            var ct = _host.BeginOp(_host.Loc("Str_Op_OcrRegion"), _host.Loc("Str_Busy_Region"));
+            await CopyRecognizedText(ct =>
+            {
+                using var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                    file, OcrRenderMax, OcrRenderMax, protection);
+                PdfRenderedPage page = renderSession.RenderBasePage(pageIdx, ct);
+                int w = page.Width;
+                int h = page.Height;
+                ReadOnlyMemory<byte> bgra = page.Pixels;
+                if (rot != 0)
+                {
+                    PdfOcrBgraImage rotated = PdfOcrImagePreprocessor.RotateBgra(
+                        bgra, w, h, rot, ct);
+                    bgra = rotated.Pixels;
+                    w = rotated.Width;
+                    h = rotated.Height;
+                }
+
+                double sx = (double)w / renderW, sy = (double)h / renderH;
+                PdfOcrBgraImage crop = PdfOcrImagePreprocessor.CropBgra(bgra, w, h,
+                    (int)Math.Round(cb.Left * sx), (int)Math.Round(cb.Top * sy),
+                    (int)Math.Round(cb.Width * sx), (int)Math.Round(cb.Height * sy));
+
+                using var ocr = new OcrService(language: lang);
+                return ocr.RecognizeBgra(
+                    crop.Pixels, crop.Width, crop.Height, cancellationToken: ct);
+            }, "Str_Busy_Region", "Str_St_OcrCopiedRegion");
+        }
+
+        // Copy Text on a picture card: reads the picture's own pixels, upright as drawn, so a placed picture reads
+        // as well as one that is part of the page. picture must be frozen; it is read off the UI thread.
+        internal async void OcrPicture(System.Windows.Media.Imaging.BitmapSource picture)
+        {
+            if (!_host.HasDocument) return;
+            var isSourceCurrent = _host.CaptureDocumentOrigin();
+            if (!await _host.EnsureOcrModelsReadyAsync() || !isSourceCurrent()) return;
+            string lang = _host.OcrLanguageString;
+            await CopyRecognizedText(ct =>
+            {
+                var bgra = new System.Windows.Media.Imaging.FormatConvertedBitmap(
+                    picture, System.Windows.Media.PixelFormats.Bgra32, null, 0);
+                int w = bgra.PixelWidth, h = bgra.PixelHeight;
+                byte[] pixels = new byte[checked(w * h * 4)];
+                bgra.CopyPixels(pixels, w * 4, 0);
+                ct.ThrowIfCancellationRequested();
+                using var ocr = new OcrService(language: lang);
+                return ocr.RecognizeBgra(pixels, w, h, cancellationToken: ct);
+            }, "Str_Busy_Picture", "Str_St_OcrCopiedPicture");
+        }
+
+        // Runs one recognition off the UI thread under the busy overlay and puts its text on the clipboard.
+        private async Task CopyRecognizedText(Func<CancellationToken, PdfOcrResult> recognize, string busyKey, string copiedKey)
+        {
+            var ct = _host.BeginOp(_host.Loc("Str_Op_OcrRegion"), _host.Loc(busyKey));
             try
             {
-                PdfOcrResult result = await Task.Run(() =>
-                {
-                    using var renderSession = PdfPageRenderSession.OpenEngineFirst(
-                        file, OcrRenderMax, OcrRenderMax, protection);
-                    PdfRenderedPage page = renderSession.RenderBasePage(pageIdx, ct);
-                    int w = page.Width;
-                    int h = page.Height;
-                    ReadOnlyMemory<byte> bgra = page.Pixels;
-                    if (rot != 0)
-                    {
-                        PdfOcrBgraImage rotated = PdfOcrImagePreprocessor.RotateBgra(
-                            bgra, w, h, rot, ct);
-                        bgra = rotated.Pixels;
-                        w = rotated.Width;
-                        h = rotated.Height;
-                    }
-
-                    double sx = (double)w / renderW, sy = (double)h / renderH;
-                    PdfOcrBgraImage crop = PdfOcrImagePreprocessor.CropBgra(bgra, w, h,
-                        (int)Math.Round(cb.Left * sx), (int)Math.Round(cb.Top * sy),
-                        (int)Math.Round(cb.Width * sx), (int)Math.Round(cb.Height * sy));
-
-                    using var ocr = new OcrService(language: lang);
-                    return ocr.RecognizeBgra(
-                        crop.Pixels, crop.Width, crop.Height, cancellationToken: ct);
-                });
+                PdfOcrResult result = await Task.Run(() => recognize(ct));
 
                 _host.HideBusy();
                 if (ct.IsCancellationRequested) { _host.SetStatus(_host.Loc("Str_St_OcrCanceled")); return; }
@@ -180,7 +207,7 @@ namespace KillerPDF.Features
                 string text = result.Text.Trim();
                 if (text.Length == 0) { _host.SetStatus(_host.Loc("Str_St_OcrNoText")); return; }
                 Clipboard.SetText(text);
-                _host.SetStatus(string.Format(_host.Loc("Str_St_OcrCopiedRegion"), text.Length, result.MeanConfidence.ToString("P0")));
+                _host.SetStatus(string.Format(_host.Loc(copiedKey), text.Length, result.MeanConfidence.ToString("P0")));
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
