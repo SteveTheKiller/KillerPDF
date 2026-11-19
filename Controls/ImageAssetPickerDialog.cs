@@ -88,7 +88,7 @@ internal sealed class ImageAssetPickerDialog : Window
         };
         previewFrame.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
         previewFrame.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
-        previewFrame.SetResourceReference(Border.BorderThicknessProperty, "PaneBorderThickness");
+        previewFrame.BorderThickness = new Thickness(1);
 
         var right = new DockPanel();
         var namePanel = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };

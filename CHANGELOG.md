@@ -30,6 +30,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- The image library's preview has its frame. It asked for a border width no theme defines, so it drew none.
 - The picture icon on a picture's right-click card shows in the theme's accent color. It was black, so it disappeared on dark themes. The signing dialog's preview border had the same missing color.
 - Paste pastes what was copied last. Once a picture, shape or text box had been copied, every paste brought it back, even after copying text or an image somewhere else, in every open document until a restart. (#497)
 - Clear Page on a page's right-click card clears that page. It cleared the page you were on instead.
