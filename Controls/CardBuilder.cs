@@ -42,7 +42,7 @@ namespace KillerFamily.Controls
     }
 
     /// <summary>
-    /// Makes a card's tile grid customizable (Steve 2026-11-19). A small pencil in the card's top-left corner turns
+    /// Makes a card's tile grid customizable (Steve 2026-11-19). A small pencil in the card's top-right corner turns
     /// on edit mode: the card stays open with an accent border, a Hidden drawer two tiles wide slides out on the right,
     /// and tiles move between the card and the drawer by dragging (or a click, which also works from the keyboard).
     /// Locked tiles, the card's most important actions, stay put and are drawn dimmed while editing. The drawer's
@@ -277,7 +277,8 @@ namespace KillerFamily.Controls
             var gridHost = new Border();
             root.Children.Add(gridHost);
             var pencil = SmallButton("", edit.EditTip);
-            pencil.HorizontalAlignment = HorizontalAlignment.Left;
+            // Top right, on the side the drawer slides out from (Steve 2026-11-19).
+            pencil.HorizontalAlignment = HorizontalAlignment.Right;
             pencil.VerticalAlignment = VerticalAlignment.Top;
             root.Children.Add(pencil);
 
@@ -614,12 +615,25 @@ namespace KillerFamily.Controls
             return outer;
         }
 
-        // A small dim icon button for a card's corner controls (the edit pencil).
+        // A bare icon button for a card's corner control (the edit pencil): no face and no hover box, only the glyph,
+        // dim at rest and in the accent color under the pointer (Steve 2026-11-19: the gray hover box sat off center).
         private static Button SmallButton(string glyph, string tip)
         {
-            var b = new Button { Content = glyph, ToolTip = tip, Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 11, FontFamily = new FontFamily("Segoe MDL2 Assets"), Cursor = Cursors.Hand };
-            b.SetResourceReference(FrameworkElement.StyleProperty, "MenuRowButton");
+            var bd = new FrameworkElementFactory(typeof(Border));
+            bd.SetValue(Border.BackgroundProperty, Brushes.Transparent);
+            var content = new FrameworkElementFactory(typeof(ContentPresenter));
+            content.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            content.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            bd.AppendChild(content);
+            var b = new Button
+            {
+                Content = glyph, ToolTip = tip, Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 11,
+                FontFamily = new FontFamily("Segoe MDL2 Assets"), Cursor = Cursors.Hand,
+                Template = new ControlTemplate(typeof(Button)) { VisualTree = bd },
+            };
             b.SetResourceReference(Control.ForegroundProperty, "DimTextBrush");
+            b.MouseEnter += (_, _) => b.SetResourceReference(Control.ForegroundProperty, "PrimaryBrush");
+            b.MouseLeave += (_, _) => b.SetResourceReference(Control.ForegroundProperty, "DimTextBrush");
             AutomationProperties.SetName(b, tip);
             ToolTipService.SetShowOnDisabled(b, true);
             return b;
