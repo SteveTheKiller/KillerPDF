@@ -262,6 +262,10 @@ namespace KillerFamily.Controls
                 : new HashSet<string>(defaults);
             hidden.IntersectWith(all.Where(t => !edit.Locked(t)).Select(t => t.Key));
             bool editing = false;
+            // After editing ends the card stays open until the next click: one outside closes it, one inside acts as
+            // usual. Without this the card went back to closing on an outside click in the middle of the X's own
+            // click, which lands over the drawer, outside the card, and the whole menu shut with the drawer.
+            bool lingering = false;
             var owners = new Dictionary<UIElement, CardTile>();
 
             // The card keeps its three columns; nothing on it changes size in edit mode.
@@ -418,7 +422,8 @@ namespace KillerFamily.Controls
             void SetEditing(bool on, bool animate = true)
             {
                 editing = on;
-                card.StaysOpen = on;
+                card.StaysOpen = true;
+                lingering = !on;
                 // The pencil opens editing; while editing it steps aside and the drawer's X is the one way out.
                 pencil.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
                 HotDone(false);
@@ -439,11 +444,11 @@ namespace KillerFamily.Controls
                 else
                 {
                     card.ClearValue(Control.BorderBrushProperty);
-                    if (!animate || !drawer.IsOpen) { slide.BeginAnimation(TranslateTransform.XProperty, null); drawer.IsOpen = false; return; }
+                    if (!animate || !drawer.IsOpen) { slide.BeginAnimation(TranslateTransform.XProperty, null); drawer.IsOpen = false; HoldMouse(); return; }
                     // Slides back in under the card, then closes.
                     var tuck = new System.Windows.Media.Animation.DoubleAnimation(-drawerFace.ActualWidth, TimeSpan.FromMilliseconds(150))
                     { EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseIn } };
-                    tuck.Completed += (_, _) => { if (!editing) { slide.BeginAnimation(TranslateTransform.XProperty, null); drawer.IsOpen = false; } };
+                    tuck.Completed += (_, _) => { if (!editing) { slide.BeginAnimation(TranslateTransform.XProperty, null); drawer.IsOpen = false; HoldMouse(); } };
                     slide.BeginAnimation(TranslateTransform.XProperty, tuck);
                 }
             }
@@ -452,7 +457,26 @@ namespace KillerFamily.Controls
             reset.Click += (_, _) => ResetLayout();
             done.Click += (_, _) => { if (editing) SetEditing(false); };
             drawerClip.MouseLeave += (_, _) => { HotDone(false); HotReset(false); };
-            card.Closed += (_, _) => { if (editing) SetEditing(false, animate: false); };
+            card.Closed += (_, _) =>
+            {
+                if (editing) SetEditing(false, animate: false);
+                lingering = false;
+                card.StaysOpen = false;
+            };
+            // The card keeps the mouse once the drawer is gone, so the next click anywhere reaches it.
+            void HoldMouse()
+            {
+                if (!lingering || !card.IsOpen) return;
+                if (Mouse.Captured is DependencyObject held && (held == card || card.IsAncestorOf(held))) return;
+                Mouse.Capture(card, CaptureMode.SubTree);
+            }
+            card.AddHandler(UIElement.PreviewMouseDownEvent, new MouseButtonEventHandler((_, e) =>
+            {
+                if (!lingering) return;
+                lingering = false;
+                card.StaysOpen = false;
+                if (card.InputHitTest(e.GetPosition(card)) is null) { card.IsOpen = false; e.Handled = true; }
+            }), true);
 
             // The card holds the mouse while it is open, so the drawer's clicks arrive at the card: both surfaces are
             // hit-tested by position. Drag a tile between them; a click without a drag moves it to the other side.
