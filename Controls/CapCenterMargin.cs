@@ -26,6 +26,9 @@ namespace KillerFamily.Layout
     public sealed class CapCenterMargin : IMultiValueConverter
     {
         public static readonly CapCenterMargin Instance = new();
+        /// <summary>The reverse: moves a LABEL so its capitals sit on the line box's middle, where a plainly centered indicator is.</summary>
+        public static readonly CapCenterMargin Lift = new() { _sign = -1 };
+        private double _sign = 1;
         private static readonly System.Collections.Generic.Dictionary<string, double> Cache = new();
 
         public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
@@ -34,7 +37,9 @@ namespace KillerFamily.Layout
             if (values.Length < 2 || values[0] is not FontFamily family || values[1] is not double size)
                 return margin;
 
-            double shift = Offset(family, size);
+            double raw = Offset(family, size);
+            // A lifted label snaps to whole pixels, so lift it the whole way: rounding down left the capitals a pixel low.
+            double shift = _sign < 0 ? -Math.Ceiling(raw) : raw;
             return new Thickness(margin.Left, margin.Top + shift, margin.Right, margin.Bottom - shift);
         }
 

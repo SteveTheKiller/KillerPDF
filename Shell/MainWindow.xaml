@@ -1384,13 +1384,13 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
                         <Border x:Name="bd" Background="Transparent" CornerRadius="3"
-                                Margin="-8,0,2,0" Padding="4,2,10,6">
+                                Margin="-8,0,2,0" Padding="4,4,10,4">
                             <!-- DockPanel (not a horizontal StackPanel) so the content fills the row
                                  width, letting a right-aligned column (e.g. language codes) reach the
                                  right edge. -->
                             <DockPanel LastChildFill="True" Background="Transparent">
                                 <!-- Centered on the label's capitals for whatever font the theme uses (Controls/CapCenterMargin.cs). A fixed nudge only fits one face. -->
-                                <Grid Width="16" Height="16" VerticalAlignment="Center" DockPanel.Dock="Left"><Grid.Margin><MultiBinding Converter="{x:Static kl:CapCenterMargin.Instance}" ConverterParameter="0,0,8,0"><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontFamily"/><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontSize"/></MultiBinding></Grid.Margin>
+                                <Grid Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" DockPanel.Dock="Left">
                                     <Ellipse x:Name="ring" Width="14" Height="14"
                                              Stroke="{DynamicResource DimTextBrush}" StrokeThickness="1.5"
                                              Fill="{DynamicResource RadioWellBrush}"/>
@@ -1399,7 +1399,7 @@
                                     <Ellipse x:Name="dot" Width="6" Height="6"
                                              Fill="{DynamicResource RadioAccent}" Visibility="Collapsed"/>
                                 </Grid>
-                                <ContentPresenter VerticalAlignment="Center"/>
+                                <ContentPresenter VerticalAlignment="Center"><ContentPresenter.Margin><MultiBinding Converter="{x:Static kl:CapCenterMargin.Lift}" ConverterParameter="0"><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontFamily"/><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontSize"/></MultiBinding></ContentPresenter.Margin></ContentPresenter>
                             </DockPanel>
                         </Border>
                         <ControlTemplate.Triggers>
