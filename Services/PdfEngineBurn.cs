@@ -379,7 +379,10 @@ internal static class PdfEngineBurn
     {
         if (!hasNativeAnnotations && annotations.Any(annotation => annotation is TextAnnotation { PairId.Length: > 0 }))
             return [];
-        int first = annotations.FindIndex(annotation => annotation is TextAnnotation { PairId.Length: 0 } or ImageAnnotation);
+        // A page that keeps native comments never gets its editing batch back, so paired text joins the native tail there.
+        int first = annotations.FindIndex(annotation => hasNativeAnnotations
+            ? annotation is TextAnnotation or CoverAnnotation { PairId.Length: > 0 } or ImageAnnotation
+            : annotation is TextAnnotation { PairId.Length: 0 } or ImageAnnotation);
         return first < 0 ? [] : annotations.Skip(first).Where(annotation => annotation is not MeasurementAnnotation);
     }
 

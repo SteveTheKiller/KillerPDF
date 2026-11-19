@@ -90,6 +90,43 @@ public sealed class PdfOverlayAnnotationTests
         finally { if (File.Exists(path)) File.Delete(path); }
     }
 
+    // #466: a page that already carries a comment could never take its paired text back, so the next open showed the
+    // burned text one line at a time with nothing editable.
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void ReplacementAloneOnACommentedPageStaysEditableAcrossSaves(int saves)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-commented-pair-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            var blank = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(200, 100).Build());
+            File.WriteAllBytes(path, new PdfIncrementalAnnotationEditor(blank).AddRectangle(
+                0, 0, 0, 200, 100, contents: "Original comment").Build());
+            var pair = new ReplacementPair(
+                new TextAnnotation { PairId = "commented-pair", Content = "Note line one\nNote line two", Position = new Point(20, 20), Width = 150, Height = 40 },
+                new CoverAnnotation { PairId = "commented-pair", Bounds = new Rect(15, 15, 160, 50) });
+            ReplacementLayers.SetLinked(pair, true);
+            List<PageAnnotation> layer = [pair.Cover, pair.Text];
+            OverlayExtraction extracted = default!;
+            for (int round = 0; round < saves; round++)
+            {
+                PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = layer },
+                    new Dictionary<int, (int w, int h)> { [0] = (200, 100) });
+                extracted = PdfOverlayAnnotations.TakeEditableTail(File.ReadAllBytes(path));
+                Assert.Equal(2, extracted.Records.Count);
+                File.WriteAllBytes(path, extracted.Bytes);
+                layer = [.. extracted.Records.Select(record => record.Annotation)];
+            }
+            TextAnnotation restored = Assert.IsType<TextAnnotation>(extracted.Records[1].Annotation);
+            Assert.Equal("Note line one\nNote line two", restored.Content);
+            Assert.Equal("commented-pair", restored.PairId);
+            Assert.Equal(pair.Text.HistoryId, restored.HistoryId);
+            Assert.Equal("Original comment", Assert.Single(PdfCommentReader.Read(PdfDocument.Open(extracted.Bytes), true)).Contents);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
     [Fact]
     public void ReplacementAddedAfterAnOrdinaryTextBoxRetainsHiddenLinkedEditingState()
     {
