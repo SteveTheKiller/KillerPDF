@@ -135,6 +135,40 @@ public sealed class PdfSurvivingTextTests
     }
 
     [Fact]
+    public void AnOrphanFontDescriptorDoesNotHideAStream()
+    {
+        byte[] pdf = Pdf(
+            "<< /Type /Catalog /Pages 2 0 R /Extra 6 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            Page.Replace(" /Annots [6 0 R]", ""),
+            Stream("BT /F1 12 Tf 10 100 Td (Ordinary words) Tj ET"),
+            Font,
+            "<< /Type /FontDescriptor /FontName /Fake /FontFile2 7 0 R >>",
+            Stream("The SECRET plan in plain text"));
+
+        Assert.False(PdfContentRedaction.FindSurvivingText(pdf, ["SECRET"]).Succeeded);
+    }
+
+    [Fact]
+    public void ALinkWhoseDestinationIsAnIndirectStringIsRenamed()
+    {
+        byte[] pdf = Pdf(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Names [(SECRETCLAUSE) [3 0 R /Fit]] >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            Page,
+            Stream("BT /F1 12 Tf 10 100 Td (Ordinary words) Tj ET"),
+            Font,
+            "<< /Type /Annot /Subtype /Link /Rect [0 0 50 50] /Dest 7 0 R >>",
+            "(SECRETCLAUSE)");
+
+        PdfDocument renamed = PdfNamedDestinationAnonymizer.Apply(PdfDocument.Open(pdf));
+        byte[] bytes = renamed.Source.ToArray();
+
+        Assert.DoesNotContain("SECRET", Encoding.Latin1.GetString(bytes), StringComparison.Ordinal);
+        Assert.Equal(0, Assert.Single(PdfLinkReader.ReadPage(renamed, 0)).DestinationPageIndex);
+    }
+
+    [Fact]
     public void AGoToActionWithAnIndirectTypeIsRenamed()
     {
         byte[] pdf = Pdf(

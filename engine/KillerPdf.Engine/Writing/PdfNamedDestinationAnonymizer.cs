@@ -173,6 +173,11 @@ public static class PdfNamedDestinationAnonymizer
                 => new PdfString(Encoding.ASCII.GetBytes(renamed), PdfStringForm.Literal),
             PdfName name when byName.TryGetValue(name.ValueAsLatin1(), out string? renamed)
                 => new PdfName(Encoding.ASCII.GetBytes(renamed)),
+            // A destination given as an indirect string becomes the direct new name, which leaves the
+            // object that spelled the old name unreachable so the rewrite drops it.
+            PdfIndirectReference reference when ResolveQuietly(reference) is PdfString or PdfName
+                => Target(ResolveQuietly(reference)) is var renamed && renamed is PdfString or PdfName
+                    && !ReferenceEquals(renamed, ResolveQuietly(reference)) ? renamed : value,
             _ => value
         };
     }

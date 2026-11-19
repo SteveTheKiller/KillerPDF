@@ -603,33 +603,55 @@ public static partial class PdfContentRedaction
     private static readonly PdfName FontDescriptorName = Name("FontDescriptor");
 
     // The streams a font descriptor names as its program: binary, and read by no one for text.
-    // Only a real descriptor counts, one typed /FontDescriptor or named by a font's /FontDescriptor,
-    // so a stray /FontFile key elsewhere cannot hide a stream from the check.
+    // Only a descriptor that a font in use names counts, one reached from a page or the form
+    // defaults through a /Font dictionary, so a stray or orphan descriptor cannot hide a stream.
     private static HashSet<int> FontPrograms(PdfDocument document)
     {
-        var dictionaries = new List<(int Number, PdfDictionary Dictionary)>();
-        var referencedDescriptors = new HashSet<int>();
-        foreach (PdfCrossReferenceEntry entry in document.CrossReferences.Values)
-        {
-            if (entry.Type is not (PdfCrossReferenceEntryType.InUse or PdfCrossReferenceEntryType.Compressed)) continue;
-            PdfObject value;
-            try { value = document.Resolve(entry.ObjectNumber); }
-            catch (Exception error) when (error is FormatException or InvalidOperationException) { continue; }
-            if (value is not PdfDictionary dictionary) continue;
-            dictionaries.Add((entry.ObjectNumber, dictionary));
-            if (dictionary.TryGetValue(FontDescriptorName, out PdfObject? named) && named is PdfIndirectReference descriptorReference)
-                referencedDescriptors.Add(descriptorReference.ObjectNumber);
-        }
         var programs = new HashSet<int>();
-        foreach ((int number, PdfDictionary descriptor) in dictionaries)
+        PdfPageTree tree;
+        try { tree = PdfPageTree.Read(document); }
+        catch (Exception error) when (error is FormatException or InvalidOperationException) { return programs; }
+        var visited = new HashSet<int>();
+        var pending = new Stack<(PdfObject Value, int Depth)>();
+        foreach (PdfPageTreeEntry page in tree.Pages)
         {
-            bool isDescriptor = referencedDescriptors.Contains(number)
-                || descriptor.TryGetValue(Name("Type"), out PdfObject? type) && type is PdfName typeName && typeName.Equals(FontDescriptorName);
-            if (!isDescriptor) continue;
-            foreach (PdfName key in FontFileNames)
-                if (descriptor.TryGetValue(key, out PdfObject? file) && file is PdfIndirectReference reference
-                    && LooksLikeFontProgram(document, reference.ObjectNumber))
-                    programs.Add(reference.ObjectNumber);
+            pending.Push((page.Dictionary, 0));
+            foreach (PdfObject inherited in page.InheritedValues.Values) pending.Push((inherited, 0));
+        }
+        if (tree.Catalog.TryGetValue(Name("AcroForm"), out PdfObject? form)) pending.Push((form, 0));
+        while (pending.Count > 0)
+        {
+            (PdfObject value, int depth) = pending.Pop();
+            if (depth > 64) continue;
+            if (value is PdfIndirectReference reference)
+            {
+                if (!visited.Add(reference.ObjectNumber)) continue;
+                try { value = document.Resolve(reference); }
+                catch (Exception error) when (error is FormatException or InvalidOperationException) { continue; }
+            }
+            PdfDictionary? dictionary = value switch
+            {
+                PdfDictionary direct => direct,
+                PdfStream stream => stream.Dictionary,
+                _ => null
+            };
+            if (value is PdfArray array)
+            {
+                foreach (PdfObject item in array) pending.Push((item, depth + 1));
+                continue;
+            }
+            if (dictionary is null) continue;
+            if (dictionary.TryGetValue(Name("Type"), out PdfObject? type) && type is PdfName typeName
+                && typeName.Equals(Name("Font"))
+                && dictionary.TryGetValue(FontDescriptorName, out PdfObject? named)
+                && Resolve(document, named) is PdfDictionary descriptor)
+                foreach (PdfName key in FontFileNames)
+                    if (descriptor.TryGetValue(key, out PdfObject? file) && file is PdfIndirectReference program
+                        && LooksLikeFontProgram(document, program.ObjectNumber))
+                        programs.Add(program.ObjectNumber);
+            foreach ((PdfName key, PdfObject item) in dictionary)
+                if (!key.Equals(Name("Parent")) && !key.Equals(Name("P")))
+                    pending.Push((item, depth + 1));
         }
         return programs;
     }

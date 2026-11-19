@@ -64,55 +64,68 @@ namespace KillerPDF.Shell
 
             var tempPath = App.MakeTempFile("temp");
             var serializedPath = App.MakeTempFile("serialized");
-            try
-            {
-                doc.Save(serializedPath);
-                PdfEngineIntegration.RepairHarmlessSaveArtifacts(serializedPath);
-                PdfEngineIntegration.CreateZeroRotationCopy(serializedPath, tempPath);
-            }
-            catch (Exception saveEx) when (PdfImport.IsXRefException(saveEx))
-            {
-                // PdfSharpCore fails to re-save encrypted PDFs (e.g. owner-restricted RC4 files)
-                // because it encounters cross-reference tokens while serializing dirty objects.
-                // Primary fallback: use the engine to load the source, strip all /Rotate values,
-                // remove encryption, and save. Secondary fallback: Import mode for some xref
-                // issues but fails on encrypted files; kept as a last resort).
-                if (!PdfEngineIntegration.TryCreateZeroRotationCopy(
-                        _currentFile!, tempPath) &&
-                    !PdfImport.TryImportRepairToPath(_currentFile!, tempPath, stripRotations: true))
-                    throw; // re-throw original if both fallbacks fail
-            }
-
-            // Structural operations can finalize the freshly serialized working file through
-            // KillerPDF.Engine before PdfSharpCore reopens it. The callback owns atomic replacement
-            // of tempPath and runs only after the base save or repair path has completed.
-            Controls.RedactionMarkSnapshot? remappedMarks = null;
-            if (remapRedactionMarks && finalizeSavedFile is not null)
-                remappedMarks = RedactionPageEdit.Apply(tempPath,
-                    ActiveViewer.CaptureRedactionMarksExt(), finalizeSavedFile);
-            else
-                finalizeSavedFile?.Invoke(tempPath);
-
-            // PdfSharpCore sometimes saves a file where one object's xref offset points at the
-            // xref table itself (object N offset = xref table position). When PdfSharp then tries
-            // to re-open that file in Modify mode it seeks to the xref table, reads the keyword
-            // "xref" as a token in an object context, and throws "Unexpected token 'xref'".
-            // Fix: catch the reopen failure, rewrite the saved file through engine compatibility
-            // recovery, then retry the open.
             PdfWorkingDocument candidateDocument;
+            Controls.RedactionMarkSnapshot? remappedMarks = null;
+            // The working copies hold the whole document, including content an edit is removing, so a
+            // failed preparation deletes them now instead of leaving them for session cleanup.
             try
             {
-                candidateDocument = PdfWorkingDocument.Open(tempPath, null);
+                try
+                {
+                    doc.Save(serializedPath);
+                    PdfEngineIntegration.RepairHarmlessSaveArtifacts(serializedPath);
+                    PdfEngineIntegration.CreateZeroRotationCopy(serializedPath, tempPath);
+                }
+                catch (Exception saveEx) when (PdfImport.IsXRefException(saveEx))
+                {
+                    // PdfSharpCore fails to re-save encrypted PDFs (e.g. owner-restricted RC4 files)
+                    // because it encounters cross-reference tokens while serializing dirty objects.
+                    // Primary fallback: use the engine to load the source, strip all /Rotate values,
+                    // remove encryption, and save. Secondary fallback: Import mode for some xref
+                    // issues but fails on encrypted files; kept as a last resort).
+                    if (!PdfEngineIntegration.TryCreateZeroRotationCopy(
+                            _currentFile!, tempPath) &&
+                        !PdfImport.TryImportRepairToPath(_currentFile!, tempPath, stripRotations: true))
+                        throw; // re-throw original if both fallbacks fail
+                }
+
+                // Structural operations can finalize the freshly serialized working file through
+                // KillerPDF.Engine before PdfSharpCore reopens it. The callback owns atomic replacement
+                // of tempPath and runs only after the base save or repair path has completed.
+                if (remapRedactionMarks && finalizeSavedFile is not null)
+                    remappedMarks = RedactionPageEdit.Apply(tempPath,
+                        ActiveViewer.CaptureRedactionMarksExt(), finalizeSavedFile);
+                else
+                    finalizeSavedFile?.Invoke(tempPath);
+
+                // PdfSharpCore sometimes saves a file where one object's xref offset points at the
+                // xref table itself (object N offset = xref table position). When PdfSharp then tries
+                // to re-open that file in Modify mode it seeks to the xref table, reads the keyword
+                // "xref" as a token in an object context, and throws "Unexpected token 'xref'".
+                // Fix: catch the reopen failure, rewrite the saved file through engine compatibility
+                // recovery, then retry the open.
+                try
+                {
+                    candidateDocument = PdfWorkingDocument.Open(tempPath, null);
+                }
+                catch (Exception openEx) when (PdfImport.IsXRefException(openEx))
+                {
+                    var fixedPath = App.MakeTempFile("fixed");
+                    if (!PdfEngineIntegration.TryCreateZeroRotationCopy(tempPath, fixedPath))
+                    {
+                        DeleteWorkingCopy(fixedPath);
+                        throw; // Engine recovery also failed; rethrow the original reopen error.
+                    }
+                    DeleteWorkingCopy(tempPath);
+                    tempPath = fixedPath;
+                    candidateDocument = PdfWorkingDocument.Open(tempPath, null);
+                }
             }
-            catch (Exception openEx) when (PdfImport.IsXRefException(openEx))
+            catch
             {
-                var fixedPath = App.MakeTempFile("fixed");
-                if (!PdfEngineIntegration.TryCreateZeroRotationCopy(tempPath, fixedPath))
-                    throw; // Engine recovery also failed; rethrow the original reopen error.
-                string unusable = tempPath;
-                tempPath = fixedPath;
-                candidateDocument = PdfWorkingDocument.Open(tempPath, null);
-                DeleteWorkingCopy(unusable);
+                DeleteWorkingCopy(tempPath);
+                DeleteWorkingCopy(serializedPath);
+                throw;
             }
             // The serialized copy only fed the zero-rotation copy, so it holds the old content
             // and nothing reads it again.

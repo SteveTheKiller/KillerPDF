@@ -48,9 +48,30 @@ public sealed class PublicAddressGuardTests
     [Fact]
     public async Task ADownloadAimedAtThisMachineNeverConnects()
     {
-        using var http = new HttpClient(PublicAddressGuard.CreateHandler()) { Timeout = TimeSpan.FromSeconds(10) };
-        await Assert.ThrowsAsync<HttpRequestException>(() => http.GetAsync("https://127.0.0.1:9/x.pdf"));
-        await Assert.ThrowsAsync<HttpRequestException>(() => http.GetAsync("https://localhost:9/x.pdf"));
+        // A live listener, so a refused port cannot pass for the guard: the download must fail with the
+        // guard's own message and the listener must never see a connection.
+        var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            using var http = new HttpClient(PublicAddressGuard.CreateHandler()) { Timeout = TimeSpan.FromSeconds(10) };
+            foreach (string host in new[] { "127.0.0.1", "localhost" })
+            {
+                HttpRequestException refused = await Assert.ThrowsAsync<HttpRequestException>(
+                    () => http.GetAsync($"http://{host}:{port}/x.pdf"));
+                Assert.Contains("not on the public internet", Messages(refused));
+            }
+            Assert.False(listener.Pending(), "The guarded download connected to this machine.");
+        }
+        finally { listener.Stop(); }
+    }
+
+    private static string Messages(Exception? exception)
+    {
+        var text = new System.Text.StringBuilder();
+        for (; exception is not null; exception = exception.InnerException) text.AppendLine(exception.Message);
+        return text.ToString();
     }
 
     [Fact]
