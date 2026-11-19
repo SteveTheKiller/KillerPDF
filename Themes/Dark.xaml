@@ -40,10 +40,10 @@
     <SolidColorBrush x:Key="PaneBorderBrush" Color="#555555" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <!-- Text -->
-    <SolidColorBrush x:Key="TextBrush" Color="#e0e0e0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
-    <SolidColorBrush x:Key="MutedTextBrush" Color="#a3a3a3" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="TextBrush" Color="#f2f2f2" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#bdbdbd" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
     <SolidColorBrush x:Key="ChromeTextBrush" Color="#b6b6b6" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
-    <SolidColorBrush x:Key="DimTextBrush" Color="#858585" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="DimTextBrush" Color="#9e9e9e" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <!-- Grid rows -->
     <SolidColorBrush x:Key="RowAltBrush" Color="#18FFFFFF" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
@@ -57,7 +57,7 @@
 <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#141414" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 <SolidColorBrush x:Key="TerminalBackgroundBrush" Color="#3a3a3a" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 <SolidColorBrush x:Key="MenuBorderBrush" Color="#404040" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
-    <SolidColorBrush x:Key="MenuTextBrush"       Color="#a3a3a3" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuTextBrush"       Color="#bdbdbd" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuHoverBrush" Color="#404040" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
     <SolidColorBrush x:Key="OutlinePressedBrush" Color="#0d2a18" po:Freeze="True"/>
     <SolidColorBrush x:Key="ScrollThumbBrush"    Color="#5522bb56" po:Freeze="True"/>
