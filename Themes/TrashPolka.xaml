@@ -54,7 +54,7 @@
     <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#121212" po:Freeze="True"/>
     <SolidColorBrush x:Key="TerminalBackgroundBrush" Color="#3a3a3a" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuBorderBrush"     Color="#404040" po:Freeze="True"/>
-    <SolidColorBrush x:Key="MenuTextBrush"       Color="#bdbdbd" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuTextBrush"       Color="#f2f2f2" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuHoverBrush"      Color="#404040" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlinePressedBrush" Color="#4A1218" po:Freeze="True"/>
     <SolidColorBrush x:Key="ScrollThumbBrush"    Color="#88D7263D" po:Freeze="True"/>
