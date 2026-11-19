@@ -6,21 +6,36 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.5] - Unreleased
 
+1.9.5 moves the engine to MPL 2.0, decodes JPEG 2000 with OpenJPEG, adds PDF/UA validation and EPUB export, and hardens redaction checks, rendering and damaged-file recovery. The [developer docs](docs/) carry the details.
+
+### Security
+
+- `PdfContentRedaction.FindSurvivingText` reports a redacted word that survives anywhere in the finished file, including destination names, bookmarks, scripts and metadata. It skips only font programs that a font in use names. See [redaction](docs/redaction.md).
+- `PdfNamedDestinationAnonymizer` renames named destinations and repoints every link, bookmark and GoTo action, so a destination name can no longer carry redacted text. See [redaction](docs/redaction.md).
+- Rendering bounds self-painting tiling patterns and nested form drawing per page, so a crafted PDF cannot hang a render. See [rendering](docs/rendering.md).
+- Damaged-file recovery stops after a fixed amount of work and reads a broken object stream once.
+- Encrypted saves get a random document ID instead of one derived from the content.
+- Attachment extraction refuses names Windows would rewrite or treat as devices. See [attachments](docs/attachments.md).
+- The native OpenJPEG library loads only from beside the engine or from System32.
+
 ### Fixed
 
-- `PdfIncrementalPageEditor` finds form widgets that sit on a page but are missing from the AcroForm /Fields list, under the same names `PdfFormWidgetReader` gives them. Removing, filling and flattening those fields used to fail with "The AcroForm has no field named". (#466)
+- `PdfIncrementalPageEditor` finds form widgets missing from the AcroForm /Fields list, so removing, filling and flattening them no longer fails with "The AcroForm has no field named". (#466)
+- Form data import skips a name shared by fields of different types instead of stopping. (#466)
+- Redacting a signed PDF keeps the signature widget's appearance. (#505)
+- Comb fields keep their own size, /MaxLen and one row of cells, and form recognition finds a row of three or more boxes as a comb. (#500)
 
 ### Changed
 
 - The engine is licensed under the Mozilla Public License 2.0 instead of GPLv3. The KillerPDF desktop app remains GPLv3.
-- Decode JPEG 2000 with OpenJPEG and bundle the native decoder for Windows x64.
-- `PdfPreflightCheck.ConformanceDeclarations` runs `PdfUaValidator` on a document whose XMP declares `pdfuaid:part` 1 and reports each failure as `Conformance.PdfUa1.<condition>`, instead of `Conformance.UnsupportedPdfUa`. (#491)
+- JPEG 2000 is decoded by OpenJPEG instead of CoreJ2K, with the native decoder bundled for Windows x64, Linux x64 and macOS. See [rendering](docs/rendering.md).
+- `PdfPreflightCheck.ConformanceDeclarations` runs `PdfUaValidator` on a PDF/UA-1 document and reports failures as `Conformance.PdfUa1.<condition>`. (#491)
 
 ### Added
 
-- `PdfPreflightFinding.Arguments` lists the values a finding's message is built from, such as the font name, file name, DPI values, ink coverage, layer state, measurement scale, PDF/A or PDF/UA part, PDF/UA-1 condition and clause, and structural offset, so an app can write the message in its own language. Numbers use the invariant culture. The message text, `ToText` and `ToJson` are unchanged. (#506)
-- `PdfUaValidator.Validate` checks a document against PDF/UA-1 (ISO 14289-1) and returns a `PdfUaReport` with one result for each of the 31 Matterhorn Protocol 1.1 checkpoints. Each checkpoint is Passed, Failed, Incomplete or NeedsHumanReview, failures carry the Matterhorn condition ID, the ISO clause, the page and the object, and the conditions a person must judge or that are not checked yet are listed by ID. The summary verdict is Failed, Incomplete or PassedMachineChecks, so it never claims full conformance. `ToText` and `ToJson` give the same report shapes as the accessibility inspector. The checks cover untagged content and artifact nesting, Suspects, role mapping, XMP metadata and title, DisplayDocTitle, document language, figure and formula alternate text, heading order, table header scope, note IDs, optional content configurations, embedded file names, dynamic XFA, the accessibility permission bit, annotation tagging, descriptions and tab order, reference XObjects, form XObjects reused with marked content, and unembedded fonts. `DeclaredPart` records which part the document claims. (#491)
-- `PdfUaValidator.Validate` checks a document whose XMP declares `pdfuaid:part` 2 against the PDF/UA-2 (ISO 14289-2) machine rules, named by veraPDF PDF/UA-2 profile rule IDs such as `8.2.5.12-1` and grouped by clause. The checks cover the PDF/UA identification and revision, PDF 2.0, MarkInfo Marked, the structure tree and parent entries, untagged content, namespace-aware role mapping to the PDF 1.7, PDF 2.0 and MathML namespaces, one PDF 2.0 Document root, TOCI targets, plain H and Note, FENote NoteType, Ruby, Warichu, list numbering, list item content, Caption position, figure alternate text, MathML inside Formula, language tags, embedded fonts, optional content configurations, annotation tagging, flags, descriptions and tab order, widget and Form rules, XFA, dc:title, DisplayDocTitle and embedded file descriptions. Rules not implemented are listed by ID. `PdfUaReport.Standard` and `PdfUaReport.RuleSet` name the rule set that ran. (#491)
+- `PdfUaValidator.Validate` checks PDF/UA-1 against the Matterhorn Protocol 1.1 checkpoints and PDF/UA-2 against the veraPDF PDF/UA-2 machine rules, and never claims full conformance. See [conformance](docs/conformance.md). (#491)
+- PDF to EPUB 3 export with reflowed text, headings and a table of contents. See [exporting](docs/exporting.md). (#493)
+- `PdfPreflightFinding.Arguments` lists the values a finding's message is built from, so an app can localize it. (#506)
 
 ## [1.9.4] - 2026-11-15
 
