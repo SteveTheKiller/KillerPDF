@@ -58,6 +58,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - `--pdfua --json` names the standard the files were checked against, PDF/UA-2 or "mixed" when PDF/UA-2 files are in the run. It always said PDF/UA-1.
 
 ### Changed
+- Menus, cards, the theme and language pickers, and the notices at the top of the page keep an even 8px edge. A highlighted row, tile or color sits 8px from every side, and a card tile's highlight fills its whole cell.
 - Menu text, icons and shortcuts are brighter in Dark and Trash Polka, so menus stay easy to read beside a white page. Secondary labels in 98SE are a shade darker. Every theme's menu text now clears WCAG AA contrast.
 
 - On the command line, `--redact` removes hidden information by default and fails when a redacted word survives anywhere in the file. Add `--no-sanitize` to skip that step, or `--sanitize` with a list to choose what is removed.
