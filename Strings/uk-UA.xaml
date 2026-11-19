@@ -1355,6 +1355,12 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Del_RunCount">Сторінок: {0}</sys:String>
     <sys:String x:Key="Str_Del_More">+ ще {0}</sys:String>
     <sys:String x:Key="Str_Card_Actions">Дії</sys:String>
+    <sys:String x:Key="Str_Card_Edit">Налаштувати цю картку</sys:String>
+    <sys:String x:Key="Str_Card_EditDone">Готово</sys:String>
+    <sys:String x:Key="Str_Card_EditReset">Скинути до типових</sys:String>
+    <sys:String x:Key="Str_Card_Hidden">Приховані</sys:String>
+    <sys:String x:Key="Str_Card_HiddenHint">Перетягніть плитку сюди, щоб приховати її</sys:String>
+    <sys:String x:Key="Str_Card_AlwaysShown">Завжди показано</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Порожня сторінка</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Бічна панель</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Вибрано сторінок: {0}</sys:String>

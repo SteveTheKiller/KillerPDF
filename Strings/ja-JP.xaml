@@ -1355,6 +1355,12 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} ページ</sys:String>
     <sys:String x:Key="Str_Del_More">+ 他 {0} 件</sys:String>
     <sys:String x:Key="Str_Card_Actions">操作</sys:String>
+    <sys:String x:Key="Str_Card_Edit">このカードをカスタマイズ</sys:String>
+    <sys:String x:Key="Str_Card_EditDone">完了</sys:String>
+    <sys:String x:Key="Str_Card_EditReset">既定に戻す</sys:String>
+    <sys:String x:Key="Str_Card_Hidden">非表示</sys:String>
+    <sys:String x:Key="Str_Card_HiddenHint">非表示にするにはタイルをここにドラッグ</sys:String>
+    <sys:String x:Key="Str_Card_AlwaysShown">常に表示</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">空白ページ</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">サイドバー</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} ページを選択中</sys:String>

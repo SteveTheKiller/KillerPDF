@@ -35,6 +35,36 @@ namespace KillerFamily.Controls
         public IList<object>? Flyout { get; init; }
         public bool? Checked { get; init; }
         public bool KeepsOpen { get; init; }
+        /// <summary>The tile's stable name for a customized card (CardEdit). Defaults to the glyph, plus "~" when
+        /// mirrored, which is unique on a card because two tiles never share a glyph unless one is mirrored.</summary>
+        public string? Id { get; init; }
+        internal string Key => Id ?? (Glyph + (Mirror ? "~" : ""));
+    }
+
+    /// <summary>
+    /// Makes a card's tile grid customizable (Steve 2026-11-19). A small pencil in the card's top-left corner turns
+    /// on edit mode: the card stays open with an accent border, a Hidden column slides out on the right, and tiles
+    /// move between the card and that column by dragging (or a click, which also works from the keyboard). Locked
+    /// tiles, the card's most important actions, stay put and are drawn dimmed while editing. Reset to default
+    /// shows every tile again. Only big cards get this; a small card stays fixed.
+    /// DefaultHidden names the tiles that start in the Hidden column (an action that rarely belongs on that card, like
+    /// Paste on a picture); the user can drag them back, and Reset to default returns to exactly this set.
+    /// Load and Save carry the user's layout in the app's own settings: "v1:" plus the "|"-joined hidden tile ids once
+    /// the user has changed anything, and null (store it as empty) for the defaults.
+    /// </summary>
+    public sealed class CardEdit
+    {
+        public CardEdit(Func<string?> load, Action<string?> save) { Load = load; Save = save; }
+        public Func<string?> Load { get; }
+        public Action<string?> Save { get; }
+        public Func<CardTile, bool> Locked { get; init; } = _ => false;
+        public Func<CardTile, bool> DefaultHidden { get; init; } = _ => false;
+        public string EditTip { get; init; } = "Customize this card";
+        public string DoneTip { get; init; } = "Done";
+        public string ResetTip { get; init; } = "Reset to default";
+        public string HiddenLabel { get; init; } = "Hidden";
+        public string HiddenHint { get; init; } = "Drag a tile here to hide it";
+        public string LockedTip { get; init; } = "Always shown";
     }
 
     /// <summary>
@@ -148,18 +178,28 @@ namespace KillerFamily.Controls
         /// Empty groups are skipped.
         /// </summary>
         public static Border TileGroups(ContextMenu card, string name, IEnumerable<IEnumerable<CardTile>> groups, int columns = CardColumns)
+            => TileGroups(card, name, groups, null, columns);
+
+        /// <summary>TileGroups with edit mode (CardEdit) when edit is set; see CardEdit for how it behaves.</summary>
+        public static Border TileGroups(ContextMenu card, string name, IEnumerable<IEnumerable<CardTile>> groups, CardEdit? edit, int columns = CardColumns)
+        {
+            var lists = groups.Select(g => g.ToList()).Where(g => g.Count > 0).ToList();
+            if (edit is not null) return EditableGroups(card, name, lists, edit, columns);
+            return GroupGrid(card, name, lists, columns);
+        }
+
+        private static Border GroupGrid(ContextMenu card, string name, List<List<CardTile>> lists, int columns, TileGrid? measureFrom = null)
         {
             var cells = new List<CardTile?>();
-            foreach (var group in groups)
+            foreach (var list in lists)
             {
-                var list = group.ToList();
                 if (list.Count == 0) continue;
                 cells.AddRange(list);
                 for (int pad = (columns - list.Count % columns) % columns; pad > 0; pad--) cells.Add(null);
             }
             // Equal columns, but each row only as tall as its own tiles: a UniformGrid gave every row the height of the
             // tallest (a tile with a shortcut line), which left a blank line under the rows without one.
-            var grid = new Grid();
+            var grid = new TileGrid { MeasureFrom = measureFrom };
             for (int c = 0; c < columns; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             for (int r = 0; r < (cells.Count + columns - 1) / columns; r++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             var strip = Strip(card, name, grid, cells);
@@ -168,7 +208,312 @@ namespace KillerFamily.Controls
                 Grid.SetRow(grid.Children[i], i / columns);
                 Grid.SetColumn(grid.Children[i], i % columns);
             }
+            if (measureFrom is not null)
+                for (int c = 0; c < columns; c++)
+                {
+                    var spacer = new FrameworkElement { Height = 0, IsHitTestVisible = false, Focusable = false };
+                    Grid.SetColumn(spacer, c);
+                    grid.Children.Add(spacer);
+                    grid.Spacers.Add(spacer);
+                }
             return strip;
+        }
+
+        // A customizable card lays out every tile it has in a hidden, zero-height copy of its grid. The shown grid holds
+        // each column at least as wide as that copy's, through a zero-height spacer per column (MinWidth on a star column
+        // would make all three as wide as the widest), so hiding tiles never collapses the card to two across, shifts a
+        // column, or changes the card's width.
+        private sealed class TileGrid : Grid
+        {
+            public TileGrid? MeasureFrom { get; init; }
+            public List<FrameworkElement> Spacers { get; } = [];
+            public double[] ColumnWidths { get; private set; } = [];
+
+            protected override Size MeasureOverride(Size constraint)
+            {
+                if (MeasureFrom is not null && MeasureFrom.ColumnWidths.Length == 0) MeasureFrom.Measure(new Size(constraint.Width, double.PositiveInfinity));
+                if (MeasureFrom is not null)
+                    for (int c = 0; c < Spacers.Count; c++)
+                    {
+                        double w = c < MeasureFrom.ColumnWidths.Length ? MeasureFrom.ColumnWidths[c] : 0;
+                        if (Spacers[c].Width is double old && (double.IsNaN(old) || old != w)) Spacers[c].Width = w;
+                    }
+                var size = base.MeasureOverride(constraint);
+                ColumnWidths = new double[ColumnDefinitions.Count];
+                foreach (UIElement child in Children)
+                    if (GetColumn(child) is int c && c < ColumnWidths.Length) ColumnWidths[c] = Math.Max(ColumnWidths[c], child.DesiredSize.Width);
+                return size;
+            }
+        }
+
+        // The customizable card grid (CardEdit).
+        private static Border EditableGroups(ContextMenu card, string name, List<List<CardTile>> lists, CardEdit edit, int columns)
+        {
+            const string Version = "v1:";
+            var all = lists.SelectMany(g => g).ToList();
+            var defaults = all.Where(t => !edit.Locked(t) && edit.DefaultHidden(t)).Select(t => t.Key).ToList();
+            string? saved = edit.Load();
+            var hidden = saved is not null && saved.StartsWith(Version, StringComparison.Ordinal)
+                ? new HashSet<string>(saved[Version.Length..].Split('|', StringSplitOptions.RemoveEmptyEntries))
+                : new HashSet<string>(defaults);
+            hidden.IntersectWith(all.Where(t => !edit.Locked(t)).Select(t => t.Key));
+            bool editing = false;
+            var owners = new Dictionary<UIElement, CardTile>();
+
+            // The card keeps its three columns; nothing on it changes size in edit mode.
+            var root = new Grid();
+            var fullStrip = GroupGrid(card, name, lists, columns);
+            var full = (TileGrid)fullStrip.Child;
+            var fullHost = new Border { Height = 0, ClipToBounds = true, Visibility = Visibility.Hidden, IsHitTestVisible = false, Focusable = false, VerticalAlignment = VerticalAlignment.Top, Child = fullStrip };
+            root.Children.Add(fullHost);
+            var gridHost = new Border();
+            root.Children.Add(gridHost);
+            var pencil = SmallButton("", edit.EditTip);
+            pencil.HorizontalAlignment = HorizontalAlignment.Left;
+            pencil.VerticalAlignment = VerticalAlignment.Top;
+            root.Children.Add(pencil);
+
+            // The drawer: its own panel beside the card, its own shape and size, sliding out from behind the card's
+            // right edge. It only holds the tiles stashed away and Reset to default.
+            var drawerTiles = new StackPanel();
+            var drawerHint = new TextBlock { Text = edit.HiddenHint, TextWrapping = TextWrapping.Wrap, FontSize = 11, Margin = new Thickness(4, 6, 4, 6), TextAlignment = TextAlignment.Center };
+            drawerHint.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
+            var drawerTitle = new TextBlock { Text = edit.HiddenLabel, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0) };
+            drawerTitle.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
+            var reset = SmallButton("", edit.ResetTip);
+            DockPanel.SetDock(reset, Dock.Right);
+            var drawerHead = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
+            drawerHead.Children.Add(reset);
+            drawerHead.Children.Add(drawerTitle);
+            DockPanel.SetDock(drawerHead, Dock.Top);
+            var drawerBody = new DockPanel();
+            drawerBody.Children.Add(drawerHead);
+            drawerBody.Children.Add(new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = new StackPanel { Children = { drawerHint, drawerTiles } } });
+            var slide = new TranslateTransform();
+            // Open on the card side: no border and square corners where it joins the card, so the two read as one shape.
+            // The same film grain as the card surface, so the drawer reads as the card's own material.
+            var grain = new Border { IsHitTestVisible = false };
+            grain.SetResourceReference(UIElement.OpacityProperty, "GrainOpacity");
+            grain.SetResourceReference(Border.BackgroundProperty, "GrainTileBrush");
+            drawerBody.Margin = new Thickness(7);
+            var drawerFace = new Border { BorderThickness = new Thickness(0, 1, 1, 1), Child = new Grid { Children = { grain, drawerBody } }, RenderTransform = slide };
+            drawerFace.SetResourceReference(Border.BackgroundProperty, "MenuBackgroundBrush");
+            drawerFace.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush");
+            var drawerClip = new Border { ClipToBounds = true, Child = drawerFace };
+            var drawer = new Popup
+            {
+                AllowsTransparency = true, StaysOpen = true, Placement = PlacementMode.Right, PlacementTarget = card,
+                Child = drawerClip, Focusable = false,
+            };
+            TextOptions.SetTextFormattingMode(drawerClip, TextFormattingMode.Display);
+            root.Children.Add(drawer);   // takes no room; keeps the drawer in the card's tree for resources and lookups
+
+            void Rebuild()
+            {
+                owners.Clear();
+                var shown = lists.Select(g => g.Where(t => !hidden.Contains(t.Key)).ToList()).ToList();
+                var strip = GroupGrid(card, name, shown, columns, full);
+                foreach (UIElement el in ((Panel)strip.Child).Children)
+                    if (TileOf(el) is { } tile)
+                    {
+                        owners[el] = tile;
+                        if (editing) PrepareForEdit(el, tile);
+                    }
+                gridHost.Child = strip;
+                drawerTiles.Children.Clear();
+                foreach (var t in all.Where(t => hidden.Contains(t.Key)))
+                {
+                    var el = Strip(card, name, new UniformGrid { Columns = 1 }, [t]);
+                    owners[el] = t;
+                    PrepareForEdit(el, t);
+                    drawerTiles.Children.Add(el);
+                }
+                drawerHint.Visibility = hidden.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                reset.IsEnabled = !hidden.SetEquals(defaults);
+                if (drawer.IsOpen) PlaceDrawer();
+            }
+
+            void PlaceDrawer()
+            {
+                // The card's visible face sits inside its shadow halo. The drawer is attached to that face's right edge,
+                // covering the card's border where they meet, level with the tiles it edits, and moves up rather than
+                // hang below the card. It stays clear of the card's rounded corners.
+                card.UpdateLayout();
+                var face = Descendants(card).OfType<Border>().FirstOrDefault(b => ReferenceEquals(b.BorderBrush, card.BorderBrush) && b.BorderThickness.Left > 0);
+                Rect r = face is not null && card.IsAncestorOf(face) ? face.TransformToAncestor(card).TransformBounds(new Rect(face.RenderSize)) : new Rect(card.RenderSize);
+                var radius = card.TryFindResource("PanelCornerRadius") is CornerRadius cr ? cr : new CornerRadius(0);
+                drawerFace.CornerRadius = new CornerRadius(0, radius.TopRight, radius.BottomRight, 0);
+                grain.CornerRadius = new CornerRadius(0, Math.Max(0, radius.TopRight - 1), Math.Max(0, radius.BottomRight - 1), 0);
+                drawerFace.Measure(new Size(drawerFace.Width, double.PositiveInfinity));
+                double top = card.IsAncestorOf(gridHost) ? gridHost.TransformToAncestor(card).Transform(new Point()).Y : r.Top;
+                double inset = Math.Max(radius.TopRight, radius.BottomRight);
+                drawer.HorizontalOffset = r.Right - card.ActualWidth - (face?.BorderThickness.Right ?? 0);
+                drawer.VerticalOffset = Math.Max(r.Top + inset, Math.Min(top, r.Bottom - inset - drawerFace.DesiredSize.Height));
+            }
+
+            void PrepareForEdit(UIElement el, CardTile t)
+            {
+                // While editing a tile is something to move, not a command: every tile takes the pointer (a dimmed Paste
+                // too), and a locked one says it always shows.
+                foreach (var b in Descendants(el).OfType<Button>()) { b.IsEnabled = true; b.Cursor = edit.Locked(t) ? Cursors.Arrow : Cursors.SizeAll; }
+                if (edit.Locked(t)) { el.Opacity = 0.45; if (el is FrameworkElement fe) fe.ToolTip = edit.LockedTip; }
+            }
+
+            void Persist() => edit.Save(hidden.SetEquals(defaults) ? null : Version + string.Join("|", all.Where(t => hidden.Contains(t.Key)).Select(t => t.Key)));
+
+            void Move(CardTile t, bool hide)
+            {
+                if (edit.Locked(t)) return;
+                if (hide ? !hidden.Add(t.Key) : !hidden.Remove(t.Key)) return;
+                Persist();
+                Rebuild();
+            }
+
+            void ResetLayout() { hidden.Clear(); hidden.UnionWith(defaults); Persist(); Rebuild(); }
+
+            void SetEditing(bool on, bool animate = true)
+            {
+                editing = on;
+                card.StaysOpen = on;
+                pencil.Content = on ? "" : "";
+                pencil.ToolTip = on ? edit.DoneTip : edit.EditTip;
+                AutomationProperties.SetName(pencil, on ? edit.DoneTip : edit.EditTip);
+                Rebuild();
+                if (on)
+                {
+                    card.SetResourceReference(Control.BorderBrushProperty, "PrimaryBrush");
+                    // The drawer is about a tile column wide and as tall as what it holds; it slides out from under the card.
+                    double width = Math.Max(110, owners.Keys.OfType<FrameworkElement>().Where(e => gridHost.IsAncestorOf(e)).Select(e => e.ActualWidth).DefaultIfEmpty(0).Max() + 16);
+                    drawerFace.Width = width;
+                    drawerFace.MinHeight = 120;
+                    PlaceDrawer();
+                    drawer.IsOpen = true;
+                    slide.BeginAnimation(TranslateTransform.XProperty, new System.Windows.Media.Animation.DoubleAnimation(-width, 0, TimeSpan.FromMilliseconds(180))
+                    { EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut } });
+                }
+                else
+                {
+                    card.ClearValue(Control.BorderBrushProperty);
+                    if (!animate || !drawer.IsOpen) { slide.BeginAnimation(TranslateTransform.XProperty, null); drawer.IsOpen = false; return; }
+                    // Slides back in under the card, then closes.
+                    var tuck = new System.Windows.Media.Animation.DoubleAnimation(-drawerFace.ActualWidth, TimeSpan.FromMilliseconds(150))
+                    { EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseIn } };
+                    tuck.Completed += (_, _) => { if (!editing) { slide.BeginAnimation(TranslateTransform.XProperty, null); drawer.IsOpen = false; } };
+                    slide.BeginAnimation(TranslateTransform.XProperty, tuck);
+                }
+            }
+
+            pencil.Click += (_, _) => SetEditing(!editing);
+            reset.Click += (_, _) => ResetLayout();
+            card.Closed += (_, _) => { if (editing) SetEditing(false, animate: false); };
+
+            // The card holds the mouse while it is open, so the drawer's clicks arrive at the card: both surfaces are
+            // hit-tested by position. Drag a tile between them; a click without a drag moves it to the other side.
+            CardTile? pressed = null;
+            UIElement? pressedEl = null;
+            Point start = default;
+            bool dragging = false;
+            bool OverDrawer(MouseEventArgs e)
+            {
+                if (!drawer.IsOpen) return false;
+                var p = e.GetPosition(drawerFace);
+                return p.X >= 0 && p.Y >= 0 && p.X <= drawerFace.ActualWidth && p.Y <= drawerFace.ActualHeight;
+            }
+            DependencyObject? HitAt(MouseEventArgs e)
+            {
+                if (OverDrawer(e)) return drawerFace.InputHitTest(e.GetPosition(drawerFace)) as DependencyObject;
+                var p = e.GetPosition(root);
+                return p.X >= 0 && p.Y >= 0 && p.X <= root.ActualWidth && p.Y <= root.ActualHeight ? root.InputHitTest(p) as DependencyObject : null;
+            }
+            CardTile? Owner(DependencyObject? d)
+            {
+                for (; d != null; d = d is Visual ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d))
+                    if (d is UIElement u && owners.TryGetValue(u, out var t)) { pressedEl = u; return t; }
+                return null;
+            }
+            bool Within(DependencyObject? d, DependencyObject parent)
+            {
+                for (; d != null; d = d is Visual ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d))
+                    if (d == parent) return true;
+                return false;
+            }
+            void Down(object? sender, MouseButtonEventArgs e)
+            {
+                if (!editing || e.ChangedButton != MouseButton.Left) return;
+                // The element under the click when the event reaches it directly, else the surface under the pointer.
+                var hit = Owner(e.OriginalSource as DependencyObject) is not null || Within(e.OriginalSource as DependencyObject, reset) || Within(e.OriginalSource as DependencyObject, pencil)
+                    ? e.OriginalSource as DependencyObject : HitAt(e);
+                if (Within(hit, pencil)) return;   // the pencil sits on the card: its own Click ends editing
+                if (Within(hit, reset)) { if (reset.IsEnabled) ResetLayout(); e.Handled = true; return; }
+                pressed = Owner(hit);
+                if (pressed is null) { if (OverDrawer(e)) e.Handled = true; return; }
+                start = e.GetPosition(card);
+                dragging = false;
+                e.Handled = true;
+            }
+            void MoveMouse(object? sender, MouseEventArgs e)
+            {
+                if (pressed is null || e.LeftButton != MouseButtonState.Pressed || edit.Locked(pressed)) return;
+                if (!dragging && (e.GetPosition(card) - start).Length < 4) return;
+                dragging = true;
+                if (pressedEl is not null) pressedEl.Opacity = 0.4;
+                if (OverDrawer(e)) drawerFace.SetResourceReference(Border.BackgroundProperty, "MenuHoverBrush");
+                else drawerFace.SetResourceReference(Border.BackgroundProperty, "MenuBackgroundBrush");
+            }
+            void Up(object? sender, MouseButtonEventArgs e)
+            {
+                if (pressed is null) return;
+                var t = pressed;
+                pressed = null;
+                drawerFace.SetResourceReference(Border.BackgroundProperty, "MenuBackgroundBrush");
+                if (pressedEl is not null) pressedEl.Opacity = edit.Locked(t) ? 0.45 : 1;
+                bool inDrawer = hidden.Contains(t.Key);
+                if (!dragging) Move(t, !inDrawer);
+                else if (OverDrawer(e) != inDrawer) Move(t, !inDrawer);
+                dragging = false;
+                e.Handled = true;
+            }
+            // Both surfaces listen: the card while it holds the mouse, the drawer when it gets the events itself.
+            foreach (UIElement surface in new UIElement[] { card, drawerClip })
+            {
+                surface.AddHandler(UIElement.PreviewMouseDownEvent, new MouseButtonEventHandler(Down), true);
+                surface.AddHandler(UIElement.PreviewMouseMoveEvent, new MouseEventHandler(MoveMouse), true);
+                surface.AddHandler(UIElement.PreviewMouseUpEvent, new MouseButtonEventHandler(Up), true);
+            }
+            // Keyboard: Enter or Space on a card tile moves it to the drawer while editing.
+            root.PreviewKeyDown += (_, e) =>
+            {
+                if (!editing || e.Key is not (Key.Enter or Key.Space) || Owner(Keyboard.FocusedElement as DependencyObject) is not { } t) return;
+                Move(t, !hidden.Contains(t.Key));
+                e.Handled = true;
+            };
+
+            Rebuild();
+            var outer = new Border { Child = root };
+            AutomationProperties.SetName(outer, name);
+            return outer;
+        }
+
+        // A small dim icon button for a card's corner controls (the edit pencil, Reset).
+        private static Button SmallButton(string glyph, string tip)
+        {
+            var b = new Button { Content = glyph, ToolTip = tip, Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 11, FontFamily = new FontFamily("Segoe MDL2 Assets"), Cursor = Cursors.Hand };
+            b.SetResourceReference(FrameworkElement.StyleProperty, "MenuRowButton");
+            b.SetResourceReference(Control.ForegroundProperty, "DimTextBrush");
+            AutomationProperties.SetName(b, tip);
+            ToolTipService.SetShowOnDisabled(b, true);
+            return b;
+        }
+
+        private static readonly DependencyProperty TileProperty = DependencyProperty.RegisterAttached("Tile", typeof(CardTile), typeof(CardBuilder));
+        private static CardTile? TileOf(UIElement el) => el.GetValue(TileProperty) as CardTile;
+
+        private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+        {
+            yield return root;
+            int n = root is Visual ? VisualTreeHelper.GetChildrenCount(root) : 0;
+            if (n == 0) foreach (var c in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>()) foreach (var d in Descendants(c)) yield return d;
+            else for (int i = 0; i < n; i++) foreach (var d in Descendants(VisualTreeHelper.GetChild(root, i))) yield return d;
         }
 
         private static Border Strip(ContextMenu card, string name, Panel grid, List<CardTile?> list)
@@ -200,7 +545,9 @@ namespace KillerFamily.Controls
                         flyout ??= TileFlyout(card, button, rows);
                         flyout.IsOpen = true;
                     };
-                    grid.Children.Add(WithFlyoutChevron(button));
+                    var cell = WithFlyoutChevron(button);
+                    cell.SetValue(TileProperty, tile);
+                    grid.Children.Add(cell);
                     continue;
                 }
                 if (tile.Mirror)
@@ -217,6 +564,7 @@ namespace KillerFamily.Controls
                     button.Click += (_, _) => { run?.Invoke(); on = !on; ShowTileState(button, on); };
                 else
                     button.Click += (_, _) => { card.IsOpen = false; run?.Invoke(); };
+                button.SetValue(TileProperty, tile);
                 grid.Children.Add(button);
             }
             var strip = new Border { Padding = new Thickness(0), Child = grid };

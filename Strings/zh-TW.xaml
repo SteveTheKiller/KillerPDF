@@ -1344,6 +1344,12 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Del_RunCount">{0} 頁</sys:String>
     <sys:String x:Key="Str_Del_More">+ 另外 {0} 項</sys:String>
     <sys:String x:Key="Str_Card_Actions">動作</sys:String>
+    <sys:String x:Key="Str_Card_Edit">自訂此卡片</sys:String>
+    <sys:String x:Key="Str_Card_EditDone">完成</sys:String>
+    <sys:String x:Key="Str_Card_EditReset">還原為預設</sys:String>
+    <sys:String x:Key="Str_Card_Hidden">已隱藏</sys:String>
+    <sys:String x:Key="Str_Card_HiddenHint">將圖格拖曳到此處即可隱藏</sys:String>
+    <sys:String x:Key="Str_Card_AlwaysShown">一律顯示</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">空白頁</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">側邊欄</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">已選取 {0} 頁</sys:String>

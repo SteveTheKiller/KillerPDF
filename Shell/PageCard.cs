@@ -26,35 +26,37 @@ namespace KillerPDF.Shell
             var row = page < PageList.Items.Count ? PageList.Items[page] as PageThumbnailVm : null;
 
             menu.Items.Add(CardSlot(PageCardHeader(menu, page, selected, row), new Thickness(4, 2, 4, 6)));
-            var strip = QuickStrip(menu,
-                ("\uE8C8", Loc("Str_Ctx_DuplicatePage"), null, () => DuplicatePage(page), false, true),
-                ("\uE8B1", Loc("Str_Ctx_ExtractPages"), "AltShift:X", () => Split_Click(this, new RoutedEventArgs()), false, true),
-                ("\uE74D", Loc("Str_Ctx_DeletePages"), "Del", () => Delete_Click(this, new RoutedEventArgs()), false, true));
-            menu.Items.Add(CardSlot(strip, new Thickness(0)));
-            FocusFirstActionFromKeyboard(menu, strip);
+            CardTile[] pageRow =
+            [
+                new("\uE8C8", Loc("Str_Ctx_DuplicatePage"), null, () => DuplicatePage(page), false, true),
+                new("\uE8B1", Loc("Str_Ctx_ExtractPages"), "AltShift:X", () => Split_Click(this, new RoutedEventArgs()), false, true),
+                new("\uE74D", Loc("Str_Ctx_DeletePages"), "Del", () => Delete_Click(this, new RoutedEventArgs()), false, true),
+            ];
             // Rotation is a second row of the same tiles: the outline buttons stuck out (Steve 2026-11-14).
-            var turns = QuickStrip(menu,
-                (GlyphText(0xE7AD), Loc("Str_Ctx_RotateCCWShort"), "Ctrl:L", () => RotatePages_Click(-90), true, true),
-                (GlyphText(0xE895), Loc("Str_Ctx_UpsideDown"), null, () => RotatePages_Click(180), false, true),
-                (GlyphText(0xE7AD), Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90), false, true));
-            menu.Items.Add(CardSlot(turns, new Thickness(0)));
+            CardTile[] turnRow =
+            [
+                new(GlyphText(0xE7AD), Loc("Str_Ctx_RotateCCWShort"), "Ctrl:L", () => RotatePages_Click(-90), true, true),
+                new(GlyphText(0xE895), Loc("Str_Ctx_UpsideDown"), null, () => RotatePages_Click(180), false, true),
+                new(GlyphText(0xE7AD), Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90), false, true),
+            ];
 
             // The page tools are tiles too (Steve: go all out on the icons). Merge names no shortcut: Alt+Shift+B merges
             // at the end, this tile after the clicked page.
-            var tools = QuickStrip(menu, 3,
-                ("\uE710", Loc("Str_Lbl_Merge"), null, async () => await MergeAtIndex(page + 1), false, true),
-                ("\uE7C2", Loc("Str_Tf_Suffix"), "R", () => OpenTransformWindow(), false, true),
-                ("\uE790", Loc("Str_ColorCorrection"), "E", () => OpenTransformWindow(TransformWindowMode.ColorCorrection), false, true),
+            CardTile[] toolRow =
+            [
+                new("\uE710", Loc("Str_Lbl_Merge"), null, async () => await MergeAtIndex(page + 1), false, true),
+                new("\uE7C2", Loc("Str_Tf_Suffix"), "R", () => OpenTransformWindow(), false, true),
+                new("\uE790", Loc("Str_ColorCorrection"), "E", () => OpenTransformWindow(TransformWindowMode.ColorCorrection), false, true),
                 // The thumbnails' own Ctrl+Shift+O: every selected page, not only the clicked one.
-                ("\uEE6F", Loc("Str_Ctx_OcrPage"), "CtrlShift:O", OcrSelectedPagesToClipboard, false, true),
+                new("\uEE6F", Loc("Str_Ctx_OcrPage"), "CtrlShift:O", OcrSelectedPagesToClipboard, false, true),
                 // #207: the shared export dialog, scoped to the clicked selection (still editable).
-                ("\uEB9F", Loc("Str_Ctx_ExportPageImage"), null, () =>
+                new("\uEB9F", Loc("Str_Ctx_ExportPageImage"), null, () =>
                 {
                     var nums = PageList.SelectedItems.Cast<PageThumbnailVm>().Select(vm => vm.PageIndex + 1).OrderBy(n => n);
                     _ = ExportImagesFlow(string.Join(",", nums));
                 }, false, true),
-                ("\uE932", Loc("Str_Ctx_StampPages"), "S", () => OpenStampTool(), false, true));
-            menu.Items.Add(CardSlot(tools, new Thickness(0)));
+                new("\uE932", Loc("Str_Ctx_StampPages"), "S", () => OpenStampTool(), false, true),
+            ];
 
             // #436: with two or more pages selected these act on the selection, otherwise on the whole document.
             var cleanUp = MakeMenuItem(Loc("Str_Card_CleanUp"), (_, _) => { });
@@ -74,12 +76,18 @@ namespace KillerPDF.Shell
             move.Items.Add(MakeMenuItem(Loc("Str_Pages_Reverse"), (_, _) => ReversePageOrder(), glyph: "\uE8CB"));
 
             // The three submenus are tiles with a chevron; each opens its rows beside it.
-            var groups = QuickStrip(menu, 3,
+            CardTile[] groupRow =
+            [
                 FlyoutTile("\uE771", Loc("Str_Card_CleanUp"), null, cleanUp),
                 FlyoutTile("\uE8B9", Loc("Str_Card_FromPage"), null, fromPage),
                 // Not the Move row's old arrows: those are the Transform tile's, two tiles up.
-                FlyoutTile("\uE8AB", Loc("Str_Card_Move"), null, move));
-            menu.Items.Add(CardSlot(groups, new Thickness(0)));
+                FlyoutTile("\uE8AB", Loc("Str_Card_Move"), null, move),
+            ];
+            // One customizable grid (KillerUI CardEdit): Duplicate, Extract and Delete always show; Color Correction starts
+            // hidden because Transform opens it too.
+            var strip = EditableTileGroups(menu, "Thumbnail", ["\uE8C8", "\uE8B1", "\uE74D"], ["\uE790"], pageRow, turnRow, toolRow, groupRow);
+            menu.Items.Add(CardSlot(strip, new Thickness(0)));
+            FocusFirstActionFromKeyboard(menu, strip);
             return menu;
         }
 
@@ -222,6 +230,25 @@ namespace KillerPDF.Shell
         // The family card grid (KillerUI CardBuilder.TileGroups): three across, one group of related tiles per row.
         private FrameworkElement TileGroups(ContextMenu menu, params IEnumerable<CardTile>[] groups)
             => KillerFamily.Controls.CardBuilder.TileGroups(menu, Loc("Str_Card_Actions"), groups.Select(g => g.Select(KitTile)));
+
+        // A big card the user can customize (KillerUI CardEdit, Steve 2026-11-19): a pencil in its corner hides and
+        // shows tiles; the locked glyphs are the card's everyday actions and always show, and the hidden-by-default glyphs
+        // start in the Hidden column (Reset returns there). Saved per card in settings.
+        private FrameworkElement EditableTileGroups(ContextMenu menu, string card, string[] locked, string[] hiddenByDefault, params IEnumerable<CardTile>[] groups)
+            => KillerFamily.Controls.CardBuilder.TileGroups(menu, Loc("Str_Card_Actions"), groups.Select(g => g.Select(KitTile)), CardEditFor(card, locked, hiddenByDefault));
+
+        private static KillerFamily.Controls.CardEdit CardEditFor(string card, string[] locked, string[] hiddenByDefault)
+            => new(() => App.GetSetting($"Card.{card}.Hidden"), value => App.SetSetting($"Card.{card}.Hidden", value ?? ""))
+            {
+                Locked = t => locked.Contains(t.Glyph),
+                DefaultHidden = t => hiddenByDefault.Contains(t.Glyph),
+                EditTip = Loc("Str_Card_Edit"),
+                DoneTip = Loc("Str_Card_EditDone"),
+                ResetTip = Loc("Str_Card_EditReset"),
+                HiddenLabel = Loc("Str_Card_Hidden"),
+                HiddenHint = Loc("Str_Card_HiddenHint"),
+                LockedTip = Loc("Str_Card_AlwaysShown"),
+            };
 
         private KillerFamily.Controls.CardTile KitTile(CardTile t)
         {

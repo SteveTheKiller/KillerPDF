@@ -1355,6 +1355,12 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Del_RunCount">{0} pages</sys:String>
     <sys:String x:Key="Str_Del_More">+ {0} de plus</sys:String>
     <sys:String x:Key="Str_Card_Actions">Actions</sys:String>
+    <sys:String x:Key="Str_Card_Edit">Personnaliser cette carte</sys:String>
+    <sys:String x:Key="Str_Card_EditDone">Terminé</sys:String>
+    <sys:String x:Key="Str_Card_EditReset">Rétablir les valeurs par défaut</sys:String>
+    <sys:String x:Key="Str_Card_Hidden">Masqués</sys:String>
+    <sys:String x:Key="Str_Card_HiddenHint">Faites glisser une tuile ici pour la masquer</sys:String>
+    <sys:String x:Key="Str_Card_AlwaysShown">Toujours affiché</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Page vierge</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Panneau latéral</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} pages sélectionnées</sys:String>

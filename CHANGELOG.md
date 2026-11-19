@@ -77,6 +77,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- The page, thumbnail, gray-area and picture cards can be customized. The pencil in the corner of the tiles turns on edit mode: the card stays open with an accent border, and a Hidden drawer slides out from its right edge. Drag a tile into it to hide it, or click a tile to move it across. The everyday actions, such as Paste, Select All and Delete, always show. A few tiles start hidden: Paste on a picture, Fillable Field Preset and Compare PDFs on the page, and Color Correction on a thumbnail, which Transform also opens. Reset to default brings back the starting layout.
 - Trash Polka, a new theme under 98SE: black with a tattoo-style ink background in your accent color, from eight accents with Blood red as the default. Under a Windows high contrast theme the ink and the tab shade step aside for the system colors.
 - Merge opens a Merge files dialog instead of a plain file picker. Drop PDF files or whole folders on it from File Explorer, or use Add files and Add folder, then drag files into the order you want, or use Move up and Move down. A folder adds the PDFs directly inside it, in name order. (#495)
 - A tab can move into another open KillerPDF window, either from its right-click menu, which lists every other window by the document it shows, or by dragging the tab onto that window. A window whose last document moves away closes. (#503)

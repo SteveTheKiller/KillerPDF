@@ -1250,6 +1250,12 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Del_RunCount">{0} бет</sys:String>
     <sys:String x:Key="Str_Del_More">+ тағы {0}</sys:String>
     <sys:String x:Key="Str_Card_Actions">Әрекеттер</sys:String>
+    <sys:String x:Key="Str_Card_Edit">Бұл картаны баптау</sys:String>
+    <sys:String x:Key="Str_Card_EditDone">Дайын</sys:String>
+    <sys:String x:Key="Str_Card_EditReset">Әдепкіге қайтару</sys:String>
+    <sys:String x:Key="Str_Card_Hidden">Жасырын</sys:String>
+    <sys:String x:Key="Str_Card_HiddenHint">Жасыру үшін тақтаны осында сүйреңіз</sys:String>
+    <sys:String x:Key="Str_Card_AlwaysShown">Әрқашан көрсетіледі</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Бос бет</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Бүйірлік панель</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} бет таңдалды</sys:String>

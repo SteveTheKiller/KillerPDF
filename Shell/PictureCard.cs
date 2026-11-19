@@ -45,7 +45,7 @@ namespace KillerPDF.Shell
                 layers.Add(new("\uE70E", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(picture, +1), false, canRaise));
                 layers.Add(new("\uE70D", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(picture, -1), false, canLower));
             }
-            var strip = TileGroups(_ctxMenu, clipboard, turns, file, layers);
+            var strip = EditableTileGroups(_ctxMenu, "Picture", ["\uE8C8", "\uE8C6"], ["\uE77F"], clipboard, turns, file, layers);
             _ctxMenu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(_ctxMenu, strip);
         }

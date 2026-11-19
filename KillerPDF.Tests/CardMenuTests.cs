@@ -94,14 +94,14 @@ public sealed class CardMenuTests
         Assert.DoesNotContain("Str_Ctx_InsertBlank", handler);
 
         string card = Read("Shell", "PageCard.cs");
-        string strip = Between(card, "var strip = QuickStrip(menu,", "menu.Items.Add(CardSlot(strip");
+        string strip = Between(card, "CardTile[] pageRow =", "CardTile[] turnRow");
         // Three tiles; Blank page is an icon in the header and rotation sits under the tiles (Steve: narrower card).
         Assert.Equal(3, Count(strip, "Loc(\"Str_"));
         Assert.Contains("header.Children.Add(insertIcon);", card);
         Assert.Contains("menu.MinWidth = menu.MaxWidth = 320;", card);
         // Rotation is a second tile row matching the first (Steve 2026-11-14: the outline buttons stuck out): Rotate CCW,
         // Upside Down (a half turn) and Rotate CW.
-        string rotate = Between(card, "var turns = QuickStrip(menu,", "menu.Items.Add(CardSlot(turns");
+        string rotate = Between(card, "CardTile[] turnRow =", "CardTile[] toolRow");
         Assert.Equal(3, Count(rotate, "Loc(\"Str_"));
         Assert.Contains("Str_Ctx_RotateCCWShort", rotate);
         Assert.Contains("Str_Ctx_UpsideDown", rotate);
@@ -210,13 +210,13 @@ public sealed class CardMenuTests
         // Steve 2026-11-17: go all out on the icons. Submenus become tiles with a chevron that open their rows
         // beside the tile; each command keeps one entry.
         string card = Read("Shell", "PageCard.cs");
-        string tools = Between(card, "var tools = QuickStrip(menu, 3,", "menu.Items.Add(CardSlot(tools");
+        string tools = Between(card, "CardTile[] toolRow =", "var cleanUp");
         foreach (string key in new[] { "Str_Lbl_Merge", "Str_Tf_Suffix", "Str_ColorCorrection", "Str_Ctx_OcrPage", "Str_Ctx_ExportPageImage", "Str_Ctx_StampPages" })
         {
             Assert.Contains($"Loc(\"{key}\")", tools);
             Assert.Equal(1, Count(card, $"Loc(\"{key}\")"));
         }
-        string groups = Between(card, "var groups = QuickStrip(menu, 3,", "menu.Items.Add(CardSlot(groups");
+        string groups = Between(card, "CardTile[] groupRow =", "menu.Items.Add(CardSlot(strip");
         foreach (string row in new[] { "cleanUp)", "fromPage)", "move)" }) Assert.Contains(row, groups);
         Assert.DoesNotContain("menu.Items.Add(cleanUp)", card);
         string kit = Read("Controls", "CardBuilder.cs");

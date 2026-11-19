@@ -252,7 +252,7 @@ namespace KillerPDF.Shell
                 FlyoutTile("\uE8A1", Loc("Str_FieldPreset_Menu"), null, BuildFieldPresetMenu(pt, pageIdx)),
                 FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
             ];
-            var pageStrip = TileGroups(_ctxMenu, clipboard, onPage, more);
+            var pageStrip = EditableTileGroups(_ctxMenu, "Page", ["\uE77F", "\uE8B3", "\uE74D"], ["\uE8A1", "\uE7C4"], clipboard, onPage, more);
             _ctxMenu.Items.Add(CardSlot(pageStrip, new Thickness(0)));
         }
 
@@ -936,7 +936,7 @@ namespace KillerPDF.Shell
             ];
             // Nine tiles, three full rows: Paste always holds its spot (dimmed with nothing to paste), Full Screen
             // lives in the footer, and Book layout sits on the nav row beside zoom.
-            var grid = TileGroups(menu, markup, pages, cleanUp);
+            var grid = EditableTileGroups(menu, "Sidebar", ["\uE77F", "\uE8B3"], [], markup, pages, cleanUp);
             menu.Items.Add(CardSlot(grid, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, grid);
         }

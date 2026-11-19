@@ -1355,6 +1355,12 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Del_RunCount">{0} pagine</sys:String>
     <sys:String x:Key="Str_Del_More">+ {0} altre</sys:String>
     <sys:String x:Key="Str_Card_Actions">Azioni</sys:String>
+    <sys:String x:Key="Str_Card_Edit">Personalizza questa scheda</sys:String>
+    <sys:String x:Key="Str_Card_EditDone">Fine</sys:String>
+    <sys:String x:Key="Str_Card_EditReset">Ripristina predefiniti</sys:String>
+    <sys:String x:Key="Str_Card_Hidden">Nascosti</sys:String>
+    <sys:String x:Key="Str_Card_HiddenHint">Trascina qui un riquadro per nasconderlo</sys:String>
+    <sys:String x:Key="Str_Card_AlwaysShown">Sempre visibile</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Pagina vuota</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Barra laterale</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} pagine selezionate</sys:String>
