@@ -51,6 +51,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The Mourning theme highlights selections in its original peach with dark text again, instead of pink.
 - The tab beside the active document tab no longer draws a second divider line against it.
 - The Transform window no longer reopens against the left edge of the app.
+- Moving a tab to a new window or another window now loads the tab left in front when it had not been opened yet, instead of showing the start screen above the remaining tabs.
 - `--pdfua --json` names the standard the files were checked against, PDF/UA-2 or "mixed" when PDF/UA-2 files are in the run. It always said PDF/UA-1.
 
 ### Changed

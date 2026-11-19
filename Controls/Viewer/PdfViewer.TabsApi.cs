@@ -274,6 +274,14 @@ namespace KillerPDF.Controls
         /// guarded and idempotent, so the two agreeing costs nothing.</summary>
         internal void ScheduleTabReflowExt() => TabBarResized();
         internal void RenderActiveSessionExt() => RenderActiveSession();
+        /// <summary>Shows the front tab after another tab left this pane. A restored tab that was never
+        /// clicked has no document yet, and rendering it would show the start screen over a full tab
+        /// strip, so it loads here the way a click would.</summary>
+        internal void ShowActiveSessionExt()
+        {
+            if (_active is { HasReadDocument: false, DeferredPath: not null } deferred) MaterializeDeferred(deferred);
+            else RenderActiveSession();
+        }
         internal void ShowEmptyStateExt() => ShowEmptyState();
         internal void FlushAllRenderCachesExt() => FlushAllRenderCaches();
         internal static void InvalidateRenderCacheExt(DocumentSession? s) => InvalidateRenderCache(s);

@@ -150,6 +150,20 @@ public sealed class DocumentTabLayoutTests
         Assert.Contains("catch (Exception error) when (error is not OutOfMemoryException)", body[show..restore], StringComparison.Ordinal);
     }
 
+    // A tab moved out leaves the source showing its next tab. A restored tab that was never clicked has
+    // no document yet, so the source must load it, not render an empty pane over a full tab strip.
+    [Fact]
+    public void TheSourceLoadsADeferredNextTabAfterAMove()
+    {
+        string tearOut = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Shell", "TabTearOut.cs"));
+        Assert.DoesNotContain("source.RenderActiveSessionExt()", tearOut, StringComparison.Ordinal);
+        Assert.True(System.Text.RegularExpressions.Regex.Matches(tearOut, @"source\.ShowActiveSessionExt\(\)").Count >= 3, tearOut);
+        string api = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Controls", "Viewer", "PdfViewer.TabsApi.cs"));
+        int show = api.IndexOf("internal void ShowActiveSessionExt()", StringComparison.Ordinal);
+        Assert.True(show >= 0, "ShowActiveSessionExt is missing");
+        Assert.Contains("MaterializeDeferred(", api[show..(show + 400)], StringComparison.Ordinal);
+    }
+
     [Fact]
     public void DragGhostUsesTheLiveTabPreview()
     {

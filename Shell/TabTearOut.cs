@@ -36,7 +36,7 @@ namespace KillerPDF.Shell
             var sourceActive = source.ActiveSessionRef;
             source.DetachSessionExt(session);
             source.ApplyActiveSessionIfAny();
-            source.RenderActiveSessionExt();
+            source.ShowActiveSessionExt();
             source.RebuildTabStripExt();
 
             try
@@ -85,7 +85,7 @@ namespace KillerPDF.Shell
             var sourceActive = source.ActiveSessionRef;
             source.DetachSessionExt(session);
             source.ApplyActiveSessionIfAny();
-            source.RenderActiveSessionExt();
+            source.ShowActiveSessionExt();
             source.RebuildTabStripExt();
 
             try { target.AdoptMovedTab(session); }
@@ -126,7 +126,7 @@ namespace KillerPDF.Shell
             source.SetSessionsExt(sourceSessions, sourceActive);
             if (sourceActive is not null) source.ApplySessionStateExt(sourceActive);
             source.RebuildTabStripExt();
-            source.RenderActiveSessionExt();
+            source.ShowActiveSessionExt();
         }
 
         private void AdoptMovedTab(PdfViewer.DocumentSession session)
