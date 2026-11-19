@@ -978,12 +978,12 @@
                                      popup align as real columns (see the MenuItem template's SharedSizeGroup
                                      names) instead of each row sizing its shortcut text independently. -->
                                 <!-- A menu taller than the screen scrolls instead of cutting off its last items (KillerShot menu-overflow). -->
+                                <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
+                                        CornerRadius="{DynamicResource PanelCornerRadius}" Background="{DynamicResource GrainTileBrush}"/>
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
                                     <StackPanel IsItemsHost="True" Margin="{TemplateBinding Padding}" KeyboardNavigation.DirectionalNavigation="Cycle"
                                                 Grid.IsSharedSizeScope="True"/>
                                 </ScrollViewer>
-                                <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
-                                        CornerRadius="{DynamicResource PanelCornerRadius}" Background="{DynamicResource GrainTileBrush}"/>
                             </Grid>
                         </Border>
                         <Border IsHitTestVisible="False" Margin="{DynamicResource MenuBevelInnerMargin}" BorderBrush="{DynamicResource MenuBevelLightBrush}" BorderThickness="{DynamicResource MenuBevelLightThickness}"/>
