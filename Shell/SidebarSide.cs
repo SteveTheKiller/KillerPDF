@@ -68,6 +68,17 @@ namespace KillerPDF.Shell
         /// </summary>
         internal static Thickness Transpose(Thickness t) => new Thickness(t.Top, t.Left, t.Bottom, t.Right);
 
+        /// <summary>The side's card tile glyph (Segoe MDL2 DockLeft, DockRight, DockBottom). The font has no
+        /// DockTop, so Top uses DockBottom and its tile turns it upside down (FlipsTileGlyph).</summary>
+        internal static string TileGlyph(this SidebarSide side) => side switch
+        {
+            SidebarSide.Left => "\uE90C",
+            SidebarSide.Right => "\uE90D",
+            _ => "\uE90E",
+        };
+
+        internal static bool FlipsTileGlyph(this SidebarSide side) => side == SidebarSide.Top;
+
         /// <summary>The side menu's icon for this side (PaneSideIcon).</summary>
         internal static FrameworkElement MenuIcon(this SidebarSide side)
             => PaneSideIcon(side == SidebarSide.Left ? Dock.Left : side == SidebarSide.Right ? Dock.Right

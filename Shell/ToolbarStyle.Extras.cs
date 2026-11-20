@@ -236,27 +236,13 @@ namespace KillerPDF.Shell
             { _toolbarHidden = true; ToolbarRowBorder.Visibility = Visibility.Collapsed; }
         }
 
-        partial void AddToolbarMenuRows(ContextMenu menu)
+        // The picker card's last row: Customize, Hide toolbar, and the tool menu placement a click switches to.
+        partial void AddToolbarMenuTiles(List<KillerFamily.Controls.CardTile> tiles)
         {
-            menu.Items.Add(new Separator());
-            var customize = new MenuItem { Header = Loc("Str_Toolbar_Customize") };
-            customize.Click += (_, _2) => OpenCustomizeToolbar();
-            menu.Items.Add(customize);
-            var hide = new MenuItem { Header = Loc("Str_Toolbar_Hide"), Tag = "hide", IsCheckable = true,
-                                      IsChecked = _toolbarHidden, InputGestureText = GestureFor("Alt:M") };
-            hide.Click += (_, _2) => ToggleToolbarHidden();
-            menu.Items.Add(hide);
-            menu.Items.Add(ToolMenuPlacementRow());
-        }
-
-        partial void SyncToolbarMenuRow(MenuItem item)
-        {
-            if (item.Tag is "hide") item.IsChecked = _toolbarHidden;
-            else if (item.Tag is "toolmenu")
-            {
-                item.Header = Loc(ToolMenuFloating ? "Str_ToolMenu_Docked" : "Str_ToolMenu_Floating");
-                item.Icon = ToolMenuIcons.For(floating: !ToolMenuFloating);
-            }
+            tiles.Add(KitTile(new CardTile("\uE771", Loc("Str_Toolbar_Customize"), null, OpenCustomizeToolbar, false, true)));
+            tiles.Add(KitTile(new CardTile("\uE73F", Loc("Str_Toolbar_Hide"), "Alt:M", ToggleToolbarHidden, false, true)));
+            tiles.Add(KitTile(new CardTile(ToolMenuFloating ? "\uE737" : "\uE8A7",
+                Loc(ToolMenuFloating ? "Str_ToolMenu_Docked" : "Str_ToolMenu_Floating"), "Alt:B", ToggleToolMenuFloating, false, true)));
         }
 
         // Open / Save / OCR are split buttons (main half + overlapping dropdown chevron); the kit

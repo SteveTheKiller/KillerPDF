@@ -865,47 +865,46 @@ namespace KillerPDF.Shell
             e.Handled = true;
         }
 
-        // The sidebar-side picker rides the bottom of the sidebar's own right-click menu (it moved
-        // out of the Settings panel, like the toolbar picker moved onto the toolbar). The keyboard
-        // gesture is shown on the side Shift+F9 would move it TO - each press steps one row down
-        // this list - so putting it on the checked row would advertise a press that does nothing.
+        // The sidebar-side picker rides the bottom of the sidebar's own right-click card (it moved out of the
+        // Settings panel, like the toolbar picker moved onto the toolbar): Left, Right, Top and Bottom as one row of
+        // four smaller tiles, the current side filled (Steve 2026-11-19). The keyboard gesture is shown on the side
+        // Shift+F9 would move it TO - each press steps one tile along this row - so putting it on the filled tile would
+        // advertise a press that does nothing. In a two-page view, Two-page thumbnails is an on/off tile above them.
         private void AppendSidebarSideSection(ContextMenu menu)
         {
+            if (TryFindResource("CardMenu") is Style card) menu.Style = card;
             if (menu.Items.Count > 0) menu.Items.Add(new Separator());
-            // One row with a flyout instead of a header and four rows at the foot of every sidebar menu.
-            var sidebar = new MenuItem { Name = "SidebarMenuItem", Header = Loc("Str_Card_Sidebar"), Icon = _sidebarSide.MenuIcon() };
-            menu.Items.Add(sidebar);
-            menu = new ContextMenu();   // collects the flyout's rows below, then hands them to the Sidebar row
             if (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
             {
-                var paired = new MenuItem
+                bool paired = App.GetSetting("TwoPageThumbnails") == "1";
+                var toggle = new CardTile("\uE8A9", Loc("Str_Sidebar_TwoPageThumbnails"), null, () =>
                 {
-                    Name = "TwoPageThumbnailsMenuItem",
-                    Header = Loc("Str_Sidebar_TwoPageThumbnails"),
-                    IsCheckable = true,
-                    IsChecked = App.GetSetting("TwoPageThumbnails") == "1",
-                    IsEnabled = !_sidebarStripLayout
-                };
-                paired.Click += (_, _) =>
-                {
-                    App.SetSetting("TwoPageThumbnails", paired.IsChecked ? "1" : "0");
+                    App.SetSetting("TwoPageThumbnails", paired ? "0" : "1");
                     ApplyPageThumbnailLayout();
+                }, false, !_sidebarStripLayout) { Checked = paired };
+                menu.Items.Add(CardSlot(TileGroups(menu, new[] { toggle }), new Thickness(0)));
+            }
+            SidebarSide[] order = [SidebarSide.Left, SidebarSide.Right, SidebarSide.Top, SidebarSide.Bottom];
+            var sides = order.Select(side => new CardTile(side.TileGlyph(), Loc(side.StringKey()),
+                side == _sidebarSide.Next() ? "Shift:F9" : null, () => SelectSidebarSide(side), false, true) { Checked = side == _sidebarSide }).ToArray();
+            var strip = QuickStrip(menu, order.Length, sides);
+            strip.Name = "SidebarSideTiles";
+            System.Windows.Automation.AutomationProperties.SetName(strip, Loc("Str_Card_Sidebar"));
+            foreach (var button in LogicalTreeHelper.GetChildren(((Border)strip).Child).OfType<Button>())
+            {
+                // Smaller than a card tile, so four fit across the card's width.
+                button.Padding = new Thickness(1, 5, 1, 4);
+                bool flip = order.Any(side => side.FlipsTileGlyph() && System.Windows.Automation.AutomationProperties.GetName(button) == Loc(side.StringKey()));
+                button.Loaded += (_, _) =>
+                {
+                    if (button.Template?.FindName("Glyph", button) is not TextBlock glyph) return;
+                    glyph.FontSize = 14;
+                    if (!flip) return;
+                    glyph.RenderTransformOrigin = new Point(0.5, 0.5);
+                    glyph.RenderTransform = new ScaleTransform(1, -1);
                 };
-                menu.Items.Add(paired);
             }
-            foreach (SidebarSide side in new[] { SidebarSide.Left, SidebarSide.Right, SidebarSide.Top, SidebarSide.Bottom })
-            {
-                var item = new MenuItem { Header = Loc(side.StringKey()), IsCheckable = true, IsChecked = side == _sidebarSide, Icon = side.MenuIcon() };
-                if (side == _sidebarSide.Next()) item.InputGestureText = GestureFor("Shift:F9");
-                item.Click += (_, _2) => SelectSidebarSide(side);
-                menu.Items.Add(item);
-            }
-            if (menu.Items.Count > 4) menu.Items.Insert(1, new Separator());   // the two-page toggle above the sides
-            foreach (object row in menu.Items.Cast<object>().ToList())
-            {
-                menu.Items.Remove(row);
-                sidebar.Items.Add(row);
-            }
+            menu.Items.Add(CardSlot(strip, new Thickness(0)));
         }
 
         private ContextMenu MakeThemedMenu()

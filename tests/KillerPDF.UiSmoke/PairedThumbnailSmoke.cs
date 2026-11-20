@@ -104,14 +104,14 @@ internal static class PairedThumbnailSmoke
             Stage("find-paired-thumbnail-option");
             // One dispatcher idle turn completes the opened menu's layout. Absence is now a bounded RED.
             openedMenu.UpdateLayout(); Pump();
-            MenuItem? option = PairedOption(openedMenu);
+            Button? option = PairedOption(openedMenu);
             if (option is null)
-                throw new MissingOptionException("Opened the real owned sidebar menu after public open, Two Page selection, and one-column baseline; TwoPageThumbnailsMenuItem is absent.");
-            Require(option.IsVisible && option.IsEnabled && option.IsCheckable,
-                "Two-page thumbnail option must be a visible, enabled, checkable menu item.");
-            Require(!option.IsChecked, "Two-page thumbnails must default OFF.");
+                throw new MissingOptionException("Opened the real owned sidebar menu after public open, Two Page selection, and one-column baseline; the Two-page thumbnails tile is absent.");
+            Require(option.IsVisible && option.IsEnabled,
+                "Two-page thumbnail option must be a visible, enabled on/off tile.");
+            Require(!TileOn(option), "Two-page thumbnails must default OFF.");
             Stage("public-option-activation");
-            Pattern<IInvokeProvider>(new MenuItemAutomationPeer(option), PatternInterface.Invoke).Invoke();
+            Pattern<IInvokeProvider>(new ButtonAutomationPeer(option), PatternInterface.Invoke).Invoke();
             Wait(() => !openedMenu.IsOpen);
             Stable();
             Stage("paired-container-geometry");
@@ -299,11 +299,8 @@ internal static class PairedThumbnailSmoke
                 Stage("sidebar-side-" + side);
                 OpenSidebarMenu();
                 string caption = (string)app.FindResource("Str_Sidebar_" + side);
-                var sidebarRow = Descendants(openedMenu!).OfType<MenuItem>().Single(item => item.Name == "SidebarMenuItem");
-                sidebarRow.IsSubmenuOpen = true;
-                openedMenu!.UpdateLayout(); Pump();
-                var sideOption = sidebarRow.Items.OfType<MenuItem>().Single(item => Equals(item.Header, caption));
-                Pattern<IInvokeProvider>(new MenuItemAutomationPeer(sideOption), PatternInterface.Invoke).Invoke();
+                var sideOption = TileButton(openedMenu!, caption) ?? throw new MissingOptionException("The " + side + " sidebar tile is absent.");
+                Pattern<IInvokeProvider>(new ButtonAutomationPeer(sideOption), PatternInterface.Invoke).Invoke();
                 Wait(() => !openedMenu!.IsOpen);
                 Stable();
                 Rect[] current = Rectangles();
@@ -318,8 +315,8 @@ internal static class PairedThumbnailSmoke
                 Require(ColorOrder().SequenceEqual(new[] { "green", "red", "blue", "orange", "magenta" }),
                     "Moving the sidebar must preserve page order.");
                 OpenSidebarMenu();
-                var preference = PairedOption(openedMenu!) ?? throw new MissingOptionException("TwoPageThumbnailsMenuItem is absent from the Sidebar flyout.");
-                Require(preference.IsChecked && preference.IsEnabled != strip,
+                var preference = PairedOption(openedMenu!) ?? throw new MissingOptionException("The Two-page thumbnails tile is absent from the sidebar card.");
+                Require(TileOn(preference) && preference.IsEnabled != strip,
                     "Paired preference must remain checked and be disabled only in a horizontal strip.");
                 openedMenu!.IsOpen = false;
                 Pump();
@@ -718,15 +715,16 @@ internal static class PairedThumbnailSmoke
     private static bool Near(double a, double b) => Math.Abs(a - b) <= 1;
     private static object RectData(Rect r) => new { r.X, r.Y, r.Width, r.Height };
     private static string Hash(string path) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
-    // The sidebar options sit in the Sidebar row's flyout: open it the way a user does, then find the toggle.
-    private static MenuItem? PairedOption(ContextMenu menu)
-    {
-        var sidebar = Descendants(menu).OfType<MenuItem>().SingleOrDefault(item => item.Name == "SidebarMenuItem");
-        if (sidebar is null) return null;
-        sidebar.IsSubmenuOpen = true;
-        menu.UpdateLayout(); Pump();
-        return sidebar.Items.OfType<MenuItem>().SingleOrDefault(item => item.Name == "TwoPageThumbnailsMenuItem");
-    }
+    // The sidebar options are tiles on the card itself (Steve 2026-11-19): the four sides in one row, and in a two-page
+    // view the Two-page thumbnails on/off tile above them.
+    private static Button? PairedOption(ContextMenu menu) =>
+        TileButton(menu, (string)Application.Current.FindResource("Str_Sidebar_TwoPageThumbnails"));
+
+    private static Button? TileButton(ContextMenu menu, string caption) =>
+        Descendants(menu).OfType<Button>().SingleOrDefault(button => System.Windows.Automation.AutomationProperties.GetName(button) == caption);
+
+    // An on/off tile is filled while on (KillerUI CardBuilder.ShowTileState sets its Background).
+    private static bool TileOn(Button tile) => tile.ReadLocalValue(Control.BackgroundProperty) != DependencyProperty.UnsetValue;
 
     private static IEnumerable<DependencyObject> Descendants(DependencyObject node)
     {

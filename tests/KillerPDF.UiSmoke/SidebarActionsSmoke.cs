@@ -22,15 +22,9 @@ internal static class SidebarActionsSmoke
         string? original = pages.Tag as string;
         pages.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
         // Clicking the open panel's icon offers the four sidebar positions instead of closing it.
-        // Since c8399f5 the four sides are nested under the Sidebar row, so open its submenu and count them there.
+        // The four sides are one row of tiles on the card (Steve 2026-11-19).
         ContextMenu? clickMenu = Menus().SingleOrDefault();
-        int positions = 0;
-        if (clickMenu?.Items.OfType<MenuItem>().SingleOrDefault(item => item.Name == "SidebarMenuItem") is { } sidebarRow)
-        {
-            sidebarRow.IsSubmenuOpen = true;
-            clickMenu.UpdateLayout(); Pump();
-            positions = sidebarRow.Items.OfType<MenuItem>().Count(item => item.IsCheckable);
-        }
+        int positions = clickMenu is null ? 0 : SideTiles(clickMenu).Length;
         CloseMenus();
         if (original != "on" || !Equals(pages.Tag, "on")) throw new InvalidOperationException("Pages click closed its panel.");
         if (positions != 4) throw new InvalidOperationException("Pages click did not offer the four sidebar positions.");
@@ -58,14 +52,9 @@ internal static class SidebarActionsSmoke
                     throw new InvalidOperationException("Signatures rail menu lacks signing and its shortcut.");
                 if (buttonName == "SidebarPagesTab")
                 {
-                    // The page menu's own view items are checkable too, so match the four sides by name.
-                    // They now sit in the Sidebar row's flyout, so open it first.
-                    MenuItem railSidebarRow = menu.Items.OfType<MenuItem>().Single(item => item.Name == "SidebarMenuItem");
-                    railSidebarRow.IsSubmenuOpen = true;
-                    menu.UpdateLayout(); Pump();
-                    MenuItem[] sides = [.. railSidebarRow.Items.OfType<MenuItem>().Where(item => new[] { "Left", "Right", "Top", "Bottom" }
-                        .Any(side => Equals(item.Header, Application.Current.FindResource("Str_Sidebar_" + side))))];
-                    if (sides.Length != 4 || sides.Count(item => item.IsChecked) != 1)
+                    // The four sides are tiles on the card, the current one filled.
+                    Button[] sides = SideTiles(menu);
+                    if (sides.Length != 4 || sides.Count(tile => tile.ReadLocalValue(Control.BackgroundProperty) != DependencyProperty.UnsetValue) != 1)
                         throw new InvalidOperationException("Pages rail menu lacks the four sidebar positions.");
                 }
             }
@@ -145,5 +134,13 @@ internal static class SidebarActionsSmoke
         yield return root;
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
             foreach (DependencyObject child in Children(VisualTreeHelper.GetChild(root, i))) yield return child;
+    }
+
+    // The sidebar card's four side tiles, matched by name (KillerUI CardBuilder tiles carry their caption as the name).
+    private static Button[] SideTiles(ContextMenu menu)
+    {
+        menu.UpdateLayout(); Pump();
+        string[] captions = [.. new[] { "Left", "Right", "Top", "Bottom" }.Select(side => (string)Application.Current.FindResource("Str_Sidebar_" + side))];
+        return [.. Children(menu).OfType<Button>().Where(button => captions.Contains(AutomationProperties.GetName(button)))];
     }
 }

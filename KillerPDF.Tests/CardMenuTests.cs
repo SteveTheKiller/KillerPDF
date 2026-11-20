@@ -111,11 +111,13 @@ public sealed class CardMenuTests
         Assert.Contains("RotatePages_Click(180", rotate);
         Assert.Contains("Str_Ctx_RotateCWShort", rotate);
         Assert.DoesNotContain("RotateRow(", card);
-        // The sidebar side and two-page thumbnails sit in one Sidebar row's flyout, not four rows at the foot.
+        // The sidebar sides are one row of four smaller tiles on the card, the current side filled, and two-page
+        // thumbnails an on/off tile above them; no Sidebar row or flyout (Steve 2026-11-19).
         string side = Between(Read("Shell", "ContextMenu.cs"), "private void AppendSidebarSideSection(", "private ContextMenu MakeThemedMenu(");
-        Assert.Contains("Header = Loc(\"Str_Card_Sidebar\")", side);
-        Assert.Contains("sidebar.Items.Add(row);", side);
-        Assert.DoesNotContain("Header = Loc(\"Str_Sidebar\"), IsEnabled = false", side);
+        Assert.Contains("QuickStrip(menu, order.Length, sides)", side);
+        Assert.Contains("{ Checked = side == _sidebarSide }", side);
+        Assert.Contains("{ Checked = paired }", side);
+        Assert.DoesNotContain("new MenuItem", side);
         Assert.Contains("\"CardMenu\"", card);
         // The scanner cleanup, the extract-from-page tools and the moves fold into three submenus.
         Assert.Contains("cleanUp.Items.Add(", card);

@@ -76,6 +76,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Mark pages on the Redact bar opens a small box under its button instead of a dialog. Find Text to Redact says plainly that it draws redaction boxes over the checked matches.
 - Edit paragraph has page arrows like Transform, and its Original checkbox sits with the other options.
 - The sidebar's page box and page count sit on the same line as its Pages title, and the box widens to fit a document's longest page number.
+- Right-clicking the toolbar opens a card of tiles in three rows: Small icons, Large icons and Text only; No text, Text beside icons and Text under icons; then Customize toolbar, Hide toolbar and the tool menu placement. The current choices are filled, and the card stays open while you try them.
+- The sidebar's right-click card shows Left, Right, Top and Bottom as a row of four smaller tiles with the current side filled, instead of a Sidebar submenu. In a two-page view, Two-page thumbnails is an on/off tile above them.
+- A filled tile's text stays readable in every theme, including Blood's gradient.
 
 ### Added
 

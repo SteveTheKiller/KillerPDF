@@ -1038,8 +1038,15 @@ namespace KillerFamily.Controls
             // A theme that derives the selected-row color from its accent (Light) also makes it a solid fill without
             // stating a text color, so any part that no longer reads on an opaque fill (4.5:1 for text, 3:1 for the
             // glyph) takes black or white, whichever reads better. Parts that already read keep their colors.
-            var fill = on && !stated && button.TryFindResource("RowSelectedBrush") is SolidColorBrush { Color.A: 255 } solid
-                ? solid.Color : (Color?)null;
+            // An opaque gradient (Blood's peach) reads as the average of its stops.
+            var fill = !on || stated ? null : button.TryFindResource("RowSelectedBrush") switch
+            {
+                SolidColorBrush { Color.A: 255 } solid => solid.Color,
+                GradientBrush { GradientStops.Count: > 0 } gradient when gradient.GradientStops.All(s => s.Color.A == 255) => Color.FromRgb(
+                    (byte)gradient.GradientStops.Average(s => s.Color.R), (byte)gradient.GradientStops.Average(s => s.Color.G),
+                    (byte)gradient.GradientStops.Average(s => s.Color.B)),
+                _ => (Color?)null,
+            };
             static double Luminance(Color c)
             {
                 static double Channel(byte v) { double x = v / 255.0; return x <= 0.04045 ? x / 12.92 : Math.Pow((x + 0.055) / 1.055, 2.4); }

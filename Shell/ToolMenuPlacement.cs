@@ -88,8 +88,11 @@ namespace KillerPDF.Shell
         {
             App.SetSetting(ToolMenuFloatingSetting, ToolMenuFloating ? "0" : "1");
             foreach (MainWindow window in Application.Current.Windows.OfType<MainWindow>())
+            {
                 foreach (PdfViewer pane in new[] { window.Viewer, window.ViewerB })
                     ApplyFloatingState(pane.ToolOptionsDockRef);
+                window.SyncToolbarMenuChecks();   // the toolbar card's placement tile names the other placement
+            }
         }
     }
 }

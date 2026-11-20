@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using KillerFamily.Accessibility;
+using KillerFamily.Controls;
+using FamilyTile = KillerFamily.Controls.CardTile;
 
 // ============================================================
 // TOOLBAR APPEARANCE - two independent settings
@@ -54,9 +57,11 @@ using KillerFamily.Accessibility;
 // ToolbarCaptionShedRank order (lowest first), until fits() says the bar fits. ApplyToolbarStyle
 // puts every caption back, so widening the window restores them.
 //
-// THE PICKER stays open on click, so modes can be compared without reopening it, and shows each
-// row's shortcut when the app has one (ToolbarMenuGesture). Apps add their own rows (KillerPDF's
-// Customize and Hide toolbar) through AddToolbarMenuRows.
+// THE PICKER is a fixed family card (CardBuilder, Steve 2026-11-19), three tiles across and not
+// customizable: Small icons, Large icons and Text only, then No text, Text beside and Text under,
+// then the app's own tiles (KillerPDF's Customize, Hide toolbar and tool menu placement) through
+// AddToolbarMenuTiles. The six look tiles stay open on click, so modes can be compared without
+// reopening, and show each one's shortcut when the app has one (ToolbarMenuGesture).
 //
 // GROUP SEPARATORS are a 1px Rectangle, not a wider margin:
 //   <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
@@ -82,18 +87,19 @@ namespace KillerPDF.Shell
         private IconSize _iconSize = IconSize.Large;
         private LabelMode _labelMode = LabelMode.Under;
 
-        private static readonly (IconSize Size, string LabelKey, string GestureId)[] IconSizes =
+        // Each choice's picker tile glyph (Segoe MDL2) sits beside its label and shortcut.
+        private static readonly (IconSize Size, string LabelKey, string GestureId, string Glyph)[] IconSizes =
         {
-            (IconSize.Small, "Str_Toolbar_SmallIcons", "CtrlShift:D1"),
-            (IconSize.Large, "Str_Toolbar_LargeIcons", "CtrlShift:D2"),
+            (IconSize.Small, "Str_Toolbar_SmallIcons", "CtrlShift:D1", "\uE80A"),
+            (IconSize.Large, "Str_Toolbar_LargeIcons", "CtrlShift:D2", "\uF0E2"),
         };
 
-        private static readonly (LabelMode Mode, string LabelKey, string GestureId)[] LabelModes =
+        private static readonly (LabelMode Mode, string LabelKey, string GestureId, string Glyph)[] LabelModes =
         {
-            (LabelMode.None,   "Str_Toolbar_TextNone",   "CtrlShift:D3"),
-            (LabelMode.Beside, "Str_Toolbar_TextBeside", "CtrlShift:D4"),
-            (LabelMode.Under,  "Str_Toolbar_TextUnder",  "CtrlShift:D5"),
-            (LabelMode.Only,   "Str_Toolbar_TextOnly",   "CtrlShift:D6"),
+            (LabelMode.None,   "Str_Toolbar_TextNone",   "CtrlShift:D3", "\uE7FB"),
+            (LabelMode.Beside, "Str_Toolbar_TextBeside", "CtrlShift:D4", "\uE8FD"),
+            (LabelMode.Under,  "Str_Toolbar_TextUnder",  "CtrlShift:D5", "\uE8A1"),
+            (LabelMode.Only,   "Str_Toolbar_TextOnly",   "CtrlShift:D6", "\uE97E"),
         };
 
         private static readonly FontFamily MdlFont = new FontFamily("Segoe MDL2 Assets");
@@ -118,11 +124,10 @@ namespace KillerPDF.Shell
         /// row's gesture id ("CtrlShift:D1" .. "CtrlShift:D6"); empty means no shortcut.</summary>
         partial void ToolbarMenuGesture(string id, ref string gesture);
 
-        /// <summary>App hook: rows the app adds below the two radio groups (Customize, Hide).</summary>
-        partial void AddToolbarMenuRows(ContextMenu menu);
-
-        /// <summary>App hook: keep an app row's check state in step after every restyle.</summary>
-        partial void SyncToolbarMenuRow(MenuItem item);
+        /// <summary>App hook: tiles the app adds as the picker card's last row (Customize, Hide). A
+        /// tile that changes app state closes the card; the card is rebuilt before it opens again, so
+        /// the tiles show the state they were built with.</summary>
+        partial void AddToolbarMenuTiles(List<FamilyTile> tiles);
 
         /// <summary>App hook: split buttons as (main half, dropdown chevron, split style, plain
         /// style). In icon modes the chevron overlaps the main half for the joined look; with a
@@ -359,48 +364,67 @@ namespace KillerPDF.Shell
 
         // ---- the right-click picker ----
 
+        // The six look tiles on the open card, with whether each is on and usable, so a click repaints the
+        // card in place instead of rebuilding it under the pointer.
+        private readonly List<(Button Tile, Func<bool> On, Func<bool> Enabled)> _toolbarMenuTiles = new();
+
         /// <summary>
-        /// TWO radio groups, separated: icon size, then where the text goes, then the app's own rows.
-        /// Rows stay open on click so modes can be compared without reopening. The toolbar Grid
-        /// needs Background="Transparent" - not null - or it gets no mouse events and the menu never
-        /// opens.
+        /// The picker card: Small icons, Large icons and Text only (what a button shows), then No text,
+        /// Text beside and Text under (where its caption goes), then the app's tiles. The look tiles
+        /// keep the card open so modes can be compared without reopening. The toolbar Grid needs
+        /// Background="Transparent" - not null - or it gets no mouse events and the card never opens.
         /// </summary>
         private void BuildToolbarMenu()
         {
             ToolbarMenu.Items.Clear();
-            ToolbarMenu.Items.Add(new MenuItem { Header = Loc("Str_Toolbar_Header"), IsEnabled = false });
-            ToolbarMenu.Items.Add(new Separator());
+            _toolbarMenuTiles.Clear();
+            ToolbarMenu.SetResourceReference(FrameworkElement.StyleProperty, "CardMenu");
+            ToolbarMenu.Items.Add(CardBuilder.Header(Loc("Str_Toolbar_Header")));
 
-            foreach (var (size, key, gestureId) in IconSizes)
+            var looks = new List<(FamilyTile Tile, Func<bool> On, Func<bool> Enabled)>();
+            FamilyTile Look(string glyph, string key, string gestureId, Func<bool> on, Func<bool> enabled, Action set)
             {
-                var mi = new MenuItem
-                {
-                    Header = Loc(key), Tag = size, IsCheckable = true, IsChecked = size == _iconSize,
-                    StaysOpenOnClick = true, InputGestureText = MenuGesture(gestureId),
-                };
-                // Checking one unchecks the rest through SyncToolbarMenuChecks, so this behaves as a
-                // radio group without needing RadioButton plumbing inside a menu.
+                // The kit flips a stay-open tile as it is clicked; the setting changes after that, and its
+                // restyle repaints every look tile from the real settings (SyncToolbarMenuChecks).
+                var tile = new FamilyTile(glyph, Loc(key), NullIfEmpty(MenuGesture(gestureId)),
+                    () => Dispatcher.BeginInvoke(set), Enabled: enabled())
+                { Checked = on(), KeepsOpen = true };
+                looks.Add((tile, on, enabled));
+                return tile;
+            }
+            static string? NullIfEmpty(string text) => text.Length == 0 ? null : text;
+
+            var shows = new List<FamilyTile>();
+            foreach (var (size, key, gestureId, glyph) in IconSizes)
+            {
                 var s = size;
-                mi.Click += (_, __) => SetIconSize(s);
-                ToolbarMenu.Items.Add(mi);
+                shows.Add(Look(glyph, key, gestureId, () => _iconSize == s && _labelMode != LabelMode.Only,
+                    // Text-only has no icon to size. Gray the choice rather than hiding it.
+                    () => _labelMode != LabelMode.Only, () => SetIconSize(s)));
             }
-
-            ToolbarMenu.Items.Add(new Separator());
-
-            foreach (var (mode, key, gestureId) in LabelModes)
+            var captions = new List<FamilyTile>();
+            foreach (var (mode, key, gestureId, glyph) in LabelModes)
             {
-                var mi = new MenuItem
-                {
-                    Header = Loc(key), Tag = mode, IsCheckable = true, IsChecked = mode == _labelMode,
-                    StaysOpenOnClick = true, InputGestureText = MenuGesture(gestureId),
-                };
                 var m = mode;
-                mi.Click += (_, __) => SetLabelMode(m);
-                ToolbarMenu.Items.Add(mi);
+                var tile = Look(glyph, key, gestureId, () => _labelMode == m, () => true, () => SetLabelMode(m));
+                (m == LabelMode.Only ? shows : captions).Add(tile);
             }
+            var app = new List<FamilyTile>();
+            AddToolbarMenuTiles(app);
 
-            AddToolbarMenuRows(ToolbarMenu);
-            SyncToolbarMenuChecks();
+            var grid = CardBuilder.TileGroups(ToolbarMenu, Loc("Str_Toolbar_Header"), new[] { shows, captions, app });
+            ToolbarMenu.Items.Add(CardBuilder.Slot(grid, new Thickness(0)));
+            var buttons = LogicalDescendants(grid).OfType<Button>().ToList();
+            foreach (var (tile, on, enabled) in looks)
+                if (buttons.FirstOrDefault(b => System.Windows.Automation.AutomationProperties.GetName(b) == tile.Caption) is { } button)
+                    _toolbarMenuTiles.Add((button, on, enabled));
+        }
+
+        private static IEnumerable<DependencyObject> LogicalDescendants(DependencyObject root)
+        {
+            yield return root;
+            foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+                foreach (var d in LogicalDescendants(child)) yield return d;
         }
 
         private string MenuGesture(string id)
@@ -410,20 +434,16 @@ namespace KillerPDF.Shell
             return gesture;
         }
 
+        /// <summary>Brings the picker card in step with the settings: repaints the look tiles while it is
+        /// open, and rebuilds it while it is closed, so the app's tiles show their current state too.</summary>
         private void SyncToolbarMenuChecks()
         {
             if (ToolbarMenu is null) return;
-            foreach (var item in ToolbarMenu.Items)
+            if (!ToolbarMenu.IsOpen) { BuildToolbarMenu(); return; }
+            foreach (var (tile, on, enabled) in _toolbarMenuTiles)
             {
-                if (item is not MenuItem mi) continue;
-                if (mi.Tag is IconSize szTag)
-                {
-                    mi.IsChecked = szTag == _iconSize;
-                    // Text-only has no icon to size. Gray the choice rather than hiding it.
-                    mi.IsEnabled = _labelMode != LabelMode.Only;
-                }
-                else if (mi.Tag is LabelMode lbTag) mi.IsChecked = lbTag == _labelMode;
-                else SyncToolbarMenuRow(mi);
+                tile.IsEnabled = enabled();
+                CardBuilder.ShowTileState(tile, on());
             }
         }
 
