@@ -288,6 +288,24 @@ public sealed class PdfCffGlyphReaderTests
         return [1, 0, 4, 4, .. name, .. Index(dict), 0, 0, 0, 0, .. charset,
             .. charstrings, 141, 19, 0, 0];
     }
+    // Builds a name-keyed CFF with a custom Encoding table, as TeX Type1C subsets carry.
+    internal static byte[] BuildEncoded(string[] strings, byte[] encoding,
+        params (int Sid, byte[] Program)[] glyphs)
+    {
+        byte[] name = Index("Example"u8.ToArray());
+        byte[] stringIndex = strings.Length == 0 ? [0, 0]
+            : Index([.. strings.Select(value => System.Text.Encoding.ASCII.GetBytes(value))]);
+        byte[] charstrings = Index([[14], .. glyphs.Select(glyph => glyph.Program)]);
+        byte[] charset = [0, .. glyphs.SelectMany(glyph => new byte[] { (byte)(glyph.Sid >> 8), (byte)glyph.Sid })];
+        int charsetOffset = 4 + name.Length + Index(new byte[25]).Length + stringIndex.Length + 2;
+        int encodingOffset = charsetOffset + charset.Length;
+        int charstringsOffset = encodingOffset + encoding.Length;
+        int privateOffset = charstringsOffset + charstrings.Length;
+        byte[] dict = [.. Offset(charsetOffset), 15, .. Offset(encodingOffset), 16,
+            .. Offset(charstringsOffset), 17, 141, .. Offset(privateOffset), 18];
+        return [1, 0, 4, 4, .. name, .. Index(dict), .. stringIndex, 0, 0, .. charset,
+            .. encoding, .. charstrings, 141, 19, 0, 0];
+    }
     private static byte[] BuildPredefined(int charset, params byte[][] glyphs)
     {
         byte[] name = Index("Example"u8.ToArray());

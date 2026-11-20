@@ -143,7 +143,13 @@ public static class PdfFontResourceReader
                 if (document.UsesCompatibilityRecovery && encodingName is not null
                     && PdfFontTables.EncodingNames(encodingName) is null)
                     encodingName = null;
-                string[]? builtInEncoding = encodingName is null ? type1?.EncodingNames?.ToArray() : null;
+                // Without a named encoding the font program's own encoding applies: the Type 1
+                // encoding vector, or a CFF program's Encoding table (TeX symbol subsets put
+                // glyphs such as "element" at codes StandardEncoding names as digits).
+                string[]? builtInEncoding = encodingName is null
+                    ? type1?.EncodingNames?.ToArray()
+                        ?? (embedded is null && embeddedData is not null ? cff?.EncodingNames?.ToArray() : null)
+                    : null;
                 encodingName ??= standardMetricsName is "Symbol" ? "SymbolEncoding"
                     : standardMetricsName is "ZapfDingbats" ? "ZapfDingbatsEncoding" : "StandardEncoding";
                 glyphNames = builtInEncoding ?? PdfFontTables.EncodingNames(encodingName)

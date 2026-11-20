@@ -1140,6 +1140,67 @@ public sealed class PdfFontResourceReaderTests
         Assert.Equal(new PdfGlyphPoint(10, 220, true), contour.Points[^1]);
     }
 
+    private static byte[] CffGlyphAt(int x, int y) => [.. PdfCffGlyphReaderTests.Numbers(x, y), 21,
+        .. PdfCffGlyphReaderTests.Numbers(100, 0, 0, 200, -100, 0), 5, 14];
+
+    private static PdfGlyphPoint FirstPoint(PdfExtractionFont font, uint code) =>
+        Assert.Single(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(code)).Contours).Points[0];
+
+    [Fact]
+    public void EmbeddedCffWithoutEncodingDrawsThroughItsBuiltInEncoding()
+    {
+        // A TeX symbol subset: code 0x32 selects "element" through the CFF's own encoding,
+        // where StandardEncoding would name "two". Format 1 ranges plus a supplement.
+        byte[] encoding = [0x81, 1, 0x32, 1, 1, 0x41, 0x01, 0x87];
+        byte[] program = PdfCffGlyphReaderTests.BuildEncoded(["element"], encoding,
+            (391, CffGlyphAt(10, 20)), (34, CffGlyphAt(30, 40)));
+        var fontFile = new PdfStream(D(("Subtype", N("Type1C"))), program);
+        var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N("GAUWTO+CMSY10")),
+            ("FontDescriptor", D(("FontFile3", fontFile), ("Flags", new PdfInteger(4))))));
+
+        Assert.Equal(new PdfGlyphPoint(10, 20, true), FirstPoint(font, 0x32));
+        Assert.Equal(new PdfGlyphPoint(30, 40, true), FirstPoint(font, 0x33));
+        Assert.Equal(new PdfGlyphPoint(10, 20, true), FirstPoint(font, 0x41));
+        Assert.Equal("∈", Assert.Single(font.Decode(new byte[] { 0x32 })).Text);
+        Assert.Equal("A", Assert.Single(font.Decode(new byte[] { 0x33 })).Text);
+    }
+
+    [Fact]
+    public void EmbeddedCffWithoutEncodingKeepsToUnicodeForText()
+    {
+        byte[] program = PdfCffGlyphReaderTests.BuildEncoded([], [0, 1, 0x32],
+            (34, CffGlyphAt(10, 20)));
+        var fontFile = new PdfStream(D(("Subtype", N("Type1C"))), program);
+        PdfStream unicode = Stream(
+            "1 begincodespacerange <00> <FF> endcodespacerange "
+            + "1 beginbfchar <32> <2208> endbfchar");
+        var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N("KillerTest")),
+            ("ToUnicode", unicode), ("FontDescriptor", D(("FontFile3", fontFile)))));
+
+        Assert.Equal(new PdfGlyphPoint(10, 20, true), FirstPoint(font, 0x32));
+        Assert.Equal("∈", Assert.Single(font.Decode(new byte[] { 0x32 })).Text);
+    }
+
+    [Fact]
+    public void EmbeddedCffFontEncodingOverridesItsBuiltInEncoding()
+    {
+        // The built-in encoding puts "A" at 0x32, but WinAnsi names "two" there.
+        byte[] program = PdfCffGlyphReaderTests.BuildEncoded([], [0, 1, 0x32],
+            (34, CffGlyphAt(10, 20)), (19, CffGlyphAt(30, 40)));
+        var fontFile = new PdfStream(D(("Subtype", N("Type1C"))), program);
+        var named = Read(D(("Subtype", N("Type1")), ("BaseFont", N("KillerTest")),
+            ("Encoding", N("WinAnsiEncoding")), ("FontDescriptor", D(("FontFile3", fontFile)))));
+        var differences = Read(D(("Subtype", N("Type1")), ("BaseFont", N("KillerTest")),
+            ("Encoding", D(("BaseEncoding", N("StandardEncoding")),
+                ("Differences", new PdfArray([new PdfInteger(0x33), N("A")])))),
+            ("FontDescriptor", D(("FontFile3", fontFile)))));
+
+        Assert.Equal(new PdfGlyphPoint(30, 40, true), FirstPoint(named, 0x32));
+        Assert.Equal("2", Assert.Single(named.Decode(new byte[] { 0x32 })).Text);
+        Assert.Equal(new PdfGlyphPoint(30, 40, true), FirstPoint(differences, 0x32));
+        Assert.Equal(new PdfGlyphPoint(10, 20, true), FirstPoint(differences, 0x33));
+    }
+
     [Fact]
     public void EmbeddedCffComposesOmittedCompatibilityLigatures()
     {

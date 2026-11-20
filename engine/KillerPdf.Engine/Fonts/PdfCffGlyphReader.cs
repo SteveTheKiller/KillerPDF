@@ -41,6 +41,11 @@ public sealed class PdfCffGlyphReader
     public int FindUnicode(int scalar) => _unicode.GetValueOrDefault(scalar, -1);
     /// <summary>Gets the number of glyph programs.</summary>
     public int GlyphCount => _glyphs.Length;
+    /// <summary>
+    /// Gets the glyph names a custom CFF Encoding table assigns to the 256 single-byte codes,
+    /// or null when the font uses a predefined encoding or is CID-keyed.
+    /// </summary>
+    internal string[]? EncodingNames { get; }
     /// <summary>Gets a name-keyed glyph name, or null for CID glyphs and unsupported names.</summary>
     public string? GetGlyphName(int glyph) => glyph >= 0 && glyph < _charset.Length && !_cid ? Sid(_charset[glyph]) : null;
     /// <summary>Gets outline bounds in thousandths of text space, or null for empty or unsupported outlines.</summary>
@@ -130,6 +135,9 @@ public sealed class PdfCffGlyphReader
                     _unicode.TryAdd(scalar, i);
             }
         }
+        if (!_cid && dict.TryGetValue(16, out double[]? encodingOffset) && encodingOffset.Length == 1
+            && encodingOffset[0] is >= 2 and < int.MaxValue && Math.Truncate(encodingOffset[0]) == encodingOffset[0])
+            EncodingNames = BuiltInEncoding((int)encodingOffset[0]);
         var topMatrix = Matrix(dict, [0.001, 0, 0, 0.001, 0, 0]);
         if (_cid)
         {
@@ -223,6 +231,50 @@ public sealed class PdfCffGlyphReader
             for (int i = 0; i <= left; i++) result[glyph++] = first + i;
         }
         return result;
+    }
+
+    // Offsets 0 and 1 name the predefined Standard and Expert encodings. Standard maps codes to
+    // the glyphs whose names StandardEncoding gives, which name lookup already does, so only a
+    // custom table is returned. A malformed table is ignored rather than failing the font.
+    private string[]? BuiltInEncoding(int position)
+    {
+        if (position is 0 or 1) return null;
+        try
+        {
+            string[] names = [.. Enumerable.Repeat(".notdef", 256)];
+            int format = Byte(ref position);
+            if ((format & 0x7F) == 0)
+            {
+                int count = Byte(ref position);
+                for (int glyph = 1; glyph <= count; glyph++)
+                {
+                    int code = Byte(ref position);
+                    if (glyph < _charset.Length && Sid(_charset[glyph]) is string name) names[code] = name;
+                }
+            }
+            else if ((format & 0x7F) == 1)
+            {
+                int ranges = Byte(ref position), glyph = 1;
+                for (int i = 0; i < ranges; i++)
+                {
+                    int first = Byte(ref position), left = Byte(ref position);
+                    for (int code = first; code <= first + left && code < 256; code++, glyph++)
+                        if (glyph < _charset.Length && Sid(_charset[glyph]) is string name) names[code] = name;
+                }
+            }
+            else return null;
+            if ((format & 0x80) != 0)
+            {
+                int supplements = Byte(ref position);
+                for (int i = 0; i < supplements; i++)
+                {
+                    int code = Byte(ref position), sid = U16(ref position);
+                    if (Sid(sid) is string name) names[code] = name;
+                }
+            }
+            return names;
+        }
+        catch (FormatException) { return null; }
     }
 
     private int[] FdSelect(int position, int count, int fdCount)
