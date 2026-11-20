@@ -189,6 +189,7 @@
     <Compile Include="..\Services\PdfPrintSource.cs" Link="Services\PdfPrintSource.cs" />
     <Compile Include="..\Services\PrintRasterDocument.cs" Link="Services\PrintRasterDocument.cs" />
     <Compile Include="..\Services\PdfEngineBurn.cs" Link="Services\PdfEngineBurn.cs" />
+    <Compile Include="..\Services\StampPreviewMarkup.cs" Link="Services\StampPreviewMarkup.cs" />
     <Compile Include="..\Services\MacroSourceCopy.cs" Link="Services\MacroSourceCopy.cs" />
     <Compile Include="..\Services\PdfAnnotationImageSource.cs" Link="Services\PdfAnnotationImageSource.cs" />
     <Compile Include="..\Services\PrintCopy.cs" Link="Services\PrintCopy.cs" />

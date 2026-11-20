@@ -1,5 +1,6 @@
 using System;
 using KillerPDF.Controls;
+using KillerPDF.Services;
 using KillerPDF.Shell;
 using System.Collections.Generic;
 using System.Globalization;
@@ -24,6 +25,8 @@ namespace KillerPDF
         public StampSpec Result { get; private set; }
 
         private BitmapSource _pageSrc;
+        // The page's markup alone, drawn over the stamps as Apply orders them (#478); null when the page has none.
+        private BitmapSource? _markupSrc;
         private double _pageWpt, _pageHpt;
         private readonly int _pageCount;
         private int _pageIndex;
@@ -32,7 +35,7 @@ namespace KillerPDF
         private readonly StampSpec _spec;
         private readonly bool _hadExisting;   // dialog opened on a doc that already has stamps (#145)
         // Renders an arbitrary page for the preview stepper: returns that page's bitmap + size in points.
-        private readonly Func<int, (BitmapSource? src, double wpt, double hpt)>? _pageProvider;
+        private readonly Func<int, (BitmapSource? src, BitmapSource? markup, double wpt, double hpt)>? _pageProvider;
         private TextBlock _pageNavLabel = null!;
         private Button _prevArrow = null!, _nextArrow = null!;
         private System.Windows.Threading.DispatcherTimer? _navRenderTimer;
@@ -44,6 +47,8 @@ namespace KillerPDF
             Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 14, ShadowDepth = 3, Direction = 270, Opacity = 0.45 }
         };
         private readonly Canvas _overlay = new() { IsHitTestVisible = false, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        // Never hit-testable, so dragging a custom-placed stamp still reaches the stamp under the markup.
+        private readonly Image _markup = new() { IsHitTestVisible = false, Stretch = Stretch.Fill, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         private FrameworkElement _previewArea = null!;
         private Button _applyBtn = null!;
         private readonly System.Windows.Threading.DispatcherTimer _previewTimer;
@@ -87,11 +92,12 @@ namespace KillerPDF
             ("Str_Pos_Center", 1, 1), ("Str_Pos_Custom", -1, -1)
         ];
 
-        public StampWindow(Window owner, BitmapSource pageSrc, double pageWpt, double pageHpt,
+        public StampWindow(Window owner, BitmapSource pageSrc, BitmapSource? markupSrc, double pageWpt, double pageHpt,
                            int pageCount, int pageIndex, StampSpec? existing,
-                           Func<int, (BitmapSource? src, double wpt, double hpt)>? pageProvider = null)
+                           Func<int, (BitmapSource? src, BitmapSource? markup, double wpt, double hpt)>? pageProvider = null)
         {
             _pageSrc = pageSrc;
+            _markupSrc = markupSrc;
             _pageWpt = pageWpt;
             _pageHpt = pageHpt;
             _pageCount = pageCount;
@@ -164,8 +170,10 @@ namespace KillerPDF
             AddGrain(imageHost, owner, 0.05, cornerRadius: 0);
             RenderOptions.SetBitmapScalingMode(_preview, BitmapScalingMode.HighQuality);
             _preview.Source = _pageSrc;
-            imageHost.Children.Add(_preview);
-            imageHost.Children.Add(_overlay);
+            _markup.Source = _markupSrc;
+            RenderOptions.SetBitmapScalingMode(_markup, BitmapScalingMode.HighQuality);
+            // Page, then stamps, then the page's markup: the order Apply and save give them (#478).
+            StampPreviewMarkup.Stack(imageHost, _preview, _overlay, _markup);
             previewWrap.Child = imageHost;
             _previewArea = imageHost;
             var previewColumn = new DockPanel();
@@ -586,7 +594,7 @@ namespace KillerPDF
         private void RenderCurrentPage()
         {
             if (_pageProvider == null) return;
-            var (src, wpt, hpt) = _pageProvider(_pageIndex);
+            var (src, markup, wpt, hpt) = _pageProvider(_pageIndex);
             if (src == null)
             {
                 // The page number and arrows go back to the page still shown, so the preview's stamps match it.
@@ -595,8 +603,9 @@ namespace KillerPDF
                 return;
             }
             _shownPageIndex = _pageIndex;
-            _pageSrc = src; _pageWpt = wpt; _pageHpt = hpt;
+            _pageSrc = src; _markupSrc = markup; _pageWpt = wpt; _pageHpt = hpt;
             _preview.Source = src;
+            _markup.Source = markup;
             RenderPreview();
         }
 
@@ -617,6 +626,8 @@ namespace KillerPDF
             _preview.Height = fit.Height;
             _overlay.Width = fit.Width;
             _overlay.Height = fit.Height;
+            _markup.Width = fit.Width;
+            _markup.Height = fit.Height;
         }
 
         private static HashSet<int> ParseRange(string range, int pageCount)

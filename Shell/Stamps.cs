@@ -32,19 +32,20 @@ namespace KillerPDF.Shell
             if (_doc is null) return;
             int pageIdx = page ?? (PageList.SelectedIndex < 0 ? 0 : PageList.SelectedIndex);
             if (!TryBurnStampPreview(pageIdx, this, out string? burned)) return;
-            var src = RenderPageBitmap(pageIdx, 1100, burned);
-            if (src is null) { SetStatus(Loc("Str_Tf_NoRender")); return; }
-
             PdfEngineDocumentSession session = EnsureEngineDocumentSession();
             var (pwpt, phpt) = session.VisualPageSize(pageIdx, _pageRotations);
+            var (src, markup) = RenderStampPreviewLayers(pageIdx, burned, pwpt, phpt);
+            if (src is null) { SetStatus(Loc("Str_Tf_NoRender")); return; }
+
             StampWindow? win = null;
-            win = new StampWindow(this, src, pwpt, phpt, session.PageCount, pageIdx, _docStampSpec,
+            win = new StampWindow(this, src, markup, pwpt, phpt, session.PageCount, pageIdx, _docStampSpec,
                 idx =>   // page-render callback for the preview stepper
                 {
                     var (w, h) = EnsureEngineDocumentSession().VisualPageSize(idx, _pageRotations);
                     // A refused burn has been reported; no bitmap keeps the preview on the page it shows.
-                    if (!TryBurnStampPreview(idx, win ?? (Window)this, out string? stepBurned)) return (null, w, h);
-                    return (RenderPageBitmap(idx, 1100, stepBurned), w, h);
+                    if (!TryBurnStampPreview(idx, win ?? (Window)this, out string? stepBurned)) return (null, null, w, h);
+                    var (stepSrc, stepMarkup) = RenderStampPreviewLayers(idx, stepBurned, w, h);
+                    return (stepSrc, stepMarkup, w, h);
                 });
             win.ShowDialog();
             if (win.Applied) ApplyStampSpec(win.Result);
@@ -66,6 +67,32 @@ namespace KillerPDF.Shell
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
+        }
+
+        // The preview's bottom and top layers: the page with only its highlighter marks, and the rest of the
+        // markup alone, so the stamps sit between them as Apply puts them (#478). The burn above has just saved
+        // the working copy to _currentFile, so that file shows the page's current state without its markup.
+        // Layers that cannot be drawn fall back to the page with all its markup burned in and no top layer.
+        private (System.Windows.Media.Imaging.BitmapSource? Page, System.Windows.Media.Imaging.BitmapSource? Markup)
+            RenderStampPreviewLayers(int pageIdx, string? burned, double visualWidth, double visualHeight)
+        {
+            if (burned is null || _currentFile is null || !_annotations.TryGetValue(pageIdx, out var list) || list.Count == 0)
+                return (RenderPageBitmap(pageIdx, 1100, burned), null);
+            System.Windows.Media.Imaging.BitmapSource? markup;
+            string? pageLayer = null;
+            try
+            {
+                (int w, int h)? dims = _renderDims.TryGetValue(pageIdx, out var size) ? size : null;
+                markup = StampPreviewMarkup.Render(list, dims, visualWidth, visualHeight, 1100);
+                string target = App.MakeTempFile("xfstamp");
+                if (StampPreviewMarkup.BurnPageLayer(_currentFile, target, pageIdx, _annotations, _renderDims, _pageRotations))
+                    pageLayer = target;
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                return (RenderPageBitmap(pageIdx, 1100, burned), null);
+            }
+            return (RenderPageBitmap(pageIdx, 1100, pageLayer), markup);
         }
 
         private void ApplyStampSpec(StampSpec spec)
