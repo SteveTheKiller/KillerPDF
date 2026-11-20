@@ -1514,6 +1514,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Luôn kiểm tra khi khởi động</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">Không thể chuẩn bị bản cập nhật. Các tệp PDF đã lưu của bạn không bị thay đổi. Vui lòng thử lại.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF không thể mở lại phiên làm việc trước đó của bạn. Các tệp PDF đã lưu của bạn không bị thay đổi.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF cần Windows 10 trở lên. Một số biểu tượng và tính năng sẽ không hoạt động trên phiên bản Windows này.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Xóa toàn bộ dữ liệu</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Thao tác này sẽ xóa tất cả cài đặt đã lưu, gói ngôn ngữ OCR đã tải xuống và các tệp tạm thời.&#10;&#10;Các tệp PDF của bạn sẽ không bị ảnh hưởng. Bạn có muốn tiếp tục không?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Đã xóa cài đặt, gói ngôn ngữ và tệp tạm thời.&#10;&#10;Hãy khởi động lại KillerPDF để hoàn tất việc dọn dẹp mọi tệp vẫn đang được sử dụng trong phiên này.</sys:String>

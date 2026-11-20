@@ -1514,6 +1514,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Sempre verificar ao iniciar</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">Não foi possível preparar a atualização. Seus arquivos PDF salvos não foram alterados. Tente novamente.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">O KillerPDF não conseguiu reabrir sua sessão anterior. Seus arquivos PDF salvos não foram alterados.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">O KillerPDF precisa do Windows 10 ou posterior. Alguns ícones e recursos não funcionarão nesta versão do Windows.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Apagar todos os dados</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Isso excluirá todas as configurações salvas, os pacotes de idioma de OCR baixados e os arquivos temporários.&#10;&#10;Seus arquivos PDF não serão afetados. Continuar?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">As configurações, os pacotes de idioma e os arquivos temporários foram apagados.&#10;&#10;Reinicie o KillerPDF para concluir a limpeza de quaisquer arquivos ainda em uso nesta sessão.</sys:String>

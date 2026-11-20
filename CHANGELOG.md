@@ -80,6 +80,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Right-clicking the toolbar opens a card of tiles in three rows: Small icons, Large icons and Text only; No text, Text beside icons and Text under icons; then Customize toolbar, Hide toolbar and the tool menu placement. The current choices are filled, and the card stays open while you try them.
 - The sidebar's right-click card shows Left, Right, Top and Bottom as a row of four smaller tiles with the current side filled, instead of a Sidebar submenu. Each side has its own shortcut, Ctrl+Alt+Shift with the arrow pointing at that side, in place of Shift+F9 stepping to the next side, and the keyboard map gains a Ctrl+Alt+Shift layer to show them. In a two-page view, Two-page thumbnails is an on/off tile above them. On a card with page or document actions, a small Sidebar label heads this section. Right-clicking blank space on the sidebar rail shows only these sidebar options. A long shortcut on a card tile splits onto two lines instead of widening the tile, so the four sides fit a narrower card.
 - A filled tile's text stays readable in every theme, including Blood's gradient.
+- KillerPDF needs Windows 10 or later, and on Windows 7, 8 or 8.1 it now says so when it opens instead of showing empty boxes where its icons belong. (#509)
 
 ### Added
 

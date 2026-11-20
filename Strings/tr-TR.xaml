@@ -1495,6 +1495,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Başlangıçta her zaman güncellemeleri denetle</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">Güncelleme hazırlanamadı. Kaydedilmiş PDF dosyalarınız değişmedi. Lütfen tekrar deneyin.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF önceki çalışma oturumunuzu yeniden açamadı. Kaydedilmiş PDF dosyalarınız değişmedi.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF, Windows 10 veya daha yeni bir sürüm gerektirir. Bu Windows sürümünde bazı simgeler ve özellikler çalışmayacaktır.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Tüm verileri temizle</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Bu işlem kayıtlı tüm ayarları, indirilen OCR dil paketlerini ve geçici dosyaları siler.&#10;&#10;PDF dosyalarınız etkilenmez. Devam edilsin mi?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Ayarlar, dil paketleri ve geçici dosyalar temizlendi.&#10;&#10;Bu oturumda hâlâ kullanımda olan dosyaların temizlenmesini tamamlamak için KillerPDF'i yeniden başlatın.</sys:String>

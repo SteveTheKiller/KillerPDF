@@ -607,6 +607,14 @@ namespace KillerPDF.Shell
                 SyncSidebarToDocState(hasDoc: _doc != null, startup: true);
                 Dispatcher.BeginInvoke(new Action(() => _about.CheckOnStartup()),
                     System.Windows.Threading.DispatcherPriority.Background);
+                // #509: below Windows 10 the icon font is missing and .NET 10 is unsupported, so
+                // every launch says so once; a torn-out tab's window does not repeat it. The
+                // themed dialog sets no Segoe MDL2 glyph with the family close styles in place
+                // (its X is U+2715 or the drawn 98SE path, its notice mark a plain "!"). OK only
+                // closes it; the app keeps running.
+                if (Services.LegacyWindowsNotice.TryClaim(Environment.OSVersion.Version, Services.LaunchSurface.Window))
+                    Dispatcher.BeginInvoke(new Action(() => KillerDialog.Show(this, Loc("Str_LegacyWindowsNotice"),
+                        image: MessageBoxImage.Warning)), System.Windows.Threading.DispatcherPriority.Background);
             };
         }
 

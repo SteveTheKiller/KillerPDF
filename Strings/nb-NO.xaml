@@ -1514,6 +1514,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Se alltid etter ved oppstart</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">Oppdateringen kunne ikke klargjøres. De lagrede PDF-filene dine er uendret. Prøv igjen.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF kunne ikke åpne den forrige økten din på nytt. De lagrede PDF-filene dine er uendret.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF krever Windows 10 eller nyere. Noen ikoner og funksjoner vil ikke fungere i denne versjonen av Windows.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Tøm alle data</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Dette sletter alle lagrede innstillinger, nedlastede OCR-språkpakker og midlertidige filer.&#10;&#10;PDF-filene dine påvirkes ikke. Vil du fortsette?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Innstillinger, språkpakker og midlertidige filer er tømt.&#10;&#10;Start KillerPDF på nytt for å fullføre tømmingen av filer som fortsatt er i bruk i denne økten.</sys:String>

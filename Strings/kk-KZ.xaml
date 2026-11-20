@@ -1413,6 +1413,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Іске қосылғанда жаңартуларды әрдайым тексеру</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">Жаңартуды дайындау мүмкін болмады. Сақталған PDF файлдарыңыз өзгерген жоқ. Қайталап көріңіз.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF алдыңғы жұмыс сеансын қайта аша алмады. Сақталған PDF файлдарыңыз өзгерген жоқ.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF үшін Windows 10 немесе одан кейінгі нұсқасы қажет. Windows-тың бұл нұсқасында кейбір белгішелер мен мүмкіндіктер жұмыс істемейді.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Барлық деректерді тазалау</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Бұл барлық сақталған параметрлерді, жүктелген OCR тіл бумаларын және уақытша файлдарды жояды.&#10;&#10;PDF файлдарыңызға әсер етпейді. Жалғастыру керек пе?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Параметрлер, тіл бумалары және уақытша файлдар тазаланды.&#10;&#10;Осы сеанста әлі қолданылып жатқан файлдарды аяқтау үшін KillerPDF-ті қайта іске қосыңыз.</sys:String>

@@ -1500,6 +1500,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Vždy kontrolovat aktualizace při spuštění</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">Aktualizaci se nepodařilo připravit. Vaše uložené soubory PDF zůstaly beze změny. Zkuste to prosím znovu.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF nemohl znovu otevřít vaši předchozí relaci. Vaše uložené soubory PDF zůstaly beze změny.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF vyžaduje Windows 10 nebo novější. Některé ikony a funkce v této verzi Windows nebudou fungovat.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Vymazat všechna data</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Tímto se smažou všechna uložená nastavení, stažené jazykové balíčky OCR a dočasné soubory.&#10;&#10;Vašich souborů PDF se to netýká. Pokračovat?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Nastavení, jazykové balíčky a dočasné soubory byly vymazány.&#10;&#10;Restartujte KillerPDF, aby se dokončilo mazání souborů, které se v této relaci stále používají.</sys:String>

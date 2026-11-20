@@ -1495,6 +1495,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">অ্যাপ চালু হলে সর্বদা আপডেট পরীক্ষা করুন</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">আপডেটটি প্রস্তুত করা যায়নি। আপনার সংরক্ষিত PDF ফাইলগুলো অপরিবর্তিত আছে। অনুগ্রহ করে আবার চেষ্টা করুন।</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF আপনার আগের কাজের সেশনটি আবার খুলতে পারেনি। আপনার সংরক্ষিত PDF ফাইলগুলো অপরিবর্তিত আছে।</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF চালাতে Windows 10 বা তার পরের সংস্করণ লাগে। Windows-এর এই সংস্করণে কিছু আইকন ও ফিচার কাজ করবে না।</sys:String>
     <sys:String x:Key="Str_ClearAllData">সব ডেটা মুছুন</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">এটি সংরক্ষিত সব সেটিংস, ডাউনলোড করা OCR ভাষা প্যাক এবং অস্থায়ী ফাইল মুছে ফেলবে।&#10;&#10;আপনার PDF ফাইলগুলি প্রভাবিত হবে না। চালিয়ে যাবেন?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">সেটিংস, ভাষা প্যাক এবং অস্থায়ী ফাইল মুছে ফেলা হয়েছে।&#10;&#10;এই সেশনে এখনও ব্যবহৃত ফাইলগুলি মোছা সম্পূর্ণ করতে KillerPDF পুনরায় চালু করুন।</sys:String>

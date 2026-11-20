@@ -1524,6 +1524,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_About_UpdateNotVerified">The downloaded update could not be verified and was discarded. Nothing was installed.</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">The update couldn't be prepared. Your saved PDFs are unchanged. Please try again.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF couldn't reopen your previous session. Your saved PDF files are unchanged.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF needs Windows 10 or later. Some icons and features will not work on this version of Windows.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Clear all Data</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">This will delete all saved settings, downloaded OCR language packs, and temporary files.&#10;&#10;Your PDF files are not affected. Continue?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Settings, language packs, and temp files were cleared.&#10;&#10;Restart KillerPDF to finish clearing any files still in use this session.</sys:String>

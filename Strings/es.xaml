@@ -1495,6 +1495,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Buscar siempre actualizaciones al iniciar</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">No se pudo preparar la actualización. Tus archivos PDF guardados no han cambiado. Inténtalo de nuevo.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF no pudo volver a abrir tu sesión anterior. Tus archivos PDF guardados no han cambiado.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF necesita Windows 10 o posterior. Algunos iconos y funciones no funcionarán en esta versión de Windows.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Borrar todos los datos</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Esto borrará todos los ajustes guardados, los paquetes de idioma de OCR descargados y los archivos temporales.&#10;&#10;Tus archivos PDF no se ven afectados. ¿Continuar?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Se borraron los ajustes, los paquetes de idioma y los archivos temporales.&#10;&#10;Reinicia KillerPDF para terminar de borrar los archivos que sigan en uso en esta sesión.</sys:String>

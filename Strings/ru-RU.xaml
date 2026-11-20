@@ -1517,6 +1517,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Всегда проверять обновления при запуске</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">Не удалось подготовить обновление. Ваши сохранённые PDF-файлы не изменены. Попробуйте ещё раз.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF не удалось снова открыть предыдущий сеанс работы. Ваши сохранённые PDF-файлы не изменены.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">Для KillerPDF нужна Windows 10 или более поздняя версия. В этой версии Windows некоторые значки и функции работать не будут.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Очистить все данные</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">При этом будут удалены все сохраненные настройки, загруженные языковые пакеты распознавания текста и временные файлы.&#10;&#10;Это не повлияет на ваши PDF-файлы. Продолжить?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Настройки, языковые пакеты и временные файлы были удалены.&#10;&#10;Перезапустите KillerPDF, чтобы завершить очистку всех файлов, которые все еще используются в этом сеансе.</sys:String>

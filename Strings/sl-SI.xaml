@@ -1411,6 +1411,7 @@
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Vedno preveri ob zagonu</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">Posodobitve ni bilo mogoče pripraviti. Vaše shranjene datoteke PDF so nespremenjene. Poskusite znova.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF ni mogel znova odpreti vaše prejšnje seje. Vaše shranjene datoteke PDF so nespremenjene.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF potrebuje Windows 10 ali novejši. Nekatere ikone in funkcije v tej različici sistema Windows ne bodo delovale.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Počisti vse podatke</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm">To izbriše vse shranjene nastavitve, prenesene jezikovne pakete OCR in začasne datoteke.&#10;&#10;Vaše datoteke PDF ostanejo nedotaknjene. Želite nadaljevati?</sys:String>
     <sys:String x:Key="Str_ClearDataDone">Nastavitve, jezikovni paketi in začasne datoteke so počiščeni.&#10;&#10;Znova zaženite KillerPDF, da dokončate čiščenje datotek, ki so v tej seji še v uporabi.</sys:String>

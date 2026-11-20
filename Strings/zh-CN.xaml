@@ -1499,6 +1499,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">启动时始终检查更新</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">无法准备更新。已保存的 PDF 文件未发生更改。请重试。</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF 无法重新打开上次的工作会话。已保存的 PDF 文件未发生更改。</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF 需要 Windows 10 或更高版本。在此版本的 Windows 上，部分图标和功能将无法使用。</sys:String>
     <sys:String x:Key="Str_ClearAllData">清除所有数据</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">这将删除所有已保存的设置、已下载的 OCR 语言包和临时文件。&#10;&#10;您的 PDF 文件不受影响。是否继续?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">设置、语言包和临时文件已清除。&#10;&#10;重启 KillerPDF 以完成清除本次会话中仍在使用的文件。</sys:String>

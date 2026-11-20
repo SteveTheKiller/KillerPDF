@@ -1504,6 +1504,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Beim Start immer nach Updates suchen</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">Das Update konnte nicht vorbereitet werden. Ihre gespeicherten PDF-Dateien sind unverändert. Bitte versuchen Sie es erneut.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF konnte Ihre vorherige Sitzung nicht wieder öffnen. Ihre gespeicherten PDF-Dateien sind unverändert.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF benötigt Windows 10 oder neuer. Einige Symbole und Funktionen funktionieren unter dieser Windows-Version nicht.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Alle Daten löschen</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Dies löscht alle gespeicherten Einstellungen, heruntergeladenen OCR-Sprachpakete und temporären Dateien.&#10;&#10;Ihre PDF-Dateien sind nicht betroffen. Fortfahren?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Einstellungen, Sprachpakete und temporäre Dateien wurden gelöscht.&#10;&#10;Starten Sie KillerPDF neu, um Dateien zu entfernen, die in dieser Sitzung noch verwendet werden.</sys:String>

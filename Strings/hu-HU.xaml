@@ -1502,6 +1502,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Mindig keressen frissítéseket indításkor</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">Nem sikerült előkészíteni a frissítést. A mentett PDF-fájljaid változatlanok. Próbáld újra.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">A KillerPDF nem tudta újra megnyitni az előző munkamenetedet. A mentett PDF-fájljaid változatlanok.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">A KillerPDF futtatásához Windows 10 vagy újabb szükséges. A Windows ezen verzióján egyes ikonok és funkciók nem fognak működni.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Minden adat törlése</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Ez törli az összes mentett beállítást, a letöltött OCR-nyelvi csomagokat és az ideiglenes fájlokat.&#10;&#10;A PDF-fájljaidat nem érinti. Folytatod?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">A beállítások, a nyelvi csomagok és az ideiglenes fájlok törölve lettek.&#10;&#10;Indítsd újra a KillerPDF-et a munkamenetben még használt fájlok törlésének befejezéséhez.</sys:String>

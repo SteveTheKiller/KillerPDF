@@ -1514,6 +1514,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_About_AlwaysCheckOnStartup">Toujours rechercher les mises à jour au démarrage</sys:String>
     <sys:String x:Key="Str_UpdateRestartPrepareFailed">La mise à jour n'a pas pu être préparée. Vos fichiers PDF enregistrés sont inchangés. Veuillez réessayer.</sys:String>
     <sys:String x:Key="Str_UpdateRestartRestoreFailed">KillerPDF n'a pas pu rouvrir votre session précédente. Vos fichiers PDF enregistrés sont inchangés.</sys:String>
+    <sys:String x:Key="Str_LegacyWindowsNotice">KillerPDF nécessite Windows 10 ou une version ultérieure. Certaines icônes et fonctionnalités ne fonctionneront pas sur cette version de Windows.</sys:String>
     <sys:String x:Key="Str_ClearAllData">Effacer toutes les données</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Cela supprimera tous les paramètres enregistrés, les modules linguistiques OCR téléchargés et les fichiers temporaires.&#10;&#10;Vos fichiers PDF ne sont pas affectés. Continuer ?</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Les paramètres, les modules linguistiques et les fichiers temporaires ont été effacés.&#10;&#10;Redémarrez KillerPDF pour terminer la suppression des fichiers encore utilisés durant cette session.</sys:String>
