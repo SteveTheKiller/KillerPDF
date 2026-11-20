@@ -978,7 +978,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Rail_Flip">Ikonok áthelyezése a másik oldalra</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Oldalsáv be-/kikapcsolása</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Eszköztár megjelenése</sys:String>
-    <sys:String x:Key="Str_KS_SidebarSide">Oldalsáv mozgatása a következő szélre</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Oldalsáv mozgatása balra, jobbra, felülre vagy alulra</sys:String>
     <sys:String x:Key="Str_KS_SidebarIcons">Sávikonok áthelyezése a másik végére</sys:String>
     <sys:String x:Key="Str_KS_CycleView">Nézetmódok váltogatása</sys:String>
     <sys:String x:Key="Str_TT_ViewMode">Nézet mód</sys:String>

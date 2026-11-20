@@ -412,9 +412,6 @@ namespace KillerPDF.Shell
             ApplySidebarSide();
         }
 
-        // Shift+F9 (pairs with F9, the sidebar collapse toggle): the next side in the menu's order.
-        private void ToggleSidebarSide() => SelectSidebarSide(_sidebarSide.Next());
-
         // ── Top and bottom strips: the rail, the header and the page list turn horizontal ──
 
         private bool _sidebarStripLayout;             // what the rail and page list are laid out for now

@@ -182,6 +182,22 @@ namespace KillerPDF.Shell
                 return;
             }
 
+            // Ctrl+Alt+Shift+arrow puts the sidebar on that side; the arrow points where it goes.
+            if (mods == (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift) && !_fullScreen
+                && (key == Key.System ? systemKey : key) is Key.Left or Key.Right or Key.Up or Key.Down)
+            {
+                if (!e.IsRepeat)
+                    SelectSidebarSide((key == Key.System ? systemKey : key) switch
+                    {
+                        Key.Left => SidebarSide.Left,
+                        Key.Right => SidebarSide.Right,
+                        Key.Up => SidebarSide.Top,
+                        _ => SidebarSide.Bottom,
+                    });
+                e.Handled = true;
+                return;
+            }
+
             if (mods == (ModifierKeys.Alt | ModifierKeys.Shift)
                 && (key == Key.System ? systemKey : key) is Key.Up or Key.Down)
             {
@@ -627,11 +643,6 @@ namespace KillerPDF.Shell
                     case Key.D5: SetLabelMode(LabelMode.Under); break;
                     case Key.D6: SetLabelMode(LabelMode.Only);  break;
                 }
-                e.Handled = true;
-            }
-            else if (key == Key.F9 && mods == ModifierKeys.Shift && !_fullScreen)
-            {
-                ToggleSidebarSide();   // the next side, pairing with F9's collapse toggle
                 e.Handled = true;
             }
             else if (key == Key.N && mods == ModifierKeys.Control)

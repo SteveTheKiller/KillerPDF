@@ -17,7 +17,7 @@ namespace KillerPDF
     // ============================================================
 
     /// <summary>Which modifier layer of the keyboard map a cap sits on.</summary>
-    internal enum KbLayer { Base, Ctrl, CtrlShift, Shift, Alt, AltShift }
+    internal enum KbLayer { Base, Ctrl, CtrlShift, Shift, Alt, AltShift, CtrlAltShift }
 
     /// <summary>
     /// One physical key the binding lights on the map. LabelKey overrides the row's description for
@@ -88,6 +88,7 @@ namespace KillerPDF
                     "Shift" => KbLayer.Shift,
                     "Alt" => KbLayer.Alt,
                     "AltShift" => KbLayer.AltShift,
+                    "CtrlAltShift" => KbLayer.CtrlAltShift,
                     _ => KbLayer.Base,
                 },
                 id[(colon + 1)..], labelKey);
@@ -296,7 +297,11 @@ namespace KillerPDF
             B("%middledrag%",  "Str_KS_PanView",     "Nav"),
             B("%spacedrag%",   "Str_KS_PanView",     "Nav", Cap("Space")),
             B("F9",            "Str_KS_ToggleSidebar","Nav", Cap("F9")),
-            B("%shift%+F9",    "Str_KS_SidebarSide", "Nav", Cap("Shift:F9")),
+            // One chord per side, the arrow pointing where the sidebar goes (Steve 2026-11-19). The tab bar's
+            // Alt+Shift+Up/Down place things the same way, one modifier lighter.
+            B("%ctrl%+%alt%+%shift%+← / → / ↑ / ↓", "Str_KS_SidebarSide", "Nav",
+              Cap("CtrlAltShift:Left", "Str_Sidebar_Left"), Cap("CtrlAltShift:Right", "Str_Sidebar_Right"),
+              Cap("CtrlAltShift:Up", "Str_Sidebar_Top"), Cap("CtrlAltShift:Down", "Str_Sidebar_Bottom")),
             B("%ctrl%+%tab%",  "Str_KS_NextTab",     "Nav", Cap("Ctrl:Tab")),
             B("%ctrl%+%shift%+%tab%", "Str_KS_PrevTab", "Nav", Cap("CtrlShift:Tab")),
             B("%alt%+%shift%+Up", "Str_Layout_TabsTop", "View", Cap("AltShift:Up")),

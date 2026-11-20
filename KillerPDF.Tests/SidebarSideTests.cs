@@ -13,7 +13,7 @@ namespace KillerPDF.Tests
         [InlineData("Right", "Top")]
         [InlineData("Top", "Bottom")]
         [InlineData("Bottom", "Left")]
-        public void ShiftF9StepsDownTheMenuAndWraps(string from, string to)
+        public void NextStepsDownTheMenuAndWraps(string from, string to)
             => Assert.Equal(Enum.Parse<SidebarSide>(to), Enum.Parse<SidebarSide>(from).Next());
 
         [Theory]

@@ -881,7 +881,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Rail_Flip">Белгішелерді екінші жаққа жылжыту</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Бүйірлік панельді ауыстыру</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Құралдар тақтасының түрі</sys:String>
-    <sys:String x:Key="Str_KS_SidebarSide">Бүйірлік панельді келесі шетке жылжыту</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Бүйірлік панельді солға, оңға, жоғарыға не төменге жылжыту</sys:String>
     <sys:String x:Key="Str_KS_SidebarIcons">Жолақ белгішелерін екінші шетке жылжыту</sys:String>
     <sys:String x:Key="Str_KS_CycleView">Көрініс режимдерін ауыстыру</sys:String>
     <sys:String x:Key="Str_TT_ViewMode">Көрініс режимі</sys:String>

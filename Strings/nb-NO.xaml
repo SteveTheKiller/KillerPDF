@@ -978,7 +978,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Rail_Flip">Flytt ikonene til den andre siden</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Vis/skjul sidepanelet</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Verktøylinjeutseende</sys:String>
-    <sys:String x:Key="Str_KS_SidebarSide">Flytt sidepanelet til neste kant</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Flytt sidepanelet til venstre, høyre, topp eller bunn</sys:String>
     <sys:String x:Key="Str_KS_SidebarIcons">Flytt skinneikonene til den andre enden</sys:String>
     <sys:String x:Key="Str_KS_CycleView">Bytt mellom visningsmodi</sys:String>
     <sys:String x:Key="Str_TT_ViewMode">Visningsmodus</sys:String>

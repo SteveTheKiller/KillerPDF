@@ -6,22 +6,22 @@ using Xunit;
 namespace KillerPDF.Tests;
 
 /// <summary>
-/// Full screen hides the sidebar and zeroes its column. F9 and Shift+F9 still reached the sidebar
+/// Full screen hides the sidebar and zeroes its column. F9 and the side keys still reached the sidebar
 /// toggle and the side switch, which opened a blank column over the page and flipped the collapsed
 /// state behind the full-screen view, so leaving full screen restored an inconsistent layout until
-/// F9 was pressed again (BF-S007). Both keys are ignored while full screen is on.
+/// F9 was pressed again (BF-S007). Both are ignored while full screen is on; the side keys are
+/// Ctrl+Alt+Shift+arrows now (Steve 2026-11-19).
 /// </summary>
 public sealed class SidebarFullScreenShortcutTests
 {
-    [Theory]
-    [InlineData("ModifierKeys.Shift")]
-    [InlineData("ModifierKeys.None")]
-    public void TheSidebarKeysAreIgnoredInFullScreen(string modifiers)
+    [Fact]
+    public void TheSidebarKeysAreIgnoredInFullScreen()
     {
         string source = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Shell", "KeyboardShortcuts.cs"));
-        Match branch = Regex.Match(source, @"else if \(key == Key\.F9 && mods == " + Regex.Escape(modifiers) + @"([^)]*)\)");
-        Assert.True(branch.Success, $"The F9 branch for {modifiers} was not found.");
-        Assert.Contains("&& !_fullScreen", branch.Groups[1].Value);
+        Match toggle = Regex.Match(source, @"else if \(key == Key\.F9 && mods == ModifierKeys\.None([^)]*)\)");
+        Assert.True(toggle.Success, "The F9 branch was not found.");
+        Assert.Contains("&& !_fullScreen", toggle.Groups[1].Value);
+        Assert.Contains("if (mods == (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift) && !_fullScreen", source);
     }
 
     private static string FindRepositoryRoot()

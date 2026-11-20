@@ -979,7 +979,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Rail_Flip">Move icons to the other side</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Toggle sidebar</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Toolbar appearance</sys:String>
-    <sys:String x:Key="Str_KS_SidebarSide">Move sidebar to the next side</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Move sidebar left, right, top or bottom</sys:String>
     <sys:String x:Key="Str_KS_SidebarIcons">Move the rail icons to the other end</sys:String>
     <sys:String x:Key="Str_KS_CycleView">Cycle view modes</sys:String>
     <sys:String x:Key="Str_TT_ViewMode">View mode</sys:String>

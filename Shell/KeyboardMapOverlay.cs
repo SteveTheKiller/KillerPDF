@@ -63,7 +63,7 @@ namespace KillerPDF.Shell
 
         private static readonly KbLayer[] KbLayerButtons =
         [
-            KbLayer.Base, KbLayer.Ctrl, KbLayer.CtrlShift, KbLayer.Shift, KbLayer.Alt, KbLayer.AltShift,
+            KbLayer.Base, KbLayer.Ctrl, KbLayer.CtrlShift, KbLayer.Shift, KbLayer.Alt, KbLayer.AltShift, KbLayer.CtrlAltShift,
         ];
 
         private static string KbLayerCaption(KbLayer layer) => layer switch
@@ -73,6 +73,7 @@ namespace KillerPDF.Shell
             KbLayer.Shift => Loc("Str_Key_Shift").ToUpperInvariant(),
             KbLayer.Alt => Loc("Str_Key_Alt").ToUpperInvariant(),
             KbLayer.AltShift => $"{Loc("Str_Key_Alt").ToUpperInvariant()}+{Loc("Str_Key_Shift").ToUpperInvariant()}",
+            KbLayer.CtrlAltShift => $"{Loc("Str_Key_Ctrl").ToUpperInvariant()}+{Loc("Str_Key_Alt").ToUpperInvariant()}+{Loc("Str_Key_Shift").ToUpperInvariant()}",
             _ => Loc("Str_KS_LayerBase").ToUpperInvariant(),
         };
 
@@ -100,6 +101,7 @@ namespace KillerPDF.Shell
             [KbLayer.CtrlShift] = ["Ctrl", "RCtrl", "Shift", "RShift"],
             [KbLayer.Shift] = ["Shift", "RShift"], [KbLayer.Alt] = ["Alt", "RAlt"],
             [KbLayer.AltShift] = ["Alt", "RAlt", "Shift", "RShift"],
+            [KbLayer.CtrlAltShift] = ["Ctrl", "RCtrl", "Alt", "RAlt", "Shift", "RShift"],
         };
 
         private static string KbSectionKeyFor(string cat) => ShortcutTable.SectionTitleKey(cat);
@@ -379,7 +381,8 @@ namespace KillerPDF.Shell
         {
             if (!_kbBuilt || ShortcutKeyboardHost.Visibility != Visibility.Visible) return;
             var m = Keyboard.Modifiers;
-            var layer = m.HasFlag(ModifierKeys.Control) && m.HasFlag(ModifierKeys.Shift) ? KbLayer.CtrlShift
+            var layer = m.HasFlag(ModifierKeys.Control) && m.HasFlag(ModifierKeys.Alt) && m.HasFlag(ModifierKeys.Shift) ? KbLayer.CtrlAltShift
+                      : m.HasFlag(ModifierKeys.Control) && m.HasFlag(ModifierKeys.Shift) ? KbLayer.CtrlShift
                       : m.HasFlag(ModifierKeys.Control) ? KbLayer.Ctrl
                       : m.HasFlag(ModifierKeys.Alt) && m.HasFlag(ModifierKeys.Shift) ? KbLayer.AltShift
                       : m.HasFlag(ModifierKeys.Alt) ? KbLayer.Alt

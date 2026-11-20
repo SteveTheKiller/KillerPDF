@@ -72,6 +72,7 @@ namespace KillerPDF.Shell
             ModifierKeys.Shift => KbLayer.Shift,
             ModifierKeys.Alt => KbLayer.Alt,
             ModifierKeys.Alt | ModifierKeys.Shift => KbLayer.AltShift,
+            ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift => KbLayer.CtrlAltShift,
             _ => null
         };
 
@@ -82,6 +83,7 @@ namespace KillerPDF.Shell
             KbLayer.Shift => ModifierKeys.Shift,
             KbLayer.Alt => ModifierKeys.Alt,
             KbLayer.AltShift => ModifierKeys.Alt | ModifierKeys.Shift,
+            KbLayer.CtrlAltShift => ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift,
             _ => ModifierKeys.None
         };
 

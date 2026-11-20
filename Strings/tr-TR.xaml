@@ -890,7 +890,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Rail_Flip">Simgeleri diğer tarafa taşı</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Kenar çubuğunu aç/kapat</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Araç çubuğu görünümü</sys:String>
-    <sys:String x:Key="Str_KS_SidebarSide">Kenar çubuğunu sonraki kenara taşı</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Kenar çubuğunu sola, sağa, üste veya alta taşı</sys:String>
     <sys:String x:Key="Str_KS_SidebarIcons">Ray simgelerini diğer uca taşı</sys:String>
     <sys:String x:Key="Str_KS_CycleView">Sonraki görünüm modu</sys:String>
     <sys:String x:Key="Str_TT_ViewMode">Görünüm modu</sys:String>

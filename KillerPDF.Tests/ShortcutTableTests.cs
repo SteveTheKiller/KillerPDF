@@ -167,6 +167,7 @@ namespace KillerPDF.Tests
         [InlineData("Shift:F9", "Shift", "F9")]
         [InlineData("Alt:M", "Alt", "M")]
         [InlineData("AltShift:G", "AltShift", "G")]
+        [InlineData("CtrlAltShift:Left", "CtrlAltShift", "Left")]
         public void CapParsesItsLayerPrefix(string id, string layerName, string bare)
         {
             var cap = ShortcutTable.Cap(id);
@@ -187,14 +188,18 @@ namespace KillerPDF.Tests
         }
 
         /// <summary>The three bindings 1.7.5 changed, pinned so a later edit cannot quietly undo
-        /// them: the sidebar is F9 and Shift+F9, and Ctrl+B is bold rather than the sidebar.</summary>
+        /// them: the sidebar is F9 and Ctrl+B is bold rather than the sidebar. Shift+F9 used to step the
+        /// sidebar to the next side; each side has its own Ctrl+Alt+Shift+arrow now (Steve 2026-11-19).</summary>
         [Fact]
         public void TheSidebarIsOnF9AndCtrlBIsBold()
         {
             var map = ShortcutTable.BuildMap();
 
             Assert.Equal("Str_KS_ToggleSidebar", map[KbLayer.Base]["F9"].Label);
-            Assert.Equal("Str_KS_SidebarSide",   map[KbLayer.Shift]["F9"].Label);
+            Assert.False(map[KbLayer.Shift].ContainsKey("F9"));
+            foreach (var (arrow, side) in new[] { ("Left", "Str_Sidebar_Left"), ("Right", "Str_Sidebar_Right"),
+                ("Up", "Str_Sidebar_Top"), ("Down", "Str_Sidebar_Bottom") })
+                Assert.Equal(side, map[KbLayer.CtrlAltShift][arrow].Label);
             Assert.False(map[KbLayer.Ctrl].ContainsKey("F9"));
             Assert.Equal("Str_Lbl_Bold",         map[KbLayer.Ctrl]["B"].Label);
             Assert.False(map[KbLayer.Ctrl].ContainsKey("B") &&

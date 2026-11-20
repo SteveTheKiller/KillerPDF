@@ -890,7 +890,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Rail_Flip">আইকন অন্য পাশে সরান</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">সাইডবার টগল করুন</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">টুলবারের চেহারা</sys:String>
-    <sys:String x:Key="Str_KS_SidebarSide">সাইডবার পরের প্রান্তে সরান</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">সাইডবার বাম, ডান, উপরে বা নিচে সরান</sys:String>
     <sys:String x:Key="Str_KS_SidebarIcons">রেলের আইকন অন্য প্রান্তে সরান</sys:String>
     <sys:String x:Key="Str_KS_CycleView">পরবর্তী ভিউ মোড</sys:String>
     <sys:String x:Key="Str_TT_ViewMode">ভিউ মোড</sys:String>

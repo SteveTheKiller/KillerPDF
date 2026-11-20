@@ -117,6 +117,7 @@ public sealed class CardMenuTests
         Assert.Contains("QuickStrip(menu, order.Length, sides)", side);
         Assert.Contains("{ Checked = side == _sidebarSide }", side);
         Assert.Contains("{ Checked = paired }", side);
+        Assert.Contains("SidebarSideShortcut(side)", side);   // each side tile shows its own chord
         Assert.DoesNotContain("new MenuItem", side);
         Assert.Contains("\"CardMenu\"", card);
         // The scanner cleanup, the extract-from-page tools and the moves fold into three submenus.

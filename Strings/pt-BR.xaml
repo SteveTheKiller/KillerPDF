@@ -978,7 +978,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Rail_Flip">Mover os ícones para o outro lado</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Alternar barra lateral</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Aparência da barra de ferramentas</sys:String>
-    <sys:String x:Key="Str_KS_SidebarSide">Mover barra lateral para a próxima borda</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Mover barra lateral para esquerda, direita, topo ou base</sys:String>
     <sys:String x:Key="Str_KS_SidebarIcons">Mover os ícones do trilho para a outra ponta</sys:String>
     <sys:String x:Key="Str_KS_CycleView">Alternar entre os modos de visualização</sys:String>
     <sys:String x:Key="Str_TT_ViewMode">Modo de visualização</sys:String>

@@ -19,6 +19,7 @@ namespace KillerPDF
                 KbLayer.Shift => "%shift%+",
                 KbLayer.Alt => "%alt%+",
                 KbLayer.AltShift => "%alt%+%shift%+",
+                KbLayer.CtrlAltShift => "%ctrl%+%alt%+%shift%+",
                 _ => ""
             };
             string key = cap.Id switch

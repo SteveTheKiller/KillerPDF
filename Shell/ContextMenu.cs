@@ -870,9 +870,17 @@ namespace KillerPDF.Shell
 
         // The sidebar-side picker rides the bottom of the sidebar's own right-click card (it moved out of the
         // Settings panel, like the toolbar picker moved onto the toolbar): Left, Right, Top and Bottom as one row of
-        // four smaller tiles, the current side filled (Steve 2026-11-19). The keyboard gesture is shown on the side
-        // Shift+F9 would move it TO - each press steps one tile along this row - so putting it on the filled tile would
-        // advertise a press that does nothing. In a two-page view, Two-page thumbnails is an on/off tile above them.
+        // four smaller tiles, the current side filled (Steve 2026-11-19). Each tile shows its own Ctrl+Alt+Shift+arrow
+        // chord, the arrow pointing at that side. In a two-page view, Two-page thumbnails is an on/off tile above them.
+        // The shortcut table's cap for each side (Services/ShortcutTable.cs).
+        private static string SidebarSideShortcut(SidebarSide side) => side switch
+        {
+            SidebarSide.Left => "CtrlAltShift:Left",
+            SidebarSide.Right => "CtrlAltShift:Right",
+            SidebarSide.Top => "CtrlAltShift:Up",
+            _ => "CtrlAltShift:Down",
+        };
+
         private void AppendSidebarSideSection(ContextMenu menu)
         {
             if (TryFindResource("CardMenu") is Style card) menu.Style = card;
@@ -889,7 +897,7 @@ namespace KillerPDF.Shell
             }
             SidebarSide[] order = [SidebarSide.Left, SidebarSide.Right, SidebarSide.Top, SidebarSide.Bottom];
             var sides = order.Select(side => new CardTile(side.TileGlyph(), Loc(side.StringKey()),
-                side == _sidebarSide.Next() ? "Shift:F9" : null, () => SelectSidebarSide(side), false, true) { Checked = side == _sidebarSide }).ToArray();
+                SidebarSideShortcut(side), () => SelectSidebarSide(side), false, true) { Checked = side == _sidebarSide }).ToArray();
             var strip = QuickStrip(menu, order.Length, sides);
             strip.Name = "SidebarSideTiles";
             System.Windows.Automation.AutomationProperties.SetName(strip, Loc("Str_Card_Sidebar"));
