@@ -439,7 +439,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Lbl_MoveUp">Flytt side opp</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Flytt side ned</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Tekst</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Skjema (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Skjema</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Utheving</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Gjennomstreking</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Understreking</sys:String>
@@ -1145,7 +1145,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
 
     <sys:String x:Key="Str_KS_ViewList">LISTE</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">TASTATUR</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Hold inne Ctrl, Shift eller Alt for å forhåndsvise det laget. Hold over en opplyst tast for å se handlingen</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Hold inne Ctrl, Skift, Alt, Ctrl+Skift, Alt+Skift eller Ctrl+Alt+Skift for å forhåndsvise det laget. Hold over en opplyst tast for å se handlingen</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Faktisk størrelse</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Forrige fane</sys:String>
 

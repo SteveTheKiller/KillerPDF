@@ -373,7 +373,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Lbl_MoveUp">Seite nach oben</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Seite nach unten</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Text</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Formulare (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Formulare</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Hervorheben</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Durchstreichen</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Unterstreichen</sys:String>
@@ -1063,7 +1063,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 
     <sys:String x:Key="Str_KS_ViewList">LISTE</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">TASTATUR</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Strg, Umschalt oder Alt halten, um die Ebene zu zeigen - Details beim Zeigen auf eine markierte Taste</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Strg, Umschalt, Alt, Strg+Umschalt, Alt+Umschalt oder Strg+Alt+Umschalt halten, um die Ebene zu zeigen - Details beim Zeigen auf eine markierte Taste</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Originalgröße</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Vorheriger Tab</sys:String>
 

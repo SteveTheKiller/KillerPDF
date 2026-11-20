@@ -429,7 +429,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Lbl_MoveUp">Przesuń stronę w górę</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Przesuń stronę w dół</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Tekst</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Formularze (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Formularze</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Podświetl</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Przekreśl</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Podkreśl</sys:String>
@@ -1115,7 +1115,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 
     <sys:String x:Key="Str_KS_ViewList">LISTA</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">KLAWIATURA</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Przytrzymaj Ctrl, Shift lub Alt, aby wyświetlić podgląd tej warstwy - najedź kursorem na podświetlony klawisz, aby sprawdzić jego działanie</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Przytrzymaj Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift lub Ctrl+Alt+Shift, aby wyświetlić podgląd tej warstwy - najedź kursorem na podświetlony klawisz, aby sprawdzić jego działanie</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Rzeczywisty rozmiar</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Poprzednia karta</sys:String>
 

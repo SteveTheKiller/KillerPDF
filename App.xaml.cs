@@ -895,16 +895,21 @@ namespace KillerPDF
                 BorderThickness = new Thickness(0, 1, 0, 0),
                 Padding = new Thickness(18, 11, 18, 11)
             };
-            var btnPanel = new DockPanel { LastChildFill = false };
-            var leftBtns = new StackPanel { Orientation = Orientation.Horizontal };
+            // The left buttons wrap onto a second line when a long translation does not fit beside the right pair at a
+            // narrow window width, instead of running under it (#508).
+            var btnPanel = new Grid();
+            btnPanel.ColumnDefinitions.Add(new ColumnDefinition());
+            btnPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var leftBtns = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, -6) };
             var copyBtn = MakeCrashButton(CrashText("Str_Crash_Copy", "Copy Report"), 100);
+            copyBtn.Margin = new Thickness(0, 0, 8, 6);
             copyBtn.Click += (_, _) =>
             {
                 try { Clipboard.SetText(BuildFullCrashReport(ex)); } catch { }
             };
             leftBtns.Children.Add(copyBtn);
             var logsBtn = MakeCrashButton(CrashText("Str_Crash_OpenLogs", "Open Logs"), 88);
-            logsBtn.Margin = new Thickness(8, 0, 0, 0);
+            logsBtn.Margin = new Thickness(0, 0, 8, 6);
             logsBtn.Click += (_, _) =>
             {
                 try
@@ -916,7 +921,7 @@ namespace KillerPDF
             };
             leftBtns.Children.Add(logsBtn);
             var githubBtn = MakeCrashButton(CrashText("Str_Crash_Report", "Report on GitHub"), 128);
-            githubBtn.Margin = new Thickness(8, 0, 0, 0);
+            githubBtn.Margin = new Thickness(0, 0, 8, 6);
             githubBtn.Click += (_, _) =>
             {
                 try
@@ -944,12 +949,12 @@ namespace KillerPDF
                 catch { }
             };
             leftBtns.Children.Add(githubBtn);
-            DockPanel.SetDock(leftBtns, Dock.Left);
             btnPanel.Children.Add(leftBtns);
             var rightBtns = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Right
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top
             };
             var contBtn = MakeCrashButton(CrashText("Str_Crash_Continue", "Continue"), 88);
             contBtn.IsEnabled = !isFatal;
@@ -961,7 +966,7 @@ namespace KillerPDF
             quitBtnCtrl.Click += (_, _) => { complete(false); win.Close(); };
             rightBtns.Children.Add(contBtn);
             rightBtns.Children.Add(quitBtnCtrl);
-            DockPanel.SetDock(rightBtns, Dock.Right);
+            Grid.SetColumn(rightBtns, 1);
             btnPanel.Children.Add(rightBtns);
             footer.Child = btnPanel;
             Grid.SetRow(footer, 2);
@@ -1016,7 +1021,9 @@ namespace KillerPDF
         {
             var btn = UiKit.Make(label, accent: true);
             btn.Padding = new Thickness(10, 4, 10, 4);
-            btn.Width  = width;
+            // A floor, not a fixed width: "Protokolle öffnen" and other translations are wider than the English
+            // label the widths were picked for (#508).
+            btn.MinWidth = width;
             btn.Height = 28;
             return btn;
         }

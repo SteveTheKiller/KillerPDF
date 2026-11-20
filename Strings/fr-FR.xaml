@@ -439,7 +439,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Lbl_MoveUp">Monter la page</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Descendre la page</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Texte</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Formulaires (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Formulaires</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Surligner</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Barré</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Souligné</sys:String>
@@ -1145,7 +1145,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 
     <sys:String x:Key="Str_KS_ViewList">LISTE</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">CLAVIER</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Maintenez Ctrl, Maj ou Alt pour afficher cette couche - survolez une touche allumée pour voir son action</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Maintenez Ctrl, Maj, Alt, Ctrl+Maj, Alt+Maj ou Ctrl+Alt+Maj pour afficher cette couche - survolez une touche allumée pour voir son action</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Taille réelle</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Onglet précédent</sys:String>
 

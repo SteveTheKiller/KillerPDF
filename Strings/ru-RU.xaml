@@ -439,7 +439,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Lbl_MoveUp">Вверх</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Вниз</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Текст</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Поля форм (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Поля форм</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Маркер</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Зачеркнуть</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Подчеркнуть</sys:String>
@@ -1145,7 +1145,7 @@ KillerPDF не будет создавать две установленные �
 
     <sys:String x:Key="Str_KS_ViewList">СПИСОК</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">КЛАВИАТУРА</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Удерживайте Ctrl, Shift или Alt, чтобы просмотреть этот слой - наведите курсор на подсвеченную клавишу, чтобы увидеть её действие</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Удерживайте Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift или Ctrl+Alt+Shift, чтобы просмотреть этот слой - наведите курсор на подсвеченную клавишу, чтобы увидеть её действие</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Реальный размер</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Предыдущая вкладка</sys:String>
 

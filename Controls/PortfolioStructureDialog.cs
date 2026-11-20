@@ -84,11 +84,37 @@ internal sealed class PortfolioStructureDialog : Window
             () => { DialogResult = false; Close(); }, body);
     }
 
-    private static readonly double[] FieldWidths = [130, 0, 110, 60, 64, 68, 36];
+    private static readonly string[] FieldLabels =
+        ["Str_Portfolio_Key", "Str_Portfolio_DisplayName", "Str_Portfolio_Type",
+         "Str_Portfolio_Order", "Str_Portfolio_Visible", "Str_Portfolio_Editable"];
+    private static readonly string[] SortLabels = ["Str_Portfolio_Key", "Str_Portfolio_Ascending"];
+    private static readonly string[] FolderLabels =
+        ["Str_Portfolio_Id", "Str_Attachment_Name", "Str_Portfolio_Parent", "Str_Attachment_Description"];
+    private static readonly string[] ValueLabels =
+        ["Str_Portfolio_Attachment", "Str_Portfolio_Key", "Str_Portfolio_Value",
+         "Str_Portfolio_Number", "Str_Portfolio_Prefix"];
+
+    private readonly double[] _fieldWidths = FitToLabels([130, 0, 110, 60, 64, 68, 36], FieldLabels);
     // Full width, the sort key keeps a field's width and its remove icon lines up with the other sections'.
-    private static readonly double[] SortWidths = [260, 90, 0, 36];
-    private static readonly double[] FolderWidths = [80, 220, 100, 0, 36];
-    private static readonly double[] ValueWidths = [220, 150, 0, 80, 130, 36];
+    private readonly double[] _sortWidths = FitToLabels([260, 90, 0, 36], SortLabels);
+    private readonly double[] _folderWidths = FitToLabels([80, 220, 100, 0, 36], FolderLabels);
+    private readonly double[] _valueWidths = FitToLabels([220, 150, 0, 80, 130, 36], ValueLabels);
+
+    // A fixed column is at least as wide as its heading in the current language, plus a gap before the next
+    // heading. The widths above fit English; "Reihenfolge" and other translations were cut off (#508). Only
+    // the headings set the width, so typing a long value in a row never shifts the columns.
+    private static double[] FitToLabels(double[] widths, string[] labels)
+    {
+        var fitted = (double[])widths.Clone();
+        for (int index = 0; index < labels.Length && index < fitted.Length; index++)
+        {
+            if (fitted[index] == 0) continue;
+            TextBlock label = UiKit.GroupLabel(L(labels[index]));
+            label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            fitted[index] = Math.Max(fitted[index], Math.Ceiling(label.DesiredSize.Width) + 8);
+        }
+        return fitted;
+    }
 
     // New rows take names and IDs no earlier row used, removed ones included, as when removed rows stayed
     // in the list with their Remove box checked.
@@ -98,7 +124,7 @@ internal sealed class PortfolioStructureDialog : Window
     private void AddField(PdfCollectionFieldInfo? field)
     {
         _fieldsAdded++;
-        var grid = GridWith(FieldWidths);
+        var grid = GridWith(_fieldWidths);
         TextBox key = Field(field?.Key ?? $"field{_fieldsAdded}");
         TextBox name = Field(field?.DisplayName ?? L("Str_Portfolio_CustomField"));
         ComboBox subtype = Combo(Subtypes);
@@ -117,7 +143,7 @@ internal sealed class PortfolioStructureDialog : Window
 
     private void AddSort(PdfCollectionSortInfo? rule)
     {
-        var grid = GridWith(SortWidths);
+        var grid = GridWith(_sortWidths);
         TextBox key = Field(rule?.Key ?? string.Empty);
         CheckBox ascending = Check(rule?.Ascending ?? true);
         SortRow row = new(key, ascending);
@@ -129,7 +155,7 @@ internal sealed class PortfolioStructureDialog : Window
 
     private void AddFolder(PdfCollectionFolderInfo? folder)
     {
-        var grid = GridWith(FolderWidths);
+        var grid = GridWith(_folderWidths);
         long nextId = _folderRows.Count == 0 && _removedFolderIds.Count == 0 ? 1 : _folderRows
             .Select(row => long.TryParse(row.Id.Text, out long id) ? id : 0)
             .Concat(_removedFolderIds).Max() + 1;
@@ -153,7 +179,7 @@ internal sealed class PortfolioStructureDialog : Window
     private void AddValue(string? attachmentName, PdfCollectionItemValue? value)
     {
         if (_attachmentNames.Length == 0) return;
-        var grid = GridWith(ValueWidths);
+        var grid = GridWith(_valueWidths);
         ComboBox attachment = Combo(_attachmentNames);
         attachment.SelectedItem = attachmentName is not null
             && _attachmentNames.Contains(attachmentName, StringComparer.Ordinal)
@@ -305,20 +331,13 @@ internal sealed class PortfolioStructureDialog : Window
         }
     }
 
-    private static Grid FieldHeader() => Header(FieldWidths,
-        ["Str_Portfolio_Key", "Str_Portfolio_DisplayName", "Str_Portfolio_Type",
-         "Str_Portfolio_Order", "Str_Portfolio_Visible", "Str_Portfolio_Editable"]);
+    private Grid FieldHeader() => Header(_fieldWidths, FieldLabels);
 
-    private static Grid SortHeader() => Header(SortWidths,
-        ["Str_Portfolio_Key", "Str_Portfolio_Ascending"]);
+    private Grid SortHeader() => Header(_sortWidths, SortLabels);
 
-    private static Grid FolderHeader() => Header(FolderWidths,
-        ["Str_Portfolio_Id", "Str_Attachment_Name", "Str_Portfolio_Parent",
-         "Str_Attachment_Description"]);
+    private Grid FolderHeader() => Header(_folderWidths, FolderLabels);
 
-    private static Grid ValueHeader() => Header(ValueWidths,
-        ["Str_Portfolio_Attachment", "Str_Portfolio_Key", "Str_Portfolio_Value",
-         "Str_Portfolio_Number", "Str_Portfolio_Prefix"]);
+    private Grid ValueHeader() => Header(_valueWidths, ValueLabels);
 
     // Column names; check box columns are centered over their boxes. The remove column has no name, since
     // each row's remove icon says what it does.

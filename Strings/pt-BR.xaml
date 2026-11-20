@@ -439,7 +439,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Lbl_MoveUp">Mover página para cima</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Mover página para baixo</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Texto</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Formulários (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Formulários</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Realçar</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Tachado</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Sublinhado</sys:String>
@@ -1145,7 +1145,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
 
     <sys:String x:Key="Str_KS_ViewList">LISTA</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">TECLADO</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Mantenha Ctrl, Shift ou Alt pressionada para visualizar essa camada - passe o mouse sobre uma tecla acesa para ver sua ação</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Mantenha Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift ou Ctrl+Alt+Shift pressionadas para visualizar essa camada - passe o mouse sobre uma tecla acesa para ver sua ação</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Tamanho real</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Guia anterior</sys:String>
 

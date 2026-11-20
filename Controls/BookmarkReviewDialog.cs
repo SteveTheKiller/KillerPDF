@@ -50,11 +50,11 @@ internal sealed class BookmarkReviewDialog : Window
         foreach (PdfBookmarkProposal proposal in proposals)
         {
             var grid = new Grid { Margin = new Thickness(0, 2, 0, 2) };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(42) });
+            grid.ColumnDefinitions.Add(SizedColumn(42, "Include"));
             grid.ColumnDefinitions.Add(new ColumnDefinition());
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
+            grid.ColumnDefinitions.Add(SizedColumn(72, "Page"));
+            grid.ColumnDefinitions.Add(SizedColumn(72, "Size"));
+            grid.ColumnDefinitions.Add(SizedColumn(72, "Level"));
             CheckBox include = UiKit.CheckBox(string.Empty);
             include.IsChecked = true;
             include.HorizontalAlignment = HorizontalAlignment.Center;
@@ -79,18 +79,22 @@ internal sealed class BookmarkReviewDialog : Window
         }
 
         var header = new Grid { Margin = new Thickness(7, 0, 7, 2) };
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(42) });
+        header.ColumnDefinitions.Add(SizedColumn(42, "Include"));
         header.ColumnDefinitions.Add(new ColumnDefinition());
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
-        Add(header, UiKit.GroupLabel(L("Str_AutoBookmarks_Include")), 0);
+        header.ColumnDefinitions.Add(SizedColumn(72, "Page"));
+        header.ColumnDefinitions.Add(SizedColumn(72, "Size"));
+        header.ColumnDefinitions.Add(SizedColumn(72, "Level"));
+        TextBlock includeHeading = UiKit.GroupLabel(L("Str_AutoBookmarks_Include"));
+        // A gap before the Title heading when a long translation sets the column's width.
+        includeHeading.Margin = new Thickness(0, 0, 8, 2);
+        Add(header, includeHeading, 0);
         Add(header, UiKit.GroupLabel(L("Str_AutoBookmarks_Title")), 1);
         Add(header, UiKit.GroupLabel(L("Str_AutoBookmarks_Page")), 2);
         Add(header, UiKit.GroupLabel(L("Str_AutoBookmarks_Size")), 3);
         Add(header, UiKit.GroupLabel(L("Str_AutoBookmarks_Level")), 4);
 
         var center = new DockPanel();
+        Grid.SetIsSharedSizeScope(center, true);
         DockPanel.SetDock(header, Dock.Top);
         center.Children.Add(header);
         center.Children.Add(DialogParts.Well(new ScrollViewer
@@ -155,6 +159,11 @@ internal sealed class BookmarkReviewDialog : Window
         value.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
         return value;
     }
+
+    // The header and every row share each column's width, so a heading wider than its old fixed width
+    // ("Hinzufügen") widens the column for all rows instead of running into the next heading (#508).
+    private static ColumnDefinition SizedColumn(double minWidth, string group) =>
+        new() { Width = GridLength.Auto, MinWidth = minWidth, SharedSizeGroup = group };
 
     private static void Add(Grid grid, UIElement element, int column)
     {

@@ -72,9 +72,9 @@ internal sealed class FormRecognitionReviewDialog : Window
         foreach (PdfFormFieldProposal proposal in review.Proposals)
         {
             var row = new Grid { Margin = new Thickness(0, 2, 0, 4) };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(34) });
+            row.ColumnDefinitions.Add(SizedColumn(34, "Include"));
             row.ColumnDefinitions.Add(new ColumnDefinition());
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
+            row.ColumnDefinitions.Add(SizedColumn(64, "Page"));
             var include = UiKit.CheckBox("");
             // Boxes the page already prints text in are likely filled in, so they start left out.
             include.IsChecked = !proposal.CoversPrintedText;
@@ -104,13 +104,14 @@ internal sealed class FormRecognitionReviewDialog : Window
         }
         var scroll = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         var reviewPanel = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
+        Grid.SetIsSharedSizeScope(reviewPanel, true);
         DockPanel.SetDock(footer, Dock.Bottom);
         reviewPanel.Children.Add(footer);
         // The column headings line up with the rows inside the well's 3 DIP padding.
         var header = new Grid { Margin = new Thickness(3, 0, 3, 4) };
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(34) });
+        header.ColumnDefinitions.Add(SizedColumn(34, "Include"));
         header.ColumnDefinitions.Add(new ColumnDefinition());
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
+        header.ColumnDefinitions.Add(SizedColumn(64, "Page"));
         string[] headingKeys = ["Str_AutoBookmarks_Include", "Str_FieldPreset_Name", "Str_AutoBookmarks_Page"];
         for (int index = 0; index < headingKeys.Length; index++)
         {
@@ -118,7 +119,9 @@ internal sealed class FormRecognitionReviewDialog : Window
             {
                 Text = L(headingKeys[index]), ToolTip = L(headingKeys[index]),
                 FontSize = 10, TextTrimming = TextTrimming.CharacterEllipsis,
-                HorizontalAlignment = index == 2 ? HorizontalAlignment.Center : HorizontalAlignment.Stretch
+                HorizontalAlignment = index == 2 ? HorizontalAlignment.Center : HorizontalAlignment.Stretch,
+                // A gap before the next heading when a long translation sets the column's width.
+                Margin = index == 0 ? new Thickness(0, 0, 8, 0) : new Thickness(0)
             };
             label.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
             Grid.SetColumn(label, index);
@@ -210,6 +213,11 @@ internal sealed class FormRecognitionReviewDialog : Window
         Result = result;
         DialogResult = true;
     }
+
+    // The header and every row share each column's width, so a heading wider than its old fixed width
+    // ("Hinzufügen") widens the column for all rows instead of being cut off (#508).
+    private static ColumnDefinition SizedColumn(double minWidth, string group) =>
+        new() { Width = GridLength.Auto, MinWidth = minWidth, SharedSizeGroup = group };
 
     private static string L(string key) => Application.Current.TryFindResource(key) as string ?? key;
 }

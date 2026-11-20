@@ -388,7 +388,7 @@
     <sys:String x:Key="Str_Lbl_MoveUp">Premakni stran navzgor</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Premakni stran navzdol</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Besedilo</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Obrazci (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Obrazci</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Označi</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Prečrtano</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Podčrtano</sys:String>
@@ -1062,7 +1062,7 @@
     <sys:String x:Key="Str_KS_ContextMenu">Kontekstni meni pri izboru</sys:String>
     <sys:String x:Key="Str_KS_ViewList">SEZNAM</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">TIPKOVNICA</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Držite Ctrl, Shift ali Alt za predogled te plasti in pokažite na osvetljeno tipko za prikaz dejanja</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Držite Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift ali Ctrl+Alt+Shift za predogled te plasti in pokažite na osvetljeno tipko za prikaz dejanja</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Dejanska velikost</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Prejšnji zavihek</sys:String>
     <sys:String x:Key="Str_Kb_PrevPage">Prejšnja stran</sys:String>

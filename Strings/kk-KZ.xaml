@@ -360,7 +360,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Lbl_MoveUp">Бетті жоғары жылжыту</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Бетті төмен жылжыту</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Мәтін</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Пішіндер (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Пішіндер</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Бояп белгілеу</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Сызып тастау</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Астын сызу</sys:String>
@@ -1040,7 +1040,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 
     <sys:String x:Key="Str_KS_ViewList">ТІЗІМ</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">ПЕРНЕТАҚТА</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Сол қабатты алдын ала көру үшін Ctrl, Shift немесе Alt ұстап тұрыңыз - әрекетін көру үшін жанып тұрған пернені меңзермен көрсетіңіз</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Сол қабатты алдын ала көру үшін Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift немесе Ctrl+Alt+Shift ұстап тұрыңыз - әрекетін көру үшін жанып тұрған пернені меңзермен көрсетіңіз</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Нақты өлшем</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Алдыңғы қойынды</sys:String>
 

@@ -439,7 +439,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Lbl_MoveUp">Oldal felfelé</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Oldal lefelé</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Szöveg</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Űrlapok (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Űrlapok</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Kiemelés</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Áthúzás</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Aláhúzás</sys:String>
@@ -1145,7 +1145,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 
     <sys:String x:Key="Str_KS_ViewList">LISTA</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">BILLENTYŰZET</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Tartsa lenyomva a Ctrl, Shift vagy Alt billentyűt az adott réteg előnézetéhez - vigye a mutatót egy kivilágított billentyűre a művelethez</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Tartsa lenyomva a Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift vagy Ctrl+Alt+Shift billentyűt az adott réteg előnézetéhez - vigye a mutatót egy kivilágított billentyűre a művelethez</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Tényleges méret</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Előző lap</sys:String>
 

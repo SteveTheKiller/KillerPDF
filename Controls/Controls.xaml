@@ -1090,7 +1090,7 @@
                             <!-- submenu arrow for items that have children -->
                             <TextBlock x:Name="SubArrow" Grid.Column="4" Text="&#xE76C;"
                                        FontFamily="Segoe MDL2 Assets" FontSize="8"
-                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       Foreground="{TemplateBinding Foreground}"
                                        VerticalAlignment="Center" HorizontalAlignment="Right" Margin="12,0,0,0"
                                        Visibility="Collapsed"/>
                             <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Right"

@@ -439,7 +439,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Lbl_MoveUp">Sposta pagina su</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Sposta pagina giù</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Testo</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Moduli (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Moduli</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Evidenza</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Barrato</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Sottolineato</sys:String>
@@ -1145,7 +1145,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
 
     <sys:String x:Key="Str_KS_ViewList">ELENCO</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">TASTIERA</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Premi Ctrl, Maiusc o Alt per anteprima livello - passa il mouse su un tasto illuminato per la sua azione</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Premi Ctrl, Maiusc, Alt, Ctrl+Maiusc, Alt+Maiusc o Ctrl+Alt+Maiusc per anteprima livello - passa il mouse su un tasto illuminato per la sua azione</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Dimensione reale</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Scheda precedente</sys:String>
 

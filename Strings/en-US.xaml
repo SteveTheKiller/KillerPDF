@@ -440,7 +440,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Lbl_MoveUp">Move Page Up</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Move Page Down</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Text</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Forms (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Forms</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Highlight</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Strikethrough</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Underline</sys:String>
@@ -1146,7 +1146,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 
     <sys:String x:Key="Str_KS_ViewList">LIST</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">KEYBOARD</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Hold Ctrl, Shift or Alt to preview that layer, and hover a lit key for its action</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Hold Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift or Ctrl+Alt+Shift to preview that layer, and hover a lit key for its action</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Actual size</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Previous tab</sys:String>
 

@@ -373,7 +373,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Lbl_MoveUp">Subir página</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Bajar página</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Texto</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Formularios (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Formularios</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Resaltar</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Tachado</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Subrayado</sys:String>
@@ -1057,7 +1057,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 
     <sys:String x:Key="Str_KS_ViewList">LISTA</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">TECLADO</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Mantén Ctrl, Mayús o Alt para ver esa capa - pasa el cursor sobre una tecla iluminada para ver su acción</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Mantén Ctrl, Mayús, Alt, Ctrl+Mayús, Alt+Mayús o Ctrl+Alt+Mayús para ver esa capa - pasa el cursor sobre una tecla iluminada para ver su acción</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Tamaño real</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Pestaña anterior</sys:String>
 

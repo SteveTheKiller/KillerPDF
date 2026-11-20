@@ -160,7 +160,7 @@
                                 <TextBlock Text="{local:Loc InstallFolder}" FontSize="11" Foreground="#bdbdbd" Margin="0,0,0,4"/>
                                 <Grid Margin="0,0,0,3">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBox x:Name="InstallFolder" VerticalContentAlignment="Center"/>
+                                    <TextBox x:Name="InstallFolder" VerticalContentAlignment="Center" TextWrapping="Wrap" Height="Auto" MinHeight="27"/>
                                     <Button Grid.Column="1" Content="{local:Loc Browse}" Style="{StaticResource WizardButton}" Height="27" MinWidth="72" Click="Browse_Click"/>
                                 </Grid>
                                 <CheckBox x:Name="DesktopShortcut" IsChecked="True"><TextBlock Text="{local:Loc DesktopShortcut}" TextWrapping="Wrap"/></CheckBox>

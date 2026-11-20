@@ -373,7 +373,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Lbl_MoveUp">পৃষ্ঠা উপরে সরান</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">পৃষ্ঠা নিচে সরান</sys:String>
     <sys:String x:Key="Str_Lbl_Text">টেক্সট</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">ফর্ম (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">ফর্ম</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">হাইলাইট</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">স্ট্রাইকথ্রু</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">আন্ডারলাইন</sys:String>
@@ -1057,7 +1057,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 
     <sys:String x:Key="Str_KS_ViewList">তালিকা</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">কীবোর্ড</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">সেই স্তরটি দেখতে Ctrl, Shift বা Alt চেপে ধরুন - আলোকিত কী-এর ওপর হভার করে এর কাজ দেখুন</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">সেই স্তরটি দেখতে Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift বা Ctrl+Alt+Shift চেপে ধরুন - আলোকিত কী-এর ওপর হভার করে এর কাজ দেখুন</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">প্রকৃত আকার</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">পূর্ববর্তী ট্যাব</sys:String>
 

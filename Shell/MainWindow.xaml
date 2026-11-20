@@ -683,7 +683,7 @@
                                 <!-- submenu arrow for items that have children -->
                                 <TextBlock x:Name="SubArrow" Grid.Column="4" Text="&#xE76C;"
                                            FontFamily="Segoe MDL2 Assets" FontSize="8"
-                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           Foreground="{TemplateBinding Foreground}"
                                            VerticalAlignment="Center" HorizontalAlignment="Right" Margin="12,0,0,0"
                                            Visibility="Collapsed"/>
                                 <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Right"
@@ -2930,10 +2930,12 @@
               Visibility="Collapsed"
               Background="#88000000"
               MouseLeftButtonDown="ShortcutOverlay_MouseLeftButtonDown"
-              MouseRightButtonDown="ShortcutOverlay_MouseLeftButtonDown">
+              MouseRightButtonDown="ShortcutOverlay_MouseLeftButtonDown"
+              SizeChanged="ShortcutsOverlay_SizeChanged">
             <!-- The shortcut list is intentionally viewport-sized rather than content-sized.
                  Its ScrollViewer already owns overflow, so a long translated list should not
-                 expand the card to almost the full application height. -->
+                 expand the card to almost the full application height. The caps follow the
+                 window through ShortcutCardSize; these are the small-window values. -->
             <Grid x:Name="ShortcutCardGrid" HorizontalAlignment="Stretch" VerticalAlignment="Center"
                   Margin="24" MaxWidth="920" MaxHeight="620">
                 <!-- Shadow cast by a separate element so the card content stays crisp. -->

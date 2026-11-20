@@ -118,12 +118,23 @@ namespace KillerPDF.Shell
             if (keyboard && !_kbBuilt) BuildKeyboardView();
             ShortcutListHost.Visibility     = keyboard ? Visibility.Collapsed : Visibility.Visible;
             ShortcutKeyboardHost.Visibility = keyboard ? Visibility.Visible : Visibility.Collapsed;
-            ShortcutCardGrid.MaxWidth       = keyboard ? 920 : 760;
+            // Both views use the full card width, and the card grows with the window. A fixed card left the
+            // list's German descriptions wrapping to one or two words per line (#508).
+            SizeShortcutCard();
             KsViewListBtn.SetResourceReference(ForegroundProperty, keyboard ? "MutedTextBrush" : "PrimaryBrush");
             KsViewKeyboardBtn.SetResourceReference(ForegroundProperty, keyboard ? "PrimaryBrush" : "MutedTextBrush");
             if (keyboard) SetKbLayer(KbLayer.Base);
             if (persist) App.SetSetting(KsViewSetting, keyboard ? "keyboard" : "list");
         }
+
+        private void SizeShortcutCard()
+        {
+            var (w, h) = Services.ShortcutCardSize.Caps(ShortcutsOverlay.ActualWidth, ShortcutsOverlay.ActualHeight);
+            ShortcutCardGrid.MaxWidth  = w;
+            ShortcutCardGrid.MaxHeight = h;
+        }
+
+        private void ShortcutsOverlay_SizeChanged(object sender, SizeChangedEventArgs e) => SizeShortcutCard();
 
         private void ApplyPersistedShortcutView() =>
             ApplyShortcutView(App.GetSetting(KsViewSetting) == "keyboard");
@@ -138,8 +149,9 @@ namespace KillerPDF.Shell
             _kbKeys.Clear();
             _kbLayerBtns.Clear();
 
-            // Layer captions row.
-            var layerRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
+            // Layer captions row. It wraps, so seven layers with long key names (Strg+Alt+Umschalt) never run
+            // past the card.
+            var layerRow = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
             foreach (var layer in KbLayerButtons)
             {
                 // Use the shared command-button factory. In 98SE this supplies the raised two-tone
@@ -158,14 +170,16 @@ namespace KillerPDF.Shell
                 _kbLayerBtns[layer] = b;
                 layerRow.Children.Add(b);
             }
+            host.Children.Add(layerRow);
+            // The hint has its own wrapping row under the layer buttons. At the end of the button row it could
+            // not wrap, so longer translations ran off the card (#508).
             var hint = new TextBlock
             {
-                FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0),
+                FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10),
             };
             hint.SetResourceReference(TextBlock.TextProperty, "Str_KS_HoldHint");
             hint.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
-            layerRow.Children.Add(hint);
-            host.Children.Add(layerRow);
+            host.Children.Add(hint);
 
             // The board. A DownOnly Viewbox keeps it fitting smaller windows without scrollbars.
             const double U = 46;   // one key unit incl. its 4px gap

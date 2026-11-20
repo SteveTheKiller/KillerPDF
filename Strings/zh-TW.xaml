@@ -375,7 +375,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Lbl_MoveUp">向上移動頁面</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">向下移動頁面</sys:String>
     <sys:String x:Key="Str_Lbl_Text">文字</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">表單 (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">表單</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">螢光標記</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">刪除線</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">底線</sys:String>
@@ -1059,7 +1059,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
 
     <sys:String x:Key="Str_KS_ViewList">清單</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">鍵盤</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">按住 Ctrl、Shift 或 Alt 預覽該層 - 懸停在亮起的按鍵上查看操作</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">按住 Ctrl、Shift、Alt、Ctrl+Shift、Alt+Shift 或 Ctrl+Alt+Shift 預覽該層 - 懸停在亮起的按鍵上查看操作</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">實際大小</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">上一個分頁</sys:String>
 

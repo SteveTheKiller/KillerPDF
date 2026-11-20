@@ -439,7 +439,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Lbl_MoveUp">Di chuyển trang lên trên</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Di chuyển trang xuống dưới</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Văn bản</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Biểu mẫu (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Biểu mẫu</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Đánh dấu</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Gạch ngang</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Gạch chân</sys:String>
@@ -1145,7 +1145,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 
     <sys:String x:Key="Str_KS_ViewList">DANH SÁCH</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">BÀN PHÍM</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Giữ phím Ctrl, Shift hoặc Alt để xem trước lớp đó - di chuột qua phím sáng để xem hành động của phím đó</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Giữ Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift hoặc Ctrl+Alt+Shift để xem trước lớp đó - di chuột qua phím sáng để xem hành động của phím đó</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Kích thước thực</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Tab trước</sys:String>
 

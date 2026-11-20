@@ -438,7 +438,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Lbl_MoveUp">Posunout stránku nahoru</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Posunout stránku dolů</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Text</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Formuláře (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Formuláře</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Zvýraznění</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Přeškrtnutí</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Podtržení</sys:String>
@@ -1124,7 +1124,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 
     <sys:String x:Key="Str_KS_ViewList">SEZNAM</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">KLÁVESNICE</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Podržením Ctrl, Shift nebo Alt zobrazíte danou vrstvu - najetím na zvýrazněnou klávesu zjistíte její akci</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Podržením Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift nebo Ctrl+Alt+Shift zobrazíte danou vrstvu - najetím na zvýrazněnou klávesu zjistíte její akci</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Skutečná velikost</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Předchozí karta</sys:String>
 

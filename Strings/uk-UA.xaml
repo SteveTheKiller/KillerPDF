@@ -439,7 +439,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Lbl_MoveUp">Сторінку вгору</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Сторінку вниз</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Текст</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Форми (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Форми</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Виділення</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Закреслення</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Підкреслення</sys:String>
@@ -1145,7 +1145,7 @@ KillerPDF не створюватиме двох установлених коп
 
     <sys:String x:Key="Str_KS_ViewList">СПИСОК</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">КЛАВІАТУРА</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Утримуйте Ctrl, Shift або Alt, щоб переглянути цей шар - наведіть курсор на підсвічену клавішу, щоб побачити дію</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Утримуйте Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift або Ctrl+Alt+Shift, щоб переглянути цей шар - наведіть курсор на підсвічену клавішу, щоб побачити дію</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Фактичний розмір</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Попередня вкладка</sys:String>
 

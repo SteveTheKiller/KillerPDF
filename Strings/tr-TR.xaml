@@ -373,7 +373,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Lbl_MoveUp">Sayfayı Yukarı Taşı</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Sayfayı Aşağı Taşı</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Metin</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Formlar (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Formlar</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Vurgula</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Üstü çizili</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Altı çizili</sys:String>
@@ -1057,7 +1057,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
 
     <sys:String x:Key="Str_KS_ViewList">LİSTE</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">KLAVYE</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Katmanı önizlemek için Ctrl, Shift veya Alt tuşunu basılı tutun - eylemi görmek için yanan tuşun üzerine gelin</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Katmanı önizlemek için Ctrl, Shift, Alt, Ctrl+Shift, Alt+Shift veya Ctrl+Alt+Shift tuşlarını basılı tutun - eylemi görmek için yanan tuşun üzerine gelin</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Gerçek boyut</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Önceki sekme</sys:String>
 

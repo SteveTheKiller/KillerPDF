@@ -719,7 +719,7 @@
                 <TextBox x:Name="FileNameBox" Grid.Row="0" Grid.Column="1"
                          AutomationProperties.Name="{DynamicResource Str_Dlg_FileName}"
                          Style="{StaticResource DialogPickerTextBox}"
-                         FontFamily="{DynamicResource UiFont}" FontSize="12" Padding="5,0,8,0"
+                         FontFamily="{DynamicResource UiFont}" FontSize="12" Padding="2.5,0,8,0"
                          VerticalContentAlignment="Center" KeyDown="FileNameBox_KeyDown"
                          TextChanged="FileNameBox_TextChanged"/>
 

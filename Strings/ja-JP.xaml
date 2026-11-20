@@ -439,7 +439,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Lbl_MoveUp">ページを上に移動</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">ページを下に移動</sys:String>
     <sys:String x:Key="Str_Lbl_Text">テキスト</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">フォーム (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">フォーム</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">ハイライト</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">打消し線</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">下線</sys:String>
@@ -1145,7 +1145,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 
     <sys:String x:Key="Str_KS_ViewList">リスト</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">キーボード</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Ctrl、Shift、Alt を押し続けるとそのレイヤーを表示 - 点灯したキーにカーソルを合わせると操作を表示</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Ctrl、Shift、Alt、Ctrl+Shift、Alt+Shift、Ctrl+Alt+Shift を押し続けるとそのレイヤーを表示 - 点灯したキーにカーソルを合わせると操作を表示</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">実際のサイズ</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">前のタブ</sys:String>
 
