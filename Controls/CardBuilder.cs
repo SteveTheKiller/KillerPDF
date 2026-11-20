@@ -365,45 +365,64 @@ namespace KillerFamily.Controls
 
             // While a tile is dragged both surfaces show where it would land: the preview order, with the dragged tile
             // dimmed in its spot on the card or in the drawer.
-            // The picked-up tile follows the pointer over both surfaces in its own popup, drawn on the card's hover face.
-            var ghostImage = new System.Windows.Controls.Image { IsHitTestVisible = false, Opacity = 0.9 };
-            var ghost = new Popup
-            {
-                AllowsTransparency = true, Placement = PlacementMode.Relative, PlacementTarget = card, Focusable = false,
-                IsHitTestVisible = false, Child = ghostImage,
-            };
-            root.Children.Add(ghost);
+            // The picked-up tile follows the pointer, drawn on the card's hover face on a layer over the card or over the
+            // drawer, whichever the pointer is on. It is drawn inside the two surfaces, never in a window of its own.
+            var ghost = new Border { IsHitTestVisible = false, Opacity = 0.95, BorderThickness = new Thickness(1), Tag = "DragGhost" };
+            ghost.SetResourceReference(Border.BackgroundProperty, "MenuHoverBrush");
+            ghost.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush");
+            ghost.SetResourceReference(Border.CornerRadiusProperty, "SmallCornerRadius");
+            var cardLayer = new Canvas { IsHitTestVisible = false };
+            root.Children.Add(cardLayer);
+            var drawerLayer = new Canvas { IsHitTestVisible = false };
+            slideHost.Children.Add(drawerLayer);
             List<string>? preview = null;
             string? draggedKey = null;
+            // What each surface last drew, so a drag rebuilds only the surface whose tiles changed.
+            List<string>? cardDrawn = null, drawerDrawn = null;
+            string? cardDragged = null, drawerDragged = null;
             void Rebuild()
             {
                 var before = Positions();
-                owners.Clear();
                 var view = preview ?? order;
                 // One run of tiles in the user's order: nothing leaves a gap, so taking a tile away slides the rest up.
-                var shown = view.Select(k => byKey[k]).ToList();
-                var strip = GroupGrid(card, name, shown.Count > 0 ? [shown] : [], columns, full);
-                foreach (UIElement el in ((Panel)strip.Child).Children)
-                    if (TileOf(el) is { } tile)
-                    {
-                        owners[el] = tile;
-                        if (editing) PrepareForEdit(el, tile);
-                    }
-                gridHost.Child = strip;
+                if (cardDrawn is null || !cardDrawn.SequenceEqual(view) || cardDragged != draggedKey || draggedKey is null)
+                {
+                    foreach (var el in owners.Keys.Where(gridHost.IsAncestorOf).ToList()) owners.Remove(el);
+                    var shown = view.Select(k => byKey[k]).ToList();
+                    var strip = GroupGrid(card, name, shown.Count > 0 ? [shown] : [], columns, full);
+                    foreach (UIElement el in ((Panel)strip.Child).Children)
+                        if (TileOf(el) is { } tile)
+                        {
+                            owners[el] = tile;
+                            if (editing) PrepareForEdit(el, tile);
+                        }
+                    gridHost.Child = strip;
+                    cardDrawn = view.ToList();
+                    cardDragged = draggedKey;
+                }
                 // The drawer's own grid, two across, each row only as tall as its tiles, like the card's.
-                // Alphabetical by the name the tile shows, so a stocked drawer reads like an index.
-                var stashed = all.Where(t => !view.Contains(t.Key)).OrderBy(t => t.Shown ?? t.Caption, StringComparer.CurrentCultureIgnoreCase).ToList();
-                var drawerStrip = GroupGrid(card, name, stashed.Count > 0 ? [stashed] : [], 2);
-                foreach (UIElement el in ((Panel)drawerStrip.Child).Children)
-                    if (TileOf(el) is { } tile)
-                    {
-                        owners[el] = tile;
-                        PrepareForEdit(el, tile);
-                    }
-                drawerTiles.Child = drawerStrip;
-                drawerHint.Visibility = stashed.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                // Alphabetical by the name the tile shows, so a stocked drawer reads like an index. A card tile held over
+                // the drawer lights the drawer up and goes in on release; it isn't shuffled into the list meanwhile.
+                var stashed = all.Where(t => !view.Contains(t.Key) && (t.Key != draggedKey || !order.Contains(t.Key)))
+                    .OrderBy(t => t.Shown ?? t.Caption, StringComparer.CurrentCultureIgnoreCase).ToList();
+                var stashedKeys = stashed.Select(t => t.Key).ToList();
+                if (drawerDrawn is null || !drawerDrawn.SequenceEqual(stashedKeys) || drawerDragged != draggedKey || draggedKey is null)
+                {
+                    foreach (var el in owners.Keys.Where(drawerTiles.IsAncestorOf).ToList()) owners.Remove(el);
+                    var drawerStrip = GroupGrid(card, name, stashed.Count > 0 ? [stashed] : [], 2);
+                    foreach (UIElement el in ((Panel)drawerStrip.Child).Children)
+                        if (TileOf(el) is { } tile)
+                        {
+                            owners[el] = tile;
+                            PrepareForEdit(el, tile);
+                        }
+                    drawerTiles.Child = drawerStrip;
+                    drawerDrawn = stashedKeys;
+                    drawerDragged = draggedKey;
+                    drawerHint.Visibility = stashed.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                }
                 reset.IsEnabled = !order.SequenceEqual(defaultOrder);
-                if (drawer.IsOpen) PlaceDrawer();
+                if (drawer.IsOpen && draggedKey is null) PlaceDrawer();
                 Glide(before);
             }
 
@@ -489,7 +508,8 @@ namespace KillerFamily.Controls
                 foreach (var b in Descendants(el).OfType<Button>()) { b.IsEnabled = true; b.Cursor = edit.Locked(t) ? Cursors.Arrow : GrabCursor; }
                 if (el is FrameworkElement fe) fe.Cursor = edit.Locked(t) ? Cursors.Arrow : GrabCursor;
                 if (edit.Locked(t)) { el.Opacity = 0.45; if (el is FrameworkElement locked) locked.ToolTip = edit.LockedTip; }
-                if (t.Key == draggedKey) el.Opacity = 0.3;
+                // The held tile's landing spot shows the tile faintly under the one following the pointer.
+                if (t.Key == draggedKey) el.Opacity = 0.5;
             }
 
             void Persist() => edit.Save(order.SequenceEqual(defaultOrder) ? null
@@ -573,7 +593,7 @@ namespace KillerFamily.Controls
             CardTile? pressed = null;
             UIElement? pressedEl = null;
             Point start = default, grab = default;
-            bool dragging = false, scrubbing = false;
+            bool dragging = false, scrubbing = false, drawerLit = false;
             // The card holds the mouse, so the X never sees the pointer arrive: its red hover follows the pointer here.
             // The Reset link underlines under the pointer, for the same reason.
             void HotReset(bool on)
@@ -632,9 +652,13 @@ namespace KillerFamily.Controls
                     if (d == parent) return true;
                 return false;
             }
+            // A mouse event over the drawer reaches both the drawer and the card (the drawer sits in the card's tree), so
+            // each event is handled once.
+            RoutedEventArgs? seen = null;
+            bool Fresh(RoutedEventArgs e) { if (ReferenceEquals(e, seen)) return false; seen = e; return true; }
             void Down(object? sender, MouseButtonEventArgs e)
             {
-                if (!editing || e.ChangedButton != MouseButton.Left) return;
+                if (!editing || e.ChangedButton != MouseButton.Left || !Fresh(e)) return;
                 // The element under the click when the event reaches it directly, else the surface under the pointer.
                 var src = e.OriginalSource as DependencyObject;
                 var hit = Owner(src) is not null || Within(src, reset) || Within(src, done) ? src : HitAt(e);
@@ -648,7 +672,7 @@ namespace KillerFamily.Controls
             }
             void MoveMouse(object? sender, MouseEventArgs e)
             {
-                if (!editing) return;
+                if (!editing || !Fresh(e)) return;
                 HotDone(Over(e, done));
                 HotReset(Over(e, reset));
                 if (scrubbing) { if (e.LeftButton == MouseButtonState.Pressed) Scrub(e); else scrubbing = false; return; }
@@ -658,6 +682,7 @@ namespace KillerFamily.Controls
             }
             void Up(object? sender, MouseButtonEventArgs e)
             {
+                if (!Fresh(e)) return;
                 if (scrubbing) { scrubbing = false; e.Handled = true; return; }
                 if (pressed is null) return;
                 Release(Screen(e));
@@ -695,11 +720,13 @@ namespace KillerFamily.Controls
                     if ((card.PointFromScreen(screen) - card.PointFromScreen(start)).Length < 4) return;
                     PickUp();
                 }
-                var p = card.PointFromScreen(screen);
-                ghost.HorizontalOffset = p.X - grab.X;
-                ghost.VerticalOffset = p.Y - grab.Y;
                 bool overDrawer = OnDrawer(screen);
-                drawerFace.SetResourceReference(Border.BackgroundProperty, overDrawer ? "MenuHoverBrush" : "MenuBackgroundBrush");
+                PlaceGhost(screen, overDrawer);
+                if (overDrawer != drawerLit)
+                {
+                    drawerLit = overDrawer;
+                    drawerFace.SetResourceReference(Border.BackgroundProperty, overDrawer ? "MenuHoverBrush" : "MenuBackgroundBrush");
+                }
                 var next = overDrawer ? order.Where(k => k != pressed.Key).ToList() : Landing(screen);
                 if (preview is not null && next.SequenceEqual(preview)) return;
                 preview = next;
@@ -731,6 +758,20 @@ namespace KillerFamily.Controls
                 return next;
             }
 
+            void PlaceGhost(Point screen, bool overDrawer)
+            {
+                if (ghost.Child is null) return;
+                var layer = overDrawer ? drawerLayer : cardLayer;
+                if (ghost.Parent != layer)
+                {
+                    (ghost.Parent as Panel)?.Children.Remove(ghost);
+                    layer.Children.Add(ghost);
+                }
+                var p = layer.PointFromScreen(screen);
+                Canvas.SetLeft(ghost, p.X - grab.X);
+                Canvas.SetTop(ghost, p.Y - grab.Y);
+            }
+
             void PickUp()
             {
                 dragging = true;
@@ -738,22 +779,12 @@ namespace KillerFamily.Controls
                 if (pressedEl is FrameworkElement fe && fe.ActualWidth > 0)
                 {
                     grab = fe.PointFromScreen(start);
-                    var dpi = VisualTreeHelper.GetDpi(fe);
-                    var face = new DrawingVisual();
-                    using (var dc = face.RenderOpen())
-                    {
-                        var bounds = new Rect(fe.RenderSize);
-                        double corner = card.TryFindResource("SmallCornerRadius") is CornerRadius sc ? sc.TopLeft : 4;
-                        var pen = card.TryFindResource("PrimaryBrush") is Brush accent ? new Pen(accent, 1) : null;
-                        dc.DrawRoundedRectangle(card.TryFindResource("MenuHoverBrush") as Brush ?? Brushes.Gray, pen, new Rect(0.5, 0.5, bounds.Width - 1, bounds.Height - 1), corner, corner);
-                        dc.DrawRectangle(new VisualBrush(fe) { Stretch = Stretch.Fill, ViewboxUnits = BrushMappingMode.Absolute, Viewbox = bounds }, null, bounds);
-                    }
-                    var shot = new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(fe.ActualWidth * dpi.DpiScaleX), (int)Math.Ceiling(fe.ActualHeight * dpi.DpiScaleY), 96 * dpi.DpiScaleX, 96 * dpi.DpiScaleY, PixelFormats.Pbgra32);
-                    shot.Render(face);
-                    ghostImage.Source = shot;
-                    ghostImage.Width = fe.ActualWidth;
-                    ghostImage.Height = fe.ActualHeight;
-                    ghost.IsOpen = true;
+                    // A live copy of the tile, built the way the card builds its tiles, so its icon and label always show.
+                    var copy = GroupGrid(card, name, [[pressed]], 1);
+                    copy.Margin = new Thickness(0);
+                    ghost.Child = copy;
+                    ghost.Width = fe.ActualWidth;
+                    ghost.Height = fe.ActualHeight;
                 }
                 // The hand closes on the tile for as long as it is held.
                 Mouse.OverrideCursor = GrabbingCursor;
@@ -784,9 +815,10 @@ namespace KillerFamily.Controls
                 dragging = false;
                 preview = null;
                 draggedKey = null;
-                ghost.IsOpen = false;
-                ghostImage.Source = null;
+                (ghost.Parent as Panel)?.Children.Remove(ghost);
+                ghost.Child = null;
                 if (ReferenceEquals(Mouse.OverrideCursor, GrabbingCursor)) Mouse.OverrideCursor = null;
+                drawerLit = false;
                 drawerFace.SetResourceReference(Border.BackgroundProperty, "MenuBackgroundBrush");
             }
             // Test hook: drives the drag in screen points the way the mouse does.
