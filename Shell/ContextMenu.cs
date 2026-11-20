@@ -884,7 +884,18 @@ namespace KillerPDF.Shell
         private void AppendSidebarSideSection(ContextMenu menu)
         {
             if (TryFindResource("CardMenu") is Style card) menu.Style = card;
-            if (menu.Items.Count > 0) menu.Items.Add(new Separator());
+            if (menu.Items.Count > 0)
+            {
+                menu.Items.Add(new Separator());
+                // Sharing a card with page or document actions, the section says it is about the sidebar
+                // (Steve 2026-11-19). The blank-rail card is only this section, so it needs no label.
+                var title = new TextBlock { Text = Loc("Str_Card_Sidebar"), FontSize = 11, Margin = new Thickness(4, 2, 0, 2), IsHitTestVisible = false };
+                title.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
+                var heading = CardSlot(title, new Thickness(0));
+                heading.Name = "SidebarSectionHeading";
+                heading.Focusable = false;
+                menu.Items.Add(heading);
+            }
             if (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
             {
                 bool paired = App.GetSetting("TwoPageThumbnails") == "1";
