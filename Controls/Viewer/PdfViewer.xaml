@@ -18,7 +18,7 @@
         </Grid.RowDefinitions>
 
         <!-- ZIndex above the card: the card's -1 top margin tucks its top border into this band's
-             row, and the active tab (TabActiveBrush, the menu tier) covers that pixel so the tab
+             row, and the active tab (ContentPaneBrush, the card's own color) covers that pixel so the tab
              sits on the card without a seam. -->
         <Border Grid.Row="0" x:Name="TabStripBorder" Panel.ZIndex="10"
                 Height="{DynamicResource TabBandHeight}"
@@ -258,9 +258,10 @@
                                             <!-- 3px, matched by the card's corners at each end of the band
                                                  (CardCorners.AtTabBand); 98SE keeps its 2px. -->
                                             <Setter TargetName="tabBd" Property="CornerRadius" Value="{DynamicResource TabActiveCornerRadius}"/>
-                                            <!-- Front tab takes the menu tier, the same as the bars
-                                                 over the document, above the lighter pane. -->
-                                            <Setter TargetName="tabBd" Property="Background" Value="{DynamicResource TabActiveBrush}"/>
+                                            <!-- The front tab is the pane's own color, so it opens into the
+                                                 document card below it without a seam (Steve, 2026-11-20: the
+                                                 menu tier read as the wrong color). 98SE states its own face below. -->
+                                            <Setter TargetName="tabBd" Property="Background" Value="{DynamicResource ContentPaneBrush}"/>
                                             <!-- Trash Polka: the front tab carries the pane's own piece, pinned to the
                                                  window, so it continues the card below seamlessly. Inactive tabs stay
                                                  transparent so the window's own ink and film grain show through. -->
@@ -278,7 +279,7 @@
                                             <!-- Modern themes use the original raised-tab shadow. 98SE
                                                  disables it in the theme-gated trigger below because an Effect
                                                  rasterizes the label and destroys the crisp classic text. -->
-                                            <Setter TargetName="tabBd" Property="Effect" Value="{DynamicResource BarShadowEffect}"/>
+                                            <Setter TargetName="tabBd" Property="Effect" Value="{DynamicResource DocumentTabShadowEffect}"/>
                                             <Setter TargetName="tabLbl" Property="Foreground" Value="{DynamicResource TextBrush}"/>
                                             <Setter TargetName="tabBevelDark" Property="BorderThickness" Value="{DynamicResource TabActiveBevelDarkThickness}"/>
                                             <Setter TargetName="tabBevelDark" Property="Margin" Value="{DynamicResource TabActiveBevelDarkMargin}"/>

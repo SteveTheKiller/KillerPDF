@@ -267,6 +267,21 @@ namespace KillerPDF.Services
             // The shade along the foot of the tab strip follows the bar shadow unless a theme turns it off (Trash Polka:
             // inactive tabs sit on the window background with no darkening).
             Default("TabStripFadeOpacity", d.Contains("BarShadowOpacity") ? d["BarShadowOpacity"] : 0.38);
+            // The active document tab's shadow. Light softens BarShadowOpacity for its toolbar, which left the tab with
+            // no visible edge against the strip, so the tab keeps at least the 0.38 every other theme uses. Flat themes
+            // (98SE) stay shadowless.
+            if (!d.Contains("DocumentTabShadowEffect"))
+            {
+                double bar = d.Contains("BarShadowOpacity") && d["BarShadowOpacity"] is double o ? o : 0.38;
+                if (bar > 0)
+                {
+                    var tabShadow = new System.Windows.Media.Effects.DropShadowEffect
+                    { Color = Colors.Black, BlurRadius = 9, ShadowDepth = 0, Opacity = Math.Max(bar, 0.38) };
+                    tabShadow.Freeze();
+                    d["DocumentTabShadowEffect"] = tabShadow;
+                }
+                else d["DocumentTabShadowEffect"] = null;
+            }
             Default("AboutShadowOpacity", d.Contains("FlyoutShadowOpacity") ? d["FlyoutShadowOpacity"] : 0.6);
             Default("AboutIconShadowOpacity", 0.6);
             Default("AboutCaptionVisibility", Visibility.Collapsed);
