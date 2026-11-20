@@ -1050,8 +1050,16 @@
             <Setter.Value>
                 <ControlTemplate TargetType="MenuItem">
                     <Border x:Name="MenuBd" Background="{TemplateBinding Background}"
-                            Padding="{TemplateBinding Padding}" CornerRadius="{DynamicResource ControlCornerRadius}">
+                            CornerRadius="{DynamicResource ControlCornerRadius}">
                         <Grid>
+                        <!-- Grain goes over the row's background and under its words and icons.
+                             The popup's own grain sits under the rows, so a resting (transparent)
+                             row shows it; this one only appears on a highlighted row, laid over the
+                             solid hover fill so that row keeps the texture (steve-rules, menu grain). -->
+                        <Border x:Name="RowGrain" IsHitTestVisible="False" Visibility="Collapsed"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                        <Grid Margin="{TemplateBinding Padding}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="16"/>
                                 <!-- Header and Gesture are Auto + SharedSizeGroup, not Header="*", so the
@@ -1118,13 +1126,15 @@
                                             BorderBrush="{DynamicResource MenuBorderBrush}"
                                             BorderThickness="1" CornerRadius="{DynamicResource FlyoutCornerRadius}">
                                         <Grid>
+                                            <!-- Grain under the rows, never over their words; a
+                                                 highlighted row adds its own grain over its fill. -->
+                                            <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
+                                                    CornerRadius="{DynamicResource FlyoutCornerRadius}" Background="{DynamicResource GrainTileBrush}"/>
                                             <!-- Own scope, so a submenu's columns align among its own
                                                  siblings rather than the unrelated parent popup's rows. -->
                                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
                                                 <ItemsPresenter Margin="4" Grid.IsSharedSizeScope="True"/>
                                             </ScrollViewer>
-                                            <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
-                                                    CornerRadius="{DynamicResource FlyoutCornerRadius}" Background="{DynamicResource GrainTileBrush}"/>
                                         </Grid>
                                     </Border>
                                     <Border IsHitTestVisible="False" Margin="{DynamicResource MenuBevelInnerMargin}" BorderBrush="{DynamicResource MenuBevelLightBrush}" BorderThickness="{DynamicResource MenuBevelLightThickness}"/>
@@ -1134,11 +1144,13 @@
                                 </Grid>
                             </Popup>
                         </Grid>
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <!-- Hover uses the menu wash and its contrast text brush. -->
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="MenuBd" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
+                            <Setter TargetName="RowGrain" Property="Visibility" Value="Visible"/>
                             <Setter Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
                             <Setter TargetName="Check" Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
                             <Setter TargetName="Gesture" Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
@@ -1247,9 +1259,11 @@
         <Setter Property="Effect" Value="{DynamicResource FlyoutCardEffect}"/>
     </Style>
 
-    <!-- The grain overlay. LAST child of the card, so it lies OVER the items - including a
-         highlighted row's solid SelectionBg fill. Radius 5 = the card's 6 minus its 1px
-         border, so the texture stops exactly inside the frame. -->
+    <!-- The flyout card's grain. Grain goes over backgrounds and fills, never over words or
+         icons: place it BEFORE the panel content so it lies under it, and give any row with a
+         solid hover or selection fill its own grain over that fill (see the MenuItem template's
+         RowGrain). Radius 5 = the card's 6 minus its 1px border, so the texture stops exactly
+         inside the frame. -->
     <Style x:Key="FlyoutGrain" TargetType="Border">
         <Setter Property="IsHitTestVisible" Value="False"/>
         <Setter Property="CornerRadius" Value="5"/>
@@ -1528,8 +1542,13 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ControlCornerRadius}"
-                            Padding="{TemplateBinding Padding}" BorderThickness="1" BorderBrush="Transparent">
-                        <StackPanel HorizontalAlignment="Center">
+                            BorderThickness="1" BorderBrush="Transparent">
+                        <Grid>
+                        <!-- Grain over the tile's hover and pressed fill, under its glyph and words. -->
+                        <Border x:Name="TileGrain" IsHitTestVisible="False" Visibility="Collapsed"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="{TemplateBinding Padding}">
                             <!-- The glyph in the accent: the strip is the card's one splash of color,
                                  and the caption under it stays the plain text color. -->
                             <TextBlock x:Name="Glyph" Text="{TemplateBinding Content}" FontFamily="Segoe MDL2 Assets" FontSize="16"
@@ -1544,10 +1563,12 @@
                                        TextAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource DimTextBrush}"
                                        Text="{Binding (AutomationProperties.AcceleratorKey), RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static input:TileKeysConverter.Instance}}"/>
                         </StackPanel>
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
+                            <Setter TargetName="TileGrain" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
                             <Setter TargetName="Caption" Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
                             <Setter TargetName="Shortcut" Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
