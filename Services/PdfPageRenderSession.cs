@@ -91,6 +91,10 @@ internal sealed class PdfPageRenderSession : IDisposable
     internal static PdfPageRenderSession OpenCapturedDocument(EngineDocument document,
         IReadOnlyList<EnginePageInformation> pages) => new(document, SizeAll(document, pages), 1, 1, 0);
 
+    /// <summary>Opens a viewer's stamped copy of its document (#478) for fitted renders.</summary>
+    internal static PdfPageRenderSession OpenStamped(ViewerStampBurn stamps) =>
+        new(stamps.Document, SizedPages(stamps.Document), 1, 1, 0);
+
     internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex,
         EngineRenderOptions options, CancellationToken cancellationToken) =>
         Renderer.RenderFrame(pageIndex, options, cancellationToken);
@@ -625,23 +629,37 @@ internal sealed class PdfPrimaryRenderSession
     }
 }
 
-// A task exclusively owns its lease. Only one idle session is retained per pane.
+// A task exclusively owns its lease. Only one idle session, and one for the stamped copy, is retained per pane.
 internal sealed class PdfBackgroundRenderCache
 {
     private readonly Lock _sync = new();
     private Request? _current;
     private PdfPageRenderSession? _idle;
+    private PdfPageRenderSession? _idleStamped;
 
-    internal Request Capture(string path, long revision, OpenedProtection? protection)
+    /// <summary>
+    /// The request for a pane's renders of <paramref name="path"/> at <paramref name="revision"/>. With
+    /// <paramref name="stamps"/>, the pages it covers render from the stamped copy (#478) and every other page from the
+    /// file, so a page the stamps leave alone keeps exactly the pixels it had.
+    /// </summary>
+    internal Request Capture(string path, long revision, OpenedProtection? protection, ViewerStampBurn? stamps = null)
     {
         lock (_sync)
         {
             if (_current is not null && _current.Path == path && _current.Revision == revision
-                && ReferenceEquals(_current.Protection, protection))
+                && ReferenceEquals(_current.Protection, protection) && ReferenceEquals(_current.Stamps, stamps))
                 return _current;
-            _idle?.Dispose();
-            _idle = null;
-            return _current = new Request(this, path, revision, protection);
+            bool samePath = _current is not null && _current.Path == path && _current.Revision == revision
+                && ReferenceEquals(_current.Protection, protection);
+            // The stamped copy changes alone when the stamps turn on or off; the file's own session stays good.
+            if (!samePath)
+            {
+                _idle?.Dispose();
+                _idle = null;
+            }
+            _idleStamped?.Dispose();
+            _idleStamped = null;
+            return _current = new Request(this, path, revision, protection, stamps);
         }
     }
 
@@ -652,15 +670,23 @@ internal sealed class PdfBackgroundRenderCache
             _current = null;
             _idle?.Dispose();
             _idle = null;
+            _idleStamped?.Dispose();
+            _idleStamped = null;
         }
     }
 
-    internal sealed class Request(PdfBackgroundRenderCache owner, string path, long revision, OpenedProtection? protection)
-        : IVisibleRegionSource
+    internal sealed class Request(PdfBackgroundRenderCache owner, string path, long revision, OpenedProtection? protection,
+        ViewerStampBurn? stamps = null) : IVisibleRegionSource
     {
         internal string Path { get; } = path;
         internal long Revision { get; } = revision;
         internal OpenedProtection? Protection { get; } = protection;
+
+        /// <summary>The stamped copy the covered pages render from, or null when no stamps are in the page bitmaps.</summary>
+        internal ViewerStampBurn? Stamps { get; } = stamps;
+
+        /// <summary>True when <paramref name="pageIndex"/> renders with the stamps in it.</summary>
+        internal bool StampsInPage(int pageIndex) => Stamps?.Covers(pageIndex) == true;
 
         IVisibleRegionLease IVisibleRegionSource.RentRegion(CancellationToken cancellationToken) => Rent(cancellationToken);
 
@@ -674,25 +700,36 @@ internal sealed class PdfBackgroundRenderCache
         internal Lease Rent(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            PdfPageRenderSession? session = null;
+            PdfPageRenderSession? session = null, stamped = null;
             lock (owner._sync)
             {
                 if (ReferenceEquals(owner._current, this))
                 {
                     session = owner._idle;
                     owner._idle = null;
+                    stamped = owner._idleStamped;
+                    owner._idleStamped = null;
                 }
             }
             // Opening and rendering never hold the cache lock or wait on the UI thread.
             session ??= PdfPageRenderSession.OpenEngineFirst(Path, 1, 1, Protection);
-            return new Lease(owner, this, session);
+            return new Lease(owner, this, session, stamped);
         }
     }
 
     internal sealed class Lease(PdfBackgroundRenderCache owner, Request request,
-        PdfPageRenderSession session) : IVisibleRegionLease
+        PdfPageRenderSession session, PdfPageRenderSession? stamped = null) : IVisibleRegionLease
     {
         private PdfPageRenderSession? _session = session;
+        private PdfPageRenderSession? _stamped = stamped;
+
+        // A covered page renders from the stamped copy, opened on first use; every other page from the file.
+        private PdfPageRenderSession SessionFor(int pageIndex)
+        {
+            PdfPageRenderSession file = _session ?? throw new ObjectDisposedException(nameof(Lease));
+            if (request.Stamps is not { } stamps || !stamps.Covers(pageIndex)) return file;
+            return _stamped ??= PdfPageRenderSession.OpenStamped(stamps);
+        }
 
         (int Width, int Height) IVisibleRegionLease.Dimensions(int pageIndex, int maximumWidth, int maximumHeight)
             => Dimensions(pageIndex, maximumWidth, maximumHeight);
@@ -708,42 +745,49 @@ internal sealed class PdfBackgroundRenderCache
 
         internal PdfRenderedPage Render(int pageIndex, int maximumWidth, int maximumHeight,
             CancellationToken cancellationToken = default) =>
-            (_session ?? throw new ObjectDisposedException(nameof(Lease))).RenderFittedPage(
-                pageIndex, maximumWidth, maximumHeight, cancellationToken: cancellationToken);
+            SessionFor(pageIndex).RenderFittedPage(pageIndex, maximumWidth, maximumHeight, cancellationToken: cancellationToken);
 
         internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex,
             int maximumWidth, int maximumHeight, CancellationToken cancellationToken,
             KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null) =>
-            (_session ?? throw new ObjectDisposedException(nameof(Lease))).RenderFittedFrame(
-                pageIndex, maximumWidth, maximumHeight, cancellationToken, proof);
+            SessionFor(pageIndex).RenderFittedFrame(pageIndex, maximumWidth, maximumHeight, cancellationToken, proof);
 
         internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrameRegion(int pageIndex,
             int maximumWidth, int maximumHeight, VisibleRenderRegion region, CancellationToken cancellationToken,
             KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null) =>
-            (_session ?? throw new ObjectDisposedException(nameof(Lease))).RenderFittedFrameRegion(
-                pageIndex, maximumWidth, maximumHeight, region, cancellationToken, proof);
+            SessionFor(pageIndex).RenderFittedFrameRegion(pageIndex, maximumWidth, maximumHeight, region, cancellationToken, proof);
 
         public void Dispose()
         {
             PdfPageRenderSession? released = Interlocked.Exchange(ref _session, null);
+            PdfPageRenderSession? releasedStamped = Interlocked.Exchange(ref _stamped, null);
             if (released is null) return;
             lock (owner._sync)
             {
-                if (ReferenceEquals(owner._current, request) && owner._idle is null)
+                if (ReferenceEquals(owner._current, request))
                 {
-                    owner._idle = released;
-                    return;
+                    if (owner._idle is null)
+                    {
+                        owner._idle = released;
+                        released = null;
+                    }
+                    if (releasedStamped is not null && owner._idleStamped is null)
+                    {
+                        owner._idleStamped = releasedStamped;
+                        releasedStamped = null;
+                    }
                 }
             }
-            released.Dispose();
+            released?.Dispose();
+            releasedStamped?.Dispose();
         }
 
         internal (int Width, int Height) Dimensions(int pageIndex, int maximumWidth, int maximumHeight) =>
-            (_session ?? throw new ObjectDisposedException(nameof(Lease))).FittedDimensions(pageIndex, maximumWidth, maximumHeight);
+            SessionFor(pageIndex).FittedDimensions(pageIndex, maximumWidth, maximumHeight);
 
         internal PdfRenderedPage RenderRegion(int pageIndex, int maximumWidth, int maximumHeight,
             int left, int top, int width, int height, CancellationToken cancellationToken = default) =>
-            (_session ?? throw new ObjectDisposedException(nameof(Lease))).RenderFittedRegion(
+            SessionFor(pageIndex).RenderFittedRegion(
                 pageIndex, maximumWidth, maximumHeight, left, top, width, height, cancellationToken);
     }
 }

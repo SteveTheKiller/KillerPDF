@@ -79,7 +79,7 @@ namespace KillerPDF.Controls
             int[] targets = PreviewSpreads.NeighborStarts(pageIndex, total,
                 PreviewSpreads.FromViewer(_viewMode == ViewMode.TwoPage, BookMode));
             var rotations = new Dictionary<int, int>(_pageRotations);
-            var renderRequest = _backgroundRenderCache.Capture(currentFile, revision, _protection);
+            var renderRequest = CaptureRenderRequest(currentFile, revision, floatFrames: monitor is not null);
             _ = System.Threading.Tasks.Task.Run(async () =>
             {
                 ContentDoc? contentDoc = null;
@@ -115,7 +115,7 @@ namespace KillerPDF.Controls
                             if (w <= 0 || h <= 0 || raw is null) continue;
                             if (invert)
                                 BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h,
-                                    ImageRectsFor(currentFile, renderRequest.Protection, target, ref contentDoc));
+                                    ImageRectsFor(renderRequest, target, ref contentDoc));
                             if (rot != 0)
                                 (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
                             if (cancellationToken.IsCancellationRequested) return;
@@ -127,6 +127,7 @@ namespace KillerPDF.Controls
                             wb.WritePixels(new Int32Rect(0, 0, w, h), raw, w * 4, 0);
                             wb.Freeze();
                             RememberRenderWarning(wb, rendered);
+                            NoteStampedRender(renderRequest, target, wb);
                             bitmap = wb;
                         }
                         if (cancellationToken.IsCancellationRequested) return;
@@ -134,6 +135,8 @@ namespace KillerPDF.Controls
                         _ = Dispatcher.BeginInvoke(new Action(() =>
                         {
                             if (cancellationToken.IsCancellationRequested) return;
+                            // A page drawn for an older revision is not stored under the new one.
+                            if (session is not null && session.RenderRevision != revision) return;
                             if (monitor is not null && !ReferenceEquals(display, _presentationDisplay)) return;
                             if (prefetchCmyk != KillerPDF.Services.WorkingCmykProfiles.Generation) return;
                             CacheRender(session, localTarget, scaledMax, localRot, bitmap, proofStamp: proof.Stamp, monitorIdentity: monitorIdentity);
@@ -167,6 +170,21 @@ namespace KillerPDF.Controls
                 contentDoc ??= ContentDoc.Open(file, protection);
                 rects = PdfImages.GetFracRects(contentDoc, page);
             }
+            catch { rects = []; }
+            _pageImageRects[key] = rects;
+            return rects;
+        }
+
+        /// <summary>The image boxes of <paramref name="page"/> as <paramref name="request"/> renders it: a page drawn from
+        /// the stamped copy (#478) keeps that copy's pictures, an image watermark among them, as Apply's output would.</summary>
+        private BitmapHelpers.FracRect[] ImageRectsFor(PdfBackgroundRenderCache.Request request, int page, ref ContentDoc? contentDoc)
+        {
+            if (!request.StampsInPage(page)) return ImageRectsFor(request.Path, request.Protection, page, ref contentDoc);
+            if (BitmapHelpers.DocInvertImages) return [];
+            string key = page + "|" + request.Path + "|stamped " + request.Stamps!.Id.ToString("N");
+            if (_pageImageRects.TryGetValue(key, out var hit)) return hit;
+            BitmapHelpers.FracRect[] rects;
+            try { rects = request.Stamps!.ReadContent(stamped => PdfImages.GetFracRects(stamped, page)); }
             catch { rects = []; }
             _pageImageRects[key] = rects;
             return rects;
@@ -720,14 +738,14 @@ namespace KillerPDF.Controls
             var mode = _viewMode;
             var nativeOwner = _nativeDoc;
             var nativeRevision = nativeOwner?.CaptureReadRevision();
-            var renderRequest = nativeRevision is null
-                ? _backgroundRenderCache.Capture(currentFile, revision, _protection) : null;
             bool invert = DocInvert;
             bool invertImages = BitmapHelpers.DocInvertImages;
             var continuousDisplay = CapturePrimaryDisplay();
             var continuousMonitor = !invert
                 && PdfDisplayPresentationPolicy.Resolve(continuousDisplay).TransformOwner == PdfMonitorTransformOwner.Application
                 ? _sdrDisplayConverter : null;
+            var renderRequest = nativeRevision is null ? CaptureRenderRequest(currentFile, revision,
+                floatFrames: proof?.Settings.Enabled == true || continuousMonitor is not null) : null;
             // Pages converted for a monitor are cached under its profile's identity; with none established they are not cached.
             bool continuousCacheable = TryMonitorCacheIdentity(continuousMonitor, continuousDisplay, out string? continuousMonitorIdentity);
             var renderToken = cts.Token;
@@ -826,7 +844,7 @@ namespace KillerPDF.Controls
                             if (w <= 0 || h <= 0 || raw is null) continue;
                             if (invert)
                                 BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h,
-                                    ImageRectsFor(currentFile, renderRequest.Protection, i, ref contentDoc));
+                                    ImageRectsFor(renderRequest, i, ref contentDoc));
                         }
                         if (w <= 0 || h <= 0 || raw is null) continue;
                         if (rot != 0)
@@ -851,6 +869,7 @@ namespace KillerPDF.Controls
                             int ddh = Math.Max(1, (int)Math.Round(targetW * fh / fw));
                             var bmp = BitmapHelpers.BuildScaledBitmap(fw, fh, bytes, ddw, ddh);
                             if (rendered is { } pdfPage) RememberRenderWarning(bmp, pdfPage);
+                            NoteStampedRender(renderRequest, fi, bmp);
                             // monitorWarning carries the proof notice key; the text is localized when shown.
                             if (monitorWarning is not null || displayFallback is not null)
                             {
@@ -891,6 +910,7 @@ namespace KillerPDF.Controls
 
             RemoveVisibleDetail(pageImg);
             pageImg.Source  = bmp;
+            ShowStampElementsFor(slotGrid);   // #478: in the same step as the bitmap that holds the stamps, or not
             PresentRenderWarning(pageImg, bmp, fi);
             pageImg.Width   = dipW;
             pageImg.Height  = dipH;
@@ -1157,7 +1177,7 @@ namespace KillerPDF.Controls
                     {
                         var revision = primaryNative?.CaptureReadRevision();
                         var request = primaryNative is null
-                            ? _backgroundRenderCache.Capture(primaryFile, primaryRevision, _protection) : null;
+                            ? CaptureRenderRequest(primaryFile, primaryRevision, floatFrames: true) : null;
                         render = _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
                             (primaryProof?.Settings.Enabled == true ? 64L : 40L) * scaledMax * scaledMax,
                             token => PrepareLinearPrimaryBitmap(request, revision, pageIndex, scaledMax, token,
@@ -1180,7 +1200,8 @@ namespace KillerPDF.Controls
                     }
                     else
                     {
-                        var request = _backgroundRenderCache.Capture(primaryFile, primaryRevision, _protection);
+                        var request = CaptureRenderRequest(primaryFile, primaryRevision,
+                            floatFrames: primaryProof?.Settings.Enabled == true || primaryMonitor is not null);
                         render = _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
                             (primaryProof?.Settings.Enabled == true ? 64L : primaryMonitor is not null ? 40L : 8L) * scaledMax * scaledMax,
                             token =>
@@ -1539,8 +1560,8 @@ namespace KillerPDF.Controls
                 // tile bitmap whose baked logical geometry follows the primary page cannot collide
                 // with a primary bitmap rendered at the same pixel budget.
                 int tileBucket = -secondaryMax;
-                var renderRequest = nativeRevision is null
-                    ? _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0, _protection) : null;
+                var renderRequest = nativeRevision is null ? CaptureRenderRequest(currentFile, session?.RenderRevision ?? 0,
+                    floatFrames: proof?.Settings.Enabled == true || secondaryMonitor is not null) : null;
                 var secondaryToken = cts.Token;
                 await System.Threading.Tasks.Task.Run(async () =>
                 {
@@ -1630,7 +1651,7 @@ namespace KillerPDF.Controls
                                 // #135: dark mode with pictures excluded; invert before the rotation
                                 // so the carve-out rects stay in unrotated page space.
                                 if (invert)
-                                    BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, w, h, ImageRectsFor(currentFile, renderRequest!.Protection, i, ref contentDoc));
+                                    BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, w, h, ImageRectsFor(renderRequest!, i, ref contentDoc));
                                 if (rot != 0)
                                     (rawBytes, w, h) = BitmapHelpers.RotateBitmap(rawBytes, w, h, rot);
 
@@ -1644,6 +1665,7 @@ namespace KillerPDF.Controls
                                     int ddh = Math.Max(1, (int)Math.Round(primaryDipW * ph / pw));
                                     var bmp = BitmapHelpers.BuildScaledBitmap(pw, ph, bytes, ddw, ddh);
                                     RememberRenderWarning(bmp, rendered);
+                                    NoteStampedRender(renderRequest, pi, bmp);
                                     if (secondaryCacheable)
                                         CacheRender(session, pi, tileBucket, prot, bmp, proofStamp: proof?.Stamp,
                                             monitorIdentity: secondaryMonitorIdentity);
@@ -1836,6 +1858,7 @@ namespace KillerPDF.Controls
                     AddSecondaryPageLinks(pi, pageDipW, pageDipH);   // after: drawing annotations clears the canvas
                 }
                 exImg.Source = bitmap;
+                ShowStampElementsFor(exGrid);   // #478: in the same step as the bitmap that holds the stamps, or not
                 PresentRenderWarning(exImg, bitmap, pi);
                 // Keep the grid's constant on-screen gap exact across zoom/column changes: the
                 // reused tile's margin was computed at the old zoom, so refresh it here.

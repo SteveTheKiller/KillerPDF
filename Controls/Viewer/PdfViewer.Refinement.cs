@@ -74,7 +74,7 @@ public partial class PdfViewer
         if (!DocInvert) return HighlighterLook.Dark.Off;
         if (_nativeDoc is not null) return BitmapHelpers.DocInvertImages ? new(true, []) : HighlighterLook.Dark.Off;
         if (BitmapHelpers.DocInvertImages || _currentFile is null) return new(true, []);
-        var boxes = ImageRectsFor(_currentFile, _protection, page, ref content);
+        var boxes = ShownImageRects(page, ref content);
         int rotation = _pageRotations.TryGetValue(page, out int turned) ? turned : 0;
         return new(true, [.. boxes.Select(box => HighlighterLook.KeptOnPage(box.L, box.T, box.R, box.B, rotation))]);
     }
@@ -123,7 +123,9 @@ public partial class PdfViewer
                 == KillerPdf.Engine.Rendering.PdfMonitorTransformOwner.Application ? _sdrDisplayConverter : null;
         // A book draws its tiles from its captured revision, a PDF from the background render cache.
         var nativeOwner = _nativeDoc;
-        var pdfRequest = nativeOwner is null ? _backgroundRenderCache.Capture(file, revision, _protection) : null;
+        // The primary page under the native presenter is refined with float frames too.
+        var pdfRequest = nativeOwner is null ? CaptureRenderRequest(file, revision,
+            floatFrames: proof?.Settings.Enabled == true || monitor is not null || _primaryPresentationState is not null) : null;
         IVisibleRegionSource regionSource = (IVisibleRegionSource?)pdfRequest ?? nativeOwner!.CaptureReadRevision();
         bool invertImages = BitmapHelpers.DocInvertImages;
         bool Current() => !token.IsCancellationRequested && ReferenceEquals(session, _active)
@@ -152,6 +154,9 @@ public partial class PdfViewer
                 if (!Current()) return;
                 if (image.Source is not BitmapSource source || image.Parent is not Grid grid
                     || image.ActualWidth <= 0 || image.ActualHeight <= 0) continue;
+                // #478: a page whose bitmap was drawn with the stamps in it, or without, gets detail drawn the same
+                // way; one waiting for its new bitmap is refined once that lands.
+                if (pdfRequest is not null && IsStampedBitmap(source) != pdfRequest.StampsInPage(page)) continue;
                 if (ReferenceEquals(image, PageImage) && _primaryPresentationState is not null
                     && !invert && (!_pageRotations.TryGetValue(page, out int nativeRotation) || nativeRotation == 0))
                 {
@@ -185,7 +190,7 @@ public partial class PdfViewer
                         PdfContentDocument? content = null;
                         try
                         {
-                            return ImageRectsFor(file, pdfRequest.Protection, page, ref content).Select(box => new BitmapHelpers.FracRect(
+                            return ImageRectsFor(pdfRequest, page, ref content).Select(box => new BitmapHelpers.FracRect(
                                 (box.L * dimensions.Width - region.Left) / region.Width,
                                 (box.T * dimensions.Height - region.Top) / region.Height,
                                 (box.R * dimensions.Width - region.Left) / region.Width,

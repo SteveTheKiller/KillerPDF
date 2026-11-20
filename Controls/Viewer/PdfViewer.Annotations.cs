@@ -180,11 +180,14 @@ namespace KillerPDF.Controls
             // Resolve this page's annotation surface from the unified per-page overlay map, which
             // every multi-page view populates; fall back to the single-page canvas. View-mode
             // independent on purpose so the tools behave identically in all four modes.
+            SyncStampLayering();   // #478: the covered pages render with the active stamps in them (PdfViewer.StampLayering.cs)
             _activeCanvas = CanvasForPage(pageIndex);
             ClearRenderedCanvas(_activeCanvas);
             QueueThumbnailOverlay(pageIndex);   // the page list's thumbnail follows the edits (PdfViewer.ThumbnailOverlay.cs)
 
+            int firstStamp = _activeCanvas.Children.Count;
             RenderStamps(pageIndex);   // stamp layer (page numbers / watermark) sits beneath annotations
+            KeepStampElements(_activeCanvas, firstStamp);   // #478: hidden while the page bitmap carries the stamps
             HighlighterLook.Dark? markDark = null;   // asked once, by the first highlighter mark
 
             if (_annotations.TryGetValue(pageIndex, out var annotList))

@@ -115,6 +115,7 @@ public partial class PdfViewer
             bitmap.Freeze();
             if (conversion?.FailureOperation is { } failure)
                 RenderWarnings.GetValue(bitmap, _ => new RenderWarning("", failure));
+            NoteStampedRender(request, page, bitmap);
             return (bitmap, new RenderMeasurement(page, parse, raster, timer.Elapsed.TotalMilliseconds, 0),
                 monitor is null ? frame : null);
         }
@@ -194,7 +195,7 @@ public partial class PdfViewer
         if (invert)
         {
             PdfContentDocument? content = null;
-            try { BitmapHelpers.InvertBgraInPlaceExcept(pixels, width, height, ImageRectsFor(request.Path, request.Protection, page, ref content)); }
+            try { BitmapHelpers.InvertBgraInPlaceExcept(pixels, width, height, ImageRectsFor(request, page, ref content)); }
             finally { content?.Dispose(); }
         }
         if (rotation != 0)
@@ -208,6 +209,7 @@ public partial class PdfViewer
         bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
         bitmap.Freeze();
         RememberRenderWarning(bitmap, rendered);
+        NoteStampedRender(request, page, bitmap);
         return (bitmap, new RenderMeasurement(page, parse, raster, timer.Elapsed.TotalMilliseconds, 0));
     }
 

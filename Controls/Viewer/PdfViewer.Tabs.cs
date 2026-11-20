@@ -98,6 +98,10 @@ namespace KillerPDF.Controls
             // which killed the background render tasks (vanishing thumbnails after invert).
             public readonly System.Collections.Concurrent.ConcurrentDictionary<(int page, int bucket, int rot, bool continuous, KillerPdf.Engine.ColorManagement.PdfDocumentProofViewStamp? proofStamp, long workingCmyk, string? monitor), long> RenderCacheSize = new();
             public long RenderRevision;
+            // #478: the active stamps burned into a copy of the document, which the covered pages render from, and the
+            // RenderRevision it holds for (PdfViewer.StampLayering.cs).
+            public KillerPDF.Services.ViewerStampBurn? StampBurn;
+            public long StampBurnRevision = -1;
             public Dictionary<int, int> PageRotations = [];
             public Dictionary<string, string> FormTextValues = [];
             public Dictionary<string, string> FormChoiceValues = [];
