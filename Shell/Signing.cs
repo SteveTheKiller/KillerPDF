@@ -578,15 +578,18 @@ namespace KillerPDF.Shell
             void AddSigSection(string? sectionTitle, SignatureKind kind)
             {
                 // The window's title already says Signatures, so the first section has no heading of its own.
+                // Initials is its peer, so it gets the title's Lacquer face too (#508); on the classic
+                // themes both stay in the chrome font.
                 if (sectionTitle is not null)
                 stack.Children.Add(new TextBlock
                 {
                     Text = sectionTitle,
-                    Foreground = (Brush)FindResource("MutedTextBrush"),
-                    FontFamily = UiKit.UiFont,
-                    FontWeight = FontWeights.SemiBold,
-                    FontSize = 11,
-                    Margin = new Thickness(4, 6, 4, 2)
+                    Foreground = (Brush)FindResource(classicCaption ? "MutedTextBrush" : "PrimaryBrush"),
+                    FontFamily = classicCaption ? UiKit.UiFont : UiKit.WordmarkFontPdf,
+                    FontWeight = classicCaption ? FontWeights.SemiBold : FontWeights.Normal,
+                    FontSize = classicCaption ? 11 : 18,
+                    Margin = classicCaption ? new Thickness(4, 6, 4, 2) : new Thickness(4, 6, 4, -2),
+                    Effect = classicCaption ? null : new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 2, ShadowDepth = 1, Direction = 270, Opacity = 0.7 }
                 });
 
                 var items = _signatureStore.Signatures.Where(x => x.Kind == kind).ToList();
