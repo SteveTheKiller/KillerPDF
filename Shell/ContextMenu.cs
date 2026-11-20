@@ -825,7 +825,10 @@ namespace KillerPDF.Shell
                 {
                     if (ReferenceEquals(n, OutlineTree)) return;
                     if (n is Button button && railButton is null) railButton = button;
-                    if (ReferenceEquals(n, SidebarRailGrid) || ReferenceEquals(n, SidebarRailStack))
+                    // The rail's own Border counts too: empty rail space hits its background, not the grid
+                    // inside, and should get only the sidebar options, never the Pages card (Steve 2026-11-19).
+                    if (ReferenceEquals(n, SidebarRailGrid) || ReferenceEquals(n, SidebarRailStack)
+                        || ReferenceEquals(n, SidebarToggleStrip))
                         rail = true;
                 }
             if (rail && (railButton == LangButton || railButton == ThemeButton))
