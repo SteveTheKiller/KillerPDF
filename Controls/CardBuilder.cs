@@ -1,17 +1,43 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace KillerFamily.Controls
 {
+    /// <summary>
+    /// A tile's shortcut line: the keys in brackets, and a long chord ("Ctrl+Alt+Shift+Left") split after the
+    /// plus nearest its middle onto two lines, so the shortcut never sets the tile's width or gets cut off
+    /// (Steve 2026-11-19). Short chords like "Ctrl+Shift+G" stay on one line.
+    /// </summary>
+    public sealed class TileKeysConverter : IValueConverter
+    {
+        public static readonly TileKeysConverter Instance = new();
+        private const int OneLine = 14;
+
+        public static string Format(string? keys)
+        {
+            if (string.IsNullOrEmpty(keys)) return string.Empty;
+            if (keys!.Length <= OneLine) return "(" + keys + ")";
+            int best = -1;
+            for (int i = 0; i < keys.Length - 1; i++)
+                if (keys[i] == '+' && (best < 0 || Math.Abs(i + 1 - keys.Length / 2.0) < Math.Abs(best + 1 - keys.Length / 2.0))) best = i;
+            return best < 0 ? "(" + keys + ")" : "(" + keys.Substring(0, best + 1) + "\n" + keys.Substring(best + 1) + ")";
+        }
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => Format(value as string);
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+    }
+
     /// <summary>One quick button on a card strip: an MDL2 glyph over a short caption. Tip is the
     /// full action name; Gesture, when the action has a shortcut, is added to the tooltip (the
     /// family shortcut rule).</summary>

@@ -1538,10 +1538,11 @@
                                        HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
                                        TextTrimming="CharacterEllipsis" MaxHeight="30" MaxWidth="80"/>
                             <!-- The shortcut on its own line, in brackets. AcceleratorKey carries it, so a screen reader
-                                 announces the same keys, and Show Shortcuts in Menus hides the line. -->
+                                 announces the same keys, and Show Shortcuts in Menus hides the line. A long chord splits
+                                 onto two lines (TileKeysConverter) instead of widening the tile. -->
                             <TextBlock x:Name="Shortcut" FontSize="10" Margin="0,2,0,0" HorizontalAlignment="Center"
                                        TextAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource DimTextBrush}"
-                                       Text="{Binding (AutomationProperties.AcceleratorKey), RelativeSource={RelativeSource TemplatedParent}, StringFormat=({0})}"/>
+                                       Text="{Binding (AutomationProperties.AcceleratorKey), RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static input:TileKeysConverter.Instance}}"/>
                         </StackPanel>
                     </Border>
                     <ControlTemplate.Triggers>
