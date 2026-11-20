@@ -12,6 +12,14 @@ public static class PdfStreamDecoder
     /// <summary>Default maximum number of decoded bytes produced by one stream.</summary>
     public const int DefaultMaximumDecodedBytes = 256 * 1024 * 1024;
 
+    /// <summary>
+    /// The decode bound for an /Indexed lookup stream. A palette needs at most 256 entries, and bytes past
+    /// the last entry are never indexed, so a longer lookup is read and the tail ignored (#455); the bound
+    /// sits far above any real palette while still stopping a lookup that inflates without end.
+    /// </summary>
+    internal static int IndexedLookupDecodeLimit(int expectedBytes) =>
+        Math.Max(expectedBytes, 64 * 1024);
+
     private static readonly PdfName FilterName = new("Filter"u8);
     private static readonly PdfName DecodeParmsName = new("DecodeParms"u8);
     private static readonly PdfName PredictorName = new("Predictor"u8);

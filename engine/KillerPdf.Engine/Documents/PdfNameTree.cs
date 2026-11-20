@@ -75,7 +75,10 @@ internal static class PdfNameTree
         }
     }
 
-    internal static IReadOnlyList<PdfNameTreeEntry> Read(PdfDocument document, PdfObject root)
+    // allowDuplicateKeys keeps every entry of a tree that repeats a key, in order, for a caller that
+    // gives each one its own key, as merge does for iLovePDF's three "Content Credentials" files (#455).
+    internal static IReadOnlyList<PdfNameTreeEntry> Read(
+        PdfDocument document, PdfObject root, bool allowDuplicateKeys = false)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(root);
@@ -131,10 +134,11 @@ internal static class PdfNameTree
                     {
                         PdfString key = Resolve(names[index]) as PdfString
                             ?? throw new InvalidOperationException("A name-tree key is not a string.");
-                        if (!keys.Add(Convert.ToBase64String(key.Bytes.Span)))
+                        if (!keys.Add(Convert.ToBase64String(key.Bytes.Span)) && !allowDuplicateKeys)
                             throw new InvalidOperationException("The name tree contains a duplicate key.");
+                        // A key equal to the one before it was settled by the duplicate check above.
                         if (previousKey is not null
-                            && previousKey.AsSpan().SequenceCompareTo(key.Bytes.Span) >= 0)
+                            && previousKey.AsSpan().SequenceCompareTo(key.Bytes.Span) > 0)
                             throw new InvalidOperationException(
                                 "The name tree contains keys that are not strictly ordered.");
                         previousKey = key.Bytes.ToArray();

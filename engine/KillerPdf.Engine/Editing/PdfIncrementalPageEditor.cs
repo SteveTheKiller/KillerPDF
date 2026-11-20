@@ -6899,7 +6899,8 @@ public sealed class PdfIncrementalPageEditor
             var files = new List<PdfNameTreeEntry>();
             var keys = new HashSet<string>(StringComparer.Ordinal);
             if (currentNames.TryGetValue(EmbeddedFilesName, out PdfObject? targetFiles))
-                AddFiles(PdfNameTree.Read(_document, targetFiles), _document, null);
+                AddFiles(PdfNameTree.Read(_document, targetFiles, allowDuplicateKeys: true),
+                    _document, null);
             foreach (PageState[] group in completeGroups)
             {
                 PdfDocument source = group[0].ImportedDocument!;
@@ -6907,7 +6908,9 @@ public sealed class PdfIncrementalPageEditor
                 if (!TryGetNameTreeCategory(
                     source, sourceTree.Catalog, EmbeddedFilesName, out PdfObject? sourceFiles))
                     continue;
-                AddFiles(PdfNameTree.Read(source, sourceFiles!),
+                // A tree that repeats a key loses nothing: each repeat is renamed below like a
+                // key an earlier document already holds (#455).
+                AddFiles(PdfNameTree.Read(source, sourceFiles!, allowDuplicateKeys: true),
                     source, importers[group[0]]);
             }
             files.Sort((left, right) =>
@@ -6949,19 +6952,28 @@ public sealed class PdfIncrementalPageEditor
                             "An embedded-files name-tree value is not a file-specification dictionary.");
                     ValidateFileSpecification(document, entry.Value,
                         "An embedded-files name-tree value");
+                    // The first holder of a key keeps it, destination first, and every later one
+                    // takes the next free suffix, so a repeated key in either tree costs no file.
+                    // Keys compare as text, since the same name in PDFDocEncoding and UTF-16 is one name.
                     PdfString key = entry.Key;
-                    if (importer is null
-                        && !keys.Add(Convert.ToBase64String(key.Bytes.Span)))
-                        throw new NotSupportedException(
-                            "The destination embedded-files name tree contains duplicate names.");
-                    if (importer is not null)
-                    {
-                        int suffix = 2;
-                        while (!keys.Add(Convert.ToBase64String(key.Bytes.Span)))
-                            key = AppendDestinationSuffix(entry.Key, suffix++);
-                    }
+                    int suffix = 2;
+                    while (!keys.Add(FileKey(key)))
+                        key = AppendDestinationSuffix(entry.Key, suffix++);
                     files.Add(new PdfNameTreeEntry(
                         key, importer?.Import(entry.Value) ?? entry.Value));
+                }
+            }
+
+            static string FileKey(PdfString key)
+            {
+                try
+                {
+                    return "t:" + PdfUnicodeEncoding.DecodeTextString(
+                        key.Bytes.Span, "An embedded-files name-tree key");
+                }
+                catch (InvalidOperationException)
+                {
+                    return "b:" + Convert.ToBase64String(key.Bytes.Span);
                 }
             }
         }
@@ -13284,7 +13296,7 @@ public sealed class PdfIncrementalPageEditor
                     {
                         actualLength = PdfStreamDecoder.Decode(
                             (PdfStream)lookup, document.Resolve,
-                            expectedLength + 1).Length;
+                            PdfStreamDecoder.IndexedLookupDecodeLimit(expectedLength)).Length;
                     }
                     catch (PdfFilterException exception)
                     {
@@ -13293,7 +13305,9 @@ public sealed class PdfIncrementalPageEditor
                             exception);
                     }
                 }
-                if (actualLength != expectedLength)
+                // Only a short lookup leaves indices without a color; the renderer reads the same way and
+                // ignores bytes past the last entry, as PDFium writes one trailing byte (#455).
+                if (actualLength < expectedLength)
                     throw new InvalidOperationException(
                         $"{description} /Indexed lookup length does not match its palette size.");
             }

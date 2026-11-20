@@ -339,6 +339,26 @@ public sealed class PdfIncrementalUpdateBuilderTests
             error.Message, StringComparison.Ordinal);
     }
 
+    // #455: a PDF date is a text string, so a UTF-16BE /ModDate is as valid as an ASCII one.
+    [Fact]
+    public void Build_AcceptsReplacementDocumentInformationDatesWrittenAsUnicodeTextStrings()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage()
+            .Build());
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference information = update.AddObject(new PdfDictionary([
+            new(Name("ModDate"), new PdfString(
+                [0xFE, 0xFF, .. Encoding.BigEndianUnicode.GetBytes("D:20260711135232Z")],
+                PdfStringForm.Hexadecimal))
+        ]));
+        update.SetDocumentInformation(information);
+
+        PdfDocument reopened = PdfDocument.Open(update.Build());
+
+        Assert.NotNull(reopened.Trailer[Name("Info")]);
+    }
+
     [Theory]
     [InlineData("D:2026")]
     [InlineData("D:202608")]

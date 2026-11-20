@@ -25,6 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Redacting a signed PDF keeps the signature widget's appearance. (#505)
 - Comb fields keep their own size, /MaxLen and one row of cells, and form recognition finds a row of three or more boxes as a comb. (#500)
 - A simple font with an embedded CFF (Type1C) program and no /Encoding maps its codes through the CFF program's own Encoding table instead of StandardEncoding, so TeX math symbols no longer draw as digits. (#510)
+- Page import accepts an /Indexed lookup longer than its palette and ignores the extra bytes, validates PDF dates after decoding them as text strings (UTF-16BE or UTF-8 with a BOM), and keeps every imported /EmbeddedFiles entry whose name-tree key repeats, giving each later one its own key. (#455)
 
 ### Changed
 

@@ -1,13 +1,21 @@
-using System.Text;
 using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Writing;
 
 internal static class PdfDateStringValidator
 {
+    // A date is a text string (ISO 32000-2 7.9.4), so Microsoft Print To PDF's UTF-16BE dates are dates too.
     public static bool IsValid(PdfString date)
     {
-        string text = Encoding.Latin1.GetString(date.Bytes.Span);
+        string text;
+        try
+        {
+            text = PdfUnicodeEncoding.DecodeTextString(date.Bytes.Span, "A PDF date");
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
         if (text.Length < 6 || text[0] != 'D' || text[1] != ':') return false;
         int index = 2;
         if (!ReadDigits(text, ref index, 4, out int year) || year is < 1 or > 9999)
