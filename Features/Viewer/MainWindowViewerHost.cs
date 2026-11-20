@@ -226,8 +226,20 @@ namespace KillerPDF.Shell
             {
                 _pageTotalLabel.Text = value != Controls.SidebarPageBinding.Empty
                     && ActiveViewer?.NativeDocumentRef is { IsPaginating: true } ? value + "+" : value;
+                SizePageJumpBox();
                 SyncPageNavigationButtons();
             }
+        }
+
+        // The page box sits on the sidebar's title line beside "Pages" and is as wide as the document's longest page
+        // number, so a 1,000+ page file still fits (Steve 2026-11-19).
+        internal void SizePageJumpBox()
+        {
+            int digits = Math.Max(2, _pageTotalLabel.Text.Count(char.IsDigit));
+            var probe = new System.Windows.Media.FormattedText(new string('8', digits), System.Globalization.CultureInfo.CurrentUICulture,
+                FlowDirection.LeftToRight, new System.Windows.Media.Typeface(_pageJumpBox.FontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal),
+                _pageJumpBox.FontSize, System.Windows.Media.Brushes.Black, System.Windows.Media.VisualTreeHelper.GetDpi(_pageJumpBox).PixelsPerDip);
+            _pageJumpBox.Width = Math.Max(30, Math.Ceiling(probe.Width) + 10);
         }
         void IViewerHost.SelectAllPageJumpText() => _pageJumpBox.SelectAll();
 

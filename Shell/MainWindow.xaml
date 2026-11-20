@@ -1966,6 +1966,56 @@
                                        Padding="2,2,8,2"
                                        VerticalAlignment="Center"
                                        Foreground="{DynamicResource PrimaryBrush}"/>
+                            <!-- Page box and total, on the title line beside "Pages" (Steve 2026-11-19) -->
+                            <DockPanel x:Name="PageControlsRow" DockPanel.Dock="Left" LastChildFill="False" Margin="2,0,0,0" VerticalAlignment="Center" Visibility="Collapsed">
+                                <TextBox x:Name="PageJumpBox" DockPanel.Dock="Left"
+                                         Width="30" Height="20" VerticalAlignment="Center"
+                                         TextAlignment="Center" VerticalContentAlignment="Center"
+                                         FontFamily="{DynamicResource BrandSansFont}" FontSize="16"
+                                         TextOptions.TextFormattingMode="Ideal"
+                                         Background="{DynamicResource PaneBrush}"
+                                         Foreground="{DynamicResource TextBrush}"
+                                         BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                         CaretBrush="{DynamicResource PrimaryBrush}"
+                                         SelectionBrush="{DynamicResource RowSelectedBrush}"
+                                         IsEnabled="False"
+                                         FocusVisualStyle="{x:Null}"
+                                         KeyDown="PageJumpBox_KeyDown"
+                                         GotFocus="PageJumpBox_GotFocus"
+                                         ToolTip="{DynamicResource Str_TT_GoToPage}"
+                                         Margin="0,0,2,0">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox">
+                                                <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+                                                <!-- Custom template so the default WPF TextBox focus/hover
+                                                     border (light blue) doesn't override the themed border. -->
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="TextBox">
+                                                            <Border Background="{TemplateBinding Background}"
+                                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                                    CornerRadius="2">
+                                                                <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsFocused" Value="True">
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
+                                <TextBlock x:Name="PageTotalLabel" DockPanel.Dock="Left"
+                                           Text="/ -" VerticalAlignment="Center"
+                                           FontFamily="{DynamicResource BrandSansFont}" FontSize="16"
+                                           TextOptions.TextFormattingMode="Ideal"
+                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           Margin="2,0,0,0"/>
+                            </DockPanel><!-- /PageControlsRow -->
                             <Button x:Name="SidebarPanelEditButton"
                                     DockPanel.Dock="Right"
                                     Style="{StaticResource SidebarTabBtn}"
@@ -2006,56 +2056,6 @@
                                 </Button.Template>
                             </Button>
                         </DockPanel>
-                        <!-- Page controls row (hidden in outlines mode) -->
-                        <DockPanel x:Name="PageControlsRow" DockPanel.Dock="Top" LastChildFill="False" Margin="12,2,8,4" Visibility="Collapsed">
-                            <TextBox x:Name="PageJumpBox" DockPanel.Dock="Left"
-                                     Width="30" Height="20" VerticalAlignment="Center"
-                                     TextAlignment="Center" VerticalContentAlignment="Center"
-                                     FontFamily="{DynamicResource BrandSansFont}" FontSize="16"
-                                     TextOptions.TextFormattingMode="Ideal"
-                                     Background="{DynamicResource PaneBrush}"
-                                     Foreground="{DynamicResource TextBrush}"
-                                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
-                                     CaretBrush="{DynamicResource PrimaryBrush}"
-                                     SelectionBrush="{DynamicResource RowSelectedBrush}"
-                                     IsEnabled="False"
-                                     FocusVisualStyle="{x:Null}"
-                                     KeyDown="PageJumpBox_KeyDown"
-                                     GotFocus="PageJumpBox_GotFocus"
-                                     ToolTip="{DynamicResource Str_TT_GoToPage}"
-                                     Margin="0,0,2,0">
-                                    <TextBox.Style>
-                                        <Style TargetType="TextBox">
-                                            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
-                                            <!-- Custom template so the default WPF TextBox focus/hover
-                                                 border (light blue) doesn't override the themed border. -->
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="TextBox">
-                                                        <Border Background="{TemplateBinding Background}"
-                                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                                CornerRadius="2">
-                                                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
-                                                        </Border>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                            <Style.Triggers>
-                                                <Trigger Property="IsFocused" Value="True">
-                                                    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBox.Style>
-                                </TextBox>
-                            <TextBlock x:Name="PageTotalLabel" DockPanel.Dock="Left"
-                                       Text="/ -" VerticalAlignment="Center"
-                                       FontFamily="{DynamicResource BrandSansFont}" FontSize="16"
-                                       TextOptions.TextFormattingMode="Ideal"
-                                       Foreground="{DynamicResource MutedTextBrush}"
-                                       Margin="2,0,0,0"/>
-                        </DockPanel><!-- /PageControlsRow -->
                         </StackPanel><!-- /SidebarHeaderStack -->
                         <!-- Scrollable page list (virtualized). As in KillerShell, the opacity mask
                              fades the list itself so the real themed sidebar and grain remain visible

@@ -69,7 +69,7 @@ public partial class MainWindow
             // thumbnail reader does not keep stopping pagination to lay chapters out.
             if (finished) KeepReaderInput(RefreshPageList);
             else if (after > before) AppendNativePageList(book, before, after);
-            _pageTotalLabel.Text = SidebarPageBinding.Total(after, book.IsPaginating);
+            _pageTotalLabel.Text = SidebarPageBinding.Total(after, book.IsPaginating); SizePageJumpBox();
             SyncPageNavigationButtons();
         }
     }

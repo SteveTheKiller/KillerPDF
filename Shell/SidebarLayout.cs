@@ -589,7 +589,7 @@ namespace KillerPDF.Shell
                 SidebarHeaderStack.ClearValue(ClipToBoundsProperty);
                 SidebarHeaderStack.Visibility = Visibility.Visible;
                 titleLine.Margin = new Thickness(10, 6, 8, 0);
-                PageControlsRow.Margin = new Thickness(12, 2, 8, 4);
+                PageControlsRow.Margin = new Thickness(2, 0, 0, 0);
                 PageControlsRow.ClearValue(VerticalAlignmentProperty);
                 SidebarRailStack.HorizontalAlignment = HorizontalAlignment.Stretch;
                 SidebarRailStack.VerticalAlignment = VerticalAlignment.Bottom;

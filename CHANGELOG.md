@@ -75,6 +75,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - With the document split in two, a dialog opens centered on the pane it came from. Large page windows such as Transform, Color Correction, Stamp and Print preview center on the app.
 - Mark pages on the Redact bar opens a small box under its button instead of a dialog. Find Text to Redact says plainly that it draws redaction boxes over the checked matches.
 - Edit paragraph has page arrows like Transform, and its Original checkbox sits with the other options.
+- The sidebar's page box and page count sit on the same line as its Pages title, and the box widens to fit a document's longest page number.
 
 ### Added
 
