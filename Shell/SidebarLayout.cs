@@ -520,6 +520,54 @@ namespace KillerPDF.Shell
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)SyncPageListEdgeFades);
         }
 
+        // The page box and count share the Pages title line while it has room. A skinny column sidebar drops them to
+        // their own line under the title instead of clipping them, and lifts them back once it widens (Steve 2026-11-19).
+        // A top or bottom strip always keeps them inline, since its header is already one horizontal row.
+        private bool _pageRowWrapped;
+
+        private void HookPageRowWrap()
+        {
+            var titleLine = (FrameworkElement)SidebarHeaderStack.Children[0];
+            titleLine.SizeChanged += (_, _) => SyncPageRowWrap();
+            PageControlsRow.SizeChanged += (_, _) => SyncPageRowWrap();
+            PageControlsRow.IsVisibleChanged += (_, _) => SyncPageRowWrap();
+            SidebarPanelEditButton.IsVisibleChanged += (_, _) => SyncPageRowWrap();
+        }
+
+        private void SyncPageRowWrap()
+        {
+            if (SidebarHeaderStack.Orientation == Orientation.Horizontal) { PlacePageRow(wrapped: false); return; }
+            var titleLine = (FrameworkElement)SidebarHeaderStack.Children[0];
+            double room = titleLine.ActualWidth;
+            if (room <= 0) return;
+            var infinite = new Size(double.PositiveInfinity, double.PositiveInfinity);
+            SidebarPanelTitle.Measure(infinite);
+            PageControlsRow.Measure(infinite);
+            double need = SidebarPanelTitle.DesiredSize.Width + PageControlsRow.DesiredSize.Width + 2;
+            if (SidebarPanelEditButton.IsVisible) { SidebarPanelEditButton.Measure(infinite); need += SidebarPanelEditButton.DesiredSize.Width; }
+            PlacePageRow(wrapped: PageControlsRow.Visibility == Visibility.Visible && need > room);
+        }
+
+        private void PlacePageRow(bool wrapped)
+        {
+            if (wrapped == _pageRowWrapped) return;
+            _pageRowWrapped = wrapped;
+            var titleLine = (Panel)SidebarHeaderStack.Children[0];
+            ((Panel)PageControlsRow.Parent).Children.Remove(PageControlsRow);
+            if (wrapped)
+            {
+                SidebarHeaderStack.Children.Insert(1, PageControlsRow);
+                PageControlsRow.Margin = new Thickness(12, 2, 8, 4);
+                PageControlsRow.HorizontalAlignment = HorizontalAlignment.Left;
+            }
+            else
+            {
+                titleLine.Children.Insert(titleLine.Children.IndexOf(SidebarPanelTitle) + 1, PageControlsRow);
+                PageControlsRow.Margin = new Thickness(2, 0, 0, 0);
+                PageControlsRow.ClearValue(HorizontalAlignmentProperty);
+            }
+        }
+
         /// <summary>
         /// Lays the rail out for a strip or a column. In a strip it is one row with two ends: the
         /// icons at one, and at the other the chevron with the open panel's header lifted up out of
@@ -556,6 +604,7 @@ namespace KillerPDF.Shell
                 _sidebarToggleBtn.Width = 30;
                 _sidebarToggleBtn.Height = 26;
                 _sidebarToggleBtn.FontSize = 16;
+                PlacePageRow(wrapped: false);
                 SidebarHeaderStack.Orientation = Orientation.Horizontal;
                 SidebarHeaderStack.VerticalAlignment = VerticalAlignment.Center;
                 titleLine.Margin = new Thickness(6, 0, 8, 0);
@@ -591,6 +640,7 @@ namespace KillerPDF.Shell
                 titleLine.Margin = new Thickness(10, 6, 8, 0);
                 PageControlsRow.Margin = new Thickness(2, 0, 0, 0);
                 PageControlsRow.ClearValue(VerticalAlignmentProperty);
+                SyncPageRowWrap();
                 SidebarRailStack.HorizontalAlignment = HorizontalAlignment.Stretch;
                 SidebarRailStack.VerticalAlignment = VerticalAlignment.Bottom;
                 SidebarRailStack.Margin = new Thickness(0, 0, 0, 6);

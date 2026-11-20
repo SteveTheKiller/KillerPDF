@@ -336,6 +336,7 @@ namespace KillerPDF.Shell
             KillerFamily.Shell.QuitShortcut.Attach(this, _tray.Exit);
             new KillerFamily.Accessibility.OverlayFocus(this).Track(ShortcutsOverlay, AboutOverlay);
             InitRailOrder();
+            HookPageRowWrap();
             var titleFrames = BitmapDecoder.Create(
                 new Uri("pack://application:,,,/Resources/kp-icon.ico"),
                 BitmapCreateOptions.None, BitmapCacheOption.OnLoad).Frames;
