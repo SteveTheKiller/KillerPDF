@@ -99,8 +99,11 @@ is a hint for the host's warning, not a block. The engine does not add a
 mark-of-the-web zone identifier to extracted files; a host that wants Windows to
 treat them as downloaded content writes that itself.
 
-`ExtractAll` validates names and duplicate destinations before writing, and checks
-existing files when overwrite is disabled. This prevents partial output from
+`ExtractAll` validates names before writing, and checks existing files when
+overwrite is disabled. Files that share a name are written as `Name.ext`,
+`Name (2).ext` and onward, skipping names another file in the batch already uses.
+A file whose name-tree key repeats keeps its own `PdfAttachmentInfo.AttachmentKey`,
+which the edit methods accept to change that one file. This prevents partial output from
 those validation failures. It is not a filesystem transaction: a later I/O error
 can leave files already written. Extraction does not create the directory itself.
 

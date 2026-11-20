@@ -26,6 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Comb fields keep their own size, /MaxLen and one row of cells, and form recognition finds a row of three or more boxes as a comb. (#500)
 - A simple font with an embedded CFF (Type1C) program and no /Encoding maps its codes through the CFF program's own Encoding table instead of StandardEncoding, so TeX math symbols no longer draw as digits. (#510)
 - Page import accepts an /Indexed lookup longer than its palette and ignores the extra bytes, validates PDF dates after decoding them as text strings (UTF-16BE or UTF-8 with a BOM), and keeps every imported /EmbeddedFiles entry whose name-tree key repeats, giving each later one its own key. (#455)
+- Attachment reading, editing, redaction, optimization, comparison and annotation editing accept an /EmbeddedFiles name tree whose keys repeat instead of throwing. `PdfAttachmentReader.ExtractAll` numbers repeated destination names as `Name (2).ext` and onward. (#455)
 
 ### Changed
 
@@ -35,6 +36,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- `PdfAttachmentInfo.AttachmentKey` identifies one attachment even when several share a name-tree key, and the attachment edit methods accept it. (#455)
 - `PdfUaValidator.Validate` checks PDF/UA-1 against the Matterhorn Protocol 1.1 checkpoints and PDF/UA-2 against the veraPDF PDF/UA-2 machine rules, and never claims full conformance. See [conformance](docs/conformance.md). (#491)
 - PDF to EPUB 3 export with reflowed text, headings and a table of contents. See [exporting](docs/exporting.md). (#493)
 - `PdfPreflightFinding.Arguments` lists the values a finding's message is built from, so an app can localize it. (#506)

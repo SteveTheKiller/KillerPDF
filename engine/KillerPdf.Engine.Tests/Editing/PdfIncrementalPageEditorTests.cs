@@ -15534,14 +15534,14 @@ public sealed class PdfIncrementalPageEditorTests
     public void Build_AcceptsImportedIndexedLookupLongerThanItsPalette(int extraBytes)
     {
         string lookup = new string('\0', 3) + "ÿ\0\0" + new string('\0', extraBytes);
-        PdfDocument source = PdfDocument.Open(RawPdf(
+        PdfDocument source = PdfDocument.Open(RawPdfFixtures.RawPdf(
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Im2 5 0 R >> >> /Contents 4 0 R >>",
-            StreamObject("", "q 100 0 0 100 50 50 cm /Im2 Do Q"),
-            StreamObject("/Type /XObject /Subtype /Image /Width 8 /Height 8 /BitsPerComponent 1 /ColorSpace [/Indexed /DeviceRGB 1 6 0 R]",
+            RawPdfFixtures.StreamObject("", "q 100 0 0 100 50 50 cm /Im2 Do Q"),
+            RawPdfFixtures.StreamObject("/Type /XObject /Subtype /Image /Width 8 /Height 8 /BitsPerComponent 1 /ColorSpace [/Indexed /DeviceRGB 1 6 0 R]",
                 new string('ª', 8)),
-            StreamObject("", lookup)));
+            RawPdfFixtures.StreamObject("", lookup)));
 
         PdfDocument merged = PdfDocument.Open(
             new PdfIncrementalPageEditor(PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build()))
@@ -15568,7 +15568,7 @@ public sealed class PdfIncrementalPageEditorTests
             ? [0xFE, 0xFF, .. Encoding.BigEndianUnicode.GetBytes(date)]
             : [0xEF, 0xBB, 0xBF, .. Encoding.UTF8.GetBytes(date)];
         string hex = Convert.ToHexString(bytes);
-        PdfDocument source = PdfDocument.Open(RawPdf(
+        PdfDocument source = PdfDocument.Open(RawPdfFixtures.RawPdf(
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /PieceInfo << /InDesign << /LastModified <{hex}> /Private << >> >> >> >>"));
@@ -15585,17 +15585,7 @@ public sealed class PdfIncrementalPageEditorTests
     [Fact]
     public void Build_KeepsEveryImportedEmbeddedFileWhoseNameTreeKeysRepeat()
     {
-        PdfDocument source = PdfDocument.Open(RawPdf(
-            "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles 10 0 R >> >>",
-            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>",
-            StreamObject("/Type /EmbeddedFile", "manifest 0"),
-            "<< /Type /Filespec /F (Content Credentials) /AFRelationship /C2PA_Manifest /EF << /F 4 0 R >> >>",
-            StreamObject("/Type /EmbeddedFile", "manifest 1"),
-            "<< /Type /Filespec /F (Content Credentials) /AFRelationship /C2PA_Manifest /EF << /F 6 0 R >> >>",
-            StreamObject("/Type /EmbeddedFile", "manifest 2"),
-            "<< /Type /Filespec /F (Content Credentials) /AFRelationship /C2PA_Manifest /EF << /F 8 0 R >> >>",
-            "<< /Names [(Content Credentials) 5 0 R (Content Credentials) 7 0 R (Content Credentials) 9 0 R] >>"));
+        PdfDocument source = PdfDocument.Open(RawPdfFixtures.RepeatedContentCredentials());
 
         PdfDocument merged = PdfDocument.Open(
             new PdfIncrementalPageEditor(PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build()))
@@ -15621,28 +15611,6 @@ public sealed class PdfIncrementalPageEditorTests
         Assert.Equal(4, targetAttachments.Select(item => item.NameTreeKey).Distinct().Count());
         Assert.Equal(["manifest 0", "manifest 1", "manifest 2", "source payload"], targetAttachments
             .Select(item => Encoding.ASCII.GetString(item.Data.Span)).Order());
-    }
-
-    private static string StreamObject(string entries, string data) =>
-        $"<< {entries} /Length {data.Length} >>\nstream\n{data}\nendstream";
-
-    // Objects are numbered from 1 in order, and object 1 is the catalog.
-    private static byte[] RawPdf(params string[] objects)
-    {
-        var text = new StringBuilder("%PDF-1.7\n");
-        var offsets = new List<int>();
-        for (int index = 0; index < objects.Length; index++)
-        {
-            offsets.Add(text.Length);
-            text.Append(CultureInfo.InvariantCulture, $"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
-        }
-        int xref = text.Length;
-        text.Append(CultureInfo.InvariantCulture, $"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
-        foreach (int offset in offsets)
-            text.Append(CultureInfo.InvariantCulture, $"{offset:D10} 00000 n \n");
-        text.Append(CultureInfo.InvariantCulture,
-            $"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
-        return Encoding.Latin1.GetBytes(text.ToString());
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));

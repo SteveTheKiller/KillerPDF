@@ -266,7 +266,7 @@ public static class PdfPermanentRedaction
         // A review is made from the name tree, so with every listed file chosen, a file that only an
         // /AF entry or an action names goes too. A stream that a kept file still uses is never removed.
         Dictionary<string, HashSet<int>> listed = PdfEmbeddedFileReach.ListedStreams(document);
-        HashSet<string> chosen = [.. targets.Select(item => item.Attachment.NameTreeKey
+        HashSet<string> chosen = [.. targets.Select(item => item.Attachment.AttachmentKey
             ?? throw new InvalidOperationException("A reviewed attachment has no name-tree key."))];
         HashSet<int> removedStreams = [.. listed.Where(file => chosen.Contains(file.Key))
             .SelectMany(file => file.Value)];
@@ -296,14 +296,17 @@ public static class PdfPermanentRedaction
             });
         byte[] output = written.Bytes;
         PdfDocument reopened = PdfDocument.Open(output);
-        // Files are identified by name-tree key, since several can list the same file name.
+        // Files are identified by their place in the tree, since several can list the same file name and
+        // several can share a name-tree key (#455). Removal keeps the order of the files it keeps.
         PdfAttachmentInfo[] reopenedAttachments = [.. PdfAttachmentReader.Read(reopened)];
         string[] remaining = [.. reopenedAttachments.Select(item => item.FileName)];
-        string[] removedKeys = [.. targets.Select(item => item.Attachment.NameTreeKey!)];
-        string[] expectedKeys = [.. current.Select(item => item.NameTreeKey!)
-            .Where(key => !removedKeys.Contains(key, StringComparer.Ordinal))];
-        if (!reopenedAttachments.Select(item => item.NameTreeKey!)
-                .SequenceEqual(expectedKeys, StringComparer.Ordinal)
+        // Each kept file is checked by its key and its payload, since keys alone do not tell apart files
+        // that share one.
+        PdfAttachmentInfo[] expected = [.. current.Where(item => !chosen.Contains(item.AttachmentKey!))];
+        if (reopenedAttachments.Length != expected.Length
+            || reopenedAttachments.Where((item, index) =>
+                !string.Equals(item.NameTreeKey, expected[index].NameTreeKey, StringComparison.Ordinal)
+                || !item.Data.Span.SequenceEqual(expected[index].Data.Span)).Any()
             || reopened.CrossReferences.Sections.Count != 1)
             throw new InvalidOperationException(
                 "The saved document did not preserve the reviewed attachment-removal result.");
@@ -667,7 +670,10 @@ internal static class PdfEmbeddedFileReach
         return found;
     }
 
-    /// <summary>Gets the payload streams of each file in the embedded-files name tree, by key.</summary>
+    /// <summary>
+    /// Gets the payload streams of each file in the embedded-files name tree, by attachment key, which
+    /// stays unique when name-tree keys repeat (#455).
+    /// </summary>
     internal static Dictionary<string, HashSet<int>> ListedStreams(PdfDocument document)
     {
         var listed = new Dictionary<string, HashSet<int>>(StringComparer.Ordinal);
@@ -675,10 +681,10 @@ internal static class PdfEmbeddedFileReach
         if (!catalog.TryGetValue(Name("Names"), out PdfObject? namesValue)
             || ReadOrNull(document, namesValue) is not PdfDictionary names
             || !names.TryGetValue(Name("EmbeddedFiles"), out PdfObject? filesValue)) return listed;
-        foreach (PdfNameTreeEntry entry in PdfNameTree.Read(document, filesValue))
+        foreach (PdfAttachmentTreeEntry file in PdfAttachmentReader.ReadTree(document, filesValue))
         {
-            string key = PdfUnicodeEncoding.DecodeTextString(entry.Key.Bytes.Span, "An embedded-file name");
-            if (!listed.TryGetValue(key, out HashSet<int>? streams)) listed[key] = streams = [];
+            PdfNameTreeEntry entry = file.Entry;
+            if (!listed.TryGetValue(file.Identity, out HashSet<int>? streams)) listed[file.Identity] = streams = [];
             if (ReadOrNull(document, entry.Value) is PdfDictionary specification)
                 streams.UnionWith(Payloads(document, specification));
         }

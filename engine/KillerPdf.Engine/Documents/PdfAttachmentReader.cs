@@ -189,13 +189,70 @@ public static partial class PdfAttachmentReader
             || Resolve(document, namesValue) is not PdfDictionary names
             || !names.TryGetValue(Name("EmbeddedFiles"), out PdfObject? filesValue)) return [];
         var result = new List<PdfAttachmentInfo>();
-        foreach (PdfNameTreeEntry entry in PdfNameTree.Read(document, filesValue))
-        {
-            string treeName = PdfUnicodeEncoding.DecodeTextString(entry.Key.Bytes.Span,
-                "An embedded-file name");
-            result.Add(ReadFileSpecification(document, entry.Value, treeName) with { NameTreeKey = treeName });
-        }
+        foreach (PdfAttachmentTreeEntry entry in ReadTree(document, filesValue))
+            result.Add(ReadFileSpecification(document, entry.Entry.Value, entry.Key)
+                with { NameTreeKey = entry.Key, AttachmentKey = entry.Identity });
         return Array.AsReadOnly(result.ToArray());
+    }
+
+    // The separator in a qualified key. No file name can hold it, so a qualified key never meets a real one.
+    private const char QualifierSeparator = '\0';
+
+    /// <summary>
+    /// Reads the embedded-files name tree with each entry's attachment key. A key, compared as decoded text,
+    /// is the attachment key of the first entry that holds it, so a key by that text names the first of
+    /// them. Every later holder of a repeated key (#455: iLovePDF writes three "Content Credentials") gets
+    /// the key qualified by its file-specification object, or by its place among the holders when the
+    /// specification is direct. The tree is read in order, so the same document always gives the same keys.
+    /// </summary>
+    internal static IReadOnlyList<PdfAttachmentTreeEntry> ReadTree(PdfDocument document, PdfObject root)
+    {
+        IReadOnlyList<PdfNameTreeEntry> entries = PdfNameTree.Read(document, root, allowDuplicateKeys: true);
+        string[] keys = [.. entries.Select(entry => PdfUnicodeEncoding.DecodeTextString(
+            entry.Key.Bytes.Span, "An embedded-file name"))];
+        var seen = new Dictionary<string, int>(StringComparer.Ordinal);
+        var used = new HashSet<string>(keys, StringComparer.Ordinal);
+        var result = new PdfAttachmentTreeEntry[entries.Count];
+        for (int index = 0; index < entries.Count; index++)
+        {
+            string key = keys[index];
+            int place = seen[key] = seen.GetValueOrDefault(key) + 1;
+            string qualified = entries[index].Value is PdfIndirectReference reference
+                ? $"{key}{QualifierSeparator}object {reference.ObjectNumber} {reference.Generation}"
+                : $"{key}{QualifierSeparator}entry {place}";
+            string identity = place == 1 ? key : qualified;
+            // Two keys can name one specification object, so the place among the holders breaks that tie.
+            while (place > 1 && !used.Add(identity))
+                identity = $"{identity}{QualifierSeparator}entry {place}";
+            result[index] = new PdfAttachmentTreeEntry(entries[index], key, identity, qualified);
+        }
+        return result;
+    }
+
+    /// <summary>The name-tree key text an attachment key stands for.</summary>
+    internal static string KeyText(string attachmentKey)
+    {
+        int separator = attachmentKey.IndexOf(QualifierSeparator);
+        return separator < 0 ? attachmentKey : attachmentKey[..separator];
+    }
+
+    /// <summary>
+    /// Finds the entry an attachment key names, or -1. A qualified key still finds its file after the holders
+    /// before it are gone and the file's key is plain again.
+    /// </summary>
+    internal static int FindAttachmentKey(IReadOnlyList<PdfAttachmentTreeEntry> tree, string attachmentKey)
+    {
+        for (int index = 0; index < tree.Count; index++)
+            if (string.Equals(tree[index].Identity, attachmentKey, StringComparison.Ordinal)) return index;
+        if (attachmentKey.IndexOf(QualifierSeparator) < 0) return -1;
+        int found = -1;
+        for (int index = 0; index < tree.Count; index++)
+            if (string.Equals(tree[index].Qualified, attachmentKey, StringComparison.Ordinal))
+            {
+                if (found >= 0) return -1;
+                found = index;
+            }
+        return found;
     }
 
     /// <summary>Reads file-attachment annotations and their embedded-file metadata on one page.</summary>
@@ -210,9 +267,11 @@ public static partial class PdfAttachmentReader
         if (!page.Dictionary.TryGetValue(Name("Annots"), out PdfObject? annotationsValue)) return [];
         PdfArray annotations = Resolve(document, annotationsValue) as PdfArray
             ?? throw new InvalidOperationException("A page /Annots value is not an array.");
-        Dictionary<int, PdfAttachmentInfo> attachments = Read(document)
-            .Where(item => item.FileSpecificationObjectNumber.HasValue)
-            .ToDictionary(item => item.FileSpecificationObjectNumber!.Value);
+        // A tree that repeats a key can name one specification twice (#455), and both name the same file.
+        var attachments = new Dictionary<int, PdfAttachmentInfo>();
+        foreach (PdfAttachmentInfo item in Read(document))
+            if (item.FileSpecificationObjectNumber is int objectNumber)
+                attachments.TryAdd(objectNumber, item);
         var result = new List<PdfAttachmentAnnotationInfo>();
         for (int index = 0; index < annotations.Count; index++)
         {
@@ -392,9 +451,31 @@ public static partial class PdfAttachmentReader
                 "An attachment extraction item cannot be null.", nameof(attachments)))];
         string[] paths = [.. values.Select(attachment =>
             GetSafeExtractionPath(directory, attachment.FileName))];
-        if (paths.Distinct(StringComparer.OrdinalIgnoreCase).Count() != paths.Length)
-            throw new ArgumentException(
-                "Attachment extraction destinations must be unique.", nameof(attachments));
+        // Files that share a name (#455) all land: the first keeps the name and each later one is
+        // numbered before its extension, past every name another file in the batch already uses.
+        var taken = new HashSet<string>(paths, StringComparer.OrdinalIgnoreCase);
+        var placed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int index = 0; index < values.Length; index++)
+        {
+            if (placed.Add(paths[index]))
+                continue;
+            string name = values[index].FileName;
+            string extension = Path.GetExtension(name);
+            string stem = name[..^extension.Length];
+            if (stem.Length == 0)
+                (stem, extension) = (name, string.Empty);
+            for (int number = 2; ; number++)
+            {
+                string candidate = GetSafeExtractionPath(directory,
+                    string.Create(CultureInfo.InvariantCulture, $"{stem} ({number}){extension}"));
+                if (taken.Add(candidate))
+                {
+                    placed.Add(candidate);
+                    paths[index] = candidate;
+                    break;
+                }
+            }
+        }
         if (!overwrite && paths.Any(File.Exists))
             throw new IOException(
                 "An attachment extraction destination already exists.");
@@ -545,6 +626,10 @@ public static partial class PdfAttachmentReader
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
 }
 
+/// <summary>One embedded-files name-tree entry with its decoded key and its attachment key.</summary>
+internal readonly record struct PdfAttachmentTreeEntry(
+    PdfNameTreeEntry Entry, string Key, string Identity, string Qualified);
+
 /// <summary>Metadata and payload for one embedded file.</summary>
 public sealed record PdfAttachmentInfo
 {
@@ -552,6 +637,11 @@ public sealed record PdfAttachmentInfo
     public required string FileName { get; init; }
     /// <summary>Gets the embedded-files name-tree key, which can differ from the file-specification name; null when the file is not listed in the name tree.</summary>
     public string? NameTreeKey { get; init; }
+    /// <summary>
+    /// Gets the key the editor's ByKey methods take for this file: the name-tree key itself, or, when several
+    /// files share one key, that key qualified so each file has its own; null when the file is not in the name tree.
+    /// </summary>
+    public string? AttachmentKey { get; init; }
     /// <summary>Gets the optional description.</summary>
     public string? Description { get; init; }
     /// <summary>Gets the declared MIME type.</summary>

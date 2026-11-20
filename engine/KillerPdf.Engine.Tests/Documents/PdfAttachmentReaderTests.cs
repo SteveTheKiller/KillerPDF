@@ -322,6 +322,41 @@ public sealed class PdfAttachmentReaderTests
         }
     }
 
+    // #455: files that share a name all land: the first under its name, each later one numbered before
+    // its extension, past names the other files already use, and an existing file is still never replaced.
+    [Fact]
+    public void ExtractAllNumbersFilesThatShareAName()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"killerpdf-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            IReadOnlyList<PdfAttachmentInfo> manifests = PdfAttachmentReader.Read(
+                PdfDocument.Open(RawPdfFixtures.RepeatedContentCredentials()));
+            IReadOnlyList<PdfAttachmentInfo> reports = PdfAttachmentReader.Read(PdfDocument.Open(
+                KeyedAttachments(false, ("k1", "report.pdf", "ONE"), ("k2", "report.pdf", "TWO"),
+                    ("k3", "report (2).pdf", "THREE"))));
+
+            IReadOnlyList<string> paths = PdfAttachmentReader.ExtractAll(manifests, directory);
+            IReadOnlyList<string> reportPaths = PdfAttachmentReader.ExtractAll(reports, directory);
+
+            Assert.Equal(["Content Credentials", "Content Credentials (2)", "Content Credentials (3)"],
+                paths.Select(Path.GetFileName));
+            Assert.Equal(["manifest 0", "manifest 1", "manifest 2"], paths.Select(File.ReadAllText));
+            Assert.Equal(["report.pdf", "report (3).pdf", "report (2).pdf"], reportPaths.Select(Path.GetFileName));
+            Assert.Equal(["ONE", "TWO", "THREE"], reportPaths.Select(File.ReadAllText));
+
+            File.Delete(paths[0]);
+            Assert.Throws<IOException>(() => PdfAttachmentReader.ExtractAll(manifests, directory));
+            Assert.False(File.Exists(paths[0]));
+            Assert.Equal("manifest 1", File.ReadAllText(paths[1]));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Fact]
     public void ReadPageAnnotationsReturnsPlacementIconDescriptionAndAttachment()
     {
@@ -519,6 +554,126 @@ public sealed class PdfAttachmentReaderTests
         }
     }
 
+    public static TheoryData<bool, string, int> RepeatedKeyOperations()
+    {
+        var data = new TheoryData<bool, string, int>();
+        foreach (bool direct in new[] { false, true })
+            foreach (string operation in new[] { "remove", "rename", "replace", "description", "classification" })
+                foreach (int target in new[] { 0, 1, 2 })
+                    data.Add(direct, operation, target);
+        return data;
+    }
+
+    // #455: three files share the key "Content Credentials". An edit by attachment key touches exactly the
+    // chosen one, keeps the others and their order, and leaves a document that still opens.
+    [Theory]
+    [MemberData(nameof(RepeatedKeyOperations))]
+    public void AttachmentEditsByAttachmentKeyTouchOneOfTheFilesThatShareAKey(
+        bool directSpecifications, string operation, int target)
+    {
+        byte[] source = RawPdfFixtures.RepeatedContentCredentials(directSpecifications);
+        PdfAttachmentInfo[] before = [.. PdfAttachmentReader.Read(PdfDocument.Open(source))];
+        string key = before[target].AttachmentKey!;
+        var editor = new PdfIncrementalPageEditor(PdfDocument.Open(source));
+        switch (operation)
+        {
+            case "remove": editor.RemoveAttachmentByKey(key); break;
+            case "rename": editor.RenameAttachmentByKey(key, "renamed.txt"); break;
+            case "replace": editor.ReplaceAttachmentByKey(key, "changed"u8.ToArray()); break;
+            case "description": editor.SetAttachmentDescriptionByKey(key, "New note"); break;
+            default:
+                editor.SetAttachmentClassificationByKey(key, "text/plain", PdfAssociatedFileRelationship.Source);
+                break;
+        }
+
+        PdfAttachmentInfo[] after = [.. PdfAttachmentReader.Read(PdfDocument.Open(editor.Build()))];
+
+        string[] payloads = ["manifest 0", "manifest 1", "manifest 2"];
+        string[] others = [.. payloads.Where((_, index) => index != target)];
+        string[] expected = operation switch
+        {
+            "remove" => others,
+            "rename" => [.. others, payloads[target]],
+            "replace" => [.. payloads.Select((payload, index) => index == target ? "changed" : payload)],
+            _ => payloads,
+        };
+        Assert.Equal(expected, after.Select(item => System.Text.Encoding.ASCII.GetString(item.Data.Span)));
+        Assert.Equal(after.Length, after.Select(item => item.AttachmentKey).Distinct().Count());
+        PdfAttachmentInfo[] changed = [.. after.Where((item, index) => operation switch
+        {
+            "rename" => item.FileName == "renamed.txt",
+            "replace" => item.Data.Span.SequenceEqual("changed"u8),
+            "description" => item.Description == "New note",
+            "classification" => item.Relationship == PdfAssociatedFileRelationship.Source,
+            _ => false,
+        })];
+        Assert.Equal(operation == "remove" ? 0 : 1, changed.Length);
+        Assert.All(after.Except(changed), item =>
+        {
+            Assert.Equal("Content Credentials", item.FileName);
+            Assert.Null(item.Description);
+            Assert.Equal(before[0].Relationship, item.Relationship);
+        });
+    }
+
+    // A key by itself names the first file that holds it, as it does for keys that only decode alike. A
+    // listed name that several files share is refused.
+    [Fact]
+    public void ARepeatedKeyNamesTheFirstOfItsFilesAndARepeatedNameIsRefused()
+    {
+        byte[] source = RawPdfFixtures.RepeatedContentCredentials();
+        var editor = new PdfIncrementalPageEditor(PdfDocument.Open(source));
+        string key = PdfAttachmentReader.Read(PdfDocument.Open(source))[1].AttachmentKey!;
+
+        Assert.Contains("Several attachments are named Content Credentials.",
+            Assert.Throws<ArgumentException>(() => editor.RemoveAttachment("Content Credentials")).Message);
+        editor.RemoveAttachmentByKey(key);
+        Assert.Throws<ArgumentException>(() => editor.RemoveAttachmentByKey(key));
+        editor.RemoveAttachmentByKey("Content Credentials");
+
+        Assert.Equal(["manifest 2"], PdfAttachmentReader.Read(PdfDocument.Open(editor.Build()))
+            .Select(item => System.Text.Encoding.ASCII.GetString(item.Data.Span)));
+    }
+
+    // #455: comments and attachment annotations still work on a document whose attachment keys repeat.
+    // Only an annotation for the repeated name itself is refused, since it cannot say which file it shows.
+    [Fact]
+    public void AnnotationsWorkOnADocumentWhoseAttachmentKeysRepeat()
+    {
+        byte[] source = new PdfIncrementalPageEditor(PdfDocument.Open(RawPdfFixtures.RepeatedContentCredentials()))
+            .AddAttachment("notes.txt", "notes"u8.ToArray(), "text/plain").Build();
+
+        byte[] output = new PdfIncrementalAnnotationEditor(PdfDocument.Open(source))
+            .AddTextNote(0, 20, 30, "A comment")
+            .AddFileAttachmentAnnotation(0, 60, 30, 24, "notes.txt")
+            .Build();
+
+        PdfDocument document = PdfDocument.Open(output);
+        Assert.Equal(["Content Credentials", "Content Credentials", "Content Credentials", "notes.txt"],
+            PdfAttachmentReader.Read(document).Select(item => item.FileName));
+        PdfAttachmentAnnotationInfo shown = Assert.Single(PdfAttachmentReader.ReadPageAnnotations(document, 0));
+        Assert.Equal("notes.txt", shown.Attachment?.FileName);
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalAnnotationEditor(PdfDocument.Open(source))
+            .AddFileAttachmentAnnotation(0, 60, 30, 24, "Content Credentials"));
+    }
+
+    // A tree that repeats a key can name one file specification twice. Its page annotation is still read.
+    [Fact]
+    public void ReadPageAnnotationsReadsAFileThatARepeatedKeyNamesTwice()
+    {
+        PdfDocument document = PdfDocument.Open(RawPdfFixtures.RawPdf(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [(Content Credentials) 5 0 R (Content Credentials) 5 0 R] >> >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Annots [6 0 R] >>",
+            RawPdfFixtures.StreamObject("/Type /EmbeddedFile", "manifest 0"),
+            "<< /Type /Filespec /F (Content Credentials) /EF << /F 4 0 R >> >>",
+            "<< /Type /Annot /Subtype /FileAttachment /Rect [20 20 40 40] /FS 5 0 R >>"));
+
+        Assert.Equal(2, PdfAttachmentReader.Read(document).Count);
+        PdfAttachmentAnnotationInfo shown = Assert.Single(PdfAttachmentReader.ReadPageAnnotations(document, 0));
+        Assert.Equal("manifest 0", System.Text.Encoding.ASCII.GetString(shown.Attachment.Data.Span));
+    }
+
     [Fact]
     public void RemoveAttachmentByNameUsesTheListedNameBeforeAnotherFilesKey()
     {
@@ -597,9 +752,14 @@ public sealed class PdfAttachmentReaderTests
     [InlineData("cross")]
     [InlineData("duplicate")]
     [InlineData("case")]
+    [InlineData("repeated")]
+    [InlineData("repeated-direct")]
     public void SanitizeStripsEveryAttachmentWhateverTheirKeysAndListedNames(string scenario)
     {
-        (byte[] source, _, _) = KeyedScenario(scenario);
+        // #455: "repeated" is three files under the one key "Content Credentials".
+        byte[] source = scenario.StartsWith("repeated", StringComparison.Ordinal)
+            ? RawPdfFixtures.RepeatedContentCredentials(scenario == "repeated-direct")
+            : KeyedScenario(scenario).Source;
 
         PdfOptimizationResult result = PdfOptimizer.CreatePlan(PdfDocument.Open(source),
             new PdfOptimizationOptions
@@ -671,6 +831,39 @@ public sealed class PdfAttachmentReaderTests
             "case" => (KeyedAttachments(associatedFiles, ("A.txt", "A.txt", "PAYLOAD1"), ("a.txt", "a.txt", "PAYLOAD2")), "a.txt", "A.txt"),
             _ => throw new ArgumentOutOfRangeException(nameof(scenario))
         };
+
+    // #455: iLovePDF stores three C2PA manifests under one key; each is listed and has its own key.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReadListsEveryFileWhenNameTreeKeysRepeat(bool directSpecifications)
+    {
+        PdfDocument document = PdfDocument.Open(
+            RawPdfFixtures.RepeatedContentCredentials(directSpecifications));
+
+        IReadOnlyList<PdfAttachmentInfo> attachments = PdfAttachmentReader.Read(document);
+
+        Assert.Equal(["manifest 0", "manifest 1", "manifest 2"], attachments
+            .Select(item => System.Text.Encoding.ASCII.GetString(item.Data.Span)));
+        Assert.All(attachments, item => Assert.Equal("Content Credentials", item.NameTreeKey));
+        Assert.Equal(3, attachments.Select(item => item.AttachmentKey).Distinct(StringComparer.Ordinal).Count());
+        string text = PdfAttachmentReader.ToText(document);
+        string json = PdfAttachmentReader.ToJson(document);
+        Assert.Equal(3, JsonDocument.Parse(json).RootElement.GetProperty("attachments").GetArrayLength());
+        Assert.DoesNotContain('\0', text);
+        Assert.DoesNotContain("\\u0000", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReadKeepsTheNameTreeKeyAsTheAttachmentKeyWhenKeysAreUnique()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("first.txt", "first"u8.ToArray())
+            .AddAttachment("second.txt", "second"u8.ToArray()).Build());
+
+        Assert.All(PdfAttachmentReader.Read(document),
+            item => Assert.Equal(item.NameTreeKey, item.AttachmentKey));
+    }
 
     private static PdfDictionary ResolveDictionary(PdfDocument document, PdfObject value) =>
         Assert.IsType<PdfDictionary>(value is PdfIndirectReference reference

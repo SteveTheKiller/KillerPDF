@@ -67,6 +67,32 @@ public sealed class PdfPermanentRedactionTests
         }
     }
 
+    // #455: three files share the key "Content Credentials". Removing the reviewed one removes exactly it
+    // and its payload, and keeps the other two.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReviewedAttachmentRemovalTakesOneOfTheFilesThatShareAKey(bool directSpecifications)
+    {
+        PdfDocument document = PdfDocument.Open(RawPdfFixtures.RepeatedContentCredentials(directSpecifications));
+        string[] payloads = ["manifest 0", "manifest 1", "manifest 2"];
+        for (int row = 0; row < payloads.Length; row++)
+        {
+            PdfRedactionReview review = PdfRedactionReview.FromAttachments(document);
+            for (int index = 0; index < payloads.Length; index++)
+                if (index != row) review = review.Exclude("attachment:" + index);
+
+            PdfAttachmentRedactionResult result =
+                PdfPermanentRedaction.ApplyReviewedAttachments(document, review);
+
+            Assert.Equal(payloads.Where((_, index) => index != row),
+                PdfAttachmentReader.Read(PdfDocument.Open(result.Document))
+                    .Select(item => System.Text.Encoding.ASCII.GetString(item.Data.Span)));
+            Assert.DoesNotContain(payloads[row], System.Text.Encoding.Latin1.GetString(result.Document.Span));
+            Assert.Equal(["Content Credentials", "Content Credentials"], result.RemainingAttachmentNames);
+        }
+    }
+
     [Theory]
     [InlineData("page-af")]
     [InlineData("annotation-af")]

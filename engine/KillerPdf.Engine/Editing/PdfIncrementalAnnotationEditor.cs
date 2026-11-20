@@ -4274,15 +4274,13 @@ public sealed class PdfIncrementalAnnotationEditor
             throw new ArgumentException(
                 $"The attachment '{fileName}' has not been embedded.", nameof(fileName));
 
+        // A tree can repeat a key (#455: iLovePDF writes three "Content Credentials"). Only a repeat of
+        // the name asked for is refused, since it cannot say which file the annotation shows.
         PdfIndirectReference? match = null;
-        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (PdfNameTreeEntry entry in PdfNameTree.Read(_document, filesValue))
+        foreach (PdfNameTreeEntry entry in PdfNameTree.Read(_document, filesValue, allowDuplicateKeys: true))
         {
             string key = PdfUnicodeEncoding.DecodeTextString(
                 entry.Key.Bytes.Span, "An embedded-file name");
-            if (!keys.Add(key))
-                throw new InvalidOperationException(
-                    "The embedded-files name tree contains duplicate file names.");
             ResolvedValue resolved = ResolveWithIdentity(entry.Value,
                 $"The embedded-file specification for '{key}'");
             PdfDictionary specification = resolved.Value as PdfDictionary
@@ -4298,7 +4296,8 @@ public sealed class PdfIncrementalAnnotationEditor
                 throw new InvalidOperationException(
                     $"The embedded-file specification for '{key}' has an invalid /Type value.");
             if (string.Equals(key, fileName, StringComparison.OrdinalIgnoreCase))
-                match = reference;
+                match = match is null ? reference : throw new InvalidOperationException(
+                    "The embedded-files name tree contains duplicate file names.");
         }
         return match ?? throw new ArgumentException(
             $"The attachment '{fileName}' has not been embedded.", nameof(fileName));

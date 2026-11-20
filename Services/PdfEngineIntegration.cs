@@ -384,7 +384,7 @@ internal static partial class PdfEngineIntegration
             .Select(attachment => new AttachmentEditorItem(
                 attachment.FileName, attachment.FileName, attachment.Description,
                 attachment.MimeType, attachment.Relationship, attachment.Data.Length,
-                Key: attachment.NameTreeKey))];
+                Key: attachment.AttachmentKey))];
     }
 
     // Picks the row a caller means by a name: the listed name first, exactly and then ignoring case, and
@@ -412,9 +412,9 @@ internal static partial class PdfEngineIntegration
         ReplaceWithBuiltResult(path, result);
     }
 
-    // Each row names its file by name-tree key, since two files can list the same name and a file's key
-    // can be another file's listed name. A row built without a key is matched by its original listed
-    // name, which must pick exactly one file.
+    // Each row names its file by attachment key, since two files can list the same name, a file's key
+    // can be another file's listed name, and several files can share one name-tree key (#455). A row
+    // built without a key is matched by its original listed name, which must pick exactly one file.
     internal static void ApplyAttachmentEdits(
         string path, IReadOnlyList<AttachmentEditorItem> edits)
     {
@@ -423,7 +423,7 @@ internal static partial class PdfEngineIntegration
         byte[] result = File.ReadAllBytes(path);
         PdfAttachmentInfo[] current = [.. PdfAttachmentReader.Read(PdfDocument.Open(result))];
         string[] keys = [.. edits.Select(edit => edit.Key ?? KeyOfListedName(current, edit.OriginalFileName))];
-        if (!current.Select(item => item.NameTreeKey!).OrderBy(key => key, StringComparer.Ordinal)
+        if (!current.Select(item => item.AttachmentKey!).OrderBy(key => key, StringComparer.Ordinal)
             .SequenceEqual(keys.OrderBy(key => key, StringComparer.Ordinal), StringComparer.Ordinal))
             throw new InvalidOperationException("The attachment list changed before it was saved.");
 
@@ -440,18 +440,29 @@ internal static partial class PdfEngineIntegration
                 && string.Equals(other.Edit.FileName, row.Edit.FileName, StringComparison.OrdinalIgnoreCase))))
             throw new InvalidOperationException("Attachment names and MIME types must be valid and unique.");
 
+        // Each save below can change the attachment key of a file it keeps: a file told apart from others
+        // with its key by its place among them moves up when one before it goes. Every row's key is
+        // followed through each save, so later saves still change the file the row was made on.
+        var keyNow = remaining.ToDictionary(row => row.Key, row => row.Key, StringComparer.Ordinal);
+        void Save(byte[] built, IReadOnlyCollection<string> removedKeys, string? renamedKey)
+        {
+            Dictionary<string, string> moved = FollowAttachmentKeys(result, built, removedKeys, renamedKey);
+            foreach (string key in keyNow.Keys.ToArray())
+                keyNow[key] = moved.TryGetValue(keyNow[key], out string? next) ? next
+                    : throw new InvalidOperationException("The attachment list changed before it was saved.");
+            result = built;
+        }
         if (rows.Any(row => row.Edit.Remove))
         {
             var removal = new PdfIncrementalPageEditor(PdfDocument.Open(result));
             foreach (var row in rows.Where(row => row.Edit.Remove)) removal.RemoveAttachmentByKey(row.Key);
-            result = removal.Build();
+            Save(removal.Build(), [.. rows.Where(row => row.Edit.Remove).Select(row => row.Key)], null);
         }
 
         // A rename makes the new name the key, and each rewrite of a file copies its whole payload into
         // the file again, so a row is rewritten once, with its new name, description and type together.
         // Only when a file takes the name another still has, as two files swapping names do, does every
         // renamed file move to a temporary name first, and each row's key is followed through the move.
-        var temporaryKeys = new Dictionary<string, string>(StringComparer.Ordinal);
         bool needsTemporaryNames = remaining.Any(row => Renamed(row.Edit) && remaining.Any(other =>
             other.Key != row.Key
             && string.Equals(other.Edit.OriginalFileName, row.Edit.FileName, StringComparison.OrdinalIgnoreCase)));
@@ -459,11 +470,10 @@ internal static partial class PdfEngineIntegration
             foreach (var row in remaining.Where(row => Renamed(row.Edit)))
             {
                 string temporary = $"killerpdf-{Guid.NewGuid():N}{Path.GetExtension(row.Edit.FileName)}";
-                result = new PdfIncrementalPageEditor(PdfDocument.Open(result))
-                    .RenameAttachmentByKey(row.Key, temporary).Build();
-                temporaryKeys[row.Key] = temporary;
+                Save(new PdfIncrementalPageEditor(PdfDocument.Open(result))
+                    .RenameAttachmentByKey(keyNow[row.Key], temporary).Build(), [], keyNow[row.Key]);
             }
-        var originals = current.ToDictionary(item => item.NameTreeKey!, StringComparer.Ordinal);
+        var originals = current.ToDictionary(item => item.AttachmentKey!, StringComparer.Ordinal);
         foreach (var row in remaining)
         {
             PdfAttachmentInfo original = originals[row.Key];
@@ -475,13 +485,43 @@ internal static partial class PdfEngineIntegration
             if (!renamed && !described && !retyped) continue;
             if (described && !string.IsNullOrEmpty(edit.Description) && string.IsNullOrWhiteSpace(edit.Description))
                 throw new ArgumentException("An attachment description cannot be whitespace.");
-            result = new PdfIncrementalPageEditor(PdfDocument.Open(result))
-                .EditAttachmentByKey(needsTemporaryNames && renamed ? temporaryKeys[row.Key] : row.Key,
+            Save(new PdfIncrementalPageEditor(PdfDocument.Open(result))
+                .EditAttachmentByKey(keyNow[row.Key],
                     renamed ? edit.FileName : null,
                     retyped ? edit.MimeType : null, retyped ? edit.Relationship : null,
-                    described, string.IsNullOrEmpty(edit.Description) ? null : edit.Description).Build();
+                    described, string.IsNullOrEmpty(edit.Description) ? null : edit.Description).Build(),
+                [], renamed ? keyNow[row.Key] : null);
         }
         ReplaceWithBuiltResult(path, result);
+    }
+
+    // Maps each attachment key of a file kept from before to its key after one save. A save keeps the files
+    // it keeps in order among those with the same name-tree key, so they are paired in order. A renamed file
+    // leaves its key's files and takes a key no other file holds, so it is the one file left unpaired.
+    private static Dictionary<string, string> FollowAttachmentKeys(
+        byte[] before, byte[] after, IReadOnlyCollection<string> removedKeys, string? renamedKey)
+    {
+        PdfAttachmentInfo[] old = [.. PdfAttachmentReader.Read(PdfDocument.Open(before))
+            .Where(item => !removedKeys.Contains(item.AttachmentKey!, StringComparer.Ordinal))];
+        PdfAttachmentInfo[] now = [.. PdfAttachmentReader.Read(PdfDocument.Open(after))];
+        var moved = new Dictionary<string, string>(StringComparer.Ordinal);
+        var paired = new HashSet<int>();
+        foreach (var group in old.Where(item => item.AttachmentKey != renamedKey)
+                     .GroupBy(item => item.NameTreeKey, StringComparer.Ordinal))
+        {
+            int[] places = [.. Enumerable.Range(0, now.Length).Where(index =>
+                !paired.Contains(index) && string.Equals(now[index].NameTreeKey, group.Key, StringComparison.Ordinal))];
+            PdfAttachmentInfo[] members = [.. group];
+            for (int index = 0; index < members.Length && index < places.Length; index++)
+            {
+                moved[members[index].AttachmentKey!] = now[places[index]].AttachmentKey!;
+                paired.Add(places[index]);
+            }
+        }
+        int[] left = [.. Enumerable.Range(0, now.Length).Where(index => !paired.Contains(index))];
+        if (renamedKey is not null && left.Length == 1)
+            moved[renamedKey] = now[left[0]].AttachmentKey!;
+        return moved;
     }
 
     private static string KeyOfListedName(PdfAttachmentInfo[] current, string listedName)
@@ -489,7 +529,7 @@ internal static partial class PdfEngineIntegration
         PdfAttachmentInfo[] matches = [.. current.Where(item =>
             string.Equals(item.FileName, listedName, StringComparison.Ordinal))];
         return matches.Length == 1
-            ? matches[0].NameTreeKey!
+            ? matches[0].AttachmentKey!
             : throw new InvalidOperationException("The attachment list changed before it was saved.");
     }
 

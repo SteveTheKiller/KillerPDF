@@ -609,7 +609,7 @@ public static class PdfOptimizer
         PdfPageTree tree = PdfPageTree.Read(document);
         PdfAttachmentInfo[] attachments = options.RemoveAttachments
             ? [.. PdfAttachmentReader.Read(document)] : [];
-        string[] attachmentKeys = [.. attachments.Select(attachment => attachment.NameTreeKey!)];
+        string[] attachmentKeys = [.. attachments.Select(attachment => attachment.AttachmentKey!)];
         // The name tree is one way to reach a file, so a file only an /AF entry or an action names
         // is found by walking the document, and the preview lists it with the others.
         IReadOnlyDictionary<int, string?> reachableFiles = options.RemoveAttachments

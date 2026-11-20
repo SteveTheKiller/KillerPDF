@@ -259,6 +259,80 @@ public sealed class AttachmentEditKeyTests : IDisposable
     }
 
     // Two files per shape. Keys are written in byte order, so row 0 holds PAYLOAD1 and row 1 PAYLOAD2.
+    public static TheoryData<bool, int, int, bool> RepeatedKeyRemoveAndEditRows()
+    {
+        var data = new TheoryData<bool, int, int, bool>();
+        foreach (bool direct in new[] { false, true })
+            foreach (int removed in new[] { 0, 1, 2 })
+                foreach (int edited in new[] { 0, 1, 2 })
+                    foreach (bool rename in new[] { false, true })
+                        if (removed != edited) data.Add(direct, removed, edited, rename);
+        return data;
+    }
+
+    // #455: three files share the key "Content Credentials". One save removes one row and edits another,
+    // and each change lands on the row it was made on, also when the file specifications are direct and a
+    // file's place among the others is all that tells them apart.
+    [Theory]
+    [MemberData(nameof(RepeatedKeyRemoveAndEditRows))]
+    public void ApplyAttachmentEdits_ChangesTheRowsItWasGivenAmongFilesThatShareAKey(
+        bool directSpecifications, int removedRow, int editedRow, bool rename)
+    {
+        string path = Write(RepeatedKeys(directSpecifications));
+        var items = PdfEngineIntegration.ReadAttachmentEditorItems(path, null);
+        Assert.Equal(3, items.Count);
+
+        PdfEngineIntegration.ApplyAttachmentEdits(path, [.. items.Select((item, row) =>
+            row == removedRow ? item with { Remove = true }
+            : row == editedRow ? item with { Description = "Edited", FileName = rename ? "renamed.c2pa" : item.FileName }
+            : item)]);
+
+        PdfAttachmentInfo[] saved = [.. PdfAttachmentReader.Read(PdfDocument.Open(File.ReadAllBytes(path)))];
+        Assert.Equal(2, saved.Length);
+        string[] payloads = ["manifest 0", "manifest 1", "manifest 2"];
+        Assert.Equal(payloads.Where((_, row) => row != removedRow).Order(StringComparer.Ordinal),
+            saved.Select(item => Encoding.ASCII.GetString(item.Data.Span)).Order(StringComparer.Ordinal));
+        PdfAttachmentInfo edited = Assert.Single(saved, item => item.Description == "Edited");
+        Assert.Equal(payloads[editedRow], Encoding.ASCII.GetString(edited.Data.Span));
+        Assert.Equal(rename ? "renamed.c2pa" : "Content Credentials", edited.FileName);
+        PdfAttachmentInfo other = Assert.Single(saved, item => item != edited);
+        Assert.Equal("Content Credentials", other.FileName);
+        Assert.Null(other.Description);
+    }
+
+    // The #455 iLovePDF shape: payloads "manifest 0" to "manifest 2" under one key, "Content Credentials".
+    private static byte[] RepeatedKeys(bool directSpecifications)
+    {
+        static string Specification(int stream) =>
+            $"<< /Type /Filespec /F (Content Credentials) /AFRelationship /C2PA_Manifest /EF << /F {stream} 0 R >> >>";
+        static string Stream(string payload) =>
+            $"<< /Type /EmbeddedFile /Length {payload.Length} >>\nstream\n{payload}\nendstream";
+        string tree = directSpecifications
+            ? $"[(Content Credentials) {Specification(4)} (Content Credentials) {Specification(6)} (Content Credentials) {Specification(8)}]"
+            : "[(Content Credentials) 5 0 R (Content Credentials) 7 0 R (Content Credentials) 9 0 R]";
+        string[] objects =
+        [
+            $"<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names {tree} >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>",
+            Stream("manifest 0"), Specification(4),
+            Stream("manifest 1"), Specification(6),
+            Stream("manifest 2"), Specification(8),
+        ];
+        var text = new StringBuilder("%PDF-2.0\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(text.Length);
+            text.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = text.Length;
+        text.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) text.Append($"{offset:0000000000} 00000 n \n");
+        text.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return Encoding.Latin1.GetBytes(text.ToString());
+    }
+
     private static byte[] Shape(string shape) => shape switch
     {
         // Key X lists Y and key Y lists Z, so each file's key is the other file's listed name.

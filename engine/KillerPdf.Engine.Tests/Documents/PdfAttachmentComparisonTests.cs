@@ -7,6 +7,31 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfAttachmentComparisonTests
 {
+    // #455: files that share a name are compared in order, one with the next, so a change to one of three
+    // "Content Credentials" files is reported for that one file and an unchanged document reports nothing.
+    [Fact]
+    public void CompareMatchesFilesThatShareANameInOrder()
+    {
+        byte[] source = RawPdfFixtures.RepeatedContentCredentials();
+        PdfDocument original = PdfDocument.Open(source);
+        PdfAttachmentInfo[] files = [.. PdfAttachmentReader.Read(original)];
+        PdfDocument replaced = PdfDocument.Open(new PdfIncrementalPageEditor(PdfDocument.Open(source))
+            .ReplaceAttachmentByKey(files[1].AttachmentKey!, "changed"u8.ToArray()).Build());
+        PdfDocument removed = PdfDocument.Open(new PdfIncrementalPageEditor(PdfDocument.Open(source))
+            .RemoveAttachmentByKey(files[2].AttachmentKey!).Build());
+
+        Assert.False(PdfAttachmentComparison.Compare(original, original).HasChanges);
+        Assert.Equal([
+                new PdfAttachmentChange(PdfAttachmentChangeScope.Document,
+                    PdfAttachmentChangeKind.Payload, "Content Credentials"),
+                new PdfAttachmentChange(PdfAttachmentChangeScope.Document,
+                    PdfAttachmentChangeKind.Metadata, "Content Credentials")],
+            PdfAttachmentComparison.Compare(original, replaced).Changes);
+        Assert.Equal([new PdfAttachmentChange(PdfAttachmentChangeScope.Document,
+                PdfAttachmentChangeKind.Removed, "Content Credentials")],
+            PdfAttachmentComparison.Compare(original, removed).Changes);
+    }
+
     [Fact]
     public void CompareReportsUnregisteredPageAttachmentContentChanges()
     {

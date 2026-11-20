@@ -59,32 +59,45 @@ public sealed class PdfAttachmentComparison
     private static void CompareDocumentAttachments(PdfDocument original,
         PdfDocument changed, List<PdfAttachmentChange> changes)
     {
-        Dictionary<string, PdfAttachmentInfo> before = PdfAttachmentReader.Read(original)
-            .ToDictionary(item => item.FileName, StringComparer.OrdinalIgnoreCase);
-        Dictionary<string, PdfAttachmentInfo> after = PdfAttachmentReader.Read(changed)
-            .ToDictionary(item => item.FileName, StringComparer.OrdinalIgnoreCase);
-        foreach (string name in before.Keys.Union(after.Keys, StringComparer.OrdinalIgnoreCase)
+        // Several files can share a name (#455: iLovePDF writes three "Content Credentials"), so files with
+        // one name are paired in the order the documents list them.
+        ILookup<string, PdfAttachmentInfo> before = PdfAttachmentReader.Read(original)
+            .ToLookup(item => item.FileName, StringComparer.OrdinalIgnoreCase);
+        ILookup<string, PdfAttachmentInfo> after = PdfAttachmentReader.Read(changed)
+            .ToLookup(item => item.FileName, StringComparer.OrdinalIgnoreCase);
+        foreach (string name in before.Select(group => group.Key)
+            .Union(after.Select(group => group.Key), StringComparer.OrdinalIgnoreCase)
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase))
         {
-            if (!before.TryGetValue(name, out PdfAttachmentInfo? left))
-            {
-                changes.Add(new(PdfAttachmentChangeScope.Document,
-                    PdfAttachmentChangeKind.Added, after[name].FileName));
-                continue;
-            }
-            if (!after.TryGetValue(name, out PdfAttachmentInfo? right))
-            {
-                changes.Add(new(PdfAttachmentChangeScope.Document,
-                    PdfAttachmentChangeKind.Removed, left.FileName));
-                continue;
-            }
-            if (!left.Data.Span.SequenceEqual(right.Data.Span))
-                changes.Add(new(PdfAttachmentChangeScope.Document,
-                    PdfAttachmentChangeKind.Payload, right.FileName));
-            if (!MetadataEquals(left, right))
-                changes.Add(new(PdfAttachmentChangeScope.Document,
-                    PdfAttachmentChangeKind.Metadata, right.FileName));
+            PdfAttachmentInfo[] lefts = [.. before[name]];
+            PdfAttachmentInfo[] rights = [.. after[name]];
+            for (int index = 0; index < Math.Max(lefts.Length, rights.Length); index++)
+                CompareDocumentAttachment(index < lefts.Length ? lefts[index] : null,
+                    index < rights.Length ? rights[index] : null, changes);
         }
+    }
+
+    private static void CompareDocumentAttachment(PdfAttachmentInfo? left, PdfAttachmentInfo? right,
+        List<PdfAttachmentChange> changes)
+    {
+        if (left is null)
+        {
+            changes.Add(new(PdfAttachmentChangeScope.Document,
+                PdfAttachmentChangeKind.Added, right!.FileName));
+            return;
+        }
+        if (right is null)
+        {
+            changes.Add(new(PdfAttachmentChangeScope.Document,
+                PdfAttachmentChangeKind.Removed, left.FileName));
+            return;
+        }
+        if (!left.Data.Span.SequenceEqual(right.Data.Span))
+            changes.Add(new(PdfAttachmentChangeScope.Document,
+                PdfAttachmentChangeKind.Payload, right.FileName));
+        if (!MetadataEquals(left, right))
+            changes.Add(new(PdfAttachmentChangeScope.Document,
+                PdfAttachmentChangeKind.Metadata, right.FileName));
     }
 
     private static void ComparePageAnnotations(PdfDocument original,

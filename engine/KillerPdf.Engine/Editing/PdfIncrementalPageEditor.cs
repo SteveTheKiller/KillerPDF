@@ -1429,31 +1429,33 @@ public sealed class PdfIncrementalPageEditor
             _catalogPresentationChanged = true;
             return this;
         }
-        if (!ReadAttachmentKeys().Contains(key, StringComparer.Ordinal))
+        IReadOnlyList<PdfAttachmentTreeEntry> tree = ReadAttachmentTree();
+        int found = PdfAttachmentReader.FindAttachmentKey(tree, key);
+        if (found < 0)
             throw new ArgumentException(
-                $"The document has no attachment stored under '{key}'.", nameof(key));
+                $"The document has no attachment stored under '{PdfAttachmentReader.KeyText(key)}'.", nameof(key));
+        key = tree[found].Identity;
         if (!_removedAttachments.Add(key))
             throw new ArgumentException(
-                $"Attachment '{key}' is already scheduled for removal.", nameof(key));
+                $"Attachment '{PdfAttachmentReader.KeyText(key)}' is already scheduled for removal.", nameof(key));
         _catalogPresentationChanged = true;
         return this;
     }
 
-    private string[] ReadAttachmentKeys()
+    // The embedded-files tree with each entry's attachment key, which stays unique when keys repeat (#455).
+    private IReadOnlyList<PdfAttachmentTreeEntry> ReadAttachmentTree()
     {
         if (!_tree.Catalog.TryGetValue(NamesName, out PdfObject? namesValue)) return [];
         PdfDictionary names = ResolveDictionary(
             _document, namesValue, "The catalog /Names value");
         if (!names.TryGetValue(EmbeddedFilesName, out PdfObject? embeddedFiles)) return [];
-        return [.. PdfNameTree.Read(_document, embeddedFiles).Select(entry =>
-            PdfUnicodeEncoding.DecodeTextString(
-                entry.Key.Bytes.Span, "An embedded-file name"))];
+        return PdfAttachmentReader.ReadTree(_document, embeddedFiles);
     }
 
     // A listed name is not an identity: keys and listed names differ in files written by PDFBox and
     // LaTeX, and two files can list the same name. The name a caller gives is matched against the
     // listed names first, exactly and then ignoring case, and must pick one file. Only when no listed
-    // name matches is it taken as a key. The result is always a name-tree key.
+    // name matches is it taken as a key. The result is always an attachment key.
     private string ResolveAttachmentKey(string fileName)
     {
         PdfAttachmentInfo[] attachments = [.. PdfAttachmentReader.Read(_document)];
@@ -1462,7 +1464,7 @@ public sealed class PdfIncrementalPageEditor
         {
             string[] listed = [.. attachments
                 .Where(item => string.Equals(item.FileName, fileName, comparison))
-                .Select(item => item.NameTreeKey!)];
+                .Select(item => item.AttachmentKey!)];
             if (listed.Length > 1)
                 throw new ArgumentException(
                     $"Several attachments are named {fileName}.", nameof(fileName));
@@ -1473,7 +1475,7 @@ public sealed class PdfIncrementalPageEditor
         {
             string[] keyed = [.. attachments
                 .Where(item => string.Equals(item.NameTreeKey, fileName, comparison))
-                .Select(item => item.NameTreeKey!)];
+                .Select(item => item.AttachmentKey!)];
             if (keyed.Length > 1)
                 throw new ArgumentException(
                     $"Several attachments are named {fileName}.", nameof(fileName));
@@ -1486,10 +1488,11 @@ public sealed class PdfIncrementalPageEditor
     private PdfAttachmentInfo ReadAttachmentAtKey(string key)
     {
         ArgumentNullException.ThrowIfNull(key);
-        return PdfAttachmentReader.Read(_document).FirstOrDefault(item =>
-                string.Equals(item.NameTreeKey, key, StringComparison.Ordinal))
-            ?? throw new ArgumentException(
-                $"The document has no attachment stored under '{key}'.", nameof(key));
+        // The reader lists the tree in order, one item per entry, so the entry's place is the item's.
+        int found = PdfAttachmentReader.FindAttachmentKey(ReadAttachmentTree(), key);
+        return found >= 0 ? PdfAttachmentReader.Read(_document)[found]
+            : throw new ArgumentException(
+                $"The document has no attachment stored under '{PdfAttachmentReader.KeyText(key)}'.", nameof(key));
     }
 
     // Replaces the file stored under the key of attachment. A rename gives the file a new key, the new
@@ -1501,10 +1504,10 @@ public sealed class PdfIncrementalPageEditor
         string mimeType, string? description, PdfAssociatedFileRelationship relationship,
         DateTimeOffset? modificationDate, bool renames, string? newKey = null, bool changesType = false)
     {
-        string key = attachment.NameTreeKey!;
+        string key = attachment.AttachmentKey!;
         if (_removedAttachments.Contains(key))
             throw new ArgumentException(
-                $"Attachment '{key}' is already scheduled for removal.", nameof(attachment));
+                $"Attachment '{PdfAttachmentReader.KeyText(key)}' is already scheduled for removal.", nameof(attachment));
         AddAttachmentCore(fileName, data, mimeType, description, relationship,
             modificationDate, attachment.CreationDate,
             originalKey: key, key: renames ? newKey : key,
@@ -1568,12 +1571,12 @@ public sealed class PdfIncrementalPageEditor
         if (newFileName is not null)
         {
             if (PdfAttachmentReader.Read(_document).Any(item =>
-                    !string.Equals(item.NameTreeKey, key, StringComparison.Ordinal)
+                    !string.Equals(item.AttachmentKey, attachment.AttachmentKey, StringComparison.Ordinal)
                     && string.Equals(item.FileName, newFileName, StringComparison.OrdinalIgnoreCase)))
                 throw new ArgumentException(
                     $"The document already has an attachment named '{newFileName}'.",
                     nameof(newFileName));
-            newKey = UniqueKeyForRename(newFileName, key);
+            newKey = UniqueKeyForRename(newFileName, attachment.AttachmentKey!);
         }
         return RewriteAttachment(attachment, newFileName ?? attachment.FileName, attachment.Data,
             mimeType ?? attachment.MimeType, setDescription ? description : attachment.Description,
@@ -1586,10 +1589,12 @@ public sealed class PdfIncrementalPageEditor
     private string? UniqueKeyForRename(string newFileName, string ownKey)
     {
         var taken = new HashSet<string>(
-            ReadAttachmentKeys()
-                .Where(existing => !string.Equals(existing, ownKey, StringComparison.Ordinal)
-                    && !_removedAttachments.Contains(existing))
-                .Concat(_attachments.Select(pending => pending.Key ?? pending.FileName)),
+            ReadAttachmentTree()
+                .Where(existing => !string.Equals(existing.Identity, ownKey, StringComparison.Ordinal)
+                    && !_removedAttachments.Contains(existing.Identity))
+                .Select(existing => existing.Key)
+                .Concat(_attachments.Select(pending =>
+                    PdfAttachmentReader.KeyText(pending.Key ?? pending.FileName))),
             StringComparer.OrdinalIgnoreCase);
         if (!taken.Contains(newFileName)) return null;
         int dot = newFileName.LastIndexOf('.');
@@ -18702,9 +18707,10 @@ public sealed class PdfIncrementalPageEditor
             .ToList();
         var files = new List<PdfNameTreeEntry>();
         var removedReferences = new HashSet<(int ObjectNumber, int Generation)>();
-        // Name-tree keys are byte strings, so the set of keys in use compares their bytes. Two keys can
-        // decode to the same text, and a key by that text names the first of them. A new file is still
-        // refused when its name matches a retained key apart from case.
+        // Name-tree keys are byte strings, so the set of keys in use compares their bytes. Files are
+        // matched by attachment key, which stays unique when keys repeat (#455), so a tree that already
+        // repeats a key keeps every file. A new file is still refused when its name matches a retained
+        // key apart from case.
         var originalSpecifications = new Dictionary<string,
             (PdfDictionary Value, PdfIndirectReference? Reference)>(StringComparer.Ordinal);
         var originalKeys = new Dictionary<string, PdfString>(StringComparer.Ordinal);
@@ -18713,26 +18719,32 @@ public sealed class PdfIncrementalPageEditor
         var retainedFolded = new HashSet<string>(
             StringComparer.OrdinalIgnoreCase);
         var retainedReferences = new HashSet<(int ObjectNumber, int Generation)>();
-        var existingFileNames = new HashSet<string>(
-            StringComparer.Ordinal);
+        // Each file's place in the tree, so the sort below keeps files that share a key in their order and
+        // an edited file where it was.
+        var places = new Dictionary<PdfNameTreeEntry, int>(ReferenceEqualityComparer.Instance);
+        var originalPlaces = new Dictionary<string, int>(StringComparer.Ordinal);
         if (currentNames.TryGetValue(
             EmbeddedFilesName, out PdfObject? embeddedFiles))
-            foreach (PdfNameTreeEntry entry in PdfNameTree.Read(
-                _document, embeddedFiles))
+        {
+            IReadOnlyList<PdfAttachmentTreeEntry> tree =
+                PdfAttachmentReader.ReadTree(_document, embeddedFiles);
+            var removedPlaces = new Dictionary<int, string>();
+            foreach (string removed in _removedAttachments)
+                if (PdfAttachmentReader.FindAttachmentKey(tree, removed) is int place and >= 0)
+                    removedPlaces.TryAdd(place, removed);
+            for (int index = 0; index < tree.Count; index++)
             {
-                string name = PdfUnicodeEncoding.DecodeTextString(
-                    entry.Key.Bytes.Span, "An embedded-file name");
+                PdfNameTreeEntry entry = tree[index].Entry;
+                string name = tree[index].Key;
                 string keyBytes = Convert.ToBase64String(entry.Key.Bytes.Span);
-                if (!existingFileNames.Add(keyBytes))
-                    throw new InvalidOperationException(
-                        "The embedded-files name tree contains duplicate file names.");
-                if (_removedAttachments.Contains(name) && !originalSpecifications.ContainsKey(name))
+                if (removedPlaces.TryGetValue(index, out string? removedKey))
                 {
                     var (specification, reference) = ResolveCatalogWithIdentity(
                         _document, entry.Value,
                         $"Embedded file '{name}' specification");
-                    originalSpecifications.Add(name, ((PdfDictionary)specification, reference));
-                    originalKeys.Add(name, entry.Key);
+                    originalSpecifications.Add(removedKey, ((PdfDictionary)specification, reference));
+                    originalKeys.Add(removedKey, entry.Key);
+                    originalPlaces.Add(removedKey, index);
                     if (reference is not null)
                         removedReferences.Add((reference.ObjectNumber,
                             reference.Generation));
@@ -18743,7 +18755,9 @@ public sealed class PdfIncrementalPageEditor
                 if (entry.Value is PdfIndirectReference retained)
                     retainedReferences.Add((retained.ObjectNumber, retained.Generation));
                 files.Add(entry);
+                places.Add(entry, index);
             }
+        }
         // Several keys can name one file specification. It stays associated while a key that is kept
         // still names it.
         removedReferences.ExceptWith(retainedReferences);
@@ -18798,19 +18812,23 @@ public sealed class PdfIncrementalPageEditor
         var rewrittenInPlace = new HashSet<(int ObjectNumber, int Generation)>();
         foreach (PendingAttachment attachment in _attachments)
         {
-            string storedKey = attachment.Key ?? attachment.FileName;
+            string storedKey = PdfAttachmentReader.KeyText(attachment.Key ?? attachment.FileName);
             // A key that is kept keeps its exact bytes, so an edit never turns a key into one that
-            // decodes alike and collides with another.
-            PdfString storedKeyText =
-                attachment.OriginalFileName is not null && attachment.Key == attachment.OriginalFileName
-                    && originalKeys.TryGetValue(attachment.OriginalFileName, out PdfString? keptKey)
-                    ? keptKey : TextString(storedKey);
-            if ((attachment.Key is null && retainedFolded.Contains(storedKey))
-                || !fileNames.Add(Convert.ToBase64String(storedKeyText.Bytes.Span)))
+            // decodes alike and collides with another. A kept key that other files already repeat stays
+            // repeated, as it was.
+            bool keepsKey = attachment.OriginalFileName is not null
+                && attachment.Key == attachment.OriginalFileName
+                && originalKeys.ContainsKey(attachment.OriginalFileName);
+            PdfString storedKeyText = keepsKey
+                ? originalKeys[attachment.OriginalFileName!] : TextString(storedKey);
+            if ((!fileNames.Add(Convert.ToBase64String(storedKeyText.Bytes.Span)) && !keepsKey)
+                || (attachment.Key is null && retainedFolded.Contains(storedKey)))
                 throw new ArgumentException(
                     $"Attachment file name '{storedKey}' already exists.");
-            if (attachment.OriginalFileName is not null && storedKey != attachment.OriginalFileName)
-                renamedKeys[attachment.OriginalFileName] = storedKey;
+            string? originalText = attachment.OriginalFileName is null ? null
+                : PdfAttachmentReader.KeyText(attachment.OriginalFileName);
+            if (originalText is not null && storedKey != originalText)
+                renamedKeys[originalText] = storedKey;
             PdfIndirectReference embeddedReference = update.ReserveObject();
             update.SetObject(embeddedReference,
                 PdfAttachmentFactory.EmbeddedFile(
@@ -18848,7 +18866,11 @@ public sealed class PdfIncrementalPageEditor
                 fileReference = update.ReserveObject();
                 update.SetObject(fileReference, specification);
             }
-            files.Add(new PdfNameTreeEntry(storedKeyText, fileReference));
+            var stored = new PdfNameTreeEntry(storedKeyText, fileReference);
+            files.Add(stored);
+            places.Add(stored, attachment.OriginalFileName is not null
+                && originalPlaces.TryGetValue(attachment.OriginalFileName, out int originalPlace)
+                    ? originalPlace : int.MaxValue);
             associated.Add(fileReference);
         }
         CarryPortfolioInitialDocument(update, catalogReplacements, renamedKeys);
@@ -18857,7 +18879,10 @@ public sealed class PdfIncrementalPageEditor
             throw new NotSupportedException(
                 "The embedded-files name tree contains too many entries.");
         files.Sort((left, right) =>
-            left.Key.Bytes.Span.SequenceCompareTo(right.Key.Bytes.Span));
+        {
+            int order = left.Key.Bytes.Span.SequenceCompareTo(right.Key.Bytes.Span);
+            return order != 0 ? order : places[left].CompareTo(places[right]);
+        });
         var values = new List<PdfObject>(files.Count * 2);
         foreach (PdfNameTreeEntry file in files)
         {
