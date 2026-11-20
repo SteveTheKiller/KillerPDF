@@ -62,28 +62,10 @@ public sealed class StampPreviewStackingTests
                 Assert.True(IsBlue(Pixel(appliedPage, 0.29, 0.5)), "Apply should show the uncovered watermark");
 
                 // Preview: the page layer, the watermark the dialog lays over it, and the markup layer, stacked
-                // as the dialog stacks them. Shapes are not highlighter marks, so the page layer is the clean page.
+                // as the dialog stacks them.
                 string clean = Path.Combine(folder, "clean.pdf");
                 File.WriteAllBytes(clean, new PdfDocumentBuilder().AddBlankPage(PageWidth, PageHeight).Build());
-                Assert.False(StampPreviewMarkup.BurnPageLayer(clean, Path.Combine(folder, "page-layer.pdf"), 0,
-                    annotations, renderDims, null));
-                BitmapSource page = RenderPage(clean);
-
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.UriSource = new Uri(image);
-                bitmap.EndInit();
-                (double wpt, double hpt) = WatermarkImageSize.Points(bitmap.PixelWidth, bitmap.PixelHeight,
-                    bitmap.DpiX, bitmap.DpiY, PageWidth, spec.WmScale);
-                var stamps = new Canvas { Width = PageWidth, Height = PageHeight };
-                var watermark = new Image { Source = bitmap, Width = wpt, Height = hpt, Stretch = Stretch.Fill };
-                Canvas.SetLeft(watermark, (PageWidth - wpt) / 2);
-                Canvas.SetTop(watermark, (PageHeight - hpt) / 2);
-                stamps.Children.Add(watermark);
-
-                BitmapSource? markup = StampPreviewMarkup.Render(annotations[0], renderDims[0], PageWidth, PageHeight, 1100);
-                BitmapSource preview = Compose(page, stamps, markup);
+                BitmapSource preview = Preview(folder, clean, annotations, renderDims, CenteredWatermark(image, spec));
                 Color previewCenter = Pixel(preview, 0.5, 0.5);
 
                 Assert.True(IsRed(previewCenter), $"the preview should match Apply (red over the watermark), got {previewCenter}");
@@ -131,11 +113,7 @@ public sealed class StampPreviewStackingTests
 
                 string clean = Path.Combine(folder, "clean.pdf");
                 File.WriteAllBytes(clean, dark);
-                BitmapSource? markup = StampPreviewMarkup.Render(annotations[0], renderDims[0], PageWidth, PageHeight, 1100);
-                string layered = Path.Combine(folder, "page-layer.pdf");
-                string pageLayer = StampPreviewMarkup.BurnPageLayer(clean, layered, 0, annotations, renderDims, null)
-                    ? layered : clean;
-                BitmapSource preview = Compose(RenderPage(pageLayer), new Canvas(), markup);
+                BitmapSource preview = Preview(folder, clean, annotations, renderDims, new Canvas());
 
                 foreach ((double fx, double fy) in new[] { (0.2, 0.2), (0.07, 0.2) })
                 {
@@ -148,6 +126,91 @@ public sealed class StampPreviewStackingTests
             finally { Directory.Delete(folder, recursive: true); }
         });
     }
+
+    // An annotation already saved in the PDF sits above the watermark after Apply, because the watermark goes
+    // into the page content and a viewer paints annotations over the content. A saved highlight darkens with
+    // Multiply, so it keeps black page text black.
+    [Fact]
+    public void PreviewShowsAnnotationsSavedInTheFileOverTheWatermarkAsApplyBurnsIt()
+    {
+        RunSta(() =>
+        {
+            string folder = Path.Combine(Path.GetTempPath(), $"killerpdf-wm478-saved-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(folder);
+            try
+            {
+                string image = Path.Combine(folder, "logo.png");
+                File.WriteAllBytes(image, SolidPng(200, 150, Colors.Blue));
+                var spec = new StampSpec
+                {
+                    WmEnabled = true, WmIsImage = true, WmImagePath = image, WmScale = 1.0,
+                    WmAngle = 0, WmOpacity = 1, WmPosH = 1, WmPosV = 1,
+                };
+                // Black page text at the top left, a saved highlight over it, and a saved opaque red Square
+                // over the page center, inside the watermark's 100..300 x 75..225 pt.
+                var ink = new PdfContentStreamBuilder().SaveState().SetFillRgb(0, 0, 0)
+                    .Rectangle(20, 250, 80, 30).Fill().RestoreState();
+                byte[] page = new PdfDocumentBuilder().AddPage(PageWidth, PageHeight, ink).Build();
+                byte[] saved = new KillerPdf.Engine.Editing.PdfIncrementalAnnotationEditor(
+                        KillerPdf.Engine.Documents.PdfDocument.Open(page))
+                    .AddRectangle(0, 140, 105, 120, 90, new PdfRgbColor(1, 0, 0), new PdfRgbColor(1, 0, 0))
+                    .AddHighlight(0, 10, 245, 60, 40)
+                    .Build();
+                var none = new Dictionary<int, List<PageAnnotation>>();
+                var renderDims = new Dictionary<int, (int w, int h)> { [0] = (RenderWidth, RenderHeight) };
+
+                string applied = Path.Combine(folder, "applied.pdf");
+                File.WriteAllBytes(applied, saved);
+                PdfEngineBurn.Burn(applied, none, renderDims, spec);
+                BitmapSource appliedPage = RenderPage(applied);
+                Color appliedCenter = Pixel(appliedPage, 0.5, 0.5);
+                Assert.True(IsRed(appliedCenter), $"Apply should leave the saved Square over the watermark, got {appliedCenter}");
+
+                string clean = Path.Combine(folder, "clean.pdf");
+                File.WriteAllBytes(clean, saved);
+                BitmapSource preview = Preview(folder, clean, none, renderDims, CenteredWatermark(image, spec));
+
+                Color previewCenter = Pixel(preview, 0.5, 0.5);
+                Assert.True(IsRed(previewCenter), $"the preview should match Apply (saved Square over the watermark), got {previewCenter}");
+                Assert.True(IsBlue(Pixel(preview, 0.29, 0.5)), "the uncovered watermark should still show");
+                // Inside the highlighted black text (page 40, 265 pt).
+                Color want = Pixel(appliedPage, 0.1, 0.12), got = Pixel(preview, 0.1, 0.12);
+                Assert.True(Near(want, got), $"the saved highlight over text shows {got} in the preview but {want} after Apply");
+            }
+            finally { Directory.Delete(folder, recursive: true); }
+        });
+    }
+
+    private static Canvas CenteredWatermark(string image, StampSpec spec)
+    {
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit();
+        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.UriSource = new Uri(image);
+        bitmap.EndInit();
+        (double wpt, double hpt) = WatermarkImageSize.Points(bitmap.PixelWidth, bitmap.PixelHeight,
+            bitmap.DpiX, bitmap.DpiY, PageWidth, spec.WmScale);
+        var stamps = new Canvas();
+        var watermark = new Image { Source = bitmap, Width = wpt, Height = hpt, Stretch = Stretch.Fill };
+        Canvas.SetLeft(watermark, (PageWidth - wpt) / 2);
+        Canvas.SetTop(watermark, (PageHeight - hpt) / 2);
+        stamps.Children.Add(watermark);
+        return stamps;
+    }
+
+    // The preview as the Stamp tool builds it: the two layers written from the saved page, the stamps between.
+    private static BitmapSource Preview(string folder, string clean, Dictionary<int, List<PageAnnotation>> annotations,
+        Dictionary<int, (int w, int h)> renderDims, Canvas stamps)
+    {
+        string pageLayer = Path.Combine(folder, "page-layer.pdf"), markupLayer = Path.Combine(folder, "markup-layer.pdf");
+        bool layered = StampPreviewMarkup.WriteLayers(clean, pageLayer, markupLayer, 0, annotations, renderDims, null);
+        BitmapSource page = RenderPage(layered ? pageLayer : clean);
+        BitmapSource? markup = layered ? StampPreviewMarkup.RenderLayer(markupLayer, 0, 1100, 0) : null;
+        return Compose(page, stamps, markup);
+    }
+
+    private static bool Near(Color a, Color b) =>
+        Math.Abs(a.R - b.R) <= 12 && Math.Abs(a.G - b.G) <= 12 && Math.Abs(a.B - b.B) <= 12;
 
     private static BitmapSource Compose(BitmapSource page, Canvas stamps, BitmapSource? markup)
     {

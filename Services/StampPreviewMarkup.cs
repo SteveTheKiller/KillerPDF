@@ -3,24 +3,32 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
-using KillerPdf.Engine.Rendering;
+using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Writing;
 
 namespace KillerPDF.Services;
 
 /// <summary>
-/// #478: Apply and save put the stamps (watermark and page number) on the page and the markup over them: the
-/// viewer paints the stamp layer before the annotations, and the burn draws the watermark and number before the
-/// markup. The Stamp preview showed the page with its markup burned in, so stamps drawn over that bitmap covered
-/// markup such as a filled Shapes rectangle that Apply then drew over the stamps. The preview now shows the page,
-/// the stamps, and the markup in a transparent layer on top, which this builds.
-/// Highlighter marks stay in the page layer: they darken what is under them (Multiply), which a transparent layer
-/// cannot do, so on top they would lift black text toward the highlight color. Only where a highlighter mark
-/// overlaps a stamp does the preview differ from Apply, by drawing the stamp untinted.
+/// #478: Apply and save put the stamps (watermark and page number) into the page content, under the page's
+/// markup: the burn draws the watermark and number before the session markup, and a viewer paints the file's own
+/// annotations over the content. The Stamp preview showed the page with all of that already in its bitmap, so
+/// stamps drawn over the bitmap covered a filled Shapes rectangle or a saved Square that Apply then drew over them.
+/// The preview now has a page layer, the stamps, and a transparent markup layer on top, which this writes.
+/// Highlighter marks, from the session or saved in the file, stay in the page layer: they darken what is under
+/// them (Multiply), which a transparent layer cannot do, so on top they would lift black text toward the
+/// highlight color. Only where a highlighter overlaps a stamp does the preview differ from Apply, by drawing the
+/// stamp untinted.
 /// </summary>
 internal static class StampPreviewMarkup
 {
+    private static readonly PdfName AnnotsName = new("Annots"u8);
+    private static readonly PdfName SubtypeName = new("Subtype"u8);
+    private static readonly PdfName KidsName = new("Kids"u8);
+    private static readonly PdfName PagesName = new("Pages"u8);
+    private static readonly PdfName RootName = new("Root"u8);
+
     /// <summary>The preview's layers, bottom to top: the page, the stamps, then the page's markup.</summary>
     internal static void Stack(Panel host, UIElement page, UIElement stamps, UIElement markup)
     {
@@ -29,58 +37,111 @@ internal static class StampPreviewMarkup
         host.Children.Add(markup);
     }
 
-    /// <summary>True for markup the preview keeps in the page layer, under the stamps.</summary>
+    /// <summary>True for session markup the preview keeps in the page layer, under the stamps.</summary>
     internal static bool StaysInPage(PageAnnotation annotation) =>
         annotation is HighlightAnnotation highlight && PdfBurn.IsHighlighterMark(highlight);
 
-    /// <summary>Writes <paramref name="target"/> as <paramref name="clean"/> with only the page's highlighter marks
-    /// burned in, the page layer under the stamps. Returns false, writing nothing, when the page has none, and
-    /// the clean file is then the page layer.</summary>
-    internal static bool BurnPageLayer(string clean, string target, int pageIndex,
+    /// <summary>
+    /// Writes the preview's two layers for one page of <paramref name="clean"/> (the saved working copy):
+    /// <paramref name="pageLayer"/> is the page with only its highlighter marks, saved and from the session, and
+    /// <paramref name="markupLayer"/> is the page with no content, its other saved annotations and form fields,
+    /// and the rest of the session markup burned in. Returns false, writing nothing, when the page has no markup,
+    /// and the clean file is then the whole preview page.
+    /// </summary>
+    internal static bool WriteLayers(string clean, string pageLayer, string markupLayer, int pageIndex,
         IReadOnlyDictionary<int, List<PageAnnotation>> annotations, IReadOnlyDictionary<int, (int w, int h)> renderDims,
         IReadOnlyDictionary<int, int>? rotations)
     {
-        if (!annotations.TryGetValue(pageIndex, out var list)) return false;
-        List<PageAnnotation> marks = list.Where(StaysInPage).ToList();
-        if (marks.Count == 0) return false;
-        File.Copy(clean, target, overwrite: true);
-        PdfEngineBurn.Burn(target, new Dictionary<int, List<PageAnnotation>> { [pageIndex] = marks }, renderDims,
-            null, pageIndex, rotations);
+        List<PageAnnotation> session = annotations.TryGetValue(pageIndex, out var list) ? list : [];
+        var document = PdfDocument.Open(File.ReadAllBytes(clean));
+        (PdfIndirectReference reference, PdfDictionary page) = Page(document, pageIndex);
+        List<PdfObject> saved = page.TryGetValue(AnnotsName, out PdfObject value) && Resolve(document, value) is PdfArray array
+            ? [.. array] : [];
+        if (saved.Count == 0 && session.Count == 0) return false;
+
+        List<PdfObject> under = saved.Where(annotation => IsSavedHighlight(document, annotation)).ToList();
+        List<PdfObject> over = saved.Where(annotation => !IsSavedHighlight(document, annotation)).ToList();
+
+        File.WriteAllBytes(pageLayer, WithAnnotations(document, reference, page, under));
+        List<PageAnnotation> marks = session.Where(StaysInPage).ToList();
+        if (marks.Count > 0)
+            PdfEngineBurn.Burn(pageLayer, new Dictionary<int, List<PageAnnotation>> { [pageIndex] = marks }, renderDims,
+                null, pageIndex, rotations);
+
+        byte[] annotated = WithAnnotations(document, reference, page, over);
+        File.WriteAllBytes(markupLayer, new PdfIncrementalPageEditor(PdfDocument.Open(annotated))
+            .SetPageContent(pageIndex, ReadOnlyMemory<byte>.Empty).Build());
+        List<PageAnnotation> rest = session.Where(annotation => !StaysInPage(annotation)).ToList();
+        if (rest.Count > 0)
+            PdfEngineBurn.Burn(markupLayer, new Dictionary<int, List<PageAnnotation>> { [pageIndex] = rest }, renderDims,
+                null, pageIndex, rotations, forRasterization: true);
         return true;
     }
 
-    /// <summary>The page's markup, less its highlighter marks, alone on a transparent page of the page's visual
-    /// size, drawn by the same burn that saves it, or null when there is none to draw.</summary>
-    internal static BitmapSource? Render(IReadOnlyList<PageAnnotation>? markup, (int w, int h)? renderDims,
-        double visualWidth, double visualHeight, int maximumPixels)
+    /// <summary>A page of <paramref name="path"/> with a transparent background, turned by the in-app rotation as
+    /// the preview's page bitmap is.</summary>
+    internal static BitmapSource RenderLayer(string path, int pageIndex, int maximumPixels, int rotation)
     {
-        List<PageAnnotation> layer = markup?.Where(annotation => !StaysInPage(annotation)).ToList() ?? [];
-        if (layer.Count == 0 || visualWidth <= 0 || visualHeight <= 0) return null;
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-stampmarkup-{Guid.NewGuid():N}.pdf");
-        try
-        {
-            // A blank page in the page's visual orientation, so the markup (kept in visual space) needs no turn.
-            File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(visualWidth, visualHeight).Build());
-            var annotations = new Dictionary<int, List<PageAnnotation>> { [0] = layer };
-            var dims = new Dictionary<int, (int w, int h)>();
-            if (renderDims is { } size) dims[0] = size;
-            PdfEngineBurn.Burn(path, annotations, dims, rotations: new Dictionary<int, int> { [0] = 0 },
-                forRasterization: true);
-
-            double scale = maximumPixels / Math.Max(visualWidth, visualHeight);
-            int width = Math.Max(1, (int)Math.Round(visualWidth * scale));
-            int height = Math.Max(1, (int)Math.Round(visualHeight * scale));
-            var renderer = new PdfPageRenderer(PdfDocument.Open(File.ReadAllBytes(path)));
-            var rendered = renderer.Render(0, new PdfRenderOptions(width, height, transparentBackground: true)
-                { CacheResult = false });
-            var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null,
-                rendered.Pixels.ToArray(), checked(width * 4));
-            bitmap.Freeze();
-            return bitmap;
-        }
-        finally
-        {
-            try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
-        }
+        using var session = PdfPageRenderSession.OpenEngineFirst(path, maximumPixels, maximumPixels, null);
+        PdfRenderedPage rendered = session.RenderPage(pageIndex, transparentBackground: true);
+        byte[] pixels = rendered.Pixels;
+        int width = rendered.Width, height = rendered.Height;
+        if (rotation % 360 != 0) (pixels, width, height) = BitmapHelpers.RotateBitmap(pixels, width, height, rotation);
+        var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, checked(width * 4));
+        bitmap.Freeze();
+        return bitmap;
     }
+
+    private static bool IsSavedHighlight(PdfDocument document, PdfObject annotation) =>
+        Resolve(document, annotation) is PdfDictionary dictionary
+        && dictionary.TryGetValue(SubtypeName, out PdfObject subtype)
+        && Resolve(document, subtype) is PdfName name && name.ValueAsLatin1() == "Highlight";
+
+    private static byte[] WithAnnotations(PdfDocument document, PdfIndirectReference reference, PdfDictionary page,
+        List<PdfObject> keep)
+    {
+        IEnumerable<KeyValuePair<PdfName, PdfObject>> entries = page.Where(entry => !entry.Key.Equals(AnnotsName));
+        if (keep.Count > 0)
+            entries = entries.Append(new KeyValuePair<PdfName, PdfObject>(AnnotsName, new PdfArray(keep)));
+        return new PdfIncrementalUpdateBuilder(document)
+            .ReplaceObject(reference.ObjectNumber, new PdfDictionary(entries)).Build();
+    }
+
+    // The page dictionary at a document-order index, found by walking the page tree from the catalog.
+    private static (PdfIndirectReference Reference, PdfDictionary Page) Page(PdfDocument document, int pageIndex)
+    {
+        if (!document.CrossReferences.TryGetTrailerValue(RootName, out PdfObject root)
+            || Resolve(document, root) is not PdfDictionary catalog
+            || !catalog.TryGetValue(PagesName, out PdfObject pages))
+            throw new InvalidDataException("The PDF has no page tree.");
+        int remaining = pageIndex, visited = 0;
+        var active = new HashSet<int>();
+        (PdfIndirectReference, PdfDictionary)? found = null;
+        bool Visit(PdfObject node, int depth)
+        {
+            if (depth > 256 || ++visited > 1_000_000 || node is not PdfIndirectReference reference
+                || !active.Add(reference.ObjectNumber) || document.Resolve(reference) is not PdfDictionary dictionary)
+                throw new InvalidDataException("The page tree is invalid.");
+            try
+            {
+                if (dictionary.TryGetValue(KidsName, out PdfObject kids))
+                {
+                    if (Resolve(document, kids) is not PdfArray children)
+                        throw new InvalidDataException("The page tree is invalid.");
+                    foreach (PdfObject child in children)
+                        if (Visit(child, depth + 1)) return true;
+                    return false;
+                }
+                if (remaining-- > 0) return false;
+                found = (reference, dictionary);
+                return true;
+            }
+            finally { active.Remove(reference.ObjectNumber); }
+        }
+        if (!Visit(pages, 0) || found is not { } page) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        return page;
+    }
+
+    private static PdfObject Resolve(PdfDocument document, PdfObject value) =>
+        value is PdfIndirectReference reference ? document.Resolve(reference) : value;
 }

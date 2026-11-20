@@ -60,7 +60,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - `--pdfua --json` names the standard the files were checked against, PDF/UA-2 or "mixed" when PDF/UA-2 files are in the run. It always said PDF/UA-1.
 - The red Close icon in the window menu was too faint to read on the gray menu in the Light and 98SE themes. It is a darker red there now.
 - Math symbols and matrix brackets in PDFs made with TeX draw correctly. A font that left out its encoding had symbols such as ∈ drawn as digits like "2", and bracket pieces drawn as "2 3 4 5". (#510)
-- The Stamp preview stacks a watermark or page number under your markup, such as a filled Shapes rectangle, where Apply puts it. The preview used to draw the watermark on top, so Apply seemed to hide it. (#478)
+- The Stamp preview stacks a watermark or page number under your markup, such as a filled Shapes rectangle or a comment already saved in the file, where Apply puts it. The preview used to draw the watermark on top, so Apply seemed to hide it. (#478)
 - Merge accepts three more kinds of valid PDF: an image palette with a spare byte at the end, dates saved as Unicode text (as Microsoft Print to PDF writes them), and attachments that share a name (as iLovePDF writes its Content Credentials). Every attachment is kept, with a number added to the repeated names. (#455)
 
 ### Changed

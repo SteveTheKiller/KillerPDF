@@ -34,7 +34,7 @@ namespace KillerPDF.Shell
             if (!TryBurnStampPreview(pageIdx, this, out string? burned)) return;
             PdfEngineDocumentSession session = EnsureEngineDocumentSession();
             var (pwpt, phpt) = session.VisualPageSize(pageIdx, _pageRotations);
-            var (src, markup) = RenderStampPreviewLayers(pageIdx, burned, pwpt, phpt);
+            var (src, markup) = RenderStampPreviewLayers(pageIdx, burned);
             if (src is null) { SetStatus(Loc("Str_Tf_NoRender")); return; }
 
             StampWindow? win = null;
@@ -44,7 +44,7 @@ namespace KillerPDF.Shell
                     var (w, h) = EnsureEngineDocumentSession().VisualPageSize(idx, _pageRotations);
                     // A refused burn has been reported; no bitmap keeps the preview on the page it shows.
                     if (!TryBurnStampPreview(idx, win ?? (Window)this, out string? stepBurned)) return (null, null, w, h);
-                    var (stepSrc, stepMarkup) = RenderStampPreviewLayers(idx, stepBurned, w, h);
+                    var (stepSrc, stepMarkup) = RenderStampPreviewLayers(idx, stepBurned);
                     return (stepSrc, stepMarkup, w, h);
                 });
             win.ShowDialog();
@@ -70,29 +70,46 @@ namespace KillerPDF.Shell
         }
 
         // The preview's bottom and top layers: the page with only its highlighter marks, and the rest of the
-        // markup alone, so the stamps sit between them as Apply puts them (#478). The burn above has just saved
-        // the working copy to _currentFile, so that file shows the page's current state without its markup.
-        // Layers that cannot be drawn fall back to the page with all its markup burned in and no top layer.
+        // markup (the file's own annotations and form fields, and the session's markup) alone, so the stamps sit
+        // between them as Apply puts them (#478). _currentFile is the working copy without session markup; the
+        // burn above has just saved it when the page has session markup. A page without markup, or layers that
+        // cannot be written (a protected file, a damaged page tree), keep the single page bitmap as before.
         private (System.Windows.Media.Imaging.BitmapSource? Page, System.Windows.Media.Imaging.BitmapSource? Markup)
-            RenderStampPreviewLayers(int pageIdx, string? burned, double visualWidth, double visualHeight)
+            RenderStampPreviewLayers(int pageIdx, string? burned)
         {
-            if (burned is null || _currentFile is null || !_annotations.TryGetValue(pageIdx, out var list) || list.Count == 0)
-                return (RenderPageBitmap(pageIdx, 1100, burned), null);
-            System.Windows.Media.Imaging.BitmapSource? markup;
-            string? pageLayer = null;
+            if (_currentFile is null) return (RenderPageBitmap(pageIdx, 1100, burned), null);
+            string pageLayer = App.MakeTempFile("xfstamppage");
+            string markupLayer = App.MakeTempFile("xfstampmarks");
+            // The layer files hold page content, so they go as soon as both bitmaps are drawn.
             try
             {
-                (int w, int h)? dims = _renderDims.TryGetValue(pageIdx, out var size) ? size : null;
-                markup = StampPreviewMarkup.Render(list, dims, visualWidth, visualHeight, 1100);
-                string target = App.MakeTempFile("xfstamp");
-                if (StampPreviewMarkup.BurnPageLayer(_currentFile, target, pageIdx, _annotations, _renderDims, _pageRotations))
-                    pageLayer = target;
+                System.Windows.Media.Imaging.BitmapSource markup;
+                try
+                {
+                    if (!StampPreviewMarkup.WriteLayers(_currentFile, pageLayer, markupLayer, pageIdx, _annotations,
+                            _renderDims, _pageRotations))
+                        return (RenderPageBitmap(pageIdx, 1100, burned), null);
+                    markup = StampPreviewMarkup.RenderLayer(markupLayer, pageIdx, 1100,
+                        _pageRotations.TryGetValue(pageIdx, out int rotation) ? rotation : 0);
+                }
+                catch (Exception ex) when (ex is not OutOfMemoryException)
+                {
+                    return (RenderPageBitmap(pageIdx, 1100, burned), null);
+                }
+                return (RenderPageBitmap(pageIdx, 1100, pageLayer), markup);
             }
-            catch (Exception ex) when (ex is not OutOfMemoryException)
+            finally
             {
-                return (RenderPageBitmap(pageIdx, 1100, burned), null);
+                DeleteLayerFile(pageLayer);
+                DeleteLayerFile(markupLayer);
             }
-            return (RenderPageBitmap(pageIdx, 1100, pageLayer), markup);
+
+            static void DeleteLayerFile(string path)
+            {
+                try { System.IO.File.Delete(path); }
+                catch (System.IO.IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
         }
 
         private void ApplyStampSpec(StampSpec spec)
