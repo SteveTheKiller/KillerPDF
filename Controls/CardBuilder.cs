@@ -396,7 +396,11 @@ namespace KillerFamily.Controls
                 drawerFace.MaxHeight = room;
                 drawerFace.MinHeight = Math.Min(120, room);
                 drawerFace.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                drawer.HorizontalOffset = r.Right - card.ActualWidth - (face?.BorderThickness.Right ?? 0);
+                double seam = face?.BorderThickness.Right ?? 0;
+                drawer.HorizontalOffset = r.Right - card.ActualWidth - seam;
+                // The drawer's first column of pixels lies over the card's border; it is clipped away so the card's border
+                // shows unbroken between the card and the drawer (Steve 2026-11-19).
+                drawerClip.Clip = new RectangleGeometry(new Rect(seam, 0, 100000, 100000));
                 drawer.VerticalOffset = r.Top + inset;
             }
 
