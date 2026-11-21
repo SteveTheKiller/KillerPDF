@@ -33,6 +33,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The engine is licensed under the Mozilla Public License 2.0 instead of GPLv3. The KillerPDF desktop app remains GPLv3.
 - JPEG 2000 is decoded by OpenJPEG instead of CoreJ2K, with the native decoder bundled for Windows x64, Linux x64 and macOS. See [rendering](docs/rendering.md).
 - `PdfPreflightCheck.ConformanceDeclarations` runs `PdfUaValidator` on a PDF/UA-1 document and reports failures as `Conformance.PdfUa1.<condition>`. (#491)
+- `PdfTableOfContentsWriteOptions.PageWidth` and `PageHeight` are nullable and default to the first page's displayed size, with /Rotate applied. A page too small for the margins and one row falls back to Letter. (#512)
 
 ### Added
 

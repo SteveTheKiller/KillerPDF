@@ -12,12 +12,15 @@ public static class PdfTableOfContentsWriter
     {
         ArgumentNullException.ThrowIfNull(document);
         options ??= new PdfTableOfContentsWriteOptions();
+        options = WithPageSize(document, options);
         Validate(options);
+        double pageWidth = options.PageWidth!.Value;
+        double pageHeight = options.PageHeight!.Value;
 
         PdfTableOfContentsPlan plan = PdfTableOfContentsPlanner.Plan(
             document, options.MaximumDepth);
         int rowsPerPage = (int)Math.Floor(
-            (options.PageHeight - options.TopMargin - options.BottomMargin
+            (pageHeight - options.TopMargin - options.BottomMargin
              - options.TitleFontSize - options.TitleGap) / options.RowHeight);
         if (rowsPerPage < 1)
             throw new ArgumentException("The page layout has no room for table-of-contents rows.",
@@ -30,7 +33,7 @@ public static class PdfTableOfContentsWriter
         {
             var content = new PdfContentStreamBuilder();
             DrawText(content, options.Title, options.LeftMargin,
-                options.PageHeight - options.TopMargin - options.TitleFontSize,
+                pageHeight - options.TopMargin - options.TitleFontSize,
                 options.TitleFontSize, PdfStandardFont.HelveticaBold, null);
             int first = tocPageIndex * rowsPerPage;
             int last = Math.Min(plan.Entries.Count, first + rowsPerPage);
@@ -38,13 +41,13 @@ public static class PdfTableOfContentsWriter
             {
                 PdfTableOfContentsEntry entry = plan.Entries[entryIndex];
                 int row = entryIndex - first;
-                double baseline = options.PageHeight - options.TopMargin
+                double baseline = pageHeight - options.TopMargin
                     - options.TitleFontSize - options.TitleGap
                     - row * options.RowHeight - options.EntryFontSize;
                 double left = options.LeftMargin + entry.Depth * options.IndentWidth;
                 string title = Latin1(entry.Title);
                 string label = Latin1(entry.PageLabel ?? string.Empty);
-                int leaderCount = Math.Max(2, (int)((options.PageWidth
+                int leaderCount = Math.Max(2, (int)((pageWidth
                     - options.RightMargin - left) / (options.EntryFontSize * 0.52))
                     - title.Length - label.Length - 2);
                 string line = string.Concat(title, " ", new string('.', leaderCount),
@@ -54,11 +57,11 @@ public static class PdfTableOfContentsWriter
                 if (entry.PageIndex.HasValue)
                     links.Add(new LinkPlacement(tocPageIndex, left,
                         baseline - options.EntryFontSize * 0.2,
-                        options.PageWidth - options.RightMargin - left,
+                        pageWidth - options.RightMargin - left,
                         options.RowHeight, entry.PageIndex.Value + pageCount,
                         entry.Destination, entry.Title));
             }
-            pageEditor.InsertPage(tocPageIndex, options.PageWidth, options.PageHeight, content);
+            pageEditor.InsertPage(tocPageIndex, pageWidth, pageHeight, content);
         }
 
         byte[] pages = pageEditor.Build();
@@ -94,12 +97,37 @@ public static class PdfTableOfContentsWriter
     private static string Latin1(string value) =>
         new([.. value.Select(character => character <= 0xff ? character : '?')]);
 
+    // #512: with no explicit size the contents pages match the first page as it displays (crop box, physical
+    // points, /Rotate applied), so an A4 or A6 document no longer gets Letter contents. A page too small for the
+    // margins and one row falls back to Letter rather than failing the whole command.
+    private static PdfTableOfContentsWriteOptions WithPageSize(
+        PdfDocument document, PdfTableOfContentsWriteOptions options)
+    {
+        if (options.PageWidth.HasValue && options.PageHeight.HasValue) return options;
+        const double LetterWidth = 612, LetterHeight = 792;
+        double width = LetterWidth, height = LetterHeight;
+        IReadOnlyList<PdfPageInformation> pages = PdfPageInformation.Read(document);
+        if (pages.Count > 0)
+        {
+            PdfPageInformation first = pages[0];
+            bool sideways = first.Rotation is 90 or 270;
+            double w = sideways ? first.PhysicalHeight : first.PhysicalWidth;
+            double h = sideways ? first.PhysicalWidth : first.PhysicalHeight;
+            bool fits = double.IsFinite(w) && double.IsFinite(h)
+                && options.LeftMargin + options.RightMargin < (options.PageWidth ?? w)
+                && (options.PageHeight ?? h) - options.TopMargin - options.BottomMargin
+                   - options.TitleFontSize - options.TitleGap >= options.RowHeight;
+            if (fits) { width = w; height = h; }
+        }
+        return options with { PageWidth = options.PageWidth ?? width, PageHeight = options.PageHeight ?? height };
+    }
+
     private static void Validate(PdfTableOfContentsWriteOptions options)
     {
         if (options.MaximumDepth is < 1 or > 256)
             throw new ArgumentOutOfRangeException(nameof(options));
-        Positive(options.PageWidth, nameof(options.PageWidth));
-        Positive(options.PageHeight, nameof(options.PageHeight));
+        Positive(options.PageWidth!.Value, nameof(options.PageWidth));
+        Positive(options.PageHeight!.Value, nameof(options.PageHeight));
         Positive(options.LeftMargin, nameof(options.LeftMargin));
         Positive(options.RightMargin, nameof(options.RightMargin));
         Positive(options.TopMargin, nameof(options.TopMargin));
@@ -109,7 +137,7 @@ public static class PdfTableOfContentsWriter
         Positive(options.RowHeight, nameof(options.RowHeight));
         Positive(options.TitleGap, nameof(options.TitleGap));
         Positive(options.IndentWidth, nameof(options.IndentWidth));
-        if (options.LeftMargin + options.RightMargin >= options.PageWidth)
+        if (options.LeftMargin + options.RightMargin >= options.PageWidth!.Value)
             throw new ArgumentException("The horizontal margins consume the page width.", nameof(options));
         if (string.IsNullOrWhiteSpace(options.Title))
             throw new ArgumentException("The table-of-contents title cannot be empty.", nameof(options));
@@ -133,10 +161,10 @@ public sealed record PdfTableOfContentsWriteOptions
     public string Title { get; init; } = "Table of Contents";
     /// <summary>Gets the maximum bookmark hierarchy depth.</summary>
     public int MaximumDepth { get; init; } = 6;
-    /// <summary>Gets the generated page width in points.</summary>
-    public double PageWidth { get; init; } = 612;
-    /// <summary>Gets the generated page height in points.</summary>
-    public double PageHeight { get; init; } = 792;
+    /// <summary>Gets the generated page width in points, or null to match the document's first page.</summary>
+    public double? PageWidth { get; init; }
+    /// <summary>Gets the generated page height in points, or null to match the document's first page.</summary>
+    public double? PageHeight { get; init; }
     /// <summary>Gets the left page margin in points.</summary>
     public double LeftMargin { get; init; } = 54;
     /// <summary>Gets the right page margin in points.</summary>

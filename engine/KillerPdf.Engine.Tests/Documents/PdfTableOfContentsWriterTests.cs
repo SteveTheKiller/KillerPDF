@@ -58,6 +58,39 @@ public sealed class PdfTableOfContentsWriterTests
     }
 
     [Fact]
+    public void ContentsPagesTakeTheDocumentsOwnPageSize()
+    {
+        // #512: an A4, A6 or 210 x 240 mm document got Letter contents pages.
+        static PdfPageInformation FirstPage(PdfTableOfContentsWriteResult result) =>
+            PdfPageInformation.Read(PdfDocument.Open(result.Document))[0];
+
+        PdfTableOfContentsWriteResult a4 = PdfTableOfContentsWriter.Write(PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(595.28, 841.89).AddBlankPage(595.28, 841.89).Build()));
+        Assert.Equal(595.28, FirstPage(a4).Width, 2);
+        Assert.Equal(841.89, FirstPage(a4).Height, 2);
+
+        // A landscape-displayed page (portrait media, /Rotate 90) gets an upright landscape contents page.
+        PdfTableOfContentsWriteResult rotated = PdfTableOfContentsWriter.Write(PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(298, 420).SetPageRotation(0, 90).Build()));
+        Assert.Equal(420, FirstPage(rotated).Width, 2);
+        Assert.Equal(298, FirstPage(rotated).Height, 2);
+        Assert.Equal(0, FirstPage(rotated).Rotation);
+
+        // An explicit size still wins.
+        PdfTableOfContentsWriteResult explicitSize = PdfTableOfContentsWriter.Write(PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(595.28, 841.89).Build()),
+            new PdfTableOfContentsWriteOptions { PageWidth = 612, PageHeight = 792 });
+        Assert.Equal(612, FirstPage(explicitSize).Width, 2);
+        Assert.Equal(792, FirstPage(explicitSize).Height, 2);
+
+        // A page too small for the margins and one row falls back to Letter instead of failing.
+        PdfTableOfContentsWriteResult card = PdfTableOfContentsWriter.Write(PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(252, 144).Build()));
+        Assert.Equal(612, FirstPage(card).Width, 2);
+        Assert.Equal(792, FirstPage(card).Height, 2);
+    }
+
+    [Fact]
     public void WriteCreatesAnEmptyContentsPageAndRejectsImpossibleLayout()
     {
         PdfDocument source = PdfDocument.Open(
