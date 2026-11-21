@@ -1349,6 +1349,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Card_Hidden">Ausgeblendet</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Kachel hierher ziehen, um sie auszublenden</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Immer sichtbar</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, Position {1} von {2}</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Leere Seite</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Seitenleiste</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} Seiten ausgewählt</sys:String>

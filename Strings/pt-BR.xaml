@@ -1356,6 +1356,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Card_Hidden">Ocultos</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Arraste um bloco para cá para ocultá-lo</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Sempre exibido</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, posição {1} de {2}</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Página em branco</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Barra lateral</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} páginas selecionadas</sys:String>

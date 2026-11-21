@@ -1356,6 +1356,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Card_Hidden">Приховані</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Перетягніть плитку сюди, щоб приховати її</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Завжди показано</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, позиція {1} з {2}</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Порожня сторінка</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Бічна панель</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Вибрано сторінок: {0}</sys:String>

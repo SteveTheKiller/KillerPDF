@@ -1356,6 +1356,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Card_Hidden">Đã ẩn</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Kéo một ô vào đây để ẩn</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Luôn hiển thị</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, vị trí {1} trên {2}</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Trang trống</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Thanh bên</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Đã chọn {0} trang</sys:String>

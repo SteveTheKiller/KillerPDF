@@ -1347,6 +1347,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Card_Hidden">已隐藏</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">将磁贴拖到此处即可隐藏</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">始终显示</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}，第 {1} 个，共 {2} 个</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">空白页</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">侧边栏</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">已选择 {0} 页</sys:String>

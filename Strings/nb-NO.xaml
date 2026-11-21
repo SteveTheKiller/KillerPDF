@@ -1356,6 +1356,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Card_Hidden">Skjult</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Dra en flis hit for å skjule den</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Vises alltid</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, plass {1} av {2}</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Tom side</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Sidepanel</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} sider valgt</sys:String>

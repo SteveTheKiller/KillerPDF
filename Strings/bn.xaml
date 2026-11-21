@@ -1343,6 +1343,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Card_Hidden">লুকানো</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">লুকাতে একটি টাইল এখানে টেনে আনুন</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">সবসময় দেখানো হয়</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, {2}টির মধ্যে {1} নম্বর স্থানে</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">ফাঁকা পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">সাইডবার</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0}টি পৃষ্ঠা নির্বাচিত</sys:String>

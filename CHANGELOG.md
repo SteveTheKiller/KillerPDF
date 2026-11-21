@@ -11,6 +11,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. Book layout sits beside it, and the pair is centered.
 - Large tiled JPEG 2000 images use far less memory again. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
 
+### Added
+
+- While customizing a card, Alt+arrow keys move the focused tile one place or one row, and a screen reader hears its new position.
+
 ## [1.9.5] - 2026-11-20
 
 1.9.5 brings Trash Polka, a black theme with tattoo-style ink in your accent color, and right-click cards you can customize, along with a Merge files dialog, moving tabs between windows, session restore, EPUB export, PDF/UA validation and a round of security fixes.

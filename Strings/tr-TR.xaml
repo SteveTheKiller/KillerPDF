@@ -1343,6 +1343,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Card_Hidden">Gizli</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Gizlemek için bir kutucuğu buraya sürükleyin</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Her zaman gösterilir</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, {2} içinde {1}. sıra</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Boş Sayfa</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Kenar çubuğu</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} sayfa seçildi</sys:String>

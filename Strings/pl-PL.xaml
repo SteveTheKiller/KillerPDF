@@ -1351,6 +1351,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Card_Hidden">Ukryte</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Przeciągnij tu kafelek, aby go ukryć</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Zawsze widoczne</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, pozycja {1} z {2}</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Pusta strona</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Pasek boczny</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Wybrane strony: {0}</sys:String>

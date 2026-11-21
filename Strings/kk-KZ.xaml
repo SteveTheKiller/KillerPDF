@@ -1251,6 +1251,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Card_Hidden">Жасырын</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Жасыру үшін тақтаны осында сүйреңіз</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Әрқашан көрсетіледі</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, {2} ішінен {1}-орын</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Бос бет</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Бүйірлік панель</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} бет таңдалды</sys:String>

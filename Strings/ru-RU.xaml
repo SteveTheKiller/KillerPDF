@@ -1356,6 +1356,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Card_Hidden">Скрытые</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Перетащите плитку сюда, чтобы скрыть её</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Всегда видно</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, позиция {1} из {2}</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Пустая страница</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Боковая панель</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Выбрано страниц: {0}</sys:String>

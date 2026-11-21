@@ -99,6 +99,8 @@ namespace KillerFamily.Controls
         public string HiddenLabel { get; init; } = "Hidden";
         public string HiddenHint { get; init; } = "Drag a tile here to hide it";
         public string LockedTip { get; init; } = "Always shown";
+        /// <summary>What a screen reader hears after Alt+arrow moves a tile: {0} the tile, {1} its place, {2} how many.</summary>
+        public string MovedText { get; init; } = "{0}, position {1} of {2}";
     }
 
     /// <summary>
@@ -297,12 +299,12 @@ namespace KillerFamily.Controls
                 if (saved is not null && saved.StartsWith(Version, StringComparison.Ordinal))
                 {
                     var parts = saved[Version.Length..].Split('/');
-                    shown.AddRange(parts[0].Split('|', StringSplitOptions.RemoveEmptyEntries).Where(byKey.ContainsKey).Distinct());
-                    if (parts.Length > 1) stashed.UnionWith(parts[1].Split('|', StringSplitOptions.RemoveEmptyEntries));
+                    shown.AddRange(parts[0].Split(['|'], StringSplitOptions.RemoveEmptyEntries).Where(byKey.ContainsKey).Distinct());
+                    if (parts.Length > 1) stashed.UnionWith(parts[1].Split(['|'], StringSplitOptions.RemoveEmptyEntries));
                 }
                 else if (saved is not null && saved.StartsWith("v1:", StringComparison.Ordinal))
                 {
-                    stashed.UnionWith(saved[3..].Split('|', StringSplitOptions.RemoveEmptyEntries));
+                    stashed.UnionWith(saved[3..].Split(['|'], StringSplitOptions.RemoveEmptyEntries));
                     shown.AddRange(all.Select(t => t.Key).Where(k => !stashed.Contains(k)));
                 }
                 else return [.. defaultOrder];
@@ -457,7 +459,7 @@ namespace KillerFamily.Controls
             {
                 var at = new Dictionary<string, (bool, Point)>();
                 if (!editing) return at;
-                foreach (var (el, t) in owners)
+                foreach (var (el, t) in owners.Select(o => (o.Key, o.Value)))
                 {
                     bool inDrawer = drawerTiles.IsAncestorOf(el);
                     if (inDrawer && !drawer.IsOpen) continue;
@@ -473,7 +475,7 @@ namespace KillerFamily.Controls
                 root.UpdateLayout();
                 if (drawer.IsOpen) drawerClip.UpdateLayout();
                 var ease = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
-                foreach (var (el, t) in owners)
+                foreach (var (el, t) in owners.Select(o => (o.Key, o.Value)))
                 {
                     bool inDrawer = drawerTiles.IsAncestorOf(el);
                     if (!before.TryGetValue(t.Key, out var was) || was.InDrawer != inDrawer) continue;
@@ -557,6 +559,7 @@ namespace KillerFamily.Controls
             {
                 EndDrag();
                 editing = on;
+                card.SetValue(IsEditingProperty, on);
                 card.StaysOpen = true;
                 lingering = !on;
                 // The pencil opens editing; while editing it steps aside and the drawer's X is the one way out.
@@ -651,7 +654,8 @@ namespace KillerFamily.Controls
             void Scrub(MouseEventArgs e)
             {
                 if (Bar() is not { } bar) return;
-                double f = Math.Clamp(e.GetPosition(bar).Y / Math.Max(1, bar.ActualHeight), 0, 1);
+                double f = e.GetPosition(bar).Y / Math.Max(1, bar.ActualHeight);
+                f = f < 0 ? 0 : f > 1 ? 1 : f;
                 scroller.ScrollToVerticalOffset(f * scroller.ScrollableHeight);
             }
             bool OverDrawer(MouseEventArgs e)
@@ -767,7 +771,7 @@ namespace KillerFamily.Controls
                 if (pressed is null || !Inside(gridHost, screen) || gridHost.Child is not Border { Child: Panel grid }) return view;
                 var p = grid.PointFromScreen(screen);
                 string? target = null;
-                foreach (var (el, t) in owners)
+                foreach (var (el, t) in owners.Select(o => (o.Key, o.Value)))
                     if (el is FrameworkElement fe && grid.Children.Contains(fe) && new Rect((Point)VisualTreeHelper.GetOffset(fe), fe.RenderSize).Contains(p)) { target = t.Key; break; }
                 var next = view.ToList();
                 int from = next.IndexOf(pressed.Key);
@@ -863,10 +867,50 @@ namespace KillerFamily.Controls
                     e.Handled = true;
                 }), true);
             }
-            // Keyboard: Enter or Space on a card tile moves it to the drawer while editing.
+            // Keyboard, while editing: Enter or Space moves the focused tile between the card and the drawer; Alt+Left
+            // and Alt+Right move a card tile one slot, Alt+Up and Alt+Down one row, saved like a drag. Focus stays on the
+            // moved tile and a screen reader hears its new place.
+            var announcer = new TextBlock { Height = 0, Width = 0, Opacity = 0, IsHitTestVisible = false, Focusable = false };
+            AutomationProperties.SetLiveSetting(announcer, AutomationLiveSetting.Polite);
+            root.Children.Add(announcer);
+            void Announce(string text)
+            {
+                announcer.Text = text;
+                AutomationProperties.SetName(announcer, text);
+                (System.Windows.Automation.Peers.UIElementAutomationPeer.FromElement(announcer)
+                    ?? System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(announcer))
+                    ?.RaiseAutomationEvent(System.Windows.Automation.Peers.AutomationEvents.LiveRegionChanged);
+            }
+            bool Shift(CardTile t, int by)
+            {
+                int from = order.IndexOf(t.Key);
+                if (from < 0 || edit.Locked(t)) return false;
+                int to = Math.Max(0, Math.Min(order.Count - 1, from + by));
+                if (to == from) return true;
+                order.RemoveAt(from);
+                order.Insert(to, t.Key);
+                Persist();
+                Rebuild();
+                // The rebuilt tile takes focus, keyboard and the card's own focus scope both, so the next Alt+arrow
+                // moves it again.
+                if (owners.FirstOrDefault(o => o.Value.Key == t.Key && gridHost.IsAncestorOf(o.Key)).Key is { } moved
+                    && (moved as Button ?? Descendants(moved).OfType<Button>().FirstOrDefault()) is { } face)
+                {
+                    FocusManager.SetFocusedElement(FocusManager.GetFocusScope(face), face);
+                    face.Focus();
+                }
+                Announce(string.Format(CultureInfo.CurrentCulture, edit.MovedText, t.Shown ?? t.Caption.TrimEnd('.', '…').TrimEnd(), to + 1, order.Count));
+                return true;
+            }
             root.PreviewKeyDown += (_, e) =>
             {
-                if (!editing || e.Key is not (Key.Enter or Key.Space) || Owner(Keyboard.FocusedElement as DependencyObject) is not { } t) return;
+                if (!editing || Owner(e.OriginalSource as DependencyObject ?? Keyboard.FocusedElement as DependencyObject) is not { } t) return;
+                // Alt+arrow arrives as a system key, the arrow in SystemKey.
+                var key = e.Key == Key.System ? e.SystemKey : e.Key;
+                bool alt = e.Key == Key.System || (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
+                int by = !alt ? 0 : key switch { Key.Left => -1, Key.Right => 1, Key.Up => -columns, Key.Down => columns, _ => 0 };
+                if (by != 0) { if (Shift(t, by)) e.Handled = true; return; }
+                if (e.Key is not (Key.Enter or Key.Space)) return;
                 Move(t, !Hidden(t.Key));
                 e.Handled = true;
             };
@@ -965,6 +1009,12 @@ namespace KillerFamily.Controls
         /// edit mode on or off.</summary>
         internal sealed record EditDriver(Func<Point, bool> Press, Action<Point> Drag, Action<Point> Release, Func<List<string>> Order, Action<bool> Editing);
         internal static readonly DependencyProperty EditDriverProperty = DependencyProperty.RegisterAttached("EditDriver", typeof(EditDriver), typeof(CardBuilder));
+
+        /// <summary>True while a customizable card is in pencil edit mode, false as soon as Done or the X ends it, even
+        /// though the card stays open until the next click. Apps check this to hold card shortcuts while tiles are
+        /// being moved; the card's StaysOpen is not a substitute, since it stays true after editing ends.</summary>
+        public static readonly DependencyProperty IsEditingProperty = DependencyProperty.RegisterAttached("IsEditing", typeof(bool), typeof(CardBuilder), new PropertyMetadata(false));
+        public static bool IsEditing(DependencyObject card) => (bool)card.GetValue(IsEditingProperty);
 
         // The open hand over a tile that can be picked up and the closed hand while one is held: the family's own grab
         // cursors (Resources/open_hand.cur and closed_hand.cur, the art DragCursors loads), so a card tile is grabbed

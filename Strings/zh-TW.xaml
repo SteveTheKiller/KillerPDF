@@ -1345,6 +1345,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Card_Hidden">已隱藏</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">將圖格拖曳到此處即可隱藏</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">一律顯示</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}，第 {1} 個，共 {2} 個</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">空白頁</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">側邊欄</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">已選取 {0} 頁</sys:String>

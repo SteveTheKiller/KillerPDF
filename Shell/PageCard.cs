@@ -258,6 +258,7 @@ namespace KillerPDF.Shell
                 HiddenLabel = Loc("Str_Card_Hidden"),
                 HiddenHint = Loc("Str_Card_HiddenHint"),
                 LockedTip = Loc("Str_Card_AlwaysShown"),
+                MovedText = Loc("Str_Card_TileMoved"),
             };
 
         private KillerFamily.Controls.CardTile KitTile(CardTile t)

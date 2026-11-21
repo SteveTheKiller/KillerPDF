@@ -1259,6 +1259,7 @@
     <sys:String x:Key="Str_Card_Hidden">Skrito</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Povlecite ploščico sem, da jo skrijete</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Vedno prikazano</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, mesto {1} od {2}</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Prazna stran</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Stranska vrstica</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">Izbrane strani: {0}</sys:String>

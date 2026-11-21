@@ -1363,6 +1363,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Card_Hidden">Hidden</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">Drag a tile here to hide it</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">Always shown</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}, position {1} of {2}</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">Blank page</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">Sidebar</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} pages selected</sys:String>

@@ -1356,6 +1356,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Card_Hidden">非表示</sys:String>
     <sys:String x:Key="Str_Card_HiddenHint">非表示にするにはタイルをここにドラッグ</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">常に表示</sys:String>
+    <sys:String x:Key="Str_Card_TileMoved">{0}、{2} 個中 {1} 番目</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">空白ページ</sys:String>
     <sys:String x:Key="Str_Card_Sidebar">サイドバー</sys:String>
     <sys:String x:Key="Str_Card_PagesSelected">{0} ページを選択中</sys:String>
