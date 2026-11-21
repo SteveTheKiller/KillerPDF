@@ -1,0 +1,4 @@
+﻿"Version","Set","Pages","Rendered","Runs","MedianRenderSeconds","MinimumRenderSeconds","MaximumRenderSeconds","MedianWallSeconds","MedianPeakWorkingSetMB"
+"1.9.5","Shared","600","570","3","33.435","31.591","34.901","10.08","547.3"
+"1.9.5","Broad","74","72","3","8.757","7.83","9.33","6.283","496.6"
+"1.9.5","Color","175","175","3","16.016","15.768","16.629","4.615","492.8"

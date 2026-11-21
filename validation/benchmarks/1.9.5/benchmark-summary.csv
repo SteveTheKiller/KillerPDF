@@ -1,0 +1,4 @@
+﻿"Version","Collection","Inputs","Runs","MedianSeconds","MinimumSeconds","MaximumSeconds","MedianFilesPerSecond","MedianPeakWorkingSetMB","Saved","Skipped","Failed","ExecutableSHA256"
+"1.9.5","public-regression","16696","3","213.824","203.148","218.17","78.08","704.4","15478","1069","149","5955876CF892745E58B114A55AF76C8C2093A325C9B7CCC388E3108F11D03D2C"
+"1.9.5","public-standards","649","3","7.05","6.766","7.75","92.06","704.9","399","230","20","5955876CF892745E58B114A55AF76C8C2093A325C9B7CCC388E3108F11D03D2C"
+"1.9.5","private-stress","29599","1","512.43","512.43","512.43","57.76","1137.5","25628","2712","1259","5955876CF892745E58B114A55AF76C8C2093A325C9B7CCC388E3108F11D03D2C"
