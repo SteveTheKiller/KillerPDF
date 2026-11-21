@@ -454,8 +454,11 @@ namespace KillerPDF.Controls
             bool split = Host?.IsSplitView == true;
             bool retro = Services.ThemeManager.Current == Services.Theme.SE98;
             // Modern themes only need a focus ring when panes are split. 98SE uses the
-            // selected pane's surface color as its focus indicator, including single-pane mode.
-            bool paneActive = PaneHasFocus && (split || retro);
+            // selected pane's surface color as its focus indicator in split view. A single pane is
+            // always the live one, so it keeps the light face its active tab is drawn in: dimming it
+            // whenever focus sat on the toolbar or sidebar left a #c0c0c0 tab on a #9f9f9f page
+            // area (Steve, 2026-11-20).
+            bool paneActive = split ? PaneHasFocus : retro;
 
             foreach (var t in _sessions)
             {
@@ -466,9 +469,9 @@ namespace KillerPDF.Controls
             }
 
             PaneBorder?.SetResourceReference(Border.BackgroundProperty,
-                    retro ? (paneActive ? "FocusedPaneBrush" : "TabInactiveBrush") : "ContentPaneBrush");
+                    retro ? (paneActive ? "RetroDocumentFaceBrush" : "TabInactiveBrush") : "ContentPaneBrush");
             PaneShadow?.SetResourceReference(Border.BackgroundProperty,
-                    retro ? (paneActive ? "FocusedPaneBrush" : "TabInactiveBrush") : "ContentPaneBrush");
+                    retro ? (paneActive ? "RetroDocumentFaceBrush" : "TabInactiveBrush") : "ContentPaneBrush");
 
         }
 

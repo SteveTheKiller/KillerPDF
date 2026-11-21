@@ -41,6 +41,20 @@ public sealed class ActiveTabSurfaceTests
         Assert.DoesNotContain("d[\"BarShadowOpacity\"] =", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void SinglePaneOn98SEKeepsTheFaceItsActiveTabIsDrawnIn()
+    {
+        // 98SE dims an unfocused pane to #9f9f9f as its split-view focus cue. With one pane that left the #c0c0c0
+        // active tab sitting on the dimmed gray whenever focus was on the toolbar or sidebar.
+        string source = File.ReadAllText(Path.Combine(RepoRoot(), "Controls", "Viewer", "PdfViewer.TabStrip.cs"));
+        Assert.Contains("bool paneActive = split ? PaneHasFocus : retro;", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("PaneHasFocus && (split || retro)", source, StringComparison.Ordinal);
+        // The live pane and its tab are a step lighter than the #c0c0c0 face, inactive tabs a step darker.
+        Assert.Contains("retro ? (paneActive ? \"RetroDocumentFaceBrush\" : \"TabInactiveBrush\")", source, StringComparison.Ordinal);
+        string theme = File.ReadAllText(Path.Combine(RepoRoot(), "Themes", "App", "98SE.xaml"));
+        Assert.Contains("x:Key=\"RetroDocumentFaceBrush\" Color=\"#d4d4d4\"", theme, StringComparison.Ordinal);
+    }
+
     private static string RepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
