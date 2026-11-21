@@ -271,6 +271,21 @@ if ($ReuseDryRun) {
     Reset-ReleaseDryRun -PublishDirectory $publishDir
 }
 
+# release.ps1 runs no tests. test.ps1 runs the engine and desktop unit tests and stamps its results
+# with the commit and version; a release only takes results from this exact commit.
+$testResultsDirectory = Join-Path $PSScriptRoot 'test-results'
+if (-not $ReuseDryRun) {
+    $testSourcePath = Join-Path $testResultsDirectory 'source.json'
+    if (-not (Test-Path -LiteralPath $testSourcePath)) { throw 'No test results found. Run .\test.ps1 first.' }
+    $tested = Get-Content -Raw -LiteralPath $testSourcePath | ConvertFrom-Json
+    if ($tested.Dirty) { throw 'test.ps1 ran with uncommitted changes. Commit, then run .\test.ps1 again.' }
+    if ($tested.Commit -ne $releaseValidationHead) { throw "test.ps1 ran on $($tested.Commit), but HEAD is $releaseValidationHead. Run .\test.ps1 again." }
+    if ($tested.Version -ne "$Version.0") { throw "test.ps1 ran on version $($tested.Version), but this release is $Version.0. Run .\test.ps1 again." }
+    Assert-ReleaseTestResult (Join-Path $testResultsDirectory 'engine.trx') 'KillerPdf.Engine.Tests.dll'
+    Assert-ReleaseTestResult (Join-Path $testResultsDirectory 'desktop.trx') 'KillerPDF.Tests.dll'
+    Write-Host "    Using test.ps1 results for $($releaseValidationHead.Substring(0, 7)), finished $($tested.Finished)" -ForegroundColor Green
+}
+
 # Nothing outside this checkout changes until every check has passed: the WinGet fork sync and
 # every push happen in the publish phase at the end (BF-A009).
 
@@ -671,8 +686,8 @@ try {
     }
 
     if (-not $ReuseDryRun) {
-        dotnet test (Join-Path $PSScriptRoot 'engine\KillerPdf.Engine.Tests\KillerPdf.Engine.Tests.csproj') -c Release --nologo -v quiet --logger 'trx;LogFileName=engine.trx' --results-directory $validationDirectory
-        if ($LASTEXITCODE -ne 0) { throw 'Engine unit tests failed - fix them before releasing' }
+        [IO.Directory]::CreateDirectory($validationDirectory) | Out-Null
+        Copy-Item -LiteralPath (Join-Path $testResultsDirectory 'engine.trx') -Destination $engineTrxPath -Force
         Assert-ReleaseTestResult $engineTrxPath 'KillerPdf.Engine.Tests.dll'
     }
     & (Join-Path $PSScriptRoot 'build/Update-EngineSiteFacts.ps1') -TrxPath $engineTrxPath -DryRun:$DryRun
@@ -756,10 +771,10 @@ try {
 
     # A red test cannot ship. Same gate as the date checks above - fail the release, not a reminder.
     if (-not $ReuseDryRun) {
-        Write-Host "    Running host-safe desktop unit tests against the fresh installer payload..."
-        Invoke-ReleaseDesktopTests -TestProject (Join-Path $PSScriptRoot 'KillerPDF.Tests\KillerPDF.Tests.csproj') `
-            -CliExecutable (Join-Path $installerPayloadDir 'KillerPDF.App.exe') -ExpectedVersion "$Version.0" -ResultsDirectory $validationDirectory
-        Write-Host "    Desktop unit tests passed" -ForegroundColor Green
+        [IO.Directory]::CreateDirectory($validationDirectory) | Out-Null
+        Copy-Item -LiteralPath (Join-Path $testResultsDirectory 'desktop.trx') -Destination $desktopTrxPath -Force
+        Assert-ReleaseTestResult $desktopTrxPath 'KillerPDF.Tests.dll'
+        Write-Host "    Desktop unit tests passed in test.ps1" -ForegroundColor Green
     }
 
     Write-Host "    Preflight OK" -ForegroundColor Green

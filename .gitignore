@@ -44,3 +44,7 @@ obj/
 /vera-*.csv
 /vera-err.txt
 /qpdf-*.csv
+
+# Local release readiness script; run .	est.ps1 before release.ps1.
+/test.ps1
+/test-results/
