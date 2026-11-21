@@ -10,94 +10,78 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Security
 
-- An update installs only when its signing certificate chains to the certificate authority that issues KillerPDF's own, and a revoked certificate is refused. A certificate that only carries the right name no longer passes.
-- Setup can no longer be hijacked by a program running without admin rights. A machine-wide install unpacks into a folder only administrators can change, a machine-wide uninstall runs its cleanup script from one, setup no longer loads DLLs from the folder it was downloaded to, and it starts Explorer and the command prompt by their full Windows paths.
-- The Explorer and Outlook preview runs in Windows' low-integrity preview sandbox again, so a PDF that exploited it could not write to your files or settings. Open in KillerPDF still starts the full app normally.
-- Redact checks the finished file for the words it found. When one still appears in a bookmark, a link destination's name, a script, the document's details or any other text, the command line refuses to save and the app, macros and the Privacy guided task say which words remain. Removing hidden information now also renames link destinations, which can carry the words they point at, and links keep working. Text dressed up as a font file that no page uses no longer slips past the check.
-- The working copies KillerPDF keeps while you edit are deleted as soon as an edit replaces them, so text a redaction removed no longer sits in a temporary file until KillerPDF closes. An edit that fails partway deletes the copies it made too.
-- A PDF link handed over from the browser downloads only from the public internet. A web page can no longer use it to reach a router, printer or other device on your network. These downloads connect directly and skip the system proxy, which could otherwise fetch a local address on the link's behalf. A `killerpdf://open` download refuses NAT64, 6to4 and IPv4-compatible addresses that lead to a private network, and the reserved documentation ranges.
-- A file or link sent to the KillerPDF that's already running goes only to a copy running as you. Another account that started first can no longer collect what you open.
-- An embedded file named to fool Windows can no longer be extracted under a different name or onto a device. A name ending in a dot or space, such as `run.bat.`, which Windows would save as `run.bat`, is refused, and so are device names such as CON, NUL and COM1. Far more file types count as executable in the attachment safety check, including .hta, .url, .iso and macro-enabled Office files. Files saved out of a PDF are marked as coming from the internet, so Windows SmartScreen and Office Protected View treat them like a download.
-- The Signatures panel shows "Certification broken" for a document certified to allow no changes that was changed afterward. It used to say "Valid, changed after signing", which read as a pass.
-- Converting a Word or Excel file no longer refreshes its links to other files, and Excel 4.0 macros in a workbook stay off while it converts.
-- A PDF built to multiply its own drawing work can no longer hang KillerPDF, the Explorer and Outlook preview, or the page thumbnails. A tiling pattern that paints with itself is skipped, nested drawings share one work limit for the page however wide they branch, and a preview page or thumbnail that takes longer than 15 seconds stops and shows as incomplete.
-- A damaged PDF built to make repair slow opens or fails in seconds. The search for a lost cross-reference stream skips objects that cannot be one and stops after a fixed number of tries, and a broken object stream is read once instead of once for every object inside it.
-- A password-protected save gets a random document identifier instead of one made from the unencrypted content, which let anyone holding the file confirm a guess at what it says.
-- A password typed for a file whose protection could not be read is forgotten after two minutes instead of being kept until the tab closes.
-- A signing certificate loaded from a .pfx file can no longer have its private key exported from KillerPDF while it signs.
-- The crash window's Report on GitHub link no longer carries folder names, so your Windows user name and document folders stay out of a public issue.
-- OCR languages download from a fixed version of the Tesseract language files, so a later change to those files cannot reach KillerPDF unreviewed.
+- Updates install only when their certificate chains to KillerPDF's certificate authority, and revoked certificates are refused.
+- Setup can no longer be hijacked by a program running without admin rights.
+- The Explorer and Outlook preview runs in Windows' low-integrity sandbox again.
+- Redact checks the finished file and refuses to save when a redacted word survives in bookmarks, link names, scripts or document details.
+- Working copies made while editing are deleted as soon as they are replaced, so redacted text no longer lingers in a temporary file.
+- A `killerpdf://open` link downloads only from the public internet, so a web page can't use it to reach devices on your network.
+- Files and links sent to a running KillerPDF go only to a copy running as you.
+- Extracted attachments can't use tricky Windows names to land under a different name, more file types count as executable, and saved files are marked as downloaded.
+- The Signatures panel says "Certification broken" when a no-changes certified document was changed. It used to read as a pass.
+- Converting Word and Excel files no longer refreshes external links or runs Excel 4.0 macros.
+- PDFs built to hang the renderer, the preview or the repair code now stop or open in seconds.
+- Password-protected saves get a random document ID, and a password for a file that couldn't be read is forgotten after two minutes.
+- A signing certificate loaded from a .pfx can't have its private key exported while it signs.
+- The crash window's GitHub report link no longer includes your folder names.
+- OCR languages download from a pinned version of the Tesseract files.
 
 ### Fixed
 
-- Redact no longer fails with "Pages ... cannot be redacted without replacing them with an image" when saving the document leaves a page that has to become an image. It asks about those pages the same way it asks about the others, and canceling leaves the document as it was. (#499)
-- Redacting a signed PDF no longer turns the visible signature box blank. The redaction still invalidates the signature, but the box keeps showing the signer's name, date and timestamp, as other readers show it. (#505)
-- A text box on a page that already has comments, such as a form with note fields, stays one editable text box after saving and reopening. It used to come back as invisible text split into one selectable line each, with nothing left to edit. (#466)
-- Flatten Forms, Optimize with form fields stripped, and form data import no longer fail with "The AcroForm has no field named" on a form whose field list lost track of fields still on its pages. Form data import skips a name that a damaged form uses for fields of different types, such as a text box and a check box, and fills the rest. It used to stop with "is not a text field". Data exported from a file can also be imported back into it without failing on the comments it already has, and a failed import still lists each field and why it was skipped. (#466)
-- Paste pastes what was copied last. Once a picture, shape or text box had been copied, every paste brought it back, even after copying text or an image somewhere else, in every open document until a restart. (#497)
-- Math symbols and matrix brackets in PDFs made with TeX draw correctly. A font that left out its encoding had symbols such as ∈ drawn as digits like "2", and bracket pieces drawn as "2 3 4 5". (#510)
-- Merge accepts three more kinds of valid PDF: an image palette with a spare byte at the end, dates saved as Unicode text (as Microsoft Print to PDF writes them), and attachments that share a name (as iLovePDF writes its Content Credentials). Every attachment is kept, with a number added to the repeated names. Those files list every attachment in the Attachments panel and the attachments command, extract them as "Content Credentials", "Content Credentials (2)" and so on, and let you edit, replace, remove or redact any one of them without touching the others. Optimize, compare, redaction and adding comments no longer fail on them either. (#455)
-- Everything now shows in your chosen language where it used to stay English. This covers the uninstall prompts, the print dialog's Reverse order and two-sided flip options, the film grain shortcut tip, key names in shortcuts, file sizes, scanner and Office conversion errors, and the report windows for print production, layers, portfolio, separations, signatures, structure compare, navigation audit, accessibility, preflight, data merge and macros. Preflight findings keep their font names, file names, DPI values and PDF/UA clauses in every language. Page box coordinates in the print production report round to two decimals instead of printing seventeen digits. The uninstall dialogs have their normal close button again. (#506)
-- German and other longer translations fit their screens. The crash window's buttons, the bookmark and form review lists, the portfolio dialog, the installer's folder box and the shortcut card no longer cut off or run past their text, the shortcut card grows with the window, the Forms button says "Forms" without a stray "(F)", and the keyboard view's hint names every layer. The file name in Open and Save lines up with the file type under it, a submenu's arrow is as bright as its name, and the signature card's Initials heading uses the same lettering as its Signatures title. (#508)
-- Export to Word, HTML, Markdown and plain text keeps the spaces between words in PDFs that separate words by position only, such as LaTeX papers and tables printed from Chrome or LibreOffice. A row like "Widget 1 | 1 | 2.50" used to export as `Widget 112.50`. (#507, thanks @jayhemnani9910)
-- Pinching on a precision touchpad zooms the page again, as it did before 1.9.3, instead of scrolling it. (#494)
-- The Stamp preview and the document view stack a watermark or page number under your markup, such as a filled Shapes rectangle or a comment already saved in the file, where Apply puts it. Both used to draw the watermark on top, so Apply seemed to hide it. The stamped pages in the document view are drawn the way Apply draws them, so they stay sharp at any zoom and keep your proof and monitor colors. (#478)
-- A generated table of contents uses the document's own page size. It always came out Letter, even in an A4 or A6 document. (#512)
-- With a replacement's text box locked, the arrow keys and a drag move its cover, as 1.9.4 promised. It worked only after the two were linked, and a fresh edit never is. The selection frame now follows the mark when the arrow keys move it, instead of staying where the mark was. After a click in More settings, the arrow keys go back to the selection instead of changing the Font box, and with a screen reader or other accessibility tool running they move a selected mark instead of the reading caret. Turning a replacement's layers on or off in More settings no longer freezes the window. The menu used to stay open with nothing under it and hold the mouse until another window took it back, which also kept the arrow keys from moving the text box or its cover. (#467)
-- Selecting a text box shows its own font, bold, italic, strikethrough and underline on the text bar. The bar used to keep the Text tool's font, so changing any setting while a replacement was selected could restyle it in the wrong font.
-- Edit paragraph on recognized text over a scan opens the same line edit the Text tool does, instead of saying the paragraph cannot be edited.
-- A macro's Redact step in the app works on a slightly damaged PDF the way the command line always did, instead of failing on a file KillerPDF opens fine. A Redact step in a macro warns about words that survive in bookmarks or names even when it redacted nothing on the pages.
-- Two portable copies sharing one data folder no longer lose each other's settings changes, and a power cut while settings save can no longer leave an empty settings file.
-- A save with annotations that fails at the last step no longer keeps a working copy open until KillerPDF closes. A saved report replaces the old file only once it is completely written.
-- A PDF rewritten in place at the same size within the same instant no longer shows its old pages in the background render or thumbnails.
-- A file that fails to open, or whose open you cancel, no longer shows up in Recent.
-- Back and Forward work after clicking a page thumbnail. Only bookmarks, links and the page box used to record where you were.
-- Clear Page on a page's right-click card clears that page. It cleared the page you were on instead.
-- Edit on a signature's right-click card opens it in the signature editor. It used to do nothing. Edit no longer shows on marks it cannot edit.
-- Show Shortcuts in Menus works on the right-click cards again. Each action with a shortcut shows its keys under its name, such as "(Ctrl+A)" under Select All, and turning the setting off hides them.
-- A Chinese or Japanese file name in the title bar is drawn in Microsoft YaHei UI or Yu Gothic UI, matching the menus, instead of the system's default face. Document tab names follow the same rule in every theme, including 98SE, whose Microsoft Sans Serif now hands Chinese and Japanese characters to those faces. (#490)
-- `--pdfua --json` names the standard the files were checked against, PDF/UA-2 or "mixed" when PDF/UA-2 files are in the run. It always said PDF/UA-1.
-- The active document tab is the same color as the page area it opens into, with a shadow that shows in every theme, and the tab beside it no longer draws a second divider line against it. In Dark and several other themes it was darker than the tabs behind it, and in Light it had no visible edge. In 98SE the active tab and the page area are a step lighter than the window and the other tabs a step darker, and the page area no longer turns dark gray when the toolbar or sidebar has focus. The 98SE tab edges now line up with the page area's edges: each tab has a gray outline with a white highlight inside it, an inactive first tab starts a pixel in from the page area's left edge, and the active tab no longer has a stray double line along its top or a gap beside its right edge.
-- The Restore last session, restricted document and native viewing notices look like the cards around them, with four rounded corners, an edge and a shadow. They used to have a square top, no edge and a shadow that vanished on dark themes.
-- The image library's preview has its frame, and the signing dialog's preview has its border. Both asked for a value no theme defines, so they drew none. The picture icon on a picture's right-click card shows in the theme's accent color. It was black, so it disappeared on dark themes.
-- The red Close icon in the window menu was too faint to read on the gray menu in the Light and 98SE themes. It is a darker red there now.
-- With Film Grain on, menus and tool tiles keep the grain on their background and on a highlighted row or tile, but no longer lay it over the words and icons.
-- The Mourning theme highlights selections in its original peach with dark text again, instead of pink.
-- The Transform window no longer reopens against the left edge of the app.
+- Redact asks about pages that have to become images instead of failing with "cannot be redacted without replacing them with an image". (#499)
+- Redacting a signed PDF no longer blanks the visible signature box. (#505)
+- A text box on a page that already has comments stays editable after saving and reopening. (#466)
+- Flatten Forms, Optimize and form data import work on forms whose field list is damaged. (#466)
+- Paste pastes what you copied last, not a picture or shape copied earlier. (#497)
+- Math symbols and brackets in TeX PDFs draw correctly. (#510)
+- Merge and the attachment tools handle three more kinds of valid PDF, including iLovePDF files with repeated attachment names. (#455)
+- Uninstall prompts, the print dialog, report windows and other leftover English text now follow your language. (#506)
+- German and other long translations fit their windows and buttons. (#508)
+- Export to Word, HTML, Markdown and text keeps the spaces between words in PDFs that space words by position. (#507, thanks @jayhemnani9910)
+- Pinch-to-zoom on a precision touchpad zooms again. (#494)
+- The Stamp preview shows watermarks and page numbers under your markup, where Apply puts them. (#478)
+- A generated table of contents uses the document's own page size instead of always Letter. (#512)
+- The arrow keys and dragging move a locked replacement's cover, and turning its layers on or off no longer freezes the window. (#467)
+- Selecting a text box shows its own font and style on the text bar.
+- Edit paragraph works on recognized text over a scan.
+- A macro's Redact step works on slightly damaged PDFs, like the command line does.
+- Two portable copies sharing a data folder no longer lose each other's settings, and a power cut can't empty the settings file.
+- A file that fails to open no longer shows up in Recent.
+- Back and Forward work after clicking a page thumbnail.
+- Clear Page clears the page you right-clicked, and Edit on a signature opens the signature editor.
+- Show Shortcuts in Menus works on the right-click cards again.
+- Chinese and Japanese file names in the title bar and tabs use the same font as the menus. (#490)
+- `--pdfua --json` names PDF/UA-2 when it checked PDF/UA-2 files.
+- The active tab matches the page area in every theme, and notices, previews and menu icons look right on dark themes.
 
 ### Changed
 
-- KillerPDF needs Windows 10 or later, and on Windows 7, 8 or 8.1 it now says so when it opens instead of showing empty boxes where its icons belong. (#509)
-- Every right-click card holds only tiles, in full rows of three apart from the sidebar's row of four sides. Save Picture As, Replace Picture, Paste, Select Text, Unpair and Remove from Group, and on a book Select All, Convert to PDF, Full Screen and Book layout, used to be text rows under the tiles, without the shortcut the tiles show. Related tiles share a row: Copy, Cut and Save; the three turns; Flip Horizontal, Flip Vertical and Replace; Highlight, Underline and Strike; zoom and Book layout beside undo and print. The most used row comes first: on the page and thumbnail cards that is Rotate CCW, Upside Down and Rotate CW, with their Ctrl+L and Ctrl+R shortcuts, and the page card's Page submenu no longer repeats them. Right-clicking the gray area or the empty sidebar offers Paste, Select All and Clear All, then Add Blank Page, Merge PDFs and Stamp Pages, then Fix Page Orientation, Straighten Scanned Pages and Compare PDFs. Delete on a mark, picture or page thumbnail card is the trash button at the right of the card's title, and on the thumbnail card Insert Blank Page After takes the tile beside Duplicate and Extract. The Save menu groups Reduce Size, the exports and Export Table into a tile strip, and the OCR menu is two full rows of tiles with Language last, where Form-aware OCR now lives. A long name wraps inside its tile instead of widening the card, a tile that would still cut its name off shows a short one with the full name on hover, and dropdown lists open on the same surface and border as menus.
-- Right-clicking the toolbar opens a card of tiles in three rows: Small icons, Large icons and Text only; No text, Text beside icons and Text under icons; then Customize toolbar, Hide toolbar and the tool menu placement. The current choices are filled, and the card stays open while you try them.
-- The sidebar's right-click card shows Left, Right, Top and Bottom as a row of four smaller tiles with the current side filled, instead of a Sidebar submenu. Each side has its own shortcut, Ctrl+Alt+Shift with the arrow pointing at that side, in place of Shift+F9 stepping to the next side, and the keyboard map gains a Ctrl+Alt+Shift layer to show them. In a two-page view, Two-page thumbnails is an on/off tile above them. On a card with page or document actions, a small Sidebar label heads this section. Right-clicking blank space on the sidebar rail shows only these sidebar options. A long shortcut on a card tile splits onto two lines instead of widening the tile, so the four sides fit a narrower card.
-- Menus, cards, the theme and language pickers, and the notices at the top of the page keep an even 8px edge. A highlighted row, tile or color sits 8px from every side, and a card tile's highlight fills its whole cell. Menu text, icons and shortcuts are brighter in Dark and Trash Polka, so menus stay easy to read beside a white page, and secondary labels in 98SE are a shade darker. Every theme's menu text now clears WCAG AA contrast, and a filled tile's text stays readable in every theme, including Blood's gradient.
-- Two shortcuts moved so each one matches what it does and what other apps use. Rotate counterclockwise is now Ctrl+L, beside Ctrl+R for clockwise. Convert Scan to Text is now Ctrl+Shift+R, the recognize key in ABBYY FineReader.
-- Bookmark data, Form data and Preflight open a small tile card under their icon in Document tools instead of a dialog.
-- Mark pages on the Redact bar opens a small box under its button instead of a dialog. Find Text to Redact says plainly that it draws redaction boxes over the checked matches.
-- JPEG 2000 images, common in scanned and archival PDFs, are decoded by OpenJPEG, the reference decoder for the format, instead of CoreJ2K. The engine NuGet carries OpenJPEG for Windows x64, Linux x64 and macOS.
-- On the command line, `--redact` removes hidden information by default and fails when a redacted word survives anywhere in the file. Add `--no-sanitize` to skip that step, or `--sanitize` with a list to choose what is removed.
-- On the command line, `--attachments` no longer replaces files already in the output folder. Add `--overwrite` to replace them.
-- With the document split in two, a dialog opens centered on the pane it came from. Large page windows such as Transform, Color Correction, Stamp and Print preview center on the app.
-- Edit paragraph has page arrows like Transform, and its Original checkbox sits with the other options.
-- The sidebar's page box and page count sit on the same line as its Pages title, and the box widens to fit a document's longest page number. On a narrow sidebar they drop to their own line under the title instead of being cut off.
+- KillerPDF needs Windows 10 or later, and older Windows now gets a clear message. (#509)
+- Right-click menus are cards of icon tiles, grouped by task, with Delete as a trash button on the card's title.
+- Right-clicking the toolbar or the sidebar opens a tile card for its options. Moving the sidebar is now Ctrl+Alt+Shift with an arrow key.
+- Menus and cards have even spacing and readable text in every theme.
+- Rotate counterclockwise is now Ctrl+L, and Convert Scan to Text is Ctrl+Shift+R.
+- Bookmark data, Form data, Preflight and Mark pages open a small card instead of a dialog.
+- JPEG 2000 images are decoded by OpenJPEG instead of CoreJ2K.
+- On the command line, `--redact` removes hidden information by default, and `--attachments` no longer overwrites files without `--overwrite`.
+- Dialogs center on the pane they came from in a split view.
 
 ### Added
 
-- Trash Polka, a new theme under 98SE: black with a tattoo-style ink background in your accent color, from eight accents with Blood red as the default. Under a Windows high contrast theme the ink and the tab shade step aside for the system colors.
-- The page, thumbnail, gray-area and picture cards can be customized. The pencil at the top right of the tiles, on the side the drawer opens from, turns on edit mode: the card stays open with an accent border, and a Hidden drawer slides out from its right edge, two tiles across in alphabetical order, scrolling once it fills. On 98SE the drawer has the menu's gray bevel instead of an accent edge. Tiles show an open hand that closes as one is picked up, and the held tile follows the pointer while the others slide aside to show where it will land on the card. The drawer lights up while a tile is held over it, and the tile goes in when you let go. Click a tile to move it across instead. The card keeps its tiles packed in your order, so hiding one slides the rest up. The everyday actions, such as Paste, Select All and Delete, always show. Every card starts as full rows of three, and the drawer starts stocked with spare tiles for the card's other actions, such as the page tools, Fix Page Orientation and Add Blank Page, along with Paste, Raise and Lower on a picture and Compare PDFs on the page. The Reset link at the top of the drawer brings back the starting layout, and the close X beside it, red on hover like a window's, finishes editing and leaves the card open until the next click.
-- A picture that is part of the page gets the same right-click card as a pasted one. Both can be turned, flipped horizontally or vertically, replaced with another image file and color corrected. The first change lifts a picture off the page so it can be moved and edited like a pasted picture, and one Undo puts the page back as it was. Copy Text reads the words in a picture onto the clipboard, Reset Size gives a stretched or squashed picture back its own proportions at the same width, and Color Correction opens the Color and Levels settings for just that picture.
-- Merge opens a Merge files dialog instead of a plain file picker, and so does dropping several PDFs on the window. Drop PDF files or whole folders on it from File Explorer, or use Add files and Add folder, then drag files into the order you want, or use Move up and Move down. A folder adds the PDFs directly inside it, in name order. Dropped files can also be opened separately instead of merged. (#495)
-- A tab can move into another open KillerPDF window, either from its right-click menu, which lists every other window by the document it shows, or by dragging the tab onto that window. A tab can also move to a new window of its own. The tab left in front loads right away, and a window whose last document moves away closes. (#503)
-- Reopen Closed Tab, on a tab's right-click menu and on Ctrl+Shift+T as in web browsers, brings back the last tab you closed, in any KillerPDF window, and each use goes one tab further back. (#502)
-- Restore last session, in About next to the startup options, brings back your open tabs, from every window, with their page and zoom: Always reopens them, Ask offers a Restore bar at launch, and Never forgets them. Tabs load when you first open them, files that were moved or deleted are named once in the status bar, and opening a file directly starts without the old session.
-- Export Document saves a PDF as an EPUB 3 book, and so does `--export` with an `.epub` output on the command line. The text reflows like a real ebook: columns read in order, lines join into paragraphs, words split by a hyphen at a line end are put back together, larger type becomes headings and chapters with a table of contents, running headers, footers and page numbers are left out, and images sit where they appear in the text. A tagged PDF follows its own structure for reading order, headings and paragraphs. (#493)
-- Preflight checks a document that declares PDF/UA-1 against the Matterhorn Protocol, the PDF Association's checklist for ISO 14289-1, and names each failed condition by its Matterhorn ID, such as 06-003 for a missing title, with its page. It used to say only that PDF/UA-1 validation was not available. `--pdfua` checks files and whole folders on the command line and prints a report per file and a summary, in text or with `--json`. The check also flags list, table, table of contents, Ruby and Warichu tags placed where they don't belong. `--pdfua` checks a file that declares PDF/UA-2 against the PDF/UA-2 rules: PDF 2.0, structure namespaces and role mapping, the PDF 2.0 tags such as FENote and Title, no plain H, Note only when mapped onto a PDF 2.0 tag, Ruby, Warichu, list and Caption order, MathML inside Formula, annotations, forms and metadata. Each finding carries its veraPDF PDF/UA-2 rule ID, the report says which rule set ran, and the rules it does not check yet are listed by ID. (#491)
-- Several selected text boxes, shapes or other marks get an Arrange button on their right-click card. It aligns them by their left, center, right, top, middle or bottom edges, spaces them evenly or steps the gaps wider or closer, and gives them the same width, height or size. Fit to text snaps each text box's width, height or both to the text it holds. Images and drawings keep their proportions and are only moved. (#504)
-- Comb fields, the text fields printed as a row of boxes with one character each, can be edited like any other text: select, copy and paste across the cells, and change the font, size, bold, italic, underline, strikethrough and color. Form recognition finds a row of three or more boxes as a comb. (#500) (Thanks @Signum21)
-- Create Signature is now a signature editor, also opened from a saved signature's pencil and from Edit on a placed one. It has threshold for scanned signatures, pen width, edge feathering and ink color.
-- The open and save dialogs have a New folder button, also on Ctrl+Shift+N. The folder is created in the current folder and opened, so a Save As can go straight into it. A name Windows won't accept is explained before anything is created. (#498)
-- `--batch-render` takes `--secrets-stdin`, so an owner password stays out of the process list.
+- Trash Polka, a black theme with tattoo-style ink in your accent color.
+- Customizable right-click cards: rearrange the tiles, or hide them in a drawer.
+- A picture that is part of the page gets the full picture card: turn, flip, replace and color correct it.
+- A Merge files dialog where you add files and folders and drag them into order. (#495)
+- Move a tab to another KillerPDF window by dragging it or from its right-click menu. (#503)
+- Reopen Closed Tab on Ctrl+Shift+T. (#502)
+- Restore last session brings back your open tabs at launch.
+- Export to EPUB, in the app and with `--export`. (#493)
+- PDF/UA-1 and PDF/UA-2 checking in Preflight and with `--pdfua`. (#491)
+- Arrange aligns, spaces and sizes several selected marks. (#504)
+- Comb fields can be edited like any other text, and form recognition finds them. (#500, thanks @Signum21)
+- Create Signature is now a signature editor with threshold, pen width, feathering and ink color.
+- A New folder button in the open and save dialogs, also on Ctrl+Shift+N. (#498)
+- `--batch-render` takes `--secrets-stdin`, so a password stays out of the process list.
 
 ## [1.9.4] - 2026-11-15
 
