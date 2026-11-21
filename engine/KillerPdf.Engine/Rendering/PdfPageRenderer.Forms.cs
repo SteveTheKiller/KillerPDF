@@ -68,7 +68,8 @@ public sealed partial class PdfPageRenderer
             foreach (byte item in _document.DecodeStream(stream, 16 * 1024 * 1024))
                 if (item is not ((byte)' ' or (byte)'\r' or (byte)'\n' or (byte)'\t' or 0)) return true;
         }
-        catch (Exception error) when (error is FormatException or NotSupportedException or InvalidOperationException) { }
+        catch (Exception error) when (error is FormatException or NotSupportedException or InvalidOperationException
+            or KillerPdf.Engine.Filters.PdfFilterException) { }
         return false;
     }
 
