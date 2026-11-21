@@ -81,26 +81,24 @@ internal static class AppDataPaths
     }
 
     // Two portable copies sharing one data folder would otherwise each read, change and write the
-    // file, and the later write would drop the other's change. The mutex is named for the file, so
-    // copies in different folders never wait on each other. A copy that died holding it leaves it
-    // abandoned, which still hands it over.
-    private static IDisposable AcrossProcesses()
+    // file, and the later write would drop the other's change. The lock is an exclusively opened
+    // file beside the settings, so it holds off copies in other Windows sessions and on other
+    // machines sharing the folder, and Windows releases it when a copy dies. A copy that keeps it
+    // for 15 seconds is hung; the write then goes ahead, and it still re-reads the file first.
+    private static IDisposable? AcrossProcesses()
     {
-        byte[] hash = System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(SettingsFile).ToUpperInvariant()));
-        var mutex = new Mutex(false, @"Local\KillerPDF.Settings." + Convert.ToHexString(hash, 0, 16));
-        bool held;
-        try { held = mutex.WaitOne(TimeSpan.FromSeconds(5)); }
-        catch (AbandonedMutexException) { held = true; }
-        return new MutexRelease(mutex, held);
-    }
-
-    private sealed class MutexRelease(Mutex mutex, bool held) : IDisposable
-    {
-        public void Dispose()
+        string path = SettingsFile + ".lock";
+        long deadline = Environment.TickCount64 + 15_000;
+        while (true)
         {
-            if (held) mutex.ReleaseMutex();
-            mutex.Dispose();
+            try
+            {
+                var handle = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                try { File.SetAttributes(path, FileAttributes.Hidden); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                return handle;
+            }
+            catch (IOException) when (Environment.TickCount64 < deadline) { Thread.Sleep(25); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
         }
     }
 

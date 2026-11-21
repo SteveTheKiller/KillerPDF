@@ -70,6 +70,40 @@ public sealed class AppDataPathsTests
     }
 
     [Fact]
+    public void APortableSettingWaitsWhileAnotherCopyHoldsTheSettingsLock()
+    {
+        // The lock is a file beside the settings, so a copy in another Windows session or on
+        // another machine sharing the folder is held off too, which a session-local mutex is not.
+        string root = Path.Combine(Path.GetTempPath(), $"killerpdf-portable-lock-{Guid.NewGuid():N}");
+        string launcher = Path.Combine(root, "KillerPDF-Portable.exe");
+        string? previous = Environment.GetEnvironmentVariable("KILLERPDF_LAUNCHER_PATH");
+        try
+        {
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(launcher, []);
+            Environment.SetEnvironmentVariable("KILLERPDF_LAUNCHER_PATH", launcher);
+            string dataRoot = Path.Combine(root, "KillerPDF-Data");
+            Directory.CreateDirectory(dataRoot);
+            string settingsFile = Path.Combine(dataRoot, "settings.json");
+
+            Task write;
+            using (new FileStream(settingsFile + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+            {
+                write = Task.Run(() => AppDataPaths.SetPortableSetting("Locale", "ja-JP"));
+                Thread.Sleep(400);
+                Assert.False(File.Exists(settingsFile), "The setting was written while another copy held the lock.");
+            }
+            Assert.True(write.Wait(TimeSpan.FromSeconds(10)));
+            Assert.Equal("ja-JP", AppDataPaths.GetPortableSetting("Locale"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("KILLERPDF_LAUNCHER_PATH", previous);
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void PortableSettingsAreStoredBesideTheLauncher()
     {
         string root = Path.Combine(Path.GetTempPath(), $"killerpdf-portable-data-{Guid.NewGuid():N}");
