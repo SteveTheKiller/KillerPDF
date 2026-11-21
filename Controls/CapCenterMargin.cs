@@ -39,7 +39,8 @@ namespace KillerFamily.Layout
 
             double raw = Offset(family, size);
             // A lifted label snaps to whole pixels, so lift it the whole way: rounding down left the capitals a pixel low.
-            double shift = _sign < 0 ? -Math.Ceiling(raw) : raw;
+            // The measured offset carries float noise: Killer Sans UI at 12px reads 1.0002, and a bare Ceiling made that 2 and lifted every label a pixel too high.
+            double shift = _sign < 0 ? -Math.Ceiling(raw - 0.05) : raw;
             return new Thickness(margin.Left, margin.Top + shift, margin.Right, margin.Bottom - shift);
         }
 

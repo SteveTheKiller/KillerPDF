@@ -34,7 +34,9 @@ namespace KillerPDF.Controls
             Theme.Delirium, Theme.Mourning
         ];
 
-        private const double AccentStripWidth = 39;
+        // 7 gap from the divider, the 26px pill and its 2px right margin, with no slack, so the
+        // pill's right edge lands 8px inside the card (the panel's 5 plus the 1px border).
+        private const double AccentStripWidth = 35;
         private const double AccentSlideMs = 170;
 
         private readonly Window _window;
@@ -94,6 +96,9 @@ namespace KillerPDF.Controls
         private void Build()
         {
             _menu.Items.Clear();
+            // The panel margin below carries the whole inset, so the menu adds none of its own. A host
+            // on the default ContextMenu template would otherwise stack its 7px padding on top.
+            _menu.Padding = new Thickness(0);
             _accentHost = null;
             _accentDots.Clear();
             // Every hover row and accent pill sits 8px in from the card's outer edge (family rule):

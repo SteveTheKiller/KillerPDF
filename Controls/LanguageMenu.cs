@@ -70,6 +70,7 @@ namespace KillerPDF.Controls
         private void Build()
         {
             _menu.Items.Clear();
+            _menu.Padding = new Thickness(0);   // the columns' margin is the whole 8px edge, as in the theme menu
             var current = LocaleManager.Current;
 
             // Two columns, so the last row stays on screen in a short window. The left column fills
@@ -82,7 +83,8 @@ namespace KillerPDF.Controls
             var divider = new Border
             {
                 Width = 1,
-                Margin = new Thickness(6, 8, 7, 8),
+                // 8px from the line to the hover box on both sides: the right column's rows reach 8px back past their column.
+                Margin = new Thickness(6, 8, 16, 8),
                 Opacity = 0.18,
                 IsHitTestVisible = false,
                 OpacityMask = new LinearGradientBrush
