@@ -99,6 +99,9 @@ namespace KillerPDF.Controls
                 PaneBevelInnerDark.SetResourceReference(Border.BorderThicknessProperty, "PaneBevel2LightThickness");
                 PaneBevelInnerLight.SetResourceReference(Border.BorderThicknessProperty, "PaneBevel2DarkThickness");
             }
+            // On the lighter #d4d4d4 document face the kit's second #dfdfdf highlight is eleven levels off the
+            // face and read as a smudge beside the white one, so the document pane keeps the single white edge.
+            if (retroTheme) PaneBevelInnerDark.BorderThickness = new Thickness(0);
 
             // Which tabs fit at this width, before anything below asks which is on an edge.
             ApplyTabWindow();

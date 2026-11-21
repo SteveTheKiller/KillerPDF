@@ -8,6 +8,24 @@
     <!-- The live document pane and its active tab: a step lighter than the #c0c0c0 window face, with inactive tabs and
          an unfocused split pane a step darker (#9f9f9f, TabInactiveBrush). Steve, 2026-11-20. -->
     <SolidColorBrush x:Key="RetroDocumentFaceBrush" Color="#d4d4d4" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <!-- Document tabs above the page draw the pane's frame: #808080 outline outside, white one pixel in (PdfViewer.xaml).
+         Inactive tabs end a row above the band's gray seam, and their padding gives that row back. Steve, 2026-11-20. -->
+    <Thickness x:Key="RetroTabActiveBevelLightMargin">-7,-3,-4,-4</Thickness>
+    <Thickness x:Key="RetroTabInactiveMargin">0,5,0,1</Thickness>
+    <Thickness x:Key="RetroTabInactivePadding">8,6,5,1</Thickness>
+    <!-- Left edges: a tab after another keeps its white on its first column, because the neighbor's two gray right-edge
+         columns already sit beside it. Only the first tab, which stands on the pane's own left edge, puts its white one
+         pixel in so its gray and white line up with the pane's. -->
+    <Thickness x:Key="RetroTabInactiveBevelLightMargin">-8,-5,-5,-1</Thickness>
+    <Thickness x:Key="RetroTabInactiveFirstBevelLightMargin">-7,-5,-5,-1</Thickness>
+    <!-- An inactive first tab starts a pixel in from the pane's left edge, so only the active tab stands on that edge
+         (Steve, 2026-11-20). -->
+    <Thickness x:Key="RetroTabInactiveFirstMargin">1,5,0,1</Thickness>
+    <!-- The active tab reaches 2px left over its neighbor (TabActiveMargin), so at full width it needs 262 to still meet
+         its slot's right edge; capped at 260 it centered and left a 1px column of window face beside its right edge. -->
+    <sys:Double x:Key="RetroTabActiveMaxWidth">262</sys:Double>
+    <Thickness x:Key="RetroTabInactiveBevelDarkMargin">-8,-6,-5,-1</Thickness>
+    <Thickness x:Key="RetroTabInactiveOutlineMargin">-8,-6,-6,-1</Thickness>
     <SolidColorBrush x:Key="BgRecentPanel" Color="#9f9f9f" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
     <CornerRadius x:Key="RadWindow" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0</CornerRadius>
     <CornerRadius x:Key="RadCard" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0</CornerRadius>

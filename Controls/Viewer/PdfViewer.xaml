@@ -402,6 +402,44 @@
                                             </MultiDataTrigger.Conditions>
                                             <Setter TargetName="tabBd" Property="Background" Value="{DynamicResource RetroDocumentFaceBrush}"/>
                                         </MultiDataTrigger>
+                                        <!-- 98SE above the page: every tab edge is the pane's own frame, #808080
+                                             outside and white one pixel in, so a tab's left edge lines up with
+                                             the pane's left edge below it. The white used to sit on top of the
+                                             gray, which hid the gray on the tabs and drew the active tab's top
+                                             as white, a gap, then gray (Steve, 2026-11-20). Inactive tabs also
+                                             stop a row short so the band's gray seam runs beneath them; the
+                                             padding gives that row back so the titles do not move. -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding UseRetroTabChrome}" Value="True"/>
+                                                <Condition Binding="{Binding IsActive}" Value="True"/>
+                                                <Condition Binding="{Binding RetroBottomEdges, ElementName=tabBd}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="tabBevelLight" Property="Margin" Value="{DynamicResource RetroTabActiveBevelLightMargin}"/>
+                                            <Setter TargetName="tabBd" Property="MaxWidth" Value="{DynamicResource RetroTabActiveMaxWidth}"/>
+                                        </MultiDataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding UseRetroTabChrome}" Value="True"/>
+                                                <Condition Binding="{Binding IsActive}" Value="False"/>
+                                                <Condition Binding="{Binding RetroBottomEdges, ElementName=tabBd}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="tabBd" Property="Margin" Value="{DynamicResource RetroTabInactiveMargin}"/>
+                                            <Setter TargetName="tabBd" Property="Padding" Value="{DynamicResource RetroTabInactivePadding}"/>
+                                            <Setter TargetName="tabBevelLight" Property="Margin" Value="{DynamicResource RetroTabInactiveBevelLightMargin}"/>
+                                            <Setter TargetName="tabBevelDark" Property="Margin" Value="{DynamicResource RetroTabInactiveBevelDarkMargin}"/>
+                                            <Setter TargetName="tabInactiveRetroOuterOutline" Property="Margin" Value="{DynamicResource RetroTabInactiveOutlineMargin}"/>
+                                        </MultiDataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding UseRetroTabChrome}" Value="True"/>
+                                                <Condition Binding="{Binding IsActive}" Value="False"/>
+                                                <Condition Binding="{Binding IsFirst}" Value="True"/>
+                                                <Condition Binding="{Binding RetroBottomEdges, ElementName=tabBd}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="tabBevelLight" Property="Margin" Value="{DynamicResource RetroTabInactiveFirstBevelLightMargin}"/>
+                                            <Setter TargetName="tabBd" Property="Margin" Value="{DynamicResource RetroTabInactiveFirstMargin}"/>
+                                        </MultiDataTrigger>
                                         <!-- 98SE below the page: RetroTabBorder draws the edges by Win98's
                                              top-left light, so the flipped top-strip bevels stand down.
                                              Last, so it wins over the retro triggers above. -->
