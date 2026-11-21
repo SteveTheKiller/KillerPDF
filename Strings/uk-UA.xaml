@@ -830,9 +830,6 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Sig_Clear">Очистити</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Зберегти підпис</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Налаштування підпису</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Чутливість</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Світліше</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Темніше</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Редагувати підпис</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Поріг</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Розмиття країв</sys:String>
@@ -900,9 +897,6 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Sig_Signatures">Підписи</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Ініціали</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Перо</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Тонке</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Середнє</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Товсте</sys:String>
     <!-- ── Digital Signature dialog ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">Скріплює {0} сертифікатом і зберігає підписану копію.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Сертифікат</sys:String>

@@ -830,9 +830,6 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Sig_Clear">Törlés</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Aláírás mentése</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Aláírás igazítása</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Érzékenység</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Világosabb</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Sötétebb</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Aláírás szerkesztése</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Küszöb</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Lágy szél</sys:String>
@@ -900,9 +897,6 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Sig_Signatures">Aláírások</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Kézjegy</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Toll</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Vékony</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Közepes</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Vastag</sys:String>
     <!-- ── Digital Signature dialog ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">Lezárja a(z) {0} fájlt egy tanúsítvánnyal, és aláírt másolatot ment.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Tanúsítvány</sys:String>

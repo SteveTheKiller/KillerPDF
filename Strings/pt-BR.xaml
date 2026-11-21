@@ -830,9 +830,6 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Sig_Clear">Limpar</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Salvar assinatura</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Ajustar assinatura</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Sensibilidade</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Mais claro</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Mais escuro</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Editar assinatura</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Limiar</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Suavização</sys:String>
@@ -900,9 +897,6 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Sig_Signatures">Assinaturas</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Iniciais</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Caneta</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Fina</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Média</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Grossa</sys:String>
     <!-- ── Digital Signature dialog ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">Sela {0} com um certificado e salva uma cópia assinada.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Certificado</sys:String>

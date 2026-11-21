@@ -830,9 +830,6 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Sig_Clear">Azzera</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Salva firma</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Regola firma</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Sensibilità</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Più chiaro</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Più scuro</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Modifica firma</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Soglia</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Sfumatura</sys:String>
@@ -900,9 +897,6 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Sig_Signatures">Firme</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Iniziali</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Penna</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Sottile</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Media</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Spessa</sys:String>
     <!-- ── Digital Signature dialog ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">Sigilla {0} con un certificato e salva una copia firmata.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Certificato</sys:String>

@@ -743,9 +743,6 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Sig_Clear">Löschen</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Signatur speichern</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Signatur anpassen</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Empfindlichkeit</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Heller</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Dunkler</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Unterschrift bearbeiten</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Schwellenwert</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Weiche Kante</sys:String>
@@ -812,9 +809,6 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Sig_Signatures">Signaturen</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Initialen</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Stift</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Dünn</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Mittel</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Dick</sys:String>
     <!-- ── Digital Signature dialog ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">Versiegelt {0} mit einem Zertifikat und speichert eine signierte Kopie.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Zertifikat</sys:String>

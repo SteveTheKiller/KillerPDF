@@ -821,9 +821,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Sig_Clear">Vymazat</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Uložit podpis</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Upravit podpis</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Citlivost</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Světlejší</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Tmavší</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Upravit podpis</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Práh</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Změkčení okrajů</sys:String>
@@ -890,9 +887,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Sig_Signatures">Podpisy</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Iniciály</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Pero</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Tenké</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Střední</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Silné</sys:String>
     <!-- ── Digital Signature dialog ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">Zapečetí {0} certifikátem a uloží podepsanou kopii.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Certifikát</sys:String>

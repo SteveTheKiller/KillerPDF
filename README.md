@@ -15,24 +15,24 @@ KillerPDF is a free, open-source PDF editor for Windows. Read, annotate, edit, o
 
 ## What you can do
 
-- Read documents in tabs or split panes, search text, follow bookmarks, and inspect comments, attachments, layers and signatures. Dock the sidebar on any side of the window and put the tabs at the top or the bottom.
+- Read documents in tabs or split panes, search text, follow bookmarks, and inspect comments, attachments, layers and signatures. Dock the sidebar on any side of the window, put the tabs at the top or the bottom, drag a tab into another KillerPDF window, and bring back your open tabs at launch.
 - Read EPUB books and DjVu scans without converting them first, and turn either into a PDF when you want one.
 - Add text, drawings, highlights, shapes, stamps, images, measurements and reusable signatures. Edit a page's own text line by line or by paragraph, or change matching text everywhere with Find and Replace. Select, move and resize the pictures in a PDF, or lift part of a scan out with Extract Image.
-- Merge, split, extract, reorder, rotate, crop, resize and straighten pages. Compare two documents side by side with the changes marked.
+- Merge files in the order you choose, split, extract, reorder, rotate, crop, resize and straighten pages. Compare two documents side by side with the changes marked.
 - Run OCR on scans, review the recognized words, and save searchable copies or convert a scan into real text.
-- Export to Word, Excel, PowerPoint, HTML, Markdown, text, JSON or page images, and review detected tables before they go to XLSX or CSV. Convert Word and Excel files to PDF.
+- Export to Word, Excel, PowerPoint, HTML, Markdown, text, JSON, EPUB or page images, and review detected tables before they go to XLSX or CSV. Convert Word and Excel files to PDF.
 - Create and fill forms, recognize fields, flatten forms, and exchange form data and comments through FDF or XFDF.
 - Redact by area, text search or sensitive-data pattern, verify the result, and save a separate redacted copy.
 - Protect copies with passwords or certificate recipients. Sign PDFs and inspect signature integrity, certificate chains, timestamps and later changes.
-- Repeat work with guided tasks, macros, watched folders, data merge and the command line.
+- Check documents with Preflight, including PDF/UA-1 and PDF/UA-2 accessibility checks. Repeat work with guided tasks, macros, watched folders, data merge and the command line.
 - View pages color-managed on monitors with a color profile, and proof a document against a printer profile.
-- Choose from 14 themes and 20 interface languages, customize shortcuts, and scale the whole interface.
+- Choose from 14 themes and 20 interface languages, customize shortcuts and right-click cards, and scale the whole interface.
 
 Source-text and paragraph editing work on supported layouts and fonts; scanned pages need OCR first. Exported Office files can change layout, so review them before sharing. Signature reports tell failed checks apart from evidence that is unavailable or has not been checked.
 
 ## Get KillerPDF
 
-Downloads and the [user guide](https://killerpdf.net/help) are at [killerpdf.net](https://killerpdf.net). Install it, run the portable package, or get it from the Microsoft Store, Chocolatey or WinGet. The [release assets](https://github.com/SteveTheKiller/KillerPDF/releases) include every package and the source archives. OCR language models download separately from inside the app.
+Downloads and the [user guide](https://killerpdf.net/help) are at [killerpdf.net](https://killerpdf.net). Install it, run the portable package, or get it from the Microsoft Store, Chocolatey or WinGet. The [release assets](https://github.com/SteveTheKiller/KillerPDF/releases) include every package and the source archives. KillerPDF needs Windows 10 or later. OCR language models download separately from inside the app.
 
 ## Build and test
 

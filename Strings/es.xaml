@@ -743,9 +743,6 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Sig_Clear">Borrar</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Guardar firma</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Ajustar firma</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Sensibilidad</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Más claro</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Más oscuro</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Editar firma</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Umbral</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Difuminado</sys:String>
@@ -812,9 +809,6 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Sig_Signatures">Firmas</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Iniciales</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Pluma</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Fina</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Media</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Gruesa</sys:String>
     <!-- ── Diálogo de firma digital ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">Sella {0} con un certificado y guarda una copia firmada.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Certificado</sys:String>

@@ -830,9 +830,6 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Sig_Clear">Очистить</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Сохранить подпись</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Настройка подписи</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Чувствительность</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Светлее</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Темнее</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Изменить подпись</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Порог</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Растушёвка</sys:String>
@@ -900,9 +897,6 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Sig_Signatures">Подписи</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Инициалы</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Ручка</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Тонкий</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Средний</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Толстый</sys:String>
     <!-- ── Digital Signature dialog ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">Заверить {0} печатью сертификата и сохранить подписанную копию.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Сертификат</sys:String>

@@ -743,9 +743,6 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Sig_Clear">সাফ করুন</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">স্বাক্ষর সংরক্ষণ করুন</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">স্বাক্ষর সমন্বয় করুন</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">সংবেদনশীলতা</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">হালকা</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">গাঢ়</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">স্বাক্ষর সম্পাদনা</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">থ্রেশহোল্ড</sys:String>
     <sys:String x:Key="Str_Sig_Feather">নরম প্রান্ত</sys:String>
@@ -812,9 +809,6 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Sig_Signatures">স্বাক্ষর</sys:String>
     <sys:String x:Key="Str_Sig_Initials">আদ্যক্ষর</sys:String>
     <sys:String x:Key="Str_Sig_Pen">কলম</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">পাতলা</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">মাঝারি</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">মোটা</sys:String>
     <!-- ── ডিজিটাল স্বাক্ষর ডায়ালগ ─────────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">একটি সার্টিফিকেট দিয়ে {0} সিল করে এবং একটি স্বাক্ষরিত কপি সংরক্ষণ করে।</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">সার্টিফিকেট</sys:String>

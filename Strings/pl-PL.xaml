@@ -811,9 +811,6 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Sig_Clear">Wyczyść</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Zapisz podpis</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Dostosuj podpis</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Czułość</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Jaśniej</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Ciemniej</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Edytuj podpis</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Próg</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Zmiękczenie krawędzi</sys:String>
@@ -881,9 +878,6 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Sig_Signatures">Podpisy</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Inicjały</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Pióro</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Cienki</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Średni</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Gruby</sys:String>
     <!-- ── Digital Signature dialog ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">Pieczętuje {0} z certyfikatem i zapisuje podpisaną kopię.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Certyfikat</sys:String>

@@ -769,9 +769,6 @@
     <sys:String x:Key="Str_Sig_Clear">Počisti</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Shrani podpis</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Prilagodi podpis</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Občutljivost</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Svetlejše</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Temnejše</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Uredi podpis</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Prag</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Mehčanje robov</sys:String>
@@ -834,9 +831,6 @@
     <sys:String x:Key="Str_Sig_Signatures">Podpisi</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Začetnice</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Pero</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Tanko</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Srednje</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Debelo</sys:String>
     <sys:String x:Key="Str_Sign_Desc">Zapečati {0} s potrdilom in shrani podpisano kopijo.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Potrdilo</sys:String>
     <sys:String x:Key="Str_Sign_FromFile">Iz datoteke (.pfx / .p12)</sys:String>

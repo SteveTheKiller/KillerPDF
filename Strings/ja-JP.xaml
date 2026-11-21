@@ -830,9 +830,6 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Sig_Clear">クリア</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">署名を保存</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">署名を調整</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">感度</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">薄く</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">濃く</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">署名を編集</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">しきい値</sys:String>
     <sys:String x:Key="Str_Sig_Feather">ぼかし</sys:String>
@@ -900,9 +897,6 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Sig_Signatures">署名</sys:String>
     <sys:String x:Key="Str_Sig_Initials">イニシャル</sys:String>
     <sys:String x:Key="Str_Sig_Pen">ペン</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">細</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">中</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">太</sys:String>
     <!-- ── デジタル署名ダイアログ ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">{0} を証明書で封印し、署名済みコピーを保存します。</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">証明書</sys:String>

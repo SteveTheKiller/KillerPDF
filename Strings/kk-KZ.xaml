@@ -749,9 +749,6 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Sig_Clear">Тазалау</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Қолтаңбаны сақтау</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Қолтаңбаны реттеу</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Сезімталдық</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Ашығырақ</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Қоюырақ</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Қолтаңбаны өңдеу</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Шек</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Жиекті жұмсарту</sys:String>
@@ -817,9 +814,6 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Sig_Signatures">Қолтаңбалар</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Инициалдар</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Қалам</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Жіңішке</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Орташа</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Қалың</sys:String>
     <!-- ── Digital Signature dialog ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">{0} құжатын сертификатпен мөрлейді және қол қойылған көшірмені сақтайды.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Сертификат</sys:String>

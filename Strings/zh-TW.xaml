@@ -745,9 +745,6 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Sig_Clear">清除</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">儲存簽名</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">調整簽名</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">靈敏度</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">較淺</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">較深</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">編輯簽名</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">臨界值</sys:String>
     <sys:String x:Key="Str_Sig_Feather">羽化</sys:String>
@@ -814,9 +811,6 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Sig_Signatures">簽名</sys:String>
     <sys:String x:Key="Str_Sig_Initials">姓名縮寫</sys:String>
     <sys:String x:Key="Str_Sig_Pen">畫筆</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">細</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">中</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">粗</sys:String>
     <!-- ── 數位簽章對話框 ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">使用憑證密封 {0} 並儲存簽署副本。</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">憑證</sys:String>

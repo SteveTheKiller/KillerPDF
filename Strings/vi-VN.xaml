@@ -830,9 +830,6 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Sig_Clear">Xóa</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Lưu chữ ký</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Điều chỉnh chữ ký</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Độ nhạy</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Nhạt hơn</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Đậm hơn</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Sửa chữ ký</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Ngưỡng</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Làm mềm viền</sys:String>
@@ -900,9 +897,6 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Sig_Signatures">Chữ ký</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Tên viết tắt</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Bút</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Mỏng</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Vừa</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Đậm</sys:String>
     <!-- ── Hộp thoại Chữ ký số ────────────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">Đóng dấu {0} bằng chứng chỉ và lưu bản đã ký.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Chứng chỉ</sys:String>

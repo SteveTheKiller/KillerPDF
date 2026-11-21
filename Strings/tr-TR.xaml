@@ -743,9 +743,6 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Sig_Clear">Temizle</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">İmzayı Kaydet</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">İmzayı Ayarla</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Hassasiyet</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Daha açık</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Daha koyu</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">İmzayı düzenle</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Eşik</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Kenar yumuşatma</sys:String>
@@ -812,9 +809,6 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Sig_Signatures">İmzalar</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Paraflar</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Kalem</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">İnce</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Orta</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Kalın</sys:String>
     <!-- ── Dijital İmza iletişim kutusu ───────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">{0} dosyasını bir sertifikayla mühürler ve imzalı bir kopya kaydeder.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Sertifika</sys:String>

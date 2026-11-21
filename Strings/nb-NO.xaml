@@ -830,9 +830,6 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Sig_Clear">Tøm</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">Lagre signatur</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">Juster signatur</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">Følsomhet</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">Lysere</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">Mørkere</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">Rediger signatur</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">Terskel</sys:String>
     <sys:String x:Key="Str_Sig_Feather">Myk kant</sys:String>
@@ -900,9 +897,6 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Sig_Signatures">Signaturer</sys:String>
     <sys:String x:Key="Str_Sig_Initials">Initialer</sys:String>
     <sys:String x:Key="Str_Sig_Pen">Penn</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">Tynn</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">Middels</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">Tykk</sys:String>
     <!-- ── Digital Signature dialog ───────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">Forsegler {0} med et sertifikat og lagrer en signert kopi.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Sertifikat</sys:String>

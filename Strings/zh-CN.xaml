@@ -743,9 +743,6 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Sig_Clear">清除</sys:String>
     <sys:String x:Key="Str_Sig_SaveSig">保存签名</sys:String>
     <sys:String x:Key="Str_Sig_AdjustImage">调整签名</sys:String>
-    <sys:String x:Key="Str_Sig_Sensitivity">灵敏度</sys:String>
-    <sys:String x:Key="Str_Sig_Lighter">较浅</sys:String>
-    <sys:String x:Key="Str_Sig_Darker">较深</sys:String>
     <sys:String x:Key="Str_Sig_EditTitle">编辑签名</sys:String>
     <sys:String x:Key="Str_Sig_Threshold">阈值</sys:String>
     <sys:String x:Key="Str_Sig_Feather">羽化</sys:String>
@@ -812,9 +809,6 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Sig_Signatures">签名</sys:String>
     <sys:String x:Key="Str_Sig_Initials">姓名缩写</sys:String>
     <sys:String x:Key="Str_Sig_Pen">画笔</sys:String>
-    <sys:String x:Key="Str_Sig_Thin">细</sys:String>
-    <sys:String x:Key="Str_Sig_Medium">中</sys:String>
-    <sys:String x:Key="Str_Sig_Thick">粗</sys:String>
     <!-- ── 数字签名对话框 ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Sign_Desc">使用证书密封 {0} 并保存签名副本。</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">证书</sys:String>
