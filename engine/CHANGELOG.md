@@ -4,7 +4,7 @@ All notable changes to The KillerPDF.Engine are documented here. Application cha
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.5] - Unreleased
+## [1.9.5] - 2026-11-20
 
 1.9.5 moves the engine to MPL 2.0, decodes JPEG 2000 with OpenJPEG, adds PDF/UA validation and EPUB export, and hardens redaction checks, rendering and damaged-file recovery. The [developer docs](docs/) carry the details.
 
