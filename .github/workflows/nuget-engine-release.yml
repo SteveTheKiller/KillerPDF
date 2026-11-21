@@ -42,6 +42,10 @@ jobs:
         run: |
           $version = $env:REQUESTED_VERSION
           if ($env:RELEASE_TAG) { $version = $env:RELEASE_TAG -replace '^v', '' }
+          # A four-part version (1.9.5.1) is a README-only repack: the engine code of the x.y.z release
+          # tag, with the package README from main and the fourth number on the package only.
+          $repack = $null
+          if (-not $env:RELEASE_TAG -and $version -match '^(\d+\.\d+\.\d+)\.\d+$') { $repack = $version; $version = $Matches[1] }
           if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Expected a stable x.y.z version.' }
           $tag = "v$version"
           $release = gh release view $tag --json isDraft,isPrerelease | ConvertFrom-Json
@@ -64,6 +68,14 @@ jobs:
           if ($app.SelectSingleNode('/Project/PropertyGroup/Version').InnerText -ne $version -or
               $engine.SelectSingleNode('/Project/PropertyGroup/Version').InnerText -ne $version) {
             throw 'App, engine, and release versions must match.'
+          }
+          if ($repack) {
+            git checkout origin/main -- engine/README.md
+            if ($LASTEXITCODE -ne 0) { throw 'README checkout failed.' }
+            foreach ($project in 'KillerPDF.csproj', 'engine/KillerPdf.Engine/KillerPdf.Engine.csproj') {
+              (Get-Content -Raw $project).Replace("<Version>$version</Version>", "<Version>$repack</Version>") | Set-Content -NoNewline $project
+            }
+            $version = $repack
           }
           "version=$version" >> $env:GITHUB_OUTPUT
 
