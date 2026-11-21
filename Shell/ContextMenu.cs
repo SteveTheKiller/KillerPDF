@@ -904,7 +904,11 @@ namespace KillerPDF.Shell
                     App.SetSetting("TwoPageThumbnails", paired ? "0" : "1");
                     ApplyPageThumbnailLayout();
                 }, false, !_sidebarStripLayout) { Checked = paired };
-                menu.Items.Add(CardSlot(TileGroups(menu, new[] { toggle }), new Thickness(0)));
+                // Book layout sits beside it, the pair centered on the card (Steve 2026-11-20).
+                var book = new CardTile("", Loc("Str_View_BookMode"), "B", ToggleBookMode, false, true) { Checked = Controls.PdfViewer.BookMode };
+                var pair = QuickStrip(menu, 2, toggle, book);
+                pair.HorizontalAlignment = HorizontalAlignment.Center;
+                menu.Items.Add(CardSlot(pair, new Thickness(0)));
             }
             SidebarSide[] order = [SidebarSide.Left, SidebarSide.Right, SidebarSide.Top, SidebarSide.Bottom];
             var sides = order.Select(side => new CardTile(side.TileGlyph(), Loc(side.StringKey()),
