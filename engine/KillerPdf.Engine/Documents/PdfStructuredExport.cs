@@ -544,12 +544,13 @@ public static partial class PdfStructuredExport
         PdfStructuredExportFontSubstitutions? fontSubstitutions)
     {
         output.Append("<p>");
-        string runText = string.Concat(line.Runs.Select(run => run.Text));
+        string runText = string.Concat(line.RunTexts);
         if (line.Runs.Count == 0 || runText != line.Text)
             output.Append(WebUtility.HtmlEncode(line.Text));
         else
-            foreach (PdfExtractedTextRun run in line.Runs)
+            for (int index = 0; index < line.Runs.Count; index++)
             {
+                PdfExtractedTextRun run = line.Runs[index];
                 string font = SafeCssFontName(fontSubstitutions?.Resolve(run.FontName, "sans-serif")
                     ?? (string.IsNullOrWhiteSpace(run.FontName) ? "sans-serif" : run.FontName));
                 double size = double.IsFinite(run.PointSize) && run.PointSize > 0
@@ -559,7 +560,7 @@ public static partial class PdfStructuredExport
                     .Append("&quot;;font-size:")
                     .Append(size.ToString("R", CultureInfo.InvariantCulture))
                     .Append("pt\">")
-                    .Append(WebUtility.HtmlEncode(run.Text))
+                    .Append(WebUtility.HtmlEncode(line.RunTexts[index]))
                     .Append("</span>");
             }
         output.Append("</p>");
@@ -917,7 +918,7 @@ public static partial class PdfStructuredExport
             AppendPresentationTable(shapes, id++, table, page.Content.Height, layout, fontSubstitutions);
         foreach (PdfExtractedLine line in OfficeLines(page.Content, tables))
             AppendPresentationText(shapes, id++, line.Text, line.BoundingBox,
-                page.Content.Height, layout, line.Runs, fontSubstitutions);
+                page.Content.Height, layout, line.Runs, line.RunTexts, fontSubstitutions);
         foreach (PdfExtractedImage image in page.Content.Images)
         {
             var bitmap = RenderOfficeImage(imageRenderer, page.Content, image, cancellationToken);
@@ -931,7 +932,7 @@ public static partial class PdfStructuredExport
                 AppendPresentationImage(shapes, id++, image.BoundingBox, page.Content.Height, layout);
             }
             else AppendPresentationText(shapes, id++, "[Image: " + (image.ResourceName ?? "inline") + "]",
-                image.BoundingBox, page.Content.Height, layout, null, fontSubstitutions);
+                image.BoundingBox, page.Content.Height, layout, null, null, fontSubstitutions);
         }
         WriteEntry(archive, $"ppt/slides/slide{number}.xml",
             "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
@@ -943,7 +944,7 @@ public static partial class PdfStructuredExport
 
     private static void AppendPresentationText(StringBuilder output, int id, string text,
         PdfContentBounds bounds, double pageHeight, PresentationPageLayout layout,
-        IReadOnlyList<PdfExtractedTextRun>? runs,
+        IReadOnlyList<PdfExtractedTextRun>? runs, IReadOnlyList<string>? runTexts,
         PdfStructuredExportFontSubstitutions? fontSubstitutions)
     {
         long x = layout.OffsetX + (long)Math.Round(bounds.Left * layout.EmuPerPoint);
@@ -957,11 +958,11 @@ public static partial class PdfStructuredExport
             .Append(x).Append("\" y=\"").Append(y).Append("\"/><a:ext cx=\"")
             .Append(width).Append("\" cy=\"").Append(height)
             .Append("\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap=\"none\" lIns=\"0\" rIns=\"0\" tIns=\"0\" bIns=\"0\"/><a:lstStyle/><a:p>");
-        string runText = runs is null ? string.Empty : string.Concat(runs.Select(run => run.Text));
-        if (runs is null || runs.Count == 0 || runText != text)
+        string runText = runTexts is null ? string.Empty : string.Concat(runTexts);
+        if (runs is null || runTexts is null || runs.Count == 0 || runText != text)
             AppendRun(text, runs is { Count: > 0 } ? runs[0] : null);
         else
-            foreach (PdfExtractedTextRun run in runs) AppendRun(run.Text, run);
+            for (int index = 0; index < runs.Count; index++) AppendRun(runTexts[index], runs[index]);
         output.Append("<a:endParaRPr lang=\"en-US\"/></a:p></p:txBody></p:sp>");
 
         void AppendRun(string value, PdfExtractedTextRun? run)
