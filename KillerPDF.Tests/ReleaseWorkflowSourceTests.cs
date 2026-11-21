@@ -44,7 +44,8 @@ namespace KillerPDF.Tests
             Assert.DoesNotContain("git push", beforeStop, StringComparison.Ordinal);
             Assert.DoesNotContain("merge-upstream", beforeStop, StringComparison.Ordinal);
             Assert.DoesNotContain("gh release create", beforeStop, StringComparison.Ordinal);
-            foreach (string check in new[] { "git ls-remote --tags origin", "KillerPDF.Tests.csproj", "-PreflightOnly" })
+            // The unit tests run from the local test.ps1, not from release.ps1 (eb386f6).
+            foreach (string check in new[] { "git ls-remote --tags origin", "-PreflightOnly" })
                 Assert.Contains(check, beforeStop, StringComparison.Ordinal);
         }
 
