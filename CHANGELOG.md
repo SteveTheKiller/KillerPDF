@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.6] - Unreleased
 
+### Fixed
+
+- On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. Book layout sits beside it, and the pair is centered.
+
 ## [1.9.5] - 2026-11-20
 
 1.9.5 brings Trash Polka, a black theme with tattoo-style ink in your accent color, and right-click cards you can customize, along with a Merge files dialog, moving tabs between windows, session restore, EPUB export, PDF/UA validation and a round of security fixes.
