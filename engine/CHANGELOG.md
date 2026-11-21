@@ -27,6 +27,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A simple font with an embedded CFF (Type1C) program and no /Encoding maps its codes through the CFF program's own Encoding table instead of StandardEncoding, so TeX math symbols no longer draw as digits. (#510)
 - Page import accepts an /Indexed lookup longer than its palette and ignores the extra bytes, validates PDF dates after decoding them as text strings (UTF-16BE or UTF-8 with a BOM), and keeps every imported /EmbeddedFiles entry whose name-tree key repeats, giving each later one its own key. (#455)
 - Attachment reading, editing, redaction, optimization, comparison and annotation editing accept an /EmbeddedFiles name tree whose keys repeat instead of throwing. `PdfAttachmentReader.ExtractAll` numbers repeated destination names as `Name (2).ext` and onward. (#455)
+- `PdfExtractedTextRun.Text` and `PdfExtractedLine.Text` add a space where a word gap separates two glyphs on the baseline with no space glyph, as TeX `TJ` offsets and `Td`-placed table cells do. Structured export keeps each run's style across the added space. (#507, thanks @jayhemnani9910)
 
 ### Changed
 
