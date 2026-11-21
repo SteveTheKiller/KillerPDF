@@ -219,7 +219,12 @@
                     <Grid>
                     <Border x:Name="borderRing" IsHitTestVisible="False" CornerRadius="{Binding CornerRadius, ElementName=border}" BorderThickness="{Binding BorderThickness, ElementName=border}" BorderBrush="{Binding Background, ElementName=border}" Margin="{Binding Margin, ElementName=border}" Visibility="{Binding Visibility, ElementName=border}" Opacity="{Binding Opacity, ElementName=border}"/><Border x:Name="border" Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{DynamicResource ControlCornerRadius}" Padding="{TemplateBinding Padding}">
+                            CornerRadius="{DynamicResource ControlCornerRadius}"/>
+                    <!-- Grain over the hover fill, under the content, as on menu rows and card tiles. -->
+                    <Border x:Name="SurfaceGrain" IsHitTestVisible="False" Visibility="Collapsed"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                    <Border BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <!-- Bar-button edge: a chip on a Win98 bar is FLAT at rest, raises a 1px
@@ -236,6 +241,7 @@
                              dark panel and the button reads as dead. -->
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource ToolHoverFaceBrush}"/>
+                            <Setter TargetName="SurfaceGrain" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="tbLight" Property="BorderThickness" Value="{DynamicResource ToolHoverBevelLightThickness}"/>
                             <Setter TargetName="tbDark"  Property="BorderThickness" Value="{DynamicResource ToolHoverBevelDarkThickness}"/>
                         </Trigger>
@@ -500,13 +506,16 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CalendarDayButton">
-                    <Border x:Name="bg" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
+                    <Grid>
+                    <Border x:Name="bg" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}"/>
+                    <!-- Grain over the hover fill, under the day number, as on menu rows and card tiles. -->
+                    <Border x:Name="DayGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource ControlCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                    <ContentPresenter Margin="1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsToday" Value="True"><Setter TargetName="bg" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/></Trigger>
                         <Trigger Property="IsInactive" Value="True"><Setter Property="Foreground" Value="{DynamicResource DimTextBrush}"/></Trigger>
-                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bg" Property="Background" Value="{DynamicResource MenuHoverBrush}"/></Trigger>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bg" Property="Background" Value="{DynamicResource MenuHoverBrush}"/><Setter TargetName="DayGrain" Property="Visibility" Value="Visible"/></Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="bg" Property="Background" Value="{DynamicResource PrimaryFillBrush}"/>
                             <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
@@ -529,11 +538,14 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CalendarButton">
-                    <Border x:Name="bg" Background="Transparent" CornerRadius="{DynamicResource ControlCornerRadius}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
+                    <Grid>
+                    <Border x:Name="bg" Background="Transparent" CornerRadius="{DynamicResource ControlCornerRadius}"/>
+                    <!-- Grain over the hover fill, under the month name, as on menu rows and card tiles. -->
+                    <Border x:Name="MonthGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource ControlCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bg" Property="Background" Value="{DynamicResource MenuHoverBrush}"/></Trigger>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bg" Property="Background" Value="{DynamicResource MenuHoverBrush}"/><Setter TargetName="MonthGrain" Property="Visibility" Value="Visible"/></Trigger>
                         <!-- Inactive before selected, so a selected month outside the range keeps its
                              on-accent text instead of dim text on the accent fill. -->
                         <Trigger Property="IsInactive" Value="True"><Setter Property="Foreground" Value="{DynamicResource DimTextBrush}"/></Trigger>
@@ -1321,9 +1333,13 @@
                          pill on 98SE - the "wrong color" flyouts. The well
                          ellipse below is where it actually belongs; both are transparent on every
                          ordinary theme, so nothing changes there. -->
+                    <Grid>
                     <Border x:Name="bd" Background="Transparent"
                             CornerRadius="3"
-                            Margin="-8,0,2,0" Padding="4,4,10,4">
+                            Margin="-8,0,2,0"/>
+                    <!-- Grain over the hover fill, under the ring and label, as on menu rows and card tiles. -->
+                    <Border x:Name="RadioGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="3" Margin="-8,0,2,0" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                    <Border Margin="-8,0,2,0" Padding="4,4,10,4">
                         <!-- DockPanel (not a horizontal StackPanel) so the content fills the row
                              width, letting a right-aligned column (e.g. language codes) reach the
                              right edge. -->
@@ -1340,6 +1356,7 @@
                             <ContentPresenter VerticalAlignment="Center"><ContentPresenter.Margin><MultiBinding Converter="{x:Static kl:CapCenterMargin.Lift}" ConverterParameter="0"><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontFamily"/><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontSize"/></MultiBinding></ContentPresenter.Margin></ContentPresenter>
                         </DockPanel>
                     </Border>
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="dot" Property="Visibility" Value="Visible"/>
@@ -1352,6 +1369,7 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="ring" Property="Stroke" Value="{DynamicResource RadioHoverFgBrush}"/>
                             <Setter TargetName="bd" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                            <Setter TargetName="RadioGrain" Property="Visibility" Value="Visible"/>
                         </Trigger>
                         <!-- Checked AND hovered: dot and label follow the same key. Declared last
                              so it wins both single triggers. -->
@@ -1382,9 +1400,13 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
+                    <Grid>
                     <Border x:Name="bd" Background="Transparent"
                             CornerRadius="3"
-                            Margin="-8,0,2,0" Padding="4,4,10,4">
+                            Margin="-8,0,2,0"/>
+                    <!-- Grain over the hover fill, under the box and label, as on menu rows and card tiles. -->
+                    <Border x:Name="CheckGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="3" Margin="-8,0,2,0" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                    <Border Margin="-8,0,2,0" Padding="4,4,10,4">
                         <DockPanel LastChildFill="True" Background="Transparent">
                             <!-- Centered on the label's capitals for whatever font the theme uses (Controls/CapCenterMargin.cs). A fixed nudge only fits one face. -->
                             <Grid Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" DockPanel.Dock="Left">
@@ -1399,6 +1421,7 @@
                             <ContentPresenter VerticalAlignment="Center"><ContentPresenter.Margin><MultiBinding Converter="{x:Static kl:CapCenterMargin.Lift}" ConverterParameter="0"><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontFamily"/><Binding RelativeSource="{RelativeSource TemplatedParent}" Path="FontSize"/></MultiBinding></ContentPresenter.Margin></ContentPresenter>
                         </DockPanel>
                     </Border>
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="dot" Property="Visibility" Value="Visible"/>
@@ -1408,6 +1431,7 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="ring" Property="BorderBrush" Value="{DynamicResource RadioHoverFgBrush}"/>
                             <Setter TargetName="bd" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                            <Setter TargetName="CheckGrain" Property="Visibility" Value="Visible"/>
                         </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
@@ -1459,14 +1483,18 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ControlCornerRadius}"
-                            Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                          VerticalAlignment="Center"/>
-                    </Border>
+                    <Grid>
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ControlCornerRadius}"/>
+                    <!-- Grain over the hover fill, under the content, as on menu rows and card tiles. -->
+                    <Border x:Name="MenuRowGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource ControlCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                    <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalAlignment="Center"/>
+                    </Grid>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="{DynamicResource MenuHoverBrush}"/></Trigger>
-                        <Trigger Property="IsPressed"   Value="True"><Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowSelectedBrush}"/></Trigger>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="{DynamicResource MenuHoverBrush}"/><Setter TargetName="MenuRowGrain" Property="Visibility" Value="Visible"/></Trigger>
+                        <!-- RowSelectedBrush is see-through on several themes, so the popup's grain
+                             already shows through it; the row's own grain would double it. -->
+                        <Trigger Property="IsPressed"   Value="True"><Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowSelectedBrush}"/><Setter TargetName="MenuRowGrain" Property="Visibility" Value="Collapsed"/></Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -1582,8 +1610,11 @@
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
                         </Trigger>
+                        <!-- RowSelectedBrush is see-through on several themes, so the card's grain
+                             already shows through it; the tile's own grain would double it. -->
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowSelectedBrush}"/>
+                            <Setter TargetName="TileGrain" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
@@ -1929,19 +1960,23 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="bg" Background="Transparent" CornerRadius="{DynamicResource SmallCornerRadius}" Padding="4,3,10,3">
-                        <DockPanel LastChildFill="True">
-                            <TextBlock x:Name="check" DockPanel.Dock="Left" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="10" Width="16" VerticalAlignment="Center" Visibility="Hidden"/>
-                            <ContentPresenter VerticalAlignment="Center"/>
-                        </DockPanel>
-                    </Border>
+                    <Grid>
+                    <Border x:Name="bg" Background="Transparent" CornerRadius="{DynamicResource SmallCornerRadius}"/>
+                    <!-- Grain over the hover fill, under the check and label, as on menu rows and card tiles. -->
+                    <Border x:Name="CheckRowGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource SmallCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                    <DockPanel LastChildFill="True" Margin="4,3,10,3">
+                        <TextBlock x:Name="check" DockPanel.Dock="Left" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
+                                   FontSize="10" Width="16" VerticalAlignment="Center" Visibility="Hidden"/>
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </DockPanel>
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="Tag" Value="on">
                             <Setter TargetName="check" Property="Visibility" Value="Visible"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="bg" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                            <Setter TargetName="CheckRowGrain" Property="Visibility" Value="Visible"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -2118,9 +2153,10 @@
                 <ControlTemplate TargetType="Button">
                     <Grid>
                         <Border x:Name="bg" Background="{DynamicResource SortButtonBrush}"
-                                CornerRadius="{DynamicResource SmallCornerRadius}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
+                                CornerRadius="{DynamicResource SmallCornerRadius}"/>
+                        <!-- Grain over the hover fill, under the glyph, as on menu rows and card tiles. -->
+                        <Border x:Name="ViewToggleGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource SmallCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <!-- Toolbar button edge: a Win98 toolbar button is FLAT at rest, raises a
                              1px white/#808080 edge on hover and sinks it on press. The rest and
                              hover thicknesses are theme tokens that are 0 on every ordinary theme,
@@ -2136,6 +2172,7 @@
                              accent - the later trigger wins the Foreground, never accent-on-accent. -->
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="bg" Property="Background" Value="{DynamicResource ToolHoverFaceBrush}"/>
+                            <Setter TargetName="ViewToggleGrain" Property="Visibility" Value="Visible"/>
                             <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
                             <Setter TargetName="tbLight" Property="BorderThickness" Value="{DynamicResource ToolHoverBevelLightThickness}"/>
                             <Setter TargetName="tbDark"  Property="BorderThickness" Value="{DynamicResource ToolHoverBevelDarkThickness}"/>
@@ -2166,13 +2203,17 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="bg" Background="Transparent" CornerRadius="{DynamicResource SmallCornerRadius}" Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                          VerticalAlignment="Center"/>
-                    </Border>
+                    <Grid>
+                    <Border x:Name="bg" Background="Transparent" CornerRadius="{DynamicResource SmallCornerRadius}"/>
+                    <!-- Grain over the hover fill, under the label, as on menu rows and card tiles. -->
+                    <Border x:Name="ColHeaderGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource SmallCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                    <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalAlignment="Center"/>
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="bg" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                            <Setter TargetName="ColHeaderGrain" Property="Visibility" Value="Visible"/>
                             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -2691,9 +2732,10 @@
                 <ControlTemplate TargetType="Button">
                     <Grid>
                         <Border x:Name="bg" Background="{DynamicResource SortButtonBrush}"
-                                CornerRadius="{DynamicResource SmallCornerRadius}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
+                                CornerRadius="{DynamicResource SmallCornerRadius}"/>
+                        <!-- Grain over the hover fill, under the glyph, as on menu rows and card tiles. -->
+                        <Border x:Name="PickerViewGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource SmallCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <!-- Toolbar button edge: a Win98 toolbar button is FLAT at rest, raises a
                              1px white/#808080 edge on hover and sinks it on press. The rest and
                              hover thicknesses are theme tokens that are 0 on every ordinary theme,
@@ -2709,6 +2751,7 @@
                              accent - the later trigger wins the Foreground, never accent-on-accent. -->
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="bg" Property="Background" Value="{DynamicResource ToolHoverFaceBrush}"/>
+                            <Setter TargetName="PickerViewGrain" Property="Visibility" Value="Visible"/>
                             <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
                             <Setter TargetName="tbLight" Property="BorderThickness" Value="{DynamicResource ToolHoverBevelLightThickness}"/>
                             <Setter TargetName="tbDark"  Property="BorderThickness" Value="{DynamicResource ToolHoverBevelDarkThickness}"/>
@@ -3007,6 +3050,8 @@
                 <ControlTemplate TargetType="Button">
                     <Grid>
                         <Border x:Name="Bd" Background="{TemplateBinding Background}"/>
+                        <!-- Grain over the hover fill, under the glyph, as on menu rows and card tiles. -->
+                        <Border x:Name="AnnotationGrain" IsHitTestVisible="False" Visibility="Collapsed" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
                         <Border x:Name="bTopLeft" IsHitTestVisible="False" BorderThickness="0"/>
                         <Border x:Name="bBotRight" IsHitTestVisible="False" BorderThickness="0"/>
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -3014,9 +3059,13 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                            <Setter TargetName="AnnotationGrain" Property="Visibility" Value="Visible"/>
                         </Trigger>
+                        <!-- RowSelectedBrush is see-through on several themes, so the bar's grain
+                             already shows through it; the button's own grain would double it. -->
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowSelectedBrush}"/>
+                            <Setter TargetName="AnnotationGrain" Property="Visibility" Value="Collapsed"/>
                             <Setter TargetName="bTopLeft" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
                             <Setter TargetName="bTopLeft" Property="BorderThickness" Value="{DynamicResource BevelLightThickness}"/>
                             <Setter TargetName="bBotRight" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
@@ -3160,14 +3209,17 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
+                    <Grid>
                     <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                            CornerRadius="{DynamicResource SmallCornerRadius}" Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
-                        </ContentPresenter>
-                    </Border>
+                            CornerRadius="{DynamicResource SmallCornerRadius}"/>
+                    <!-- Grain over the hover fill, under the glyph, as on menu rows and card tiles. -->
+                    <Border x:Name="ToolbarGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource SmallCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                    <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                            <Setter TargetName="ToolbarGrain" Property="Visibility" Value="Visible"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
