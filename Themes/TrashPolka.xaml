@@ -10,6 +10,9 @@
          #101010 it mirrored from the field before, so only the text boxes change. -->
     <SolidColorBrush x:Key="TextFieldBrush" Color="#000000" po:Freeze="True"/>
     <SolidColorBrush x:Key="ComboFieldBrush" Color="#101010" po:Freeze="True"/>
+    <!-- Check boxes are solid ink black too, so the motif never shows inside the box (Steve, 2026-11-20). -->
+    <SolidColorBrush x:Key="RadioWellBrush" Color="#000000" po:Freeze="True"/>
+    <SolidColorBrush x:Key="CheckBoxBackgroundBrush" Color="#000000" po:Freeze="True"/>
     <sys:Double x:Key="GrainOpacity">0.24</sys:Double>
     <sys:Double x:Key="IconShadowOpacity">0.9</sys:Double>
 
