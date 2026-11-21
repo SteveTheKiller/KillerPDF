@@ -3634,8 +3634,8 @@ public sealed class PdfIncrementalPageEditor
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
         List<PdfObject> retained = RewriteList(fields, null, 0);
         // Widgets on the pages that /Fields never lists still carry the reader's names (#466).
-        List<PdfIndirectReference> unlisted = [.. UnlistedFieldRoots([.. visited, .. removedFields]).Select(root => root.Reference)];
-        if (unlisted.Count > 0) RewriteList(new PdfArray([.. unlisted]), null, 0);
+        foreach (var (unlisted, parentName) in UnlistedFieldRoots([.. visited, .. removedFields]))
+            RewriteList(new PdfArray([unlisted]), parentName, 0);
         foreach (string requested in _removedFormFields)
             if (!matched.Contains(requested))
                 throw new InvalidOperationException(

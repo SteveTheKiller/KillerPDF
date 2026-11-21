@@ -69,6 +69,25 @@ public sealed class PdfUnlistedWidgetTests
         Assert.Contains("(Filled)", Encoding.ASCII.GetString(saved));
     }
 
+    [Fact]
+    public void RemovingAnUnlistedKidOfAListedParentUsesTheParentInItsName()
+    {
+        var original = PdfDocument.Open(Build(
+        [
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [4 0 R] /DA (/Helv 0 Tf 0 g) /DR << /Font << /Helv 6 0 R >> >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Annots [5 0 R] /Resources << >> >>",
+            "<< /T (addr) /Kids [] >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (city) /Parent 4 0 R /P 3 0 R /Rect [10 40 110 60] >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+        ]));
+        Assert.Contains(PdfFormWidgetReader.ReadPage(original, 0), widget => widget.FieldName == "addr.city");
+
+        var reopened = PdfDocument.Open(new PdfIncrementalPageEditor(original).RemoveFormField("addr.city").Build());
+
+        Assert.Empty(PdfFormWidgetReader.ReadPage(reopened, 0));
+    }
+
     private static byte[] PageWithUnlistedWidget(bool withCheckbox = false) => Build(
         [
             "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [4 0 R] /DA (/Helv 0 Tf 0 g) /DR << /Font << /Helv 6 0 R >> >> >> >>",
