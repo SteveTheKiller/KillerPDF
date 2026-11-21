@@ -24,6 +24,22 @@ public sealed class DropImportTests : IDisposable
     }
 
     [Fact]
+    public void MergeDialogOrderKeepsDroppedFilesAndAcceptsFilesAddedInTheDialog()
+    {
+        string dropped = Path.Combine(root, "dropped.pdf");
+        string added = Path.Combine(root, "added.pdf");
+        var staged = new DropImportFile(Path.Combine(root, "x", "..", "staged.pdf"), "From zip.pdf", true);
+        var found = new[] { new DropImportFile(dropped, "dropped.pdf", false), staged };
+
+        var kept = DropImport.InDialogOrder([added, Path.GetFullPath(staged.Path), dropped], found);
+
+        Assert.Equal([added, staged.Path, dropped], kept.Select(file => file.Path));
+        Assert.Equal("added.pdf", kept[0].SuggestedName);
+        Assert.False(kept[0].Temporary);
+        Assert.Same(staged, kept[1]);
+    }
+
+    [Fact]
     public void ArchiveStagesOnlySupportedFilesInStableOrderAndDisposesUnadoptedBytes()
     {
         string archive = Archive(("z.pdf", "PDF-Z"), ("nested/a.png", "PNG-A"), ("irrelevant.txt", "do not extract"));

@@ -126,8 +126,7 @@ namespace KillerPDF.Shell
                 {
                     var dlg = new MergeFilesDialog(this, found.Select(file => file.Path), offerOpenSeparately: true);
                     if (dlg.ShowDialog() != true || dlg.Paths.Count == 0) return;
-                    var kept = dlg.Paths.Select(path => found.First(file =>
-                        string.Equals(Path.GetFullPath(file.Path), path, StringComparison.OrdinalIgnoreCase))).ToList();
+                    var kept = DropImport.InDialogOrder(dlg.Paths, found);
                     if (dlg.OpenSeparately) { await OpenSeparately(kept, batch); return; }
                     handedToMerge = true;
                     OpenMerged([.. kept.Select(file => file.Path)], batch);

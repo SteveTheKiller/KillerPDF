@@ -172,6 +172,19 @@ internal static class DropImport
         return table;
     }
 
+    /// <summary>
+    /// Maps the Merge files dialog's final order back to the dropped files. The dialog can also add files of its
+    /// own, through Add files, Add folder or a drop on its list, and those come back as plain files the user owns.
+    /// </summary>
+    internal static List<DropImportFile> InDialogOrder(IEnumerable<string> dialogPaths, IReadOnlyList<DropImportFile> found)
+    {
+        var byPath = new Dictionary<string, DropImportFile>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in found) byPath.TryAdd(Path.GetFullPath(file.Path), file);
+        return [.. dialogPaths.Select(path => byPath.TryGetValue(Path.GetFullPath(path), out var file)
+            ? file
+            : new DropImportFile(path, Path.GetFileName(path), false))];
+    }
+
     internal static DropImportBatch Prepare(IReadOnlyList<string> paths, string directory,
         DropImportLimits? limits = null, CancellationToken cancellation = default,
         Func<string, Stream>? openArchive = null)
