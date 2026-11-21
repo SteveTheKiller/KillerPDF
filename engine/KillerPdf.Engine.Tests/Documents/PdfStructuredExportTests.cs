@@ -117,6 +117,17 @@ public sealed class PdfStructuredExportTests
         Assert.Contains("href=\"mailto:help@example.test\">Mail</a>", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlKeepsEachRunsStyleWhenAWordGapFallsBetweenRuns()
+    {
+        PdfDocument document = Document("BT /F1 14 Tf 20 300 Td (Total:) Tj /F1 12 Tf 60 0 Td (12.50) Tj ET");
+
+        string html = PdfStructuredExport.ToHtml(document);
+
+        Assert.Contains("font-size:14pt\">Total:</span>", html, StringComparison.Ordinal);
+        Assert.Contains("font-size:12pt\"> 12.50</span>", html, StringComparison.Ordinal);
+    }
+
     // A font name comes from the PDF. Inside a style attribute an encoded quote decodes back to a quote
     // before CSS reads it, so a hostile name could close the font-family string and add declarations.
     [Fact]
