@@ -144,6 +144,46 @@ public sealed class PdfJpeg2000TileTests
             (x / 32 + y / 32 * 3) * (bits == 8 ? 15 : 1000) + 20 + component * 5;
     }
 
+    [Theory]
+    [InlineData(8, 3, false, true)]
+    [InlineData(8, 1, true, true)]
+    [InlineData(16, 3, false, true)]
+    [InlineData(16, 1, true, true)]
+    [InlineData(8, 3, false, false)]
+    [InlineData(8, 3, true, false)]
+    public void TileByTileDecodeMatchesWholeImageDecode(int bits, int components, bool signed, bool lossless)
+    {
+        const int width = 197, height = 141, levels = 3;
+        int maximum = (1 << bits) - 1, bias = 1 << (bits - 1);
+        int[][] samples = [.. Enumerable.Range(0, components).Select(component =>
+            Enumerable.Range(0, width * height).Select(index =>
+                ((index % width * 37 + index / width * 23 + component * 61) & maximum) - bias).ToArray())];
+        var source = new InterleavedImageSource(width, height, components, bits,
+            [.. Enumerable.Repeat(signed, components)], samples);
+        var configuration = new J2KEncoderConfiguration();
+        if (lossless) configuration = configuration.WithLossless();
+        var parameters = configuration.WithTiles(tiles => tiles.SetSize(64, 48)).ToParameterList();
+        parameters["Wlev"] = levels.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        byte[] encoded = J2kImage.ToBytes(source, parameters);
+        byte[] codestream = PdfJpeg2000Decoder.WithoutTileLengthMarkers(PdfJpeg2000Decoder.LocateCodestream(encoded));
+        Jpeg2000Shape shape = PdfJpeg2000Decoder.ReadShape(encoded);
+        Assert.Equal(12, OpenJpegDecoder.TileCount(codestream));
+
+        for (int reduction = 0; reduction <= levels; reduction++)
+        {
+            int reducedWidth = PdfJpeg2000Decoder.ReducedDimension(shape.XSize, shape.XOrigin, reduction);
+            int reducedHeight = PdfJpeg2000Decoder.ReducedDimension(shape.YSize, shape.YOrigin, reduction);
+            int rowBytes = (reducedWidth * components * bits + 7) / 8;
+            int length = rowBytes * reducedHeight;
+            byte[]? tiled = OpenJpegDecoder.Run(codestream, shape, reduction, reducedWidth, reducedHeight,
+                rowBytes, length, 1, byTile: true);
+            byte[]? whole = OpenJpegDecoder.Run(codestream, shape, reduction, reducedWidth, reducedHeight,
+                rowBytes, length, 1, byTile: false);
+            Assert.NotNull(tiled);
+            Assert.Equal(whole, tiled);
+        }
+    }
+
     [Fact]
     public void ReducedSixteenBitTilesMatchIndependentDecoderSamples()
     {

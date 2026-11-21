@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. Book layout sits beside it, and the pair is centered.
+- Large tiled JPEG 2000 images use far less memory again. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
 
 ## [1.9.5] - 2026-11-20
 

@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.6] - Unreleased
 
+### Fixed
+
+- Tiled JPEG 2000 images decode one tile at a time, so OpenJPEG no longer holds the whole image as 32-bit samples. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
+
 ## [1.9.5] - 2026-11-20
 
 1.9.5 moves the engine to MPL 2.0, decodes JPEG 2000 with OpenJPEG, adds PDF/UA validation and EPUB export, and hardens redaction checks, rendering and damaged-file recovery. The [developer docs](docs/) carry the details.

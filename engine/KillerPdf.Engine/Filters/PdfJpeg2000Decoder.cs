@@ -136,7 +136,7 @@ internal static partial class PdfJpeg2000Decoder
         return result;
     }
 
-    private static ReadOnlySpan<byte> LocateCodestream(ReadOnlySpan<byte> source)
+    internal static ReadOnlySpan<byte> LocateCodestream(ReadOnlySpan<byte> source)
     {
         if (source.Length >= 2 && source[0] == 0xFF && source[1] == 0x4F)
             return source;
