@@ -14,6 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Under Trash Polka, open drop-down lists and the file dialog's places, file list and preview panes carry the ink instead of flat slabs. The ink stays one image at any window size and returns to a surface that was hidden during a repaint.
 - Changing the accent under Trash Polka waits at most a second when a redraw hangs, instead of stalling. Its art cache only deletes its own files when it clears an older version.
 - Menus, cards and drop-down lists opened inside the document pane keep all four corners rounded.
+- Customize Toolbar's two lists sit on panes in the pane color with the family drop shadow, instead of letting the window's texture show through.
 - The customize drawer closes with the same small X as the app's small windows, and only the X turns red on hover.
 - A sidebar menu too tall for the window fits inside it and scrolls, instead of running past the window's foot.
 - Making a new folder in the file dialog no longer freezes the window on a share that stopped answering. A refused name is read out to a screen reader as well as shown.
