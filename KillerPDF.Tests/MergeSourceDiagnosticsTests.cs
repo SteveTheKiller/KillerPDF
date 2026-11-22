@@ -14,6 +14,38 @@ public sealed class MergeSourceDiagnosticsTests : IDisposable
 {
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "killerpdf-merge-diagnostics-" + Guid.NewGuid().ToString("N"));
 
+    // #495: merging an untagged PDF into an open tagged one stopped with "Untagged content cannot be
+    // imported". The tagged pages keep their structure and the merged pages come in untagged.
+    [Fact]
+    public void InsertDocuments_MergesUntaggedPagesIntoATaggedDocument()
+    {
+        static PdfContentStreamBuilder TaggedPage() => new PdfContentStreamBuilder()
+            .BeginMarkedContent(PdfStructureType.Figure, 0)
+            .Rectangle(10, 10, 20, 20).Fill()
+            .EndMarkedContent();
+        string target = Write("tagged.pdf", new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "Tagged merge target", Language = "en-US" })
+            .EnablePdfUa2Conformance()
+            .AddPage(100, 100, TaggedPage())
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureElement(PdfStructureType.Figure, 0, 0, 1, alternateDescription: "Square")
+            .Build());
+        string untagged = Write("untagged.pdf", new PdfDocumentBuilder().AddBlankPage().AddBlankPage().Build());
+
+        // The command-line merge opens the first file as the target the same way.
+        PdfDocument cliMerged = PdfDocument.Open(PdfEngineIntegration.MergeFiles([target, untagged]));
+        Assert.Equal(3, PdfPageInformation.Read(cliMerged).Count);
+
+        PdfEngineIntegration.InsertDocuments(target,
+            [new PdfEngineIntegration.ImportedDocument(untagged, [0, 0])], int.MaxValue);
+
+        PdfDocument merged = PdfDocument.Open(File.ReadAllBytes(target));
+        Assert.Equal(3, PdfPageInformation.Read(merged).Count);
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(
+            merged.Resolve(Assert.IsType<PdfIndirectReference>(merged.Trailer[new PdfName("Root"u8)])));
+        Assert.True(catalog.ContainsKey(new PdfName("StructTreeRoot"u8)));
+    }
+
     // A folder or archive import keeps every readable entry. A PDF that opens but is rejected while
     // its pages are built used to abort the whole import instead of being skipped.
     [Fact]

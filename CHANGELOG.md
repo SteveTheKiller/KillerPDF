@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Making a new folder in the file dialog no longer freezes the window on a share that stopped answering. A refused name is read out to a screen reader as well as shown.
 - Large tiled JPEG 2000 images use far less memory again. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
 - Merging accepts pages with a zero-size ArtBox, BleedBox or TrimBox, like Excel for Microsoft 365 exports, and those pages fall back to their CropBox (#455).
+- Merging a PDF without tags into a tagged one works instead of stopping with an error. The tagged pages keep their structure, and the merged pages come in untagged (#495).
 - Changing the accent under Trash Polka waits at most a second when a redraw hangs, instead of stalling. Its art cache only deletes its own files when it clears an older version.
 - Under Trash Polka, open drop-down lists and the file dialog's places, file list and preview panes carry the ink instead of flat slabs. The ink stays one image at any window size and returns to a surface that was hidden during a repaint.
 - A sidebar menu too tall for the window fits inside it and scrolls, instead of running past the window's foot.

@@ -1922,6 +1922,8 @@ internal static partial class PdfEngineIntegration
         {
             throw WithImportSource(paths[0], ex);
         }
+        // #495: a tagged first file keeps its structure, and later files without tags come in untagged.
+        editor.AllowUntaggedPageImports();
         foreach ((string path, int index) in paths.Select((path, index) => (path, index)).Skip(firstIsPdf ? 1 : 0))
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -3227,7 +3229,9 @@ internal static partial class PdfEngineIntegration
         if (sources.Count == 0) return;
 
         PdfDocument target = PdfDocument.Open(File.ReadAllBytes(path));
-        var editor = new PdfIncrementalPageEditor(target);
+        // #495: a tagged document keeps its structure, and merged pages without tags come in
+        // untagged instead of refusing the whole merge.
+        var editor = new PdfIncrementalPageEditor(target).AllowUntaggedPageImports();
         int offset = insertionIndex == int.MaxValue ? editor.PageCount : insertionIndex;
         if (offset < 0 || offset > editor.PageCount)
             throw new ArgumentOutOfRangeException(nameof(insertionIndex));
