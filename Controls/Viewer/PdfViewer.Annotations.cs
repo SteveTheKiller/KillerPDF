@@ -1527,8 +1527,8 @@ namespace KillerPDF.Controls
                     }
                     else
                     {
-                        // Shift+click builds a multi-selection instead of replacing it.
-                        bool shiftSel = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+                        // Shift+click or Ctrl+click builds a multi-selection instead of replacing it (#504).
+                        bool shiftSel = (Keyboard.Modifiers & (ModifierKeys.Shift | ModifierKeys.Control)) != 0;
                         // Flowing text selection (#127): when the press lands ON text, the text run
                         // owns the DRAG even if an unselected annotation (e.g. a paragraph-covering
                         // highlight) sits underneath - a plain CLICK still selects that annotation,
@@ -2495,7 +2495,7 @@ namespace KillerPDF.Controls
                 {
                     // Tiny drag = single click -> try annotation selection
                     ClearTextSelection();
-                    bool shiftSel = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+                    bool shiftSel = (Keyboard.Modifiers & (ModifierKeys.Shift | ModifierKeys.Control)) != 0;
                     if (pageIdx >= 0 && _annotations.TryGetValue(pageIdx, out var pageAnnotations))
                     {
                         for (int i = pageAnnotations.Count - 1; i >= 0; i--)

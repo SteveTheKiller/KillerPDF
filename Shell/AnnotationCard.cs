@@ -45,7 +45,8 @@ namespace KillerPDF.Shell
             }
             else if (multi) grouping.Add(new("\uF168", Loc("Str_Ctx_Group"), null, GroupSelected, false, true));
             // Several marks get one Arrange tile whose rows line them up, space them and size them (#504).
-            if (multi) grouping.Add(FlyoutTile("\uE8E4", Loc("Str_Ctx_Arrange"), null, ArrangeRows(targets.Count)));
+            // A single text box gets it too, for the rows that fit its frame to its text.
+            if (multi || hit is TextAnnotation) grouping.Add(FlyoutTile("\uE8E4", Loc("Str_Ctx_Arrange"), null, ArrangeRows(targets.Count)));
             var pairing = new List<CardTile>();
             if (hit.PairId.Length > 0 && !multi && PairPartner(hit) is { } partner)
                 pairing.Add(new("\uE8B3", Loc(partner is CoverAnnotation ? "Str_Ctx_SelectCover" : "Str_Ctx_SelectText"), null, () => SelectPartner(hit), false, true));
