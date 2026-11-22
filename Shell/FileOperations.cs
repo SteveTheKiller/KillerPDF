@@ -1456,10 +1456,53 @@ namespace KillerPDF.Shell
             }
         }
 
-        private async void Merge_Click(object sender, RoutedEventArgs e)
-            => await MergeAtIndex(null);
+        // Merge PDFs builds a new untitled document (#495). The open file, as it stands with its
+        // unsaved edits, is listed first so it can be put in order or taken out; the open tab
+        // itself is never changed. The page card's Merge still inserts into the open file.
+        private void Merge_Click(object sender, RoutedEventArgs e)
+        {
+            string? snapshotDirectory = null;
+            var labels = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var initial = new List<string>();
+            int skippedPictures = 0;
+            try
+            {
+                if (_doc is not null)
+                {
+                    // The new PDF carries none of the file's encryption, so its limits answer first.
+                    if (!EnsureMayWrite(PdfOutput.Printable, continueAfterUnlock: true)) return;
+                    CommitActiveTextBox();
+                    SavedCopy copy = WriteSavedCopyToTemp();
+                    skippedPictures = copy.SkippedPictures;
+                    string shown = _originalFile ?? _currentFile ?? copy.Path;
+                    snapshotDirectory = App.MakeImportDirectory();
+                    Directory.CreateDirectory(snapshotDirectory);
+                    string snapshot = Path.Combine(snapshotDirectory, Path.GetFileName(shown));
+                    if (!snapshot.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) snapshot += ".pdf";
+                    File.Move(copy.Path, snapshot);
+                    labels[snapshot] = shown;
+                    initial.Add(snapshot);
+                }
+                var dlg = new MergeFilesDialog(this, initial, labels: labels);
+                if (dlg.ShowDialog() != true || dlg.Paths.Count == 0) return;
+                var files = dlg.Paths.Select(path => new DropImportFile(path, Path.GetFileName(path),
+                    Temporary: labels.ContainsKey(path))).ToList();
+                // The batch owns the snapshot from here and deletes it when the merge is done.
+                var batch = new DropImportBatch(snapshotDirectory ?? App.MakeImportDirectory(), files, expanded: false);
+                snapshotDirectory = null;
+                OpenMerged([.. dlg.Paths], batch, skippedPictures);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                KillerDialog.Show(this, Loc("Str_Err_MergeFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                if (snapshotDirectory is not null) DropImportBatch.Cleanup(snapshotDirectory);
+            }
+        }
 
-        private async Task MergeAtIndex(int? insertionIndex)
+        private async Task MergeAtIndex(int insertionIndex)
         {
             if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             if (!EnsureEditable()) return;
@@ -1518,7 +1561,7 @@ namespace KillerPDF.Shell
                     SetStatus(Loc("Str_Merge_TargetChanged"));
                     return;
                 }
-                int insertAt = insertionIndex ?? _doc.PageCount;
+                int insertAt = insertionIndex;
                 int importedPages = imports.Sum(import => import.PageRotations.Count);
                 ReloadWithRemappedAnnotations(
                     annotations => PageAnnotationInsertion.Shift(annotations, insertAt, importedPages),

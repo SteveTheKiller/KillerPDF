@@ -180,7 +180,7 @@ namespace KillerPDF.Shell
             }
         }
 
-        private async void OpenMerged(List<string> found, DropImportBatch batch)
+        private async void OpenMerged(List<string> found, DropImportBatch batch, int skippedPictures = 0)
         {
             var target = BeginTabLoad(out var prev, out bool createdNew);
             target.LoadPending = true;   // a second open while this builds must not land in this tab
@@ -222,8 +222,8 @@ namespace KillerPDF.Shell
                 _originalFile = null;   // unsaved -> Save routes to Save As
                 MarkDirty(true);
                 string merged = string.Format(Loc("Str_Status_Merged"), found.Count - leftOut);
-                SetStatus(leftOut > 0
-                    ? merged + " " + string.Format(Loc("Str_Drop_SkippedFiles"), leftOut) : merged);
+                if (leftOut > 0) merged += " " + string.Format(Loc("Str_Drop_SkippedFiles"), leftOut);
+                SetStatus(Services.PicturesSkippedNote.Append(merged, skippedPictures, Loc("Str_Save_PicturesSkipped")));
                 CaptureSessionState(_active!);
                 SetTool(_currentTool);
                 RebuildTabStrip();

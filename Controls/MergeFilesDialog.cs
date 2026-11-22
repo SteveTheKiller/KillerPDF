@@ -25,8 +25,14 @@ internal sealed class MergeFilesDialog : Window
     /// <summary>True when the dialog closed through Open separately, which only a drop offers.</summary>
     internal bool OpenSeparately { get; private set; }
 
-    internal MergeFilesDialog(Window owner, IEnumerable<string>? initial = null, bool offerOpenSeparately = false)
+    // A row can show another path than the file it merges: the open document goes in as a saved
+    // snapshot but is listed under its own name and folder.
+    private readonly IReadOnlyDictionary<string, string> _labels;
+
+    internal MergeFilesDialog(Window owner, IEnumerable<string>? initial = null, bool offerOpenSeparately = false,
+        IReadOnlyDictionary<string, string>? labels = null)
     {
+        _labels = labels ?? new Dictionary<string, string>();
         Title = "KillerPDF - " + L("Str_MergeFiles_Title");
         Width = 520; Height = 500; MinWidth = 420; MinHeight = 320;
         UseLayoutRounding = true;
@@ -130,8 +136,9 @@ internal sealed class MergeFilesDialog : Window
     private void Refresh(int select)
     {
         _list.Items.Clear();
-        foreach (string path in _files.Paths)
+        foreach (string file in _files.Paths)
         {
+            string path = _labels.TryGetValue(file, out string? shown) ? shown : file;
             var name = new TextBlock { Text = Path.GetFileName(path), TextTrimming = TextTrimming.CharacterEllipsis };
             var folder = new TextBlock { Text = Path.GetDirectoryName(path), FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis };
             // The folder line takes the row's own foreground, faded, so it stays readable on the selection fill.
