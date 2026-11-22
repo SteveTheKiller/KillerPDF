@@ -162,7 +162,7 @@ namespace KillerFamily.Accessibility
                 "ComboHighlightTextBrush", "CaptionHoverTextBrush", "CaptionCloseHoverTextBrush", "MenuHoverTextBrush",
                 "MenuTrackTextBrush");
             Brushes(highlightTextBrush, "CaptionCloseHoverFgBrush", "AboutCloseHoverFg", "CaptionPressedTextBrush",
-                "DatabaseSelectionTextBrush", "TextSelectionTextBrush", "GridSelectedTextBrush", "CheckMarkBrush",
+                "DatabaseSelectionTextBrush", "TextSelectionTextBrush", "GridSelectedTextBrush", "GridSelectedTypeTextBrush", "CheckMarkBrush",
                 "CheckBoxCheckBrush", "OnOutlineBtnBrush");
             Brushes(System.Windows.Media.Brushes.Transparent, "CaptionButtonBrush");
             d["WindowFrameThickness"] = new Thickness(1);

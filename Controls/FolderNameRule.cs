@@ -29,7 +29,7 @@ internal static class FolderNameRule
         if (cleaned.Length == 0) return FolderNameProblem.Empty;
         if (cleaned.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || cleaned.IndexOfAny(['<', '>', ':', '"', '/', '\\', '|', '?', '*']) >= 0)
             return FolderNameProblem.InvalidCharacters;
-        if (cleaned.EndsWith('.') || cleaned.EndsWith(' ')) return FolderNameProblem.TrailingDotOrSpace;
+        if (cleaned[cleaned.Length - 1] is '.' or ' ') return FolderNameProblem.TrailingDotOrSpace;
         string stem = cleaned.Split('.')[0];
         if (ReservedNames.Contains(stem)) return FolderNameProblem.Reserved;
         if (cleaned.Length > MaximumLength) return FolderNameProblem.TooLong;

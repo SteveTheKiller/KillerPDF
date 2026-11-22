@@ -14,6 +14,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - On 98SE the theme and language menus pack their rows like Win98 menus, tab titles sit centered, and the window frame is the 4px Win98 sizing frame.
 - Under Trash Polka an open drop-down list carries the ink like a menu, instead of opening flat.
 - Menus, cards and drop-down lists opened inside the document pane keep all four corners rounded.
+- Trash Polka's art cache only deletes its own files when it clears an older version, so a folder holding anything else is left alone.
+- Under Trash Polka the ink stays one image at any window size, and a surface that was hidden during a repaint picks the ink up again when it shows.
+- Changing the accent under Trash Polka no longer stalls when a redraw hangs. It waits at most a second for the whole set.
+- The customize drawer closes with the same small X as the app's small windows, and only the X turns red on hover.
 - On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. Book layout sits beside it, and the pair is centered.
 - Large tiled JPEG 2000 images use far less memory again. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
 

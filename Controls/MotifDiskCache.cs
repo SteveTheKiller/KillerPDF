@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -15,7 +16,7 @@ namespace KillerPDF.Controls
     /// premultiplied picture is never converted and decodes back bit for bit. Every write goes to a unique temp file in
     /// the same folder and is then renamed, so a reader never sees half a file and two app instances writing the same
     /// key just race to an identical result. A file that is missing, will not decode, or has the wrong size is a miss,
-    /// and the caller renders instead. Writing a version deletes every other version's folder.
+    /// and the caller renders instead. The first write in a process clears other versions' layers.
     /// </summary>
     internal static class MotifDiskCache
     {
@@ -82,7 +83,7 @@ namespace KillerPDF.Controls
                     file.Flush(flushToDisk: true);
                 }
                 // Another instance may have landed the same key first: its file holds the same pixels, so keep it.
-                try { File.Move(temp, path, overwrite: false); temp = null; }
+                try { File.Move(temp, path); temp = null; }
                 catch (IOException) when (File.Exists(path)) { }
             }
             catch (Exception) { }
@@ -92,12 +93,41 @@ namespace KillerPDF.Controls
             }
         }
 
+        private static string? _prunedFor;
+
+        /// <summary>Once per version per process, empties other versions' folders of the cache's own files and removes them when
+        /// nothing else is left. Nothing is pruned unless the root folder is named Motif, and only names the cache writes are
+        /// deleted: <c>&lt;key&gt;.&lt;layer&gt;.png</c> and <c>&lt;key&gt;.&lt;layer&gt;.&lt;32 hex&gt;.tmp</c>. A root pointed at
+        /// the wrong folder (a --build-motif-cache argument, say) loses nothing, and a folder holding anything else stays.</summary>
         private static void PruneOtherVersions(string version)
         {
-            if (Root is not { } root) return;
+            if (version == _prunedFor || Root is not { } root) return;
+            _prunedFor = version;
+            if (!string.Equals(Path.GetFileName(root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)), "Motif",
+                    StringComparison.OrdinalIgnoreCase)) return;
             foreach (var dir in Directory.EnumerateDirectories(root))
-                if (!string.Equals(Path.GetFileName(dir), version, StringComparison.OrdinalIgnoreCase))
-                    try { Directory.Delete(dir, recursive: true); } catch (Exception) { }
+            {
+                if (string.Equals(Path.GetFileName(dir), version, StringComparison.OrdinalIgnoreCase)) continue;
+                try
+                {
+                    foreach (var file in Directory.EnumerateFiles(dir))
+                        if (IsCacheFile(Path.GetFileName(file))) File.Delete(file);
+                    if (!Directory.EnumerateFileSystemEntries(dir).Any()) Directory.Delete(dir);
+                }
+                catch (Exception) { }
+            }
+        }
+
+        /// <summary>True for a name <see cref="Write"/> produces: a layer PNG or one of its temp files.</summary>
+        private static bool IsCacheFile(string name)
+        {
+            if (name.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                return name.Substring(0, name.Length - 4).IndexOf('.') > 0;
+            if (!name.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)) return false;
+            string stem = name.Substring(0, name.Length - 4);
+            int dot = stem.LastIndexOf('.');
+            return dot > 0 && stem.Length - dot - 1 == 32 && stem.Substring(dot + 1).All(Uri.IsHexDigit)
+                && stem.Substring(0, dot).IndexOf('.') > 0;
         }
     }
 }

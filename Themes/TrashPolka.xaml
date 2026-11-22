@@ -26,6 +26,8 @@
     <SolidColorBrush x:Key="HeaderLineBrush"     Color="#D7263D" po:Freeze="True"/>
     <SolidColorBrush x:Key="OnPrimaryBrush"      Color="#FFFFFF" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#D7263D" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineFaceBrush"    Color="#333333" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineTextBrush"    Color="#FFFFFF" po:Freeze="True"/>
     <SolidColorBrush x:Key="InputHoverBrush"     Color="#707070" po:Freeze="True"/>
     <SolidColorBrush x:Key="TextFooter"          Color="#858585" po:Freeze="True"/>
 
@@ -51,11 +53,19 @@
     <SolidColorBrush x:Key="RowSelectedBrush"    Color="#4A1218" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionBg"         Color="#D7263D" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionFg"         Color="#FFFFFF" po:Freeze="True"/>
+    <!-- A selected table row is the accent's dark shade (RowSelectedBrush), so its text is the light text color in
+         every accent: the accent itself read teal on teal, and SelectionFg is dark on most accents for the bright
+         SelectionBg. -->
+    <SolidColorBrush x:Key="GridSelectedTextBrush"     Color="#f2f2f2" po:Freeze="True"/>
+    <SolidColorBrush x:Key="GridSelectedTypeTextBrush" Color="#f2f2f2" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="InputBorderBrush"    Color="#2e2e2e" po:Freeze="True"/>
     <!-- Flyouts and menus sit a step above the black window. -->
     <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#121212" po:Freeze="True"/>
     <SolidColorBrush x:Key="TerminalBackgroundBrush" Color="#3a3a3a" po:Freeze="True"/>
+    <!-- The tool tables stop short of their well's foot, so a bottom tab meets the inked page and not a striped row
+         (ToolTabChrome.WrapTable). Zero on every other theme. -->
+    <Thickness x:Key="ToolTableInset">0,0,0,6</Thickness>
     <SolidColorBrush x:Key="MenuBorderBrush"     Color="#404040" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuTextBrush"       Color="#f2f2f2" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuHoverBrush"      Color="#404040" po:Freeze="True"/>

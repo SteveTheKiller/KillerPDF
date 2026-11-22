@@ -49,7 +49,7 @@ namespace KillerPDF.Controls
 
         // Everything a painted brush depends on. The window size is not in it: the pinned piece never reads it, so a
         // pane whose own place is unchanged keeps its brush through a window resize.
-        private readonly record struct PaintKey(MotifPart Part, Color Accent, Color Base, Rect Pane, double Opacity, Drawing Piece);
+        private readonly record struct PaintKey(MotifPart Part, Color Accent, Color Base, Rect Pane, Size Local, double Opacity, Drawing Piece);
 
         /// <summary>
         /// Inherited: set on the second document pane in split view. Its <c>Window</c> parts (the card and its active
@@ -78,6 +78,44 @@ namespace KillerPDF.Controls
         public static string? GetMotifBrush(DependencyObject element) => (string?)element.GetValue(MotifBrushProperty);
         public static void SetMotifBrush(DependencyObject element, string? value) => element.SetValue(MotifBrushProperty, value);
 
+        /// <summary>
+        /// A working screen (a terminal, the text editor, a monitor tile, a tool's table): the element shows its stretch of
+        /// the sleeve at ScreenOpacity, fainter than a pane, because it is read line by line.
+        /// </summary>
+        public static readonly DependencyProperty ScreenProperty = DependencyProperty.RegisterAttached(
+            "Screen", typeof(bool), typeof(ThemeMotif), new PropertyMetadata(false, OnBaseBrushChanged));
+
+        public static bool GetScreen(DependencyObject element) => (bool)element.GetValue(ScreenProperty);
+        public static void SetScreen(DependencyObject element, bool value) => element.SetValue(ScreenProperty, value);
+
+        /// <summary>
+        /// A tile on a dashboard (a monitor tile and the graph well inside it): the darker face sits on the lighter page,
+        /// so its ink shows at CellOpacity, fainter again than a screen's. Takes precedence over Screen.
+        /// </summary>
+        public static readonly DependencyProperty CellProperty = DependencyProperty.RegisterAttached(
+            "Cell", typeof(bool), typeof(ThemeMotif), new PropertyMetadata(false, OnBaseBrushChanged));
+
+        public static bool GetCell(DependencyObject element) => (bool)element.GetValue(CellProperty);
+        public static void SetCell(DependencyObject element, bool value) => element.SetValue(CellProperty, value);
+
+        /// <summary>
+        /// The page a document is written on (the note): the element keeps its part's place and piece, but shows it at
+        /// TrashPolkaInk.PageOpacity. Takes precedence over the part's own opacity, Screen and Cell.
+        /// </summary>
+        public static readonly DependencyProperty PageProperty = DependencyProperty.RegisterAttached(
+            "Page", typeof(bool), typeof(ThemeMotif), new PropertyMetadata(false, OnBaseBrushChanged));
+
+        public static bool GetPage(DependencyObject element) => (bool)element.GetValue(PageProperty);
+        public static void SetPage(DependencyObject element, bool value) => element.SetValue(PageProperty, value);
+
+        /// <summary>The rendered view of a document, like Page but at TrashPolkaInk.PreviewOpacity, so the user can set
+        /// the two apart.</summary>
+        public static readonly DependencyProperty PreviewProperty = DependencyProperty.RegisterAttached(
+            "Preview", typeof(bool), typeof(ThemeMotif), new PropertyMetadata(false, OnBaseBrushChanged));
+
+        public static bool GetPreview(DependencyObject element) => (bool)element.GetValue(PreviewProperty);
+        public static void SetPreview(DependencyObject element, bool value) => element.SetValue(PreviewProperty, value);
+
         private static readonly Dictionary<MotifPart, (Color Accent, Size Size, Drawing Piece)> Pieces = [];
 
         // The bitmap pieces, one per set of layers, tinted for the current accent only. A new accent is composed on a
@@ -100,7 +138,8 @@ namespace KillerPDF.Controls
             internal bool Done;
         }
 
-        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TrashPolkaRaster.Layers, TintedPiece> RasterPieces = new();
+        // Replaced rather than cleared on release: ConditionalWeakTable.Clear is not public on net48.
+        private static System.Runtime.CompilerServices.ConditionalWeakTable<TrashPolkaRaster.Layers, TintedPiece> RasterPieces = new();
         private static readonly List<ComposeJob> Jobs = [];
 
         private static bool _releaseHooked;
@@ -124,7 +163,7 @@ namespace KillerPDF.Controls
         internal static void ReleaseAll()
         {
             Pieces.Clear();
-            RasterPieces.Clear();
+            RasterPieces = new();
             TrashPolkaRaster.ReleaseAll();
             Releases++;
         }
@@ -149,6 +188,23 @@ namespace KillerPDF.Controls
             job.Work.Work.ContinueWith(_ => dispatcher.BeginInvoke(() => { if (Land(job)) Retune(); }), TaskScheduler.Default);
             return null;
         }
+
+        /// <summary>Waits on the composes until all finish or <paramref name="budgetMs"/> runs out for the lot, and says
+        /// which finished. One deadline covers every job, so hung composes never add their bounds together.</summary>
+        internal static bool[] WaitWithin(Task[] work, int budgetMs)
+        {
+            var finished = new bool[work.Length];
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            for (int i = 0; i < work.Length; i++)
+            {
+                int left = Math.Max(0, budgetMs - (int)timer.ElapsedMilliseconds);
+                try { finished[i] = work[i].Wait(left); } catch (AggregateException) { finished[i] = true; }
+            }
+            return finished;
+        }
+
+        /// <summary>The longest the crossfade waits on the pieces' composes, all together, in milliseconds.</summary>
+        internal const int ComposeWaitMs = 1000;
 
         // Swaps a finished piece in, unless a newer accent has replaced the job; the previous tint is dropped with it.
         private static bool Land(ComposeJob job)
@@ -182,11 +238,12 @@ namespace KillerPDF.Controls
             if (Jobs.Count == 0) return;
             var timer = System.Diagnostics.Stopwatch.StartNew();
             bool landed = false;
-            foreach (var job in Jobs.ToArray())
-            {
-                try { job.Work.Work.Wait(); } catch (AggregateException) { }
-                landed |= Land(job);
-            }
+            var jobs = Jobs.ToArray();
+            // A compose that hangs never freezes the window: past the bound the snapshot takes the old ink and the job
+            // lands on its own when it finishes.
+            var finished = WaitWithin(Array.ConvertAll(jobs, j => j.Work.Work), ComposeWaitMs);
+            for (int i = 0; i < jobs.Length; i++)
+                if (finished[i]) landed |= Land(jobs[i]);
             ComposeMs += timer.Elapsed.TotalMilliseconds;
             if (landed) Retune();
         }
@@ -222,17 +279,28 @@ namespace KillerPDF.Controls
             HookRelease();
             element.Loaded -= OnLoaded;
             element.SizeChanged -= Refresh;
+            element.IsVisibleChanged -= OnVisibleChanged;
             element.Unloaded -= OnUnloaded;
             Detach(element);
             if ((MotifPart)e.NewValue == MotifPart.None) { Restore(element); return; }
             element.Loaded += OnLoaded;
             element.SizeChanged += Refresh;
+            element.IsVisibleChanged += OnVisibleChanged;
             element.Unloaded += OnUnloaded;
             if (element.IsLoaded)
             {
                 Attach(element);
                 Paint(element);
             }
+        }
+
+        // A repaint that lands while the element is collapsed has no size to paint and leaves the plain background. WPF
+        // raises no SizeChanged when the element comes back at the size it had before it was collapsed, so showing it
+        // again is the cue to paint, once layout has given it its size.
+        private static void OnVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (sender is not FrameworkElement element || e.NewValue is not true) return;
+            element.Dispatcher.BeginInvoke(() => Paint(element), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private static void OnLoaded(object sender, RoutedEventArgs e)
@@ -444,7 +512,7 @@ namespace KillerPDF.Controls
         /// </summary>
         internal static void PrewarmWhenIdle(Window window)
         {
-            if (_prewarmQueued || MotifDiskCache.Root is not { } root || Environment.ProcessPath is not { } exe) return;
+            if (_prewarmQueued || MotifDiskCache.Root is not { } root || CurrentExe() is not { } exe) return;
             _prewarmQueued = true;
             window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, async () =>
             {
@@ -462,17 +530,45 @@ namespace KillerPDF.Controls
                         UseShellExecute = false, CreateNoWindow = true,
                         WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
                     };
-                    foreach (var arg in new[] { CacheBuilderArgument, root,
+                    start.Arguments = string.Join(" ", new[] { CacheBuilderArgument, root,
                         size.Width.ToString(System.Globalization.CultureInfo.InvariantCulture),
                         size.Height.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                        dpi.ToString("R", System.Globalization.CultureInfo.InvariantCulture) })
-                        start.ArgumentList.Add(arg);
-                    using var child = System.Diagnostics.Process.Start(start);
-                    if (child is null) return;
+                        dpi.ToString("R", System.Globalization.CultureInfo.InvariantCulture) }.Select(QuoteArgument));
+                    using var child = new System.Diagnostics.Process { StartInfo = start, EnableRaisingEvents = true };
+                    var exited = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    child.Exited += (_, _) => exited.TrySetResult(true);
+                    if (!child.Start()) return;
                     try { child.PriorityClass = System.Diagnostics.ProcessPriorityClass.Idle; } catch (Exception) { }
-                    await child.WaitForExitAsync();
+                    if (child.HasExited) exited.TrySetResult(true);
+                    await exited.Task;
                 });
             });
+        }
+
+        /// <summary>The running exe's full path, or null when it cannot be read.</summary>
+        private static string? CurrentExe()
+        {
+            try { using var self = System.Diagnostics.Process.GetCurrentProcess(); return self.MainModule?.FileName; }
+            catch (Exception) { return null; }
+        }
+
+        /// <summary>One argument quoted for a Windows command line by the CommandLineToArgvW rules: a backslash run
+        /// is doubled before a quote or the closing quote, and an argument with no space, tab, newline or quote is left
+        /// bare, so the child reads back exactly what was passed.</summary>
+        internal static string QuoteArgument(string arg)
+        {
+            if (arg.Length > 0 && arg.IndexOfAny([' ', '\t', '\n', '\v', '"']) < 0) return arg;
+            var sb = new System.Text.StringBuilder("\"");
+            int slashes = 0;
+            foreach (char c in arg)
+            {
+                if (c == '\\') { slashes++; continue; }
+                sb.Append('\\', c == '"' ? slashes * 2 + 1 : slashes);
+                slashes = 0;
+                sb.Append(c);
+            }
+            sb.Append('\\', slashes * 2).Append('"');
+            return sb.ToString();
         }
 
         private static readonly int[] PrewarmSeeds = [TrashPolkaInk.WindowSeed, TrashPolkaInk.SplitSeed, TrashPolkaInk.BackgroundSeed];
@@ -604,22 +700,29 @@ namespace KillerPDF.Controls
             Size window;
             Transform? unflip = null;
             // Popups float free of the window, so they draw from their own corner; everything else is pinned to it.
-            if (part is MotifPart.Popup)
+            // A pane surface inside a popup (a gray swatch in a flyout) has the window as its owner but is not under the
+            // window's root, so it has no place there and draws from its own corner too; pinning it threw.
+            var host = Window.GetWindow(element);
+            if (part is MotifPart.Popup || host is { Content: FrameworkElement outside } && !outside.IsAncestorOf(element))
             {
                 pane = new Rect(0, 0, element.ActualWidth, element.ActualHeight);
                 window = pane.Size;
             }
             else
             {
-                if (Window.GetWindow(element) is not { Content: FrameworkElement root } host) return;
+                if (host is not { Content: FrameworkElement root }) return;
                 (pane, unflip) = MotifPlacement.PlaceInWindow(element, root);
                 window = new Size(root.ActualWidth, root.ActualHeight);
             }
 
             double opacity = part switch
             {
+                _ when GetPreview(element) => TrashPolkaInk.PreviewOpacity,
+                _ when GetPage(element) => TrashPolkaInk.PageOpacity,
                 MotifPart.Chrome => TrashPolkaInk.BackgroundOpacity,
                 MotifPart.Popup => TrashPolkaInk.PopupOpacity,
+                _ when GetCell(element) => TrashPolkaInk.CellOpacity,
+                _ when GetScreen(element) => TrashPolkaInk.ScreenOpacity,
                 _ => TrashPolkaInk.PaneOpacity,
             };
             var size = InkSize(element);
@@ -664,9 +767,18 @@ namespace KillerPDF.Controls
                 piece = cached.Piece;
                 VectorPaints++;
             }
-            var stamp = new PaintKey(part, accent.Color, baseBrush.Color, pane, opacity, piece);
+            // The element's own size is in the stamp too: under a new app size an element that fills its window keeps the
+            // same place in root units but not in its own, and its old brush would stay at the old scale.
+            var stamp = new PaintKey(part, accent.Color, baseBrush.Color, pane, element.RenderSize, opacity, piece);
             if (element.GetValue(PaintedProperty) is PaintKey painted && painted == stamp) return;
-            var brush = TrashPolkaMotif.Compose(baseBrush.Color, piece, pane, window, scale: TrashPolkaInk.Scale, opacity: opacity);
+            // The brush is drawn in the element's own units, but its place in the window is in the root's. Under the app
+            // size (ScaleHost's LayoutTransform) one element unit covers several root units, so the place and the piece's
+            // scale are taken back into element units; read in root units, every element showed its own shifted stretch
+            // of the image and an active tab broke from its page at the join.
+            double units = element.ActualWidth > 0 ? pane.Width / element.ActualWidth : 1;
+            var local = Math.Abs(units - 1) < 1e-9 ? pane
+                : new Rect(pane.X / units, pane.Y / units, element.ActualWidth, element.ActualHeight);
+            var brush = TrashPolkaMotif.Compose(baseBrush.Color, piece, local, window, scale: TrashPolkaInk.Scale / units, opacity: opacity);
             if (unflip is not null)
             {
                 if (brush.IsFrozen) brush = brush.Clone();

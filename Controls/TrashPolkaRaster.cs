@@ -131,7 +131,7 @@ namespace KillerPDF.Controls
         /// </summary>
         internal static Task Prewarm(IReadOnlyList<LayerKey> keys)
         {
-            var done = new TaskCompletionSource();
+            var done = new TaskCompletionSource<bool>();
             var wanted = keys.Where(k => !Builds.ContainsKey(k)).ToList();
             EnsureBuilder();
             Queue.Add(() =>
@@ -156,7 +156,7 @@ namespace KillerPDF.Controls
                         GC.WaitForPendingFinalizers();
                     }
                 }
-                finally { Thread.CurrentThread.Priority = priority; done.SetResult(); }
+                finally { Thread.CurrentThread.Priority = priority; done.SetResult(true); }
             });
             return done.Task;
         }
@@ -228,8 +228,8 @@ namespace KillerPDF.Controls
         /// </summary>
         internal const string CacheVersion = "trashpolka-1";
 
-        private static string CacheKey(int seed, int w, int h, double scale, double dpi) => string.Create(
-            System.Globalization.CultureInfo.InvariantCulture, $"s{seed}_{w}x{h}_x{scale:0.####}_d{dpi:0.####}");
+        private static string CacheKey(int seed, int w, int h, double scale, double dpi) => FormattableString.Invariant(
+            $"s{seed}_{w}x{h}_x{scale:0.####}_d{dpi:0.####}");
 
         private static Layers Build(int seed, Size size, double scale, double dpi, out Action? save, bool probeCache = true)
         {
@@ -289,7 +289,9 @@ namespace KillerPDF.Controls
         // The ink as runs of non-transparent pixels, each run inside one row.
         private static Layers Pack(byte[] ink, byte[] coverage, int w, int h, double dpi)
         {
-            var pixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(ink);
+            // net48 has no MemoryMarshal: one packed copy of the pixels, read the same little-endian way.
+            var pixels = new uint[w * h];
+            Buffer.BlockCopy(ink, 0, pixels, 0, w * h * 4);
             int runCount = 0, valueCount = 0;
             for (int y = 0; y < h; y++)
             {
@@ -344,21 +346,23 @@ namespace KillerPDF.Controls
         {
             int w = layers.Width;
             var row = new byte[w * 4];
-            var rowPixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(row.AsSpan());
+            // net48 has no span casts: the row is filled as packed pixels, then copied to bytes once.
+            var rowPixels = new uint[w];
             var runs = layers.Runs;
             var values = layers.InkValues;
             int r = 0, v = 0;
             for (int y = 0; y < layers.Height; y++)
             {
-                rowPixels.Clear();
+                Array.Clear(rowPixels, 0, w);
                 int rowStart = y * w, rowEnd = rowStart + w;
                 while (r < runs.Length && runs[r] < rowEnd)
                 {
                     int start = runs[r] - rowStart, count = runs[r + 1];
-                    values.AsSpan(v, count).CopyTo(rowPixels.Slice(start, count));
+                    Array.Copy(values, v, rowPixels, start, count);
                     v += count;
                     r += 2;
                 }
+                Buffer.BlockCopy(rowPixels, 0, row, 0, w * 4);
                 for (int x = 0, j = 0, i = rowStart; x < w; x++, j += 4, i++)
                 {
                     int m = layers.Coverage[i];

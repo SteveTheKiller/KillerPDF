@@ -286,6 +286,9 @@ namespace KillerFamily.Controls
         private static Border EditableGroups(ContextMenu card, string name, List<List<CardTile>> lists, CardEdit edit, int columns)
         {
             const string Version = "v2:";
+            // The app clears and refills a card on every open, so this build first takes off the handlers the last
+            // build left on the card. Without that, every open kept another tile tree and drawer alive.
+            (card.GetValue(EditUnhookProperty) as Action)?.Invoke();
             var all = lists.SelectMany(g => g).GroupBy(t => t.Key).Select(g => g.First()).ToList();
             var byKey = all.ToDictionary(t => t.Key);
             // The card's tiles in the order they show (Steve 2026-11-19: drag a tile anywhere, no gaps). Every other
@@ -338,7 +341,7 @@ namespace KillerFamily.Controls
 
             // The drawer: its own panel beside the card, its own shape and size, sliding out from behind the card's
             // right edge. It holds the tiles stashed away, two across and scrolling, under Reset to default and the
-            // red-hover close X that ends editing, the same X the windows close with.
+            // close X that ends editing, the same X the family's small windows close with.
             var drawerTiles = new Border { HorizontalAlignment = HorizontalAlignment.Left };
             var drawerHint = new TextBlock { Text = edit.HiddenHint, TextWrapping = TextWrapping.Wrap, FontSize = 11, Margin = new Thickness(4, 6, 4, 6), TextAlignment = TextAlignment.Center };
             drawerHint.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
@@ -390,6 +393,13 @@ namespace KillerFamily.Controls
             };
             TextOptions.SetTextFormattingMode(drawerClip, TextFormattingMode.Display);
             root.Children.Add(drawer);   // takes no room; keeps the drawer in the card's tree for resources and lookups
+            // Keyboard focus never goes into the drawer. The drawer is a popup of its own, and focus inside it reads to
+            // WPF's menu code as focus leaving the menu, which shuts the card (SN01, 2026-11-21). So while the keyboard is
+            // on Reset, a drawer tile or the X, focus waits on this sink on the card, named after that spot, and the
+            // cursor draws the spot the way keyboard focus would.
+            var sink = new Control { Width = 0, Height = 0, Focusable = true, IsTabStop = false, FocusVisualStyle = null };
+            root.Children.Add(sink);
+            UIElement? cursor = null;
 
             // While a tile is dragged both surfaces show where it would land: the preview order, with the dragged tile
             // dimmed in its spot on the card or in the drawer.
@@ -499,7 +509,7 @@ namespace KillerFamily.Controls
                 card.UpdateLayout();
                 var face = Descendants(card).OfType<Border>().FirstOrDefault(b => ReferenceEquals(b.BorderBrush, card.BorderBrush) && b.BorderThickness.Left > 0);
                 Rect r = face is not null && card.IsAncestorOf(face) ? face.TransformToAncestor(card).TransformBounds(new Rect(face.RenderSize)) : new Rect(card.RenderSize);
-                var radius = card.TryFindResource("PanelCornerRadius") is CornerRadius cr ? cr : new CornerRadius(0);
+                var radius = card.TryFindResource("MenuCornerRadius") is CornerRadius cr ? cr : new CornerRadius(0);
                 drawerFace.CornerRadius = new CornerRadius(0, radius.TopRight, radius.BottomRight, 0);
                 // A flat theme (98SE) has no accent edge on its menus: the drawer takes the menu's border and bevels.
                 bool flat = card.TryFindResource("UseDialogCaption") is true;
@@ -558,6 +568,7 @@ namespace KillerFamily.Controls
             void SetEditing(bool on, bool animate = true)
             {
                 EndDrag();
+                SetCursor(null);
                 editing = on;
                 card.SetValue(IsEditingProperty, on);
                 card.StaysOpen = true;
@@ -595,13 +606,14 @@ namespace KillerFamily.Controls
             reset.Click += (_, _) => ResetLayout();
             done.Click += (_, _) => { if (editing) SetEditing(false); };
             drawerClip.MouseLeave += (_, _) => { HotDone(false); HotReset(false); };
-            card.Closed += (_, _) =>
+            RoutedEventHandler closed = (_, _) =>
             {
                 EndDrag();
                 if (editing) SetEditing(false, animate: false);
                 lingering = false;
                 card.StaysOpen = false;
             };
+            card.Closed += closed;
             // The card keeps the mouse once the drawer is gone, so the next click anywhere reaches it.
             void HoldMouse()
             {
@@ -609,13 +621,14 @@ namespace KillerFamily.Controls
                 if (Mouse.Captured is DependencyObject held && (held == card || card.IsAncestorOf(held))) return;
                 Mouse.Capture(card, CaptureMode.SubTree);
             }
-            card.AddHandler(UIElement.PreviewMouseDownEvent, new MouseButtonEventHandler((_, e) =>
+            var linger = new MouseButtonEventHandler((_, e) =>
             {
                 if (!lingering) return;
                 lingering = false;
                 card.StaysOpen = false;
                 if (card.InputHitTest(e.GetPosition(card)) is null) { card.IsOpen = false; e.Handled = true; }
-            }), true);
+            });
+            card.AddHandler(UIElement.PreviewMouseDownEvent, linger, true);
 
             // The card holds the mouse while it is open, so the drawer's clicks arrive at the card: both surfaces are
             // hit-tested by position. Drag a tile between them; a click without a drag moves it to the other side.
@@ -625,24 +638,19 @@ namespace KillerFamily.Controls
             bool dragging = false, scrubbing = false, drawerLit = false;
             // The card holds the mouse, so the X never sees the pointer arrive: its red hover follows the pointer here.
             // The Reset link underlines under the pointer, for the same reason.
+            // The keyboard cursor shows the same way, so Tab into the drawer lands somewhere you can see.
             void HotReset(bool on)
             {
-                if (reset.Content is TextBlock text) text.TextDecorations = on && reset.IsEnabled ? TextDecorations.Underline : null;
+                if (reset.Content is TextBlock text) text.TextDecorations = (on || ReferenceEquals(cursor, reset)) && reset.IsEnabled ? TextDecorations.Underline : null;
             }
             void HotDone(bool on)
             {
+                on = on || ReferenceEquals(cursor, done);
                 if (on == doneHot) return;
                 doneHot = on;
-                if (on)
-                {
-                    done.SetResourceReference(Control.BackgroundProperty, "CaptionCloseHoverBrush");
-                    done.SetResourceReference(Control.ForegroundProperty, "CaptionCloseHoverFgBrush");
-                }
-                else
-                {
-                    done.Background = Brushes.Transparent;
-                    done.SetResourceReference(Control.ForegroundProperty, "DimTextBrush");
-                }
+                // Only the glyph's color: the style's own Foreground comes back when the hover ends.
+                if (on) done.SetResourceReference(Control.ForegroundProperty, "AboutCloseHoverFg");
+                else done.ClearValue(Control.ForegroundProperty);
             }
             bool Over(MouseEventArgs e, FrameworkElement el)
             {
@@ -689,6 +697,7 @@ namespace KillerFamily.Controls
             void Down(object? sender, MouseButtonEventArgs e)
             {
                 if (!editing || e.ChangedButton != MouseButton.Left || !Fresh(e)) return;
+                SetCursor(null);
                 // The element under the click when the event reaches it directly, else the surface under the pointer.
                 var src = e.OriginalSource as DependencyObject;
                 var hit = Owner(src) is not null || Within(src, reset) || Within(src, done) ? src : HitAt(e);
@@ -854,22 +863,28 @@ namespace KillerFamily.Controls
             // Test hook: drives the drag in screen points the way the mouse does.
             root.SetValue(EditDriverProperty, new EditDriver(s => Press(s, null), Drag, Release, () => order.ToList(), on => { if (on != editing) SetEditing(on, animate: false); }));
             // Both surfaces listen: the card while it holds the mouse, the drawer when it gets the events itself.
+            var down = new MouseButtonEventHandler(Down);
+            var move = new MouseEventHandler(MoveMouse);
+            var up = new MouseButtonEventHandler(Up);
+            // The wheel scrolls the drawer while the pointer is over it.
+            var wheel = new MouseWheelEventHandler((_, e) =>
+            {
+                if (!editing || !OverDrawer(e)) return;
+                scroller.ScrollToVerticalOffset(scroller.VerticalOffset - e.Delta / 3.0);
+                e.Handled = true;
+            });
             foreach (UIElement surface in new UIElement[] { card, drawerClip })
             {
-                surface.AddHandler(UIElement.PreviewMouseDownEvent, new MouseButtonEventHandler(Down), true);
-                surface.AddHandler(UIElement.PreviewMouseMoveEvent, new MouseEventHandler(MoveMouse), true);
-                surface.AddHandler(UIElement.PreviewMouseUpEvent, new MouseButtonEventHandler(Up), true);
-                // The wheel scrolls the drawer while the pointer is over it.
-                surface.AddHandler(UIElement.PreviewMouseWheelEvent, new MouseWheelEventHandler((_, e) =>
-                {
-                    if (!editing || !OverDrawer(e)) return;
-                    scroller.ScrollToVerticalOffset(scroller.VerticalOffset - e.Delta / 3.0);
-                    e.Handled = true;
-                }), true);
+                surface.AddHandler(UIElement.PreviewMouseDownEvent, down, true);
+                surface.AddHandler(UIElement.PreviewMouseMoveEvent, move, true);
+                surface.AddHandler(UIElement.PreviewMouseUpEvent, up, true);
+                surface.AddHandler(UIElement.PreviewMouseWheelEvent, wheel, true);
             }
-            // Keyboard, while editing: Enter or Space moves the focused tile between the card and the drawer; Alt+Left
-            // and Alt+Right move a card tile one slot, Alt+Up and Alt+Down one row, saved like a drag. Focus stays on the
-            // moved tile and a screen reader hears its new place.
+            // Keyboard, while editing: Enter or Space moves the tile the keyboard is on between the card and the drawer,
+            // and the keyboard follows it there; Alt+Left and Alt+Right move a card tile one slot, Alt+Up and Alt+Down one
+            // row, saved like a drag. Focus stays on the moved tile and a screen reader hears its new place. Tab and
+            // Shift+Tab walk one ring: the card's tiles, Reset, the drawer's tiles and the X, so a tile hidden from the
+            // keyboard comes back from the keyboard. In the drawer that walk is the cursor, focus staying on the sink.
             var announcer = new TextBlock { Height = 0, Width = 0, Opacity = 0, IsHitTestVisible = false, Focusable = false };
             AutomationProperties.SetLiveSetting(announcer, AutomationLiveSetting.Polite);
             root.Children.Add(announcer);
@@ -912,8 +927,118 @@ namespace KillerFamily.Controls
                 if (by != 0) { if (Shift(t, by)) e.Handled = true; return; }
                 if (e.Key is not (Key.Enter or Key.Space)) return;
                 Move(t, !Hidden(t.Key));
+                Aim(owners.FirstOrDefault(o => o.Value.Key == t.Key).Key);
                 e.Handled = true;
             };
+
+            // Focus on a tile's button, or on the pencil, Reset or the X, in keyboard focus and the card's focus scope.
+            bool FocusOn(UIElement? el)
+            {
+                if (el is null) return false;
+                root.UpdateLayout();
+                if (drawer.IsOpen) drawerClip.UpdateLayout();
+                if (Descendants(el).OfType<Button>().FirstOrDefault() is not { } face) return false;
+                FocusManager.SetFocusedElement(FocusManager.GetFocusScope(face), face);
+                return face.Focus();
+            }
+            // The keyboard's spot: a card tile or the pencil takes real focus; Reset, a drawer tile or the X takes the
+            // cursor while focus waits on the sink, which carries the spot's name so a screen reader says where it is.
+            void Aim(UIElement? el)
+            {
+                if (el is null) return;
+                if (!drawerClip.IsAncestorOf(el)) { SetCursor(null); FocusOn(el); return; }
+                root.UpdateLayout();
+                drawerClip.UpdateLayout();
+                var face = Descendants(el).OfType<Button>().FirstOrDefault();
+                string said = face is null ? "" : AutomationProperties.GetName(face);
+                AutomationProperties.SetName(sink, said);
+                bool had = sink.IsKeyboardFocused;
+                FocusManager.SetFocusedElement(FocusManager.GetFocusScope(sink), sink);
+                sink.Focus();
+                SetCursor(el);
+                face?.BringIntoView();
+                // Focus already on the sink raises no focus change, so the new spot is announced instead.
+                if (had) Announce(said);
+            }
+            void SetCursor(UIElement? el)
+            {
+                var was = cursor;
+                cursor = el;
+                if (el is null) card.ClearValue(KeyboardCursorProperty);
+                else card.SetValue(KeyboardCursorProperty, el);
+                if (!ReferenceEquals(was, el)) Paint(was);
+                Paint(el);
+            }
+            // The X turns red and Reset underlines, as under the pointer; a drawer tile takes the accent edge a
+            // focused tile shows.
+            void Paint(UIElement? el)
+            {
+                if (el is null) return;
+                if (ReferenceEquals(el, reset)) HotReset(false);
+                else if (ReferenceEquals(el, done)) HotDone(false);
+                else if (Descendants(el).OfType<Button>().FirstOrDefault() is { } face && face.Template?.FindName("Bd", face) is Border bd)
+                {
+                    if (ReferenceEquals(el, cursor)) bd.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush");
+                    else bd.ClearValue(Border.BorderBrushProperty);
+                }
+            }
+            IEnumerable<UIElement> TilesOn(Border host) =>
+                host.Child is Border { Child: Panel panel } ? panel.Children.OfType<UIElement>().Where(owners.ContainsKey) : [];
+            List<UIElement> Ring()
+            {
+                var ring = TilesOn(gridHost).ToList();
+                if (reset.IsEnabled) ring.Add(reset);
+                ring.AddRange(TilesOn(drawerTiles));
+                ring.Add(done);
+                return ring;
+            }
+            void Step(bool back)
+            {
+                var ring = Ring();
+                var focused = Keyboard.FocusedElement as DependencyObject;
+                int at = cursor is not null ? ring.IndexOf(cursor)
+                    : ring.FindIndex(el => focused is not null && (ReferenceEquals(el, focused) || (focused is Visual v && el.IsAncestorOf(v))));
+                int next = at < 0 ? (back ? ring.Count - 1 : 0) : (at + (back ? -1 : 1) + ring.Count) % ring.Count;
+                Aim(ring[next]);
+            }
+            // On the card itself, so it also sees keys while focus sits on the card, the pencil or the drawer.
+            KeyEventHandler keys = (_, e) =>
+            {
+                var focused = Keyboard.FocusedElement;
+                if (!editing)
+                {
+                    // The pencil from the keyboard opens editing on the card's first tile.
+                    if (ReferenceEquals(focused, pencil) && e.Key is Key.Enter or Key.Space)
+                    {
+                        SetEditing(true);
+                        Aim(Ring()[0]);
+                        e.Handled = true;
+                    }
+                    return;
+                }
+                if (e.Key == Key.Tab) { Step((Keyboard.Modifiers & ModifierKeys.Shift) != 0); e.Handled = true; return; }
+                // On a card tile the root's handler moves it; here only the drawer's spots, where the cursor is.
+                if (e.Key is not (Key.Enter or Key.Space) || cursor is null) return;
+                if (ReferenceEquals(cursor, done)) { SetEditing(false); FocusOn(pencil); }
+                else if (ReferenceEquals(cursor, reset)) { if (reset.IsEnabled) ResetLayout(); Aim(Ring()[0]); }
+                else if (owners.TryGetValue(cursor, out var t)) { Move(t, false); Aim(owners.FirstOrDefault(o => o.Value.Key == t.Key).Key); }
+                e.Handled = true;
+            };
+            card.PreviewKeyDown += keys;
+            card.SetValue(EditUnhookProperty, new Action(() =>
+            {
+                card.Closed -= closed;
+                card.PreviewKeyDown -= keys;
+                card.RemoveHandler(UIElement.PreviewMouseDownEvent, linger);
+                card.RemoveHandler(UIElement.PreviewMouseDownEvent, down);
+                card.RemoveHandler(UIElement.PreviewMouseMoveEvent, move);
+                card.RemoveHandler(UIElement.PreviewMouseUpEvent, up);
+                card.RemoveHandler(UIElement.PreviewMouseWheelEvent, wheel);
+                EndDrag();
+                if (editing) SetEditing(false, animate: false);
+                SetCursor(null);
+                drawer.IsOpen = false;
+            }));
 
             Rebuild();
             var outer = new Border { Child = root };
@@ -955,7 +1080,7 @@ namespace KillerFamily.Controls
             content.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
             bd.AppendChild(content);
             var label = new TextBlock { Text = text, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
-            var b = new Button { Content = label, ToolTip = tip, Cursor = Cursors.Hand, Focusable = false, VerticalAlignment = VerticalAlignment.Center, Template = new ControlTemplate(typeof(Button)) { VisualTree = bd } };
+            var b = new Button { Content = label, ToolTip = tip, Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, Template = new ControlTemplate(typeof(Button)) { VisualTree = bd } };
             void Paint() => label.SetResourceReference(TextBlock.ForegroundProperty, b.IsEnabled ? "PrimaryBrush" : "DimTextBrush");
             Paint();
             b.IsEnabledChanged += (_, _) => { Paint(); if (!b.IsEnabled) label.TextDecorations = null; };
@@ -964,41 +1089,15 @@ namespace KillerFamily.Controls
             return b;
         }
 
-        // The windows' close X at a small button's size: red on hover (CaptionCloseHoverBrush), the pixel-art X on the
-        // flat 98SE theme. The card drives the hover itself while it holds the mouse.
-        private static Button CloseButton(string tip)
+        // The family's small-window close X (OverlayCloseButton with the AboutClose glyph, as the dialogs and About use):
+        // the glyph alone reddens on hover, never a filled red block, which is the main window's caption treatment and
+        // read wrong on a drawer floating over the app (Steve 2026-11-21). The card drives the hover itself while it
+        // holds the mouse (HotDone).
+        internal static Button CloseButton(string tip)
         {
-            var bd = new FrameworkElementFactory(typeof(Border), "Bd");
-            bd.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Control.BackgroundProperty));
-            bd.SetResourceReference(Border.CornerRadiusProperty, "SmallCornerRadius");
-            var glyph = new FrameworkElementFactory(typeof(ContentPresenter));
-            glyph.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            glyph.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
-            glyph.SetResourceReference(UIElement.VisibilityProperty, "CaptionFontGlyphVisibility");
-            bd.AppendChild(glyph);
-            var pixels = new FrameworkElementFactory(typeof(System.Windows.Shapes.Path));
-            pixels.SetValue(FrameworkElement.WidthProperty, 10.0);
-            pixels.SetValue(FrameworkElement.HeightProperty, 9.0);
-            pixels.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            pixels.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
-            pixels.SetValue(UIElement.IsHitTestVisibleProperty, false);
-            pixels.SetValue(UIElement.SnapsToDevicePixelsProperty, true);
-            pixels.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
-            pixels.SetValue(System.Windows.Shapes.Shape.FillProperty, new TemplateBindingExtension(Control.ForegroundProperty));
-            pixels.SetValue(System.Windows.Shapes.Path.DataProperty, Geometry.Parse("M0,0h2v1h-2z M8,0h2v1h-2z M1,1h2v1h-2z M7,1h2v1h-2z M2,2h2v1h-2z M6,2h2v1h-2z M3,3h4v1h-4z M4,4h2v1h-2z M3,5h4v1h-4z M2,6h2v1h-2z M6,6h2v1h-2z M1,7h2v1h-2z M7,7h2v1h-2z M0,8h2v1h-2z M8,8h2v1h-2z"));
-            pixels.SetResourceReference(UIElement.VisibilityProperty, "CaptionDrawnGlyphVisibility");
-            var grid = new FrameworkElementFactory(typeof(Grid));
-            grid.AppendChild(bd);
-            grid.AppendChild(pixels);
-            var b = new Button
-            {
-                Content = "\uE8BB", ToolTip = tip, Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 10,
-                FontFamily = new FontFamily("Segoe MDL2 Assets"), Cursor = Cursors.Hand, Background = Brushes.Transparent,
-                Focusable = true, Template = new ControlTemplate(typeof(Button)) { VisualTree = grid },
-            };
-            b.SetResourceReference(Control.ForegroundProperty, "DimTextBrush");
-            b.MouseEnter += (_, _) => { b.SetResourceReference(Control.BackgroundProperty, "CaptionCloseHoverBrush"); b.SetResourceReference(Control.ForegroundProperty, "CaptionCloseHoverFgBrush"); };
-            b.MouseLeave += (_, _) => { b.Background = Brushes.Transparent; b.SetResourceReference(Control.ForegroundProperty, "DimTextBrush"); };
+            var b = new Button { ToolTip = tip, Width = 22, Height = 22, Padding = new Thickness(0), Focusable = true };
+            b.SetResourceReference(FrameworkElement.StyleProperty, "OverlayCloseButton");
+            b.SetResourceReference(ContentControl.ContentProperty, "AboutCloseGlyph");
             AutomationProperties.SetName(b, tip);
             return b;
         }
@@ -1010,11 +1109,20 @@ namespace KillerFamily.Controls
         internal sealed record EditDriver(Func<Point, bool> Press, Action<Point> Drag, Action<Point> Release, Func<List<string>> Order, Action<bool> Editing);
         internal static readonly DependencyProperty EditDriverProperty = DependencyProperty.RegisterAttached("EditDriver", typeof(EditDriver), typeof(CardBuilder));
 
+        // On an editable card's ContextMenu: takes off the handlers its last build put there, run by the next build.
+        private static readonly DependencyProperty EditUnhookProperty = DependencyProperty.RegisterAttached("EditUnhook", typeof(Action), typeof(CardBuilder));
+
         /// <summary>True while a customizable card is in pencil edit mode, false as soon as Done or the X ends it, even
         /// though the card stays open until the next click. Apps check this to hold card shortcuts while tiles are
         /// being moved; the card's StaysOpen is not a substitute, since it stays true after editing ends.</summary>
         public static readonly DependencyProperty IsEditingProperty = DependencyProperty.RegisterAttached("IsEditing", typeof(bool), typeof(CardBuilder), new PropertyMetadata(false));
         public static bool IsEditing(DependencyObject card) => (bool)card.GetValue(IsEditingProperty);
+
+        private static readonly DependencyProperty KeyboardCursorProperty = DependencyProperty.RegisterAttached("KeyboardCursor", typeof(UIElement), typeof(CardBuilder));
+        /// <summary>The drawer spot the keyboard is on while a card is being customized (Reset, a hidden tile or the
+        /// X), or null while it is on the card. Keyboard focus itself stays on the card: focus in the drawer's popup
+        /// would close the menu.</summary>
+        public static UIElement? KeyboardCursor(DependencyObject card) => card.GetValue(KeyboardCursorProperty) as UIElement;
 
         // The open hand over a tile that can be picked up and the closed hand while one is held: the family's own grab
         // cursors (Resources/open_hand.cur and closed_hand.cur, the art DragCursors loads), so a card tile is grabbed
