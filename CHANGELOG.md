@@ -8,18 +8,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
-- Theme and language menu labels line up with their radio buttons and the Film Grain box again, instead of sitting a pixel high.
-- The theme and language menus keep 8px between their rows and the card edge on every side, and the language menu's divider has the same gap on each side.
+- Theme and language menu labels line up with their radio buttons and the Film Grain box again, instead of sitting a pixel high. Both menus keep 8px between their rows and the card edge on every side, and on each side of the language menu's divider.
 - Confirm dialogs size to what they say, so a short prompt is narrower. The heading sits a few pixels higher, with more room above the checkboxes, and on 98SE the dialog is spaced like a Win98 message box.
 - On 98SE the theme and language menus pack their rows like Win98 menus, tab titles sit centered, and the window frame is the 4px Win98 sizing frame.
-- Under Trash Polka an open drop-down list carries the ink like a menu, instead of opening flat.
+- Under Trash Polka, open drop-down lists and the file dialog's places, file list and preview panes carry the ink instead of flat slabs. The ink stays one image at any window size and returns to a surface that was hidden during a repaint.
+- Changing the accent under Trash Polka waits at most a second when a redraw hangs, instead of stalling. Its art cache only deletes its own files when it clears an older version.
 - Menus, cards and drop-down lists opened inside the document pane keep all four corners rounded.
-- Trash Polka's art cache only deletes its own files when it clears an older version, so a folder holding anything else is left alone.
-- Under Trash Polka the ink stays one image at any window size, and a surface that was hidden during a repaint picks the ink up again when it shows.
-- Changing the accent under Trash Polka no longer stalls when a redraw hangs. It waits at most a second for the whole set.
 - The customize drawer closes with the same small X as the app's small windows, and only the X turns red on hover.
 - A sidebar menu too tall for the window fits inside it and scrolls, instead of running past the window's foot.
-- Under Trash Polka the file dialog's places, file list and preview panes carry the ink instead of flat slabs.
 - Making a new folder in the file dialog no longer freezes the window on a share that stopped answering. A refused name is read out to a screen reader as well as shown.
 - On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. Book layout sits beside it, and the pair is centered.
 - Large tiled JPEG 2000 images use far less memory again. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
@@ -31,9 +27,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Added
 
 - While customizing a card, Alt+arrow keys move the focused tile one place or one row, and a screen reader hears its new position.
-- The print window has a Color section where KillerPDF can manage print colors with an RGB printer profile from Color Management, a rendering intent and black-point compensation (#520).
-- With KillerPDF managing colors, the print preview shows how the profile predicts the page will print, and the job asks the driver to skip its own color management (#520).
-- The Color section says when the printer driver confirms it will skip its own color management, and keeps the warning to turn it off by hand for drivers that don't (#520).
+- The print window has a Color section where KillerPDF can manage print colors with an RGB printer profile from Color Management, a rendering intent and black-point compensation, and the preview shows how the profile predicts the page will print (#520).
+- The job asks the printer driver to skip its own color management and says when the driver confirms it, keeping the warning to turn it off by hand for drivers that don't (#520).
 
 ## [1.9.5] - 2026-11-20
 
