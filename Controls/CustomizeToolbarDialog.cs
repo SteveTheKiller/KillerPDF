@@ -179,7 +179,6 @@ internal sealed class CustomizeToolbarDialog : Window
         DockPanel.SetDock(header, Dock.Top);
         column.Children.Add(header);
 
-        // Each list sits in a well, so the window's texture shows through it.
         list.Padding = new Thickness(2, 4, 2, 4);
         list.AllowDrop = true;
         // Rows fit the list's width: long captions wrap or trim instead of scrolling sideways.
@@ -233,7 +232,22 @@ internal sealed class CustomizeToolbarDialog : Window
             Activate(list);
             SyncButtons();
         };
-        column.Children.Add(DialogParts.Well(list));
+        // The lists sit on framed panes in the pane color with the family drop shadow, like Transform's page.
+        // The well keeps its see-through list template; its own tint and edge give way to the pane's.
+        Grid well = DialogParts.Well(list);
+        foreach (UIElement part in well.Children)
+            if (!ReferenceEquals(part, list)) part.Visibility = Visibility.Collapsed;
+        var pane = new Border
+        {
+            BorderThickness = new Thickness(1),
+            CornerRadius = UiKit.RadCard,
+            Margin = new Thickness(0, 0, 0, 8),
+            ClipToBounds = true,
+            Child = well
+        };
+        pane.SetResourceReference(Border.BackgroundProperty, "PaneBrush");
+        pane.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
+        column.Children.Add(UiKit.PaneWithShadow(pane));
         return column;
     }
 
