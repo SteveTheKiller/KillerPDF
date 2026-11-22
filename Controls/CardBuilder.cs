@@ -1269,7 +1269,8 @@ namespace KillerFamily.Controls
                 Text = char.ConvertFromUtf32(0xE76C), FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 8, IsHitTestVisible = false,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(30, 12, 0, 0)
             };
-            chevron.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
+            // The chevron takes the tile's own foreground, so it is as bright as the label and dims with it.
+            chevron.SetBinding(TextBlock.ForegroundProperty, new System.Windows.Data.Binding(nameof(Control.Foreground)) { Source = button });
             var cell = new Grid();
             cell.Children.Add(button);
             cell.Children.Add(chevron);
