@@ -82,6 +82,14 @@ namespace KillerPDF
                     }
                     sb.AppendLine($"Type    : {inner.GetType().FullName}");
                     sb.AppendLine($"Message : {inner.Message}");
+                    if (inner is FileNotFoundException missingFile)
+                    {
+                        // Parameterless FileNotFoundException leaves Message empty; FileName still helps.
+                        if (!string.IsNullOrEmpty(missingFile.FileName))
+                            sb.AppendLine($"FileName: {missingFile.FileName}");
+                        if (!string.IsNullOrEmpty(missingFile.FusionLog))
+                            sb.AppendLine($"FusionLog: {missingFile.FusionLog}");
+                    }
                     sb.AppendLine("Stack trace:");
                     sb.AppendLine(inner.StackTrace ?? "(no stack trace)");
                     inner = inner.InnerException;

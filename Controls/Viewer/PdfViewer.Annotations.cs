@@ -1897,7 +1897,15 @@ namespace KillerPDF.Controls
                 return;
             if (_currentTool == EditTool.Redact && RedactionMouseMove(e)) return;
             if (_currentTool == EditTool.Signature && _pendingSignature is not null && sender is Canvas ghostPage)
-                MoveSignatureGhost(ghostPage, e.GetPosition(ghostPage));
+            {
+                try { MoveSignatureGhost(ghostPage, e.GetPosition(ghostPage)); }
+                catch (Exception ex) when (ex is System.IO.IOException or InvalidOperationException or ArgumentException
+                    or NotSupportedException)
+                {
+                    // A bad imported signature image must not crash every mouse move while placing.
+                    ResetSignatureGhost();
+                }
+            }
 
             // #221: the Select tool has two behaviors, flowing selection on text and a marquee on
             // empty page. Reflect the behavior under the pointer instead of leaving an arrow over

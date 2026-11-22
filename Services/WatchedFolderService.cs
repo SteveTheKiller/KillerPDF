@@ -814,10 +814,10 @@ public sealed class WatchedFolderService : IDisposable
         handle.Dispose();
         throw error switch
         {
-            2 => new FileNotFoundException(),
-            3 => new DirectoryNotFoundException(),
-            5 => new UnauthorizedAccessException(),
-            _ => new IOException()
+            2 => new FileNotFoundException($"Could not find file '{path}'.", path),
+            3 => new DirectoryNotFoundException($"Could not find a part of the path '{path}'."),
+            5 => new UnauthorizedAccessException($"Access to the path '{path}' is denied."),
+            _ => new IOException($"Could not open '{path}' (Win32 error {error}).")
         };
     }
 

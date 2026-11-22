@@ -3,6 +3,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using KillerPDF.Controls;
+using KillerPDF.Services;
 
 namespace KillerPDF.Shell;
 
@@ -19,27 +20,36 @@ public partial class MainWindow
         viewer.AllowDrop = true;
         viewer.PreviewMouseMove += (_, e) =>
         {
-            if (_signatureDragRunning || _signatureDragOrigin is not { } origin
-                || !ReferenceEquals(origin.Viewer, viewer)) return;
-            if (e.LeftButton != MouseButtonState.Pressed)
-            {
-                _signatureDragOrigin = null;
-                return;
-            }
-            if (!SignatureDragIsCurrent(origin)) { _signatureDragOrigin = null; return; }
-            Point position = e.GetPosition(viewer);
-            if (Math.Abs(position.X - origin.Press.X) < SystemParameters.MinimumHorizontalDragDistance
-                && Math.Abs(position.Y - origin.Press.Y) < SystemParameters.MinimumVerticalDragDistance) return;
-            e.Handled = true;
-            _signatureDragRunning = true;
+            // DoDragDrop must not run re-entrantly inside PreviewMouseMove: OLE drag pumps
+            // messages and a FileNotFoundException from a nested callback was surfacing here
+            // with an empty Message and crashing the dispatcher (#515). Defer the drag start
+            // and never let placement-drag failures take down the window.
             try
             {
-                DragDrop.DoDragDrop(viewer, new DataObject(SignatureDragFormat, origin.Signature), DragDropEffects.Copy);
+                if (_signatureDragRunning || _signatureDragOrigin is not { } origin
+                    || !ReferenceEquals(origin.Viewer, viewer)) return;
+                if (e.LeftButton != MouseButtonState.Pressed)
+                {
+                    _signatureDragOrigin = null;
+                    return;
+                }
+                if (!SignatureDragIsCurrent(origin)) { _signatureDragOrigin = null; return; }
+                Point position = e.GetPosition(viewer);
+                if (Math.Abs(position.X - origin.Press.X) < SystemParameters.MinimumHorizontalDragDistance
+                    && Math.Abs(position.Y - origin.Press.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+                e.Handled = true;
+                SignatureDragOrigin armed = origin;
+                _signatureDragOrigin = null;
+                Dispatcher.BeginInvoke(() => BeginSignatureDragDrop(viewer, armed),
+                    System.Windows.Threading.DispatcherPriority.Background);
             }
-            finally
+            catch (Exception ex) when (ex is System.IO.IOException or InvalidOperationException or ArgumentException)
             {
                 _signatureDragRunning = false;
                 _signatureDragOrigin = null;
+                CrashReporter.PushStatusMessage("Signature placement drag aborted: " + ex.GetType().Name
+                    + (ex is System.IO.FileNotFoundException missing && !string.IsNullOrEmpty(missing.FileName)
+                        ? " (" + missing.FileName + ")" : ""));
             }
         };
         viewer.AddHandler(UIElement.PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler((_, _) =>
@@ -65,6 +75,29 @@ public partial class MainWindow
             PlaceSignature(position, page);
             e.Effects = DragDropEffects.Copy;
         };
+    }
+
+    private void BeginSignatureDragDrop(PdfViewer viewer, SignatureDragOrigin origin)
+    {
+        if (_signatureDragRunning || !SignatureDragIsCurrent(origin)
+            || !ReferenceEquals(origin.Viewer, viewer)
+            || Mouse.LeftButton != MouseButtonState.Pressed) return;
+        _signatureDragRunning = true;
+        try
+        {
+            DragDrop.DoDragDrop(viewer, new DataObject(SignatureDragFormat, origin.Signature), DragDropEffects.Copy);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or InvalidOperationException or ArgumentException)
+        {
+            CrashReporter.PushStatusMessage("Signature placement drag failed: " + ex.GetType().Name
+                + (ex is System.IO.FileNotFoundException missing && !string.IsNullOrEmpty(missing.FileName)
+                    ? " (" + missing.FileName + ")" : ""));
+        }
+        finally
+        {
+            _signatureDragRunning = false;
+            _signatureDragOrigin = null;
+        }
     }
 
     private bool SignatureDragIsCurrent(SignatureDragOrigin origin) =>
