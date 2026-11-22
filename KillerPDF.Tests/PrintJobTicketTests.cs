@@ -341,4 +341,26 @@ public sealed class PrintJobTicketTests
         Assert.Single(XDocument.Load(written).Descendants(), element => element.Name.LocalName == "Feature"
             && ((string?)element.Attribute("name"))?.EndsWith(":PageColorManagement") == true);
     }
+
+    [Theory]
+    [InlineData("<psf:Option name=\"psk:None\" /><psf:Option name=\"psk:System\" />", true, true)]
+    [InlineData("<psf:Option name=\"psk:Device\" /><psf:Option name=\"psk:System\" />", true, false)]
+    [InlineData("<psf:Option name=\"psk:None\" />", false, false)]
+    [InlineData("", true, false)]
+    public void ConfirmsNoColorManagement_NeedsTheOfferedOptionAndTheValidatedTicket(
+        string options, bool validatedKeepsNone, bool expected)
+    {
+        string feature = options.Length == 0 ? "" : $"<psf:Feature name=\"psk:PageColorManagement\">{options}</psf:Feature>";
+        using var capabilities = new MemoryStream(Encoding.UTF8.GetBytes($"""
+            <psf:PrintCapabilities xmlns:psf="http://schemas.microsoft.com/windows/2003/08/printing/printschemaframework"
+                xmlns:psk="http://schemas.microsoft.com/windows/2003/08/printing/printschemakeywords" version="1">
+              {feature}
+            </psf:PrintCapabilities>
+            """));
+        PrintTicket validated = validatedKeepsNone
+            ? PrintJobTicket.WithoutDriverColorManagement(new PrintTicket())
+            : new PrintTicket();
+
+        Assert.Equal(expected, PrintJobTicket.ConfirmsNoColorManagement(capabilities, validated));
+    }
 }

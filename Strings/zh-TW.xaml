@@ -1220,6 +1220,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">請在「色彩管理」中匯入 RGB 印表機設定檔，才能在此處選擇。</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">此設定檔沒有可用於列印的表格。請選擇其他設定檔。</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">請同時在印表機內容中關閉色彩管理，否則色彩會被轉換兩次。</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">印表機驅動程式已確認會略過其本身的色彩管理。如果列印效果仍不對，請在其內容中檢查自動色彩校正。</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">輸出</sys:String>
     <sys:String x:Key="Str_View_BookMode">書籍版面</sys:String>
     <sys:String x:Key="Str_Tf_Levels">色階</sys:String>

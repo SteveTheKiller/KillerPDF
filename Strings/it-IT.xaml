@@ -559,6 +559,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Importa un profilo stampante RGB in Gestione colore per sceglierlo qui.</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">Questo profilo non ha tabelle utilizzabili per la stampa. Scegli un altro profilo.</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">Disattiva la gestione del colore anche nelle proprietà della stampante, altrimenti i colori vengono convertiti due volte.</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">Il driver della stampante ha confermato che salterà la propria gestione del colore. Se le stampe sembrano ancora sbagliate, cerca una correzione automatica del colore nelle sue proprietà.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">DESTINAZIONE</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Orientamento</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Verticale</sys:String>

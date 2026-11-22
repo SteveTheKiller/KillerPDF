@@ -478,6 +478,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Мұнда таңдау үшін Түстерді басқару бөлімінде RGB принтер профилін импорттаңыз.</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">Бұл профильде басып шығаруға жарамды кестелер жоқ. Басқа профильді таңдаңыз.</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">Принтер сипаттарында да түстерді басқаруды өшіріңіз, әйтпесе түстер екі рет түрлендіріледі.</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">Принтер драйвері өзінің түстерді басқаруын өткізіп жіберетінін растады. Басып шығару бәрібір дұрыс көрінбесе, оның сипаттарынан автоматты түс түзетуді тексеріңіз.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ШЫҒАРЫЛЫМ</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Бағдар</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Кітаптық</sys:String>

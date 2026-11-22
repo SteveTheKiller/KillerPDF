@@ -502,6 +502,7 @@
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Če ga želite izbrati tukaj, uvozite profil tiskalnika RGB v Upravljanju barv.</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">Ta profil nima tabel, uporabnih za tiskanje. Izberite drug profil.</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">Upravljanje barv izklopite tudi v lastnostih tiskalnika, sicer se barve pretvorijo dvakrat.</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">Gonilnik tiskalnika je potrdil, da bo preskočil lastno upravljanje barv. Če so izpisi še vedno napačni, v njegovih lastnostih preverite samodejno popravljanje barv.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">IZHOD</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Usmerjenost</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Pokončno</sys:String>

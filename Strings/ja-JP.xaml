@@ -559,6 +559,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">ここで選択するには、カラーマネジメントで RGB プリンタープロファイルをインポートしてください。</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">このプロファイルには印刷に使えるテーブルがありません。別のプロファイルを選択してください。</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">プリンターのプロパティでもカラー管理をオフにしてください。オフにしないと色が二重に変換されます。</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">プリンタードライバーは独自のカラー管理を行わないことを確認しました。それでも印刷結果がおかしい場合は、プロパティで自動色補正を確認してください。</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">出力</sys:String>
     <sys:String x:Key="Str_Print_Orientation">向き</sys:String>
     <sys:String x:Key="Str_Print_Portrait">縦</sys:String>

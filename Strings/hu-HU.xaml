@@ -559,6 +559,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Ahhoz, hogy itt kiválaszthassa, importáljon egy RGB nyomtatóprofilt a Színkezelésben.</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">Ennek a profilnak nincsenek nyomtatáshoz használható táblái. Válasszon másik profilt.</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">A nyomtató tulajdonságaiban is kapcsolja ki a színkezelést, különben a színek kétszer lesznek átalakítva.</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">A nyomtató-illesztőprogram megerősítette, hogy kihagyja a saját színkezelését. Ha a nyomatok mégsem jók, keressen automatikus színkorrekciót a tulajdonságaiban.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">KIMENET</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Tájolás</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Álló</sys:String>

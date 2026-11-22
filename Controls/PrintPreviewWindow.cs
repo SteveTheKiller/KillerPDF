@@ -85,6 +85,7 @@ namespace KillerPDF
         private ComboBox _intentCombo = null!;
         private CheckBox _bpcCheck = null!;
         private TextBlock _colorNote = null!;
+        private bool _driverConfirmsNoColor;
         private bool _updatingColorControls;
         // Proofed preview pages, kept per page until the page or the conversion changes.
         private readonly Dictionary<int, (BitmapSource Page, KillerPdf.Engine.ColorManagement.PdfPrinterColorConversion Color,
@@ -552,6 +553,28 @@ namespace KillerPDF
             return proof;
         }
 
+        // #520: asks the driver, the same way the job will, whether it takes the request to skip its
+        // own color management. Only a driver that offers the option and keeps it after validation
+        // counts as confirmed; anything else keeps the warning to turn it off by hand.
+        private void UpdateDriverColorConfirmation()
+        {
+            bool confirmed = false;
+            try
+            {
+                if (_queue is not null)
+                {
+                    PrintTicket current = _driverTicket?.Clone() ?? _queue.UserPrintTicket ?? _queue.DefaultPrintTicket;
+                    PrintTicket asked = PrintJobTicket.WithoutDriverColorManagement(current);
+                    PrintTicket validated = _queue.MergeAndValidatePrintTicket(current, asked).ValidatedPrintTicket;
+                    using var xml = _queue.GetPrintCapabilitiesAsXml();
+                    confirmed = PrintJobTicket.ConfirmsNoColorManagement(xml, validated);
+                }
+            }
+            catch { /* driver cannot answer: treat as unconfirmed */ }
+            _driverConfirmsNoColor = confirmed;
+            if (_colorNote is not null) UpdateColorControls();
+        }
+
         // Enables the two-sided checkbox only when the selected printer reports duplex support.
         private void UpdateDuplexAvailability()
         {
@@ -635,7 +658,7 @@ namespace KillerPDF
                     _driverTicket = null;                              // and its own settings dialog
                     if (_paperCombo != null) PopulatePaperSizes();     // new driver, new paper list
                     if (_sourceCombo != null) PopulatePaperSources();  // and new input bins
-                    RefreshArea(); UpdateDuplexAvailability(); UpdatePreview();
+                    RefreshArea(); UpdateDuplexAvailability(); UpdateDriverColorConfirmation(); UpdatePreview();
                 }
             };
             _printerCombo = printerCombo;
@@ -1147,7 +1170,7 @@ namespace KillerPDF
 
                 _colorNote.Text = !haveProfiles ? S("Str_Print_NoRgbPrinterProfile")
                     : managed && conversion is null ? S("Str_Print_PrinterProfileUnusable")
-                    : managed ? S("Str_Print_TurnOffDriverColor")
+                    : managed ? S(_driverConfirmsNoColor ? "Str_Print_DriverColorOffConfirmed" : "Str_Print_TurnOffDriverColor")
                     : "";
                 _colorNote.Visibility = _colorNote.Text.Length > 0 && !_grayscale ? Visibility.Visible : Visibility.Hidden;
             }
@@ -1843,6 +1866,7 @@ namespace KillerPDF
                 _copiesBox.Text = chosenCopies.ToString(System.Globalization.CultureInfo.InvariantCulture);
             SelectPaper(choices.Media);
             RefreshArea();
+            UpdateDriverColorConfirmation();
             UpdatePreview();
         }
 

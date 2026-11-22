@@ -34,8 +34,8 @@ internal static class PrintJobTicket
 
     /// <summary>Asks the driver to apply no color management of its own (Print Schema
     /// PageColorManagement None), for pages already converted to the printer profile (#520).</summary>
-    /// <remarks>A driver may ignore the request, so the print window also tells the user to turn
-    /// its color management off.</remarks>
+    /// <remarks>A driver may ignore the request, so the print window tells the user to turn its
+    /// color management off unless <see cref="ConfirmsNoColorManagement"/> holds.</remarks>
     internal static PrintTicket WithoutDriverColorManagement(PrintTicket ticket)
     {
         ArgumentNullException.ThrowIfNull(ticket);
@@ -65,6 +65,24 @@ internal static class PrintJobTicket
             .Where(element => HasKeyword(element, "PageColorManagement"))
             .SelectMany(element => element.Elements(Framework + "Option"))
             .Any(element => HasKeyword(element, "None")) == true;
+    }
+
+    /// <summary>Reads whether a driver's capabilities offer the Print Schema option for no color
+    /// management (PageColorManagement None).</summary>
+    internal static bool OffersNoColorManagement(System.IO.Stream capabilities) =>
+        XDocument.Load(capabilities).Root?.Elements(Framework + "Feature")
+            .Where(element => HasKeyword(element, "PageColorManagement"))
+            .SelectMany(element => element.Elements(Framework + "Option"))
+            .Any(element => HasKeyword(element, "None")) == true;
+
+    /// <summary>Whether a driver confirms it will skip its own color management: it offers the
+    /// option and keeps it in the ticket it validated from a request for it (#520).</summary>
+    /// <remarks>Vendor color controls in a driver's private settings are invisible to the Print
+    /// Schema, so a confirmation covers the standard switch only.</remarks>
+    internal static bool ConfirmsNoColorManagement(System.IO.Stream capabilities, PrintTicket validated)
+    {
+        ArgumentNullException.ThrowIfNull(validated);
+        return OffersNoColorManagement(capabilities) && AsksForNoDriverColorManagement(validated);
     }
 
     private static PrintTicket ApplyLayout(PrintTicket ticket, Settings settings, int copies, bool fromDriverDialog,

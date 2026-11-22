@@ -1224,6 +1224,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Importieren Sie im Farbmanagement ein RGB-Druckerprofil, um es hier auszuwählen.</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">Dieses Profil hat keine für den Druck nutzbaren Tabellen. Wählen Sie ein anderes Profil.</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">Schalten Sie das Farbmanagement auch in den Druckereigenschaften aus, sonst werden die Farben zweimal umgerechnet.</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">Der Druckertreiber hat bestätigt, dass er sein eigenes Farbmanagement auslässt. Wenn Ausdrucke trotzdem falsch aussehen, prüfen Sie seine Eigenschaften auf eine automatische Farbkorrektur.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">AUSGABE</sys:String>
     <sys:String x:Key="Str_View_BookMode">Buchlayout</sys:String>
     <sys:String x:Key="Str_Tf_Levels">TONWERTE</sys:String>

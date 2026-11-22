@@ -559,6 +559,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Nhập một hồ sơ máy in RGB trong Quản lý màu để chọn nó tại đây.</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">Hồ sơ này không có bảng nào dùng được để in. Hãy chọn hồ sơ khác.</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">Hãy tắt cả quản lý màu trong thuộc tính máy in, nếu không màu sẽ bị chuyển đổi hai lần.</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">Trình điều khiển máy in đã xác nhận sẽ bỏ qua quản lý màu của chính nó. Nếu bản in vẫn trông sai, hãy kiểm tra tính năng tự động chỉnh màu trong thuộc tính của nó.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ĐẦU RA</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Hướng giấy</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Dọc</sys:String>

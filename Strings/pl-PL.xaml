@@ -1214,6 +1214,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Zaimportuj profil drukarki RGB w Zarządzaniu kolorami, aby wybrać go tutaj.</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">Ten profil nie ma tabel nadających się do druku. Wybierz inny profil.</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">Wyłącz zarządzanie kolorami także we właściwościach drukarki, inaczej kolory zostaną przekonwertowane dwukrotnie.</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">Sterownik drukarki potwierdził, że pominie własne zarządzanie kolorami. Jeśli wydruki nadal wyglądają źle, sprawdź w jego właściwościach automatyczną korekcję kolorów.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">WYJŚCIE</sys:String>
     <sys:String x:Key="Str_View_BookMode">Układ książki</sys:String>
     <sys:String x:Key="Str_Tf_Levels">POZIOMY</sys:String>

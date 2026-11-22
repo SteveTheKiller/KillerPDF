@@ -1218,6 +1218,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Importe un perfil de impresora RGB en Gestión del color para elegirlo aquí.</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">Este perfil no tiene tablas utilizables para imprimir. Elija otro perfil.</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">Desactive también la gestión del color en las propiedades de la impresora, o los colores se convertirán dos veces.</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">El controlador de la impresora confirmó que omitirá su propia gestión del color. Si las impresiones siguen viéndose mal, revise sus propiedades por si hay una corrección automática del color.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">SALIDA</sys:String>
     <sys:String x:Key="Str_View_BookMode">Diseño de libro</sys:String>
     <sys:String x:Key="Str_Tf_Levels">NIVELES</sys:String>

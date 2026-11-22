@@ -1218,6 +1218,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Burada seçebilmek için Renk Yönetimi&apos;nde bir RGB yazıcı profili içe aktarın.</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">Bu profilde yazdırma için kullanılabilir tablo yok. Başka bir profil seçin.</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">Yazıcı özelliklerinde de renk yönetimini kapatın, yoksa renkler iki kez dönüştürülür.</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">Yazıcı sürücüsü kendi renk yönetimini atlayacağını onayladı. Baskılar yine de yanlış görünüyorsa, özelliklerinde otomatik renk düzeltmesi olup olmadığına bakın.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ÇIKTI</sys:String>
     <sys:String x:Key="Str_View_BookMode">Kitap düzeni</sys:String>
     <sys:String x:Key="Str_Tf_Levels">DÜZEYLER</sys:String>
