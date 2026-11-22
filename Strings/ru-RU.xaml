@@ -1812,6 +1812,8 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Macro_Redacted">Скрыто: {0} обл. на {1} стр.</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">Скрытие остановлено, так как не удалось прочитать поля формы или комментарии на этих страницах, поэтому термин там мог быть пропущен: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Прокрутить вверх</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Предыдущий месяц</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Следующий месяц</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Прокрутить вниз</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Прокрутить влево</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Прокрутить вправо</sys:String>

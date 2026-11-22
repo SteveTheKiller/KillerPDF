@@ -1702,6 +1702,8 @@
     <sys:String x:Key="Str_Macro_Redacted">Prekrita območja: {0}, na straneh: {1}.</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">Prekrivanje se je ustavilo, ker polj obrazca ali komentarjev na teh straneh ni bilo mogoče prebrati, zato bi lahko bil tam kakšen izraz spregledan: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Pomakni navzgor</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Prejšnji mesec</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Naslednji mesec</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Pomakni navzdol</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Pomakni levo</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Pomakni desno</sys:String>

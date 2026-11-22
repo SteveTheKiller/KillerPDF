@@ -1809,6 +1809,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Macro_Redacted">Đã che {0} vùng trên {1} trang.</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">Việc che đã dừng vì không đọc được các trường biểu mẫu hoặc nhận xét trên các trang này, nên một thuật ngữ ở đó có thể bị bỏ sót: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Cuộn lên</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Tháng trước</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Tháng sau</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Cuộn xuống</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Cuộn sang trái</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Cuộn sang phải</sys:String>

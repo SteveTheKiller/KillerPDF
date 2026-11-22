@@ -1809,6 +1809,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Macro_Redacted">{1} ページ上の {0} 範囲を墨消ししました。</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">これらのページのフォームフィールドまたはコメントを読み取れなかったため、墨消しを中止しました。そこにある語句が見落とされる可能性があります：{0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">上へスクロール</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">前の月</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">次の月</sys:String>
     <sys:String x:Key="Str_Scroll_Down">下へスクロール</sys:String>
     <sys:String x:Key="Str_Scroll_Left">左へスクロール</sys:String>
     <sys:String x:Key="Str_Scroll_Right">右へスクロール</sys:String>

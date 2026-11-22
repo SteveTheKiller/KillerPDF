@@ -1794,6 +1794,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Macro_Redacted">Začerněno oblastí: {0}, na {1} str.</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">Začernění se zastavilo, protože se nepodařilo přečíst formulářová pole nebo komentáře na těchto stránkách, takže tam mohl být nějaký výraz přehlédnut: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Posunout nahoru</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Předchozí měsíc</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Další měsíc</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Posunout dolů</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Posunout doleva</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Posunout doprava</sys:String>

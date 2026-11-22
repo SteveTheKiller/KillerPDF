@@ -11,7 +11,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Theme and language menu labels line up with their radio buttons and the Film Grain box again, instead of sitting a pixel high.
 - The theme and language menus keep 8px between their rows and the card edge on every side, and the language menu's divider has the same gap on each side.
 - Confirm dialogs size to what they say, so a short prompt is narrower. The heading sits a few pixels higher, with more room above the checkboxes, and on 98SE the dialog is spaced like a Win98 message box.
-- On 98SE tab titles sit centered, and the window frame is the 4px Win98 sizing frame.
+- On 98SE the theme and language menus pack their rows like Win98 menus, tab titles sit centered, and the window frame is the 4px Win98 sizing frame.
+- Under Trash Polka an open drop-down list carries the ink like a menu, instead of opening flat.
+- Menus, cards and drop-down lists opened inside the document pane keep all four corners rounded.
 - On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. Book layout sits beside it, and the pair is centered.
 - Large tiled JPEG 2000 images use far less memory again. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
 

@@ -1789,6 +1789,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Macro_Redacted">Karartılan alanlar: {0}, sayfa sayısı: {1}.</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">Bu sayfalardaki form alanları veya yorumlar okunamadığı için karartma durduruldu, bu nedenle oradaki bir terim gözden kaçabilir: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Yukarı kaydır</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Önceki ay</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Sonraki ay</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Aşağı kaydır</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Sola kaydır</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Sağa kaydır</sys:String>

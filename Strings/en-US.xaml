@@ -1820,6 +1820,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Macro_Redacted">Redacted {0} area(s) on {1} page(s).</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">Redaction stopped because the form fields or comments on these pages could not be read, so a term there might be missed: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Scroll up</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Previous month</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Next month</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Scroll down</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Scroll left</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Scroll right</sys:String>

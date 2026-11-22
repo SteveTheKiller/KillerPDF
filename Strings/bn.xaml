@@ -1789,6 +1789,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Macro_Redacted">{1}টি পৃষ্ঠায় {0}টি এলাকা রিড্যাক্ট করা হয়েছে।</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">এই পৃষ্ঠাগুলোর ফর্ম ফিল্ড বা মন্তব্য পড়া যায়নি বলে রিড্যাক্ট থামানো হয়েছে, তাই সেখানকার কোনো শব্দ বাদ পড়তে পারে: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">উপরে স্ক্রল করুন</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">আগের মাস</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">পরের মাস</sys:String>
     <sys:String x:Key="Str_Scroll_Down">নিচে স্ক্রল করুন</sys:String>
     <sys:String x:Key="Str_Scroll_Left">বাঁয়ে স্ক্রল করুন</sys:String>
     <sys:String x:Key="Str_Scroll_Right">ডানে স্ক্রল করুন</sys:String>

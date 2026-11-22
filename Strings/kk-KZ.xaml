@@ -1812,6 +1812,8 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Macro_Redacted">{1} беттегі {0} аймақ жасырылды.</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">Осы беттердегі пішін өрістерін немесе түсініктемелерді оқу мүмкін болмағандықтан, жасыру тоқтатылды, сондықтан сол жердегі термин қалып қоюы мүмкін: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Жоғары айналдыру</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Алдыңғы ай</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Келесі ай</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Төмен айналдыру</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Солға айналдыру</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Оңға айналдыру</sys:String>

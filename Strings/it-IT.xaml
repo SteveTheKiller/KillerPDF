@@ -1809,6 +1809,8 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Macro_Redacted">Oscurate {0} aree su {1} pagina/e.</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">L’oscuramento si è interrotto perché non è stato possibile leggere i campi modulo o i commenti in queste pagine, quindi un termine presente potrebbe sfuggire: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Scorri verso l'alto</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Mese precedente</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Mese successivo</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Scorri verso il basso</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Scorri a sinistra</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Scorri a destra</sys:String>

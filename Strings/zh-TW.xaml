@@ -1791,6 +1791,8 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Macro_Redacted">已塗黑 {1} 頁上的 {0} 個區域。</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">由於無法讀取這些頁面上的表單欄位或註解，塗黑已停止，因此其中的某個詞語可能被遺漏：{0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">向上捲動</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">上個月</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">下個月</sys:String>
     <sys:String x:Key="Str_Scroll_Down">向下捲動</sys:String>
     <sys:String x:Key="Str_Scroll_Left">向左捲動</sys:String>
     <sys:String x:Key="Str_Scroll_Right">向右捲動</sys:String>

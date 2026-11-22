@@ -1356,6 +1356,13 @@ namespace KillerPDF.Services
                     combined["TabCornerRadius"] = new CornerRadius(p, p, 0, 0);
                 }
 
+                // Menus, cards and dropdowns use their own copy of the panel radius. The workspace
+                // pane overrides PanelCornerRadius for its subtree to square the tab side, and a
+                // popup resolves resources through its placement target, so a card opened inside
+                // the pane came out with a square corner where it read the pane's key.
+                if (!combined.Contains("MenuCornerRadius"))
+                    combined["MenuCornerRadius"] = combined["PanelCornerRadius"] is CornerRadius mcr ? mcr : new CornerRadius(6);
+
                 // The close button's hover block follows the CARD's radius on its own corner and
                 // stays square on the three interior edges.
                 if (!combined.Contains("CaptionCloseCornerRadius"))

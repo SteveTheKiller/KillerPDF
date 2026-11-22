@@ -1789,6 +1789,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Macro_Redacted">Se censuraron {0} área(s) en {1} página(s).</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">La censura se detuvo porque no se pudieron leer los campos de formulario o los comentarios de estas páginas, por lo que podría pasarse por alto un término allí: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Desplazar hacia arriba</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Mes anterior</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Mes siguiente</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Desplazar hacia abajo</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Desplazar hacia la izquierda</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Desplazar hacia la derecha</sys:String>

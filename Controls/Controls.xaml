@@ -450,16 +450,19 @@
                                Placement="Bottom" AllowsTransparency="True" PopupAnimation="Fade">
                             <!-- ComboPopupBrush: MenuBackgroundBrush everywhere, WHITE on 98SE -
                                  a Win98 dropdown list is a white well with the navy highlight. -->
+                            <!-- Marked here, not left to ThemeMotif's popup pass: WPF only sends Loaded into a subtree
+                                 that has an instance handler, so the open list was never found and stayed flat. -->
                             <Border MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                    kui:ThemeMotif.Part="Popup" kui:ThemeMotif.BaseBrush="ComboPopupBrush"
                                     Background="{DynamicResource ComboPopupBrush}" BorderBrush="{DynamicResource MenuBorderBrush}"
-                                    BorderThickness="1" CornerRadius="{DynamicResource PanelCornerRadius}" Margin="6"
+                                    BorderThickness="1" CornerRadius="{DynamicResource MenuCornerRadius}" Margin="6"
                                     Effect="{DynamicResource ComboPopupShadow}">
                                 <Grid>
                                     <ScrollViewer Margin="0,4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
                                     </ScrollViewer>
                                     <!-- Grain last, over the items, so a highlighted row keeps its texture. -->
-                                    <Border IsHitTestVisible="False" CornerRadius="{DynamicResource PanelCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                                    <Border IsHitTestVisible="False" CornerRadius="{DynamicResource MenuCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
                                 </Grid>
                             </Border>
                         </Popup>
@@ -594,14 +597,14 @@
                         </DataTemplate>
                     </ControlTemplate.Resources>
                     <Border x:Name="PART_Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource PanelCornerRadius}" Margin="6" Padding="8,6">
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource MenuCornerRadius}" Margin="6" Padding="8,6">
                         <Border.Effect><DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="{DynamicResource FlyoutShadowOpacity}"/></Border.Effect>
                         <Grid>
                             <!-- Margin cancels PART_Root's Padding above. The grain is a child of
                                  the padded content, so without it the texture stops 8px short of
                                  the card's edges and a flat ring frames the month grid - the
                                  same defect the details dialogs had. -->
-                            <Border IsHitTestVisible="False" Margin="-8,-6" CornerRadius="{DynamicResource PanelCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                            <Border IsHitTestVisible="False" Margin="-8,-6" CornerRadius="{DynamicResource MenuCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
                             <StackPanel>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -609,7 +612,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <Button x:Name="PART_PreviousButton" Grid.Column="0" Style="{StaticResource GrungeCalendarNavButton}" Content="&#xE76B;" Focusable="False"/>
+                                    <Button x:Name="PART_PreviousButton" Grid.Column="0" Style="{StaticResource GrungeCalendarNavButton}" Content="&#xE76B;" Focusable="False" ToolTip="{DynamicResource Str_Cal_PrevMonth}"/>
                                     <Button x:Name="PART_HeaderButton" Grid.Column="1" Focusable="False" Cursor="Hand"
                                             Background="Transparent" Foreground="{DynamicResource TextBrush}" FontFamily="{DynamicResource MonoFont}" FontSize="12" FontWeight="SemiBold">
                                         <Button.Template>
@@ -621,7 +624,7 @@
                                             </ControlTemplate>
                                         </Button.Template>
                                     </Button>
-                                    <Button x:Name="PART_NextButton" Grid.Column="2" Style="{StaticResource GrungeCalendarNavButton}" Content="&#xE76C;" Focusable="False"/>
+                                    <Button x:Name="PART_NextButton" Grid.Column="2" Style="{StaticResource GrungeCalendarNavButton}" Content="&#xE76C;" Focusable="False" ToolTip="{DynamicResource Str_Cal_NextMonth}"/>
                                 </Grid>
                                 <Grid Margin="0,2,0,0">
                                     <Grid x:Name="PART_MonthView" HorizontalAlignment="Center" Visibility="Visible">
@@ -965,7 +968,7 @@
                          hold the card in place against the wider halo. -->
                     <Grid x:Name="MenuRoot" Opacity="0" Margin="22,18,22,26">
                         <!-- Shadow-only layer behind, so the menu text stays crisp. -->
-                        <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource PanelCornerRadius}" IsHitTestVisible="False">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource MenuCornerRadius}" IsHitTestVisible="False">
                             <!-- A flat theme sets the opacity to 0; the layer then leaves the tree
                                  instead of running a blur that draws nothing. -->
                             <Border.Style>
@@ -984,7 +987,7 @@
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource PanelCornerRadius}">
+                                CornerRadius="{DynamicResource MenuCornerRadius}">
                             <Grid>
                                 <!-- Film grain on the menu surface, matching the settings panel. -->
                                 <!-- IsSharedSizeScope so every MenuItem's Header/Gesture columns in THIS
@@ -992,7 +995,7 @@
                                      names) instead of each row sizing its shortcut text independently. -->
                                 <!-- A menu taller than the screen scrolls instead of cutting off its last items (KillerShot menu-overflow). -->
                                 <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
-                                        CornerRadius="{DynamicResource PanelCornerRadius}" Background="{DynamicResource GrainTileBrush}"/>
+                                        CornerRadius="{DynamicResource MenuCornerRadius}" Background="{DynamicResource GrainTileBrush}"/>
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
                                     <StackPanel IsItemsHost="True" Margin="{TemplateBinding Padding}" KeyboardNavigation.DirectionalNavigation="Cycle"
                                                 Grid.IsSharedSizeScope="True"/>
@@ -1320,7 +1323,7 @@
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
         <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Margin" Value="0,0,0,8"/>
+        <Setter Property="Margin" Value="{DynamicResource ThemeRadioMargin}"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -1339,7 +1342,7 @@
                             Margin="-8,0,2,0"/>
                     <!-- Grain over the hover fill, under the ring and label, as on menu rows and card tiles. -->
                     <Border x:Name="RadioGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="3" Margin="-8,0,2,0" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
-                    <Border Margin="-8,0,2,0" Padding="4,4,10,4">
+                    <Border Margin="-8,0,2,0" Padding="{DynamicResource ThemeRadioPadding}">
                         <!-- DockPanel (not a horizontal StackPanel) so the content fills the row
                              width, letting a right-aligned column (e.g. language codes) reach the
                              right edge. -->
@@ -1393,7 +1396,7 @@
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
         <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Margin" Value="0,0,0,8"/>
+        <Setter Property="Margin" Value="{DynamicResource ThemeRadioMargin}"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -1406,7 +1409,7 @@
                             Margin="-8,0,2,0"/>
                     <!-- Grain over the hover fill, under the box and label, as on menu rows and card tiles. -->
                     <Border x:Name="CheckGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="3" Margin="-8,0,2,0" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
-                    <Border Margin="-8,0,2,0" Padding="4,4,10,4">
+                    <Border Margin="-8,0,2,0" Padding="{DynamicResource ThemeRadioPadding}">
                         <DockPanel LastChildFill="True" Background="Transparent">
                             <!-- Centered on the label's capitals for whatever font the theme uses (Controls/CapCenterMargin.cs). A fixed nudge only fits one face. -->
                             <Grid Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" DockPanel.Dock="Left">
@@ -2481,8 +2484,8 @@
         <GradientStop Color="#38000000" Offset="0.65"/>
         <GradientStop Color="#80000000" Offset="1"/>
     </LinearGradientBrush>
-    <!-- A list over a bottom tab strip hides this (FilePane.xaml.cs ApplyBottomTabShadow) while
-         the pane's TabScrollShadow overlay draws the same shadow on into the active tab. -->
+    <!-- An app whose list sits over a bottom tab strip hides this cue there and draws one shadow
+         from the list's foot on through the active tab instead, so the shade never stops at the join. -->
     <Style x:Key="ScrollBottomCue" TargetType="Border" BasedOn="{StaticResource ScrollCueBase}">
         <Setter Property="Height" Value="28"/>
         <Setter Property="VerticalAlignment" Value="Bottom"/>
@@ -3457,8 +3460,10 @@
                                IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False"
                                PopupAnimation="Fade" Placement="Bottom">
                             <!-- ComboPopupBrush (the menu surface), not PaneBrush: ThemeMotif paints ComboPopupBrush with the
-                                 popup piece, so an open list under Trash Polka carries the art like a menu does. -->
+                                 popup piece, so an open list under Trash Polka carries the art like a menu does. Marked
+                                 here: WPF never sends Loaded into the list, so the popup pass could not find it. -->
                             <Border x:Name="PopupBd" Background="{DynamicResource ComboPopupBrush}"
+                                    kui:ThemeMotif.Part="Popup" kui:ThemeMotif.BaseBrush="ComboPopupBrush"
                                     BorderBrush="{DynamicResource MenuBorderBrush}" BorderThickness="1"
                                     CornerRadius="{DynamicResource SmallCornerRadius}" Padding="2" Margin="0,2,6,6"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"

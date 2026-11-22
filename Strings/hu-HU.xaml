@@ -1796,6 +1796,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Macro_Redacted">Kitakarva: {0} terület, {1} oldalon.</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">A kitakarás leállt, mert az ezeken az oldalakon lévő űrlapmezőket vagy megjegyzéseket nem sikerült beolvasni, ezért egy ottani kifejezés kimaradhat: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Görgetés felfelé</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Előző hónap</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Következő hónap</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Görgetés lefelé</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Görgetés balra</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Görgetés jobbra</sys:String>

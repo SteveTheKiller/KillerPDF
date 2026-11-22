@@ -1797,6 +1797,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Macro_Redacted">Zaczernione obszary: {0}, na {1} str.</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">Zaczernianie zostało zatrzymane, ponieważ nie udało się odczytać pól formularza ani komentarzy na tych stronach, więc znajdujące się tam wyrażenie mogło zostać pominięte: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Przewiń w górę</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Poprzedni miesiąc</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Następny miesiąc</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Przewiń w dół</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Przewiń w lewo</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Przewiń w prawo</sys:String>

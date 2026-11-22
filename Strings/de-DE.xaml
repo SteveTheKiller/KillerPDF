@@ -1798,6 +1798,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Macro_Redacted">{0} Bereich(e) auf {1} Seite(n) geschwärzt.</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">Das Schwärzen wurde angehalten, weil die Formularfelder oder Kommentare auf diesen Seiten nicht gelesen werden konnten und ein Begriff dort übersehen werden könnte: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Nach oben scrollen</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Vorheriger Monat</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Nächster Monat</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Nach unten scrollen</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Nach links scrollen</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Nach rechts scrollen</sys:String>

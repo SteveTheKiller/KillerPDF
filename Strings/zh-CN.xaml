@@ -1793,6 +1793,8 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Macro_Redacted">已涂黑 {1} 页上的 {0} 个区域。</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">由于无法读取这些页面上的表单域或注释，涂黑已停止，因此其中的某个词语可能被遗漏：{0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">向上滚动</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">上个月</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">下个月</sys:String>
     <sys:String x:Key="Str_Scroll_Down">向下滚动</sys:String>
     <sys:String x:Key="Str_Scroll_Left">向左滚动</sys:String>
     <sys:String x:Key="Str_Scroll_Right">向右滚动</sys:String>

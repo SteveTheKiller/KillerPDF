@@ -1809,6 +1809,8 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Macro_Redacted">{0} área(s) tarjada(s) em {1} página(s).</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">A tarja foi interrompida porque os campos de formulário ou os comentários destas páginas não puderam ser lidos, então um termo ali pode passar despercebido: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Rolar para cima</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Mês anterior</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Próximo mês</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Rolar para baixo</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Rolar para a esquerda</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Rolar para a direita</sys:String>

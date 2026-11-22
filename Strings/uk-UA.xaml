@@ -1809,6 +1809,8 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Macro_Redacted">Приховано: {0} обл. на {1} стор.</sys:String>
     <sys:String x:Key="Str_Macro_RedactSkippedPages">Приховування зупинено, бо не вдалося прочитати поля форм або коментарі на цих сторінках, тому термін там міг бути пропущений: {0}</sys:String>
     <sys:String x:Key="Str_Scroll_Up">Прокрутити вгору</sys:String>
+    <sys:String x:Key="Str_Cal_PrevMonth">Попередній місяць</sys:String>
+    <sys:String x:Key="Str_Cal_NextMonth">Наступний місяць</sys:String>
     <sys:String x:Key="Str_Scroll_Down">Прокрутити вниз</sys:String>
     <sys:String x:Key="Str_Scroll_Left">Прокрутити ліворуч</sys:String>
     <sys:String x:Key="Str_Scroll_Right">Прокрутити праворуч</sys:String>
