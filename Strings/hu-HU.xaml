@@ -552,6 +552,13 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Err_PrinterProperties">Nem sikerült megnyitni a nyomtató tulajdonságait:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">PAPÍR</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">ELRENDEZÉS</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">SZÍN</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Színkezelés nyomtatáskor</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">A nyomtató kezeli a színeket</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">A KillerPDF kezeli a színeket</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Ahhoz, hogy itt kiválaszthassa, importáljon egy RGB nyomtatóprofilt a Színkezelésben.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">Ennek a profilnak nincsenek nyomtatáshoz használható táblái. Válasszon másik profilt.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">A nyomtató tulajdonságaiban is kapcsolja ki a színkezelést, különben a színek kétszer lesznek átalakítva.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">KIMENET</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Tájolás</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Álló</sys:String>

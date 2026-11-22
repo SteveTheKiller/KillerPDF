@@ -552,6 +552,13 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">プリンターのプロパティを開けませんでした：</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">用紙</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">レイアウト</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">カラー</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">カラーの管理</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">プリンターがカラーを管理</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">KillerPDF がカラーを管理</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">ここで選択するには、カラーマネジメントで RGB プリンタープロファイルをインポートしてください。</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">このプロファイルには印刷に使えるテーブルがありません。別のプロファイルを選択してください。</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">プリンターのプロパティでもカラー管理をオフにしてください。オフにしないと色が二重に変換されます。</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">出力</sys:String>
     <sys:String x:Key="Str_Print_Orientation">向き</sys:String>
     <sys:String x:Key="Str_Print_Portrait">縦</sys:String>

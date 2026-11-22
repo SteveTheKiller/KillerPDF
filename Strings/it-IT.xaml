@@ -552,6 +552,13 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Err_PrinterProperties">Impossibile aprire le proprietà della stampante:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">CARTA</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">LAYOUT</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">COLORE</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Gestione del colore in stampa</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">I colori sono gestiti dalla stampante</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">I colori sono gestiti da KillerPDF</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Importa un profilo stampante RGB in Gestione colore per sceglierlo qui.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">Questo profilo non ha tabelle utilizzabili per la stampa. Scegli un altro profilo.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Disattiva la gestione del colore anche nelle proprietà della stampante, altrimenti i colori vengono convertiti due volte.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">DESTINAZIONE</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Orientamento</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Verticale</sys:String>

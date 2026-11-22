@@ -552,6 +552,13 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Err_PrinterProperties">Kunne ikke åpne skriveregenskapene:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">PAPIR</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">OPPSETT</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">FARGE</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Fargehåndtering</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">Skriveren styrer fargene</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">KillerPDF styrer fargene</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Importer en RGB-skriverprofil i Fargestyring for å velge den her.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">Denne profilen har ingen tabeller som kan brukes til utskrift. Velg en annen profil.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Slå av fargestyring i skriveregenskapene også, ellers blir fargene konvertert to ganger.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">UTDATA</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Retning</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Stående</sys:String>

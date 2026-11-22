@@ -499,6 +499,77 @@ public sealed class ProofProfileLibraryTests : IDisposable
         Assert.All(busy, error => Assert.DoesNotContain(_directory, error.ToString()));
     }
 
+    [Fact]
+    public void OnlyRgbOutputProfilesAreOfferedForPrinting()
+    {
+        var library = new ProofProfileLibrary(_directory);
+        var printer = library.Import("Inkjet", RgbProfile("prtr"));
+        library.Import("Display", RgbProfile("mntr"));
+        library.Import("Press", Convert.FromBase64String(AffineCmyk));
+        library.Import("Gray", GrayProfile());
+
+        Assert.Equal([printer], library.GetRgbPrinterProfiles());
+    }
+
+    [Fact]
+    public void LoadProfileReturnsTheStoredProfileAndRejectsBadOrMissingIds()
+    {
+        var library = new ProofProfileLibrary(_directory);
+        var printer = library.Import("Inkjet", RgbProfile("prtr"));
+
+        var loaded = Assert.IsType<PdfColorProfile>(library.LoadProfile(printer.ContentSha256));
+        Assert.Equal(printer.ContentSha256, loaded.ContentSha256);
+        Assert.True(PdfPrinterColorConversion.Supports(loaded, PdfRenderingIntent.RelativeColorimetric));
+        Assert.Null(library.LoadProfile(new string('0', 64)));
+        Assert.Null(library.LoadProfile("../profiles"));
+        File.WriteAllBytes(Assert.Single(Directory.GetFiles(_directory, "*.icc")), [0, 1, 2]);
+        Assert.Null(library.LoadProfile(printer.ContentSha256));
+    }
+
+    // A matrix/TRC RGB profile with the D50-adapted sRGB colorants and an identity curve.
+    internal static byte[] RgbProfile(string profileClass)
+    {
+        double[][] colorants =
+        [
+            [.4360747, .2225045, .0139322],
+            [.3850649, .7168786, .0971045],
+            [.1430804, .0606169, .7141733],
+            [.9642, 1, .8249]
+        ];
+        string[] xyzTags = ["rXYZ", "gXYZ", "bXYZ", "wtpt"];
+        const int TagCount = 7;
+        int offset = 132 + TagCount * 12;
+        int size = offset + xyzTags.Length * 20 + 12;
+        byte[] data = new byte[size];
+        Write(0, size);
+        data[8] = 4;
+        System.Text.Encoding.ASCII.GetBytes(profileClass).CopyTo(data, 12);
+        "RGB "u8.CopyTo(data.AsSpan(16));
+        "XYZ "u8.CopyTo(data.AsSpan(20));
+        "acsp"u8.CopyTo(data.AsSpan(36));
+        Write(128, TagCount);
+        int entry = 132;
+        for (int index = 0; index < xyzTags.Length; index++, entry += 12, offset += 20)
+        {
+            System.Text.Encoding.ASCII.GetBytes(xyzTags[index]).CopyTo(data, entry);
+            Write(entry + 4, offset);
+            Write(entry + 8, 20);
+            "XYZ "u8.CopyTo(data.AsSpan(offset));
+            for (int channel = 0; channel < 3; channel++)
+                Write(offset + 8 + channel * 4, (int)Math.Round(colorants[index][channel] * 65536));
+        }
+        foreach (string curve in new[] { "rTRC", "gTRC", "bTRC" })
+        {
+            System.Text.Encoding.ASCII.GetBytes(curve).CopyTo(data, entry);
+            Write(entry + 4, offset);
+            Write(entry + 8, 12);
+            entry += 12;
+        }
+        "curv"u8.CopyTo(data.AsSpan(offset));
+        return data;
+        void Write(int at, int value) => BinaryPrimitives.WriteInt32BigEndian(data.AsSpan(at), value);
+    }
+
     private static byte[] DistinctProfile(int index)
     {
         byte[] bytes = GrayProfile();

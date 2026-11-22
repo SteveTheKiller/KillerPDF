@@ -552,6 +552,13 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Err_PrinterProperties">Не вдалося відкрити властивості принтера:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">ПАПІР</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">РОЗМІТКА</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">КОЛІР</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Обробка кольору</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">Кольором керує принтер</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">Кольором керує KillerPDF</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Щоб вибрати профіль тут, імпортуйте RGB-профіль принтера в розділі «Керування кольором».</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">У цьому профілі немає таблиць, придатних для друку. Виберіть інший профіль.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Вимкніть керування кольором і у властивостях принтера, інакше кольори буде перетворено двічі.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ВИВЕДЕННЯ</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Орієнтація</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Книжкова</sys:String>

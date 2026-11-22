@@ -239,7 +239,34 @@ public sealed class ProofProfileLibrary(string directory)
     /// <summary>Lists library profiles whose device color space is CMYK.</summary>
     /// <remarks>Only the 20-byte ICC header of each owned copy is read.</remarks>
     public IReadOnlyList<ProofProfileEntry> GetCmykProfiles() =>
-        GetProfiles().Where(entry => DeviceSpace(entry.ContentSha256) == "CMYK").ToList().AsReadOnly();
+        GetProfiles().Where(entry => Header(entry.ContentSha256).Space == "CMYK").ToList().AsReadOnly();
+
+    /// <summary>Lists library output profiles whose device color space is RGB, the ones color-managed printing can use.</summary>
+    /// <remarks>Only the 20-byte ICC header of each owned copy is read.</remarks>
+    public IReadOnlyList<ProofProfileEntry> GetRgbPrinterProfiles() =>
+        GetProfiles().Where(entry => Header(entry.ContentSha256) is ("prtr", "RGB ")).ToList().AsReadOnly();
+
+    /// <summary>Loads a library profile by content identity, or null when its copy is missing, changed or unusable.</summary>
+    /// <remarks>A library that is busy or cannot be read throws <see cref="IOException"/> or
+    /// <see cref="UnauthorizedAccessException"/>.</remarks>
+    public PdfColorProfile? LoadProfile(string contentSha256)
+    {
+        if (contentSha256 is not { Length: 64 } || !contentSha256.All(char.IsAsciiHexDigit)) return null;
+        string reference = contentSha256.ToUpperInvariant();
+        try
+        {
+            byte[] bytes;
+            using (ProofLibraryGate.Open(GatePath, FileMode.Open))
+                bytes = ReadBoundedFile(Path.Combine(_directory, reference + ".icc"), 32 * 1024 * 1024);
+            var profile = PdfColorProfile.Load(bytes);
+            return profile.ContentSha256 == reference ? profile : null;
+        }
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException
+            or FormatException or NotSupportedException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>Gets the chosen working CMYK profile identity, or null for the built-in profile.</summary>
     /// <remarks>A missing, unreadable or damaged choice reads as the built-in profile.</remarks>
@@ -328,18 +355,19 @@ public sealed class ProofProfileLibrary(string directory)
         }
     }
 
-    private string? DeviceSpace(string contentSha256)
+    // The profile class and device color space signatures of an owned copy, or nulls when it cannot be read.
+    private (string? Class, string? Space) Header(string contentSha256)
     {
         try
         {
             using var file = File.OpenRead(Path.Combine(_directory, contentSha256 + ".icc"));
             Span<byte> header = stackalloc byte[20];
             file.ReadExactly(header);
-            return System.Text.Encoding.ASCII.GetString(header[16..20]);
+            return (System.Text.Encoding.ASCII.GetString(header[12..16]), System.Text.Encoding.ASCII.GetString(header[16..20]));
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            return null;
+            return (null, null);
         }
     }
 

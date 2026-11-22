@@ -552,6 +552,13 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Err_PrinterProperties">Não foi possível abrir as propriedades da impressora:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">PAPEL</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">LAYOUT</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">COR</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Tratamento de cores</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">A impressora gerencia as cores</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">O KillerPDF gerencia as cores</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Importe um perfil de impressora RGB em Gerenciamento de cores para escolhê-lo aqui.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">Este perfil não tem tabelas utilizáveis para impressão. Escolha outro perfil.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Desative também o gerenciamento de cores nas propriedades da impressora, ou as cores serão convertidas duas vezes.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">SAÍDA</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Orientação</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Retrato</sys:String>

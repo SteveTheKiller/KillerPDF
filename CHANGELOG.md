@@ -24,6 +24,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Added
 
 - While customizing a card, Alt+arrow keys move the focused tile one place or one row, and a screen reader hears its new position.
+- The print window has a Color section where KillerPDF can manage print colors with an RGB printer profile from Color Management, a rendering intent and black-point compensation (#520).
+- With KillerPDF managing colors, the print preview shows how the profile predicts the page will print, and the job asks the driver to skip its own color management (#520).
 
 ## [1.9.5] - 2026-11-20
 

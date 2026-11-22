@@ -300,4 +300,45 @@ public sealed class PrintJobTicketTests
 
         Assert.Same(oversized, PrinterDriverProperties.TrimToDevMode(oversized));
     }
+
+    [Fact]
+    public void Apply_AppManagedColorAsksTheDriverForNoColorManagement()
+    {
+        var settings = new PrintJobTicket.Settings(false, false, false, null, null, AppManagesColor: true);
+
+        PrintTicket applied = PrintJobTicket.Apply(new PrintTicket(), settings, copies: 1, fromDriverDialog: false);
+
+        Assert.True(PrintJobTicket.AsksForNoDriverColorManagement(applied));
+        Assert.Equal(OutputColor.Color, applied.OutputColor);
+    }
+
+    [Fact]
+    public void Apply_PrinterManagedColorLeavesTheDriverChoiceAlone()
+    {
+        var settings = new PrintJobTicket.Settings(false, false, false, null, null);
+
+        PrintTicket applied = PrintJobTicket.Apply(new PrintTicket(), settings, copies: 1, fromDriverDialog: false);
+
+        Assert.False(PrintJobTicket.AsksForNoDriverColorManagement(applied));
+    }
+
+    [Fact]
+    public void WithoutDriverColorManagement_ReplacesTheDriverChoiceAndKeepsTheRest()
+    {
+        using var xml = new MemoryStream(Encoding.UTF8.GetBytes("""
+            <f:PrintTicket xmlns:f="http://schemas.microsoft.com/windows/2003/08/printing/printschemaframework"
+                xmlns:k="http://schemas.microsoft.com/windows/2003/08/printing/printschemakeywords" version="1">
+              <f:Feature name="k:PageColorManagement"><f:Option name="k:Device" /></f:Feature>
+              <f:Feature name="k:PageOrientation"><f:Option name="k:Landscape" /></f:Feature>
+            </f:PrintTicket>
+            """));
+
+        PrintTicket applied = PrintJobTicket.WithoutDriverColorManagement(new PrintTicket(xml));
+
+        Assert.True(PrintJobTicket.AsksForNoDriverColorManagement(applied));
+        Assert.Equal(PageOrientation.Landscape, applied.PageOrientation);
+        using var written = applied.GetXmlStream();
+        Assert.Single(XDocument.Load(written).Descendants(), element => element.Name.LocalName == "Feature"
+            && ((string?)element.Attribute("name"))?.EndsWith(":PageColorManagement") == true);
+    }
 }

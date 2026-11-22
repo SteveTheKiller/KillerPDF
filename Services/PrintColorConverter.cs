@@ -29,4 +29,25 @@ internal static class PrintColorConverter
         result.Freeze();
         return result;
     }
+
+    /// <summary>A frozen copy of a page showing how the printer profile predicts it prints (#520).</summary>
+    /// <remarks>For the print preview only. The job itself sends the converted device values instead.</remarks>
+    internal static BitmapSource CreateProofBitmap(BitmapSource source,
+        KillerPdf.Engine.ColorManagement.PdfPrinterColorConversion conversion)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(conversion);
+        BitmapSource bgra = source.Format == PixelFormats.Bgra32
+            ? source
+            : new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
+        int stride = checked(bgra.PixelWidth * 4);
+        byte[] pixels = new byte[checked(stride * bgra.PixelHeight)];
+        bgra.CopyPixels(pixels, stride, 0);
+        conversion.ProofSrgbBgra32(pixels);
+        BitmapSource result = BitmapSource.Create(
+            bgra.PixelWidth, bgra.PixelHeight, bgra.DpiX, bgra.DpiY,
+            PixelFormats.Bgra32, null, pixels, stride);
+        result.Freeze();
+        return result;
+    }
 }

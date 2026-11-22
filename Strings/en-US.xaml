@@ -553,6 +553,13 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Err_PrinterProperties">Could not open the printer properties:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">PAPER</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">LAYOUT</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">COLOR</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Color handling</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">Printer manages colors</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">KillerPDF manages colors</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Import an RGB printer profile in Color Management to choose it here.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">This profile has no usable tables for printing. Choose another profile.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Turn off color management in the printer properties too, or the colors get converted twice.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">OUTPUT</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Orientation</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Portrait</sys:String>

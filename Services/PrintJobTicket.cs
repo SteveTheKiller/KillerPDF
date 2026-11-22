@@ -14,7 +14,7 @@ internal static class PrintJobTicket
     /// side while TwoSided is on: long edge for books, short edge for notepads.</summary>
     internal readonly record struct Settings(
         bool Landscape, bool TwoSided, bool Grayscale, PageMediaSize? Media, InputBin? Source,
-        bool ShortEdge = false);
+        bool ShortEdge = false, bool AppManagesColor = false);
 
     /// <summary>What a driver ticket says about those same settings; null where it is silent.</summary>
     internal readonly record struct DriverChoices(
@@ -27,6 +27,48 @@ internal static class PrintJobTicket
     /// the driver uses document-level duplex.</summary>
     internal static PrintTicket Apply(PrintTicket ticket, Settings settings, int copies, bool fromDriverDialog,
         bool documentDuplex = false)
+    {
+        PrintTicket applied = ApplyLayout(ticket, settings, copies, fromDriverDialog, documentDuplex);
+        return settings.AppManagesColor ? WithoutDriverColorManagement(applied) : applied;
+    }
+
+    /// <summary>Asks the driver to apply no color management of its own (Print Schema
+    /// PageColorManagement None), for pages already converted to the printer profile (#520).</summary>
+    /// <remarks>A driver may ignore the request, so the print window also tells the user to turn
+    /// its color management off.</remarks>
+    internal static PrintTicket WithoutDriverColorManagement(PrintTicket ticket)
+    {
+        ArgumentNullException.ThrowIfNull(ticket);
+        using var xml = ticket.GetXmlStream();
+        XDocument document = XDocument.Load(xml);
+        XElement root = document.Root!;
+        root.Elements(Framework + "Feature")
+            .Where(element => HasKeyword(element, "PageColorManagement"))
+            .Remove();
+        var feature = new XElement(Framework + "Feature",
+            new XAttribute(XNamespace.Xmlns + "kpcolor", Keywords.NamespaceName),
+            new XAttribute("name", "kpcolor:PageColorManagement"),
+            new XElement(Framework + "Option", new XAttribute("name", "kpcolor:None")));
+        root.Add(feature);
+        using var rewritten = new System.IO.MemoryStream();
+        document.Save(rewritten);
+        rewritten.Position = 0;
+        return new PrintTicket(rewritten);
+    }
+
+    /// <summary>Reads whether a ticket asks the driver for no color management.</summary>
+    internal static bool AsksForNoDriverColorManagement(PrintTicket ticket)
+    {
+        ArgumentNullException.ThrowIfNull(ticket);
+        using var xml = ticket.GetXmlStream();
+        return XDocument.Load(xml).Root?.Elements(Framework + "Feature")
+            .Where(element => HasKeyword(element, "PageColorManagement"))
+            .SelectMany(element => element.Elements(Framework + "Option"))
+            .Any(element => HasKeyword(element, "None")) == true;
+    }
+
+    private static PrintTicket ApplyLayout(PrintTicket ticket, Settings settings, int copies, bool fromDriverDialog,
+        bool documentDuplex)
     {
         ArgumentNullException.ThrowIfNull(ticket);
         ticket.CopyCount = copies;

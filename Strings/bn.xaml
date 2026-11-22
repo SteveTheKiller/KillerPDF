@@ -1211,6 +1211,13 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Err_PrinterProperties">প্রিন্টারের বৈশিষ্ট্য খোলা যায়নি:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">কাগজ</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">লেআউট</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">রং</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">রং পরিচালনা</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">প্রিন্টার রং পরিচালনা করে</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">KillerPDF রং পরিচালনা করে</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">এখানে বেছে নিতে রং ব্যবস্থাপনায় একটি RGB প্রিন্টার প্রোফাইল আমদানি করুন।</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">এই প্রোফাইলে মুদ্রণের জন্য ব্যবহারযোগ্য টেবিল নেই। অন্য প্রোফাইল বেছে নিন।</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">প্রিন্টারের বৈশিষ্ট্যেও রং ব্যবস্থাপনা বন্ধ করুন, না হলে রং দুবার রূপান্তরিত হবে।</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">আউটপুট</sys:String>
     <sys:String x:Key="Str_View_BookMode">বই লেআউট</sys:String>
     <sys:String x:Key="Str_Tf_Levels">লেভেল</sys:String>

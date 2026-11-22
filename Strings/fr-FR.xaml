@@ -552,6 +552,13 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Err_PrinterProperties">Impossible d'ouvrir les propriétés de l'imprimante :</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">PAPIER</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">MISE EN PAGE</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">COULEUR</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Gestion des couleurs à l&apos;impression</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">L&apos;imprimante gère les couleurs</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">KillerPDF gère les couleurs</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Importez un profil d&apos;imprimante RVB dans Gestion des couleurs pour le choisir ici.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">Ce profil n&apos;a aucune table utilisable pour l&apos;impression. Choisissez un autre profil.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Désactivez aussi la gestion des couleurs dans les propriétés de l&apos;imprimante, sinon les couleurs seront converties deux fois.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">SORTIE</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Orientation</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Portrait</sys:String>

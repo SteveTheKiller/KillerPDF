@@ -495,6 +495,13 @@
     <sys:String x:Key="Str_Err_PrinterProperties">Lastnosti tiskalnika ni bilo mogoče odpreti:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">PAPIR</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">POSTAVITEV</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">BARVA</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Ravnanje z barvami</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">Barve upravlja tiskalnik</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">Barve upravlja KillerPDF</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Če ga želite izbrati tukaj, uvozite profil tiskalnika RGB v Upravljanju barv.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">Ta profil nima tabel, uporabnih za tiskanje. Izberite drug profil.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Upravljanje barv izklopite tudi v lastnostih tiskalnika, sicer se barve pretvorijo dvakrat.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">IZHOD</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Usmerjenost</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Pokončno</sys:String>

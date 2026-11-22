@@ -1216,6 +1216,13 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Err_PrinterProperties">Vlastnosti tiskárny se nepodařilo otevřít:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">PAPÍR</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">ROZVRŽENÍ</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">BARVY</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Správa barev při tisku</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">Barvy spravuje tiskárna</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">Barvy spravuje KillerPDF</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Chcete-li ho vybrat zde, importujte profil tiskárny RGB ve Správě barev.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">Tento profil nemá tabulky použitelné pro tisk. Vyberte jiný profil.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Vypněte správu barev také ve vlastnostech tiskárny, jinak se barvy převedou dvakrát.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">VÝSTUP</sys:String>
     <sys:String x:Key="Str_View_BookMode">Knižní rozvržení</sys:String>
     <sys:String x:Key="Str_Tf_Levels">ÚROVNĚ</sys:String>

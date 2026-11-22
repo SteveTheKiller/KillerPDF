@@ -68,17 +68,43 @@ namespace KillerPDF
         private HashSet<int> _shownPages = [];   // source pages on the sheet the preview shows
         private bool _grayscale;             // send the job as grayscale/B&W rather than color
 
+        // Color-managed printing (#520): when KillerPDF manages colors, every page is converted to
+        // the chosen RGB printer profile before it reaches the driver, and the preview shows the
+        // profile's prediction of the print. Null while the printer manages colors.
+        private bool _appManagesColor;
+        private string? _colorProfileSha;
+        private KillerPdf.Engine.Authoring.PdfRenderingIntent _colorIntent =
+            KillerPdf.Engine.Authoring.PdfRenderingIntent.RelativeColorimetric;
+        private bool _colorBpc = true;
+        private KillerPdf.Engine.ColorManagement.PdfColorProfile? _colorProfile;
+        private KillerPdf.Engine.ColorManagement.PdfPrinterColorConversion? _printerColor;
+        private readonly List<ProofProfileEntry> _rgbPrinterProfiles = [];
+        private readonly List<KillerPdf.Engine.Authoring.PdfRenderingIntent> _intentChoices = [];
+        private ComboBox _handlingCombo = null!;
+        private ComboBox _colorProfileCombo = null!;
+        private ComboBox _intentCombo = null!;
+        private CheckBox _bpcCheck = null!;
+        private TextBlock _colorNote = null!;
+        private bool _updatingColorControls;
+        // Proofed preview pages, kept per page until the page or the conversion changes.
+        private readonly Dictionary<int, (BitmapSource Page, KillerPdf.Engine.ColorManagement.PdfPrinterColorConversion Color,
+            BitmapSource Proof)> _proofedPages = [];
+
         // Immutable copy of every layout choice used while composing a print job. The progress
         // scrim blocks the mouse but deliberately does not steal keyboard focus, so controls can
         // still receive keys while the 300-DPI pages are rendering. A job must not observe those
         // changes halfway through (especially N-up, which controls the page-loop increment).
+        // PrinterColor is the color-managed conversion; ProofColor is true for the preview, which
+        // shows the profile's prediction, and false for the job, whose pages are already converted.
         private readonly record struct PrintLayout(
             bool Landscape, int AlignH, int AlignV, int ScaleMode, double CustomPct,
-            double MarginPx, int NUp, bool Duplex, bool Grayscale, bool DuplexShort, bool Reverse);
+            double MarginPx, int NUp, bool Duplex, bool Grayscale, bool DuplexShort, bool Reverse,
+            KillerPdf.Engine.ColorManagement.PdfPrinterColorConversion? PrinterColor = null, bool ProofColor = false);
 
         private PrintLayout CurrentLayout() => new(
             _landscape, _alignH, _alignV, _scaleMode, _customPct, _marginPx,
-            _nUp, _duplex, _grayscale, _duplexShort, _reverse);
+            _nUp, _duplex, _grayscale, _duplexShort, _reverse,
+            _grayscale ? null : _printerColor, ProofColor: true);
 
         // Printable area in DIPs for the currently selected printer + orientation.
         private double _areaW = 816;   // Letter portrait fallback (8.5in * 96)
@@ -474,8 +500,7 @@ namespace KillerPDF
                     // Snap to the printable area when the page is within a pixel of filling it, so the
                     // white sheet doesn't peek through as a 1px hairline at the page edge (float seam).
                     (iw, ih) = PageWindowLayout.PrintedImageBox(iw, ih, aw - 2 * m, ah - 2 * m);
-                    BitmapSource source = layout.Grayscale
-                        ? PrintColorConverter.CreateGrayscaleBitmap(pages[idx]!) : pages[idx]!;
+                    BitmapSource source = SheetSource(idx, pages, layout);
                     if (placement.Rotated) source = PrintPagePlacement.Turn(source);
                     var img = new Image { Source = source, Width = iw, Height = ih };
                     RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
@@ -496,8 +521,7 @@ namespace KillerPDF
                     double availW = Math.Max(1, cellW - gap), availH = Math.Max(1, cellH - gap);
                     double s = Math.Min(availW / rw[idx], availH / rh[idx]);
                     double iw = rw[idx] * s, ih = rh[idx] * s;
-                    BitmapSource source = layout.Grayscale
-                        ? PrintColorConverter.CreateGrayscaleBitmap(pages[idx]!) : pages[idx]!;
+                    BitmapSource source = SheetSource(idx, pages, layout);
                     var img = new Image { Source = source, Width = iw, Height = ih };
                     RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
                     Canvas.SetLeft(img, m + col * cellW + (cellW - iw) / 2);
@@ -508,6 +532,24 @@ namespace KillerPDF
 
             sheet.Children.Add(canvas);
             return sheet;
+        }
+
+        // The bitmap a sheet draws for one page: grayscale for black and white, the printer
+        // profile's prediction in a color-managed preview, otherwise the page as rendered.
+        private BitmapSource SheetSource(int idx, BitmapSource?[] pages, PrintLayout layout)
+        {
+            BitmapSource page = pages[idx]!;
+            if (layout.Grayscale) return PrintColorConverter.CreateGrayscaleBitmap(page);
+            if (layout.PrinterColor is not { } color || !layout.ProofColor) return page;
+            // Only the preview proofs, on the UI thread, so the cache needs no lock.
+            if (_proofedPages.TryGetValue(idx, out var cached)
+                && ReferenceEquals(cached.Page, page) && ReferenceEquals(cached.Color, color))
+                return cached.Proof;
+            BitmapSource proof;
+            try { proof = PrintColorConverter.CreateProofBitmap(page, color); }
+            catch (NotSupportedException) { return page; }
+            _proofedPages[idx] = (page, color, proof);
+            return proof;
         }
 
         // Enables the two-sided checkbox only when the selected printer reports duplex support.
@@ -911,6 +953,7 @@ namespace KillerPDF
             colorMode.SelectionChanged += (s, _) =>
             {
                 _grayscale = ((ComboBox)s).SelectedIndex == 1;
+                UpdateColorControls();
                 UpdatePreview();
             };
             _colorCombo = colorMode;
@@ -919,6 +962,8 @@ namespace KillerPDF
             essentials.Children.Add(sidesPair);
             Cell(essentials, S("Str_Print_FlipOn"), _flipCombo);
             UpdateDuplexAvailability();
+
+            var colorGrid = BuildColorOptions();
 
             // Cancel then Print, the family order, with Print as the accent button on the right.
             var cancel = MakeButton(S("Str_Stamp_Cancel"), false);
@@ -938,8 +983,187 @@ namespace KillerPDF
             options.Children.Add(PageWindowLayout.Section(S("Str_Print_SecPaper"), paperGrid, out _));
             options.Children.Add(PageWindowLayout.Divider());
             options.Children.Add(PageWindowLayout.Section(S("Str_Print_SecLayout"), layoutGrid, out _));
+            options.Children.Add(PageWindowLayout.Divider());
+            options.Children.Add(PageWindowLayout.Section(S("Str_Print_SecColor"), colorGrid, out _));
             return options;
         }
+
+        // COLOR (#520): who manages print colors, and for KillerPDF, the RGB printer profile from
+        // the Color Management library, the rendering intent and black-point compensation.
+        // Every row stays in place when it does not apply, so the window keeps its height.
+        private TwoColumnPanel BuildColorOptions()
+        {
+            var grid = new TwoColumnPanel();
+            _appManagesColor = App.GetSetting("PrintColorManaged") == "1";
+            _colorProfileSha = App.GetSetting("PrintColorProfile") is { Length: > 0 } sha ? sha : null;
+            if (int.TryParse(App.GetSetting("PrintColorIntent"), out int savedIntent)
+                && Enum.IsDefined((KillerPdf.Engine.Authoring.PdfRenderingIntent)savedIntent))
+                _colorIntent = (KillerPdf.Engine.Authoring.PdfRenderingIntent)savedIntent;
+            _colorBpc = App.GetSetting("PrintColorBpc") != "0";
+
+            _handlingCombo = new ComboBox();
+            ApplyComboStyle(_handlingCombo);
+            _handlingCombo.Items.Add(S("Str_Print_PrinterManagesColor"));
+            _handlingCombo.Items.Add(S("Str_Print_AppManagesColor"));
+            ToolTipService.SetShowOnDisabled(_handlingCombo, true);
+            System.Windows.Automation.AutomationProperties.SetName(_handlingCombo, S("Str_Print_ColorHandling"));
+            _handlingCombo.SelectionChanged += (_, _) =>
+            {
+                if (_updatingColorControls) return;
+                _appManagesColor = _handlingCombo.SelectedIndex == 1;
+                UpdateColorControls();
+                UpdatePreview();
+            };
+            Cell(grid, S("Str_Print_ColorHandling"), _handlingCombo, span: true);
+
+            _colorProfileCombo = new ComboBox();
+            ApplyComboStyle(_colorProfileCombo);
+            System.Windows.Automation.AutomationProperties.SetName(_colorProfileCombo, S("Str_CM_Profile"));
+            _colorProfileCombo.SelectionChanged += (_, _) =>
+            {
+                if (_updatingColorControls) return;
+                int i = _colorProfileCombo.SelectedIndex;
+                if (i >= 0 && i < _rgbPrinterProfiles.Count) _colorProfileSha = _rgbPrinterProfiles[i].ContentSha256;
+                UpdateColorControls();
+                UpdatePreview();
+            };
+            Cell(grid, S("Str_CM_Profile"), _colorProfileCombo, span: true);
+
+            _intentCombo = new ComboBox();
+            ApplyComboStyle(_intentCombo);
+            System.Windows.Automation.AutomationProperties.SetName(_intentCombo, S("Str_CM_Intent"));
+            _intentCombo.SelectionChanged += (_, _) =>
+            {
+                if (_updatingColorControls) return;
+                int i = _intentCombo.SelectedIndex;
+                if (i >= 0 && i < _intentChoices.Count) _colorIntent = _intentChoices[i];
+                UpdateColorControls();
+                UpdatePreview();
+            };
+            Cell(grid, S("Str_CM_Intent"), _intentCombo);
+
+            _bpcCheck = UiKit.CheckBox(S("Str_CM_Bpc"));
+            _bpcCheck.IsChecked = _colorBpc;
+            _bpcCheck.MinHeight = PageWindowLayout.ControlHeight;
+            _bpcCheck.VerticalContentAlignment = VerticalAlignment.Center;
+            System.Windows.Automation.AutomationProperties.SetName(_bpcCheck, S("Str_CM_Bpc"));
+            _bpcCheck.Checked += (_, _) => { if (_updatingColorControls) return; _colorBpc = true; UpdateColorControls(); UpdatePreview(); };
+            _bpcCheck.Unchecked += (_, _) => { if (_updatingColorControls) return; _colorBpc = false; UpdateColorControls(); UpdatePreview(); };
+            Cell(grid, " ", _bpcCheck);
+
+            _colorNote = new TextBlock
+            {
+                FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 6)
+            };
+            _colorNote.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+            TwoColumnPanel.SetSpan(_colorNote, true);
+            grid.Children.Add(_colorNote);
+
+            LoadRgbPrinterProfiles();
+            UpdateColorControls();
+            return grid;
+        }
+
+        // The library's RGB output profiles, the only kind the Windows print path can drive.
+        private void LoadRgbPrinterProfiles()
+        {
+            _rgbPrinterProfiles.Clear();
+            try { _rgbPrinterProfiles.AddRange(new ProofProfileLibrary().GetRgbPrinterProfiles()); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        }
+
+        // Brings the color rows and the conversion in line with the current choices: the profile
+        // list, the intents that profile has actual tables for, and the note under them.
+        private void UpdateColorControls()
+        {
+            if (_handlingCombo is null) return;
+            _updatingColorControls = true;
+            try
+            {
+                bool haveProfiles = _rgbPrinterProfiles.Count > 0;
+                bool available = !_grayscale && haveProfiles;
+                bool managed = _appManagesColor && available;
+                _handlingCombo.SelectedIndex = managed ? 1 : 0;
+                _handlingCombo.IsEnabled = available;
+                _handlingCombo.Opacity = available ? 1.0 : 0.4;
+                _handlingCombo.ToolTip = haveProfiles ? null : S("Str_Print_NoRgbPrinterProfile");
+
+                _colorProfileCombo.Items.Clear();
+                foreach (var entry in _rgbPrinterProfiles) _colorProfileCombo.Items.Add(entry.Name);
+                int chosen = _rgbPrinterProfiles.FindIndex(entry =>
+                    string.Equals(entry.ContentSha256, _colorProfileSha, StringComparison.OrdinalIgnoreCase));
+                if (chosen < 0 && haveProfiles) chosen = 0;
+                _colorProfileCombo.SelectedIndex = chosen;
+                string? sha = chosen >= 0 ? _rgbPrinterProfiles[chosen].ContentSha256 : null;
+                if (managed && sha is not null && (_colorProfile is null || _colorProfile.ContentSha256 != sha))
+                {
+                    try { _colorProfile = new ProofProfileLibrary().LoadProfile(sha); }
+                    catch (Exception error) when (error is IOException or UnauthorizedAccessException) { _colorProfile = null; }
+                }
+
+                _intentChoices.Clear();
+                if (_colorProfile is { } profile && profile.ContentSha256 == sha)
+                    foreach (var intent in new[]
+                    {
+                        KillerPdf.Engine.Authoring.PdfRenderingIntent.Perceptual,
+                        KillerPdf.Engine.Authoring.PdfRenderingIntent.RelativeColorimetric,
+                        KillerPdf.Engine.Authoring.PdfRenderingIntent.Saturation,
+                        KillerPdf.Engine.Authoring.PdfRenderingIntent.AbsoluteColorimetric
+                    })
+                        if (KillerPdf.Engine.ColorManagement.PdfPrinterColorConversion.Supports(profile, intent))
+                            _intentChoices.Add(intent);
+                _intentCombo.Items.Clear();
+                foreach (var intent in _intentChoices) _intentCombo.Items.Add(S(IntentKey(intent)));
+                int intentIndex = _intentChoices.IndexOf(_colorIntent);
+                if (intentIndex < 0 && _intentChoices.Count > 0)
+                    intentIndex = Math.Max(0, _intentChoices.IndexOf(KillerPdf.Engine.Authoring.PdfRenderingIntent.RelativeColorimetric));
+                _intentCombo.SelectedIndex = intentIndex;
+                KillerPdf.Engine.Authoring.PdfRenderingIntent? intentInUse = intentIndex >= 0 ? _intentChoices[intentIndex] : null;
+
+                KillerPdf.Engine.ColorManagement.PdfPrinterColorConversion? conversion = null;
+                if (managed && _colorProfile is { } printer && printer.ContentSha256 == sha && intentInUse is { } use)
+                {
+                    if (_printerColor is { } current && ReferenceEquals(current.Printer, printer)
+                        && current.RenderingIntent == use
+                        && current.BlackPointCompensation == (_colorBpc && use != KillerPdf.Engine.Authoring.PdfRenderingIntent.AbsoluteColorimetric))
+                        conversion = current;
+                    else
+                    {
+                        try { conversion = new(printer, use, _colorBpc); }
+                        catch (NotSupportedException) { conversion = null; }
+                    }
+                }
+                _printerColor = conversion;
+
+                bool absolute = intentInUse == KillerPdf.Engine.Authoring.PdfRenderingIntent.AbsoluteColorimetric;
+                foreach (var control in new Control[] { _colorProfileCombo, _intentCombo })
+                {
+                    control.IsEnabled = managed;
+                    control.Opacity = managed ? 1.0 : 0.4;
+                }
+                _bpcCheck.IsChecked = _colorBpc && !absolute;
+                _bpcCheck.IsEnabled = managed && !absolute;
+                _bpcCheck.Opacity = _bpcCheck.IsEnabled ? 1.0 : 0.4;
+
+                _colorNote.Text = !haveProfiles ? S("Str_Print_NoRgbPrinterProfile")
+                    : managed && conversion is null ? S("Str_Print_PrinterProfileUnusable")
+                    : managed ? S("Str_Print_TurnOffDriverColor")
+                    : "";
+                _colorNote.Visibility = _colorNote.Text.Length > 0 && !_grayscale ? Visibility.Visible : Visibility.Hidden;
+            }
+            finally
+            {
+                _updatingColorControls = false;
+            }
+        }
+
+        private static string IntentKey(KillerPdf.Engine.Authoring.PdfRenderingIntent intent) => intent switch
+        {
+            KillerPdf.Engine.Authoring.PdfRenderingIntent.Perceptual => "Str_CM_Perceptual",
+            KillerPdf.Engine.Authoring.PdfRenderingIntent.Saturation => "Str_CM_Saturation",
+            KillerPdf.Engine.Authoring.PdfRenderingIntent.AbsoluteColorimetric => "Str_CM_Absolute",
+            _ => "Str_CM_Relative"
+        };
 
         // The title-bar 1 / 2 / Book switch. Its names are the View menu's; it never writes back
         // to the document's view mode or to the book-layout setting.
@@ -1541,13 +1765,17 @@ namespace KillerPDF
                 App.SetSetting("PrintCustomPct",     _customPct.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 App.SetSetting("PrintDuplex",        _duplex       ? "1" : "0");
                 App.SetSetting("PrintDuplexBinding", _duplexShort  ? "1" : "0");
+                App.SetSetting("PrintColorManaged",  _appManagesColor ? "1" : "0");
+                App.SetSetting("PrintColorProfile",  _colorProfileSha ?? "");
+                App.SetSetting("PrintColorIntent",   ((int)_colorIntent).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                App.SetSetting("PrintColorBpc",      _colorBpc     ? "1" : "0");
             }
             catch { /* settings are best-effort */ }
         }
 
         private PrintJobTicket.Settings JobSettings() => new(
             _landscape, _duplex, _grayscale, _paperOverride ?? MediaSizeForDocument(),
-            _sourceOverride, _duplexShort);
+            _sourceOverride, _duplexShort, AppManagesColor: !_grayscale && _printerColor is not null);
 
         // Opens the printer driver's own preferences dialog, seeded with the current job
         // settings, then carries what was chosen there into the job and back into this window.
@@ -1727,7 +1955,10 @@ namespace KillerPDF
                             requireComplete: false, cancellationToken);
                         int w = page.Width, h = page.Height;
                         byte[] pixels = page.Pixels;
-                        var bs = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);   // #141
+                        // KillerPDF-managed color (#520): the job carries the printer profile's
+                        // device values, which the preview showed back as a soft proof.
+                        layout.PrinterColor?.ConvertSrgbBgra32(pixels, cancellationToken);
+                        var bs =BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);   // #141
                         bs.Freeze();
                         hiPages[idx] = bs; hiW[idx] = w; hiH[idx] = h;
                         int shown = done;
@@ -1749,7 +1980,8 @@ namespace KillerPDF
                 // duplex, so the output is identical to the old path (issue #83 copy handling
                 // unchanged - ticket.CopyCount stays 1).
                 bool ok = await SpoolOnPrintThreadAsync(
-                    indices, copies, aw, ah, hiPages, hiW, hiH, ticket, _queue.FullName, layout, cancellationToken);
+                    indices, copies, aw, ah, hiPages, hiW, hiH, ticket, _queue.FullName,
+                    layout with { ProofColor = false }, cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested || !IsLoaded) return;
                 PrintedPageCount = ok ? indices.Count : 0;

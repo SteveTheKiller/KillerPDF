@@ -70,7 +70,7 @@ public sealed class AppDataPathsTests
     }
 
     [Fact]
-    public void APortableSettingWaitsWhileAnotherCopyHoldsTheSettingsLock()
+    public async Task APortableSettingWaitsWhileAnotherCopyHoldsTheSettingsLock()
     {
         // The lock is a file beside the settings, so a copy in another Windows session or on
         // another machine sharing the folder is held off too, which a session-local mutex is not.
@@ -93,7 +93,7 @@ public sealed class AppDataPathsTests
                 Thread.Sleep(400);
                 Assert.False(File.Exists(settingsFile), "The setting was written while another copy held the lock.");
             }
-            Assert.True(write.Wait(TimeSpan.FromSeconds(10)));
+            await write.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.Equal("ja-JP", AppDataPaths.GetPortableSetting("Locale"));
         }
         finally

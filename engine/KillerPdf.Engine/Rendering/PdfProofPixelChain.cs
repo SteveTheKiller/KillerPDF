@@ -100,15 +100,22 @@ internal sealed class PdfProofPixelChain
     // the smallest encoded sRGB source channel, 1 for white.
     internal void Apply(Span<double> xyz, double sourceWhiteness, Span<double> device)
     {
-        _sourceCompensation.Apply(xyz);
-        _printer.FromXyz(xyz, device, _options.RenderingIntent);
-        CorrectDeviceWhite(device, sourceWhiteness);
+        ToDevice(xyz, sourceWhiteness, device);
         _printer.ToXyz(device, xyz, _viewingIntent);
         CorrectConnectionWhite(xyz, device);
         if (_options.SimulatePaper && !_options.SimulateBlack)
             for (int channel = 0; channel < 3; channel++)
                 xyz[channel] = (xyz[channel] - _paperBlack[channel]) * _paperScale[channel];
         _viewingCompensation.Apply(xyz);
+    }
+
+    // The source half of the chain: source D50 values (changed in place by black-point compensation)
+    // to the printer's device values, the values a color-managed print job sends to the driver.
+    internal void ToDevice(Span<double> xyz, double sourceWhiteness, Span<double> device)
+    {
+        _sourceCompensation.Apply(xyz);
+        _printer.FromXyz(xyz, device, _options.RenderingIntent);
+        CorrectDeviceWhite(device, sourceWhiteness);
     }
 
     internal void CorrectDeviceWhite(Span<double> device, double sourceWhiteness)

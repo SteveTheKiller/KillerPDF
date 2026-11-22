@@ -552,6 +552,13 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Err_PrinterProperties">Không thể mở thuộc tính máy in:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">GIẤY</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">BỐ CỤC</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">MÀU</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Xử lý màu</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">Máy in quản lý màu</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">KillerPDF quản lý màu</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Nhập một hồ sơ máy in RGB trong Quản lý màu để chọn nó tại đây.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">Hồ sơ này không có bảng nào dùng được để in. Hãy chọn hồ sơ khác.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Hãy tắt cả quản lý màu trong thuộc tính máy in, nếu không màu sẽ bị chuyển đổi hai lần.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ĐẦU RA</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Hướng giấy</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Dọc</sys:String>

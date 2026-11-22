@@ -1211,6 +1211,13 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Err_PrinterProperties">Yazıcı özellikleri açılamadı:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">KÂĞIT</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">DÜZEN</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">RENK</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Renk işleme</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">Renkleri yazıcı yönetir</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">Renkleri KillerPDF yönetir</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Burada seçebilmek için Renk Yönetimi&apos;nde bir RGB yazıcı profili içe aktarın.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">Bu profilde yazdırma için kullanılabilir tablo yok. Başka bir profil seçin.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Yazıcı özelliklerinde de renk yönetimini kapatın, yoksa renkler iki kez dönüştürülür.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ÇIKTI</sys:String>
     <sys:String x:Key="Str_View_BookMode">Kitap düzeni</sys:String>
     <sys:String x:Key="Str_Tf_Levels">DÜZEYLER</sys:String>

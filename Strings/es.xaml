@@ -1211,6 +1211,13 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">No se pudieron abrir las propiedades de la impresora:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">PAPEL</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">DISEÑO</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">COLOR</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Gestión del color al imprimir</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">La impresora gestiona los colores</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">KillerPDF gestiona los colores</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Importe un perfil de impresora RGB en Gestión del color para elegirlo aquí.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">Este perfil no tiene tablas utilizables para imprimir. Elija otro perfil.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Desactive también la gestión del color en las propiedades de la impresora, o los colores se convertirán dos veces.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">SALIDA</sys:String>
     <sys:String x:Key="Str_View_BookMode">Diseño de libro</sys:String>
     <sys:String x:Key="Str_Tf_Levels">NIVELES</sys:String>

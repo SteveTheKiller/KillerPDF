@@ -1215,6 +1215,13 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">无法打开打印机属性：</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">纸张</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">布局</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">颜色</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">颜色处理</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">由打印机管理颜色</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">由 KillerPDF 管理颜色</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">请在“色彩管理”中导入 RGB 打印机配置文件，以便在此处选择。</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">此配置文件没有可用于打印的表。请选择其他配置文件。</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">请同时在打印机属性中关闭色彩管理，否则颜色会被转换两次。</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">输出</sys:String>
     <sys:String x:Key="Str_View_BookMode">书籍布局</sys:String>
     <sys:String x:Key="Str_Tf_Levels">色阶</sys:String>

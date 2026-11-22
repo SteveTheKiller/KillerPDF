@@ -552,6 +552,13 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Err_PrinterProperties">Не удалось открыть свойства принтера:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">БУМАГА</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">РАСПОЛОЖЕНИЕ</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">ЦВЕТ</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Обработка цвета</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">Цветом управляет принтер</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">Цветом управляет KillerPDF</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Чтобы выбрать профиль здесь, импортируйте RGB-профиль принтера в разделе «Управление цветом».</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">В этом профиле нет таблиц, пригодных для печати. Выберите другой профиль.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Отключите управление цветом и в свойствах принтера, иначе цвета будут преобразованы дважды.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ВЫВОД</sys:String>
     <sys:String x:Key="Str_Print_Orientation">ОРИЕНТАЦИЯ</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Книжная</sys:String>

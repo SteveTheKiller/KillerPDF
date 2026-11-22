@@ -471,6 +471,13 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Err_PrinterProperties">Принтер сипаттарын ашу мүмкін болмады:</sys:String>
     <sys:String x:Key="Str_Print_SecPaper">ҚАҒАЗ</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">ОРНАЛАСУ</sys:String>
+    <sys:String x:Key="Str_Print_SecColor">ТҮС</sys:String>
+    <sys:String x:Key="Str_Print_ColorHandling">Түстерді өңдеу</sys:String>
+    <sys:String x:Key="Str_Print_PrinterManagesColor">Түстерді принтер басқарады</sys:String>
+    <sys:String x:Key="Str_Print_AppManagesColor">Түстерді KillerPDF басқарады</sys:String>
+    <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Мұнда таңдау үшін Түстерді басқару бөлімінде RGB принтер профилін импорттаңыз.</sys:String>
+    <sys:String x:Key="Str_Print_PrinterProfileUnusable">Бұл профильде басып шығаруға жарамды кестелер жоқ. Басқа профильді таңдаңыз.</sys:String>
+    <sys:String x:Key="Str_Print_TurnOffDriverColor">Принтер сипаттарында да түстерді басқаруды өшіріңіз, әйтпесе түстер екі рет түрлендіріледі.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ШЫҒАРЫЛЫМ</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Бағдар</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Кітаптық</sys:String>
