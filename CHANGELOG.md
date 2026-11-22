@@ -18,8 +18,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Under Trash Polka the ink stays one image at any window size, and a surface that was hidden during a repaint picks the ink up again when it shows.
 - Changing the accent under Trash Polka no longer stalls when a redraw hangs. It waits at most a second for the whole set.
 - The customize drawer closes with the same small X as the app's small windows, and only the X turns red on hover.
+- A sidebar menu too tall for the window fits inside it and scrolls, instead of running past the window's foot.
+- Under Trash Polka the file dialog's places, file list and preview panes carry the ink instead of flat slabs.
+- Making a new folder in the file dialog no longer freezes the window on a share that stopped answering. A refused name is read out to a screen reader as well as shown.
 - On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. Book layout sits beside it, and the pair is centered.
 - Large tiled JPEG 2000 images use far less memory again. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
+
+### Changed
+
+- The tray icon's card shows the KillerPDF logo over one row of tiles, Open and then Exit, like the other cards.
 
 ### Added
 

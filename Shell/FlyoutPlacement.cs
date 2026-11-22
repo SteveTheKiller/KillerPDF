@@ -14,8 +14,9 @@ namespace KillerPDF.Controls
     /// The bottom buttons' menus sit in the pane's corner, eight pixels in from the rail and from
     /// the pane's foot. A menu opened from a button higher up rises with it: its visible bottom
     /// edge lines up with the button's bottom, so a one-item menu sits beside its button instead
-    /// of stranded down in the corner. It never drops below the corner and
-    /// never rises past the pane's top. With the sidebar on the right the same rule mirrors; on
+    /// of stranded down in the corner. It never drops below the corner and never rises past the
+    /// pane's top, except a menu taller than the pane: that one keeps its foot in the corner and
+    /// rises as high as it needs, bounded only by the window. With the sidebar on the right the same rule mirrors; on
     /// the top or bottom the menu takes the pane's near corner, as before.
     ///
     /// Why the pane and not the button or a built-in mode: a Popup is its own top-level window and
@@ -44,6 +45,11 @@ namespace KillerPDF.Controls
     ///
     /// UsePane without a side keeps the side (and root) already set, so a picker that re-points
     /// the pane on every open does not move a right-docked rail's menus back to the left.
+    ///
+    /// A pane that carries a strip along its foot which is not pane (a row of tabs below the
+    /// list) says where its visible foot is with SetVisibleFoot. The corner then sits eight pixels
+    /// above that strip instead of over it. It is read each time a flyout opens, so it follows
+    /// the strip as it comes and goes. An app that never sets it keeps the pane's own foot.
     ///
     /// Fixed placements for menus that are not rail flyouts, measured against the pane itself:
     ///     AttachTopLeft(popup)                  the pane's top-left corner
@@ -97,6 +103,28 @@ namespace KillerPDF.Controls
         private static FrameworkElement? Root =>
             _root ?? (_pane == null ? null : Window.GetWindow(_pane)?.Content as FrameworkElement) ?? _pane;
 
+        /// <summary>The pane's visible foot: given the root placement measures in, the Y of the
+        /// strip's top in that root's DIPs, or NaN while no strip covers the foot. Stored on the
+        /// pane itself, so it goes away with the pane's window.</summary>
+        internal static readonly DependencyProperty VisibleFootProperty = DependencyProperty.RegisterAttached(
+            "VisibleFoot", typeof(Func<FrameworkElement, double>), typeof(FlyoutPlacement), new PropertyMetadata(null));
+
+        internal static void SetVisibleFoot(FrameworkElement pane, Func<FrameworkElement, double>? foot)
+            => pane.SetValue(VisibleFootProperty, foot);
+
+        /// <summary>The pane in the root's DIPs, its foot raised to the visible foot when the pane
+        /// gives one. A top sidebar's corner is at the pane's top, so its foot is left alone.</summary>
+        private static Rect PaneIn(FrameworkElement pane, FrameworkElement root)
+        {
+            Rect bounds = pane.TransformToAncestor(root).TransformBounds(new Rect(pane.RenderSize));
+            if (_side != SidebarSide.Top && pane.GetValue(VisibleFootProperty) is Func<FrameworkElement, double> foot)
+            {
+                double y = foot(root);
+                if (!double.IsNaN(y) && y > bounds.Top && y < bounds.Bottom) bounds.Height = y - bounds.Top;
+            }
+            return bounds;
+        }
+
         internal static void Attach(Popup popup, UIElement? anchor)
         {
             popup.PlacementTarget = Root;
@@ -113,7 +141,29 @@ namespace KillerPDF.Controls
             menu.HorizontalOffset = menu.VerticalOffset = 0;
             menu.ApplyTemplate();
             Thickness halo = menu.Template?.FindName("MenuRoot", menu) is FrameworkElement card ? card.Margin : DefaultCardHalo;
+            FitWindow(menu, halo);
             menu.CustomPopupPlacementCallback = (popupSize, _, _) => Place(menu, popupSize, halo, anchor);
+        }
+
+        /// <summary>
+        /// Only a window too short for the whole menu makes it scroll. The menu's room runs from
+        /// eight pixels inside the window's top down to the pane's corner, eight pixels above the
+        /// pane's foot, so its foot stays in the corner; the template's ScrollViewer scrolls the
+        /// rest. The pane's top never limits it, since a tall menu rises above the pane.
+        /// Measured in the unscaled root's DIPs, the units the menu itself lays out in.
+        /// </summary>
+        private static void FitWindow(ContextMenu menu, Thickness halo)
+        {
+            var root = Root;
+            if (root == null || root.ActualHeight <= 0)
+            {
+                menu.ClearValue(FrameworkElement.MaxHeightProperty);
+                return;
+            }
+            double foot = root.ActualHeight;
+            if (_side != SidebarSide.Top && _pane != null && _pane.IsDescendantOf(root) && _pane.ActualHeight > 0)
+                foot = Math.Min(foot, PaneIn(_pane, root).Bottom);
+            menu.MaxHeight = Math.Max(0, foot - 2 * Inset) + halo.Top + halo.Bottom;
         }
 
         /// <summary>
@@ -128,7 +178,7 @@ namespace KillerPDF.Controls
 
             var dpi = VisualTreeHelper.GetDpi(root);
             double sx = dpi.DpiScaleX, sy = dpi.DpiScaleY;
-            Rect pane = _pane.TransformToAncestor(root).TransformBounds(new Rect(_pane.RenderSize));
+            Rect pane = PaneIn(_pane, root);
             Point Device(Point p) => new(p.X * sx, p.Y * sy);
             var topLeft = Device(pane.TopLeft);
             var bottomRight = Device(pane.BottomRight);
@@ -158,9 +208,17 @@ namespace KillerPDF.Controls
                 double highest = topLeft.Y + inY - halo.Top * fy;
                 y = System.Math.Max(highest, System.Math.Min(cornerY, level));
             }
-            // A flyout taller than the pane pins to its top rather than running over the toolbar.
-            if (popupSize.Height - (halo.Top + halo.Bottom) * fy > bottomRight.Y - topLeft.Y)
-                y = topLeft.Y - halo.Top * fy;
+            // A flyout taller than the pane keeps its foot in the corner and rises above the pane as
+            // far as it needs. Only the window bounds it: never below the corner, and never above
+            // eight pixels inside the window's top (2026-11-21: pinning it to the pane's top ran
+            // the theme menu off the window's bottom, and holding it to the pane cut it off).
+            if (_side != SidebarSide.Top)
+            {
+                var rootSize = Device(new Point(root.ActualWidth, root.ActualHeight));
+                double windowTop = inY - halo.Top * fy;
+                double windowFoot = rootSize.Y - inY - popupSize.Height + halo.Bottom * fy;
+                y = System.Math.Max(windowTop, System.Math.Min(y, System.Math.Min(cornerY, windowFoot)));
+            }
             return [new CustomPopupPlacement(new Point(x, y), PopupPrimaryAxis.None)];
         }
 

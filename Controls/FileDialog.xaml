@@ -307,7 +307,8 @@
                             ToolTip="{DynamicResource Str_TT_NewFolder}" AutomationProperties.Name="{DynamicResource Str_FD_NewFolder}"
                             Style="{StaticResource PickerViewBtn}" Margin="0,0,6,0"/>
                     <Popup x:Name="NewFolderPopup" PlacementTarget="{Binding ElementName=NewFolderButton}"
-                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" VerticalOffset="2">
+                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" VerticalOffset="2"
+                           Closed="NewFolderPopup_Closed">
                         <Border Background="{DynamicResource FileDialogPaneBrush}" BorderBrush="{DynamicResource MenuBorderBrush}"
                                 BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}" Padding="8">
                             <StackPanel Width="260">
@@ -316,6 +317,7 @@
                                          FontFamily="{DynamicResource UiFont}" FontSize="12" Padding="8,0,8,0" Height="28"
                                          VerticalContentAlignment="Center" KeyDown="NewFolderBox_KeyDown"/>
                                 <TextBlock x:Name="NewFolderError" Visibility="Collapsed" TextWrapping="Wrap" Margin="2,6,2,0"
+                                           AutomationProperties.LiveSetting="Assertive"
                                            FontFamily="{DynamicResource UiFont}" FontSize="11" Foreground="{DynamicResource DimTextBrush}"/>
                             </StackPanel>
                         </Border>
@@ -422,8 +424,11 @@
                      KillerShell's own arrangement, not Explorer's: the tree fills the panel and
                      the pinned places sit BELOW it, the same slot its favorites drawer occupies,
                      so the two apps read identically. Draggable divider between. -->
+                <!-- Trash Polka: the panes carry the window piece, as the main window's panes do, so the ink shows
+                     through instead of a flat slab over the dialog's own ink. -->
                 <Border Grid.Column="0" IsHitTestVisible="False"
                         Background="{DynamicResource FileDialogPaneBrush}"
+                        kui:ThemeMotif.Part="Window" kui:ThemeMotif.BaseBrush="FileDialogPaneBrush"
                         CornerRadius="{DynamicResource ControlCornerRadius}">
                     <Border.Effect>
                         <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="{DynamicResource FlyoutShadowOpacity}"/>
@@ -595,7 +600,8 @@
                       <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="{DynamicResource FlyoutShadowOpacity}"/>
                     </Border.Effect>
                   </Border>
-                  <Border Background="{DynamicResource FileDialogPaneBrush}" CornerRadius="{DynamicResource ControlCornerRadius}">
+                  <Border Background="{DynamicResource FileDialogPaneBrush}" CornerRadius="{DynamicResource ControlCornerRadius}"
+                          kui:ThemeMotif.Part="Window" kui:ThemeMotif.BaseBrush="FileDialogPaneBrush">
                   <Grid>
                     <Border IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}"
                             Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
@@ -668,6 +674,7 @@
                         </Border.Effect>
                     </Border>
                     <Border Background="{DynamicResource FileDialogPaneBrush}"
+                            kui:ThemeMotif.Part="Window" kui:ThemeMotif.BaseBrush="FileDialogPaneBrush"
                             CornerRadius="{DynamicResource ControlCornerRadius}">
                         <Grid>
                             <Border IsHitTestVisible="False"

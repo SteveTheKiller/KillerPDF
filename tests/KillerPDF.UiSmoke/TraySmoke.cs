@@ -185,7 +185,7 @@ internal static class TraySmoke
         bool enabled = true, registrationSucceeds = false, closed = false;
         object tray = trayType.GetMethod("Attach", Members)!.Invoke(null,
             [window, appName, (Func<string, string>)(key => key), (Func<bool>)(() => enabled), null, null, null,
-                (Func<uint, bool>)(message => message != 0 || registrationSucceeds)])!;
+                (Func<uint, bool>)(message => message != 0 || registrationSucceeds), null, null])!;
         MethodInfo hideInstead = trayType.GetMethod("HideInstead", Members)!;
         window.Closing += (_, args) => hideInstead.Invoke(tray, [args]);
         window.Closed += (_, _) => closed = true;
@@ -226,7 +226,7 @@ internal static class TraySmoke
         Exception? failure = null;
         object tray = trayType.GetMethod("Attach", Members)!.Invoke(null,
             [window, appName, (Func<string, string>)(key => key), (Func<bool>)(() => enabled), null, null, null,
-                (Func<uint, bool>)(_ => true)])!;
+                (Func<uint, bool>)(_ => true), null, null])!;
         MethodInfo hideInstead = trayType.GetMethod("HideInstead", Members)!;
         window.Closing += (_, args) => hideInstead.Invoke(tray, [args]);
         window.Closed += (_, _) => closed = true;
@@ -296,18 +296,14 @@ internal static class TraySmoke
     private static void InvokeTrayItem(Application app, string key, params object[] arguments)
     {
         TrayCallback(0x0205);
-        InvokeMenuItem(app, key, arguments);
-    }
-
-    private static void InvokeMenuItem(Application app, string key, params object[] arguments)
-    {
+        // The tray card's tiles are buttons named by their full caption ("Open KillerPDF"); a tile closes the card itself.
         string label = string.Format((string)app.FindResource(key), arguments);
-        MenuItem? item = null;
-        Wait(() => (item = PresentationSource.CurrentSources.Cast<PresentationSource>()
+        Button? tile = null;
+        Wait(() => (tile = PresentationSource.CurrentSources.Cast<PresentationSource>()
             .Select(source => source.RootVisual).OfType<DependencyObject>()
-            .SelectMany(Descendants<MenuItem>).FirstOrDefault(candidate => Equals(candidate.Header, label))) is not null);
-        if (ItemsControl.ItemsControlFromItemContainer(item!) is ContextMenu menu) menu.IsOpen = false;
-        item!.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            .SelectMany(Descendants<Button>).FirstOrDefault(candidate =>
+                System.Windows.Automation.AutomationProperties.GetName(candidate) == label)) is not null);
+        tile!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
     }
 
     // A card button is found by its accessible name; it closes the card itself, then acts.

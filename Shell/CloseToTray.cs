@@ -44,9 +44,16 @@ using System.Windows.Interop;
 //                running (and cancels the session end), for unsaved work the user declined to lose.
 //      notifyIcon a test seam standing in for Shell_NotifyIcon (NIM_ADD, NIM_DELETE), so tests
 //                run without a real notification area icon.
-//      items     the app's own rows in the icon's menu, above Open.
+//      items     the app's own tiles on the icon's card, after Open.
 //      keepIcon  an app option that keeps the icon while the window is open too. Call
 //                RefreshIcon after that option changes and once after attaching.
+//      openKeys  the app's global show-window shortcut, shown under the Open tile.
+//      brand     the row over the tiles, built each time the card opens. Pass the family one:
+//                brand: () => CloseToTray.Brand(new AppIcon { Source = TitleIcon.Source }, "Killer", "App")
+//                with the title bar's icon and the app's two wordmark words. None leaves no top row.
+//   7. The icon's right-click card follows the family card rules (CardBuilder.TileGroups): the
+//      app's logo and wordmark centered over one full row of tiles, Open first, the app's tiles,
+//      then Exit last.
 // ============================================================
 namespace KillerFamily.Shell
 {
@@ -55,9 +62,10 @@ namespace KillerFamily.Shell
         /// <summary>The app setting that turns the option on, "1" or "0".</summary>
         internal const string SettingName = "CloseToTray";
 
-        /// <summary>An app's own row in the icon's menu, above Open. Header is asked each time the
-        /// menu opens, so a language switch shows at once.</summary>
-        internal sealed record TrayItem(Func<string> Header, Action Run);
+        /// <summary>An app's own tile on the icon's card, after Open. Header is asked each time the
+        /// card opens, so a language switch shows at once; Glyph is its MDL2 icon, and Keys, when
+        /// set, its global shortcut, asked each time too.</summary>
+        internal sealed record TrayItem(Func<string> Header, Action Run, string Glyph = "", Func<string?>? Keys = null);
 
         private const int WM_APP = 0x8000;
         private const int CallbackMessage = WM_APP + 0x51;
@@ -99,8 +107,14 @@ namespace KillerFamily.Shell
         /// looks up Str_Tray_Open and Str_Tray_Exit.</summary>
         internal static CloseToTray Attach(Window window, string appName, Func<string, string> loc, Func<bool> isEnabled,
             Func<bool>? canExit = null, IReadOnlyList<TrayItem>? items = null, Func<bool>? keepIcon = null,
-            Func<uint, bool>? notifyIcon = null)
-            => new(window, appName, loc, isEnabled, canExit, items, keepIcon, notifyIcon);
+            Func<uint, bool>? notifyIcon = null, Func<string?>? openKeys = null, Func<UIElement>? brand = null)
+            => new(window, appName, loc, isEnabled, canExit, items, keepIcon, notifyIcon) { _openKeys = openKeys, _brand = brand };
+
+        // The global shortcut that brings the window forward, shown on the Open tile; null for none.
+        private Func<string?>? _openKeys;
+
+        // The app's logo and wordmark, centered over the tiles (Steve, 2026-11-22); null for no top row.
+        private Func<UIElement>? _brand;
 
         private readonly Func<bool>? _canExit;
         private readonly IReadOnlyList<TrayItem> _items;
@@ -299,36 +313,93 @@ namespace KillerFamily.Shell
 
         private void ShowMenu()
         {
-            // The tray card: the app's name over its rows, each with an icon.
-            var menu = KillerFamily.Controls.CardBuilder.Menu(240);
-            menu.Items.Add(KillerFamily.Controls.CardBuilder.Header(_appName));
+            var menu = BuildMenu();
             AnchorToPointer(menu);
-            foreach (var item in _items)
-            {
-                var row = new MenuItem { Header = item.Header() };
-                row.Click += (_, _) => item.Run();
-                menu.Items.Add(row);
-            }
-            if (_items.Count > 0) menu.Items.Add(new Separator());
-            var open = new MenuItem { Header = string.Format(_loc("Str_Tray_Open"), _appName), FontWeight = FontWeights.SemiBold, Icon = Glyph(0xE8A7) };
-            open.Click += (_, _) => ShowWindow();
-            var exit = new MenuItem { Header = _loc("Str_Tray_Exit"), Icon = Glyph(0xE7E8) };
-            exit.Click += (_, _) => Exit();
-            menu.Items.Add(open);
-            menu.Items.Add(new Separator());
-            menu.Items.Add(exit);
             // The hidden owner must be in front, or the menu does not close when clicking away.
             SetForegroundWindow(_source.Handle);
             menu.IsOpen = true;
         }
 
-        // A row icon in the kit's MenuIcon style, so the file needs no app's glyph helper.
-        private static TextBlock Glyph(int codepoint)
+        /// <summary>The tray card, on the family card rules (CardBuilder.TileGroups): the app's brand over full rows of
+        /// tiles, Open first with its global shortcut, then the app's own tiles, and Exit last. A row is never left half
+        /// empty: up to three tiles share one row, four go two by two.</summary>
+        internal System.Windows.Controls.ContextMenu BuildMenu()
         {
-            var icon = new TextBlock { Text = char.ConvertFromUtf32(codepoint) };
-            icon.SetResourceReference(FrameworkElement.StyleProperty, "MenuIcon");
-            return icon;
+            var menu = KillerFamily.Controls.CardBuilder.Menu(TrayCardWidth);
+            // The app's logo and wordmark centered on top, and a one-word Open caption (Steve, 2026-11-22): "Open
+            // <App>" wrapped to two lines, which stretched every tile in the row and left Exit's hover a tall
+            // empty box. The full name stays the tile's accessible name and tooltip.
+            if (_brand?.Invoke() is { } brand)
+            {
+                if (brand is FrameworkElement fe) fe.HorizontalAlignment = HorizontalAlignment.Center;
+                var row = KillerFamily.Controls.CardBuilder.Slot(brand, new Thickness(4, 0, 4, 8));
+                row.HorizontalContentAlignment = HorizontalAlignment.Center;
+                System.Windows.Automation.AutomationProperties.SetName(row, _appName);
+                menu.Items.Add(row);
+            }
+            var tiles = new List<KillerFamily.Controls.CardTile>
+            {
+                new("", string.Format(_loc("Str_Tray_Open"), _appName), _openKeys?.Invoke(), ShowWindow)
+                    { Shown = _loc("Str_Btn_Open") },
+            };
+            foreach (var item in _items)
+                tiles.Add(new KillerFamily.Controls.CardTile(item.Glyph, item.Header(), item.Keys?.Invoke(), item.Run));
+            tiles.Add(new("", _loc("Str_Tray_Exit"), null, Exit));
+            int columns = tiles.Count switch { <= 3 => tiles.Count, 4 => 2, _ => 3 };
+            var strip = KillerFamily.Controls.CardBuilder.TileGroups(menu, _appName, [tiles], columns);
+            menu.Items.Add(KillerFamily.Controls.CardBuilder.Slot(strip, new Thickness(0)));
+            return menu;
         }
+
+        private const double BrandIconSize = 28;
+        private const double BrandLeadSize = 15;
+        private const double BrandAccentSize = 22.5;
+
+        /// <summary>The family tray brand (Steve, 2026-11-22): the app's icon and its two-word wordmark side by side,
+        /// the lead word in the text color and the accent word in the logo font and color, with the title bar's soft
+        /// shadow. <paramref name="icon"/> is the app's icon element; it is sized here and centered on the letters.</summary>
+        internal static UIElement Brand(UIElement icon, string lead, string accent)
+        {
+            var panel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+            if (icon is FrameworkElement fe)
+            {
+                fe.Width = BrandIconSize;
+                fe.Height = BrandIconSize;
+                fe.VerticalAlignment = VerticalAlignment.Center;
+                fe.Margin = new Thickness(0, 0, 8, 0);
+            }
+            panel.Children.Add(icon);
+
+            // The logo font leaves empty space over its letters and its drips hang below the baseline. The negative
+            // margins trim both, so the row is as tall as the letters and the icon centers on them, not on the drip.
+            var mark = new Grid { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, -12, 0, -10), IsHitTestVisible = false };
+            var shadow = BrandWords(lead, accent, System.Windows.Media.Brushes.Black);
+            shadow.Margin = new Thickness(1, 2, 0, 0);
+            shadow.Effect = new System.Windows.Media.Effects.BlurEffect { Radius = 3 };
+            shadow.SetResourceReference(UIElement.OpacityProperty, "WordmarkShadowOpacity");
+            mark.Children.Add(shadow);
+            mark.Children.Add(BrandWords(lead, accent, null));
+            panel.Children.Add(mark);
+            return panel;
+        }
+
+        /// <summary>The two wordmark words; a null brush takes the theme's text and accent logo colors.</summary>
+        private static TextBlock BrandWords(string lead, string accent, System.Windows.Media.Brush? ink)
+        {
+            var text = new TextBlock();
+            text.SetResourceReference(TextBlock.FontFamilyProperty, "WordmarkFont");
+            var first = new System.Windows.Documents.Run(lead) { FontSize = BrandLeadSize };
+            if (ink != null) first.Foreground = ink; else first.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty, "TextBrush");
+            var second = new System.Windows.Documents.Run(accent) { FontSize = BrandAccentSize };
+            second.SetResourceReference(System.Windows.Documents.TextElement.FontFamilyProperty, "WordmarkAccentFont");
+            if (ink != null) second.Foreground = ink; else second.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty, "AccentLogo");
+            text.Inlines.Add(first);
+            text.Inlines.Add(second);
+            return text;
+        }
+
+        /// <summary>Three tiles across, the family card width (the menu adds its 22px halo on each side).</summary>
+        internal const double TrayCardWidth = 276;
 
         /// <summary>
         /// The icon's menu opens the way Windows' own tray menus do: the card's bottom-left corner at

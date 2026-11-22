@@ -331,7 +331,8 @@ namespace KillerPDF.Shell
             _about = new Features.About.AboutController(this);
             _ownsWindowGeometry = App.RegisterDocumentWindow(this);
             _tray = KillerFamily.Shell.CloseToTray.Attach(this, "KillerPDF", Loc,
-                () => App.GetSetting(KillerFamily.Shell.CloseToTray.SettingName) == "1");
+                () => App.GetSetting(KillerFamily.Shell.CloseToTray.SettingName) == "1",
+                brand: () => KillerFamily.Shell.CloseToTray.Brand(new AppIcon { Source = TitleIcon.Source }, "Killer", "PDF"));
             // Ctrl+Q quits the app through the tray's Exit, so the save and quit prompts still run.
             KillerFamily.Shell.QuitShortcut.Attach(this, _tray.Exit);
             new KillerFamily.Accessibility.OverlayFocus(this).Track(ShortcutsOverlay, AboutOverlay);
