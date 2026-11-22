@@ -87,6 +87,51 @@ public sealed class PdfPrinterColorConversionTests
         }
     }
 
+    // The conversion interpolates a sampled grid; it stays within a code value of evaluating the
+    // printer chain for every pixel, even on a curve as far from sRGB as linear.
+    [Fact]
+    public void TheInterpolatedConversionMatchesTheExactChain()
+    {
+        var printer = RgbPrinter(srgbCurve: false);
+        var conversion = new PdfPrinterColorConversion(printer, PdfRenderingIntent.RelativeColorimetric, blackPointCompensation: true);
+        var chain = new KillerPdf.Engine.Rendering.PdfProofPixelChain(printer, new PdfProofOptions
+        {
+            RenderingIntent = PdfRenderingIntent.RelativeColorimetric, BlackPointCompensation = true, SimulateBlack = true
+        });
+        var random = new Random(520);
+        var colors = new (byte, byte, byte)[4000];
+        for (int index = 0; index < colors.Length; index++)
+            colors[index] = ((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
+        byte[] pixels = Pixels(colors);
+
+        conversion.ConvertSrgbBgra32(pixels);
+
+        int worst = 0;
+        Span<double> xyz = stackalloc double[3];
+        Span<double> device = stackalloc double[3];
+        for (int index = 0; index < colors.Length; index++)
+        {
+            var (red, green, blue) = colors[index];
+            double r = Linear(red), g = Linear(green), b = Linear(blue);
+            xyz[0] = .4360747 * r + .3850649 * g + .1430804 * b;
+            xyz[1] = .2225045 * r + .7168786 * g + .0606169 * b;
+            xyz[2] = .0139322 * r + .0971045 * g + .7141733 * b;
+            chain.ToDevice(xyz, Math.Min(red, Math.Min(green, blue)) / 255d, device);
+            for (int channel = 0; channel < 3; channel++)
+            {
+                int exact = (int)Math.Round(Math.Clamp(device[channel], 0, 1) * 255);
+                worst = Math.Max(worst, Math.Abs(exact - pixels[index * 4 + 2 - channel]));
+            }
+        }
+        Assert.InRange(worst, 0, 1);
+
+        static double Linear(byte value)
+        {
+            double unit = value / 255d;
+            return unit <= .04045 ? unit / 12.92 : Math.Pow((unit + .055) / 1.055, 2.4);
+        }
+    }
+
     [Theory]
     [InlineData("mntr", "RGB ")]
     [InlineData("prtr", "GRAY")]
