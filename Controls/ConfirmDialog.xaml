@@ -8,7 +8,7 @@
         xmlns:theme="clr-namespace:KillerFamily.Theming"
         xmlns:local="clr-namespace:KillerPDF.Controls"
         Title="KillerPDF"
-        Width="390" SizeToContent="Height"
+        SizeToContent="WidthAndHeight" MinWidth="300"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -112,21 +112,26 @@
                 <!-- DialogRowMargin is ADDED to the existing inset rather than replacing it: it
                      is 0 on every ordinary theme, and 98SE uses it to pull the body in tight the
                      way a Win98 dialog packs its content. -->
-                <Grid Grid.Row="1" Margin="24,18,24,18">
+                <Grid Grid.Row="1" Margin="{DynamicResource ConfirmBodyMargin}">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="38"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                     <!-- Notice ring, as in the family setup dialog: amber "!" on a confirmation, accent "i" on a notice. -->
                     <Border x:Name="NoticeRing" Width="28" Height="28" CornerRadius="14" BorderThickness="2" HorizontalAlignment="Left" VerticalAlignment="Top">
                         <TextBlock x:Name="NoticeGlyph" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold"/>
                     </Border>
-                    <StackPanel Grid.Column="1">
-                    <TextBlock x:Name="HeadingText" Foreground="{DynamicResource TextBrush}"
+                    <!-- The dialog sizes to its content: a short prompt like Quit stays narrow, and
+                         MaxWidth caps the body so a long detail wraps at the old 390 px dialog width
+                         instead of stretching the window. -->
+                    <StackPanel Grid.Column="1" MaxWidth="284">
+                    <!-- Lifted 4 px with the 4 given back below, so the heading rides higher
+                         beside the ring and the first checkbox gets room under it. -->
+                    <TextBlock x:Name="HeadingText" Foreground="{DynamicResource TextBrush}" Margin="0,-4,0,4"
                                FontFamily="{DynamicResource HeadingFont}" FontSize="18"
                                                TextOptions.TextFormattingMode="Ideal" TextWrapping="Wrap"/>
                     <TextBlock x:Name="DetailText" Foreground="{DynamicResource MutedTextBrush}"
                                FontSize="12" LineHeight="19" TextWrapping="Wrap"
                                Visibility="Collapsed" Margin="0,10,0,0"/>
-                    <CheckBox x:Name="Check1" Visibility="Collapsed" Margin="0,8,0,0" FontSize="12"/>
-                    <CheckBox x:Name="Check2" Visibility="Collapsed" Margin="0,8,0,0" FontSize="12"/>
+                    <CheckBox x:Name="Check1" Visibility="Collapsed" Margin="{DynamicResource ConfirmCheckMargin}" FontSize="12"/>
+                    <CheckBox x:Name="Check2" Visibility="Collapsed" Margin="{DynamicResource ConfirmCheckMargin}" FontSize="12"/>
                     <!-- Explanatory note under Check2, shown by LockCheck2 when the choice is
                          already made for the user (for example an app installed machine-wide). -->
                     <TextBlock x:Name="Check2Note" Visibility="Collapsed"
@@ -143,10 +148,10 @@
                      hand-set to 24,0,24,20 per dialog - and each dialog has a different inset.
                      Left for the pass that unifies the dialog layouts. -->
                 <StackPanel x:Name="ButtonRow" Grid.Row="2" Orientation="Horizontal"
-                            HorizontalAlignment="Right" Margin="24,0,24,20">
+                            HorizontalAlignment="Right" Margin="{DynamicResource ConfirmButtonsMargin}">
                     <Button x:Name="CancelButton" Content="{DynamicResource Str_Btn_Cancel}" Click="Cancel_Click" IsCancel="True"
                             Style="{StaticResource SurfaceButton}"
-                            Height="28" MinWidth="80" Padding="12,2" Margin="0,0,8,0"/>
+                            Height="{DynamicResource DialogButtonHeight}" MinWidth="80" Padding="12,2" Margin="{DynamicResource ConfirmButtonGap}"/>
                     <!-- OutlineButton, not PrimaryButton. A solid accent block sits in this card
                          as a painted-on rectangle that never changes - PrimaryButton's hover is
                          a translucent white tint over the accent, which on half the palettes is
@@ -154,7 +159,7 @@
                          family's other confirm treatment and it reads as a button. -->
                     <Button x:Name="OkButton" Click="OK_Click" IsDefault="True"
                             Style="{StaticResource OutlineButton}"
-                            Height="28" MinWidth="80" Padding="12,2"/>
+                            Height="{DynamicResource DialogButtonHeight}" MinWidth="80" Padding="12,2"/>
                 </StackPanel>
             </Grid>
         </Grid>

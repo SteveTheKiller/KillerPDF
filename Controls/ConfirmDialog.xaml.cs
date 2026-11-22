@@ -184,12 +184,17 @@ namespace KillerPDF.Controls
             NoticeRing.BorderBrush = brush;
         }
 
-        // Long checkbox labels wrap inside the dialog body instead of running past its edge.
+        // Long checkbox labels wrap inside the dialog body instead of running past its edge. The
+        // dialog sizes to its content, so the body's cap is the limit, not its current width: a
+        // checkbox that is itself the widest row would otherwise wrap its own label.
         private void FitCheckLabels()
         {
             foreach (var box in new[] { Check1, Check2 })
-                if (box.Content is System.Windows.Controls.TextBlock label && box.Parent is FrameworkElement body && body.ActualWidth > 0)
-                    label.MaxWidth = System.Math.Max(80, body.ActualWidth - box.Margin.Left - box.Margin.Right - 40);
+                if (box.Content is System.Windows.Controls.TextBlock label && box.Parent is FrameworkElement body)
+                {
+                    double room = double.IsInfinity(body.MaxWidth) ? body.ActualWidth : body.MaxWidth;
+                    if (room > 0) label.MaxWidth = System.Math.Max(80, room - box.Margin.Left - box.Margin.Right - 40);
+                }
         }
 
         // A heading is one short line. Text after its first line break moves into the detail, and

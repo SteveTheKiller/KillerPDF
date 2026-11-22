@@ -88,7 +88,7 @@ public sealed class DocumentTabLayoutTests
                 (string?)element.Attribute(x + "Key") == key)).First(element => element != null)!.Value;
         Assert.Equal("-8,-4,-5,-4", ThicknessValue("TabActiveOuterOutlineMargin"));
         Assert.Equal("-8,-6,-6,-2", ThicknessValue("TabInactiveOuterOutlineMargin"));
-        Assert.Equal("8,6,5,2", ThicknessValue("TabPadding"));
+        Assert.Equal("8,4,5,4", ThicknessValue("TabPadding"));
         Assert.Equal("-2,3,0,0", ThicknessValue("TabActiveMargin"));
         Assert.Equal("0,3,0,0", ThicknessValue("TabActiveFirstMargin"));
         Assert.Equal("-2,3,0,0", ThicknessValue("TabActiveLastMargin"));

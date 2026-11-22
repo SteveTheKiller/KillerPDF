@@ -329,7 +329,7 @@
     <sys:Double x:Key="TabChamfer" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">3</sys:Double>
 
     <Thickness x:Key="TabCloseMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">4,-4,-2,0</Thickness>
-    <Thickness x:Key="TabPadding" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">8,6,5,2</Thickness>
+    <Thickness x:Key="TabPadding" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">8,4,5,4</Thickness>
 
     <Thickness x:Key="TabActivePadding" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">8,4,4,4</Thickness>
     <!-- The active tab keeps a 1px right border column (its brush is transparent here) so the
@@ -384,7 +384,10 @@
     <Visibility x:Key="RetroActiveTabOutlineVisibility" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">Visible</Visibility>
     <sys:Double x:Key="TabBandHeight" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">28</sys:Double>
 
-    <Thickness x:Key="FooterStatusPadding" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">10.5,0,12,0</Thickness>
+    <Thickness x:Key="FooterStatusPadding" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">8.5,0,12,0</Thickness>
+
+    <!-- The icon rail hugs its 20px buttons; the status dot above sits on its center (10). -->
+    <GridLength x:Key="RailColumnWidth">20</GridLength>
 
     <SolidColorBrush x:Key="TabRingIdleBrush" Color="Transparent" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
@@ -406,13 +409,14 @@
 
     <SolidColorBrush x:Key="FrameInnerDarkBrush" Color="#808080" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
-    <!-- The frame face is flat button-face gray, as the Win98 frame is: 4px of #c0c0c0 between
-         the outer bevel pair and the caption/client (WindowFramePadding), not a gradient. -->
+    <!-- The frame face is flat button-face gray, as the Win98 frame is: 2px of #c0c0c0 between
+         the 2px outer bevel pair and the caption/client (WindowFramePadding), 4px in all, the
+         Win98 sizing frame. Not a gradient. -->
     <SolidColorBrush x:Key="WindowFrameBrush" Color="#c0c0c0" po:Freeze="True"/>
 
     <Thickness x:Key="WindowFrameMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">2</Thickness>
 
-    <Thickness x:Key="WindowFramePadding" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">4</Thickness>
+    <Thickness x:Key="WindowFramePadding" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">2</Thickness>
 
     <Thickness x:Key="TitleBarBleed" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0</Thickness>
 
@@ -439,6 +443,21 @@
     <Thickness x:Key="MenuBevelDarkThickness" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0,0,1,1</Thickness>
 
     <Thickness x:Key="MenuBevelInnerMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">1</Thickness>
+
+    <!-- Win98 menu rows: about 18 px each with no gap between them, 3 px in from the frame. -->
+    <Thickness x:Key="ThemeRadioMargin">0</Thickness>
+    <Thickness x:Key="ThemeRadioPadding">4,1,10,1</Thickness>
+    <Thickness x:Key="ThemeCommandRowPadding">14,2,6,2</Thickness>
+    <Thickness x:Key="ThemeFlyoutInnerMargin">11,6,3,3</Thickness>
+    <Thickness x:Key="AccentStripDotMargin">0,0,0,2</Thickness>
+
+    <!-- Win98 message box: 11 px in from the frame, 75x23 buttons 6 px apart. The body keeps
+         20 px on the right so wrapped text stops short of the frame instead of running to it. -->
+    <Thickness x:Key="ConfirmBodyMargin">11,11,20,8</Thickness>
+    <Thickness x:Key="ConfirmCheckMargin">0,4,0,0</Thickness>
+    <Thickness x:Key="ConfirmButtonsMargin">11,0,11,11</Thickness>
+    <Thickness x:Key="ConfirmButtonGap">0,0,6,0</Thickness>
+    <sys:Double x:Key="DialogButtonHeight" xmlns:sys="clr-namespace:System;assembly=mscorlib">23</sys:Double>
 
     <sys:Double x:Key="DialogStatusBarHeight" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">24</sys:Double>
 

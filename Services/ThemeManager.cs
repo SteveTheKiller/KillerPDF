@@ -537,6 +537,23 @@ namespace KillerPDF.Services
             // The file and folder pickers' button row, field rows and list rows. 98SE states its
             // own tight Win98 insets; these defaults are the 16px inset the pickers always had.
             SetIfAbsent("DialogButtonsMargin", new Thickness(16, 12, 16, 16));
+            // Flyout row spacing: the theme and language flyouts' radio rows, the command rows
+            // under them and the accent strip. 98SE states tight Win98 menu rows; these are the
+            // card themes' roomy rows.
+            SetIfAbsent("ThemeRadioMargin", new Thickness(0, 0, 0, 8));
+            SetIfAbsent("ThemeRadioPadding", new Thickness(4, 4, 10, 4));
+            SetIfAbsent("ThemeCommandRowPadding", new Thickness(14, 5, 6, 5));
+            SetIfAbsent("ThemeFlyoutInnerMargin", new Thickness(15, 7, 5, 7));
+            SetIfAbsent("AccentStripDotMargin", new Thickness(0, 0, 0, 8));
+            // The icon rail column. 98SE narrows it to hug the 20px rail buttons.
+            SetIfAbsent("RailColumnWidth", new GridLength(24));
+            // The confirm dialog's body inset, checkbox gaps and button row. 98SE packs them
+            // the way a Win98 message box does.
+            SetIfAbsent("ConfirmBodyMargin", new Thickness(24, 18, 24, 18));
+            SetIfAbsent("ConfirmCheckMargin", new Thickness(0, 8, 0, 0));
+            SetIfAbsent("ConfirmButtonsMargin", new Thickness(24, 0, 24, 20));
+            SetIfAbsent("ConfirmButtonGap", new Thickness(0, 0, 8, 0));
+            SetIfAbsent("DialogButtonHeight", 28.0);
             SetIfAbsent("DialogContentMargin", new Thickness(0));
             SetIfAbsent("DialogOuterBorderThickness", new Thickness(1));
             // Right 2: the card themes' close X has no visible face, so it reads against the card's
@@ -575,6 +592,22 @@ namespace KillerPDF.Services
             // so no palette file has to carry the same number twice in two types.
             combined["DialogTitleBarRowHeight"] = new GridLength(
                 combined["DialogTitleBarHeight"] is double dialogCaptionH ? dialogCaptionH : 32.0);
+            // The picker and details dialogs' caption rows: 40 or 36 on the card themes, as
+            // they always were, and the theme's own caption band where it draws one (98SE's 20).
+            bool dialogCaptionBand = combined["UseDialogCaption"] is true;
+            // On a band theme the caption sits under the frame (top and sides inset by the dialog
+            // content margin) and keeps its full band height, so the row is band plus that top inset.
+            double bandH = combined["DialogTitleBarHeight"] is double bh ? bh : 32.0;
+            var frameInset = combined["DialogContentMargin"] is Thickness cm ? cm : new Thickness(0);
+            combined["DialogCaptionInset"] = dialogCaptionBand ? new Thickness(frameInset.Left, frameInset.Top, frameInset.Right, 0) : new Thickness(0);
+            var bandRow = new GridLength(bandH + frameInset.Top);
+            combined["DialogCaptionRow40"] = dialogCaptionBand ? bandRow : new GridLength(40);
+            combined["DialogCaptionRow36"] = dialogCaptionBand ? bandRow : new GridLength(36);
+            // Their caption padding: 16 or 14 a side on the card themes, and the confirm dialog's
+            // own caption padding on a band theme so the X sits in the same place in every dialog.
+            var bandPadding = combined["DialogTitleBarPadding"] is Thickness tp ? tp : new Thickness(6, 0, 2, 0);
+            combined["DialogCaptionPadding16"] = dialogCaptionBand ? bandPadding : new Thickness(16, 0, 16, 0);
+            combined["DialogCaptionPadding14"] = dialogCaptionBand ? bandPadding : new Thickness(14, 0, 14, 0);
             SetIfAbsent("EdgeFadeOpacity", 1.0);
             // The EDITOR's selection strength (Editing/EditorControl.cs), distinct from
             // TextSelectionOpacity which is the plain TextBox one. 98SE states 0.75 with
