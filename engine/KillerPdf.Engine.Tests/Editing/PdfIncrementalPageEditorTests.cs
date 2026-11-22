@@ -4327,12 +4327,38 @@ public sealed class PdfIncrementalPageEditorTests
             new PdfIncrementalUpdateBuilder(collapsedSource)
                 .ReplaceObject(collapsedReferences[0].ObjectNumber, collapsedPage)
                 .Build());
-        InvalidOperationException collapsedError = Assert.Throws<InvalidOperationException>(() =>
+        // A zero-area ArtBox, BleedBox or TrimBox is invalid, and ISO 32000 defaults an invalid one
+        // to the CropBox. Excel for Microsoft 365 writes /ArtBox [0 0 0 0] (#455), so the import
+        // drops the box instead of refusing the whole page.
+        PdfDocument merged = PdfDocument.Open(
             new PdfIncrementalPageEditor(PdfDocument.Open(new PdfDocumentBuilder().Build()))
                 .AddImportedPage(collapsedSource, 0)
                 .Build());
-        Assert.Contains("/ArtBox value is a collapsed rectangle",
-            collapsedError.Message, StringComparison.Ordinal);
+        (_, _, PdfDictionary[] mergedPages) = FlatPages(merged);
+        Assert.False(mergedPages[^1].ContainsKey(Name("ArtBox")));
+
+        foreach (string boxName in new[] { "ArtBox", "BleedBox", "TrimBox" })
+        {
+            PdfDocument zeroSource = PdfDocument.Open(new PdfDocumentBuilder()
+                .AddBlankPage(200, 300)
+                .Build());
+            (_, PdfIndirectReference[] zeroReferences, PdfDictionary[] zeroPages) =
+                FlatPages(zeroSource);
+            PdfDictionary zeroPage = new(zeroPages[0].Append(
+                new KeyValuePair<PdfName, PdfObject>(Name(boxName), new PdfArray([
+                    new PdfInteger(0), new PdfInteger(0),
+                    new PdfInteger(0), new PdfInteger(0)
+                ]))));
+            zeroSource = PdfDocument.Open(new PdfIncrementalUpdateBuilder(zeroSource)
+                .ReplaceObject(zeroReferences[0].ObjectNumber, zeroPage)
+                .Build());
+            PdfDocument zeroMerged = PdfDocument.Open(
+                new PdfIncrementalPageEditor(PdfDocument.Open(new PdfDocumentBuilder().Build()))
+                    .AddImportedPage(zeroSource, 0)
+                    .Build());
+            (_, _, PdfDictionary[] zeroMergedPages) = FlatPages(zeroMerged);
+            Assert.False(zeroMergedPages[^1].ContainsKey(Name(boxName)));
+        }
     }
 
     [Fact]

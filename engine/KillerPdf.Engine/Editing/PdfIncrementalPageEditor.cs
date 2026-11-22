@@ -12473,7 +12473,8 @@ public sealed class PdfIncrementalPageEditor
             .Where(entry => !entry.Key.Equals(ParentName)
                 && !InheritableNames.Contains(entry.Key)
                 && !(state.RemoveThumbnail && entry.Key.Equals(ThumbnailName))
-                && !(entry.Key.Equals(StructParentsName) && !sourceIsTagged))
+                && !(entry.Key.Equals(StructParentsName) && !sourceIsTagged)
+                && !IsZeroAreaProductionBox(state.ImportedDocument!, entry.Key, entry.Value))
             .Select(entry => entry.Key.Equals(Name("Contents"))
                 ? new KeyValuePair<PdfName, PdfObject>(
                     entry.Key, ImportPageContents(entry.Value))
@@ -12973,6 +12974,36 @@ public sealed class PdfIncrementalPageEditor
                     .Append(new KeyValuePair<PdfName, PdfObject>(Name("NM"), new PdfString(
                         [0xFE, 0xFF, .. System.Text.Encoding.BigEndianUnicode.GetBytes(unique)],
                         PdfStringForm.Hexadecimal)))));
+    }
+
+    // ISO 32000 defaults an invalid BleedBox, TrimBox or ArtBox to the CropBox. A well-formed box with
+    // zero width or height is invalid, and Excel for Microsoft 365 writes /ArtBox [0 0 0 0] (#455), so
+    // the import drops it and the page falls back to its CropBox. A box that isn't four numbers at all
+    // still fails validation, since that is a damaged page rather than a known producer quirk.
+    private static bool IsZeroAreaProductionBox(PdfDocument document, PdfName key, PdfObject value)
+    {
+        if (!(key.Equals(Name("BleedBox")) || key.Equals(Name("TrimBox")) || key.Equals(ArtBoxName)))
+            return false;
+        try
+        {
+            const string description = "An imported page production box";
+            if (ResolveCatalogValue(document, value, description) is not PdfArray { Count: 4 } box) return false;
+            double[] numbers = new double[4];
+            for (int index = 0; index < 4; index++)
+            {
+                switch (ResolveCatalogValue(document, box[index], description))
+                {
+                    case PdfInteger integer: numbers[index] = integer.Value; break;
+                    case PdfReal real when double.IsFinite(real.Value): numbers[index] = real.Value; break;
+                    default: return false;
+                }
+            }
+            return numbers[0] == numbers[2] || numbers[1] == numbers[3];
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     private static void ValidatePageRectangle(
