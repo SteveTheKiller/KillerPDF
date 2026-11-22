@@ -9,8 +9,9 @@
     for the Store to fetch the installer, creates the submission and confirms certification
     started. Certification itself takes up to three business days and is not waited for.
 
-    Credentials come from user environment variables: KILLER_STORE_TENANT_ID,
-    KILLER_STORE_CLIENT_ID, KILLER_STORE_CLIENT_SECRET and KILLER_STORE_SELLER_ID.
+    The tenant, client and seller IDs come from the user environment variables
+    KILLER_STORE_TENANT_ID, KILLER_STORE_CLIENT_ID and KILLER_STORE_SELLER_ID. The client secret
+    comes from Windows Credential Manager as the generic credential KillerTools.StoreClientSecret.
 
 .PARAMETER ProductId
     The Store ID of the product (for example XP8JR4WJK03BJP).
@@ -36,8 +37,46 @@ param(
 $ErrorActionPreference = 'Stop'
 $api = "https://api.store.microsoft.com/submission/v1/product/$ProductId"
 
+# The client secret lives in Windows Credential Manager as KillerTools.StoreClientSecret, never in the
+# environment that every process, agent clients included, inherits.
+function Read-StoreSecret {
+    if (-not ('KillerTools.StoreSecret' -as [type])) {
+        Add-Type -Namespace KillerTools -Name StoreSecret -MemberDefinition @'
+[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+private struct CREDENTIAL
+{
+    public int Flags; public int Type; public System.IntPtr TargetName; public System.IntPtr Comment;
+    public long LastWritten; public int CredentialBlobSize; public System.IntPtr CredentialBlob;
+    public int Persist; public int AttributeCount; public System.IntPtr Attributes;
+    public System.IntPtr TargetAlias; public System.IntPtr UserName;
+}
+[System.Runtime.InteropServices.DllImport("advapi32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+private static extern bool CredReadW(string target, int type, int flags, out System.IntPtr credential);
+[System.Runtime.InteropServices.DllImport("advapi32.dll")]
+private static extern void CredFree(System.IntPtr credential);
+public static string Read(string target)
+{
+    System.IntPtr handle;
+    if (!CredReadW(target, 1, 0, out handle)) return null;
+    try
+    {
+        var credential = (CREDENTIAL)System.Runtime.InteropServices.Marshal.PtrToStructure(handle, typeof(CREDENTIAL));
+        var bytes = new byte[credential.CredentialBlobSize];
+        System.Runtime.InteropServices.Marshal.Copy(credential.CredentialBlob, bytes, 0, bytes.Length);
+        return System.Text.Encoding.Unicode.GetString(bytes);
+    }
+    finally { CredFree(handle); }
+}
+'@
+    }
+    $secret = [KillerTools.StoreSecret]::Read('KillerTools.StoreClientSecret')
+    if (-not $secret) { throw 'The Store client secret is not in Credential Manager as KillerTools.StoreClientSecret. See the release notes in the harness for setup.' }
+    return $secret
+}
+
 function Get-Setting([string]$Name) {
-    $value = [Environment]::GetEnvironmentVariable($Name, 'Process')
+    if ($Name -eq 'KILLER_STORE_CLIENT_SECRET') { return Read-StoreSecret }
+    $value =[Environment]::GetEnvironmentVariable($Name, 'Process')
     if (-not $value) { $value = [Environment]::GetEnvironmentVariable($Name, 'User') }
     if (-not $value) { throw "Store credential $Name is not set. See the release notes in the harness for setup." }
     return $value
