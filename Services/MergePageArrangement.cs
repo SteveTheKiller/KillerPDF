@@ -80,6 +80,25 @@ internal sealed class MergePageArrangement
         _pages.AddRange(regrouped);
     }
 
+    /// <summary>Where <paramref name="pages"/> sit now, in page order. A whole-file entry whose file has opened up since
+    /// stands for all of that file's pages, and pages no longer listed are left out. A drag carries pages, not places,
+    /// because a page count arriving during it shifts the places.</summary>
+    internal int[] IndicesOf(IEnumerable<MergePage> pages)
+    {
+        var found = new SortedSet<int>();
+        foreach (MergePage wanted in pages)
+        {
+            for (int index = 0; index < _pages.Count; index++)
+            {
+                MergePage page = _pages[index];
+                if (!SamePath(page.Path, wanted.Path)) continue;
+                if (page.Page == wanted.Page || (wanted.Page == MergePage.WholeFile && HasCount(wanted.Path)))
+                    found.Add(index);
+            }
+        }
+        return [.. found];
+    }
+
     /// <summary>Removes the pages at <paramref name="indices"/>.</summary>
     internal void RemoveAt(IEnumerable<int> indices)
     {

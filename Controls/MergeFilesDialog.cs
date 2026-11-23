@@ -44,6 +44,7 @@ internal sealed class MergeFilesDialog : Window
     private Task _loader = Task.CompletedTask;
     private bool _loadStarted, _closed;
     private readonly HashSet<string> _queued = new(StringComparer.OrdinalIgnoreCase);
+    private MergePage[]? _draggedPages;
     private readonly HashSet<string> _unreadable = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<MergePage, ImageSource> _thumbs = [];
     private readonly Dictionary<MergePage, Image> _tileImages = [];
@@ -262,6 +263,8 @@ internal sealed class MergeFilesDialog : Window
         {
             _arrangement.RemoveFile(gone);
             _arranged.Remove(gone);
+            // Taken out and added back, a file loads again, because its count left with it.
+            _queued.Remove(gone);
         }
         foreach (string file in _files.Paths)
         {
@@ -392,7 +395,11 @@ internal sealed class MergeFilesDialog : Window
         _pagePressAt = null;
         int[] selected = SelectedTiles();
         int[] moving = selected.Contains(tile) ? selected : [tile];
-        DragDrop.DoDragDrop(_grid, new DataObject(PageFormat, moving), DragDropEffects.Move);
+        // The drag holds the pages, not their places: a page count can arrive while it runs and open a whole
+        // file up into its pages, which moves every place after it.
+        _draggedPages = [.. moving.Select(index => _arrangement.Pages[index])];
+        try { DragDrop.DoDragDrop(_grid, new DataObject(PageFormat, moving), DragDropEffects.Move); }
+        finally { _draggedPages = null; }
     }
 
     // Where dropped pages go: before the tile under the pointer, or after it past its middle; the end below the last.
@@ -409,7 +416,9 @@ internal sealed class MergeFilesDialog : Window
     {
         if (!_queued.Add(path) || _closed) return;
         CancellationToken ct = _loading.Token;
-        _loader = _loader.ContinueWith(_ => LoadFile(path, ct), ct, TaskContinuationOptions.None, TaskScheduler.Default);
+        // LazyCancellation keeps each link waiting for the one before it, so closing waits for the load that is running.
+        _loader = _loader.ContinueWith(_ => LoadFile(path, ct), ct, TaskContinuationOptions.LazyCancellation,
+            TaskScheduler.Default);
     }
 
     // Runs on the thread pool and never waits on the UI thread, so closing can wait for it.
@@ -509,10 +518,12 @@ internal sealed class MergeFilesDialog : Window
     private void OnDrop(object sender, DragEventArgs e)
     {
         e.Handled = true;
-        if (e.Data.GetData(PageFormat) is int[] pages)
+        if (e.Data.GetDataPresent(PageFormat))
         {
+            if (_draggedPages is null) return;
             Point spot = e.GetPosition(_grid);
             if (spot.X < 0 || spot.Y < 0 || spot.X > _grid.ActualWidth || spot.Y > _grid.ActualHeight) return;
+            int[] pages = _arrangement.IndicesOf(_draggedPages);
             int landing = _arrangement.MoveTo(pages, DropSlot(spot));
             if (landing >= 0) SelectTiles(landing, pages.Length);
             return;

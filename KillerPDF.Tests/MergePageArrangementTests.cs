@@ -97,6 +97,34 @@ public sealed class MergePageArrangementTests : IDisposable
         Assert.Equal(4, pages.Pages.Count);
     }
 
+    // A drag holds the pages it picked up. A page count that arrives during the drag shifts every place after
+    // that file, so the drop finds the pages where they are now, and a whole file that opened up brings all its pages.
+    [Fact]
+    public void DraggedPagesAreFoundWhereTheyAreNowAfterAFileOpensUp()
+    {
+        var pages = MergePageArrangement.For([("a", null), ("b", 2)]);
+        MergePage[] picked = [P("b", 1)];
+        MergePage[] wholeFile = [P("a", MergePage.WholeFile)];
+
+        pages.ExpandFile("a", 3);
+
+        Assert.Equal([4], pages.IndicesOf(picked));
+        Assert.Equal([0, 1, 2], pages.IndicesOf(wholeFile));
+        Assert.Equal(0, pages.MoveTo(pages.IndicesOf(picked), 0));
+        Assert.Equal([P("b", 1), P("a", 0), P("a", 1), P("a", 2), P("b", 0)], pages.Pages);
+    }
+
+    [Fact]
+    public void DraggedPagesThatAreGoneAreLeftOut()
+    {
+        var pages = MergePageArrangement.For([("a", 2), ("b", 1)]);
+        MergePage[] picked = [P("a", 1), P("b", 0)];
+
+        pages.RemoveFile("b");
+
+        Assert.Equal([1], pages.IndicesOf(picked));
+    }
+
     [Fact]
     public void ThePlanRemovesTheLeftOutPagesAndOrdersTheRest()
     {

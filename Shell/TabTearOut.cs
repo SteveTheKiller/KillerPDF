@@ -29,6 +29,7 @@ namespace KillerPDF.Shell
                 Left = Math.Max(0, Left + 32),
                 Top = Math.Max(0, Top + 32),
                 WindowStartupLocation = WindowStartupLocation.Manual,
+                WindowState = WindowState.Normal,
             };
             window.Show();
             window.Activate();

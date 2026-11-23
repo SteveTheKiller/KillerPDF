@@ -68,5 +68,26 @@ public sealed class MergePageViewWiringTests
         Assert.Contains("_loader.Wait(", dialog, StringComparison.Ordinal);
         // The loader never waits on the UI thread, which is what makes that wait safe.
         Assert.DoesNotContain("Dispatcher.Invoke(", dialog, StringComparison.Ordinal);
+        // Without lazy cancellation the chain's tail is cancelled at once and the wait returns while a load still runs.
+        Assert.Contains("TaskContinuationOptions.LazyCancellation", dialog, StringComparison.Ordinal);
+    }
+
+    // A page count arriving mid-drag opens a whole file up and shifts the places, so the drop looks the pages up again.
+    [Fact]
+    public void ADropMovesThePagesTheDragPickedUpNotThePlacesTheyHad()
+    {
+        string dialog = Source("Controls", "MergeFilesDialog.cs");
+        string drag = Method(dialog, "private void StartPageDrag(");
+        Assert.Contains("_draggedPages = [.. moving.Select(index => _arrangement.Pages[index])];", drag, StringComparison.Ordinal);
+        string drop = Method(dialog, "private void OnDrop(");
+        Assert.Contains("int[] pages = _arrangement.IndicesOf(_draggedPages);", drop, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetData(PageFormat) is int[]", drop, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AFileTakenOutAndAddedBackLoadsItsPagesAgain()
+    {
+        string sync = Method(Source("Controls", "MergeFilesDialog.cs"), "private void SyncPages(");
+        Assert.Contains("_queued.Remove(gone);", sync, StringComparison.Ordinal);
     }
 }

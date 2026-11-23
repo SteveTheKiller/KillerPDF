@@ -323,14 +323,19 @@ namespace KillerPDF.Shell
         // #513: a window opened for files picked with Shift in the Open dialog starts with them, not the last session.
         private readonly string[]? _startupFiles;
 
-        internal MainWindow(string[] startupFiles) : this((Controls.PdfViewer.DocumentSession?)null)
+        internal MainWindow(string[] startupFiles) : this(null, startupFiles)
         {
-            _startupFiles = startupFiles;
         }
 
-        internal MainWindow(Controls.PdfViewer.DocumentSession? startupTearOutSession)
+        internal MainWindow(Controls.PdfViewer.DocumentSession? startupTearOutSession) : this(startupTearOutSession, null)
+        {
+        }
+
+        // Both start-up sources are set before the window restores its bounds, which places either one like a torn-out tab.
+        private MainWindow(Controls.PdfViewer.DocumentSession? startupTearOutSession, string[]? startupFiles)
         {
             _startupTearOutSession = startupTearOutSession;
+            _startupFiles = startupFiles;
             InitializeComponent();
             // Trash Polka: the second pane (card and active tab) carries its own piece, pinned to the window like the first.
             Controls.ThemeMotif.SetSecondPane(ViewerB, true);            // The footer version is the kit FooterCorner's; the name keeps FindName("VersionLabel") working.
