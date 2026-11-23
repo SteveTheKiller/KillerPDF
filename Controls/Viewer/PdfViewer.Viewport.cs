@@ -3040,11 +3040,15 @@ namespace KillerPDF.Controls
                     modeSession.PreGridFit = null;
                     modeSession.PreGridTrueZoom = null;
                 }
+                // A document opened straight into the grid recorded nothing; fit the page rather than keep
+                // the grid's column zoom.
+                else savedFitMode = FitMode.Page;
             }
             else
             {
                 savedTrueZoom = PersistableTrueZoomExt ?? (double.IsFinite(TrueZoomLevelExt) && TrueZoomLevelExt > 0 ? TrueZoomLevelExt : null);
-                if (mode == ViewMode.Grid && modeSession != null)
+                // The start screen's empty session records nothing for the next file opened in it.
+                if (mode == ViewMode.Grid && modeSession != null && HasReadDocument)
                 {
                     modeSession.PreGridFit = savedFitMode;
                     modeSession.PreGridTrueZoom = savedTrueZoom;

@@ -61,6 +61,53 @@ public sealed class ViewModeZoomTests
         Assert.Contains("else if (mode == ViewMode.Grid || savedFitMode is FitMode.Width or FitMode.Page)", code);
     }
 
+    // A document opened straight into Grid never recorded a pre-grid zoom, so leaving the grid kept its
+    // tiny column zoom. With nothing recorded it fits the page, as before #521.
+    [Fact]
+    public void LeavingAGridTheDocumentOpenedInFitsThePage()
+    {
+        string code = ApplyViewModeSource();
+        Assert.Contains("else savedFitMode = FitMode.Page;", code);
+    }
+
+    // The start screen's empty session must not carry a pre-grid zoom into the next file opened in it.
+    [Fact]
+    public void AnEmptySessionHoldsNoPreGridZoom()
+    {
+        string code = ApplyViewModeSource();
+        Assert.Contains("if (mode == ViewMode.Grid && modeSession != null && HasReadDocument)", code);
+        string root = FindRepositoryRoot();
+        string tabs = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Tabs.cs"));
+        int reuse = tabs.IndexOf("reuse the current empty tab", StringComparison.Ordinal);
+        Assert.True(reuse > 0);
+        string block = tabs[reuse..tabs.IndexOf("else", reuse, StringComparison.Ordinal)];
+        Assert.Contains("target.PreGridFit = null;", block);
+        Assert.Contains("target.PreGridTrueZoom = null;", block);
+    }
+
+    // Comparing from the grid goes through Continuous and back, which used to replace the user's pre-grid
+    // zoom with the comparison's fit-width.
+    [Fact]
+    public void AComparisonRoundTripKeepsThePreGridZoom()
+    {
+        string root = FindRepositoryRoot();
+        string api = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Api.cs"));
+        Assert.Contains("FitMode? PreGridFit, double? PreGridTrueZoom)", api);
+        int restore = api.IndexOf("internal void RestoreComparisonViewStateExt(", StringComparison.Ordinal);
+        string body = api[restore..api.IndexOf("internal void ScrollToRatioExt(", restore, StringComparison.Ordinal)];
+        Assert.Contains("_active.PreGridFit = state.PreGridFit;", body);
+        Assert.Contains("_active.PreGridTrueZoom = state.PreGridTrueZoom;", body);
+    }
+
+    private static string ApplyViewModeSource()
+    {
+        string root = FindRepositoryRoot();
+        string viewport = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Viewport.cs"));
+        int start = viewport.IndexOf("internal void ApplyViewMode(", StringComparison.Ordinal);
+        Assert.True(start >= 0, "ApplyViewMode was not found.");
+        return viewport[start..];
+    }
+
     [Fact]
     public void DocumentSessionTracksPreGridFitAndTrueZoom()
     {

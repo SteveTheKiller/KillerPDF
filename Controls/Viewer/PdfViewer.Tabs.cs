@@ -825,6 +825,8 @@ namespace KillerPDF.Controls
                 // Its page list belonged to the document it held before, so the next file starts a list of its own.
                 target.ThumbCache = null;
                 target.ThumbCacheComplete = false;
+                target.PreGridFit = null;
+                target.PreGridTrueZoom = null;
             }
             else
             {

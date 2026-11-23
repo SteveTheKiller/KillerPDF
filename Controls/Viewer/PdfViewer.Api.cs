@@ -142,7 +142,8 @@ namespace KillerPDF.Controls
 
         internal ComparisonViewState CaptureComparisonViewStateExt()
             => new(_viewMode, _fitMode, _zoomLevel, State.CurrentPage,
-                PagePreviewPanel.HorizontalOffset, PagePreviewPanel.VerticalOffset);
+                PagePreviewPanel.HorizontalOffset, PagePreviewPanel.VerticalOffset,
+                _active?.PreGridFit, _active?.PreGridTrueZoom);
         internal void EnterComparisonViewExt(int pageIndex)
         {
             ApplyViewMode(ViewMode.Continuous, force: true);
@@ -160,6 +161,13 @@ namespace KillerPDF.Controls
             if (state.Fit == FitMode.Width) FitToWidth();
             else if (state.Fit == FitMode.Page) FitToPage();
             else SetZoom(state.Zoom);
+            // Re-entering the grid recorded the comparison's fit-width as the zoom to leave it with; put the
+            // user's own pre-grid zoom back.
+            if (state.View == ViewMode.Grid && _active != null)
+            {
+                _active.PreGridFit = state.PreGridFit;
+                _active.PreGridTrueZoom = state.PreGridTrueZoom;
+            }
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, (Action)(() =>
             {
                 PagePreviewPanel.ScrollToHorizontalOffset(state.HorizontalOffset);
@@ -424,5 +432,6 @@ namespace KillerPDF.Controls
 
     internal readonly record struct ComparisonViewState(
         ViewMode View, FitMode Fit, double Zoom, int Page,
-        double HorizontalOffset, double VerticalOffset);
+        double HorizontalOffset, double VerticalOffset,
+        FitMode? PreGridFit, double? PreGridTrueZoom);
 }
