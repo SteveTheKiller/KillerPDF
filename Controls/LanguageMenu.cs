@@ -80,8 +80,9 @@ namespace KillerPDF.Controls
             // Each hover row sits 8px from the card's outer edge (family rule): the 1px border, then 15 left
             // less the row's -8, 7 top and bottom, and 5 right plus the row's own 2.
             var columns = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(15, 7, 5, 7) };
-            var left = new StackPanel { Width = 200 };
-            var right = new StackPanel { Width = 200 };
+            // 226 = the old 200 plus the 18px flag and its 8px gap, so long names keep their room.
+            var left = new StackPanel { Width = 226 };
+            var right = new StackPanel { Width = 226 };
             var divider = new Border
             {
                 Width = 1,
@@ -112,8 +113,12 @@ namespace KillerPDF.Controls
             {
                 var grid = new Grid();
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                var flag = LanguageFlags.Badge(loc);
+                flag.Margin = new Thickness(0, 0, 8, 0);
                 var nameBlock = new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center };
+                Grid.SetColumn(nameBlock, 1);
                 var codeBlock = new TextBlock
                 {
                     Text = code,
@@ -122,7 +127,8 @@ namespace KillerPDF.Controls
                     HorizontalAlignment = HorizontalAlignment.Right,
                 };
                 codeBlock.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-                Grid.SetColumn(codeBlock, 1);
+                Grid.SetColumn(codeBlock, 2);
+                grid.Children.Add(flag);
                 grid.Children.Add(nameBlock);
                 grid.Children.Add(codeBlock);
 
