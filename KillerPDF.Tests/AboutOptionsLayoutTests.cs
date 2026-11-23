@@ -34,6 +34,17 @@ public sealed class AboutOptionsLayoutTests
         Assert.Null(check.Attribute("Grid.Row"));
     }
 
+    // The one drop-down (Restore last session) sits last in the left column, under the check boxes (Steve 2026-11-23).
+    [Fact]
+    public void RestoreLastSessionIsTheLastRowOnTheLeft()
+    {
+        XElement row = Named(Window(), "RestoreSessionCombo").Parent!;
+        XElement stack = row.Parent!;
+        Assert.Equal("StackPanel", stack.Name.LocalName);
+        Assert.Equal("0", (string?)stack.Attribute("Grid.Column") ?? "0");
+        Assert.Same(row, stack.Elements().Last());
+    }
+
     [Fact]
     public void ClearAllDataSitsInTheBottomRightCornerOutsideTheRows()
     {
