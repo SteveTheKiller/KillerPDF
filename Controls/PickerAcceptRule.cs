@@ -21,6 +21,14 @@ namespace KillerPDF.Controls
             return typed.Length > 0 && typed.IndexOfAny(Path.GetInvalidPathChars()) < 0 && IsFullyQualified(typed);
         }
 
+        /// <summary>Whether an accept asks for the files in a new window (KillerPDF #513): Shift held with Enter or the
+        /// Open button, in Open mode. Save and folder pickers have nothing to open.</summary>
+        public static bool OpensInNewWindow(bool shiftHeld, bool openMode) => shiftHeld && openMode;
+
+        /// <summary>Whether Enter on the file list opens a folder rather than accepting: only one row is highlighted and
+        /// it is a folder. Files, or several rows, are accepted like the Open button.</summary>
+        public static bool ListEnterOpensFolder(int selectedCount, bool firstIsFolder) => selectedCount == 1 && firstIsFolder;
+
         // Path.IsPathFullyQualified does not exist on .NET Framework, which the apps target.
         private static bool IsFullyQualified(string path)
         {

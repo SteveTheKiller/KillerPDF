@@ -1074,9 +1074,12 @@ namespace KillerPDF.Shell
 
         private void Open_Click(object sender, RoutedEventArgs e)
         {
+            // #513: several files at once, and Shift+Enter or Shift with Open puts them in a new window.
             var dlg = new Controls.FileDialog(Controls.FileDialogMode.Open)
-                          { Filter = Services.OpenDialogFilter.For(Loc), Title = Loc("Str_Dlg_OpenPdf") };
-            if (dlg.ShowDialog(this) == true) OpenInNewTab(dlg.FileName);
+                          { Filter = Services.OpenDialogFilter.For(Loc), Title = Loc("Str_Dlg_OpenPdf"), Multiselect = true };
+            if (dlg.ShowDialog(this) != true) return;
+            if (dlg.OpenInNewWindow) { OpenInNewWindow(dlg.FileNames); return; }
+            foreach (string file in dlg.FileNames) OpenInNewTab(file);
         }
 
         private sealed record OpenMenuCommand(string LabelKey, string Icon, bool RequiresDocument, Action Run);

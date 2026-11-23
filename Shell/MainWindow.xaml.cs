@@ -316,8 +316,16 @@ namespace KillerPDF.Shell
         /// <summary>The footer version label, which lives in the kit's FooterCorner.</summary>
         private System.Windows.Controls.TextBlock VersionLabel => FooterVersionCell.VersionText;
 
-        public MainWindow() : this(null)
+        public MainWindow() : this((Controls.PdfViewer.DocumentSession?)null)
         {
+        }
+
+        // #513: a window opened for files picked with Shift in the Open dialog starts with them, not the last session.
+        private readonly string[]? _startupFiles;
+
+        internal MainWindow(string[] startupFiles) : this((Controls.PdfViewer.DocumentSession?)null)
+        {
+            _startupFiles = startupFiles;
         }
 
         internal MainWindow(Controls.PdfViewer.DocumentSession? startupTearOutSession)
@@ -551,6 +559,10 @@ namespace KillerPDF.Shell
                     // loads the active tab, so it is materialized here as the update restart does.
                     if (tornOut.Doc == null && tornOut.DeferredPath != null) MaterializeDeferred(tornOut);
                     else RenderActiveSession();
+                }
+                else if (_startupFiles is { Length: > 0 } startupFiles)
+                {
+                    foreach (string file in startupFiles) OpenFromExternal(file);
                 }
                 else if (App.TakeUpdateRestart() is { } updateRestart)
                 {
@@ -876,7 +888,7 @@ namespace KillerPDF.Shell
                 var placement = Services.StartupWindowPlacement.Decide(App.GetSetting, Width, Height,
                     SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop,
                     SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight,
-                    tornOut: _startupTearOutSession is not null);
+                    tornOut: _startupTearOutSession is not null || _startupFiles is not null);
                 if (placement.Width is { } width && placement.Height is { } height)
                 {
                     Width  = width;

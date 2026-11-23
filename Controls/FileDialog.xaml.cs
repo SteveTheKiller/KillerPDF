@@ -101,6 +101,10 @@ namespace KillerPDF.Controls
         /// the Win32 dialogs' FileNames. FileName remains the first of them.</summary>
         public string[] FileNames { get; private set; } = [];
 
+        /// <summary>True when the files were accepted with Shift held (Shift+Enter, or Shift and the Open button) in
+        /// Open mode: the caller opens them in a new window instead of the one that asked (KillerPDF #513).</summary>
+        public bool OpenInNewWindow { get; private set; }
+
         // ── internals ────────────────────────────────────────────────────────────
 
         private readonly FileDialogMode _mode;
@@ -1618,6 +1622,8 @@ namespace KillerPDF.Controls
         /// </summary>
         private async void Accept()
         {
+            // Read as the key or click arrives: the accept below may wait on a slow folder probe.
+            OpenInNewWindow = PickerAcceptRule.OpensInNewWindow((Keyboard.Modifiers & ModifierKeys.Shift) != 0, _mode == FileDialogMode.Open);
             // A name no path can carry is refused with its message straight away: that needs no
             // listing, so a folder still loading (after a filter change, say) must not swallow it.
             if (_mode != FileDialogMode.Folder && !_accepting)
@@ -1840,6 +1846,22 @@ namespace KillerPDF.Controls
             if (e.ButtonState != MouseButtonState.Pressed) return;
             try { DragMove(); }
             catch (InvalidOperationException) { }   // the button was already up
+        }
+
+        // Enter on the file list opens a highlighted folder, or accepts the highlighted files like Open (and with
+        // Shift, into a new window). Caught on the way down: the Extended-selection list handles Enter and
+        // Shift+Enter itself, so OnKeyDown never sees them.
+        protected override void OnPreviewKeyDown(KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && FileList.IsKeyboardFocusWithin && FileList.SelectedItems.Count > 0)
+            {
+                e.Handled = true;
+                if (PickerAcceptRule.ListEnterOpensFolder(FileList.SelectedItems.Count, FileList.SelectedItem is PickerEntry { IsFolder: true }))
+                    NavigateTo(((PickerEntry)FileList.SelectedItem).FullPath);
+                else Accept();
+                return;
+            }
+            base.OnPreviewKeyDown(e);
         }
 
         protected override void OnKeyDown(KeyEventArgs e)

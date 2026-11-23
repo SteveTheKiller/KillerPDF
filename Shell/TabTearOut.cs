@@ -18,6 +18,22 @@ namespace KillerPDF.Shell
                 || p.Y < -slack || p.Y > ActualHeight + slack;
         }
 
+        // #513: files picked with Shift in the Open dialog open as tabs of a new window, placed like a torn-out tab.
+        internal void OpenInNewWindow(IReadOnlyList<string> files)
+        {
+            if (files.Count == 0) return;
+            var window = new MainWindow([.. files])
+            {
+                Width = ActualWidth,
+                Height = ActualHeight,
+                Left = Math.Max(0, Left + 32),
+                Top = Math.Max(0, Top + 32),
+                WindowStartupLocation = WindowStartupLocation.Manual,
+            };
+            window.Show();
+            window.Activate();
+        }
+
         internal void TearOutTab(PdfViewer source, PdfViewer.DocumentSession session)
         {
             source.CaptureActiveIfAny();
