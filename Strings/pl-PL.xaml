@@ -134,7 +134,7 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_About_Thumbprint">ODCISK PALCA</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Obliczenia...</sys:String>
-    <sys:String x:Key="Str_Tagline">Szybki, bezpłatny zestaw narzędzi PDF dla Windows z narzędziami do adnotacji, scalania, OCR, podpisywania i formularzy. Narzędzie GPLv3 z {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Darmowy edytor PDF na Windows: edycja, uwagi, scalanie, porównanie, ukrywanie, podpis, formularze, OCR, konwersja. Narzędzie GPLv3 od {0}.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">STRONY</sys:String>

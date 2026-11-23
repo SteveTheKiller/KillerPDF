@@ -134,7 +134,7 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_About_Thumbprint">OTISK CERTIFIKÁTU</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Počítám...</sys:String>
-    <sys:String x:Key="Str_Tagline">Rychlá a bezplatná sada nástrojů pro PDF ve Windows s anotacemi, slučováním, OCR, podepisováním a formuláři. Nástroj pod licencí GPLv3 od {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Bezplatný editor PDF pro Windows: úpravy, anotace, slučování, porovnání, začernění, podpisy, formuláře, OCR a převod. Nástroj GPLv3 od {0}.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">STRÁNKY</sys:String>

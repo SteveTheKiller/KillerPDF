@@ -132,7 +132,7 @@ La página se puede sustituir por una imagen de sí misma con las áreas marcada
     <sys:String x:Key="Str_About_Thumbprint">HUELLA DIGITAL</sys:String>
     <sys:String x:Key="Str_About_ExeSha">SHA256 EXE</sys:String>
     <sys:String x:Key="Str_About_Computing">Calculando...</sys:String>
-    <sys:String x:Key="Str_Tagline">Un kit de herramientas PDF rápido y gratuito para Windows con anotación, combinación, OCR, firma y formularios. Una herramienta GPLv3 de {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Editor PDF gratuito para Windows: edita, anota, combina, compara, censura, firma, rellena formularios, OCR y conversión. Herramienta GPLv3 de {0}.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">PÁGINAS</sys:String>

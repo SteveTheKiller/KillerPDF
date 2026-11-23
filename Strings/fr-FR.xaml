@@ -134,7 +134,7 @@ La page peut être remplacée par une image d'elle-même avec les zones marquée
     <sys:String x:Key="Str_About_Thumbprint">EMPREINTE</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Calcul en cours...</sys:String>
-    <sys:String x:Key="Str_Tagline">Une boîte à outils PDF rapide et gratuite pour Windows avec annotation, fusion, OCR, signature et formulaires. Un outil GPLv3 de {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Éditeur PDF gratuit pour Windows : édition, notes, fusion, comparaison, masquage, signature, formulaires, OCR, conversion. Outil GPLv3 de {0}.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">PAGES</sys:String>

@@ -134,7 +134,7 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_About_Thumbprint">UJJLENYOMAT</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Számítás...</sys:String>
-    <sys:String x:Key="Str_Tagline">Gyors, ingyenes PDF-eszközkészlet Windowsra jegyzeteléssel, egyesítéssel, OCR-rel, aláírással és űrlapeszközökkel. GPLv3 segédprogram a következőtől: {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Ingyenes PDF-szerkesztő Windowsra: szerkesztés, jegyzet, egyesítés, összevetés, takarás, aláírás, űrlap és OCR. A {0} GPLv3 eszköze.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">OLDALAK</sys:String>

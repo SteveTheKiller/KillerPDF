@@ -134,7 +134,7 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_About_Thumbprint">FINGERAVTRYKK</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Beregner...</sys:String>
-    <sys:String x:Key="Str_Tagline">Et raskt, gratis PDF-verktøysett for Windows med merknader, sammenslåing, OCR, signering og skjemaverktøy. Et GPLv3-verktøy fra {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Gratis PDF-redigerer for Windows: rediger, kommenter, flett, sammenlign, sladd, signer, fyll skjema, OCR og konverter. GPLv3-verktøy fra {0}.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">SIDER</sys:String>

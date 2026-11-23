@@ -134,7 +134,7 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_About_Thumbprint">IMPRONTA CERTIFICATO</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Calcolo in corso...</sys:String>
-    <sys:String x:Key="Str_Tagline">Un toolkit PDF veloce e gratuito per Windows con strumenti di annotazione, unione, OCR, firma e moduli. Un'utilità GPLv3 da {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Editor PDF gratuito per Windows: modifica, annota, unisci, confronta, oscura, firma, compila moduli, esegui l'OCR e converti. Un'utilità GPLv3 da {0}.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">PAGINE</sys:String>

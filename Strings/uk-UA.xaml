@@ -134,7 +134,7 @@
     <sys:String x:Key="Str_About_Thumbprint">ВІДБИТОК</sys:String>
     <sys:String x:Key="Str_About_ExeSha">SHA256 EXE</sys:String>
     <sys:String x:Key="Str_About_Computing">Обчислення...</sys:String>
-    <sys:String x:Key="Str_Tagline">Швидкий безкоштовний інструментарій PDF для Windows з анотаціями, об'єднанням, OCR, підписанням і формами. Утиліта з ліцензією GPLv3 від {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Безкоштовний PDF-редактор для Windows: редагування, анотації, об'єднання, порівняння, приховування, підпис, заповнення форм, OCR і конвертація документів. Утиліта з ліцензією GPLv3 від {0}.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">СТОРІНКИ</sys:String>

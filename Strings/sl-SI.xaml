@@ -124,7 +124,7 @@
     <sys:String x:Key="Str_About_Thumbprint">PRSTNI ODTIS</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Izračunavanje...</sys:String>
-    <sys:String x:Key="Str_Tagline">Hiter in brezplačen nabor orodij PDF za Windows s pripombami, združevanjem, OCR, podpisovanjem in obrazci. Pripomoček z licenco GPLv3 avtorja {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Brezplačen urejevalnik PDF za Windows: urejanje, pripombe, združevanje, primerjava, zakrivanje, podpisovanje, izpolnjevanje obrazcev, OCR in pretvorba dokumentov. Pripomoček z licenco GPLv3 avtorja {0}.</sys:String>
     <sys:String x:Key="Str_TabPages">STRANI</sys:String>
     <sys:String x:Key="Str_TabOutlines">ORIS</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Strni vse</sys:String>
