@@ -102,6 +102,9 @@ namespace KillerPDF.Services
             appResources["UiFont"] = d["UiFont"];
             // App.xaml's MonoFont is the same interface stack, so it follows the language too.
             appResources["MonoFont"] = ThemeManager.KillerSansUiStack;
+            // BrandSansFont (toolbar captions, the sidebar heading) was bare Killer Sans, so Chinese and
+            // Japanese text fell to Windows' own fallback instead of the language's face (#490).
+            appResources["BrandSansFont"] = ThemeManager.KillerSansTitleStack;
             // One SystemIdle pass to nudge any elements whose effective value didn't auto-update
             // (e.g. ControlTemplate trigger bindings with TargetName that missed the per-key signal).
             app.Dispatcher.BeginInvoke(DispatcherPriority.SystemIdle, (Action)RefreshIcons);
