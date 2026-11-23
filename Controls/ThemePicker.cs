@@ -383,10 +383,10 @@ namespace KillerPDF.Controls
                 (Accent.Red, "#FF2929"), (Accent.Orange, "#FF910A"), (Accent.Yellow, "#FFEB00"), (Accent.Green, "#00FF66"),
                 (Accent.Teal, "#0AFFE7"), (Accent.Blue, "#298DFF"), (Accent.Purple, "#B829FF"), (Accent.Magenta, "#FF2BBD")
             ],
-            // Blood, Ember, Ochre, Moss, Teal, Cobalt, Violet, Rose.
+            // Blood, Ember, Yellow, Moss, Teal, Cobalt, Violet, Rose.
             Theme.TrashPolka =>
             [
-                (Accent.Red, "#D7263D"), (Accent.Orange, "#EE7B22"), (Accent.Yellow, "#D9A21B"), (Accent.Green, "#7A9A3A"),
+                (Accent.Red, "#D7263D"), (Accent.Orange, "#EE7B22"), (Accent.Yellow, "#EED500"), (Accent.Green, "#7A9A3A"),
                 (Accent.Teal, "#1E9A96"), (Accent.Blue, "#3A6FD0"), (Accent.Purple, "#8A4CC2"), (Accent.Magenta, "#E4588E")
             ],
             Theme.SE98 =>
