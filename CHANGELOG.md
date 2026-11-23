@@ -36,6 +36,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
+- Menu nav buttons are slimmer, and the nav row no longer widens a card, so card tiles keep their own width in two-page view. Dialog buttons, card toggles and segment buttons carry less padding on their sides.
 - Switching between Single, Two-page and Continuous keeps your zoom or fit instead of fitting the page, and leaving the thumbnail grid returns to the zoom you had before it. (#521, thanks @Shakil-Ahmmed-Dev)
 - Merge PDFs on the toolbar makes a new document instead of adding to the open file. The open file is listed first, so you can move it or take it out. The page card's Merge still inserts after that page (#495).
 - The tray icon's card shows the KillerPDF logo over one row of tiles, Open and then Exit, like the other cards.
@@ -46,8 +47,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The print window has a Color section where KillerPDF can manage print colors with an RGB printer profile from Color Management, a rendering intent and black-point compensation, and the preview shows how the profile predicts the page will print (#520).
 - The job asks the printer driver to skip its own color management and says when the driver confirms it, keeping the warning to turn it off by hand for drivers that don't (#520).
 - The page card's top box, with the selected-text tiles and Text, Image and Signature, has its own pencil, so you can reorder or hide those tiles too. The selected-text tiles keep their places while nothing is selected (#496).
-- Ctrl+Shift+U turns pages upside down, and the Upside Down tile shows it.
-- While customizing a card, Alt+arrow keys move the focused tile one place or one row, and a screen reader hears its new position.
+- Ctrl+Shift+U turns pages upside down, and the Upside Down tile shows it.- While customizing a card, Alt+arrow keys move the focused tile one place or one row, and a screen reader hears its new position.
 - The Open dialog takes several files at once. Enter opens them as tabs, and Shift+Enter opens them together in a new window (#513).
 - Highlight works on scans and pictures. Where there's no text under the pointer, a drag highlights the box it covers (#514).
 - Swedish and Korean interface languages, machine-translated to start, with review welcome. Korean draws in Malgun Gothic like the other Asian languages, and OCR reads Swedish and Korean (#511).

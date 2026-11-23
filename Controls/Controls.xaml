@@ -72,7 +72,7 @@
         <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
         <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
         <Setter Property="FontSize" Value="12.5"/>
-        <Setter Property="Padding" Value="14,7"/>
+        <Setter Property="Padding" Value="10,6"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
@@ -131,7 +131,7 @@
         <Setter Property="Background" Value="{DynamicResource OutlineFaceBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource OutlineTextBrush}"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Padding" Value="14,5"/>
+        <Setter Property="Padding" Value="10,5"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="{DynamicResource OutlineRestBrush}"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -206,7 +206,7 @@
         <Setter Property="Background" Value="{DynamicResource ChipFaceBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
         <Setter Property="FontSize" Value="13"/>
-        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="Padding" Value="9,5"/>
         <Setter Property="BorderThickness" Value="1"/>
         <!-- ChipEdgeBrush, defaulting to PaneBorderBrush: a button sitting ON a pane takes the
              pane's own edge color (CardBorderBrush is #787878 on Black, which drew a bright gray
@@ -1668,7 +1668,7 @@
     <Style x:Key="CardSegment" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{DynamicResource MenuTrackTextBrush}"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Padding" Value="10,3"/>
+        <Setter Property="Padding" Value="7,3"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -1704,7 +1704,7 @@
     <Style x:Key="CardToggle" TargetType="ToggleButton">
         <Setter Property="Foreground" Value="{DynamicResource MenuTextBrush}"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Padding" Value="9,3"/>
+        <Setter Property="Padding" Value="7,3"/>
         <Setter Property="Margin" Value="0,0,6,0"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
@@ -3010,7 +3010,7 @@
     <Style x:Key="KsToggle" TargetType="Button">
         <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
         <Setter Property="FontSize" Value="11"/>
-        <Setter Property="Padding" Value="10,3"/>
+        <Setter Property="Padding" Value="7,3"/>
         <Setter Property="Margin" Value="0,0,6,0"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
@@ -3207,7 +3207,7 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Padding" Value="9,4"/>
+        <Setter Property="Padding" Value="6,4"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
             <Setter.Value>

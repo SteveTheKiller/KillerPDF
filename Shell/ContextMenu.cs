@@ -305,7 +305,7 @@ namespace KillerPDF.Shell
         // (Alt+Left, Alt+Right, the mouse's side buttons), then Undo, Redo and Print, and the page on the right.
         private void AddNavRow(ContextMenu menu, int pageIdx = -1, string? zoomIn = null, string? zoomOut = null)
         {
-            var row = new DockPanel { Margin = new Thickness(4, 0, 4, 2), LastChildFill = true };
+            var row = new NavRowPanel { Margin = new Thickness(4, 0, 4, 2), LastChildFill = true };
             var buttons = new StackPanel { Orientation = Orientation.Horizontal };
             buttons.Children.Add(NavRowButton(menu, "\uE72B", "Str_Kb_Back", "Alt:Left", () => NavHistoryGo(true), _navBack.Count > 0));
             buttons.Children.Add(NavRowButton(menu, "\uE72A", "Str_Kb_Forward", "Alt:Right", () => NavHistoryGo(false), _navForward.Count > 0));
@@ -344,7 +344,7 @@ namespace KillerPDF.Shell
             {
                 var where = new TextBlock
                 {
-                    Text = string.Format(Loc("Str_PageOf"), pageIdx + 1, pageCount), FontSize = 11,
+                    Text = string.Format(Loc("Str_PageOf"), pageIdx + 1, pageCount), FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis,
                     HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 4, 0)
                 };
                 where.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
@@ -363,6 +363,11 @@ namespace KillerPDF.Shell
                 ToolTip = WithGesture(Loc(labelKey), cap),
             };
             if (TryFindResource("ToolbarButton") is Style style) button.Style = style;
+            // Slimmer than a 36x32 toolbar button, so the nav row never runs wider than the card's three tiles
+            // (Steve 2026-11-23).
+            button.Width = 26;
+            button.Height = 28;
+            button.Padding = new Thickness(0);
             System.Windows.Automation.AutomationProperties.SetName(button, Loc(labelKey));
             ToolTipService.SetShowOnDisabled(button, true);
             button.Click += (_, _) =>
@@ -371,6 +376,17 @@ namespace KillerPDF.Shell
                 act();
             };
             return button;
+        }
+
+        // The nav row takes the card's width instead of setting it: the three tiles across decide how wide a card is,
+        // and a long "Page 1 of 1,000" trims instead of stretching every tile (Steve 2026-11-23).
+        private sealed class NavRowPanel : DockPanel
+        {
+            protected override Size MeasureOverride(Size constraint)
+            {
+                var size = base.MeasureOverride(constraint);
+                return new Size(0, size.Height);
+            }
         }
 
         // The row's host item draws only the buttons: no highlight, no gutter, no click of its own.
