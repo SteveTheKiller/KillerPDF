@@ -535,7 +535,7 @@ namespace KillerPDF.Controls
             }
         }
 
-        internal void SetupContinuousView(int initialPage, bool fitDefault = false,
+        internal void SetupContinuousView(int initialPage, bool fitDefault = true,
             double? restoreVerticalOffset = null)
         {
             if (!HasReadDocument) return;
@@ -592,7 +592,7 @@ namespace KillerPDF.Controls
 
             // Re-apply the view's zoom now that _continuousPageW is known. Honor the saved fit mode; for a
             // custom (None) zoom, keep the exact level on a tab restore or view-mode switch (fitDefault=false)
-            // instead of snapping to fit-page. Fresh opens pass fitDefault=true and still default to fit-page.
+            // instead of snapping to fit-page. Fresh opens and reloads use the default and still fit the page.
             if (_active?.PendingZoom != null) RestoreManualZoom();
             else if (_fitMode == FitMode.Width) FitToWidth();
             else if (_fitMode == FitMode.Page) FitToPage();
@@ -3053,10 +3053,20 @@ namespace KillerPDF.Controls
 
             _viewMode = mode;
             _fitMode = savedFitMode;
-            if (savedFitMode == FitMode.None && savedTrueZoom is > 0 && modeSession != null)
+            // Grid fits its own columns and takes its exit zoom from PreGridTrueZoom, so nothing is pending
+            // there. A fit re-fits in the new mode, so a pending zoom or fit from the old mode is dropped.
+            if (modeSession != null)
             {
-                modeSession.PendingZoom = new DeferredManualZoom(savedTrueZoom.Value);
-                modeSession.PendingFitRestore = null;
+                if (mode != ViewMode.Grid && savedFitMode == FitMode.None && savedTrueZoom is > 0)
+                {
+                    modeSession.PendingZoom = new DeferredManualZoom(savedTrueZoom.Value);
+                    modeSession.PendingFitRestore = null;
+                }
+                else if (mode == ViewMode.Grid || savedFitMode is FitMode.Width or FitMode.Page)
+                {
+                    modeSession.PendingZoom = null;
+                    modeSession.PendingFitRestore = null;
+                }
             }
 
             Host?.ViewerNavigationChanged(this);

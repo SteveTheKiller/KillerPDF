@@ -37,12 +37,28 @@ public sealed class ViewModeZoomTests
         Assert.Contains("SetupContinuousView(idx, fitDefault: false);", code);
     }
 
+    // Reloads after a save or a page edit call SetupContinuousView without fitDefault and fit the page as
+    // before #521; only the view-mode switch passes false to keep a custom zoom.
     [Fact]
-    public void SetupContinuousViewDefaultsToPreservingZoom()
+    public void SetupContinuousViewStillFitsByDefault()
     {
         string root = FindRepositoryRoot();
         string viewport = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Viewport.cs"));
-        Assert.Contains("internal void SetupContinuousView(int initialPage, bool fitDefault = false,", viewport);
+        Assert.Contains("internal void SetupContinuousView(int initialPage, bool fitDefault = true,", viewport);
+    }
+
+    // Grid fits its own columns, so a carried zoom must not be pending there (it could draw the grid at the
+    // old zoom first); its exit zoom comes from PreGridTrueZoom. A fit mode re-fits in the new mode, so a
+    // pending zoom or fit left from the old mode is dropped instead of replaying its steps.
+    [Fact]
+    public void ApplyViewModeQueuesTheZoomOnlyOutsideGridAndDropsItForAFit()
+    {
+        string root = FindRepositoryRoot();
+        string viewport = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Viewport.cs"));
+        int start = viewport.IndexOf("internal void ApplyViewMode(", StringComparison.Ordinal);
+        string code = viewport[start..];
+        Assert.Contains("if (mode != ViewMode.Grid && savedFitMode == FitMode.None && savedTrueZoom is > 0)", code);
+        Assert.Contains("else if (mode == ViewMode.Grid || savedFitMode is FitMode.Width or FitMode.Page)", code);
     }
 
     [Fact]
