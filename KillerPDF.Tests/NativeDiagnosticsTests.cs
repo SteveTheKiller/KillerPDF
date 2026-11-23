@@ -59,7 +59,7 @@ public sealed class NativeDiagnosticsTests
         while (root is not null && !File.Exists(Path.Combine(root.FullName, "Strings", "en-US.xaml"))) root = root.Parent;
         Assert.NotNull(root);
         var files = Directory.GetFiles(Path.Combine(root.FullName, "Strings"), "*.xaml");
-        Assert.Equal(20, files.Length);
+        Assert.Equal(22, files.Length);
         foreach (var reason in Enum.GetValues<KillerPdf.Engine.Formats.Epub.EpubOmissionReason>())
         {
             string key = NativeDocumentDiagnostics.ReasonKey(reason);

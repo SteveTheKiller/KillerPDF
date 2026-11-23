@@ -14,13 +14,16 @@ Each language is a single XAML `ResourceDictionary` file in the `Strings/` folde
 - `it-IT.xaml` - Italian
 - `ja-JP.xaml` - Japanese
 - `kk-KZ.xaml` - Kazakh
+- `ko-KR.xaml` - Korean (machine translation, review welcome)
 - `nb-NO.xaml` - Norwegian (Bokmål)
 - `pl-PL.xaml` - Polish
 - `pt-BR.xaml` - Portuguese (Brazil)
 - `ru-RU.xaml` - Russian
 - `sl-SI.xaml` - Slovenian
+- `sv-SE.xaml` - Swedish (machine translation, review welcome)
 - `tr-TR.xaml` - Turkish
 - `uk-UA.xaml` - Ukrainian
+- `vi-VN.xaml` - Vietnamese
 - `zh-CN.xaml` - Simplified Chinese
 - `zh-TW.xaml` - Traditional Chinese
 

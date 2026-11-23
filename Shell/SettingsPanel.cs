@@ -299,6 +299,9 @@ namespace KillerPDF.Shell
             RefreshPageList();
             RefreshOutlines();
 
+            // The start screen's Recent rows bake in Loc("Str_RecentMissing") and the dates, so rebuild them too.
+            PopulateRecentFilesList();
+
             // A visible signature popup is built with Loc() too; rebuild it so its section headers and
             // pen labels switch immediately.
             RefreshSignaturePopupLanguage();

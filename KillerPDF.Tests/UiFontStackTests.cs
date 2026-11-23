@@ -41,10 +41,23 @@ public sealed class UiFontStackTests
             UiFontStack.For("ja-JP"));
     }
 
+    // Hangul is in none of the faces before it, and JhengHei's Hangul is a Chinese face's take on it. Malgun Gothic is
+    // the face Windows draws Korean in, with no separate UI cut.
+    [Theory]
+    [InlineData("ko-KR")]
+    [InlineData("ko")]
+    public void KoreanDrawsInMalgunGothic(string language)
+    {
+        Assert.Equal("./Fonts/#Killer Sans UI, Segoe UI, Malgun Gothic, Microsoft JhengHei UI, Nirmala UI",
+            UiFontStack.For(language));
+        Assert.Equal("./Fonts/#Killer Sans, Segoe UI, Malgun Gothic, Microsoft JhengHei UI, Nirmala UI",
+            UiFontStack.Title(language));
+    }
+
     [Theory]
     [InlineData("en-US")]
     [InlineData("de-DE")]
-    [InlineData("ko-KR")]
+    [InlineData("sv-SE")]
     [InlineData("")]
     [InlineData(null)]
     public void EveryOtherLanguageKeepsTheStack(string? language)
@@ -70,15 +83,17 @@ public sealed class UiFontStackTests
         Assert.Equal("./Fonts/#Killer Sans, Segoe UI, Microsoft JhengHei UI, Nirmala UI", UiFontStack.Title("en-US"));
     }
 
-    // #490: ideographs fill the em box, so Chinese and Japanese titles draw a size smaller.
+    // #490: ideographs fill the em box, so Chinese and Japanese titles draw a size smaller. Hangul syllables are
+    // square blocks that fill it the same way.
     [Theory]
     [InlineData("zh-CN", true)]
     [InlineData("zh-TW", true)]
     [InlineData("ja-JP", true)]
+    [InlineData("ko-KR", true)]
     [InlineData("en-US", false)]
-    [InlineData("ko-KR", false)]
+    [InlineData("sv-SE", false)]
     [InlineData(null, false)]
-    public void ChineseAndJapaneseCountAsCjk(string? language, bool cjk) =>
+    public void ChineseJapaneseAndKoreanCountAsCjk(string? language, bool cjk) =>
         Assert.Equal(cjk, UiFontStack.IsCjk(language));
 
     [Fact]

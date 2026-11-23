@@ -144,7 +144,7 @@ public sealed class NativeDjvuNoticeTests
         while (root is not null && !File.Exists(Path.Combine(root.FullName, "Strings", "en-US.xaml"))) root = root.Parent;
         Assert.NotNull(root);
         var files = Directory.GetFiles(Path.Combine(root.FullName, "Strings"), "*.xaml");
-        Assert.Equal(20, files.Length);
+        Assert.Equal(22, files.Length);
         var wording = NativeDocumentDiagnostics.WordingFor(PdfDocumentFormatDjvu);
         string[] keys =
         [

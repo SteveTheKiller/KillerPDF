@@ -20,6 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - While editing text, a click or the mouse wheel in the font list no longer closes it without picking a font. A font-only change on a scanned line sticks after you click away, and More settings stays open instead of closing or freezing the edit (#467).
 - Changing the accent under Trash Polka waits at most a second when a redraw hangs, instead of stalling. Its art cache only deletes its own files when it clears an older version.
 - Under Trash Polka, open drop-down lists and the file dialog's places, file list and preview panes carry the ink instead of flat slabs. The ink stays one image at any window size and returns to a surface that was hidden during a repaint.
+- After a language change, the start screen's Recent list says a file is missing in the new language instead of the old one.
 - A sidebar menu too tall for the window fits inside it and scrolls, instead of running past the window's foot.
 - On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. Book layout sits beside it, and the pair is centered.
 - Confirm dialogs size to what they say, so a short prompt is narrower. The heading sits a few pixels higher, with more room above the checkboxes, and on 98SE the dialog is spaced like a Win98 message box.
@@ -42,6 +43,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - While customizing a card, Alt+arrow keys move the focused tile one place or one row, and a screen reader hears its new position.
 - The Open dialog takes several files at once. Enter opens them as tabs, and Shift+Enter opens them together in a new window (#513).
 - Highlight works on scans and pictures. Where there's no text under the pointer, a drag highlights the box it covers (#514).
+- Swedish and Korean interface languages, machine-translated to start, with review welcome. Korean draws in Malgun Gothic like the other Asian languages, and OCR reads Swedish and Korean (#511).
 
 ## [1.9.5] - 2026-11-20
 

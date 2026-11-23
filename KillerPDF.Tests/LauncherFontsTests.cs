@@ -34,9 +34,17 @@ public sealed class LauncherFontsTests
         Assert.Equal("./Fonts/#Lacquer, ./Fonts/#Killer Sans UI, Segoe UI, Yu Gothic UI, Microsoft JhengHei UI, Nirmala UI", LauncherFonts.Heading("ja-JP"));
     }
 
+    [Fact]
+    public void KoreanDrawsInMalgunGothic()
+    {
+        Assert.Equal("./Fonts/#Killer Sans UI, Segoe UI, Malgun Gothic, Microsoft JhengHei UI, Nirmala UI", LauncherFonts.Ui("ko-KR"));
+        Assert.Equal("./Fonts/#Lacquer, ./Fonts/#Killer Sans UI, Segoe UI, Malgun Gothic, Microsoft JhengHei UI, Nirmala UI", LauncherFonts.Heading("ko-KR"));
+    }
+
     [Theory]
     [InlineData("en-US")]
     [InlineData("de-DE")]
+    [InlineData("sv-SE")]
     [InlineData("ru-RU")]
     [InlineData("bn")]
     public void EveryOtherLanguageKeepsTheStacksItAlwaysHad(string locale)

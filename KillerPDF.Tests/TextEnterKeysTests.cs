@@ -214,7 +214,7 @@ public sealed class TextEnterKeysTests
         string strings = Path.GetDirectoryName(EnglishStringsPath())!;
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
         string[] files = Directory.GetFiles(strings, "*.xaml");
-        Assert.Equal(20, files.Length);
+        Assert.Equal(22, files.Length);
         foreach (string file in files)
         {
             XDocument doc = XDocument.Load(file);

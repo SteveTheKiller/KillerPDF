@@ -63,6 +63,8 @@ foreach ($file in Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.cs') {
         if ($line.Contains('Console.Error.WriteLine')) { continue }
         # Argument guards name the parameter for developers. Their text never reaches the window.
         if ($line -match 'new Argument[A-Za-z]*Exception\(.*nameof\(') { continue }
+        # A UI Automation provider's refusal answers the automation client, never the window.
+        if ($source.Contains('using System.Windows.Automation.Provider;') -and $line -match 'throw new InvalidOperationException\(') { continue }
         if ($line -match '(?:\.Text|\.Content|Description)\s*=\s*"[A-Za-z]' -or
             $line -match '(?:ShowNotice|MessageBox\.Show|new [A-Za-z]+Exception)\(\s*"[A-Za-z]') {
             throw "Unlocalized UI assignment in $($file.Name): $($line.Trim())"

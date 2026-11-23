@@ -77,7 +77,7 @@ public sealed class BookShortcutGateTests
     {
         string root = Path.GetDirectoryName(RepoFile("KillerPDF.csproj"))!;
         var files = Directory.EnumerateFiles(Path.Combine(root, "Strings"), "*.xaml").ToList();
-        Assert.Equal(20, files.Count);
+        Assert.Equal(22, files.Count);
         foreach (string file in files)
         {
             var strings = XDocument.Parse(File.ReadAllText(file)).Descendants()
