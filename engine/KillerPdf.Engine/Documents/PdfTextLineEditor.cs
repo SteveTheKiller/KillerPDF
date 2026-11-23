@@ -515,6 +515,14 @@ public static partial class PdfContentRedaction
             return across <= Math.Max(1, Math.Min(placed.Size, Size) * 0.35) || placed.Size < Size && across <= Size * 0.6;
         }
 
+        // A smaller glyph riding off the baseline, such as a stray empty-paragraph space under a title,
+        // belongs to the line but never gives it its look (#431). Smaller text on the baseline still does.
+        internal bool LineSized(TextState state, Matrix glyph)
+        {
+            LineBaseline placed = Of(state, glyph);
+            return placed.Size >= Size * 0.98 || Across(placed) <= Math.Max(0.5, Size * 0.1);
+        }
+
         private bool SameLine(LineBaseline other) => Parallel(other) && Math.Abs(other.Size - Size) <= Size * 0.02
             && Across(other) <= Math.Max(0.1, Size * 0.02);
 
@@ -558,17 +566,19 @@ public static partial class PdfContentRedaction
         if (recorded is null) return Summarize(insertion, Unreadable(rewriter), tree, geometry);
         LineBaseline? line = LineBaseline.Dominant(recorded, region);
         ParagraphGlyph[] held = [.. recorded.Where(glyph => line?.Holds(glyph.State, glyph.Glyph) != false)];
-        var lineGlyphs = new LineInsertion { LookGlyph = FirstShown(held) };
+        var lineGlyphs = new LineInsertion { LookGlyph = FirstShown(held, line) };
         foreach (ParagraphGlyph glyph in held) lineGlyphs.Observe(glyph.State, glyph.Glyph, glyph.Barred, glyph.Bounds);
         return Summarize(lineGlyphs, Unreadable(rewriter), tree, geometry, line);
     }
 
     // A line drawn twice, as text with a shadow is, shows its last copy, so the first glyph that no
     // later glyph lands on is where the look comes from. Counted from one.
-    private static int FirstShown(ParagraphGlyph[] glyphs)
+    private static int FirstShown(ParagraphGlyph[] glyphs, LineBaseline? line = null)
     {
+        bool anySized = line is not null && glyphs.Any(glyph => line.LineSized(glyph.State, glyph.Glyph));
         for (int index = 0; index < glyphs.Length - 1; index++)
         {
+            if (anySized && !line!.LineSized(glyphs[index].State, glyphs[index].Glyph)) continue;
             Matrix device = glyphs[index].Glyph.Then(glyphs[index].State.Ctm);
             double reach = Math.Abs(glyphs[index].State.Size) * Math.Sqrt(device.C * device.C + device.D * device.D) * 0.2;
             if (!glyphs.Skip(index + 1).Any(later =>
@@ -577,6 +587,9 @@ public static partial class PdfContentRedaction
                 return Math.Abs(other.E - device.E) < reach && Math.Abs(other.F - device.F) < reach;
             })) return index + 1;
         }
+        if (anySized)
+            for (int index = glyphs.Length - 1; index >= 0; index--)
+                if (line!.LineSized(glyphs[index].State, glyphs[index].Glyph)) return index + 1;
         return Math.Max(1, glyphs.Length);
     }
 

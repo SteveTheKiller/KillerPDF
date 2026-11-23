@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Tiled JPEG 2000 images decode one tile at a time, so OpenJPEG no longer holds the whole image as 32-bit samples. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
+- `PdfTextLineEditor` no longer takes a line's font and size from a smaller glyph sitting below its baseline, such as a stray empty-paragraph space that a Word export draws under a title (#431).
 
 ### Added
 

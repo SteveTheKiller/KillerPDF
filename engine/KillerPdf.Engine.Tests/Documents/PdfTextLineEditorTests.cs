@@ -149,6 +149,21 @@ public sealed class PdfTextLineEditorTests
         AssertOthersUnmoved(document, output, region, "NEW");
     }
 
+    // #431: a Word export draws an empty paragraph's smaller space just under a title, before it. The
+    // space rides the line but the title's own face and size give the line its look.
+    [Fact]
+    public void AStraySmallerSpaceDoesNotGiveTheLineItsLook()
+    {
+        PdfDocument document = PdfDocument.Open(TwoFontPage(
+            "BT /F1 10 Tf 72 697 Td ( ) Tj ET BT /F2 12 Tf 72 700 Td (Fiberglass) Tj ET"));
+
+        PdfTextLineInspection title = PdfTextLineEditor.Inspect(document, 0, Region(document, "Fiberglass"));
+
+        Assert.True(title.CanEdit);
+        Assert.Equal("Times-Bold", title.FontName);
+        Assert.Equal(12, title.FontSize, 3);
+    }
+
     [Fact]
     public void InspectionReportsWhatCannotBeRewritten()
     {
