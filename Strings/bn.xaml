@@ -2599,4 +2599,13 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_Unit_Bytes">{0} বাইট</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} কেবি</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} এমবি</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">{0}-এ নতুন কী</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">বুঝেছি</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">নিরাপত্তা</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">সমাধান</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">পরিবর্তন</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">যোগ হয়েছে</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">সরানো হয়েছে</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">বাতিলের পথে</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">আপডেটের পরে পরিবর্তনের তালিকা দেখান</sys:String>
 </ResourceDictionary>

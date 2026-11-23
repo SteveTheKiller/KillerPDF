@@ -2619,4 +2619,13 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} KB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">Có gì mới trong {0}</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Đã hiểu</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Bảo mật</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Đã sửa</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Đã thay đổi</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Đã thêm</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Đã gỡ bỏ</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Không còn dùng</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Hiện nhật ký thay đổi sau khi cập nhật</sys:String>
 </ResourceDictionary>

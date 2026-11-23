@@ -150,6 +150,8 @@
 	<Resource Include="Resources\open_hand.cur" />
 	<Resource Include="Resources\closed_hand.cur" />
     <EmbeddedResource Include="Resources\pdf-file.ico" />
+    <!-- The What's new card reads this version's notes from it (Services/ReleaseNotes.cs). -->
+    <EmbeddedResource Include="CHANGELOG.md" LogicalName="CHANGELOG.md" />
   </ItemGroup>
 
   <!-- OCR: embed only the native Tesseract libs (x64) so the app still ships as a single exe. Language data

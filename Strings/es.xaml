@@ -2599,4 +2599,13 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} KB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">Novedades de {0}</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Entendido</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Seguridad</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Corregido</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Cambiado</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Añadido</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Eliminado</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Obsoleto</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Mostrar los cambios tras cada actualización</sys:String>
 </ResourceDictionary>

@@ -2604,4 +2604,13 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} kB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">Co je nového ve verzi {0}</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Rozumím</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Zabezpečení</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Opraveno</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Změněno</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Přidáno</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Odebráno</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Zastaralé</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Po aktualizaci zobrazit seznam změn</sys:String>
 </ResourceDictionary>

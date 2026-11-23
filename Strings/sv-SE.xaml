@@ -2612,4 +2612,13 @@ Vill du skala dem till en storlek som stöds? Sidorna behåller sitt utseende oc
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} KB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">Nyheter i {0}</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Uppfattat</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Säkerhet</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Åtgärdat</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Ändrat</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Tillagt</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Borttaget</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Föråldrat</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Visa ändringslogg efter uppdateringar</sys:String>
 </ResourceDictionary>

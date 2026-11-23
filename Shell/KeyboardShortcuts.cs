@@ -49,6 +49,9 @@ namespace KillerPDF.Shell
             }
             base.OnPreviewKeyDown(e);
 
+            // The What's new card is modal: Esc closes it and the app's shortcuts wait behind it.
+            if (_syntheticShortcut is null && WhatsNewOwnsKey(e)) return;
+
             if (_syntheticShortcut is null && HandleSignaturePickerKey(e)) return;
 
             // The title bar search box keeps its own navigation keys while it has focus.

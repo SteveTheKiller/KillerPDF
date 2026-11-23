@@ -3306,6 +3306,13 @@
                                   Checked="NoRecentCheck_Toggled" Unchecked="NoRecentCheck_Toggled">
                             <TextBlock Text="{DynamicResource Str_NoRecentSetting}" TextWrapping="Wrap"/>
                         </CheckBox>
+                        <!-- The What's new card's own box, so a user who cleared it can turn it back on
+                             (Shell/WhatsNew.cs keeps the two in step). -->
+                        <CheckBox x:Name="AboutWhatsNewCheck" VerticalAlignment="Top" Margin="0,6,0,0" Padding="10,0,10,0"
+                                  Style="{StaticResource ThemeCheck}" FontSize="11"
+                                  Click="AboutWhatsNewCheck_Click">
+                            <TextBlock Text="{DynamicResource Str_WhatsNew_ShowAfterUpdates}" TextWrapping="Wrap"/>
+                        </CheckBox>
                     </StackPanel>
                     <TextBlock Grid.Column="2" FontFamily="{DynamicResource UiFont}" FontSize="10"
                                HorizontalAlignment="Right" VerticalAlignment="Bottom" TextWrapping="Wrap">
@@ -3334,6 +3341,126 @@
                         Margin="{DynamicResource AboutCloseMargin}"
                         Content="{DynamicResource AboutCloseGlyph}" Style="{StaticResource OverlayCloseButton}"
                         Visibility="{DynamicResource AboutModernCloseVisibility}"/>
+                </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+        <!-- What's new overlay (Shell/WhatsNew.cs): once after an update, this version's changelog.
+             The header row carries the icon, wordmark, title and the buttons, so the notes pane
+             below sits 8px in from the card on every side, lifted like the About info panel. -->
+        <Grid x:Name="WhatsNewOverlay"
+              Grid.RowSpan="5"
+              Panel.ZIndex="10001"
+              Visibility="Collapsed"
+              Background="#88000000"
+              MouseLeftButtonDown="WhatsNewOverlay_Click"
+              MouseRightButtonDown="WhatsNewOverlay_Click">
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Width="560" Margin="40">
+                <Border Background="{DynamicResource OverlayWindowBrush}" CornerRadius="{DynamicResource PanelCornerRadius}" IsHitTestVisible="False">
+                    <Border.Effect>
+                        <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="3" Direction="270" Opacity="{DynamicResource AboutShadowOpacity}"/>
+                    </Border.Effect>
+                </Border>
+                <Border Panel.ZIndex="2" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelOuterDarkBrush}"
+                        BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
+                <Border Background="{DynamicResource OverlayWindowBrush}"
+                        ctrl:ThemeMotif.Part="Split" ctrl:ThemeMotif.BaseBrush="OverlayWindowBrush"
+                        BorderBrush="{DynamicResource OverlayEdgeBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource PanelCornerRadius}"
+                        MouseLeftButtonDown="WhatsNewCard_Click"
+                        MouseRightButtonDown="WhatsNewCard_Click">
+                <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Border Grid.RowSpan="3" Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
+                <Border Grid.RowSpan="3" Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource BevelDarkThickness}"/>
+                <Border Grid.Row="0" Height="{DynamicResource DialogTitleBarHeight}" Background="{DynamicResource DialogTitleBarBrush}"
+                        Visibility="{DynamicResource AboutCaptionVisibility}">
+                    <Grid Margin="5,0,2,0">
+                        <TextBlock Text="KillerPDF" VerticalAlignment="Center" FontFamily="{DynamicResource ChromeFontFamily}"
+                                   FontSize="11" FontWeight="Bold" Foreground="{DynamicResource ChromeTextBrush}"/>
+                        <Button Click="WhatsNewClose_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Width="{DynamicResource DialogCloseWidth}" Height="{DynamicResource DialogCloseHeight}"
+                                Content="{DynamicResource AboutCloseGlyph}" Style="{StaticResource OverlayCloseButton}"
+                                AutomationProperties.Name="{DynamicResource Str_Sys_Close}"/>
+                    </Grid>
+                </Border>
+                <Border Grid.Row="1" Grid.RowSpan="2" CornerRadius="{DynamicResource FlyoutCornerRadius}" IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}">
+                    <Border.Background>
+                        <ImageBrush x:Name="WhatsNewGrainBrush" TileMode="Tile"
+                                    ViewportUnits="Absolute" Viewport="0,0,256,256" Stretch="None"/>
+                    </Border.Background>
+                </Border>
+                <!-- Header: icon, wordmark and title on the left, the choice and Got it on the right. -->
+                <Grid Grid.Row="1" Margin="12,10,10,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <icons:AppIcon Grid.Column="0" Source="pack://application:,,,/Resources/kp-icon.ico"
+                           Width="40" Height="40" Margin="0,0,12,0" VerticalAlignment="Center"
+                           RenderOptions.BitmapScalingMode="NearestNeighbor">
+                        <icons:AppIcon.Effect>
+                            <DropShadowEffect Color="Black" BlurRadius="10" ShadowDepth="2" Direction="270" Opacity="{DynamicResource AboutIconShadowOpacity}"/>
+                        </icons:AppIcon.Effect>
+                    </icons:AppIcon>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <Grid>
+                            <TextBlock x:Name="WhatsNewLogoShadowBlock"
+                                       FontFamily="{DynamicResource WordmarkFont}" FontSize="16.43"
+                                       Margin="1,1,0,0" IsHitTestVisible="False"
+                                       Opacity="{DynamicResource WordmarkShadowOpacity}">
+                                <TextBlock.Effect><BlurEffect Radius="2"/></TextBlock.Effect>
+                            </TextBlock>
+                            <TextBlock FontFamily="{DynamicResource WordmarkFont}" FontSize="16.43" Margin="1,2,0,0" IsHitTestVisible="False" Opacity="{DynamicResource WordmarkAccentShadowOpacity}"><TextBlock.Effect><BlurEffect Radius="3"/></TextBlock.Effect><Run Text="Killer" FontFamily="{DynamicResource WordmarkFont}" FontSize="16.43" Foreground="Transparent"/><Run Text="PDF" FontFamily="{DynamicResource WordmarkFontPdf}" FontSize="24.68" Foreground="#D8000000"/></TextBlock>
+                            <TextBlock x:Name="WhatsNewLogoBlock" theme:Bevel.Enabled="True"
+                                       FontFamily="{DynamicResource WordmarkFont}" FontSize="16.43" Cursor="Hand"/>
+                        </Grid>
+                        <TextBlock x:Name="WhatsNewTitle" FontFamily="{DynamicResource UiFont}" FontSize="12"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="1,2,0,0"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <CheckBox x:Name="WhatsNewShowCheck" VerticalAlignment="Center" Margin="0,0,12,0" Padding="8,0,0,0"
+                                  MaxWidth="190" Style="{StaticResource ThemeCheck}" FontSize="11"
+                                  Click="WhatsNewShowCheck_Click">
+                            <TextBlock Text="{DynamicResource Str_WhatsNew_ShowAfterUpdates}" TextWrapping="Wrap"/>
+                        </CheckBox>
+                        <Button x:Name="WhatsNewGotIt" Style="{StaticResource OutlineButton}" Padding="16,6"
+                                VerticalAlignment="Center" Click="WhatsNewClose_Click">
+                            <TextBlock Text="{DynamicResource Str_WhatsNew_GotIt}"
+                                       FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+                <!-- The notes pane: 8px in from the card, lifted with the About panel's shadow. -->
+                <Grid Grid.Row="2" Margin="8,0,8,8">
+                    <Border Background="{DynamicResource AboutPanelBrush}" CornerRadius="{DynamicResource ControlCornerRadius}" IsHitTestVisible="False">
+                        <Border.Effect>
+                            <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="{DynamicResource AboutShadowOpacity}"/>
+                        </Border.Effect>
+                    </Border>
+                    <Border Background="{DynamicResource AboutPanelBrush}"
+                            BorderBrush="{DynamicResource AboutPanelEdgeBrush}" BorderThickness="1"
+                            CornerRadius="{DynamicResource ControlCornerRadius}">
+                        <Grid>
+                            <Border IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}"
+                                    Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
+                            <ScrollViewer x:Name="WhatsNewScroller" VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly"
+                                          MaxHeight="520" Focusable="False">
+                                <StackPanel x:Name="WhatsNewList" Margin="14,12,14,8"/>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                    <Control Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>
+                </Grid>
                 </Grid>
                 </Border>
             </Grid>

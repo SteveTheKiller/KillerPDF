@@ -2619,4 +2619,13 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Unit_Bytes">{0} Б</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} КБ</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} МБ</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">Що нового у {0}</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Зрозуміло</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Безпека</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Виправлено</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Змінено</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Додано</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Вилучено</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Застаріло</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Показувати список змін після оновлень</sys:String>
 </ResourceDictionary>

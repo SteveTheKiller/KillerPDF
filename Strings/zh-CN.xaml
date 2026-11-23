@@ -2603,4 +2603,13 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} KB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">{0} 新功能</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">知道了</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">安全</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">修复</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">更改</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">新增</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">移除</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">弃用</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">更新后显示更新日志</sys:String>
 </ResourceDictionary>

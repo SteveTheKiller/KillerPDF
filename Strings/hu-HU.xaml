@@ -2606,4 +2606,13 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} KB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">A {0} újdonságai</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Értem</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Biztonság</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Javítva</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Módosítva</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Új</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Eltávolítva</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Elavult</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Változások mutatása frissítés után</sys:String>
 </ResourceDictionary>

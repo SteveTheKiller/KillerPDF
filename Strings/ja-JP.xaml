@@ -2619,4 +2619,13 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} KB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">{0} の新機能</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">OK</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">セキュリティ</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">修正</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">変更</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">追加</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">削除</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">非推奨</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">更新後に変更履歴を表示する</sys:String>
 </ResourceDictionary>

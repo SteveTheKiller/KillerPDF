@@ -348,7 +348,7 @@ namespace KillerPDF.Shell
                 brand: () => KillerFamily.Shell.CloseToTray.Brand(new AppIcon { Source = TitleIcon.Source }, "Killer", "PDF"));
             // Ctrl+Q quits the app through the tray's Exit, so the save and quit prompts still run.
             KillerFamily.Shell.QuitShortcut.Attach(this, _tray.Exit);
-            new KillerFamily.Accessibility.OverlayFocus(this).Track(ShortcutsOverlay, AboutOverlay);
+            new KillerFamily.Accessibility.OverlayFocus(this).Track(ShortcutsOverlay, AboutOverlay, WhatsNewOverlay);
             InitRailOrder();
             HookPageRowWrap();
             var titleFrames = BitmapDecoder.Create(
@@ -623,6 +623,9 @@ namespace KillerPDF.Shell
                 // Start with the sidebar collapsed when no PDF is open (nothing to show); a document
                 // opened above will have expanded it via FinishOpenFile.
                 SyncSidebarToDocState(hasDoc: _doc != null, startup: true);
+                // Once after an update, the new version's changelog (Shell/WhatsNew.cs).
+                Dispatcher.BeginInvoke(new Action(ShowWhatsNewAfterUpdate),
+                    System.Windows.Threading.DispatcherPriority.Background);
                 Dispatcher.BeginInvoke(new Action(() => _about.CheckOnStartup()),
                     System.Windows.Threading.DispatcherPriority.Background);
                 // #509: below Windows 10 the icon font is missing and .NET 10 is unsupported, so

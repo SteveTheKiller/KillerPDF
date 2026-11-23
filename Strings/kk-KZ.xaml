@@ -2622,4 +2622,13 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Unit_Bytes">{0} Б</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} КБ</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} МБ</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">{0} нұсқасындағы жаңалықтар</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Түсінікті</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Қауіпсіздік</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Түзетілді</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Өзгертілді</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Қосылды</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Алынып тасталды</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Ескірген</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Жаңартудан кейін өзгерістер тізімін көрсету</sys:String>
 </ResourceDictionary>

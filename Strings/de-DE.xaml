@@ -2608,4 +2608,13 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} KB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">Neu in {0}</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Verstanden</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Sicherheit</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Behoben</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Geändert</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Hinzugefügt</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Entfernt</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Veraltet</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Änderungen nach Updates anzeigen</sys:String>
 </ResourceDictionary>

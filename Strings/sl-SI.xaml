@@ -2508,4 +2508,13 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} KB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">Novosti v različici {0}</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Razumem</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Varnost</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Popravljeno</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Spremenjeno</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Dodano</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Odstranjeno</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Opuščeno</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Po posodobitvi pokaži seznam sprememb</sys:String>
 </ResourceDictionary>

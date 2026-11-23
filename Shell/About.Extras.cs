@@ -212,14 +212,23 @@ namespace KillerPDF.Shell
             // The family film-grain texture on the About card, repainted with the theme.
             Controls.GrainTexture.Track(AboutGrainBrush);
 
-            BuildAboutWordmark();
+            BuildWordmark(AboutLogoBlock, AboutLogoShadowBlock);
             BuildAboutTagline();
         }
 
-        /// <summary>"Killer" in the text color, "PDF" in the brand green, the pair clickable.</summary>
-        private void BuildAboutWordmark()
+        // The What's new card (Shell/WhatsNew.cs) carries the About card's grain and wordmark.
+        partial void ShowingWhatsNew()
         {
-            AboutLogoBlock.Inlines.Clear();
+            if (ShortcutsOverlay.Visibility == Visibility.Visible) FadeOverlayOut(ShortcutsOverlay);
+            Controls.GrainTexture.Track(WhatsNewGrainBrush);
+            BuildWordmark(WhatsNewLogoBlock, WhatsNewLogoShadowBlock);
+        }
+
+        /// <summary>"Killer" in the text color, "PDF" in the brand green, the pair clickable. The
+        /// About card and the What's new card carry the same wordmark.</summary>
+        private void BuildWordmark(TextBlock logo, TextBlock shadow)
+        {
+            logo.Inlines.Clear();
             var hl = new Hyperlink { TextDecorations = null };
             hl.Inlines.Add(new Run("Killer")
             {
@@ -236,23 +245,23 @@ namespace KillerPDF.Shell
                 Foreground = Res("AccentLogo")
             });
             hl.Click += (_, _) => WebLink.Open("https://killerpdf.net");
-            AboutLogoBlock.Inlines.Add(hl);
+            logo.Inlines.Add(hl);
 
             // The shadow copy mirrors the real runs exactly (sizes, weights, fonts), so the blur
             // sits directly behind each letter instead of smearing above the word - a flat
             // single-size copy had different line metrics than the two-run wordmark.
-            AboutLogoShadowBlock.Inlines.Clear();
+            shadow.Inlines.Clear();
             var shadowBrush = new System.Windows.Media.SolidColorBrush(
                 System.Windows.Media.Color.FromArgb(0xB0, 0, 0, 0));
             shadowBrush.Freeze();
-            AboutLogoShadowBlock.Inlines.Add(new Run("Killer")
+            shadow.Inlines.Add(new Run("Killer")
             {
                 FontFamily = UiKit.WordmarkFont,
                 FontSize   = 16.43,
                 FontWeight = FontWeights.Normal,
                 Foreground = shadowBrush
             });
-            AboutLogoShadowBlock.Inlines.Add(new Run("PDF")
+            shadow.Inlines.Add(new Run("PDF")
             {
                 FontFamily = UiKit.WordmarkFontPdf,
                 FontSize   = 31.83,

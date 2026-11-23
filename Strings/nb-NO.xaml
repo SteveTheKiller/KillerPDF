@@ -2619,4 +2619,13 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} kB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">Nytt i {0}</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Skjønner</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Sikkerhet</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Rettet</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Endret</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Lagt til</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Fjernet</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Foreldet</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Vis endringslogg etter oppdateringer</sys:String>
 </ResourceDictionary>

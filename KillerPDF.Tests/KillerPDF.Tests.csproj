@@ -279,6 +279,7 @@
     <Compile Include="..\Services\InstallationFiles.cs" Link="Services\InstallationFiles.cs" />
     <Compile Include="..\Services\ExecutableDeployment.cs" Link="Services\ExecutableDeployment.cs" />
     <Compile Include="..\Services\AppInfo.cs" Link="Services\AppInfo.cs" />
+    <Compile Include="..\Services\ReleaseNotes.cs" Link="Services\ReleaseNotes.cs" />
     <Compile Include="..\Services\PrintColorConverter.cs" Link="Services\PrintColorConverter.cs" />
     <Compile Include="..\Services\PrintOrientationPolicy.cs" Link="Services\PrintOrientationPolicy.cs" />
     <Compile Include="..\Services\PrintPagePlacement.cs" Link="Services\PrintPagePlacement.cs" />

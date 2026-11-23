@@ -79,11 +79,16 @@ namespace KillerPDF.Services
             }
             else
             {
+                IsFirstRun = true;
                 _current = LocaleForCulture(CultureInfo.CurrentUICulture);
                 ThemeManager.SetSetting("Locale", _current.ToString());
             }
             ApplyInternal(_current);
         }
+
+        /// <summary>True when Initialize found no saved language, so this is the app's first normal
+        /// start on this account. The What's new card stays quiet on a fresh install.</summary>
+        internal static bool IsFirstRun { get; private set; }
 
         /// <summary>Setup and uninstall: apply the saved language, else the Windows display
         /// language, without saving a choice. The first normal start saves it.</summary>

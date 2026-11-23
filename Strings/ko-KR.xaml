@@ -2612,4 +2612,13 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} KB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">{0}의 새로운 기능</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">확인</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">보안</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">수정됨</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">변경됨</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">추가됨</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">제거됨</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">사용 중단</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">업데이트 후 변경 내용 표시</sys:String>
 </ResourceDictionary>

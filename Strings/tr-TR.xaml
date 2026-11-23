@@ -2599,4 +2599,13 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} KB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">{0} sürümündeki yenilikler</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Anladım</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Güvenlik</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Düzeltildi</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Değiştirildi</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Eklendi</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Kaldırıldı</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Kullanımdan kalkıyor</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Güncellemelerden sonra değişiklikleri göster</sys:String>
 </ResourceDictionary>

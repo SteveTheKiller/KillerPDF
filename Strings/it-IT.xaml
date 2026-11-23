@@ -2620,4 +2620,13 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_Unit_Bytes">{0} B</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} KB</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} MB</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">Novità della {0}</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Ho capito</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Sicurezza</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Corretto</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Modificato</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Aggiunto</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Rimosso</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Deprecato</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Mostra le novità dopo gli aggiornamenti</sys:String>
 </ResourceDictionary>

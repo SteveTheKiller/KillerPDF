@@ -2619,4 +2619,13 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_Unit_Bytes">{0} o</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} Ko</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} Mo</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">Nouveautés de la {0}</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Compris</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Sécurité</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Corrigé</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Modifié</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Ajouté</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Supprimé</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Obsolète</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Afficher les nouveautés après les mises à jour</sys:String>
 </ResourceDictionary>

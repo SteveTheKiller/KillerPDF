@@ -2622,4 +2622,13 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Unit_Bytes">{0} Б</sys:String>
     <sys:String x:Key="Str_Unit_KB">{0} КБ</sys:String>
     <sys:String x:Key="Str_Unit_MB">{0} МБ</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Title">Что нового в {0}</sys:String>
+    <sys:String x:Key="Str_WhatsNew_GotIt">Понятно</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Security">Безопасность</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Fixed">Исправлено</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Changed">Изменено</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Added">Добавлено</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Removed">Удалено</sys:String>
+    <sys:String x:Key="Str_WhatsNew_Deprecated">Устарело</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Показывать список изменений после обновлений</sys:String>
 </ResourceDictionary>
