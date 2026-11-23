@@ -220,6 +220,28 @@
     "উৎস ফাইল ও পরীক্ষার সংখ্যা সারসংক্ষেপে আছে। Corpus ফলাফল পরীক্ষিত বিল্ড ও ইনপুট চিহ্নিত করে। qpdf, veraPDF ও OpenSSL আলাদাভাবে কাঠামো, মান ও স্বাক্ষর পরীক্ষা করে।",
     "লেখা নিশ্চিত করুন",
     "PDF খুলুন ও মেরামত করুন"
+  ],
+  "sv": [
+    "Portabla kopior sparar inställningar, sparade signaturer och OCR-modeller i <code>KillerPDF-Data</code> bredvid startprogrammet. Inbyggda OCR-bibliotek och tillfälliga arbetsfiler använder fortfarande <code>%LOCALAPPDATA%\\KillerPDF</code>.",
+    "Alla OCR-språkmodeller, även engelska, laddas ned första gången de används och ligger sedan kvar i cachen. Inbyggda Tesseract-bibliotek packas upp i den versionsbundna OCR-cachen.",
+    "Rensa alla data tar bort sparade inställningar, OCR-modeller och tillfälliga filer där det går. Låsta filer kan finnas kvar. Installerade kopior behåller sparade signaturer och loggar; portabla kopior tar även bort mappen <code>KillerPDF-Data</code>. Dina käll-PDF:er raderas inte.",
+    "Strukturella ändringar skriver och öppnar en tillfällig PDF på nytt via The KillerPDF.Engine. Sidrotationer och väntande anteckningar återställs vid behov. Originalfilen ändras först när du sparar.",
+    "Anteckningarnas positioner använder render-dim-enheter som mäts från det övre vänstra hörnet och inte påverkas av zoom. PDF-koordinater konverteras när innehåll läses eller skrivs; samma positioner används i alla visningslägen.",
+    "Tidigare standardvalidering",
+    "Exakta antal källfiler och tester finns i Översikt. Korpusresultaten anger vilken version och vilka indata som testades. qpdf, veraPDF och OpenSSL gör separata kontroller av struktur, standarder och signaturer.",
+    "Spara text",
+    "Öppna och reparera PDF:er"
+  ],
+  "ko": [
+    "포터블 버전은 설정, 저장된 서명, OCR 모델을 실행 파일 옆의 <code>KillerPDF-Data</code>에 저장합니다. 네이티브 OCR 라이브러리와 임시 작업 파일은 계속 <code>%LOCALAPPDATA%\\KillerPDF</code>를 사용합니다.",
+    "영어를 포함한 모든 OCR 언어 모델은 처음 사용할 때 다운로드되어 캐시에 남습니다. 네이티브 Tesseract 라이브러리는 버전별 OCR 캐시에 압축 해제됩니다.",
+    "모든 데이터 지우기는 저장된 설정, OCR 모델, 임시 파일을 가능한 한 제거합니다. 잠긴 파일은 남을 수 있습니다. 설치된 버전은 저장된 서명과 로그를 유지하고, 포터블 버전은 <code>KillerPDF-Data</code> 폴더도 제거합니다. 원본 PDF는 삭제되지 않습니다.",
+    "구조 편집은 The KillerPDF.Engine을 통해 임시 PDF를 쓰고 다시 엽니다. 필요하면 페이지 회전과 대기 중인 주석을 복원합니다. 원본 파일은 저장할 때만 바뀝니다.",
+    "주석 위치는 왼쪽 위에서 측정하며 확대/축소에 영향을 받지 않는 render-dim 단위를 사용합니다. PDF 좌표는 콘텐츠를 읽거나 쓸 때 변환되며, 모든 보기 모드에서 같은 위치를 사용합니다.",
+    "이전 표준 검증",
+    "정확한 소스 및 테스트 수는 개요를 참조하세요. 코퍼스 결과는 테스트한 빌드와 입력을 표시합니다. qpdf, veraPDF, OpenSSL이 구조, 표준, 서명을 각각 따로 검사합니다.",
+    "텍스트 저장",
+    "PDF 열기 및 복구"
   ]
 };
   var keys = ['pt_47', 'pt_49', 'ph_238', 'pt_107', 'pt_74', 'pt_223', 'engine_evidence', 'kb_commit_text', 'f_open_t'];
@@ -250,6 +272,8 @@
   "uk": "Гілка розробки 1.9 використовує The KillerPDF.Engine для рендерингу та видобування тексту. Tesseract залишається резервним рушієм OCR. Актуальні API рушія описано в посібнику для розробників.",
   "nb": "Utviklingsgrenen 1.9 bruker The KillerPDF.Engine til gjengivelse og tekstuttrekk. Tesseract beholdes som en reserve for OCR. Utviklerveiledningen beskriver motorens gjeldende API-er.",
   "pt": "O ramo de desenvolvimento 1.9 usa The KillerPDF.Engine para renderização e extração de texto. O Tesseract continua disponível como mecanismo de OCR alternativo. O guia para desenvolvedores descreve as APIs atuais do mecanismo.",
+  "sv": "Utvecklingsgrenen 1.9 använder The KillerPDF.Engine för rendering och textextrahering. Tesseract finns kvar som reserv för OCR. Utvecklarguiden beskriver motorns aktuella API:er.",
+  "ko": "1.9 개발 브랜치는 렌더링과 텍스트 추출에 The KillerPDF.Engine을 사용합니다. Tesseract는 OCR 대체 엔진으로 계속 사용할 수 있습니다. 현재 엔진 API는 개발자 가이드를 참조하세요.",
   "en": "The 1.9 development branch uses The KillerPDF.Engine for rendering and text extraction. Tesseract remains available as an OCR fallback. See the developer guide for current engine APIs."
 };
   var publicLabels = {
@@ -272,7 +296,9 @@
   "ja": "ダウンロード可能なPDF",
   "zh": "可下載的 PDF",
   "zh-cn": "可下载的 PDF",
-  "bn": "ডাউনলোডযোগ্য PDF"
+  "bn": "ডাউনলোডযোগ্য PDF",
+  "sv": "nedladdningsbara PDF:er",
+  "ko": "다운로드 가능한 PDF"
 };
   var coverCopy = {
   "sl": "Prekrivni pravokotnik vizualno skrije izvirne besede. Ne odstrani spodnjega besedila ali slike. Prilagodite njegovo velikost, da povsem prekrije stare besede.",
@@ -294,7 +320,9 @@
   "ja": "カバーは元の文字を見た目上隠すだけで、下のテキストや画像を削除しません。すべての文字が隠れるようにサイズを調整してください。",
   "zh": "遮蓋框只會在視覺上隱藏原有文字，不會移除底下的文字或影像。請調整大小，直到完全遮住原有文字。",
   "zh-cn": "遮盖框只会在视觉上隐藏原有文字，不会移除底下的文字或图像。请调整大小，直到完全遮住原有文字。",
-  "bn": "আবরণটি মূল শব্দগুলো শুধু দৃশ্যত ঢেকে রাখে। এটি নিচের লেখা বা ছবি মুছে ফেলে না। সব শব্দ ঢাকা না পড়া পর্যন্ত এর আকার পরিবর্তন করুন।"
+  "bn": "আবরণটি মূল শব্দগুলো শুধু দৃশ্যত ঢেকে রাখে। এটি নিচের লেখা বা ছবি মুছে ফেলে না। সব শব্দ ঢাকা না পড়া পর্যন্ত এর আকার পরিবর্তন করুন।",
+  "sv": "Täckrutan döljer de ursprungliga orden visuellt. Den tar inte bort texten eller bilden under. Ändra storleken tills de gamla orden är helt täckta.",
+  "ko": "덮개는 원래 단어를 화면에서만 가립니다. 아래에 있는 텍스트나 이미지는 제거하지 않습니다. 이전 단어가 완전히 가려질 때까지 크기를 조절하세요."
 };
   var development = window.KPDF_ENGINE_FACTS && /^1\.9\./.test(window.KPDF_ENGINE_FACTS.version);
   window.KPDF_SITE_INFO.development = !!development;
