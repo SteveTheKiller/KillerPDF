@@ -64,6 +64,9 @@ internal sealed class SingleInstanceChannel(string applicationName, string accou
         catch (IOException) { return null; }
     }
 
+    internal static bool IsOwnedBy(SecurityIdentifier? owner, SecurityIdentifier? user) =>
+        owner is not null && user is not null && owner == user;
+
     public int ForwardLaunch(string? path, int timeoutMilliseconds = 3000)
     {
         return TrySend(path, timeoutMilliseconds) ? 0 : 1;
@@ -73,10 +76,17 @@ internal sealed class SingleInstanceChannel(string applicationName, string accou
     {
         try
         {
-            // CurrentUserOnly refuses a pipe owned by anyone else, so another account that made
-            // this name first cannot collect the paths and links this user opens.
-            using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out, PipeOptions.CurrentUserOnly);
+            // Only a pipe this user owns gets the path, so another account that made this name first
+            // cannot collect the paths and links this user opens. .NET's CurrentUserOnly compares the
+            // owner with the token's Owner, which is Administrators when elevated, so an elevated
+            // sender refused our own pipe; the user SID is the owner CreateServer always sets.
+            using var client = new NamedPipeClientStream(".", PipeName,
+                PipeAccessRights.WriteData | PipeAccessRights.ReadPermissions, PipeOptions.None,
+                TokenImpersonationLevel.None, HandleInheritability.None);
             client.Connect(timeoutMilliseconds);
+            using (var identity = WindowsIdentity.GetCurrent())
+                if (!IsOwnedBy(client.GetAccessControl().GetOwner(typeof(SecurityIdentifier)) as SecurityIdentifier, identity.User))
+                    return false;
             using var writer = new StreamWriter(client, new UTF8Encoding(false)) { AutoFlush = true };
             writer.WriteLine(path ?? "");
             return true;

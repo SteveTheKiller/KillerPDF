@@ -29,6 +29,31 @@ namespace KillerPDF.Tests
             Assert.Null(SingleInstanceChannel.ReadMessage(partial, 4096, TimeSpan.FromSeconds(2)));
         }
 
+        // .NET's CurrentUserOnly compares the pipe owner with the token's Owner, which is Administrators in an
+        // elevated token, while the server always sets the user's own SID as owner. Elevated, every forward
+        // failed: a new window per file, and Images to PDF made one PDF per image. The sender checks the
+        // owner against the user SID itself.
+        [Fact]
+        public void SenderAcceptsOnlyAPipeOwnedByTheUser()
+        {
+            var user = WindowsIdentity.GetCurrent().User!;
+            var admins = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            Assert.True(SingleInstanceChannel.IsOwnedBy(user, user));
+            Assert.False(SingleInstanceChannel.IsOwnedBy(admins, user));
+            Assert.False(SingleInstanceChannel.IsOwnedBy(null, user));
+            Assert.False(SingleInstanceChannel.IsOwnedBy(user, null));
+        }
+
+        [Fact]
+        public void SenderDoesNotUseTheTokenOwnerCheck()
+        {
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "KillerPDF.sln"))) dir = dir.Parent;
+            string source = File.ReadAllText(Path.Combine(dir!.FullName, "Services", "SingleInstanceChannel.cs"));
+            Assert.DoesNotContain("PipeOptions.CurrentUserOnly", source);
+            Assert.Contains("IsOwnedBy(", source);
+        }
+
         [Fact]
         public async Task SilentClientIsDroppedAndTheNextOneIsServed()
         {
