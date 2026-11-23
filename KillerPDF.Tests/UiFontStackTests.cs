@@ -70,6 +70,17 @@ public sealed class UiFontStackTests
         Assert.Equal("./Fonts/#Killer Sans, Segoe UI, Microsoft JhengHei UI, Nirmala UI", UiFontStack.Title("en-US"));
     }
 
+    // #490: ideographs fill the em box, so Chinese and Japanese titles draw a size smaller.
+    [Theory]
+    [InlineData("zh-CN", true)]
+    [InlineData("zh-TW", true)]
+    [InlineData("ja-JP", true)]
+    [InlineData("en-US", false)]
+    [InlineData("ko-KR", false)]
+    [InlineData(null, false)]
+    public void ChineseAndJapaneseCountAsCjk(string? language, bool cjk) =>
+        Assert.Equal(cjk, UiFontStack.IsCjk(language));
+
     [Fact]
     public void SwitchingTheLanguageRebuildsTheTitleStack()
     {

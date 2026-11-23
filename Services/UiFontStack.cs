@@ -30,6 +30,11 @@ namespace KillerPDF.Services
         internal static string WithFallbacks(string face, string? cultureName) =>
             face.IndexOf(',') >= 0 ? face : face + ", " + Fallbacks(cultureName);
 
+        /// <summary>True for Chinese and Japanese, whose ideographs fill the em box and read larger than
+        /// Latin text at the same size.</summary>
+        internal static bool IsCjk(string? cultureName) =>
+            IsLanguage(cultureName ?? "", "zh") || IsLanguage(cultureName ?? "", "ja");
+
         private static string CjkFace(string name)
         {
             if (IsLanguage(name, "ja")) return "Yu Gothic UI, ";

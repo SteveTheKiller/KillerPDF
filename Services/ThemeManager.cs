@@ -58,7 +58,8 @@ namespace KillerPDF.Services
         /// </summary>
         internal static void SetUiLanguage(string language)
         {
-            bool changed = UiFontStack.For(language) != UiFontStack.For(UiLanguage);
+            bool changed = UiFontStack.For(language) != UiFontStack.For(UiLanguage)
+                || UiFontStack.IsCjk(language) != UiFontStack.IsCjk(UiLanguage);   // the title's size follows it too
             UiLanguage = language;
             if (!changed) return;
             KillerSansUiStack = UiStack(language);
@@ -1066,7 +1067,9 @@ namespace KillerPDF.Services
             // theme keeps its caption font beside its plain title.
             bool flatTitle = combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool ft && ft;
             SetIfAbsent("FileNameFont", flatTitle ? combined["ChromeFontFamily"] : KillerSansTitleStack);
-            SetIfAbsent("FileNameFontSize", flatTitle ? 11.0 : 18.0);
+            // Chinese and Japanese ideographs fill the em box, so the title's file name drops to 16 to sit
+            // at the size Latin names read at 18 (#490).
+            SetIfAbsent("FileNameFontSize", flatTitle ? 11.0 : UiFontStack.IsCjk(UiLanguage) ? 16.0 : 18.0);
             if (!combined.Contains("FileNameTransform"))
             {
                 var fileNameShift = new TranslateTransform(0, flatTitle ? 0 : 3);
