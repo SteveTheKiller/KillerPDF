@@ -26,7 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Under Trash Polka Yellow, Book layout while it is on and the color picker's armed eyedropper and replace buttons draw dark on their yellow fill, instead of light text you could barely read.
 - After a language change, the start screen's Recent list says a file is missing in the new language instead of the old one.
 - A sidebar menu too tall for the window fits inside it and scrolls, instead of running past the window's foot.
-- On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. It shares the top row with Book layout and Left, and Right, Top and Bottom sit below, two rows of three.
+- On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. It shares the top row with Book layout and Top, and Left, Bottom and Right sit below like the arrow keys, two rows of three.
 - Confirm dialogs size to what they say, so a short prompt is narrower. The heading sits a few pixels higher, with more room above the checkboxes, and on 98SE the dialog is spaced like a Win98 message box.
 - Menus, cards and drop-down lists opened inside the document pane keep all four corners rounded.
 - Customize Toolbar's two lists sit on grained panes in the pane color with the family drop shadow, instead of letting the window's texture show through.

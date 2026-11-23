@@ -919,10 +919,14 @@ namespace KillerPDF.Shell
                 heading.Focusable = false;
                 menu.Items.Add(heading);
             }
-            SidebarSide[] order = [SidebarSide.Left, SidebarSide.Right, SidebarSide.Top, SidebarSide.Bottom];
+            bool twoPage = _viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous;
+            // In a two-page view Top finishes the first row, and Left, Bottom and Right make the second, laid out like
+            // the arrow keys (Steve 2026-11-23).
+            SidebarSide[] order = twoPage
+                ? [SidebarSide.Top, SidebarSide.Left, SidebarSide.Bottom, SidebarSide.Right]
+                : [SidebarSide.Left, SidebarSide.Right, SidebarSide.Top, SidebarSide.Bottom];
             CardTile[] tiles = [.. order.Select(side => new CardTile(side.TileGlyph(), Loc(side.StringKey()),
                 SidebarSideShortcut(side), () => SelectSidebarSide(side), false, true) { Checked = side == _sidebarSide })];
-            bool twoPage = _viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous;
             if (twoPage)
             {
                 bool paired = App.GetSetting("TwoPageThumbnails") == "1";
@@ -932,8 +936,8 @@ namespace KillerPDF.Shell
                     ApplyPageThumbnailLayout();
                 }, false, !_sidebarStripLayout) { Checked = paired };
                 var book = new CardTile("", Loc("Str_View_BookMode"), "B", ToggleBookMode, false, true) { Checked = Controls.PdfViewer.BookMode };
-                // Two rows of three in a two-page view: Two-page thumbnails, Book layout and Left, then Right, Top and
-                // Bottom (Steve 2026-11-23).
+                // Two rows of three in a two-page view: Two-page thumbnails, Book layout and Top, then Left, Bottom and
+                // Right (Steve 2026-11-23).
                 tiles = [toggle, book, .. tiles];
             }
             var strip = QuickStrip(menu, twoPage ? 3 : order.Length, tiles);
