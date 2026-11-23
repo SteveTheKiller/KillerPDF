@@ -1477,7 +1477,7 @@ namespace KillerPDF.Shell
                     string shown = _originalFile ?? _currentFile ?? copy.Path;
                     snapshotDirectory = App.MakeImportDirectory();
                     Directory.CreateDirectory(snapshotDirectory);
-                    string snapshot = Path.Combine(snapshotDirectory, Path.GetFileName(shown));
+                    string snapshot = System.IO.Path.Combine(snapshotDirectory, System.IO.Path.GetFileName(shown));
                     if (!snapshot.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) snapshot += ".pdf";
                     File.Move(copy.Path, snapshot);
                     labels[snapshot] = shown;
@@ -1485,7 +1485,7 @@ namespace KillerPDF.Shell
                 }
                 var dlg = new MergeFilesDialog(this, initial, labels: labels);
                 if (dlg.ShowDialog() != true || dlg.Paths.Count == 0) return;
-                var files = dlg.Paths.Select(path => new DropImportFile(path, Path.GetFileName(path),
+                var files = dlg.Paths.Select(path => new DropImportFile(path, System.IO.Path.GetFileName(path),
                     Temporary: labels.ContainsKey(path))).ToList();
                 // The batch owns the snapshot from here and deletes it when the merge is done.
                 var batch = new DropImportBatch(snapshotDirectory ?? App.MakeImportDirectory(), files, expanded: false);
