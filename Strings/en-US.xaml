@@ -134,7 +134,7 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_About_Thumbprint">THUMBPRINT</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Computing...</sys:String>
-    <sys:String x:Key="Str_Tagline">A free PDF editor for Windows: edit, annotate, merge, split, compare, redact, sign, fill forms, run OCR, and convert documents to and from Office and images. A GPLv3 utility from {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">A free PDF editor for Windows: edit, annotate, merge, split, compare, redact, sign, fill in forms, run OCR, convert, compress and print your documents. A GPLv3 utility from {0}.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">PAGES</sys:String>

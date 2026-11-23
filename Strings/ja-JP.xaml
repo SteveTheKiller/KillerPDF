@@ -134,7 +134,7 @@
     <sys:String x:Key="Str_About_Thumbprint">拇印</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">計算中...</sys:String>
-    <sys:String x:Key="Str_Tagline">Windows 向けの無料 PDF エディター。編集、注釈、結合、分割、比較、墨消し、署名、フォーム入力、OCR、Office や画像との相互変換に対応しています。{0} が提供する GPLv3 ツールです。</sys:String>
+    <sys:String x:Key="Str_Tagline">Windows 向けの無料 PDF エディター。編集、注釈、結合、分割、比較、墨消し、署名、フォーム入力、OCR、変換、圧縮、印刷に対応しています。{0} が提供する GPLv3 ツールです。</sys:String>
 
     <!-- ── サイドバータブ ────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">ページ</sys:String>

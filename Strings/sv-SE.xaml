@@ -134,7 +134,7 @@ Sidan kan ersättas med en bild av sig själv där de markerade områdena är sv
     <sys:String x:Key="Str_About_Thumbprint">TUMAVTRYCK</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Beräknar...</sys:String>
-    <sys:String x:Key="Str_Tagline">Kostnadsfri PDF-redigerare för Windows: redigera, kommentera, sammanfoga, dela, jämför, maskera, signera, fyll i formulär, OCR och konvertering till och från Office. GPLv3-verktyg från {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Kostnadsfri PDF-redigerare för Windows: redigera, kommentera, sammanfoga, dela, jämför, maskera, signera, formulär, OCR, konvertera och skriv ut. GPLv3-verktyg från {0}.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">SIDOR</sys:String>

@@ -132,7 +132,7 @@
     <sys:String x:Key="Str_About_Thumbprint">থাম্বপ্রিন্ট</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">গণনা করা হচ্ছে...</sys:String>
-    <sys:String x:Key="Str_Tagline">উইন্ডোজের জন্য একটি বিনামূল্যের PDF এডিটর: সম্পাদনা, টীকা, মার্জ, বিভাজন, তুলনা, রিড্যাক্ট, স্বাক্ষর, ফর্ম পূরণ, OCR এবং Office ও ছবিতে বা সেখান থেকে রূপান্তর। {0}-এর একটি GPLv3 টুল।</sys:String>
+    <sys:String x:Key="Str_Tagline">উইন্ডোজের জন্য একটি বিনামূল্যের PDF এডিটর: সম্পাদনা, টীকা, মার্জ, বিভাজন, তুলনা, রিড্যাক্ট, স্বাক্ষর, ফর্ম পূরণ, OCR, রূপান্তর, সংকোচন ও আপনার ডকুমেন্ট প্রিন্ট। {0}-এর একটি GPLv3 টুল।</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">পৃষ্ঠাসমূহ</sys:String>
