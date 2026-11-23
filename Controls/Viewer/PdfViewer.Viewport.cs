@@ -535,7 +535,7 @@ namespace KillerPDF.Controls
             }
         }
 
-        internal void SetupContinuousView(int initialPage, bool fitDefault = true,
+        internal void SetupContinuousView(int initialPage, bool fitDefault = false,
             double? restoreVerticalOffset = null)
         {
             if (!HasReadDocument) return;
@@ -591,9 +591,8 @@ namespace KillerPDF.Controls
                     RenderAllAnnotations(annotPage);
 
             // Re-apply the view's zoom now that _continuousPageW is known. Honor the saved fit mode; for a
-            // custom (None) zoom, keep the exact level on a tab restore (fitDefault=false) instead of snapping
-            // to fit-page - otherwise switching tabs in continuous mode loses the user's zoom. Fresh opens and
-            // view-mode switches pass fitDefault=true and still default to fit-page.
+            // custom (None) zoom, keep the exact level on a tab restore or view-mode switch (fitDefault=false)
+            // instead of snapping to fit-page. Fresh opens pass fitDefault=true and still default to fit-page.
             if (_active?.PendingZoom != null) RestoreManualZoom();
             else if (_fitMode == FitMode.Width) FitToWidth();
             else if (_fitMode == FitMode.Page) FitToPage();
@@ -2968,7 +2967,6 @@ namespace KillerPDF.Controls
                 return;
             }
             if (_viewMode == mode) return;
-            ClearPendingTrueZoom();
             if (_doc is null) { ApplyViewMode(mode); return; }   // start screen: nothing visible to fade
 
             _pendingViewMode = mode;
@@ -3027,7 +3025,40 @@ namespace KillerPDF.Controls
             _primaryRenderSession.Clear();
             // The background render cache stays: a view mode does not change the document, and opening a long
             // document's page tree again took about 225 ms before the new mode's first page could draw.
+            var previousMode = _viewMode;
+            var modeSession = _active;
+            FitMode savedFitMode = _fitMode;
+            double? savedTrueZoom = null;
+
+            if (previousMode == ViewMode.Grid)
+            {
+                if (modeSession?.PreGridFit is { } preFit)
+                {
+                    savedFitMode = preFit;
+                    if (preFit == FitMode.None && modeSession.PreGridTrueZoom is > 0)
+                        savedTrueZoom = modeSession.PreGridTrueZoom;
+                    modeSession.PreGridFit = null;
+                    modeSession.PreGridTrueZoom = null;
+                }
+            }
+            else
+            {
+                savedTrueZoom = PersistableTrueZoomExt ?? (double.IsFinite(TrueZoomLevelExt) && TrueZoomLevelExt > 0 ? TrueZoomLevelExt : null);
+                if (mode == ViewMode.Grid && modeSession != null)
+                {
+                    modeSession.PreGridFit = savedFitMode;
+                    modeSession.PreGridTrueZoom = savedTrueZoom;
+                }
+            }
+
             _viewMode = mode;
+            _fitMode = savedFitMode;
+            if (savedFitMode == FitMode.None && savedTrueZoom is > 0 && modeSession != null)
+            {
+                modeSession.PendingZoom = new DeferredManualZoom(savedTrueZoom.Value);
+                modeSession.PendingFitRestore = null;
+            }
+
             Host?.ViewerNavigationChanged(this);
             _renderedPrimaryPage = -1;   // spread/layout changes with the mode; force the next render
             _gridScrollToPage = -1;
@@ -3049,7 +3080,6 @@ namespace KillerPDF.Controls
 
             if (!HasReadDocument) return;
             int idx = _currentPage;
-            var modeSession = _active;
             bool ModeCurrent() => _viewMode == mode && ReferenceEquals(_active, modeSession);
             // A zoom the user picks while the new mode's first page renders outranks the switch's fit.
             long modeIntent = modeSession?.ViewportIntentRevision ?? 0;
@@ -3057,7 +3087,7 @@ namespace KillerPDF.Controls
             if (mode.IsContinuous())
             {
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
-                    () => { if (ModeCurrent()) SetupContinuousView(idx); });
+                    () => { if (ModeCurrent()) SetupContinuousView(idx, fitDefault: false); });
             }
             else
             {
@@ -3105,13 +3135,15 @@ namespace KillerPDF.Controls
                             }));
                         return;
                     }
-                    // Switching into Single or Two-Page fits the whole page so it isn't left at an
-                    // awkward carried-over zoom from another mode, unless the user has zoomed since.
+                    // Honor the active fit mode or preserved true zoom across view-mode switches,
+                    // unless the user picked a different zoom while the new mode was rendering.
                     if (!ModeIntentCurrent())               ApplyZoom();
-                    else if (mode == ViewMode.Single || mode == ViewMode.TwoPage) FitToPage();
-                    else if (_fitMode == FitMode.Width) FitToWidth();
-                    else if (_fitMode == FitMode.Page)  FitToPage();
-                    else                                ApplyZoom();
+                    else if (_fitMode == FitMode.Width)     FitToWidth();
+                    else if (_fitMode == FitMode.Page)      FitToPage();
+                    else if (_active?.PendingZoom != null)  RestoreManualZoom();
+                    else if (savedTrueZoom is > 0 && Math.Abs(DisplayZoomPct() - savedTrueZoom.Value * 100.0) > 1.0)
+                        SetTrueZoom(savedTrueZoom.Value);
+                    else                                    ApplyZoom();
                     RefreshPageView(idx);
                 }));
             }

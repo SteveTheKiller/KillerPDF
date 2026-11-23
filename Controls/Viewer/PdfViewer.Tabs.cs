@@ -61,6 +61,8 @@ namespace KillerPDF.Controls
             public FitMode Fit = FitMode.None;
             public ViewMode View = ViewMode.Continuous;
             public int GridColumns = 3;                // grid column count; grid zoom is derived from this, so it must be per-tab too
+            public FitMode? PreGridFit;
+            public double? PreGridTrueZoom;
             public EditTool Tool = EditTool.Select;   // active editing tool, remembered per document
             public int PageIndex;
             public bool IsDirty;
