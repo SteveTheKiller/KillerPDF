@@ -42,6 +42,7 @@
     <Compile Include="..\Services\PictureTurn.cs" Link="Services\PictureTurn.cs" />
     <Compile Include="..\Services\PictureShape.cs" Link="Services\PictureShape.cs" />
     <Compile Include="..\Services\WheelKeys.cs" Link="Services\WheelKeys.cs" />
+    <Compile Include="..\Services\CrashExceptionText.cs" Link="Services\CrashExceptionText.cs" />
     <Compile Include="..\Services\MarkupClipboard.cs" Link="Services\MarkupClipboard.cs" />
     <Compile Include="..\Controls\FolderNameRule.cs" Link="Controls\FolderNameRule.cs" />
     <Compile Include="..\Services\MergeFileList.cs" Link="Services\MergeFileList.cs" />

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -35,6 +36,13 @@ public partial class MainWindow
             try
             {
                 DragDrop.DoDragDrop(viewer, new DataObject(SignatureDragFormat, origin.Signature), DragDropEffects.Copy);
+            }
+            // #515: a FileNotFoundException with no message escaped the drag and crashed the window on
+            // every mouse move. Until the missing file is known, the drag is dropped and the log names it;
+            // click placement still works. The origin stays set during the drag, since the drop needs it.
+            catch (IOException ex)
+            {
+                CrashReporter.Capture(ex, "Signature drag");
             }
             finally
             {

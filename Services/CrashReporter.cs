@@ -80,10 +80,7 @@ namespace KillerPDF
                         sb.AppendLine();
                         sb.AppendLine("=== Inner Exception ===");
                     }
-                    sb.AppendLine($"Type    : {inner.GetType().FullName}");
-                    sb.AppendLine($"Message : {inner.Message}");
-                    sb.AppendLine("Stack trace:");
-                    sb.AppendLine(inner.StackTrace ?? "(no stack trace)");
+                    Services.CrashExceptionText.Append(sb, inner);
                     inner = inner.InnerException;
                     depth++;
                 }

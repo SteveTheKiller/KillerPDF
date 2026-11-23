@@ -812,14 +812,17 @@ public sealed class WatchedFolderService : IDisposable
         if (!handle.IsInvalid) return handle;
         int error = Marshal.GetLastWin32Error();
         handle.Dispose();
-        throw error switch
-        {
-            2 => new FileNotFoundException(),
-            3 => new DirectoryNotFoundException(),
-            5 => new UnauthorizedAccessException(),
-            _ => new IOException()
-        };
+        throw OpenFailure(error, path);
     }
+
+    // The path goes in the message: a bare exception logged an empty Message and named no file (#515).
+    internal static Exception OpenFailure(int error, string path) => error switch
+    {
+        2 => new FileNotFoundException($"Could not find file '{path}'.", path),
+        3 => new DirectoryNotFoundException($"Could not find a part of the path '{path}'."),
+        5 => new UnauthorizedAccessException($"Access to the path '{path}' is denied."),
+        _ => new IOException($"Could not open '{path}' (Win32 error {error}).")
+    };
 
     private static void RejectReparseHandle(SafeFileHandle handle)
     {
