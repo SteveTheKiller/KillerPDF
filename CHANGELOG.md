@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- The keyboard shortcuts card fits its list and keyboard map, instead of filling most of a large window and leaving them in empty space.
 - Making a new folder in the file dialog no longer freezes the window on a share that stopped answering. A refused name is read out to a screen reader as well as shown.
 - Large tiled JPEG 2000 images use far less memory again. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
 - Merging accepts pages with a zero-size ArtBox, BleedBox or TrimBox, like Excel for Microsoft 365 exports, and those pages fall back to their CropBox (#455).

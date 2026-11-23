@@ -1,3 +1,4 @@
+using System.IO;
 using KillerPDF.Services;
 using Xunit;
 
@@ -29,5 +30,19 @@ public sealed class ShortcutCardSizeTests
         var (w, h) = ShortcutCardSize.Caps(3840, 2160);
         Assert.Equal(1240, w);
         Assert.Equal(900, h);
+    }
+
+    // The caps are limits, not a size: a stretched card filled them and left the list and the keyboard
+    // floating in empty space on a large window (Steve 2026-11-23).
+    [Fact]
+    public void TheCardWrapsItsContentInsteadOfFillingTheCaps()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "KillerPDF.sln"))) dir = dir.Parent;
+        string xaml = File.ReadAllText(Path.Combine(dir!.FullName, "Shell", "MainWindow.xaml"));
+        int at = xaml.IndexOf("x:Name=\"ShortcutCardGrid\"", StringComparison.Ordinal);
+        Assert.True(at >= 0);
+        string tag = xaml[at..xaml.IndexOf('>', at)];
+        Assert.Contains("HorizontalAlignment=\"Center\"", tag);
     }
 }

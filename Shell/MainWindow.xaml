@@ -2961,7 +2961,8 @@
                  Its ScrollViewer already owns overflow, so a long translated list should not
                  expand the card to almost the full application height. The caps follow the
                  window through ShortcutCardSize; these are the small-window values. -->
-            <Grid x:Name="ShortcutCardGrid" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+            <!-- Centered, so the card wraps its content and the caps only stop it at the window's share. -->
+            <Grid x:Name="ShortcutCardGrid" HorizontalAlignment="Center" VerticalAlignment="Center"
                   Margin="24" MaxWidth="920" MaxHeight="620">
                 <!-- Shadow cast by a separate element so the card content stays crisp. -->
                 <Border Background="{DynamicResource OverlayWindowBrush}" CornerRadius="{DynamicResource PanelCornerRadius}" IsHitTestVisible="False">
