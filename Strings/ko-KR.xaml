@@ -1014,7 +1014,7 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_Tf_FlipH">좌우 대칭</sys:String>
     <sys:String x:Key="Str_Tf_FlipV">상하 대칭</sys:String>
     <sys:String x:Key="Str_Tf_LevelLine">수평선 그리기</sys:String>
-    <sys:String x:Key="Str_Tf_SkewHint">수평이어야 하는 부분(가장자리, 텍스트 줄)을 따라 끄세요. 페이지가 그에 맞춰 회전합니다.</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">수평이어야 하는 부분(가장자리, 텍스트 줄)을 따라 드래그하세요. 페이지가 그에 맞춰 회전합니다.</sys:String>
     <sys:String x:Key="Str_Tf_LineCoords" xml:space="preserve">시작  {0}, {1} pt&#10;끝    {2}, {3} pt</sys:String>
     <sys:String x:Key="Str_Tf_Perspective">원근</sys:String>
     <sys:String x:Key="Str_Tf_Levels">레벨</sys:String>
@@ -1087,7 +1087,7 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_St_HqDownloadCanceled">고품질 다운로드가 취소되었습니다</sys:String>
     <sys:String x:Key="Str_St_LangDownloadCanceled">언어 다운로드가 취소되었습니다</sys:String>
     <sys:String x:Key="Str_St_OcrCanceled">OCR이 취소되었습니다</sys:String>
-    <sys:String x:Key="Str_St_OcrDragBox">인식할 영역 위로 상자를 끄세요</sys:String>
+    <sys:String x:Key="Str_St_OcrDragBox">인식할 영역 위로 상자를 드래그하세요</sys:String>
     <sys:String x:Key="Str_St_OcrRegionTooSmall">OCR 영역이 너무 작습니다</sys:String>
     <sys:String x:Key="Str_St_OcrNoText">OCR: 선택한 영역에서 텍스트를 찾을 수 없습니다</sys:String>
     <sys:String x:Key="Str_St_SearchablePdfCanceled">검색 가능한 PDF가 취소되었습니다 (파일을 쓰지 않음)</sys:String>
@@ -1103,7 +1103,7 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_St_SignatureSaved">서명을 저장했습니다. 페이지를 클릭하여 배치하세요</sys:String>
     <sys:String x:Key="Str_St_ImageLoaded">이미지를 불러왔습니다. 페이지를 클릭하여 배치하세요</sys:String>
     <sys:String x:Key="Str_St_EditingText">텍스트 편집 중입니다. 위에서 크기/색을 변경하고 Ctrl+Enter로 저장하세요</sys:String>
-    <sys:String x:Key="Str_St_AlreadyEditHere">여기에 이미 편집 내용이 있습니다. 텍스트를 클릭하여 다시 편집하거나 덮개를 끄세요</sys:String>
+    <sys:String x:Key="Str_St_AlreadyEditHere">여기에 이미 편집 내용이 있습니다. 텍스트를 클릭하여 다시 편집하거나 덮개를 드래그하세요</sys:String>
     <sys:String x:Key="Str_St_NoTextLine">이 위치에서 텍스트 줄을 찾을 수 없습니다</sys:String>
     <sys:String x:Key="Str_St_LineAlreadyEdited">이 줄은 이미 편집되었습니다. 텍스트를 클릭하여 변경하세요</sys:String>
     <sys:String x:Key="Str_St_ImagePlaced">이미지를 배치했습니다. 끌어서 위치를 바꾸거나 모서리 핸들로 크기를 조정하세요</sys:String>
@@ -1375,7 +1375,7 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_Card_EditReset">기본값으로 초기화</sys:String>
     <sys:String x:Key="Str_Card_EditResetShort">초기화</sys:String>
     <sys:String x:Key="Str_Card_Hidden">숨김</sys:String>
-    <sys:String x:Key="Str_Card_HiddenHint">숨기려면 타일을 여기로 끄세요</sys:String>
+    <sys:String x:Key="Str_Card_HiddenHint">숨기려면 타일을 여기로 드래그하세요</sys:String>
     <sys:String x:Key="Str_Card_AlwaysShown">항상 표시</sys:String>
     <sys:String x:Key="Str_Card_TileMoved">{0}, {2}개 중 {1}번째 위치</sys:String>
     <sys:String x:Key="Str_Card_InsertBlank">빈 페이지</sys:String>
@@ -1681,8 +1681,8 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_Divide_Failed">페이지를 나눌 수 없습니다: {0}</sys:String>
     <sys:String x:Key="Str_Pages_RasterizeRegion">영역 래스터화...</sys:String>
     <sys:String x:Key="Str_Raster_Title">영역 래스터화</sys:String>
-    <sys:String x:Key="Str_Raster_Hint">이미지로 변환할 페이지 부분 주위로 상자를 끄세요. 상자 바깥은 모두 그대로 유지됩니다.</sys:String>
-    <sys:String x:Key="Str_Raster_None">페이지에서 상자를 끄세요.</sys:String>
+    <sys:String x:Key="Str_Raster_Hint">이미지로 변환할 페이지 부분 주위로 상자를 드래그하세요. 상자 바깥은 모두 그대로 유지됩니다.</sys:String>
+    <sys:String x:Key="Str_Raster_None">페이지에서 상자를 드래그하세요.</sys:String>
     <sys:String x:Key="Str_Raster_Affects">상자에 텍스트 런 {0}개, 이미지 {1}개, 그림 {2}개가 포함됩니다. 이들은 하나의 이미지로 그려지며 상자 안의 텍스트는 페이지에서 제거됩니다. 태그가 지정된 PDF에서는 이미지가 해당 단어를 화면 읽기 프로그램용 대체 텍스트로 유지하므로, 텍스트를 숨기려면 교정을 사용하세요.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">래스터화</sys:String>
     <sys:String x:Key="Str_Raster_Done">{0}페이지의 영역을 래스터화했습니다</sys:String>
