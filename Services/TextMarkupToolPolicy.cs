@@ -14,6 +14,10 @@ internal static class TextMarkupToolPolicy
     internal static bool MarksSelectionOnChoose(EditTool tool, bool hasSelection) =>
         hasSelection && FollowsText(tool);
 
+    /// <summary>Where there is no text to follow (scans, pictures, margins), a Highlight drag marks the box it
+    /// covers, like a highlighter on paper. Underline and Strikethrough need a line of text. (#514)</summary>
+    internal static bool DrawsBoxOffText(EditTool tool) => tool == EditTool.Highlight;
+
     /// <summary>An I-beam over text says a drag will mark it; a cross elsewhere says it draws a box.
     /// The highlight eraser removes marks, not text, so it keeps its cross.</summary>
     internal static Cursor Cursor(EditTool tool, bool erasing, bool overText) =>

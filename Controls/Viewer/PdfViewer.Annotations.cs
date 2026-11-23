@@ -1679,9 +1679,9 @@ namespace KillerPDF.Controls
                     ClearSelection();
                     // #127 Phase 2: on text these tools FLOW along the character runs exactly like
                     // text selection; the release turns the selected lines into per-line annotations.
-                    // The rectangle path below survives ONLY for the highlight eraser. A press on a
-                    // page with no text under it hints instead of silently laying down a rect,
-                    // pointing at the Shapes tool (digit 4) as the deliberate rectangle path.
+                    // Off text, Highlight drags the box below like a highlighter on paper, so scans and
+                    // pictures can be marked (#514); Underline and Strikethrough need a line, so they hint
+                    // at the Shapes tool instead. The highlight eraser always uses the box.
                     if (!(_currentTool == EditTool.Highlight && _highlightErase))
                     {
                         ClearTextSelection();
@@ -1689,13 +1689,15 @@ namespace KillerPDF.Controls
                         {
                             _txtSelCommitTool = _currentTool;
                             _activeCanvas.CaptureMouse();
+                            e.Handled = true;
+                            break;
                         }
-                        else
+                        if (!TextMarkupToolPolicy.DrawsBoxOffText(_currentTool))
                         {
                             SetStatus(Loc("Str_St_NoTextUseShapes"));
+                            e.Handled = true;
+                            break;
                         }
-                        e.Handled = true;
-                        break;
                     }
                     _isDrawing = true;
                     _drawStart = pos;

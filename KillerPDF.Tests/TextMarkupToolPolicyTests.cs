@@ -31,6 +31,27 @@ public sealed class TextMarkupToolPolicyTests
     public void TheHighlightEraserKeepsItsCrossOverText() =>
         Assert.Same(Cursors.Cross, TextMarkupToolPolicy.Cursor(EditTool.Highlight, erasing: true, overText: true));
 
+    // #514: image-only pages have no text to follow, so a Highlight drag there marks the box it covers.
+    // Underline and Strikethrough need a line of text and keep the hint.
+    [Theory]
+    [InlineData(EditTool.Highlight, true)]
+    [InlineData(EditTool.Underline, false)]
+    [InlineData(EditTool.Strikethrough, false)]
+    [InlineData(EditTool.Draw, false)]
+    public void OnlyHighlightDrawsABoxWhereThereIsNoText(EditTool tool, bool box) =>
+        Assert.Equal(box, TextMarkupToolPolicy.DrawsBoxOffText(tool));
+
+    [Fact]
+    public void AHighlightPressOffTextStartsTheBoxInsteadOfTheHint()
+    {
+        string annotations = ShellSource.Read("Controls", "Viewer", "PdfViewer.Annotations.cs");
+        string press = ShellSource.Between(annotations, "on text these tools FLOW", "case EditTool.Shape:");
+        int box = press.IndexOf("TextMarkupToolPolicy.DrawsBoxOffText(_currentTool)", StringComparison.Ordinal);
+        int hint = press.IndexOf("Str_St_NoTextUseShapes", StringComparison.Ordinal);
+        Assert.True(box >= 0, "The press handler does not ask whether the tool draws a box off text.");
+        Assert.True(hint > box, "The no-text hint should only show for tools that do not draw a box.");
+    }
+
     [Fact]
     public void OnlyMarkingToolsFollowTheTextUnderThePointer()
     {
