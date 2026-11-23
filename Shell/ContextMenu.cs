@@ -320,7 +320,13 @@ namespace KillerPDF.Shell
             if (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
             {
                 var book = NavRowButton(menu, GlyphText(0xE736), "Str_View_BookMode", "B", ToggleBookMode, true);
-                if (Controls.PdfViewer.BookMode) book.SetResourceReference(Control.BackgroundProperty, "RowSelectedBrush");
+                if (Controls.PdfViewer.BookMode)
+                {
+                    book.SetResourceReference(Control.BackgroundProperty, "RowSelectedBrush");
+                    // A theme whose selected fill is solid (Trash Polka Yellow, 98SE) states the glyph color for it.
+                    if (TryFindResource("TileCheckedTextBrush") is Brush)
+                        book.SetResourceReference(Control.ForegroundProperty, "TileCheckedTextBrush");
+                }
                 buttons.Children.Add(book);
             }
             DockPanel.SetDock(buttons, Dock.Left);

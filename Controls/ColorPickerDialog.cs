@@ -259,6 +259,7 @@ namespace KillerPDF
             {
                 _eyedropBtn.SetResourceReference(Button.BackgroundProperty,  "RowSelectedBrush");
                 _eyedropBtn.SetResourceReference(Button.BorderBrushProperty, "PrimaryBrush");
+                _eyedropBtn.Content = CrosshairIcon(SelectedFillText());
             }
             try { RunEyedropperCore(); }
             finally
@@ -268,6 +269,7 @@ namespace KillerPDF
                 {
                     _eyedropBtn.Background  = R("BgCanvas");
                     _eyedropBtn.BorderBrush = R("CardBorderBrush");
+                    _eyedropBtn.Content = CrosshairIcon();
                 }
             }
         }
@@ -316,6 +318,8 @@ namespace KillerPDF
             if (_replaceBtn is null) return;
             if (_replaceToggle is not null) _replaceToggle.IsChecked = _replaceArmed;
             _replaceBtn.Background = _replaceArmed ? R("RowSelectedBrush") : R("PaneBrush");
+            if (_replaceBtn.Child is TextBlock label)
+                label.Foreground = _replaceArmed ? SelectedFillText() : R("TextBrush");
             _replaceBtn.SetResourceReference(Border.BorderBrushProperty, _replaceArmed ? "PrimaryBrush" : "CardBorderBrush");
         }
         private void RebuildSavedRow()
@@ -374,10 +378,14 @@ namespace KillerPDF
             return box;
         }
         // A crosshair/target glyph drawn in vectors, to match the KillerPDF look.
-        private static Grid CrosshairIcon()
+        // Text on the armed RowSelectedBrush fill: a theme whose fill is solid (Trash Polka Yellow, 98SE) states it.
+        private static Brush SelectedFillText()
+            => Application.Current.Resources["TileCheckedTextBrush"] as Brush ?? R("TextBrush");
+
+        private static Grid CrosshairIcon(Brush? color = null)
         {
             var g = new Grid { Width = 14, Height = 14 };
-            var fg = R("TextBrush");
+            var fg = color ?? R("TextBrush");
             g.Children.Add(new Rectangle { Width = 1.4, Fill = fg, HorizontalAlignment = HorizontalAlignment.Center });
             g.Children.Add(new Rectangle { Height = 1.4, Fill = fg, VerticalAlignment = VerticalAlignment.Center });
             g.Children.Add(new Ellipse { Width = 8, Height = 8, Stroke = fg, StrokeThickness = 1.4,

@@ -23,6 +23,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - While editing text, a click or the mouse wheel in the font list no longer closes it without picking a font. A font-only change on a scanned line sticks after you click away, and More settings stays open instead of closing or freezing the edit (#467).
 - Changing the accent under Trash Polka waits at most a second when a redraw hangs, instead of stalling. Its art cache only deletes its own files when it clears an older version.
 - Under Trash Polka, open drop-down lists and the file dialog's places, file list and preview panes carry the ink instead of flat slabs. The ink stays one image at any window size and returns to a surface that was hidden during a repaint.
+- Under Trash Polka Yellow, Book layout while it is on and the color picker's armed eyedropper and replace buttons draw dark on their yellow fill, instead of light text you could barely read.
 - After a language change, the start screen's Recent list says a file is missing in the new language instead of the old one.
 - A sidebar menu too tall for the window fits inside it and scrolls, instead of running past the window's foot.
 - On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. It shares the top row with Book layout and Left, and Right, Top and Bottom sit below, two rows of three.
