@@ -871,7 +871,8 @@ namespace KillerPDF.Shell
         // The sidebar-side picker rides the bottom of the sidebar's own right-click card (it moved out of the
         // Settings panel, like the toolbar picker moved onto the toolbar): Left, Right, Top and Bottom as one row of
         // four smaller tiles, the current side filled (Steve 2026-11-19). Each tile shows its own Ctrl+Alt+Shift+arrow
-        // chord, the arrow pointing at that side. In a two-page view, Two-page thumbnails is an on/off tile above them.
+        // chord, the arrow pointing at that side. In a two-page view, Two-page thumbnails and Book layout join them as two
+        // rows of three full-size tiles (Steve 2026-11-23).
         // The shortcut table's cap for each side (Services/ShortcutTable.cs).
         private static string SidebarSideShortcut(SidebarSide side) => side switch
         {
@@ -896,7 +897,11 @@ namespace KillerPDF.Shell
                 heading.Focusable = false;
                 menu.Items.Add(heading);
             }
-            if (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
+            SidebarSide[] order = [SidebarSide.Left, SidebarSide.Right, SidebarSide.Top, SidebarSide.Bottom];
+            CardTile[] tiles = [.. order.Select(side => new CardTile(side.TileGlyph(), Loc(side.StringKey()),
+                SidebarSideShortcut(side), () => SelectSidebarSide(side), false, true) { Checked = side == _sidebarSide })];
+            bool twoPage = _viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous;
+            if (twoPage)
             {
                 bool paired = App.GetSetting("TwoPageThumbnails") == "1";
                 var toggle = new CardTile("\uE8A9", Loc("Str_Sidebar_TwoPageThumbnails"), null, () =>
@@ -904,27 +909,23 @@ namespace KillerPDF.Shell
                     App.SetSetting("TwoPageThumbnails", paired ? "0" : "1");
                     ApplyPageThumbnailLayout();
                 }, false, !_sidebarStripLayout) { Checked = paired };
-                // Book layout sits beside it, the pair centered on the card (Steve 2026-11-20).
                 var book = new CardTile("", Loc("Str_View_BookMode"), "B", ToggleBookMode, false, true) { Checked = Controls.PdfViewer.BookMode };
-                var pair = QuickStrip(menu, 2, toggle, book);
-                pair.HorizontalAlignment = HorizontalAlignment.Center;
-                menu.Items.Add(CardSlot(pair, new Thickness(0)));
+                // Two rows of three in a two-page view: Two-page thumbnails, Book layout and Left, then Right, Top and
+                // Bottom (Steve 2026-11-23).
+                tiles = [toggle, book, .. tiles];
             }
-            SidebarSide[] order = [SidebarSide.Left, SidebarSide.Right, SidebarSide.Top, SidebarSide.Bottom];
-            var sides = order.Select(side => new CardTile(side.TileGlyph(), Loc(side.StringKey()),
-                SidebarSideShortcut(side), () => SelectSidebarSide(side), false, true) { Checked = side == _sidebarSide }).ToArray();
-            var strip = QuickStrip(menu, order.Length, sides);
+            var strip = QuickStrip(menu, twoPage ? 3 : order.Length, tiles);
             strip.Name = "SidebarSideTiles";
             System.Windows.Automation.AutomationProperties.SetName(strip, Loc("Str_Card_Sidebar"));
             foreach (var button in LogicalTreeHelper.GetChildren(((Border)strip).Child).OfType<Button>())
             {
-                // Smaller than a card tile, so four fit across the card's width.
-                button.Padding = new Thickness(1, 5, 1, 4);
+                // Four across are smaller than a card tile so they fit the card's width; three across keep full size.
+                if (!twoPage) button.Padding = new Thickness(1, 5, 1, 4);
                 bool flip = order.Any(side => side.FlipsTileGlyph() && System.Windows.Automation.AutomationProperties.GetName(button) == Loc(side.StringKey()));
                 button.Loaded += (_, _) =>
                 {
                     if (button.Template?.FindName("Glyph", button) is not TextBlock glyph) return;
-                    glyph.FontSize = 14;
+                    if (!twoPage) glyph.FontSize = 14;
                     if (!flip) return;
                     glyph.RenderTransformOrigin = new Point(0.5, 0.5);
                     glyph.RenderTransform = new ScaleTransform(1, -1);

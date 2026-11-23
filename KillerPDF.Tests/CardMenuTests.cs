@@ -111,10 +111,12 @@ public sealed class CardMenuTests
         Assert.Contains("RotatePages_Click(180", rotate);
         Assert.Contains("Str_Ctx_RotateCWShort", rotate);
         Assert.DoesNotContain("RotateRow(", card);
-        // The sidebar sides are one row of four smaller tiles on the card, the current side filled, and two-page
-        // thumbnails an on/off tile above them; no Sidebar row or flyout (Steve 2026-11-19).
+        // The sidebar sides are one row of four smaller tiles on the card, the current side filled; no Sidebar row or
+        // flyout (Steve 2026-11-19). In a two-page view, Two-page thumbnails and Book layout lead a grid of two rows of
+        // three with Left, then Right, Top and Bottom (Steve 2026-11-23).
         string side = Between(Read("Shell", "ContextMenu.cs"), "private void AppendSidebarSideSection(", "private ContextMenu MakeThemedMenu(");
-        Assert.Contains("QuickStrip(menu, order.Length, sides)", side);
+        Assert.Contains("QuickStrip(menu, twoPage ? 3 : order.Length, tiles)", side);
+        Assert.Contains("tiles = [toggle, book, .. tiles]", side);
         Assert.Contains("{ Checked = side == _sidebarSide }", side);
         Assert.Contains("{ Checked = paired }", side);
         Assert.Contains("SidebarSideShortcut(side)", side);   // each side tile shows its own chord

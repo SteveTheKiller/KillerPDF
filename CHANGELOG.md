@@ -22,10 +22,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Under Trash Polka, open drop-down lists and the file dialog's places, file list and preview panes carry the ink instead of flat slabs. The ink stays one image at any window size and returns to a surface that was hidden during a repaint.
 - After a language change, the start screen's Recent list says a file is missing in the new language instead of the old one.
 - A sidebar menu too tall for the window fits inside it and scrolls, instead of running past the window's foot.
-- On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. Book layout sits beside it, and the pair is centered.
+- On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. It shares the top row with Book layout and Left, and Right, Top and Bottom sit below, two rows of three.
 - Confirm dialogs size to what they say, so a short prompt is narrower. The heading sits a few pixels higher, with more room above the checkboxes, and on 98SE the dialog is spaced like a Win98 message box.
 - Menus, cards and drop-down lists opened inside the document pane keep all four corners rounded.
-- Customize Toolbar's two lists sit on panes in the pane color with the family drop shadow, instead of letting the window's texture show through.
+- Customize Toolbar's two lists sit on grained panes in the pane color with the family drop shadow, instead of letting the window's texture show through.
 - The customize drawer closes with the same small X as the app's small windows, and only the X turns red on hover.
 - Theme and language menu labels line up with their radio buttons and the Film Grain box again, instead of sitting a pixel high. Both menus keep 8px between their rows and the card edge on every side, and on each side of the language menu's divider.
 - On 98SE the theme and language menus pack their rows like Win98 menus, tab titles sit centered, and the window frame is the 4px Win98 sizing frame.
