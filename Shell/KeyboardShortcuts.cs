@@ -456,7 +456,8 @@ namespace KillerPDF.Shell
                 DeleteSelected();
                 e.Handled = true;
             }
-            // Ctrl+R turns pages right, Ctrl+L turns them left.
+            // Ctrl+R turns pages right, Ctrl+L turns them left, Ctrl+Shift+U turns them upside down. Plain Ctrl+U
+            // stays underline for text boxes.
             else if (key == Key.R && mods == ModifierKeys.Control)
             {
                 if (!e.IsRepeat) RotatePages_Click(90);
@@ -465,6 +466,11 @@ namespace KillerPDF.Shell
             else if (key == Key.L && mods == ModifierKeys.Control)
             {
                 if (!e.IsRepeat) RotatePages_Click(-90);
+                e.Handled = true;
+            }
+            else if (key == Key.U && mods == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                if (!e.IsRepeat) RotatePages_Click(180);
                 e.Handled = true;
             }
             // Ctrl+Shift+T reopens the last closed tab, the browsers' key (#502).

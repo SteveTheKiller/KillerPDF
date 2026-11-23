@@ -246,6 +246,7 @@ namespace KillerPDF
             B("R",               "Str_Lbl_Rotate",    "Tools", Cap("R")),
             B("%ctrl%+R",        "Str_Ctx_RotateCW", "Tools", Cap("Ctrl:R")),
             B("%ctrl%+L",        "Str_Ctx_RotateCCW", "Tools", Cap("Ctrl:L")),
+            B("%ctrl%+%shift%+U", "Str_Ctx_UpsideDown", "Tools", Cap("CtrlShift:U")),
             B("S",               "Str_Ctx_StampPages","Tools", Cap("S")),
             B("F",               "Str_KS_FormField",  "Tools", Cap("F")),
             B("E",               "Str_ColorCorrection", "Tools", Cap("E")),

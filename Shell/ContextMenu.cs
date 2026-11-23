@@ -235,7 +235,7 @@ namespace KillerPDF.Shell
             CardTile[] turns =
             [
                 new(GlyphText(0xE7AD), Loc("Str_Ctx_RotateCCWShort"), "Ctrl:L", () => RotatePages_Click(-90, pageIdx), true, true),
-                new(GlyphText(0xE895), Loc("Str_Ctx_UpsideDown"), null, () => RotatePages_Click(180, pageIdx), false, true),
+                new(GlyphText(0xE895), Loc("Str_Ctx_UpsideDown"), "CtrlShift:U", () => RotatePages_Click(180, pageIdx), false, true),
                 new(GlyphText(0xE7AD), Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90, pageIdx), false, true),
             ];
             CardTile[] clipboard =

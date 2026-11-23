@@ -255,6 +255,7 @@ namespace KillerPDF.Tests
             Assert.Equal("Str_Ctx_ReopenClosedTab", map[KbLayer.CtrlShift]["T"].Label);
             Assert.Equal("Str_Ctx_RotateCW", map[KbLayer.Ctrl]["R"].Label);
             Assert.Equal("Str_Ctx_RotateCCW", map[KbLayer.Ctrl]["L"].Label);
+            Assert.Equal("Str_Ctx_UpsideDown", map[KbLayer.CtrlShift]["U"].Label);
             Assert.Equal("Str_Theme_FilmGrain", map[KbLayer.AltShift]["G"].Label);
             Assert.Equal("Str_Ctx_MoveToNewWindow", map[KbLayer.CtrlShift]["N"].Label);
             Assert.Equal("Str_DocumentTools", map[KbLayer.CtrlShift]["D"].Label);
