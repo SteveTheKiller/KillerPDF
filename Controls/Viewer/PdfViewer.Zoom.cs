@@ -29,7 +29,6 @@ namespace KillerPDF.Controls
         private bool _wheelZoomAnchorActive;
         private double _wheelZoomAnchorX;
         private double _wheelZoomAnchorY;
-        private long _wheelZoomRevision;
 
         // ============================================================
         // Zoom
@@ -101,14 +100,15 @@ namespace KillerPDF.Controls
                 PinchZoomResult anchored = PinchZoomMath.ApplyAtAnchor(
                     _zoomLevel, _wheelZoomAnchorX, _wheelZoomAnchorY,
                     cursorInViewport.X, cursorInViewport.Y);
-                long revision = ++_wheelZoomRevision;
-                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
+                // The offset moves in the same layout pass as the scale. Deferring it let one frame draw
+                // the new size at the old offset, so text jumped while a touchpad pinch zoomed (#494).
+                PagePreviewPanel.UpdateLayout();
+                if (restoreNativeAnchor is not null) restoreNativeAnchor();
+                else
                 {
-                    if (revision != _wheelZoomRevision) return;
-                    if (restoreNativeAnchor is not null) { restoreNativeAnchor(); return; }
                     PagePreviewPanel.ScrollToHorizontalOffset(anchored.HorizontalOffset);
                     PagePreviewPanel.ScrollToVerticalOffset(anchored.VerticalOffset);
-                }));
+                }
                 return;
             }
 
@@ -270,7 +270,6 @@ namespace KillerPDF.Controls
                 {
                     _zoomSettleTimer!.Stop();
                     _wheelZoomAnchorActive = false;
-                    _wheelZoomRevision++;
                     if (!HasReadDocument) return;
                     ApplyZoom();
                     PresentCurrentPageStatus();
