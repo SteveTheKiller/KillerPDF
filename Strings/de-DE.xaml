@@ -132,7 +132,7 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_About_Thumbprint">FINGERABDRUCK</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Wird berechnet...</sys:String>
-    <sys:String x:Key="Str_Tagline">Ein kostenloser PDF-Editor für Windows: bearbeiten, kommentieren, zusammenführen, vergleichen, schwärzen, signieren, Formulare ausfüllen, OCR und Dokumente konvertieren. Ein GPLv3-Tool von {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Kostenloser PDF-Editor für Windows: bearbeiten, kommentieren, zusammenführen, teilen, vergleichen, schwärzen, signieren, Formulare, OCR und Konvertierung. Ein GPLv3-Tool von {0}.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">SEITEN</sys:String>

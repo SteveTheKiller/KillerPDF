@@ -132,7 +132,7 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_About_Thumbprint">PARMAK İZİ</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Hesaplanıyor...</sys:String>
-    <sys:String x:Key="Str_Tagline">Windows için ücretsiz bir PDF düzenleyici: düzenleme, açıklama, birleştirme, karşılaştırma, karartma, imza, form doldurma, OCR ve belge dönüştürme özelliklerini tek yerde sunar. {0}'dan bir GPLv3 aracı.</sys:String>
+    <sys:String x:Key="Str_Tagline">Windows için ücretsiz PDF düzenleyici: düzenleme, açıklama, birleştirme, bölme, karşılaştırma, karartma, imza, form doldurma, OCR ve dönüştürme. {0}'dan bir GPLv3 aracı.</sys:String>
 
     <!-- ── Kenar çubuğu sekmeleri ───────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">SAYFALAR</sys:String>

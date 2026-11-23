@@ -134,7 +134,7 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_About_Thumbprint">VÂN TAY CHỨNG THƯ</sys:String>
     <sys:String x:Key="Str_About_ExeSha">SHA256 EXE</sys:String>
     <sys:String x:Key="Str_About_Computing">Đang tính toán...</sys:String>
-    <sys:String x:Key="Str_Tagline">Trình sửa PDF miễn phí cho Windows: chỉnh sửa, chú thích, gộp, so sánh, che, ký, điền biểu mẫu, OCR và chuyển đổi tài liệu. Tiện ích GPLv3 từ {0}.</sys:String>
+    <sys:String x:Key="Str_Tagline">Trình sửa PDF miễn phí cho Windows: chỉnh sửa, chú thích, gộp, tách, so sánh, che, ký, điền biểu mẫu, OCR và chuyển đổi qua lại với Office và hình ảnh. Một tiện ích mã nguồn mở GPLv3 từ {0}.</sys:String>
 
     <!-- ── Các tab thanh bên ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">TRANG</sys:String>

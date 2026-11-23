@@ -55,7 +55,7 @@
     <sys:String x:Key="Str_About_Thumbprint">БАРМАҚ ІЗІ</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Есептелуде...</sys:String>
-    <sys:String x:Key="Str_Tagline">Windows үшін тегін PDF редакторы: өңдеу, ескертпе, біріктіру, салыстыру, жасыру, қолтаңба, пішіндер, OCR және түрлендіру. {0} GPLv3 құралы.</sys:String>
+    <sys:String x:Key="Str_Tagline">Windows үшін тегін PDF редакторы: өңдеу, ескертпе, біріктіру, бөлу, салыстыру, жасыру, қолтаңба, пішіндер, OCR және Office пен суреттерге түрлендіру. {0} шығарған GPLv3 құралы.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">БЕТТЕР</sys:String>

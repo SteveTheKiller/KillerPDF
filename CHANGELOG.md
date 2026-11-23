@@ -43,6 +43,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Merge PDFs on the toolbar makes a new document instead of adding to the open file. The open file is listed first, so you can move it or take it out. The page card's Merge still inserts after that page (#495).
 - The tray icon's card shows the KillerPDF logo over one row of tiles, Open and then Exit, like the other cards.
 - The Trash Polka Yellow accent is a bright yellow with dark text on selected rows and turned-on tiles, instead of a brownish gold.
+- The About card has a new tagline in every language. Its SHA-256 line is monospace, so the card is the same width on every build.
 
 ### Added
 

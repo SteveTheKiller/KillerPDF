@@ -134,7 +134,7 @@
     <sys:String x:Key="Str_About_Thumbprint">지문</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">계산 중...</sys:String>
-    <sys:String x:Key="Str_Tagline">Windows용 무료 PDF 편집기: 편집, 주석, 결합, 비교, 가리기, 서명, 양식 작성, OCR, 문서 변환까지 지원합니다. {0}의 GPLv3 유틸리티입니다.</sys:String>
+    <sys:String x:Key="Str_Tagline">Windows용 무료 PDF 편집기: 편집, 주석, 결합, 분할, 비교, 가리기, 서명, 양식 작성, OCR, Office 및 이미지와의 상호 변환까지 모두 지원합니다. {0}에서 만든 오픈 소스 GPLv3 유틸리티입니다.</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">페이지</sys:String>

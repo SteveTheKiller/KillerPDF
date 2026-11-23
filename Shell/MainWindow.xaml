@@ -3224,8 +3224,10 @@
                             <StackPanel Margin="0,0,0,10">
                                 <TextBlock Text="{DynamicResource Str_About_ExeSha}" Foreground="{DynamicResource MutedTextBrush}"
                                            FontFamily="{DynamicResource UiFont}" FontSize="11" Margin="0,0,0,2"/>
+                                <!-- Monospace, so every build's hash is the same width and the card (and the
+                                     tagline above, which wraps to it) never shifts between builds. -->
                                 <TextBlock x:Name="AboutSha256Block"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                           FontFamily="Consolas" FontSize="11"
                                            Foreground="{DynamicResource TextBrush}"
                                            TextWrapping="NoWrap"/>
                             </StackPanel>

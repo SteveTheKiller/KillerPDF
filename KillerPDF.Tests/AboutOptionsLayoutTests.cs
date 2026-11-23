@@ -45,6 +45,14 @@ public sealed class AboutOptionsLayoutTests
         Assert.Same(row, stack.Elements().Last());
     }
 
+    // The SHA line sets the card width and the tagline wraps to it, so it must be monospace: a proportional
+    // font made every build's hash a different width and the tagline rows shifted with it (Steve 2026-11-23).
+    [Fact]
+    public void ShaLineIsMonospaceSoTheCardWidthNeverShifts()
+    {
+        Assert.Equal("Consolas", (string?)Named(Window(), "AboutSha256Block").Attribute("FontFamily"));
+    }
+
     [Fact]
     public void ClearAllDataSitsInTheBottomRightCornerOutsideTheRows()
     {

@@ -132,7 +132,7 @@
     <sys:String x:Key="Str_About_Thumbprint">证书指纹</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">计算中...</sys:String>
-    <sys:String x:Key="Str_Tagline">适用于 Windows 的免费 PDF 编辑器：编辑、批注、合并、比较、涂黑、签名、填写表单、OCR 识别和文档转换。来自 {0} 的 GPLv3 工具。</sys:String>
+    <sys:String x:Key="Str_Tagline">适用于 Windows 的免费 PDF 编辑器：编辑、批注、合并、拆分、比较、涂黑、签名、填写表单、OCR 识别，以及与 Office 文档和图片之间的互相转换。这是来自 {0} 的开源 GPLv3 工具。</sys:String>
 
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">页面</sys:String>
