@@ -380,6 +380,17 @@ namespace KillerPDF.Controls
         // it here. Moving them without that would throw XamlParseException at startup.
         internal void PageJumpBoxKeyDownExt(object sender, KeyEventArgs e) => PageJumpBox_KeyDown(sender, e);
         internal void PageJumpBoxGotFocusExt(object sender, RoutedEventArgs e) => PageJumpBox_GotFocus(sender, e);
+        internal void FocusReadingSurfaceFromPointer(object? source)
+        {
+            if (source is DependencyObject pressed)
+            {
+                bool onBar = ToolOptionsDock.Bar is DependencyObject bar && IsDescendantOf(pressed, bar);
+                bool inPopup = !InWindowTree(pressed, Window.GetWindow(this));
+                if (!Services.PointerFocus.MovesKeyboardToPage(onBar, inPopup)) return;
+            }
+            FocusReadingSurfaceExt();
+        }
+
         internal void FocusReadingSurfaceExt()
         {
             // The page, not the viewer: the tool bar is docked inside the viewer, so the keyboard sitting in its Font box

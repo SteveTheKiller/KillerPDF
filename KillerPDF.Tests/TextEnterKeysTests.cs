@@ -95,6 +95,28 @@ public sealed class TextEnterKeysTests
         Assert.False(TextEnterKeys.PressLeavesEdit(false, false, false, false, false, resizing: true));
     }
 
+    // #467: the bar's More settings menu and its dropdowns draw in popups, outside the bar. Focus
+    // moving there saved the edit, which put the tool's look back, rebuilt the bar and closed the menu.
+    [Fact]
+    public void FocusMovingToTheBarOrItsMenusKeepsTheEdit()
+    {
+        Assert.True(TextEnterKeys.FocusMoveLeavesEdit(false, false, false, false));
+        Assert.False(TextEnterKeys.FocusMoveLeavesEdit(focusInBar: true, false, false, false));
+        Assert.False(TextEnterKeys.FocusMoveLeavesEdit(false, focusInPopup: true, false, false));
+        Assert.False(TextEnterKeys.FocusMoveLeavesEdit(false, false, optionsDropDownOpen: true, false));
+        Assert.False(TextEnterKeys.FocusMoveLeavesEdit(false, false, false, optionsMenuOpen: true));
+    }
+
+    [Fact]
+    public void TheLostFocusCommitAsksTheFocusRule()
+    {
+        string editing = ShellSource.Read("Controls", "Viewer", "PdfViewer.TextEditing.cs");
+        string lostFocus = ShellSource.Between(editing, "private void TextBox_LostFocus", "private static bool ContainsOpenComboBox");
+        Assert.Contains("TextEnterKeys.FocusMoveLeavesEdit(", lostFocus, StringComparison.Ordinal);
+        Assert.Contains("InWindowTree(", lostFocus, StringComparison.Ordinal);
+        Assert.Contains("OverflowButton.IsChecked", lostFocus, StringComparison.Ordinal);
+    }
+
     // A Text-tool click away from box A saves A and opens box B in the same press. A's LostFocus
     // commit runs after that and used to save whatever box was open, which closed B at once.
     [Fact]

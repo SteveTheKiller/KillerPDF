@@ -30,6 +30,19 @@ public sealed class ScanLineEditTests
         Assert.Null(ScanLineEdit.Plan(Words, Boxes, "Invoice total due today", TenPerLetter));
     }
 
+    // #467: picking another font for a scanned line and clicking away dropped the change, because
+    // the same words read as nothing to do. A new look is a change to every word.
+    [Fact]
+    public void ARestyledLineCoversEveryWordEvenWithTheSameText()
+    {
+        ScanLineEditPlan plan = Assert.IsType<ScanLineEditPlan>(
+            ScanLineEdit.Plan(Words, Boxes, "Invoice total due today", TenPerLetter, restyled: true));
+
+        Assert.Equal("Invoice total due today", plan.Text);
+        Assert.Equal(0, plan.First);
+        Assert.Equal(new Rect(10, 20, 230, 14), plan.Covered);
+    }
+
     [Fact]
     public void ADeletedWordCoversItWithNoNewText()
     {

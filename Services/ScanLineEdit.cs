@@ -27,15 +27,16 @@ internal static class ScanLineEdit
     /// <summary>
     /// Plans the edit of a line from its words and their boxes, or returns null when nothing changed.
     /// Replacement text too wide for the gap before the next word takes over the rest of the line,
-    /// because setting it there would run over scanned words.
+    /// because setting it there would run over scanned words. A line given a new look on the bar
+    /// changes every word, so it is set again whole even when its words are the same (#467).
     /// </summary>
     internal static ScanLineEditPlan? Plan(IReadOnlyList<string> words, IReadOnlyList<Rect> boxes,
-        string typed, Func<string, double> measure, IReadOnlyList<Rect>? ink = null)
+        string typed, Func<string, double> measure, IReadOnlyList<Rect>? ink = null, bool restyled = false)
     {
         ArgumentNullException.ThrowIfNull(words);
         ArgumentNullException.ThrowIfNull(boxes);
         ArgumentNullException.ThrowIfNull(measure);
-        if (typed.Contains('\n') || typed.Contains('\r'))
+        if (restyled || typed.Contains('\n') || typed.Contains('\r'))
             return Planned(boxes, ink, 0, boxes.Count - 1, typed);
         if (ScanEditSpan.Diff(words, typed) is not { } span) return null;
         int next = span.Last + 1;

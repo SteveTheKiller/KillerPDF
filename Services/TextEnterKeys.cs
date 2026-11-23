@@ -56,6 +56,15 @@ internal static class TextEnterKeys
         !(onBox || onResizeCorner || onOptionsBar || inPopup || optionsDropDownOpen || resizing);
 
     /// <summary>
+    /// Whether the keyboard leaving the box saves it. Focus on the text options bar, in a popup drawn
+    /// from it, or with its dropdown or More settings menu open is still part of the edit: saving
+    /// there rebuilt the bar under the open menu and closed it (#467).
+    /// </summary>
+    internal static bool FocusMoveLeavesEdit(bool focusInBar, bool focusInPopup,
+        bool optionsDropDownOpen, bool optionsMenuOpen) =>
+        !(focusInBar || focusInPopup || optionsDropDownOpen || optionsMenuOpen);
+
+    /// <summary>
     /// A box's LostFocus commit runs later, at Background priority. By then the click that moved the
     /// focus may have saved that box and opened another, and the late commit must leave the new box
     /// alone: it used to save it straight away, so a new box closed as soon as it opened.

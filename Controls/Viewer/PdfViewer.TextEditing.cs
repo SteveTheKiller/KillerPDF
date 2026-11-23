@@ -475,7 +475,8 @@ namespace KillerPDF.Controls
                     scanFit?.Background, scanFit?.Ink);
                 if (scanFit is not null && _pendingCover is not null)
                     _pendingScanLine = new PendingScanLine(_pendingCover.PairId,
-                        [.. lineWords.Select(w => w.Word.Text)], [.. lineWords.Select(w => w.Rect)], scanFit);
+                        [.. lineWords.Select(w => w.Word.Text)], [.. lineWords.Select(w => w.Rect)], scanFit,
+                        CurrentTextToolDefaults());
                 SetStatus(Loc(inspection?.Blocker == EngineDocs.PdfTextLineBlocker.InvisibleText
                     ? "Str_St_TextEditCoverScan" : "Str_St_TextEditCoverOther"));
             }
@@ -485,7 +486,9 @@ namespace KillerPDF.Controls
             }
         }
 
-        private sealed record PendingScanLine(string PairId, string[] Words, Rect[] Boxes, ScanLineFit Fit);
+        // OpenedLook is the bar as the edit opened, so a font or style picked meanwhile counts as a change.
+        private sealed record PendingScanLine(string PairId, string[] Words, Rect[] Boxes, ScanLineFit Fit,
+            TextToolDefaults OpenedLook);
         private PendingScanLine? _pendingScanLine;
         private static readonly Lazy<IReadOnlyList<EngineDocs.PdfScanTextFace>> ScanFaces = new(() =>
         {
@@ -1120,13 +1123,17 @@ namespace KillerPDF.Controls
                     // The click that moved the focus may already have saved this box and opened
                     // another one. This commit belongs to the box that lost focus, never the new one.
                     if (!TextEnterKeys.LateCommitStillApplies(_activeTextBox, sender)) return;
-                    // A ComboBox popup has its own visual tree, so its focused item is not a
-                    // descendant of the settings bar. Check the owning ComboBox as well.
+                    // A ComboBox popup and the More settings menu have their own visual trees, so
+                    // their focused items are not descendants of the settings bar. Check the popup,
+                    // the owning ComboBox and the menu's button as well.
                     if (_textSettingsBar is not null)
                     {
-                        bool focusInBar = Keyboard.FocusedElement is DependencyObject fe
-                            && IsDescendantOf(fe, _textSettingsBar);
-                        if (focusInBar || ContainsOpenComboBox(_textSettingsBar)) return;
+                        var fe = Keyboard.FocusedElement as DependencyObject;
+                        bool focusInBar = fe is not null && IsDescendantOf(fe, _textSettingsBar);
+                        bool focusInPopup = fe is not null && !InWindowTree(fe, Window.GetWindow(this));
+                        bool menuOpen = _textSettingsBar is Controls.ToolOptionsBar bar && bar.OverflowButton.IsChecked == true;
+                        if (!TextEnterKeys.FocusMoveLeavesEdit(focusInBar, focusInPopup,
+                                ContainsOpenComboBox(_textSettingsBar), menuOpen)) return;
                     }
                     CommitActiveTextBox();
                 }),
@@ -1371,7 +1378,8 @@ namespace KillerPDF.Controls
                 bool bold = _textBold, italic = _textItalic;
                 double fontSize = tb.FontSize;
                 ScanLineEditPlan? plan = ScanLineEdit.Plan(scanLine.Words, scanLine.Boxes, content,
-                    text => MeasureLineWidth(text, family, bold, italic, fontSize), scanLine.Fit.InkBoxes);
+                    text => MeasureLineWidth(text, family, bold, italic, fontSize), scanLine.Fit.InkBoxes,
+                    restyled: CurrentTextToolDefaults() != scanLine.OpenedLook);
                 if (plan is null)
                 {
                     DiscardPendingCover();
