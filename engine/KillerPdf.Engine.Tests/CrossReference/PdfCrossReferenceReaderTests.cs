@@ -166,24 +166,6 @@ public sealed class PdfCrossReferenceReaderTests
         Assert.Equal(prefix.Length, section.Offset);
     }
 
-    [Theory]
-    [InlineData("1 0 obj ( ")]
-    [InlineData("1 0 obj << /A ( ")]
-    public void ReadSection_CompatibilityRecoveryGivesUpQuicklyOnPackedUnclosedObjects(string unit)
-    {
-        // Each header opens a string that never closes, so every full parse reads to the end of
-        // the file. Before the dictionary check and parse limit this took minutes.
-        var filler = new StringBuilder("endobj\n");
-        while (filler.Length < 2 * 1024 * 1024) filler.Append(unit);
-        byte[] source = Encoding.ASCII.GetBytes(filler.ToString());
-
-        var clock = System.Diagnostics.Stopwatch.StartNew();
-        Assert.ThrowsAny<Exception>(() =>
-            PdfCrossReferenceReader.ReadSection(source, 0, compatibilityRecovery: true));
-
-        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(10), $"Recovery took {clock.Elapsed}.");
-    }
-
     [Fact]
     public void ReadSection_CompatibilityRecoveryScansPastNumbersThatAreNotObjectHeaders()
     {
@@ -582,4 +564,31 @@ public sealed class PdfCrossReferenceReaderTests
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+}
+
+// A timing test runs alone: sharing the cores with the rest of the suite measured the other tests' load,
+// and it went past ten seconds in a full run while it finished in about a second on its own.
+[CollectionDefinition(nameof(CrossReferenceRecoveryTimingCollection), DisableParallelization = true)]
+public sealed class CrossReferenceRecoveryTimingCollection;
+
+[Collection(nameof(CrossReferenceRecoveryTimingCollection))]
+public sealed class PdfCrossReferenceRecoveryTimingTests
+{
+    [Theory]
+    [InlineData("1 0 obj ( ")]
+    [InlineData("1 0 obj << /A ( ")]
+    public void ReadSection_CompatibilityRecoveryGivesUpQuicklyOnPackedUnclosedObjects(string unit)
+    {
+        // Each header opens a string that never closes, so every full parse reads to the end of
+        // the file. Before the dictionary check and parse limit this took minutes.
+        var filler = new StringBuilder("endobj\n");
+        while (filler.Length < 2 * 1024 * 1024) filler.Append(unit);
+        byte[] source = Encoding.ASCII.GetBytes(filler.ToString());
+
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        Assert.ThrowsAny<Exception>(() =>
+            PdfCrossReferenceReader.ReadSection(source, 0, compatibilityRecovery: true));
+
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(10), $"Recovery took {clock.Elapsed}.");
+    }
 }
