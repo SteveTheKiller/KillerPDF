@@ -249,6 +249,7 @@ namespace KillerPDF.Shell
         private static KillerFamily.Controls.CardEdit CardEditFor(string card, string[] locked, string[] hiddenByDefault)
             => new(() => App.GetSetting($"Card.{card}.Hidden"), value => App.SetSetting($"Card.{card}.Hidden", value ?? ""))
             {
+                Key = card,
                 Locked = t => t.Id is null && locked.Contains(t.Glyph),
                 DefaultHidden = t => t.Id is not null || hiddenByDefault.Contains(t.Glyph),
                 EditTip = Loc("Str_Card_Edit"),

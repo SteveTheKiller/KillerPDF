@@ -166,47 +166,47 @@ namespace KillerPDF.Shell
             AddNavRow(_ctxMenu, pageIdx);
 
             // A flowing text selection can be copied, marked up or redacted right here, the way the Highlight
-            // tools would mark it, without switching tools first.
-            if (ActiveViewer.HasTextSelectionRangeExt || hasTextSel)
+            // tools would mark it, without switching tools first: Copy and Redact (what to do with the text), then the
+            // three text marks as one row.
+            bool hasTextRange = ActiveViewer.HasTextSelectionRangeExt;
+            var take = new List<CardTile>();
+            var marks = new List<CardTile>();
+            if (hasTextSel) take.Add(new("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedText, false, true));
+            if (hasTextRange)
             {
-                // Family card grid: Copy and Redact (what to do with the text), then the three text marks as one row.
-                var take = new List<CardTile>();
-                var marks = new List<CardTile>();
-                if (hasTextSel) take.Add(new("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedText, false, true));
-                if (ActiveViewer.HasTextSelectionRangeExt)
-                {
-                    take.Add(new("\uED1A", Loc("Str_Lbl_Redact"), null, ActiveViewer.MarkTextSelectionForRedaction, false, true));
-                    marks.Add(new("\uE7E6", Loc("Str_Lbl_Highlight"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Highlight), false, true));
-                    marks.Add(new("\uE8DC", Loc("Str_Lbl_Underline"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Underline), false, true));
-                    marks.Add(new("\uEDE0", Loc("Str_Lbl_Strike"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Strikethrough), false, true));
-                }
-                var textStrip = TileGroups(_ctxMenu, take, marks);
-                _ctxMenu.Items.Add(CardSlot(LabelledStrip(Loc("Str_Card_SelectedText"), textStrip), new Thickness(0)));
-                FocusFirstActionFromKeyboard(_ctxMenu, textStrip);
+                take.Add(new("\uED1A", Loc("Str_Lbl_Redact"), null, ActiveViewer.MarkTextSelectionForRedaction, false, true));
+                marks.Add(new("\uE7E6", Loc("Str_Lbl_Highlight"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Highlight), false, true));
+                marks.Add(new("\uE8DC", Loc("Str_Lbl_Underline"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Underline), false, true));
+                marks.Add(new("\uEDE0", Loc("Str_Lbl_Strike"), null, () => ActiveViewer.AnnotateTextSelectionExt(EditTool.Strikethrough), false, true));
             }
 
             // Placement drops the item exactly where the user right-clicked: one full row of the three things you add.
-            var placeStrip = QuickStrip(_ctxMenu, KillerFamily.Controls.CardBuilder.CardColumns,
-                ("\uE8D2", Loc("Str_Lbl_Text"), "T", () =>
+            CardTile[] place =
+            [
+                new("\uE8D2", Loc("Str_Lbl_Text"), "T", () =>
                 {
                     SetTool(EditTool.Text);
                     _activeCanvas = CanvasForPage(pageIdx);
                     PlaceTextBox(pt, pageIdx);
                 }, false, true),
-                ("\uEB9F", Loc("Str_Lbl_Image"), "I", () =>
+                new("\uEB9F", Loc("Str_Lbl_Image"), "I", () =>
                 {
                     _activeCanvas = CanvasForPage(pageIdx);
                     PlaceImageFromDialog(pt, pageIdx);
                 }, false, true),
-                ("\uEE56", Loc("Str_Lbl_Signature"), "G", () =>
+                new("\uEE56", Loc("Str_Lbl_Signature"), "G", () =>
                 {
                     _activeCanvas = CanvasForPage(pageIdx);
                     if (_pendingSignature is not null) PlaceSignature(pt, pageIdx);
                     else { SetTool(EditTool.Signature); ShowSignaturePopup(); }
-                }, false, true));
-            // No label over the strip (Steve): the buttons say what they place.
-            _ctxMenu.Items.Add(CardSlot(placeStrip, new Thickness(0)));
-            FocusFirstActionFromKeyboard(_ctxMenu, placeStrip);   // only when no selected-text strip came first
+                }, false, true),
+            ];
+            // #496: the top box is one customizable grid of its own, beside the page tools' grid below. The selected-text
+            // tiles only come with a selection, and the layout keeps their places while they're away.
+            var topStrip = EditableTileGroups(_ctxMenu, "PageTop", [], [], take, marks, place);
+            // The caption only names the selection when there is one; the place tiles say what they place (Steve).
+            _ctxMenu.Items.Add(CardSlot(take.Count > 0 ? LabelledStrip(Loc("Str_Card_SelectedText"), topStrip) : topStrip, new Thickness(0)));
+            FocusFirstActionFromKeyboard(_ctxMenu, topStrip);
 
             _ctxMenu.Items.Add(new Separator());
 

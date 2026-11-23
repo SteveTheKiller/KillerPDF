@@ -91,6 +91,9 @@ namespace KillerFamily.Controls
         public Action<string?> Save { get; }
         public Func<CardTile, bool> Locked { get; init; } = _ => false;
         public Func<CardTile, bool> DefaultHidden { get; init; } = _ => false;
+        /// <summary>Tells apart two customizable grids on one card (KillerPDF #496: the page card's top box and its tools).
+        /// Only one of them edits at a time: its pencil ends editing on the other first.</summary>
+        public string Key { get; init; } = "";
         public string EditTip { get; init; } = "Customize this card";
         public string DoneTip { get; init; } = "Done";
         public string ResetTip { get; init; } = "Reset to default";
@@ -288,7 +291,13 @@ namespace KillerFamily.Controls
             const string Version = "v2:";
             // The app clears and refills a card on every open, so this build first takes off the handlers the last
             // build left on the card. Without that, every open kept another tile tree and drawer alive.
-            (card.GetValue(EditUnhookProperty) as Action)?.Invoke();
+            // Each grid on the card keeps its own, so a second grid on the same card leaves the first one working.
+            if (card.GetValue(EditGridsProperty) is not Dictionary<string, EditGrid> grids)
+                card.SetValue(EditGridsProperty, grids = []);
+            if (grids.Remove(edit.Key, out var last)) last.Unhook();
+            // A grid from an earlier fill of the card that this fill did not build again is gone from the card too.
+            foreach (var stale in grids.Where(g => g.Value.Root is not { } r || !OnCard(r, card)).Select(g => g.Key).ToList())
+                if (grids.Remove(stale, out var gone)) gone.Unhook();
             var all = lists.SelectMany(g => g).GroupBy(t => t.Key).Select(g => g.First()).ToList();
             var byKey = all.ToDictionary(t => t.Key);
             // The card's tiles in the order they show (Steve 2026-11-19: drag a tile anywhere, no gaps). Every other
@@ -550,8 +559,8 @@ namespace KillerFamily.Controls
                 if (t.Key == draggedKey) el.Opacity = 0.5;
             }
 
-            void Persist() => edit.Save(order.SequenceEqual(defaultOrder) ? null
-                : Version + string.Join("|", order) + "/" + string.Join("|", all.Select(t => t.Key).Where(Hidden)));
+            void Persist() => edit.Save(SavedLayout(order, [.. all.Select(t => t.Key).Where(Hidden)],
+                [.. all.Select(t => t.Key)], defaultOrder, edit.Load()));
 
             // A click or the keyboard: a card tile goes to the drawer, a drawer tile to the end of the card.
             void Move(CardTile t, bool hide)
@@ -569,6 +578,10 @@ namespace KillerFamily.Controls
             {
                 EndDrag();
                 SetCursor(null);
+                // Another grid on the card that is being edited ends first, since the card has one edit flag.
+                if (on)
+                    foreach (var other in grids.Where(g => g.Key != edit.Key).Select(g => g.Value).ToList())
+                        other.EndEditing();
                 editing = on;
                 card.SetValue(IsEditingProperty, on);
                 card.StaysOpen = true;
@@ -1025,7 +1038,7 @@ namespace KillerFamily.Controls
                 e.Handled = true;
             };
             card.PreviewKeyDown += keys;
-            card.SetValue(EditUnhookProperty, new Action(() =>
+            grids[edit.Key] = new EditGrid(() => { if (editing) SetEditing(false, animate: false); }, () =>
             {
                 card.Closed -= closed;
                 card.PreviewKeyDown -= keys;
@@ -1038,10 +1051,11 @@ namespace KillerFamily.Controls
                 if (editing) SetEditing(false, animate: false);
                 SetCursor(null);
                 drawer.IsOpen = false;
-            }));
+            });
 
             Rebuild();
             var outer = new Border { Child = root };
+            grids[edit.Key].Root = outer;
             AutomationProperties.SetName(outer, name);
             return outer;
         }
@@ -1109,8 +1123,57 @@ namespace KillerFamily.Controls
         internal sealed record EditDriver(Func<Point, bool> Press, Action<Point> Drag, Action<Point> Release, Func<List<string>> Order, Action<bool> Editing);
         internal static readonly DependencyProperty EditDriverProperty = DependencyProperty.RegisterAttached("EditDriver", typeof(EditDriver), typeof(CardBuilder));
 
-        // On an editable card's ContextMenu: takes off the handlers its last build put there, run by the next build.
-        private static readonly DependencyProperty EditUnhookProperty = DependencyProperty.RegisterAttached("EditUnhook", typeof(Action), typeof(CardBuilder));
+        // On an editable card's ContextMenu: each customizable grid on it by CardEdit.Key, with how to end its editing and
+        // how to take off the handlers its build put on the card, run by the next build of that grid.
+        private static readonly DependencyProperty EditGridsProperty = DependencyProperty.RegisterAttached("EditGrids", typeof(Dictionary<string, EditGrid>), typeof(CardBuilder));
+
+        private sealed record EditGrid(Action EndEditing, Action Unhook)
+        {
+            public FrameworkElement? Root { get; set; }
+        }
+
+        // Whether a grid still sits on the card: the app empties the card's items before filling it again.
+        private static bool OnCard(DependencyObject element, ContextMenu card)
+        {
+            for (DependencyObject? at = element; at is not null; at = LogicalTreeHelper.GetParent(at) ?? VisualTreeHelper.GetParent(at))
+                if (ReferenceEquals(at, card)) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// The text a customizable grid saves (see CardEdit): null for the default layout, else "v2:" with the shown tile
+        /// ids in order, "/" and the hidden ones. A tile the saved layout names that is not on this card right now (KillerPDF
+        /// #496: Copy and Redact only show with a selection) keeps its side, and a shown one keeps its place after the tile
+        /// it followed, so changing the card while it is missing never loses where the user put it.
+        /// </summary>
+        internal static string? SavedLayout(IReadOnlyList<string> shown, IReadOnlyList<string> hidden,
+            IReadOnlyList<string> present, IReadOnlyList<string> defaultOrder, string? saved)
+        {
+            var savedShown = new List<string>();
+            var savedHidden = new List<string>();
+            if (saved is not null && saved.StartsWith("v2:", StringComparison.Ordinal))
+            {
+                var parts = saved[3..].Split('/');
+                savedShown.AddRange(parts[0].Split(['|'], StringSplitOptions.RemoveEmptyEntries));
+                if (parts.Length > 1) savedHidden.AddRange(parts[1].Split(['|'], StringSplitOptions.RemoveEmptyEntries));
+            }
+            else if (saved is not null && saved.StartsWith("v1:", StringComparison.Ordinal))
+                savedHidden.AddRange(saved[3..].Split(['|'], StringSplitOptions.RemoveEmptyEntries));
+            var onHand = new HashSet<string>(present);
+            var missingHidden = savedHidden.Where(k => !onHand.Contains(k)).Distinct().ToList();
+            bool missing = missingHidden.Count > 0 || savedShown.Any(k => !onHand.Contains(k));
+            if (!missing && shown.SequenceEqual(defaultOrder)) return null;
+            var order = shown.ToList();
+            string? before = null;
+            foreach (var key in savedShown)
+            {
+                if (onHand.Contains(key)) { if (order.Contains(key)) before = key; continue; }
+                if (order.Contains(key)) continue;
+                order.Insert(before is null ? 0 : order.IndexOf(before) + 1, key);
+                before = key;
+            }
+            return "v2:" + string.Join("|", order) + "/" + string.Join("|", hidden.Concat(missingHidden));
+        }
 
         /// <summary>True while a customizable card is in pencil edit mode, false as soon as Done or the X ends it, even
         /// though the card stays open until the next click. Apps check this to hold card shortcuts while tiles are

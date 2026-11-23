@@ -151,16 +151,15 @@ public sealed class CardMenuTests
         Assert.Contains("FocusFirstActionFromKeyboard(menu, strip);", Read("Shell", "PageCard.cs"));
         // r2 BF-004/005/009: the page menu's strips, the page list's Menu key, and the selected mark itself.
         string menu2 = Read("Shell", "ContextMenu.cs");
-        Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, textStrip);", menu2);
-        // Text, Paragraph, Image and Signature stay in the page menu as a strip with no Place here label (Steve).
+        Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, topStrip);", menu2);
+        // Text, Paragraph, Image and Signature stay in the page menu with no Place here label (Steve).
         Assert.DoesNotContain("Str_Card_PlaceHere", menu2);
-        Assert.Contains("_ctxMenu.Items.Add(CardSlot(placeStrip, new Thickness(0)));", menu2);
         Assert.Contains("PlaceTextBox(pt, pageIdx);", menu2);
         Assert.Contains("PlaceImageFromDialog(pt, pageIdx);", menu2);
         Assert.Contains("PlaceSignature(pt, pageIdx);", menu2);
         Assert.Contains("EditParagraph(pageIdx, pt)", menu2);
         // The selected-text strip wraps into rows of three so the page menu stays narrow.
-        Assert.Contains("var textStrip = TileGroups(_ctxMenu, take, marks);", menu2);
+        Assert.Contains("take, marks, place);", menu2);
         Assert.Contains("var hit = target ?? AnnotationAt(pt, pageIdx);", menu2);
         string keys = Read("Shell", "KeyboardShortcuts.cs");
         Assert.Contains("if (!OpenPageCardFromKeyboard()) OpenContextMenuAtSelection();", keys);
@@ -278,5 +277,20 @@ public sealed class CardMenuTests
         string apply = Between(Read("Shell", "AnnotationCard.cs"), "private void ApplyCardStyle", "\n        }");
         Assert.Contains("ActiveViewer.RefreshSelectedDrawBar();", apply);
         Assert.Contains("ActiveViewer.ReattachMultiOutlinesExt();", apply);
+    }
+
+    // #496: the page card's top box (the selected-text tiles and Text, Image, Signature) is customizable like the
+    // tools grid under it, saved under its own key, and the kit keeps two grids on one card apart.
+    [Fact]
+    public void ThePageCardsTopBoxIsCustomizableOnItsOwn()
+    {
+        string menu = Read("Shell", "ContextMenu.cs");
+        Assert.Contains("EditableTileGroups(_ctxMenu, \"PageTop\", [], [], take, marks, place)", menu);
+        Assert.Contains("EditableTileGroups(_ctxMenu, \"Page\",", menu);
+        Assert.Contains("Key = card,", Read("Shell", "PageCard.cs"));
+        string kit = Read("Controls", "CardBuilder.cs");
+        Assert.Contains("grids.Remove(edit.Key, out var last)", kit);
+        Assert.Contains("other.EndEditing();", kit);
+        Assert.Contains("SavedLayout(order,", kit);
     }
 }

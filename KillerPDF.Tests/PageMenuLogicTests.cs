@@ -16,7 +16,7 @@ public sealed class PageMenuLogicTests
     {
         // A native EPUB or DjVu book has no PDF behind it, so the place strip, field presets, page tools, stamp and
         // clear rows would all answer "Open a PDF first".
-        string guard = ShellSource.Between(PageMenuBody, "ActiveViewer.NativeDocumentRef", "QuickStrip(_ctxMenu");
+        string guard = ShellSource.Between(PageMenuBody, "ActiveViewer.NativeDocumentRef", "PlaceTextBox(pt, pageIdx)");
         Assert.Contains("AddNativePageMenuItems(pageIdx)", guard);
 
         string book = ShellSource.Between(ContextMenu, "private void AddNativePageMenuItems(", "// The top row of the page menus");

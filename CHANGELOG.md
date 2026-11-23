@@ -38,6 +38,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - The print window has a Color section where KillerPDF can manage print colors with an RGB printer profile from Color Management, a rendering intent and black-point compensation, and the preview shows how the profile predicts the page will print (#520).
 - The job asks the printer driver to skip its own color management and says when the driver confirms it, keeping the warning to turn it off by hand for drivers that don't (#520).
+- The page card's top box, with the selected-text tiles and Text, Image and Signature, has its own pencil, so you can reorder or hide those tiles too. The selected-text tiles keep their places while nothing is selected (#496).
 - While customizing a card, Alt+arrow keys move the focused tile one place or one row, and a screen reader hears its new position.
 
 ## [1.9.5] - 2026-11-20
