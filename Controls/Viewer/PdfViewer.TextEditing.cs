@@ -412,6 +412,31 @@ namespace KillerPDF.Controls
                 // box empty (like a manual edit) instead of pre-filling garbage - the user types over the
                 // whited-out original.
                 string prefill = LooksGarbled(lineText) ? "" : lineText;
+                // The line is rewritten in the page content itself when the engine can do it: its old
+                // glyphs leave the content stream and the new text takes their place, in the same font
+                // when that font can show it. Only text the page does not really draw, such as the
+                // recognized layer over a scan, falls back to a cover with new text on top.
+                var (pageLeft, pageBottom, pageRight, pageTop) = RedactionGeometry.CanvasToPage(lineRect,
+                    pdfW, pdfH, renderW, renderH, rotation);
+                var region = new EngineDocs.PdfContentBounds(pageLeft - 0.5, pageBottom - 0.5,
+                    pageRight + 0.5, pageTop + 0.5);
+                EngineDocs.PdfTextLineInspection? inspection =
+                    PdfEngineIntegration.InspectTextLine(_currentFile, pageIdx, region);
+                // #431: Word names its embedded fonts CIDFont+F1 and CIDFont+F2, so the face and weight
+                // come from the name the embedded program gives itself (Arial-BoldMT) and its descriptor.
+                if (inspection is not null)
+                {
+                    if (!string.IsNullOrEmpty(inspection.ProgramName)
+                        && !MainWindow.SystemFontNames.Contains(fontName, StringComparer.OrdinalIgnoreCase))
+                    {
+                        var program = PdfFontStyle.FromPdfName(inspection.ProgramName);
+                        fontName = program.Family;
+                        fontBold |= program.Bold;
+                        fontItalic |= program.Italic;
+                    }
+                    fontBold |= inspection.Bold;
+                    fontItalic |= inspection.Italic;
+                }
                 fontName = PdfFontStyle.ResolveInstalledFamily(fontName, MainWindow.SystemFontNames);
                 double boxFontCanvas = Math.Max(canvasFontSize, syInv);
                 double editorLeft = sourceLeft is double origin
@@ -428,16 +453,6 @@ namespace KillerPDF.Controls
                     }
                 }
                 catch { /* retain the extracted glyph top */ }
-                // The line is rewritten in the page content itself when the engine can do it: its old
-                // glyphs leave the content stream and the new text takes their place, in the same font
-                // when that font can show it. Only text the page does not really draw, such as the
-                // recognized layer over a scan, falls back to a cover with new text on top.
-                var (pageLeft, pageBottom, pageRight, pageTop) = RedactionGeometry.CanvasToPage(lineRect,
-                    pdfW, pdfH, renderW, renderH, rotation);
-                var region = new EngineDocs.PdfContentBounds(pageLeft - 0.5, pageBottom - 0.5,
-                    pageRight + 0.5, pageTop + 0.5);
-                EngineDocs.PdfTextLineInspection? inspection =
-                    PdfEngineIntegration.InspectTextLine(_currentFile, pageIdx, region);
                 if (inspection is { CanEdit: true })
                 {
                     StartDirectTextEdit(pageIdx, new Rect(cLeft, cTop, cWidth, cHeight), prefill,

@@ -16,6 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The arrow on a card tile that opens more choices is as bright as the tile's label instead of gray (#508).
 - Pinch zoom on a touchpad holds the page still under your fingers instead of letting text jump for a frame (#494).
 - Toolbar captions and the sidebar heading draw Chinese in Microsoft YaHei UI and Japanese in Yu Gothic UI, like the menus. The file name in the title bar is a size smaller in Chinese and Japanese, so it no longer looks oversized (#490).
+- Editing a line of existing text keeps its real typeface and weight when the PDF hides them behind generic names like CIDFont+F2, as Word exports do. Bold Arial now opens and saves as bold Arial instead of plain Segoe UI. The first title on a page no longer picks up the size of a stray space drawn under it (#431).
 - Changing the accent under Trash Polka waits at most a second when a redraw hangs, instead of stalling. Its art cache only deletes its own files when it clears an older version.
 - Under Trash Polka, open drop-down lists and the file dialog's places, file list and preview panes carry the ink instead of flat slabs. The ink stays one image at any window size and returns to a surface that was hidden during a repaint.
 - A sidebar menu too tall for the window fits inside it and scrolls, instead of running past the window's foot.

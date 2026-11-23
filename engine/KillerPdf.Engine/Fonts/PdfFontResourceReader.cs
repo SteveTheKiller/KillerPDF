@@ -483,6 +483,8 @@ public static class PdfFontResourceReader
                 defaultWidth)
             {
                 FontName = fontName,
+                ProgramName = embeddedData is not null && embedded is { PostScriptName: var program }
+                    && program != "EmbeddedFont" ? program : string.Empty,
                 Diagnostics = RecoveryDiagnostics(),
                 Ascent = ascent,
                 Descent = descent,

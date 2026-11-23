@@ -11,6 +11,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Tiled JPEG 2000 images decode one tile at a time, so OpenJPEG no longer holds the whole image as 32-bit samples. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
 - `PdfTextLineEditor` no longer takes a line's font and size from a smaller glyph sitting below its baseline, such as a stray empty-paragraph space that a Word export draws under a title (#431).
 
+### Changed
+
+- `PdfTextLineInspection` reports `Bold` and `Italic` from the font descriptor, and `ProgramName`, the name the embedded TrueType program gives itself. `PdfExtractionFont.ProgramName` carries the same name. A line in a font named CIDFont+F2 now reads as Arial-BoldMT (#431).
+
 ### Added
 
 - `PdfPrinterColorConversion` converts rendered sRGB pixels to an RGB printer profile with a chosen rendering intent and black-point compensation, and can proof them back to sRGB for a preview (#520).

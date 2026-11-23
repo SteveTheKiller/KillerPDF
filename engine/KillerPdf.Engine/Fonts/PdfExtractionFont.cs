@@ -28,6 +28,10 @@ public sealed class PdfExtractionFont
     /// <summary>Gets the PostScript font name from the PDF resource.</summary>
     public string FontName { get; internal init; } = string.Empty;
 
+    /// <summary>Gets the PostScript name the embedded TrueType program gives itself, such as Arial-BoldMT
+    /// under a resource named CIDFont+F2, or an empty string when no embedded program names itself.</summary>
+    public string ProgramName { get; internal init; } = string.Empty;
+
     /// <summary>Gets compatibility recovery diagnostics for the font resource.</summary>
     public IReadOnlyList<string> Diagnostics { get; internal init; } = [];
 

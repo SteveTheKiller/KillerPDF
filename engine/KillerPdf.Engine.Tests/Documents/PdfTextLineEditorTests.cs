@@ -164,6 +164,54 @@ public sealed class PdfTextLineEditorTests
         Assert.Equal(12, title.FontSize, 3);
     }
 
+    // #431: Word exports name their fonts CIDFont+F1 and CIDFont+F2, so only the descriptor tells the
+    // bold face from the regular one.
+    [Fact]
+    public void InspectionReadsBoldAndItalicFromTheDescriptor()
+    {
+        PdfDocument document = PdfDocument.Open(CreatePdf([
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 6 0 R >> >> /Contents 5 0 R >>",
+            Helvetica,
+            Stream("BT /F1 12 Tf 72 700 Td (Plain) Tj ET BT /F2 12 Tf 72 600 Td (Heavy) Tj ET"),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FontDescriptor 7 0 R >>",
+            "<< /Type /FontDescriptor /FontName /Helvetica /Flags 262208 /ItalicAngle -12 /FontBBox [0 0 1000 1000] >>"
+        ]));
+
+        PdfTextLineInspection plain = PdfTextLineEditor.Inspect(document, 0, Region(document, "Plain"));
+        PdfTextLineInspection heavy = PdfTextLineEditor.Inspect(document, 0, Region(document, "Heavy"));
+
+        Assert.False(plain.Bold);
+        Assert.False(plain.Italic);
+        Assert.True(heavy.Bold);
+        Assert.True(heavy.Italic);
+    }
+
+    // #431: the embedded program still names the face (Arial-BoldMT) when the resource name does not.
+    [Fact]
+    public void InspectionReportsTheNameTheEmbeddedProgramGivesItself()
+    {
+        string program = Encoding.Latin1.GetString(KillerPdf.Engine.Tests.Fonts.TrueTypeFontTests.BuildTestFont(format12: false));
+        PdfDocument document = PdfDocument.Open(CreatePdf([
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 6 0 R >> >> /Contents 5 0 R >>",
+            Helvetica,
+            Stream("BT /F1 12 Tf 72 700 Td (Plain) Tj ET BT /F2 12 Tf 72 600 Td (AB) Tj ET"),
+            "<< /Type /Font /Subtype /TrueType /BaseFont /CIDFont+F2 /Encoding /WinAnsiEncoding /FirstChar 65 /LastChar 66 /Widths [500 500] /FontDescriptor 7 0 R >>",
+            "<< /Type /FontDescriptor /FontName /CIDFont+F2 /Flags 32 /FontBBox [0 0 1000 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 8 0 R >>",
+            Stream(program, $"/Length1 {program.Length}")
+        ]));
+
+        PdfTextLineInspection plain = PdfTextLineEditor.Inspect(document, 0, Region(document, "Plain"));
+        PdfTextLineInspection embedded = PdfTextLineEditor.Inspect(document, 0, Region(document, "AB"));
+
+        Assert.Equal("", plain.ProgramName);
+        Assert.Equal("CIDFont+F2", embedded.FontName);
+        Assert.Equal("KillerTest", embedded.ProgramName);
+    }
+
     [Fact]
     public void InspectionReportsWhatCannotBeRewritten()
     {

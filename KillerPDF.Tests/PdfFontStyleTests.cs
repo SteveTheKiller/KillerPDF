@@ -13,6 +13,7 @@ namespace KillerPDF.Tests
         [InlineData("TimesNewRomanPS-BoldItalicMT", "Times New Roman", true, true)]
         [InlineData("Arial-Regular", "Arial", false, false)]
         [InlineData("ArialMT", "Arial", false, false)]
+        [InlineData("Arial-BoldMT", "Arial", true, false)]
         [InlineData("TimesNewRomanPSMT", "Times New Roman", false, false)]
         [InlineData("CourierNewPS-BoldMT", "Courier New", true, false)]
         [InlineData("GHIJKL+BookAntiqua", "Book Antiqua", false, false)]

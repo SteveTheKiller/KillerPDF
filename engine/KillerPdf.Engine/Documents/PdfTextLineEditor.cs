@@ -28,7 +28,12 @@ public enum PdfTextLineBlocker
 /// <param name="Blocker">Why the line cannot be rewritten, or <see cref="PdfTextLineBlocker.None"/>.</param>
 /// <param name="FontName">The PostScript name of the font the line starts in.</param>
 /// <param name="FontSize">The size the line starts at on the page, in points.</param>
-public sealed record PdfTextLineInspection(int Glyphs, PdfTextLineBlocker Blocker, string FontName, double FontSize)
+/// <param name="Bold">True when the font's descriptor marks it bold, by its ForceBold flag or a weight of 600 or more.</param>
+/// <param name="Italic">True when the font's descriptor marks it italic, by its Italic flag or a slanted italic angle.</param>
+/// <param name="ProgramName">The PostScript name the embedded font program gives itself, which names the
+/// face when the resource name is generic, or an empty string.</param>
+public sealed record PdfTextLineInspection(int Glyphs, PdfTextLineBlocker Blocker, string FontName, double FontSize,
+    bool Bold = false, bool Italic = false, string ProgramName = "")
 {
     /// <summary>True when the line can be rewritten in the page content.</summary>
     public bool CanEdit => Blocker == PdfTextLineBlocker.None;
@@ -563,12 +568,12 @@ public static partial class PdfContentRedaction
             new Dictionary<PdfDictionary, PdfExtractionFont?>(ReferenceEqualityComparer.Instance),
             cancellationToken, glyphsOnly: true, insertion: insertion, usedCodes: used);
         rewriter.RewritePage(page, geometry);
-        if (recorded is null) return Summarize(insertion, Unreadable(rewriter), tree, geometry);
+        if (recorded is null) return Summarize(document, insertion, Unreadable(rewriter), tree, geometry);
         LineBaseline? line = LineBaseline.Dominant(recorded, region);
         ParagraphGlyph[] held = [.. recorded.Where(glyph => line?.Holds(glyph.State, glyph.Glyph) != false)];
         var lineGlyphs = new LineInsertion { LookGlyph = FirstShown(held, line) };
         foreach (ParagraphGlyph glyph in held) lineGlyphs.Observe(glyph.State, glyph.Glyph, glyph.Barred, glyph.Bounds);
-        return Summarize(lineGlyphs, Unreadable(rewriter), tree, geometry, line);
+        return Summarize(document, lineGlyphs, Unreadable(rewriter), tree, geometry, line);
     }
 
     // A line drawn twice, as text with a shadow is, shows its last copy, so the first glyph that no
@@ -596,7 +601,7 @@ public static partial class PdfContentRedaction
     private static bool Unreadable(ContentRewriter rewriter) =>
         rewriter.Reasons.Contains("UnreadableFont") || rewriter.Reasons.Contains("UndecodableText");
 
-    private static LineProbe Summarize(LineInsertion insertion, bool unreadable, PdfPageTree tree, PageGeometry geometry,
+    private static LineProbe Summarize(PdfDocument document, LineInsertion insertion, bool unreadable, PdfPageTree tree, PageGeometry geometry,
         LineBaseline? line = null)
     {
         PdfTextLineBlocker blocker = insertion.Glyphs == 0
@@ -611,7 +616,35 @@ public static partial class PdfContentRedaction
             Matrix device = insertion.Glyph.Then(state.Ctm);
             size = Math.Abs(state.Size) * Math.Sqrt(device.C * device.C + device.D * device.D);
         }
-        return new LineProbe(new PdfTextLineInspection(insertion.Glyphs, blocker, fontName, size), insertion, tree, geometry, line);
+        (bool bold, bool italic) = Weight(document, insertion.State?.FontObject);
+        return new LineProbe(new PdfTextLineInspection(insertion.Glyphs, blocker, fontName, size, bold, italic,
+                insertion.State?.Font?.ProgramName ?? string.Empty),
+            insertion, tree, geometry, line);
+    }
+
+    // A subset name such as CIDFont+F2 says nothing of its weight, so the descriptor's flags, weight and
+    // italic angle speak for the font along with its name (#431).
+    private static (bool Bold, bool Italic) Weight(PdfDocument document, PdfObject? fontObject)
+    {
+        if (fontObject is null || Resolve(document, fontObject) is not PdfDictionary font
+            || Descriptor(document, font) is not PdfDictionary descriptor) return (false, false);
+        double Number(string key) => descriptor.TryGetValue(Name(key), out PdfObject? value)
+            ? Resolve(document, value) switch { PdfInteger integer => integer.Value, PdfReal real => (double)real.Value, _ => 0 }
+            : 0;
+        long flags = (long)Number("Flags");
+        return ((flags & 0x40000) != 0 || Number("FontWeight") >= 600,
+            (flags & 0x40) != 0 || Number("ItalicAngle") != 0);
+    }
+
+    private static PdfDictionary? Descriptor(PdfDocument document, PdfDictionary font)
+    {
+        PdfDictionary described = font;
+        if (IsNamed(font, SubtypeName, "Type0") && font.TryGetValue(Name("DescendantFonts"), out PdfObject? descendants)
+            && Resolve(document, descendants) is PdfArray array && array.Count > 0
+            && Resolve(document, array[0]) is PdfDictionary descendant)
+            described = descendant;
+        return described.TryGetValue(Name("FontDescriptor"), out PdfObject? value)
+            ? Resolve(document, value) as PdfDictionary : null;
     }
 
     private sealed record ParagraphGlyph(PdfContentBounds Bounds, TextState State, Matrix Glyph, bool Barred);
@@ -647,7 +680,7 @@ public static partial class PdfContentRedaction
             foreach (ParagraphGlyph glyph in _glyphs)
                 if (ContainsCenter(glyph.Bounds, region))
                     insertion.Observe(glyph.State, glyph.Glyph, glyph.Barred, glyph.Bounds);
-            return ParagraphPaint(_document, Summarize(insertion, _unreadable, _tree, _geometry));
+            return ParagraphPaint(_document, Summarize(_document, insertion, _unreadable, _tree, _geometry));
         }
     }
 
