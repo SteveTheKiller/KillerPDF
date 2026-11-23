@@ -1066,7 +1066,7 @@ namespace KillerPDF.Controls
             else
             {
                 if (sv.ScrollableHeight <= 0) return;
-                sv.ScrollToVerticalOffset(sv.VerticalOffset - e.Delta * 0.5);
+                sv.ScrollToVerticalOffset(sv.VerticalOffset - KillerFamily.Controls.WheelScroll.Step(e.Delta, SystemParameters.WheelScrollLines, sv.ViewportHeight));
             }
             e.Handled = true;
         }

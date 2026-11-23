@@ -26,12 +26,23 @@ namespace KillerPDF.Controls
             if (child == null) return result;
             if (child.Clip != _appliedClip) _originalClip = child.Clip;
 
+            // Snap the inset to whole device pixels at the scale this border really draws at. An
+            // app-size zoom is a scale transform above the border, and it turns layout rounding
+            // off, so a 1 unit stroke at 110% put the clip edge 1.1 pixels in: the part-covered row
+            // let the border's own background show as a line where a tab joins the page.
             Thickness stroke = BorderThickness;
-            if (UseLayoutRounding)
+            DpiScale dpi = VisualTreeHelper.GetDpi(this);
+            double scaleX = dpi.DpiScaleX, scaleY = dpi.DpiScaleY;
+            if (PresentationSource.FromVisual(this)?.RootVisual is Visual root && root != this && IsDescendantOf(root)
+                && TransformToAncestor(root) is MatrixTransform zoom)
             {
-                DpiScale dpi = VisualTreeHelper.GetDpi(this);
-                stroke = new Thickness(Round(stroke.Left, dpi.DpiScaleX), Round(stroke.Top, dpi.DpiScaleY),
-                    Round(stroke.Right, dpi.DpiScaleX), Round(stroke.Bottom, dpi.DpiScaleY));
+                scaleX *= Math.Abs(zoom.Matrix.M11);
+                scaleY *= Math.Abs(zoom.Matrix.M22);
+            }
+            if (UseLayoutRounding || scaleX != dpi.DpiScaleX || scaleY != dpi.DpiScaleY)
+            {
+                stroke = new Thickness(Round(stroke.Left, scaleX), Round(stroke.Top, scaleY),
+                    Round(stroke.Right, scaleX), Round(stroke.Bottom, scaleY));
             }
             Vector offset = VisualTreeHelper.GetOffset(child);
             var bounds = new Rect(stroke.Left - offset.X, stroke.Top - offset.Y,

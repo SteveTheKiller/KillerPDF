@@ -204,8 +204,10 @@ namespace KillerFamily.Controls
 
         /// <summary>
         /// The family card grid. Rules (Steve 2026-11-19), which this method enforces so apps don't relearn them:
-        /// 1. Three tiles across (CardColumns), so every card is the page cards' width. A long caption wraps inside its
-        ///    tile; it never widens the card.
+        /// 1. Aim for three tiles across (CardColumns), so every card is the page cards' width. A long caption wraps
+        ///    inside its tile; it never widens the card. The one exception (Steve 2026-11-23): a fixed card of exactly
+        ///    four tiles that would leave a tile alone on a row is one row of four instead, wider by one tile, since a
+        ///    lone tile with two empty spots beside it looks wrong.
         /// 2. Related tiles are one group and share a row: Copy, Cut and Paste; the turns; Save and Replace; Raise and
         ///    Lower. A group never shares a row with another group, and a group longer than a row continues on the
         ///    next row; an unfilled row stays blank on the right instead of borrowing a tile from the next group.
@@ -224,8 +226,22 @@ namespace KillerFamily.Controls
         {
             var lists = groups.Select(g => g.ToList()).Where(g => g.Count > 0).ToList();
             if (edit is not null) return EditableGroups(card, name, lists, edit, columns);
+            if (IsRowOfFour(lists, columns))
+            {
+                // One more tile's width, so the four tiles are exactly as wide as three were.
+                if (card.MaxWidth is > 44 and < double.PositiveInfinity)
+                    card.MinWidth = card.MaxWidth = (card.MaxWidth - 44) / CardColumns * RowOfFour + 44;
+                columns = RowOfFour;
+            }
             return GroupGrid(card, name, lists, columns);
         }
+
+        /// <summary>The tile count a fixed card shows as one row (rule 1's exception).</summary>
+        public const int RowOfFour = 4;
+
+        // Exactly four tiles on a three-across card, laid out so some row holds a single tile.
+        private static bool IsRowOfFour(List<List<CardTile>> lists, int columns)
+            => columns == CardColumns && lists.Sum(l => l.Count) == RowOfFour && lists.Any(l => l.Count % CardColumns == 1);
 
         private static Border GroupGrid(ContextMenu card, string name, List<List<CardTile>> lists, int columns, TileGrid? measureFrom = null)
         {
@@ -294,10 +310,14 @@ namespace KillerFamily.Controls
             // Each grid on the card keeps its own, so a second grid on the same card leaves the first one working.
             if (card.GetValue(EditGridsProperty) is not Dictionary<string, EditGrid> grids)
                 card.SetValue(EditGridsProperty, grids = []);
-            if (grids.Remove(edit.Key, out var last)) last.Unhook();
+            // TryGetValue then Remove, not Remove(key, out value): the apps on .NET Framework have no such overload.
+            if (grids.TryGetValue(edit.Key, out var last)) { grids.Remove(edit.Key); last.Unhook(); }
             // A grid from an earlier fill of the card that this fill did not build again is gone from the card too.
-            foreach (var stale in grids.Where(g => g.Value.Root is not { } r || !OnCard(r, card)).Select(g => g.Key).ToList())
-                if (grids.Remove(stale, out var gone)) gone.Unhook();
+            foreach (var stale in grids.Where(g => g.Value.Root is not { } r || !OnCard(r, card)).ToList())
+            {
+                grids.Remove(stale.Key);
+                stale.Value.Unhook();
+            }
             var all = lists.SelectMany(g => g).GroupBy(t => t.Key).Select(g => g.First()).ToList();
             var byKey = all.ToDictionary(t => t.Key);
             // The card's tiles in the order they show (Steve 2026-11-19: drag a tile anywhere, no gaps). Every other
@@ -883,7 +903,7 @@ namespace KillerFamily.Controls
             var wheel = new MouseWheelEventHandler((_, e) =>
             {
                 if (!editing || !OverDrawer(e)) return;
-                scroller.ScrollToVerticalOffset(scroller.VerticalOffset - e.Delta / 3.0);
+                scroller.ScrollToVerticalOffset(scroller.VerticalOffset - WheelScroll.Step(e.Delta, SystemParameters.WheelScrollLines, scroller.ViewportHeight));
                 e.Handled = true;
             });
             foreach (UIElement surface in new UIElement[] { card, drawerClip })

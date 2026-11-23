@@ -33,6 +33,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The customize drawer closes with the same small X as the app's small windows, and only the X turns red on hover.
 - Theme and language menu labels line up with their radio buttons and the Film Grain box again, instead of sitting a pixel high. Both menus keep 8px between their rows and the card edge on every side, and on each side of the language menu's divider.
 - On 98SE the theme and language menus pack their rows like Win98 menus, tab titles sit centered, and the window frame is the 4px Win98 sizing frame.
+- One mouse wheel notch scrolls 120 pixels at the Windows default in the file dialog's folder tree and the card customize drawer, up from 60 and 40 pixels.
+- A tab joins its page without a seam line at app sizes other than 100%.
 
 ### Changed
 

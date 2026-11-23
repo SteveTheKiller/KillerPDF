@@ -292,7 +292,7 @@ public sealed class CardMenuTests
         Assert.Contains("EditableTileGroups(_ctxMenu, \"Page\",", menu);
         Assert.Contains("Key = card,", Read("Shell", "PageCard.cs"));
         string kit = Read("Controls", "CardBuilder.cs");
-        Assert.Contains("grids.Remove(edit.Key, out var last)", kit);
+        Assert.Contains("if (grids.TryGetValue(edit.Key, out var last)) { grids.Remove(edit.Key); last.Unhook(); }", kit);
         Assert.Contains("other.EndEditing();", kit);
         Assert.Contains("SavedLayout(order,", kit);
     }
