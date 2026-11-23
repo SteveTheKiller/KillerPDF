@@ -2021,7 +2021,12 @@ internal static partial class PdfEngineIntegration
         => MergeReadableFiles(paths, out leftOut, CancellationToken.None);
 
     internal static byte[] MergeReadableFiles(IReadOnlyList<string> paths, out IReadOnlyList<string> leftOut,
-        CancellationToken cancellation)
+        CancellationToken cancellation) => MergeReadableFiles(paths, out leftOut, out _, cancellation);
+
+    /// <summary>As above, and <paramref name="merged"/> lists the files the combine took, in order, with the pages
+    /// each one put in, so a page order chosen per file can be mapped onto the result (#495).</summary>
+    internal static byte[] MergeReadableFiles(IReadOnlyList<string> paths, out IReadOnlyList<string> leftOut,
+        out IReadOnlyList<(string Path, int PageCount)> merged, CancellationToken cancellation)
     {
         ArgumentNullException.ThrowIfNull(paths);
         cancellation.ThrowIfCancellationRequested();
@@ -2036,10 +2041,12 @@ internal static partial class PdfEngineIntegration
             PdfDocument empty = PdfDocument.Open(new PdfDocumentBuilder().Build());
             var editor = new PdfIncrementalPageEditor(empty);
             var sourcePaths = new Dictionary<PdfDocument, string>();
+            var taken = new List<(string Path, int PageCount)>();
             foreach (string path in paths)
             {
                 cancellation.ThrowIfCancellationRequested();
                 if (rejected.Contains(path) || unreadable.Contains(path)) continue;
+                int pagesBefore = editor.PageCount;
                 try
                 {
                     if (string.Equals(Path.GetExtension(path), ".pdf",
@@ -2047,7 +2054,6 @@ internal static partial class PdfEngineIntegration
                     {
                         if (!opened.TryGetValue(path, out PdfDocument? document))
                             opened[path] = document = OpenPageSource(File.ReadAllBytes(path));
-                        int pagesBefore = editor.PageCount;
                         editor.AddImportedDocument(document, !withoutBookmarks.Contains(path));
                         sourcePaths[document] = path;
                         // A PDF with no pages gives the combine nothing, so it counts as left out.
@@ -2055,12 +2061,15 @@ internal static partial class PdfEngineIntegration
                     }
                     else
                         AppendImageFrames(editor, path, cancellation);
+                    if (editor.PageCount > pagesBefore) taken.Add((path, editor.PageCount - pagesBefore));
                 }
                 catch (OperationCanceledException) { throw; }
                 catch
                 {
                     // Folder and archive imports deliberately retain every readable entry.
                     unreadable.Add(path);
+                    // Pages an entry put in before it failed stay in the result, so they still count for its place.
+                    if (editor.PageCount > pagesBefore) taken.Add((path, editor.PageCount - pagesBefore));
                 }
             }
             cancellation.ThrowIfCancellationRequested();
@@ -2068,10 +2077,11 @@ internal static partial class PdfEngineIntegration
                 throw new InvalidOperationException("No readable PDF or image pages were found.");
             try
             {
-                byte[] merged = editor.Build();
+                byte[] combined = editor.Build();
                 cancellation.ThrowIfCancellationRequested();
                 leftOut = [.. paths.Where(path => rejected.Contains(path) || unreadable.Contains(path))];
-                return merged;
+                merged = taken;
+                return combined;
             }
             // A damaged outline leaves the pages readable, so that file loses only its bookmarks.
             catch (Exception ex) when (IsBookmarkGraphFailure(ex) && editor.FailedImportSource is PdfDocument damaged

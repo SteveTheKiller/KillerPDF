@@ -1486,14 +1486,14 @@ namespace KillerPDF.Shell
                     labels[snapshot] = shown;
                     initial.Add(snapshot);
                 }
-                var dlg = new MergeFilesDialog(this, initial, labels: labels);
+                var dlg = new MergeFilesDialog(this, initial, labels: labels, offerPages: true);
                 if (dlg.ShowDialog() != true || dlg.Paths.Count == 0) return;
                 var files = dlg.Paths.Select(path => new DropImportFile(path, System.IO.Path.GetFileName(path),
                     Temporary: labels.ContainsKey(path))).ToList();
                 // The batch owns the snapshot from here and deletes it when the merge is done.
                 var batch = new DropImportBatch(snapshotDirectory ?? App.MakeImportDirectory(), files, expanded: false);
                 snapshotDirectory = null;
-                OpenMerged([.. dlg.Paths], batch, skippedPictures);
+                OpenMerged([.. dlg.Paths], batch, skippedPictures, dlg.PageOrder);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {

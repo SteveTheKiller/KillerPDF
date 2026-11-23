@@ -1288,6 +1288,12 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_MergeFiles_Remove">Remove</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Merge</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Drop PDF files or folders here, or use Add files and Add folder. Drag a file to change the order.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Arrange pages</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Show files</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Drag pages into order, or select them and use the arrow buttons. Delete takes a page out.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, page {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">All pages</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Every page was taken out, so there is nothing to merge.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">Save PDF as</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Save Flattened PDF</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Scanned look</sys:String>

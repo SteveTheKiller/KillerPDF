@@ -1278,6 +1278,12 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_MergeFiles_Remove">Usuń</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Scal</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Upuść tutaj pliki PDF lub foldery albo użyj przycisków "Dodaj pliki" i "Dodaj folder". Przeciągnij plik, aby zmienić kolejność.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Rozmieść strony</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Pokaż pliki</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Przeciągnij strony w odpowiedniej kolejności albo zaznacz je i użyj przycisków strzałek. Delete usuwa stronę.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, strona {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Wszystkie strony</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Usunięto wszystkie strony, więc nie ma czego scalić.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">Zapisz PDF jako</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Zapisz spłaszczony PDF</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Wygląd skanu</sys:String>

@@ -1275,6 +1275,12 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_MergeFiles_Remove">Odebrat</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Sloučit</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Přetáhněte sem soubory PDF nebo složky, případně použijte tlačítka Přidat soubory a Přidat složku. Pořadí změníte přetažením souboru.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Uspořádat stránky</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Zobrazit soubory</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Přetáhněte stránky do požadovaného pořadí, nebo je vyberte a použijte tlačítka se šipkami. Delete stránku odebere.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, stránka {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Všechny stránky</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Všechny stránky byly odebrány, takže není co sloučit.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">Uložit PDF jako</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Uložit sloučené PDF</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Vzhled skenu</sys:String>

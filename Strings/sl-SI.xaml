@@ -1186,6 +1186,12 @@
     <sys:String x:Key="Str_MergeFiles_Remove">Odstrani</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Združi</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Sem spustite datoteke PDF ali mape ali uporabite "Dodaj datoteke" in "Dodaj mapo". Povlecite datoteko, da spremenite vrstni red.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Razporedi strani</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Prikaži datoteke</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Povlecite strani v želeni vrstni red ali jih izberite in uporabite gumba s puščicama. Delete odstrani stran.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, stran {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Vse strani</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Vse strani so odstranjene, zato ni ničesar za združitev.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">Shrani PDF kot</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Shrani sploščen PDF</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Videz optično prebrane strani</sys:String>

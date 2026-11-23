@@ -1281,6 +1281,12 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_MergeFiles_Remove">Retirer</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Fusionner</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Déposez des fichiers PDF ou des dossiers ici, ou utilisez "Ajouter des fichiers" et "Ajouter un dossier". Faites glisser un fichier pour modifier l'ordre.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Organiser les pages</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Afficher les fichiers</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Faites glisser les pages dans l&apos;ordre voulu, ou sélectionnez-les et utilisez les boutons fléchés. Suppr retire une page.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, page {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Toutes les pages</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Toutes les pages ont été retirées, il n&apos;y a donc rien à fusionner.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">Enregistrer le PDF sous</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Enregistrer le PDF aplati</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Aspect numérisé</sys:String>

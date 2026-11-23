@@ -1270,6 +1270,12 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_MergeFiles_Remove">Kaldır</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Birleştir</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">PDF dosyalarını veya klasörleri buraya bırakın ya da "Dosya ekle" ve "Klasör ekle" düğmelerini kullanın. Sırayı değiştirmek için bir dosyayı sürükleyin.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Sayfaları düzenle</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Dosyaları göster</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Sayfaları sıraya sürükleyin ya da seçip ok düğmelerini kullanın. Delete bir sayfayı çıkarır.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, sayfa {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Tüm sayfalar</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Tüm sayfalar çıkarıldı, birleştirilecek bir şey kalmadı.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">PDF'yi farklı kaydet</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Düzleştirilmiş PDF'yi kaydet</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Taranmış görünüm</sys:String>

@@ -44,6 +44,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The Open dialog takes several files at once. Enter opens them as tabs, and Shift+Enter opens them together in a new window (#513).
 - Highlight works on scans and pictures. Where there's no text under the pointer, a drag highlights the box it covers (#514).
 - Swedish and Korean interface languages, machine-translated to start, with review welcome. Korean draws in Malgun Gothic like the other Asian languages, and OCR reads Swedish and Korean (#511).
+- Merge files has Arrange pages, which shows every page of the files as thumbnails. Drag pages into any order or take some out before merging (#495).
 
 ## [1.9.5] - 2026-11-20
 

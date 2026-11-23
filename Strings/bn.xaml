@@ -1270,6 +1270,12 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_MergeFiles_Remove">সরান</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">একত্রিত করুন</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">এখানে PDF ফাইল বা ফোল্ডার ছেড়ে দিন, অথবা "ফাইল যোগ করুন" ও "ফোল্ডার যোগ করুন" ব্যবহার করুন। ক্রম বদলাতে একটি ফাইল টেনে আনুন।</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">পৃষ্ঠা সাজান</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">ফাইল দেখান</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">পৃষ্ঠাগুলো টেনে ক্রমে সাজান, অথবা সেগুলো বেছে নিয়ে তীর বোতামগুলো ব্যবহার করুন। Delete একটি পৃষ্ঠা সরিয়ে দেয়।</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, পৃষ্ঠা {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">সব পৃষ্ঠা</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">সব পৃষ্ঠা সরানো হয়েছে, তাই একত্র করার কিছু নেই।</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">PDF এভাবে সংরক্ষণ করুন</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">ফ্ল্যাট করা PDF সংরক্ষণ করুন</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">স্ক্যান করা চেহারা</sys:String>

@@ -1288,6 +1288,12 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_MergeFiles_Remove">제거</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">결합</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">PDF 파일이나 폴더를 여기에 놓거나 파일 추가 및 폴더 추가를 사용하세요. 파일을 끌어서 순서를 바꿀 수 있습니다.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">페이지 정렬</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">파일 보기</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">페이지를 끌어서 순서를 정하거나, 선택한 뒤 화살표 단추를 사용하세요. Delete 키로 페이지를 뺍니다.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, {1}페이지</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">모든 페이지</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">모든 페이지를 뺐기 때문에 병합할 내용이 없습니다.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">PDF를 다른 이름으로 저장</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">평면화된 PDF 저장</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">스캔한 느낌</sys:String>

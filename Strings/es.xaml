@@ -1270,6 +1270,12 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_MergeFiles_Remove">Quitar</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Combinar</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Suelte aquí archivos PDF o carpetas, o use "Añadir archivos" y "Añadir carpeta". Arrastre un archivo para cambiar el orden.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Organizar páginas</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Mostrar archivos</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Arrastre las páginas para ordenarlas, o selecciónelas y use los botones de flecha. Supr quita una página.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, página {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Todas las páginas</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Se quitaron todas las páginas, así que no hay nada que combinar.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">Guardar PDF como</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Guardar PDF aplanado</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Aspecto escaneado</sys:String>

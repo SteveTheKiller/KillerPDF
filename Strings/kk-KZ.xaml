@@ -1176,6 +1176,12 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_MergeFiles_Remove">Жою</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Біріктіру</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">PDF файлдарын немесе қалталарды осында сүйреңіз не "Файлдар қосу" және "Қалта қосу" түймелерін пайдаланыңыз. Ретін өзгерту үшін файлды сүйреңіз.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Беттерді реттеу</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Файлдарды көрсету</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Беттерді қажетті ретпен сүйреңіз немесе оларды таңдап, көрсеткі түймелерін пайдаланыңыз. Delete бетті алып тастайды.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, {1}-бет</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Барлық беттер</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Барлық беттер алынып тасталды, біріктіретін ештеңе жоқ.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">PDF-ті басқаша сақтау</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Тегістелген PDF сақтау</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Скан көрінісі</sys:String>

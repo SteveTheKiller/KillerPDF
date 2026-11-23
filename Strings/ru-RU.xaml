@@ -1281,6 +1281,12 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_MergeFiles_Remove">Удалить</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Объединить</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Перетащите сюда PDF-файлы или папки либо воспользуйтесь кнопками "Добавить файлы" и "Добавить папку". Чтобы изменить порядок, перетащите файл.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Упорядочить страницы</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Показать файлы</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Перетащите страницы в нужном порядке или выделите их и используйте кнопки со стрелками. Delete убирает страницу.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, страница {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Все страницы</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Все страницы убраны, поэтому объединять нечего.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">Сохранить PDF как</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Сохранить сведённый PDF-файл</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Вид скана</sys:String>

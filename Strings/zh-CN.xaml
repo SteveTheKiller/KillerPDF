@@ -1274,6 +1274,12 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_MergeFiles_Remove">移除</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">合并</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">将 PDF 文件或文件夹拖放到此处，或使用“添加文件”和“添加文件夹”。拖动文件可更改顺序。</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">排列页面</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">显示文件</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">拖动页面调整顺序，或选中后使用箭头按钮。按 Delete 移除页面。</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}，第 {1} 页</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">所有页面</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">所有页面都已移除，没有可合并的内容。</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">PDF 另存为</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">保存展平的 PDF</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">扫描效果</sys:String>

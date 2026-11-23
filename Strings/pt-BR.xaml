@@ -1281,6 +1281,12 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_MergeFiles_Remove">Remover</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Mesclar</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Solte arquivos PDF ou pastas aqui, ou use "Adicionar arquivos" e "Adicionar pasta". Arraste um arquivo para alterar a ordem.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Organizar páginas</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Mostrar arquivos</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Arraste as páginas para ordená-las, ou selecione-as e use os botões de seta. Delete remove uma página.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, página {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Todas as páginas</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Todas as páginas foram removidas, então não há nada para mesclar.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">Salvar PDF como</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Salvar PDF nivelado</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Aparência digitalizada</sys:String>

@@ -1281,6 +1281,12 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_MergeFiles_Remove">削除</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">結合</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">PDF ファイルまたはフォルダーをここにドロップするか、「ファイルを追加」または「フォルダーを追加」を使用します。ファイルをドラッグすると順序を変更できます。</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">ページを並べ替え</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">ファイルを表示</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">ページをドラッグして並べ替えるか、選択して矢印ボタンを使います。Delete キーでページを外します。</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}、{1} ページ</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">すべてのページ</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">すべてのページが外されたため、結合するものがありません。</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">PDF に名前を付けて保存</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">統合された PDF を保存</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">スキャン風</sys:String>

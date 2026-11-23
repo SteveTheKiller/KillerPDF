@@ -124,12 +124,13 @@ namespace KillerPDF.Shell
                 // lists only PDFs.
                 if (found.All(file => PdfImport.IsPdfPath(file.Path)))
                 {
-                    var dlg = new MergeFilesDialog(this, found.Select(file => file.Path), offerOpenSeparately: true);
+                    var dlg = new MergeFilesDialog(this, found.Select(file => file.Path), offerOpenSeparately: true,
+                        offerPages: true);
                     if (dlg.ShowDialog() != true || dlg.Paths.Count == 0) return;
                     var kept = DropImport.InDialogOrder(dlg.Paths, found);
                     if (dlg.OpenSeparately) { await OpenSeparately(kept, batch); return; }
                     handedToMerge = true;
-                    OpenMerged([.. kept.Select(file => file.Path)], batch);
+                    OpenMerged([.. kept.Select(file => file.Path)], batch, pages: dlg.PageOrder);
                     return;
                 }
                 int choice = KillerDialog.ShowChoices(this,
@@ -180,7 +181,8 @@ namespace KillerPDF.Shell
             }
         }
 
-        private async void OpenMerged(List<string> found, DropImportBatch batch, int skippedPictures = 0)
+        private async void OpenMerged(List<string> found, DropImportBatch batch, int skippedPictures = 0,
+            IReadOnlyList<MergePage>? pages = null)
         {
             var target = BeginTabLoad(out var prev, out bool createdNew);
             target.LoadPending = true;   // a second open while this builds must not land in this tab
@@ -192,7 +194,7 @@ namespace KillerPDF.Shell
             try
             {
                 // Build off the UI thread so the window stays responsive (and movable) while it works.
-                (string? tempPath, int leftOut) = await Task.Run(() => BuildCombinedPdf(found, ct));
+                (string? tempPath, int leftOut) = await Task.Run(() => BuildCombinedPdf(found, ct, pages));
                 completedPath = tempPath;
                 // A merge that finishes while the cancel prompt is open honors the answer.
                 if (_busyCancelPrompt is { } prompt) await prompt;
@@ -283,13 +285,32 @@ namespace KillerPDF.Shell
         // Builds one PDF from a mix of PDFs (pages imported in order) and images (one page each).
         // Unreadable / encrypted entries are skipped rather than aborting the whole merge, and how many
         // were left out comes back with the file so the status can say so.
-        private static (string? Path, int LeftOut) BuildCombinedPdf(List<string> files, CancellationToken ct)
+        // A page order from the Merge dialog's page view (#495) is laid over what the merge actually took, so a file
+        // it left out moves nobody else's pages.
+        private static (string? Path, int LeftOut) BuildCombinedPdf(List<string> files, CancellationToken ct,
+            IReadOnlyList<MergePage>? pages = null)
         {
             ct.ThrowIfCancellationRequested();
-            byte[] bytes = PdfEngineIntegration.MergeReadableFiles(files, out IReadOnlyList<string> leftOut, ct);
+            byte[] bytes = PdfEngineIntegration.MergeReadableFiles(files, out IReadOnlyList<string> leftOut,
+                out var merged, ct);
             ct.ThrowIfCancellationRequested();
             string outPath = App.MakeTempFile("combined");
             AtomicFileOutput.Write(outPath, bytes, ct);
+            if (pages is not null)
+            {
+                try
+                {
+                    var plan = MergePageArrangement.Plan(pages, merged)
+                        ?? throw new InvalidOperationException(Loc("Str_MergeFiles_NoPagesLeft"));
+                    ct.ThrowIfCancellationRequested();
+                    MergePageArrangement.Apply(outPath, plan);
+                }
+                catch
+                {
+                    try { File.Delete(outPath); } catch (IOException) { }
+                    throw;
+                }
+            }
             return (outPath, leftOut.Count);
         }
 

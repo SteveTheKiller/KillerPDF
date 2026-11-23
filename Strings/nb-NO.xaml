@@ -1281,6 +1281,12 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_MergeFiles_Remove">Fjern</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Slå sammen</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Slipp PDF-filer eller mapper her, eller bruk "Legg til filer" og "Legg til mappe". Dra en fil for å endre rekkefølgen.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Ordne sider</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Vis filer</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Dra sidene i riktig rekkefølge, eller merk dem og bruk pilknappene. Delete tar ut en side.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, side {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Alle sider</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Alle sidene er tatt ut, så det er ingenting å slå sammen.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">Lagre PDF som</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Lagre flatet PDF</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Skannet utseende</sys:String>

@@ -1277,6 +1277,12 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_MergeFiles_Remove">Eltávolítás</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Egyesítés</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Húzzon ide PDF-fájlokat vagy mappákat, vagy használja a "Fájlok hozzáadása" és a "Mappa hozzáadása" lehetőséget. A sorrend módosításához húzzon át egy fájlt.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Oldalak elrendezése</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Fájlok megjelenítése</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Húzza az oldalakat a kívánt sorrendbe, vagy jelölje ki őket, és használja a nyílgombokat. A Delete kivesz egy oldalt.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, {1}. oldal</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Minden oldal</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Minden oldal ki lett véve, így nincs mit egyesíteni.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">PDF mentése másként</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Egyesített PDF mentése</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Beolvasott hatás</sys:String>

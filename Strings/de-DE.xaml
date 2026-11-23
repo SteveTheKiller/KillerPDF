@@ -1276,6 +1276,12 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_MergeFiles_Remove">Entfernen</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Zusammenführen</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Legen Sie PDF-Dateien oder Ordner hier ab, oder verwenden Sie "Dateien hinzufügen" und "Ordner hinzufügen". Ziehen Sie eine Datei, um die Reihenfolge zu ändern.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Seiten anordnen</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Dateien anzeigen</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Ziehen Sie Seiten in die gewünschte Reihenfolge, oder wählen Sie sie aus und nutzen Sie die Pfeilschaltflächen. Entf nimmt eine Seite heraus.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, Seite {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Alle Seiten</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Alle Seiten wurden herausgenommen, daher gibt es nichts zusammenzuführen.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">PDF speichern unter</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Reduzierte PDF speichern</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Gescannter Look</sys:String>

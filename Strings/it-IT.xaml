@@ -1281,6 +1281,12 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_MergeFiles_Remove">Rimuovi</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Unisci</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Trascina qui file PDF o cartelle, oppure usa "Aggiungi file" e "Aggiungi cartella". Trascina un file per cambiare l'ordine.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Disponi pagine</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Mostra file</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Trascina le pagine nell&apos;ordine voluto, oppure selezionale e usa i pulsanti freccia. Canc toglie una pagina.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, pagina {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Tutte le pagine</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Tutte le pagine sono state tolte, quindi non c&apos;è nulla da unire.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">Salva PDF come</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Salva PDF appiattito</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Aspetto scansionato</sys:String>

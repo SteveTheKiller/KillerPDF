@@ -45,6 +45,7 @@
     <Compile Include="..\Services\MarkupClipboard.cs" Link="Services\MarkupClipboard.cs" />
     <Compile Include="..\Controls\FolderNameRule.cs" Link="Controls\FolderNameRule.cs" />
     <Compile Include="..\Services\MergeFileList.cs" Link="Services\MergeFileList.cs" />
+    <Compile Include="..\Services\MergePageArrangement.cs" Link="Services\MergePageArrangement.cs" />
     <Compile Include="..\Services\AtomicFileOutput.cs" Link="Services\AtomicFileOutput.cs" />
     <Compile Include="..\Services\SignatureStatus.cs" Link="Services\SignatureStatus.cs" />
     <Compile Include="..\Services\SourceImageDiagnosis.cs" Link="Services\SourceImageDiagnosis.cs" />

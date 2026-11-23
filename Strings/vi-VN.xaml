@@ -1281,6 +1281,12 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_MergeFiles_Remove">Xóa</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Gộp</sys:String>
     <sys:String x:Key="Str_MergeFiles_DropHint">Thả tệp PDF hoặc thư mục vào đây, hoặc dùng "Thêm tệp" và "Thêm thư mục". Kéo một tệp để đổi thứ tự.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowPages">Sắp xếp trang</sys:String>
+    <sys:String x:Key="Str_MergeFiles_ShowFiles">Hiện tệp</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Kéo các trang để sắp thứ tự, hoặc chọn chúng rồi dùng các nút mũi tên. Delete bỏ một trang.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageTile">{0}, trang {1}</sys:String>
+    <sys:String x:Key="Str_MergeFiles_WholeFile">Tất cả các trang</sys:String>
+    <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Tất cả các trang đã bị bỏ, nên không có gì để hợp nhất.</sys:String>
     <sys:String x:Key="Str_Dlg_SavePdfAs">Lưu PDF thành</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Lưu PDF đã làm phẳng</sys:String>
     <sys:String x:Key="Str_Flatten_ScanLook">Giao diện bản quét</sys:String>
