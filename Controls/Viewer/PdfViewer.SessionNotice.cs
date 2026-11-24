@@ -44,7 +44,6 @@ namespace KillerPDF.Controls
 
             var message = new TextBlock
             {
-                Text = string.Format(host.Loc("Str_RestoreSession_Prompt"), fileCount),
                 FontFamily = UiKit.UiFont,
                 FontSize = 12,
                 TextWrapping = TextWrapping.Wrap,
@@ -53,13 +52,17 @@ namespace KillerPDF.Controls
             message.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
             AutomationProperties.SetLiveSetting(message, AutomationLiveSetting.Polite);
 
-            var restoreButton = UiKit.Make(host.Loc("Str_RestoreSession_Restore"), accent: true);
+            // The labels follow the language menu: the buttons look their words up live, and the
+            // message, which carries the file count, is formatted again on every language change.
+            var restoreButton = UiKit.Make(string.Empty, accent: true);
+            restoreButton.SetResourceReference(ContentControl.ContentProperty, "Str_RestoreSession_Restore");
             restoreButton.Name = "RestoreSessionRestore";
             restoreButton.Margin = new Thickness(12, 0, 0, 0);
             restoreButton.VerticalAlignment = VerticalAlignment.Center;
             restoreButton.Click += (_, _) => { HideSessionNotice(); restore(); };
 
-            var dismissButton = UiKit.Make(host.Loc("Str_RestoreSession_Dismiss"), accent: false);
+            var dismissButton = UiKit.Make(string.Empty, accent: false);
+            dismissButton.SetResourceReference(ContentControl.ContentProperty, "Str_RestoreSession_Dismiss");
             dismissButton.Name = "RestoreSessionDismiss";
             dismissButton.Margin = new Thickness(6, 0, 0, 0);
             dismissButton.VerticalAlignment = VerticalAlignment.Center;
@@ -86,7 +89,16 @@ namespace KillerPDF.Controls
             bar.SetResourceReference(FrameworkElement.StyleProperty, "FlyoutCard");
             // 7 plus the 1px edge: the buttons and the glyph sit 8px from every edge (family rule).
             bar.Padding = new Thickness(7);
-            AutomationProperties.SetName(bar, message.Text);
+            void Relabel()
+            {
+                message.Text = string.Format(host.Loc("Str_RestoreSession_Prompt"), fileCount);
+                AutomationProperties.SetName(bar, message.Text);
+            }
+            Relabel();
+            // Subscribed only while the bar is in the tree, so a closed window is never held by
+            // the static event.
+            bar.Loaded += (_, _) => { Services.LocaleManager.LocaleChanged -= Relabel; Services.LocaleManager.LocaleChanged += Relabel; Relabel(); };
+            bar.Unloaded += (_, _) => Services.LocaleManager.LocaleChanged -= Relabel;
             Panel.SetZIndex(bar, 90);
             _sessionNotice = bar;
             previewArea.Children.Add(bar);
