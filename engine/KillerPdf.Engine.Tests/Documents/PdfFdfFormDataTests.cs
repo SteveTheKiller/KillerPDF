@@ -77,6 +77,22 @@ public sealed class PdfFdfFormDataTests
     }
 
     [Fact]
+    public void ReadsFdfWithoutACrossReferenceTable()
+    {
+        // The layout pdftk and fdfgen write: no xref table and no startxref.
+        byte[] fdf = Encoding.ASCII.GetBytes(
+            "%FDF-1.2\n%\u00e2\u00e3\u00cf\u00d3\n1 0 obj \n<< /FDF << /Fields [ "
+            + "<< /T (name) /V (Anna) >> << /T (agree) /V /Yes >> ] >> >>\nendobj \n"
+            + "trailer\n\n<< /Root 1 0 R >>\n%%EOF\n");
+
+        PdfFormDataSet result = PdfFdfFormData.Read(fdf);
+
+        Assert.Equal(["name", "agree"], result.Fields.Select(field => field.Name));
+        Assert.Equal(["Anna"], result.Fields[0].Values);
+        Assert.Equal(["/Yes"], result.Fields[1].Values);
+    }
+
+    [Fact]
     public void ReadReportsSignedDataAndIncrementalDifferencesWithoutRewritingThem()
     {
         PdfFormDataSet result = PdfFdfFormData.Read(FdfWithEntries(
