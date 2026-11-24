@@ -278,10 +278,14 @@
     sl: '<svg viewBox="0 0 24 24"><rect width="24" height="8" fill="#fff"/><rect y="8" width="24" height="8" fill="#005da4"/><rect y="16" width="24" height="8" fill="#ed1c24"/><path d="M4 5h7v5c0 3-3.5 4-3.5 4S4 13 4 10z" fill="#005da4" stroke="#ed1c24" stroke-width=".6"/><path d="M4.8 10l1.5-2 1.2 1 1.2-1 1.5 2z" fill="#fff"/></svg>',
     it: '<svg viewBox="0 0 24 24"><rect width="8" height="24" fill="#009246"/><rect x="8" width="8" height="24" fill="#fff"/><rect x="16" width="8" height="24" fill="#ce2b37"/></svg>'
   };
-  // Each menu row leads with the same round flag the toggle shows.
+  // Each menu row leads with the same round flag the toggle shows and ends with the locale
+  // tag, matching killertools.net. Keys are lowercase: zh is Traditional, zh-cn Simplified.
+  var LANG_CODES = { en: 'en-US', bn: 'bn-BD', cs: 'cs-CZ', de: 'de-DE', es: 'es-ES', fr: 'fr-FR', hu: 'hu-HU', it: 'it-IT', ja: 'ja-JP', kk: 'kk-KZ', ko: 'ko-KR', nb: 'nb-NO', pl: 'pl-PL', pt: 'pt-BR', ru: 'ru-RU', sl: 'sl-SI', sv: 'sv-SE', tr: 'tr-TR', uk: 'uk-UA', vi: 'vi-VN', zh: 'zh-TW', 'zh-tw': 'zh-TW', 'zh-cn': 'zh-CN' };
   [].forEach.call(document.querySelectorAll('.lang-item[data-lang]'), function (b) {
     var f = FLAGS[b.dataset.lang];
     if (f && !b.querySelector('.lang-flag')) b.insertAdjacentHTML('afterbegin', '<span class="lang-flag" aria-hidden="true">' + f + '</span>');
+    var c = LANG_CODES[String(b.getAttribute('data-lang')).toLowerCase()];
+    if (c && !b.querySelector('.lang-code')) b.insertAdjacentHTML('beforeend', '<span class="lang-code">' + c + '</span>');
   });
   var langItems = [].slice.call(document.querySelectorAll('.lang-item'));
   var langToggle = document.getElementById('langToggle');

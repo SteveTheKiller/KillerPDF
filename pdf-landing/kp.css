@@ -132,6 +132,7 @@ html[data-theme="light"] .acc[data-accent="yellow"] { background: #EAD900 !impor
 .lang-menu[hidden] { display: none; }
 .lang-flag { flex: none; width: 18px; height: 18px; border-radius: 50%; overflow: hidden; line-height: 0; box-shadow: 0 0 0 1px rgba(255,255,255,0.18); }
 .lang-flag svg { width: 100%; height: 100%; display: block; }
+.lang-code { margin-left: auto; padding-left: 12px; opacity: 0.6; }
 .lang-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; color: var(--text); font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
 .lang-item:hover { background: var(--accent-dim); }
 .lang-item[aria-pressed="true"] { color: var(--accent); font-weight: 600; }
