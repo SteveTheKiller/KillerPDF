@@ -63,5 +63,7 @@ public sealed class AboutOptionsLayoutTests
         Assert.Equal("Right", (string?)block.Attribute("HorizontalAlignment"));
         Assert.Equal("Bottom", (string?)block.Attribute("VerticalAlignment"));
         Assert.Null(block.Attribute("Grid.Row"));
+        // It drops into the card's foot below the last check box instead of sitting against it.
+        Assert.Equal("0,0,0,-14", (string?)block.Attribute("Margin"));
     }
 }

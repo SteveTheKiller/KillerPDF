@@ -3314,7 +3314,9 @@
                             <TextBlock Text="{DynamicResource Str_WhatsNew_ShowAfterUpdates}" TextWrapping="Wrap"/>
                         </CheckBox>
                     </StackPanel>
-                    <TextBlock Grid.Column="2" FontFamily="{DynamicResource UiFont}" FontSize="10"
+                    <!-- The negative bottom margin drops the link into the card's 18px foot, clear of the last
+                         check box, without making the card any taller (Steve 2026-11-23). -->
+                    <TextBlock Grid.Column="2" FontFamily="{DynamicResource UiFont}" FontSize="10" Margin="0,0,0,-14"
                                HorizontalAlignment="Right" VerticalAlignment="Bottom" TextWrapping="Wrap">
                         <Hyperlink TextDecorations="None" Cursor="Hand" Click="AboutClearData_Click">
                             <Hyperlink.Style>
