@@ -3141,6 +3141,11 @@
                                Width="58" Height="58" Margin="0,0,15,0"
                                VerticalAlignment="Bottom"
                                RenderOptions.BitmapScalingMode="NearestNeighbor">
+                            <!-- 3px lower than the text column's foot, drawn only: the header's
+                                 layout and the text stay where they are. -->
+                            <icons:AppIcon.RenderTransform>
+                                <TranslateTransform Y="3"/>
+                            </icons:AppIcon.RenderTransform>
                             <icons:AppIcon.Effect>
                                 <DropShadowEffect Color="Black" BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="{DynamicResource AboutIconShadowOpacity}"/>
                             </icons:AppIcon.Effect>
