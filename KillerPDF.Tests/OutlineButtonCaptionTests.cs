@@ -59,6 +59,11 @@ namespace KillerPDF.Tests
                 .First(s => (string?)s.Attribute(x + "Key") == "OutlineButton"));
             foreach (var attr in style.DescendantsAndSelf().SelectMany(e => e.Attributes()).Where(a => a.IsNamespaceDeclaration).ToList())
                 attr.Remove();
+            // ThemeMotif paints the ink border behind the face, never the caption, and its type
+            // lives in the app assembly this project does not load.
+            XNamespace kui = "clr-namespace:KillerPDF.Controls";
+            foreach (var attr in style.DescendantsAndSelf().SelectMany(e => e.Attributes()).Where(a => a.Name.Namespace == kui).ToList())
+                attr.Remove();
             style.SetAttributeValue(XNamespace.Xmlns + "x", x.NamespaceName);
             return (Style)XamlReader.Parse(style.ToString());
         }
