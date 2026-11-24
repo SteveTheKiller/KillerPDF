@@ -3450,18 +3450,20 @@
                         <Grid>
                             <Border IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}"
                                     Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
-                            <DockPanel>
-                                <!-- "What's new in 1.9.6" heads the pane and stays put while the notes scroll. -->
-                                <TextBlock x:Name="WhatsNewTitle" DockPanel.Dock="Top" HorizontalAlignment="Center"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextBrush}" Margin="14,12,14,0"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <ScrollViewer x:Name="WhatsNewScroller" VerticalScrollBarVisibility="Auto"
-                                              HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly"
-                                              MaxHeight="490" Focusable="False">
-                                    <StackPanel x:Name="WhatsNewList" Margin="14,8,14,8"/>
-                                </ScrollViewer>
-                            </DockPanel>
+                            <!-- "What's new in 1.9.6" is the first line of the notes and scrolls with them;
+                                 the edge shadows are KillerShell's cues (ShadowScrollViewer). -->
+                            <ScrollViewer x:Name="WhatsNewScroller" Style="{StaticResource ShadowScrollViewer}"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly"
+                                          MaxHeight="520" Focusable="False">
+                                <StackPanel Margin="14,8,14,8">
+                                    <TextBlock x:Name="WhatsNewTitle" HorizontalAlignment="Center" TextAlignment="Center"
+                                               FontFamily="{DynamicResource UiFont}" FontSize="14" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,2"
+                                               TextWrapping="Wrap"/>
+                                    <StackPanel x:Name="WhatsNewList"/>
+                                </StackPanel>
+                            </ScrollViewer>
                         </Grid>
                     </Border>
                     <Control Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>

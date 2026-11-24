@@ -222,6 +222,26 @@ namespace KillerPDF.Shell
             if (ShortcutsOverlay.Visibility == Visibility.Visible) FadeOverlayOut(ShortcutsOverlay);
             Controls.GrainTexture.Track(WhatsNewGrainBrush);
             BuildWordmark(WhatsNewLogoBlock, WhatsNewLogoShadowBlock);
+            InkGotIt();
+        }
+
+        // Trash Polka's see-through button face means the kit's ink button (UiKit.ButtonTemplate):
+        // the polka piece on the black base, gray only on hover. OutlineButton's solid face is the
+        // matte slab, so Got it takes the ink there and keeps OutlineButton on every other theme.
+        private void InkGotIt()
+        {
+            if (TryFindResource("ButtonFaceBrush") is SolidColorBrush { Color.A: < 255 })
+            {
+                WhatsNewGotIt.Template = UiKit.ButtonTemplate(radius: UiKit.RadControl, ink: true);
+                WhatsNewGotIt.SetResourceReference(ForegroundProperty, "TextBrush");
+                WhatsNewGotIt.SetResourceReference(BorderBrushProperty, "CardBorderBrush");
+            }
+            else
+            {
+                WhatsNewGotIt.ClearValue(TemplateProperty);
+                WhatsNewGotIt.ClearValue(ForegroundProperty);
+                WhatsNewGotIt.ClearValue(BorderBrushProperty);
+            }
         }
 
         /// <summary>"Killer" in the text color, "PDF" in the brand green, the pair clickable. The
