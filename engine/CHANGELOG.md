@@ -4,12 +4,14 @@ All notable changes to The KillerPDF.Engine are documented here. Application cha
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.6] - Unreleased
+## [1.9.6] - 2026-11-24
 
 ### Fixed
 
-- Tiled JPEG 2000 images decode one tile at a time, so OpenJPEG no longer holds the whole image as 32-bit samples. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
+- `PdfDateStringValidator` accepts a time zone offset with hours only, `+01` or `+01'`, as ISO 32000-1 7.9.4 allows. A page `/LastModified`, an annotation `/M` or a replacement `/Info` date written that way stopped a merge, an edit or an incremental update (#524, thanks @andretorresdg).
+- `PdfFdfFormData.Read` reads FDF files without a cross-reference table, as pdftk and fdfgen write them, by reading the objects in file order up to the last trailer (#525, thanks @jayhemnani9910).
 - `PdfTextLineEditor` no longer takes a line's font and size from a smaller glyph sitting below its baseline, such as a stray empty-paragraph space that a Word export draws under a title (#431).
+- Tiled JPEG 2000 images decode one tile at a time, so OpenJPEG no longer holds the whole image as 32-bit samples. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
 
 ### Changed
 

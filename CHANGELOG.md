@@ -11,18 +11,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Dragging a signature onto the page no longer crashes KillerPDF when a file it needs is missing (#515).
-- Run as administrator, opening a file while KillerPDF is open sends it to the open window instead of starting a second one. Images to PDF from Explorer makes one PDF from all the images again.
-- Merging works when an untagged PDF goes into a tagged one (#495), and with pages that have a zero-size ArtBox, BleedBox or TrimBox, like Excel exports (#455).
-- Editing existing text keeps its real typeface and weight when the PDF hides them behind generic names, as Word exports do. Bold Arial stays bold Arial instead of turning into plain Segoe UI (#431).
 - While editing text, the font list no longer closes on a click or the mouse wheel, a font-only change on a scanned line sticks, and More settings stays open. Closing More settings with a click no longer leaves the window ignoring the mouse (#467).
-- Making a new folder in the file dialog no longer freezes the window on a share that stopped answering.
-- Import form data reads FDF files from pdftk, fdfgen and other tools that leave out the cross-reference table (#525, thanks @jayhemnani9910).
+- Merging works when an untagged PDF goes into a tagged one (#495), and with pages that have a zero-size ArtBox, BleedBox or TrimBox, like Excel exports (#455).
 - Pages and notes dated with an hour-only time zone, like `+01`, merge and take new comments instead of being refused (#524, thanks @andretorresdg).
+- Run as administrator, opening a file while KillerPDF is open sends it to the open window instead of starting a second one. Images to PDF from Explorer makes one PDF from all the images again.
+- Editing existing text keeps its real typeface and weight when the PDF hides them behind generic names, as Word exports do. Bold Arial stays bold Arial instead of turning into plain Segoe UI (#431).
+- Import form data reads FDF files from pdftk, fdfgen and other tools that leave out the cross-reference table (#525, thanks @jayhemnani9910).
+- Making a new folder in the file dialog no longer freezes the window on a share that stopped answering.
 - Large tiled JPEG 2000 images use far less memory again, 134 MB instead of 361 MB for a large scan.
+- Chinese, Japanese and Korean draw in the right fonts and at the right size in the toolbar, sidebar, title bar and status bar (#490).
 - Pinch zoom on a touchpad holds the page still instead of letting the text jump (#494).
 - Ctrl+click adds marks to a selection like Shift+click, and a single text box's card shows Arrange (#504).
 - After a language change, the Restore last session bar and the start screen's Recent list switch to the new language too.
-- Chinese, Japanese and Korean draw in the right fonts and at the right size in the toolbar, sidebar, title bar and status bar (#490).
 - Under Trash Polka, drop-down lists and the file dialog's panes carry the ink, Yellow buttons draw dark text, and changing the accent no longer stalls on a hung redraw.
 - A sidebar menu too tall for the window scrolls instead of running off the bottom, and the keyboard shortcuts card fits its contents.
 - One mouse wheel notch scrolls 120 pixels in the file dialog's folder tree and the customize drawer, up from 60 and 40.
@@ -33,22 +33,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - Merge PDFs on the toolbar makes a new document with the open file listed first, instead of adding to the open file. The page card's Merge still inserts after that page (#495).
 - Switching between Single, Two-page and Continuous keeps your zoom, and leaving the thumbnail grid returns to the zoom you had (#521, thanks @Shakil-Ahmmed-Dev).
+- In the Open and Save dialogs, File type sits on the File name row, and its box matches the name box with the ink and grain in its list.
 - Under Trash Polka, a card's main button sits on dark ink with an accent outline. The Yellow accent is a bright yellow with dark text instead of a brownish gold.
 - Menu nav buttons, dialog buttons and card toggles are slimmer, so card tiles keep their own width in two-page view.
 - The About card has a new tagline in every language, an icon that spans the wordmark and tagline, and a monospace SHA-256 line.
 - The tray icon's card shows the KillerPDF logo over Open and Exit, like the other cards.
-- In the Open and Save dialogs, File type sits on the File name row, and its box matches the name box with the ink and grain in its list.
 
 ### Added
 
+- Swedish and Korean interface languages, machine-translated to start, with OCR for both (#511).
 - The print window has a Color section that manages print colors with an RGB printer profile, a rendering intent and black-point compensation, and previews how the page will print. It asks the printer driver to skip its own color management and says when the driver confirms it (#520).
+- Save as offers EPUB beside PDF and writes the same book as Export. The tab stays on its PDF.
+- The Open dialog takes several files at once. Enter opens them as tabs, and Shift+Enter opens them together in a new window (#513).
 - Merge files has Arrange pages, which shows every page as a thumbnail so you can reorder pages or drop some before merging (#495).
 - Highlight works on scans and pictures by highlighting the box you drag where there's no text (#514).
-- The Open dialog takes several files at once. Enter opens them as tabs, and Shift+Enter opens them together in a new window (#513).
-- Swedish and Korean interface languages, machine-translated to start, with OCR for both (#511).
 - After an update, a What's new card shows that version's changelog once, with a box to turn it off.
 - The page card's top box has its own pencil, so you can reorder or hide its tiles too (#496).
-- Save as offers EPUB beside PDF and writes the same book as Export. The tab stays on its PDF.
 - Ctrl+Shift+U turns pages upside down.
 - While customizing a card, Alt+arrow keys move the focused tile, and a screen reader hears its new position.
 
