@@ -56,7 +56,9 @@ namespace KillerPDF.Controls
             PreviewMouseLeftButtonDown += OnPressed;
             PreviewMouseMove += OnMoved;
             PreviewMouseLeftButtonUp += OnReleased;
-            LostMouseCapture += (_, _) => _drag = null;
+            // Only the dock's own capture ends a drag. LostMouseCapture bubbles, so a menu popup losing the
+            // mouse would otherwise clear the drag and leave the dock holding the mouse for good (#467).
+            LostMouseCapture += (_, e) => { if (ReferenceEquals(e.OriginalSource, this)) _drag = null; };
         }
 
         /// <summary>The document area: the scroller and everything layered over it.</summary>
@@ -332,6 +334,8 @@ namespace KillerPDF.Controls
             {
                 if (ReferenceEquals(d, _strip)) return ShowsStrip;
                 if (ReferenceEquals(d, _grip)) return ShowsGrip;
+                // A press in a bar's menu reaches the dock through the popup's parent; it belongs to the menu (#467).
+                if (d is Popup) return false;
                 if (ReferenceEquals(d, _bar)) return true;
                 if (d is ButtonBase or RangeBase or Selector or TextBoxBase or Thumb) return false;
                 if (ReferenceEquals(d, this)) return false;

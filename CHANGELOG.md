@@ -14,7 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Run as administrator, opening a file while KillerPDF is open sends it to the open window instead of starting a second one. Images to PDF from Explorer makes one PDF from all the images again.
 - Merging works when an untagged PDF goes into a tagged one (#495), and with pages that have a zero-size ArtBox, BleedBox or TrimBox, like Excel exports (#455).
 - Editing existing text keeps its real typeface and weight when the PDF hides them behind generic names, as Word exports do. Bold Arial stays bold Arial instead of turning into plain Segoe UI (#431).
-- While editing text, the font list no longer closes on a click or the mouse wheel, a font-only change on a scanned line sticks, and More settings stays open (#467).
+- While editing text, the font list no longer closes on a click or the mouse wheel, a font-only change on a scanned line sticks, and More settings stays open. Closing More settings with a click no longer leaves the window ignoring the mouse (#467).
 - Making a new folder in the file dialog no longer freezes the window on a share that stopped answering.
 - Large tiled JPEG 2000 images use far less memory again, 134 MB instead of 361 MB for a large scan.
 - Pinch zoom on a touchpad holds the page still instead of letting the text jump (#494).
