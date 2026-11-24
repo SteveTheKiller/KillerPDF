@@ -3134,20 +3134,19 @@
                         </Grid.ColumnDefinitions>
                         <!-- The icon spans the wordmark and tagline in every language. Its bottom sits
                              on the tagline's last row, and its top stays 4px below the top of "PDF".
-                             AboutIconSizer is the text column's height minus those 4px, and the icon
-                             takes its size from it. The icon is shorter than the column, so it never
-                             feeds back into the row height and the layout settles. -->
-                        <Border x:Name="AboutIconSizer" Grid.Column="1" Margin="0,4,0,0" IsHitTestVisible="False"/>
-                        <icons:AppIcon Grid.Column="0" Source="pack://application:,,,/Resources/kp-icon.ico"
-                               Width="{Binding ActualHeight, ElementName=AboutIconSizer}"
-                               Height="{Binding ActualHeight, ElementName=AboutIconSizer}" Margin="0,0,15,0"
+                             SizeAboutIcon (About.Extras.cs) sets its size in code. A layout binding
+                             fed the icon's width back into the text's wrapping and ran away on the
+                             card's first, zero-width pass. -->
+                        <icons:AppIcon x:Name="AboutIcon" Grid.Column="0" Source="pack://application:,,,/Resources/kp-icon.ico"
+                               Width="58" Height="58" Margin="0,0,15,0"
                                VerticalAlignment="Bottom"
                                RenderOptions.BitmapScalingMode="NearestNeighbor">
                             <icons:AppIcon.Effect>
                                 <DropShadowEffect Color="Black" BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="{DynamicResource AboutIconShadowOpacity}"/>
                             </icons:AppIcon.Effect>
                         </icons:AppIcon>
-                        <StackPanel x:Name="AboutHeaderText" Grid.Column="1" VerticalAlignment="Top">
+                        <StackPanel x:Name="AboutHeaderText" Grid.Column="1" VerticalAlignment="Top"
+                                    SizeChanged="AboutHeader_SizeChanged">
                             <!-- Logo (populated in code-behind), with a soft layered shadow. Lacquer's
                                  line box leaves 8px empty above "PDF"; the -8 top margin puts the ink
                                  at the top of the column. -->
@@ -3175,7 +3174,7 @@
                          Shadow is a separate element so the card's text stays crisp.
                          Named: the header binds its Width to this panel so the tagline wraps
                          instead of widening the card - the SHA256 line stays the width driver. -->
-                    <Grid x:Name="AboutInfoGrid">
+                    <Grid x:Name="AboutInfoGrid" SizeChanged="AboutHeader_SizeChanged">
                     <Border Background="{DynamicResource AboutPanelBrush}" CornerRadius="{DynamicResource ControlCornerRadius}" IsHitTestVisible="False">
                         <Border.Effect>
                             <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="{DynamicResource AboutShadowOpacity}"/>

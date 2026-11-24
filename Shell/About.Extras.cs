@@ -302,6 +302,35 @@ namespace KillerPDF.Shell
             AddText(suf);
         }
 
+        private void AboutHeader_SizeChanged(object sender, SizeChangedEventArgs e) => SizeAboutIcon();
+
+        /// <summary>
+        /// The About icon spans the wordmark and tagline: its bottom on the tagline's last row, its
+        /// top 4px below the top of "PDF". A wider icon narrows the text, which can wrap to more
+        /// lines and ask for a bigger icon again, so the size steps up from zero to the first size
+        /// that fits and stops there. It waits for the info panel's real width, because the card's
+        /// first layout pass has none and wraps the tagline one word per line.
+        /// </summary>
+        private void SizeAboutIcon()
+        {
+            double width = AboutInfoGrid.ActualWidth;
+            if (width <= 0) return;
+            const double gap = 15, inset = 4;
+            double size = 0;
+            for (int i = 0; i < 12; i++)
+            {
+                AboutHeaderText.Measure(new Size(System.Math.Max(0, width - gap - size), double.PositiveInfinity));
+                double next = System.Math.Max(0, AboutHeaderText.DesiredSize.Height - inset);
+                bool settled = System.Math.Abs(next - size) < 0.5;
+                size = next;
+                if (settled) break;
+            }
+            AboutHeaderText.InvalidateMeasure();
+            if (System.Math.Abs(AboutIcon.Width - size) < 0.5) return;
+            AboutIcon.Width = size;
+            AboutIcon.Height = size;
+        }
+
         // ---- Small helpers -------------------------------------------------------------------
 
         private Brush Res(string key) => (Brush)FindResource(key);
