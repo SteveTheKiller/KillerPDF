@@ -3146,9 +3146,9 @@
                         </icons:AppIcon>
                         <StackPanel x:Name="AboutHeaderText" Grid.Column="1" VerticalAlignment="Top">
                             <!-- Logo (populated in code-behind), with a soft layered shadow. Lacquer's
-                                 line box leaves 8px empty above "PDF"; the -8 top margin puts the ink
-                                 level with the icon's top edge. -->
-                            <Grid Margin="0,-8,0,4">
+                                 line box leaves 8px empty above "PDF"; the -4 top margin keeps half of
+                                 that, so the ink sits a little below the icon's top edge. -->
+                            <Grid Margin="0,-4,0,4">
                                 <!-- Shadow copy populated in code-behind (BuildAboutLogo) with the SAME
                                      runs as the real wordmark. A static flat-size "KillerPDF" here sat
                                      at different metrics than the two-run logo and read as a long smear
