@@ -3395,8 +3395,9 @@
                                     ViewportUnits="Absolute" Viewport="0,0,256,256" Stretch="None"/>
                     </Border.Background>
                 </Border>
-                <!-- Header: icon, wordmark and title on the left, the choice and Got it on the right. -->
-                <Grid Grid.Row="1" Margin="12,10,10,10">
+                <!-- Header: icon and wordmark on the left, the choice and Got it on the right. The
+                     version title is the notes pane's heading, which keeps this bar short. -->
+                <Grid Grid.Row="1" Margin="12,8,10,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
@@ -3421,15 +3422,12 @@
                             <TextBlock x:Name="WhatsNewLogoBlock" theme:Bevel.Enabled="True"
                                        FontFamily="{DynamicResource WordmarkFont}" FontSize="16.43" Cursor="Hand"/>
                         </Grid>
-                        <TextBlock x:Name="WhatsNewTitle" FontFamily="{DynamicResource UiFont}" FontSize="12"
-                                   FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="1,2,0,0"
-                                   TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                         <CheckBox x:Name="WhatsNewShowCheck" VerticalAlignment="Center" Margin="0,0,12,0" Padding="8,0,0,0"
-                                  MaxWidth="190" Style="{StaticResource ThemeCheck}" FontSize="11"
+                                  Style="{StaticResource ThemeCheck}" FontSize="11"
                                   Click="WhatsNewShowCheck_Click">
-                            <TextBlock Text="{DynamicResource Str_WhatsNew_ShowAfterUpdates}" TextWrapping="Wrap"/>
+                            <TextBlock Text="{DynamicResource Str_WhatsNew_ShowAfterUpdates}"/>
                         </CheckBox>
                         <Button x:Name="WhatsNewGotIt" Style="{StaticResource OutlineButton}" Padding="16,6"
                                 VerticalAlignment="Center" Click="WhatsNewClose_Click">
@@ -3452,11 +3450,18 @@
                         <Grid>
                             <Border IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}"
                                     Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
-                            <ScrollViewer x:Name="WhatsNewScroller" VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly"
-                                          MaxHeight="520" Focusable="False">
-                                <StackPanel x:Name="WhatsNewList" Margin="14,12,14,8"/>
-                            </ScrollViewer>
+                            <DockPanel>
+                                <!-- "What's new in 1.9.6" heads the pane and stays put while the notes scroll. -->
+                                <TextBlock x:Name="WhatsNewTitle" DockPanel.Dock="Top" HorizontalAlignment="Center"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextBrush}" Margin="14,12,14,0"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <ScrollViewer x:Name="WhatsNewScroller" VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly"
+                                              MaxHeight="490" Focusable="False">
+                                    <StackPanel x:Name="WhatsNewList" Margin="14,8,14,8"/>
+                                </ScrollViewer>
+                            </DockPanel>
                         </Grid>
                     </Border>
                     <Control Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>

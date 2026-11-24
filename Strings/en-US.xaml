@@ -2620,5 +2620,5 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_WhatsNew_Added">Added</sys:String>
     <sys:String x:Key="Str_WhatsNew_Removed">Removed</sys:String>
     <sys:String x:Key="Str_WhatsNew_Deprecated">Deprecated</sys:String>
-    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Show the changelog after updates</sys:String>
+    <sys:String x:Key="Str_WhatsNew_ShowAfterUpdates">Show changelog after updates</sys:String>
 </ResourceDictionary>
