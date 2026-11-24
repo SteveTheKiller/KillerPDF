@@ -253,7 +253,7 @@ public sealed class OutputConsumerAnnotationTests
 
     [Fact]
     public void StructuredExportAsksForTheFlattenedCopy() =>
-        Assert.Contains("forRasterization: options.OfficeMode == PdfOfficeExportMode.PageImages, throwaway: true, flattenEditing: true",
+        Assert.Contains("forRasterization: officeMode == PdfOfficeExportMode.PageImages, throwaway: true, flattenEditing: true",
             Shell("FileOperations.cs"));
 
     [Theory]

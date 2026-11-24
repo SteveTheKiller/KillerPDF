@@ -276,7 +276,7 @@ public sealed class ProtectedRouteTests : IDisposable
             .Order()];
         Assert.Equal(["FileOperations.cs", "FileOperations.cs", "Ocr.cs", "PageOperations.cs"], askers);
         Assert.Contains("WriteSavedCopyToTemp(throwaway: true)", pages);
-        Assert.Contains("forRasterization: options.OfficeMode == PdfOfficeExportMode.PageImages, throwaway: true", print);
+        Assert.Contains("forRasterization: officeMode == PdfOfficeExportMode.PageImages, throwaway: true", print);
         Assert.Contains("SavedCopy sourceCopy = WriteSavedCopyToTemp();", reduce);
     }
 
