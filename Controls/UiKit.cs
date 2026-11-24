@@ -568,16 +568,17 @@ namespace KillerPDF
                 // Keep the same action control while its decorative template follows live
                 // classic/radius resources. No application-wide theme subscription retains it.
                 Template = Classic ? BeveledButtonTemplate()
-                    : SeeThroughFace() ? ButtonTemplate(radius: (CornerRadius)GetValue(RadiusProperty), ink: true)
+                    : SeeThroughFace() ? ButtonTemplate(radius: (CornerRadius)GetValue(RadiusProperty), ink: true, accent: _accent)
                     : ButtonTemplate(outlined: !_accent, radius: (CornerRadius)GetValue(RadiusProperty));
                 ApplyBrushes();
             }
 
-            // A see-through face (Trash Polka) sits on its own ink layer, the document pane's motif piece, so
-            // the button reads like the app's panels and the face only tints it gray on hover. The outlined
-            // template's edge fill would show through such a face, so it gets the plain stroked border.
+            // A see-through face (Trash Polka) sits on its own ink layer: the default button on the window's
+            // darker polka with the accent outline, filling with the accent on hover; the secondary on the
+            // chrome panes' lighter polka with the gray outline, going gray on hover. The outlined template's
+            // edge fill would show through such a face, so both get the plain stroked border.
             private bool SeeThroughFace()
-                => !_accent && TryFindResource("ButtonFaceBrush") is SolidColorBrush { Color.A: < 255 };
+                => TryFindResource("ButtonFaceBrush") is SolidColorBrush { Color.A: < 255 };
 
             private void ApplyBrushes()
             {
@@ -650,19 +651,20 @@ namespace KillerPDF
         // outlined: the edge is drawn as an outer fill with the face inset by BorderThickness, not as a
         // Border stroke. A 1px stroke on a small radius lets the antialiased face show through at
         // each corner, which reads as a nick in the outline.
-        internal static ControlTemplate ButtonTemplate(bool outlined = false, CornerRadius? radius = null, bool ink = false)
+        internal static ControlTemplate ButtonTemplate(bool outlined = false, CornerRadius? radius = null, bool ink = false, bool accent = false)
         {
             if (ink)
             {
                 var grid = new FrameworkElementFactory(typeof(Grid));
-                // The ink is the pane's piece (a different image from the dialog's background) on a black base;
-                // hover swaps only the base to gray, so the pattern stays and the face never covers it.
+                // Default (accent): the window's darker polka on the black base; the face fills with the accent
+                // on hover. Secondary: the chrome panes' lighter polka; the face goes gray on hover.
                 var layer = new FrameworkElementFactory(typeof(Border)) { Name = "ink" };
                 layer.SetValue(Border.CornerRadiusProperty, radius ?? RadControl);
-                layer.SetValue(Controls.ThemeMotif.BaseBrushProperty, "BackgroundBrush");
-                layer.SetValue(Controls.ThemeMotif.PartProperty, Controls.MotifPart.Window);
+                layer.SetValue(Controls.ThemeMotif.BaseBrushProperty, accent ? "BackgroundBrush" : "ChipFaceBrush");
+                layer.SetValue(Controls.ThemeMotif.PartProperty, accent ? Controls.MotifPart.Window : Controls.MotifPart.Chrome);
                 grid.AppendChild(layer);
                 var face = new FrameworkElementFactory(typeof(Border)) { Name = "bd" };
+                face.SetBinding(Border.BackgroundProperty, new Binding("Background") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
                 face.SetBinding(Border.PaddingProperty, new Binding("Padding") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
                 face.SetBinding(Border.BorderBrushProperty, new Binding("BorderBrush") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
                 face.SetBinding(Border.BorderThicknessProperty, new Binding("BorderThickness") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
@@ -673,9 +675,6 @@ namespace KillerPDF
                 face.AppendChild(content);
                 grid.AppendChild(face);
                 var inked = new ControlTemplate(typeof(Button)) { VisualTree = grid };
-                var over = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-                over.Setters.Add(new Setter(Controls.ThemeMotif.BaseBrushProperty, "ButtonHoverFaceBrush", "ink"));
-                inked.Triggers.Add(over);
                 var off = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
                 off.Setters.Add(new Setter(UIElement.OpacityProperty, 0.45));
                 inked.Triggers.Add(off);

@@ -139,7 +139,14 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid>
-                    <Border x:Name="borderRing" IsHitTestVisible="False" CornerRadius="{Binding CornerRadius, ElementName=border}" BorderThickness="{Binding BorderThickness, ElementName=border}" BorderBrush="{Binding Background, ElementName=border}" Margin="{Binding Margin, ElementName=border}" Visibility="{Binding Visibility, ElementName=border}" Opacity="{Binding Opacity, ElementName=border}"/><Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    <Border x:Name="borderRing" IsHitTestVisible="False" CornerRadius="{Binding CornerRadius, ElementName=border}" BorderThickness="{Binding BorderThickness, ElementName=border}" BorderBrush="{Binding Background, ElementName=border}" Margin="{Binding Margin, ElementName=border}" Visibility="{Binding Visibility, ElementName=border}" Opacity="{Binding Opacity, ElementName=border}"/>
+                    <!-- Trash Polka: the default button's face is the window's own darker polka on the black
+                         base, under the see-through face, so the accent outline frames the ink and hover fills
+                         over it. ThemeMotif leaves it unpainted (empty) on every other theme. BareButton hides it. -->
+                    <Border x:Name="ink" IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Visibility="{DynamicResource OutlineInkVisibility}"
+                            kui:ThemeMotif.Part="Window" kui:ThemeMotif.BaseBrush="BackgroundBrush"/>
+                    <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{DynamicResource ControlCornerRadius}" Padding="{TemplateBinding Padding}">
                         <!-- Keep captions and icons free of effects so they stay sharp. -->
@@ -191,6 +198,7 @@
     <Style x:Key="BareButton" TargetType="Button" BasedOn="{StaticResource OutlineButton}">
         <Style.Resources>
             <SolidColorBrush x:Key="OutlineRestBrush" Color="Transparent"/>
+            <Visibility x:Key="OutlineInkVisibility">Collapsed</Visibility>
         </Style.Resources>
         <Setter Property="BorderBrush" Value="Transparent"/>
     </Style>
@@ -220,6 +228,12 @@
                     <Border x:Name="borderRing" IsHitTestVisible="False" CornerRadius="{Binding CornerRadius, ElementName=border}" BorderThickness="{Binding BorderThickness, ElementName=border}" BorderBrush="{Binding Background, ElementName=border}" Margin="{Binding Margin, ElementName=border}" Visibility="{Binding Visibility, ElementName=border}" Opacity="{Binding Opacity, ElementName=border}"/><Border x:Name="border" Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{DynamicResource ControlCornerRadius}"/>
+                    <!-- Trash Polka: the secondary button's face is the chrome panes' lighter polka, inset by the
+                         edge so the gray outline stays. Hover, press and "on" hide it for their own fills.
+                         ThemeMotif leaves it unpainted (empty) on every other theme. -->
+                    <Border x:Name="ink" IsHitTestVisible="False" Margin="{TemplateBinding BorderThickness}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            kui:ThemeMotif.Part="Chrome" kui:ThemeMotif.BaseBrush="ChipFaceBrush"/>
                     <!-- Grain over the hover fill, under the content, as on menu rows and card tiles. -->
                     <Border x:Name="SurfaceGrain" IsHitTestVisible="False" Visibility="Collapsed"
                             CornerRadius="{DynamicResource ControlCornerRadius}"
@@ -241,6 +255,7 @@
                              dark panel and the button reads as dead. -->
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource ToolHoverFaceBrush}"/>
+                            <Setter TargetName="ink" Property="Visibility" Value="Collapsed"/>
                             <Setter TargetName="SurfaceGrain" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="tbLight" Property="BorderThickness" Value="{DynamicResource ToolHoverBevelLightThickness}"/>
                             <Setter TargetName="tbDark"  Property="BorderThickness" Value="{DynamicResource ToolHoverBevelDarkThickness}"/>
@@ -259,6 +274,7 @@
                              bars all set this Tag and had nothing here to answer it, so the
                              menu options were not showing their selected state. -->
                         <Trigger Property="Tag" Value="on">
+                            <Setter TargetName="ink" Property="Visibility" Value="Collapsed"/>
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource SelectionBg}"/>
                             <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
                         </Trigger>

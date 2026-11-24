@@ -42,6 +42,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Switching between Single, Two-page and Continuous keeps your zoom or fit instead of fitting the page, and leaving the thumbnail grid returns to the zoom you had before it. (#521, thanks @Shakil-Ahmmed-Dev)
 - Merge PDFs on the toolbar makes a new document instead of adding to the open file. The open file is listed first, so you can move it or take it out. The page card's Merge still inserts after that page (#495).
 - The tray icon's card shows the KillerPDF logo over one row of tiles, Open and then Exit, like the other cards.
+- Under Trash Polka, a card's main button sits on the dark ink with an accent outline and fills with the accent on hover. Other buttons sit on the lighter ink with a gray outline and turn gray on hover.
 - The Trash Polka Yellow accent is a bright yellow with dark text on selected rows and turned-on tiles, instead of a brownish gold.
 - The About card has a new tagline in every language. Its SHA-256 line is monospace, so the card is the same width on every build.
 

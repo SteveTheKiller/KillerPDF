@@ -26,7 +26,6 @@
     <SolidColorBrush x:Key="HeaderLineBrush"     Color="#D7263D" po:Freeze="True"/>
     <SolidColorBrush x:Key="OnPrimaryBrush"      Color="#FFFFFF" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#D7263D" po:Freeze="True"/>
-    <SolidColorBrush x:Key="OutlineFaceBrush"    Color="#333333" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlineTextBrush"    Color="#FFFFFF" po:Freeze="True"/>
     <SolidColorBrush x:Key="InputHoverBrush"     Color="#707070" po:Freeze="True"/>
     <SolidColorBrush x:Key="TextFooter"          Color="#858585" po:Freeze="True"/>
