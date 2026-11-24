@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.6] - Unreleased
 
-1.9.6 adds color-managed printing, Swedish and Korean, highlighting on scans and page-by-page arranging in Merge files, and fixes a signature crash, merges that failed on certain files and text edits that lost their font.
+1.9.6 adds Swedish and Korean. The rest is interface refinements and bug fixes.
 
 ### Fixed
 
