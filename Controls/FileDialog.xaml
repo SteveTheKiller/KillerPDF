@@ -20,8 +20,8 @@
         SnapsToDevicePixels="True"
         WindowStartupLocation="CenterOwner">
 
-    <!-- Every picker style lives in the family Controls.xaml. Only the recent-locations arrow,
-         which no other control uses, is kept here. -->
+    <!-- Every picker style lives in the family Controls.xaml. Only the recent-locations arrow and
+         its list rows, which no other control uses, are kept here. -->
     <Window.Resources>
         <!-- The recent-locations arrow. On a Win98 caption theme (RootBorder.Tag is
              UseDialogCaption) it is the Win98 combo drop button: 16 wide, standing inside the path
@@ -31,7 +31,7 @@
         <Style x:Key="PickerComboArrowBtn" TargetType="Button">
             <Setter Property="Width" Value="{DynamicResource ComboButtonSize}"/>
             <Setter Property="Height" Value="{DynamicResource ComboButtonHeight}"/>
-            <Setter Property="Margin" Value="0,0,1,0"/>
+            <Setter Property="Margin" Value="0,0,3,0"/>
             <Setter Property="FontFamily" Value="{DynamicResource ComboChevFont}"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
@@ -81,6 +81,32 @@
                     <Setter Property="Margin" Value="0,2,2,2"/>
                 </DataTrigger>
             </Style.Triggers>
+        </Style>
+
+        <!-- A recent-locations row: the family ComboBoxItem as a ListBoxItem, so the recents list
+             reads like every other dropdown list. -->
+        <Style x:Key="RecentsRow" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource MenuTextBrush}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource MonoFont}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="9,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bg" Background="Transparent" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource MenuHoverTextBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- The file type combo: the family's field combo, so its face is the file name box's field
@@ -341,39 +367,34 @@
                             ToolTip="{DynamicResource Str_TT_RecentLocations}"
                             Style="{StaticResource PickerComboArrowBtn}"
                             HorizontalAlignment="Right"/>
-                    <!-- Recent locations. Same raised-surface pattern as everything else:
-                         shadow on an item-free sibling, content border on top. -->
+                    <!-- Recent locations: the family dropdown list, built exactly like the implicit
+                         ComboBox's popup in Controls.xaml (surface, edge, corners, shadow, ink and
+                         grain), as wide as the path box and flush under it. The popup already
+                         places the list inside its 6px shadow margin, so no offset is needed. -->
                     <Popup x:Name="RecentsPopup" PlacementTarget="{Binding ElementName=PathBox}"
-                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
-                           VerticalOffset="2" HorizontalOffset="-8">
-                        <Grid Margin="8">
-                            <Border Background="{DynamicResource FileDialogPaneBrush}" CornerRadius="{DynamicResource ControlCornerRadius}" IsHitTestVisible="False">
-                                <Border.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="{DynamicResource FlyoutShadowOpacity}"/>
-                                </Border.Effect>
-                            </Border>
-                            <Border Background="{DynamicResource FileDialogPaneBrush}" BorderBrush="{DynamicResource MenuBorderBrush}"
-                                    BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
-                                <Grid>
-                                    <ListBox x:Name="RecentsList" Background="Transparent" BorderThickness="0" Padding="2,4" AutomationProperties.Name="{DynamicResource Str_TT_RecentLocations}"
-                                             Width="{Binding ActualWidth, ElementName=PathBox}" MaxHeight="260"
-                                             ItemContainerStyle="{StaticResource PickerRow}"
-                                             SelectionChanged="RecentsList_SelectionChanged"
-                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding}" FontFamily="{DynamicResource UiFont}" FontSize="12"
-                                                           TextTrimming="CharacterEllipsis"/>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                    <!-- Grain last, over the rows, so the highlighted row keeps its texture. -->
-                                    <Border IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}"
-                                            Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
-                                </Grid>
-                            </Border>
-                            <Control Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>
-                        </Grid>
+                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                        <Border Width="{Binding ActualWidth, ElementName=PathBox}" MaxHeight="280"
+                                kui:ThemeMotif.Part="Popup" kui:ThemeMotif.BaseBrush="ComboPopupBrush"
+                                Background="{DynamicResource ComboPopupBrush}" BorderBrush="{DynamicResource MenuBorderBrush}"
+                                BorderThickness="1" CornerRadius="{DynamicResource MenuCornerRadius}" Margin="6"
+                                Effect="{DynamicResource ComboPopupShadow}">
+                            <Grid>
+                                <ListBox x:Name="RecentsList" Background="Transparent" BorderThickness="0" Padding="0" Margin="0,4"
+                                         AutomationProperties.Name="{DynamicResource Str_TT_RecentLocations}"
+                                         ItemContainerStyle="{StaticResource RecentsRow}"
+                                         SelectionChanged="RecentsList_SelectionChanged"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <!-- Grain last, over the rows, so a highlighted row keeps its texture. -->
+                                <Border IsHitTestVisible="False" CornerRadius="{DynamicResource MenuCornerRadius}"
+                                        Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                            </Grid>
+                        </Border>
                     </Popup>
                 </Grid>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
