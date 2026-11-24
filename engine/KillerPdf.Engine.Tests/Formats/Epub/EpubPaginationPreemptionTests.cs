@@ -25,7 +25,7 @@ public sealed class EpubPaginationPreemptionTests
         using var secondRun = new ManualResetEventSlim();
         using var release = new ManualResetEventSlim();
         int runs = 0;
-        var pagination = Task.Run(() => cache.Paginate(token =>
+        var pagination = OwnThread(() => cache.Paginate(token =>
         {
             int run = Interlocked.Increment(ref runs);
             (run == 1 ? firstRun : secondRun).Set();
@@ -35,9 +35,9 @@ public sealed class EpubPaginationPreemptionTests
         Assert.True(firstRun.Wait(Patience), "Pagination never started.");
 
         // The first reader stops the first run; pagination then runs the chapter again.
-        Assert.NotEmpty((await Task.Run(() => entries[0].TextPlacements).WaitAsync(Patience)));
+        Assert.NotEmpty((await OwnThread(() => entries[0].TextPlacements).WaitAsync(Patience)));
         Assert.True(secondRun.Wait(Patience), "Pagination did not run the chapter again.");
-        var reader = Task.Run(() => entries[1].TextPlacements);
+        var reader = OwnThread(() => entries[1].TextPlacements);
         // Pagination stays held until the reader is done, so the reader can only return by stopping the run: there is
         // no race against a clock. Patience only ends the wait if the reader is stuck behind the run for good.
         bool readerReturned;
@@ -53,6 +53,11 @@ public sealed class EpubPaginationPreemptionTests
 
         Assert.True(readerReturned, "The reader waited for pagination to finish the chapter it was running again.");
     }
+
+    // Pagination runs on its own thread in the app, and the reader is usually the UI thread. Pool threads can be
+    // taken for longer than Patience while the rest of the suite renders in parallel.
+    private static Task<T> OwnThread<T>(Func<T> work) =>
+        Task.Factory.StartNew(work, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
     private static EpubLayoutPage Page(int chapter) =>
         new($"{chapter}", 0, chapter, [new EpubTextPlacement(chapter, 0, 1, 0, 0, 10, 10)], Array.Empty<NativePagePaint>());
