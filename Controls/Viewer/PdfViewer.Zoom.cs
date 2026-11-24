@@ -31,6 +31,10 @@ namespace KillerPDF.Controls
         private double _wheelZoomAnchorY;
         private long _wheelZoomRevision;
 
+        private bool _toolbarZoomAnchorActive;
+        private double _toolbarZoomAnchorX;
+        private double _toolbarZoomAnchorY;
+
         // ============================================================
         // Zoom
         // ============================================================
@@ -253,35 +257,7 @@ namespace KillerPDF.Controls
                 _zoomLevel * Math.Pow(WheelZoomFactor, e.Delta / 120.0)));
             if (Math.Abs(targetZoom - oldZoom) < 1e-5) return;
 
-            double vw = PagePreviewPanel.ViewportWidth;
-            double vh = PagePreviewPanel.ViewportHeight;
-            double originX = PagePreviewPanel.ScrollableWidth > 0 && vw > 0 ? vw * 0.5 : 0;
-            double originY = PagePreviewPanel.VerticalOffset > 0 && vh > 0 ? vh * 0.5 : 0;
-
-            if (!_wheelZoomAnchorActive)
-            {
-                (_wheelZoomAnchorX, _wheelZoomAnchorY) = PinchZoomMath.CaptureAnchor(
-                    oldZoom, PagePreviewPanel.HorizontalOffset,
-                    PagePreviewPanel.VerticalOffset,
-                    originX, originY);
-                _wheelZoomAnchorActive = true;
-            }
-
-            _fitMode   = FitMode.None;
-            _zoomLevel = targetZoom;
-            ApplyZoom(lite: true);   // SyncZoomBox inside keeps the shown % live per notch
-            StartZoomSettleTimer();
-
-            PinchZoomResult anchored = PinchZoomMath.ApplyAtAnchor(
-                _zoomLevel, _wheelZoomAnchorX, _wheelZoomAnchorY,
-                originX, originY);
-            long revision = ++_wheelZoomRevision;
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
-            {
-                if (revision != _wheelZoomRevision) return;
-                PagePreviewPanel.ScrollToHorizontalOffset(anchored.HorizontalOffset);
-                PagePreviewPanel.ScrollToVerticalOffset(anchored.VerticalOffset);
-            }));
+            ZoomAnchoredToCenter(targetZoom, lite: true);
         }
 
         // Debounced full zoom apply, shared by every Ctrl+scroll notch: while the wheel is moving
@@ -300,6 +276,7 @@ namespace KillerPDF.Controls
                 {
                     _zoomSettleTimer!.Stop();
                     _wheelZoomAnchorActive = false;
+                    _toolbarZoomAnchorActive = false;
                     _wheelZoomRevision++;
                     if (!HasReadDocument) return;
                     ApplyZoom();

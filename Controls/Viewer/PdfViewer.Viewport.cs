@@ -2481,49 +2481,7 @@ namespace KillerPDF.Controls
         {
             ClearPendingTrueZoom();
             _fitMode   = FitMode.None;
-            double oldZoom = _zoomLevel;
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, level));
-
-            if (HasReadDocument && oldZoom > 0 && Math.Abs(_zoomLevel - oldZoom) > 1e-5
-                && PagePreviewPanel.Visibility == Visibility.Visible
-                && PagePreviewPanel.ActualWidth > 0 && PagePreviewPanel.ActualHeight > 0)
-            {
-                if (_viewMode == ViewMode.Grid)
-                {
-                    if (_currentPage >= 0) _gridScrollToPage = _currentPage;
-                }
-                else
-                {
-                    double vw = PagePreviewPanel.ViewportWidth;
-                    double vh = PagePreviewPanel.ViewportHeight;
-                    double originX = PagePreviewPanel.ScrollableWidth > 0 && vw > 0 ? vw * 0.5 : 0;
-                    double originY = PagePreviewPanel.VerticalOffset > 0 && vh > 0 ? vh * 0.5 : 0;
-
-                    if (!_wheelZoomAnchorActive)
-                    {
-                        (_wheelZoomAnchorX, _wheelZoomAnchorY) = PinchZoomMath.CaptureAnchor(
-                            oldZoom, PagePreviewPanel.HorizontalOffset,
-                            PagePreviewPanel.VerticalOffset,
-                            originX, originY);
-                        _wheelZoomAnchorActive = true;
-                    }
-
-                    PinchZoomResult anchored = PinchZoomMath.ApplyAtAnchor(
-                        _zoomLevel, _wheelZoomAnchorX, _wheelZoomAnchorY,
-                        originX, originY);
-
-                    StartZoomSettleTimer();
-
-                    long revision = ++_wheelZoomRevision;
-                    Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
-                    {
-                        if (revision != _wheelZoomRevision) return;
-                        PagePreviewPanel.ScrollToHorizontalOffset(anchored.HorizontalOffset);
-                        PagePreviewPanel.ScrollToVerticalOffset(anchored.VerticalOffset);
-                    }));
-                }
-            }
-
             ApplyZoom();
             SyncZoomBox();
             if (HasReadDocument && _currentPage >= 0)
@@ -2543,7 +2501,67 @@ namespace KillerPDF.Controls
             if (DeferTrueZoom(trueZoom)) return;
             double zf = DisplayZoomFactor();
             if (zf <= 0) zf = 1.0;
-            SetZoom(trueZoom / zf);
+            if (_viewMode == ViewMode.Grid)
+            {
+                if (_currentPage >= 0) _gridScrollToPage = _currentPage;
+                SetZoom(trueZoom / zf);
+            }
+            else
+            {
+                ZoomAnchoredToCenter(trueZoom / zf);
+            }
+        }
+
+        internal void ZoomAnchoredToCenter(double level, bool lite = false)
+        {
+            ClearPendingTrueZoom();
+            _fitMode = FitMode.None;
+            double oldZoom = _zoomLevel;
+            double targetZoom = Math.Max(ZoomMin, Math.Min(ZoomMax, level));
+            if (Math.Abs(targetZoom - oldZoom) < 1e-5) return;
+
+            bool canAnchor = HasReadDocument && oldZoom > 0
+                && PagePreviewPanel.Visibility == Visibility.Visible
+                && PagePreviewPanel.ActualWidth > 0 && PagePreviewPanel.ActualHeight > 0
+                && _viewMode != ViewMode.Grid;
+
+            PinchZoomResult anchored = default;
+            if (canAnchor)
+            {
+                double vw = PagePreviewPanel.ViewportWidth;
+                double vh = PagePreviewPanel.ViewportHeight;
+                double originX = PagePreviewPanel.ScrollableWidth > 0 && vw > 0 ? vw * 0.5 : 0;
+                double originY = PagePreviewPanel.VerticalOffset > 0 && vh > 0 ? vh * 0.5 : 0;
+
+                if (!_toolbarZoomAnchorActive)
+                {
+                    (_toolbarZoomAnchorX, _toolbarZoomAnchorY) = PinchZoomMath.CaptureAnchor(
+                        oldZoom, PagePreviewPanel.HorizontalOffset,
+                        PagePreviewPanel.VerticalOffset,
+                        originX, originY);
+                    _toolbarZoomAnchorActive = true;
+                }
+
+                anchored = PinchZoomMath.ApplyAtAnchor(
+                    targetZoom, _toolbarZoomAnchorX, _toolbarZoomAnchorY,
+                    originX, originY);
+            }
+
+            _zoomLevel = targetZoom;
+            ApplyZoom(lite);
+            SyncZoomBox();
+
+            if (canAnchor)
+            {
+                PagePreviewPanel.UpdateLayout();
+                PagePreviewPanel.ScrollToHorizontalOffset(anchored.HorizontalOffset);
+                PagePreviewPanel.ScrollToVerticalOffset(anchored.VerticalOffset);
+            }
+
+            StartZoomSettleTimer();
+
+            if (HasReadDocument && _currentPage >= 0)
+                SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, ReadPageTotal) + $" - {DisplayZoomPct():F0}%");
         }
 
         internal void ZoomIn_Click(object sender, RoutedEventArgs e) => StepZoomByUser(zoomIn: true);
@@ -2559,7 +2577,7 @@ namespace KillerPDF.Controls
             MarkViewportIntent();
             double step = zoomIn ? ZoomStep : -ZoomStep;
             if (_viewMode == ViewMode.Grid) GridZoomStep(!zoomIn);
-            else if (!AdjustPendingZoomStep(step)) SetZoom(_zoomLevel + step);
+            else if (!AdjustPendingZoomStep(step)) ZoomAnchoredToCenter(_zoomLevel + step);
         }
 
         /// <summary>Set by SyncZoomBox around its programmatic writes. Same story as
