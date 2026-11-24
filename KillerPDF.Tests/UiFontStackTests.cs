@@ -96,6 +96,29 @@ public sealed class UiFontStackTests
     public void ChineseJapaneseAndKoreanCountAsCjk(string? language, bool cjk) =>
         Assert.Equal(cjk, UiFontStack.IsCjk(language));
 
+    // The status bar's page and zoom line is 16 in Killer Sans, which has no CJK glyphs, so Korean fell to Malgun
+    // Gothic at 16 and read a size too big (Steve 2026-11-23). CJK languages take it at 14, like the title's step.
+    [Theory]
+    [InlineData("ko-KR", 14.0)]
+    [InlineData("zh-CN", 14.0)]
+    [InlineData("ja-JP", 14.0)]
+    [InlineData("en-US", 16.0)]
+    [InlineData("de-DE", 16.0)]
+    [InlineData(null, 16.0)]
+    public void TheStatusLineDropsASizeForCjk(string? language, double size) =>
+        Assert.Equal(size, UiFontStack.StatusFontSize(language));
+
+    [Fact]
+    public void TheStatusLineReadsItsSizeFromTheTheme()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "KillerPDF.sln"))) dir = dir.Parent;
+        string xaml = File.ReadAllText(Path.Combine(dir!.FullName, "Shell", "MainWindow.xaml"));
+        Match status = Regex.Match(xaml, "<TextBlock x:Name=\"StatusText\"[^>]*>");
+        Assert.True(status.Success);
+        Assert.Contains("FontSize=\"{DynamicResource StatusFontSize}\"", status.Value);
+    }
+
     [Fact]
     public void SwitchingTheLanguageRebuildsTheTitleStack()
     {

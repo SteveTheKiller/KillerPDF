@@ -2740,7 +2740,7 @@
                          status before it reaches the Install action (stretch + MaxWidth would center). -->
                     <TextBlock x:Name="StatusText" Text="{DynamicResource Str_Ready}"
                                Foreground="{DynamicResource TextBrush}"
-                               FontFamily="{DynamicResource BrandSansFont}" FontSize="16" Cursor="Hand"
+                               FontFamily="{DynamicResource BrandSansFont}" FontSize="{DynamicResource StatusFontSize}" Cursor="Hand"
                                TextOptions.TextFormattingMode="Ideal"
                                ToolTip="{DynamicResource Str_KS_FileSize}"
                                MouseLeftButtonUp="StatusText_Click"

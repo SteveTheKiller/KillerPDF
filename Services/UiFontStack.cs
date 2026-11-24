@@ -36,6 +36,10 @@ namespace KillerPDF.Services
         internal static bool IsCjk(string? cultureName) =>
             IsLanguage(cultureName ?? "", "zh") || IsLanguage(cultureName ?? "", "ja") || IsLanguage(cultureName ?? "", "ko");
 
+        /// <summary>The status bar's page and zoom line: 16, or 14 for CJK, whose fallback face reads a size
+        /// larger than Killer Sans at the same size.</summary>
+        internal static double StatusFontSize(string? cultureName) => IsCjk(cultureName) ? 14.0 : 16.0;
+
         private static string CjkFace(string name)
         {
             if (IsLanguage(name, "ja")) return "Yu Gothic UI, ";

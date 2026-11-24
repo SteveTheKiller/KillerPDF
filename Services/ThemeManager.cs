@@ -1070,6 +1070,8 @@ namespace KillerPDF.Services
             // Chinese and Japanese ideographs fill the em box, so the title's file name drops to 16 to sit
             // at the size Latin names read at 18 (#490).
             SetIfAbsent("FileNameFontSize", flatTitle ? 11.0 : UiFontStack.IsCjk(UiLanguage) ? 16.0 : 18.0);
+            // The status bar's page and zoom line takes the same step for CJK text.
+            SetIfAbsent("StatusFontSize", UiFontStack.StatusFontSize(UiLanguage));
             if (!combined.Contains("FileNameTransform"))
             {
                 var fileNameShift = new TranslateTransform(0, flatTitle ? 0 : 3);
