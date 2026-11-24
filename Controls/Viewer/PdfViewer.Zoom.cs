@@ -237,8 +237,8 @@ namespace KillerPDF.Controls
             PresentCurrentPageStatus();
         }
 
-        // Wheel over the toolbar zoom dropdown: same multiplicative step as Ctrl+scroll, without
-        // the cursor anchoring (the cursor is on the toolbar, not the page). Handled is set so the
+        // Wheel over the toolbar zoom dropdown: same multiplicative step as Ctrl+scroll, anchored
+        // to the viewport center (the cursor is on the toolbar, not the page). Handled is set so the
         // ComboBox does not cycle its preset items under the wheel.
         internal void ZoomBoxWheel(MouseWheelEventArgs e)
         {
@@ -247,11 +247,41 @@ namespace KillerPDF.Controls
             if (_viewMode == ViewMode.Grid) { GridZoomStep(e.Delta < 0); return; }
             MarkViewportIntent();
             if (AdjustPendingTrueZoom(Math.Pow(WheelZoomFactor, e.Delta / 120.0))) return;
-            _fitMode   = FitMode.None;
-            _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax,
+
+            double oldZoom = _zoomLevel;
+            double targetZoom = Math.Max(ZoomMin, Math.Min(ZoomMax,
                 _zoomLevel * Math.Pow(WheelZoomFactor, e.Delta / 120.0)));
+            if (Math.Abs(targetZoom - oldZoom) < 1e-5) return;
+
+            double vw = PagePreviewPanel.ViewportWidth;
+            double vh = PagePreviewPanel.ViewportHeight;
+            double originX = PagePreviewPanel.ScrollableWidth > 0 && vw > 0 ? vw * 0.5 : 0;
+            double originY = PagePreviewPanel.VerticalOffset > 0 && vh > 0 ? vh * 0.5 : 0;
+
+            if (!_wheelZoomAnchorActive)
+            {
+                (_wheelZoomAnchorX, _wheelZoomAnchorY) = PinchZoomMath.CaptureAnchor(
+                    oldZoom, PagePreviewPanel.HorizontalOffset,
+                    PagePreviewPanel.VerticalOffset,
+                    originX, originY);
+                _wheelZoomAnchorActive = true;
+            }
+
+            _fitMode   = FitMode.None;
+            _zoomLevel = targetZoom;
             ApplyZoom(lite: true);   // SyncZoomBox inside keeps the shown % live per notch
             StartZoomSettleTimer();
+
+            PinchZoomResult anchored = PinchZoomMath.ApplyAtAnchor(
+                _zoomLevel, _wheelZoomAnchorX, _wheelZoomAnchorY,
+                originX, originY);
+            long revision = ++_wheelZoomRevision;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
+            {
+                if (revision != _wheelZoomRevision) return;
+                PagePreviewPanel.ScrollToHorizontalOffset(anchored.HorizontalOffset);
+                PagePreviewPanel.ScrollToVerticalOffset(anchored.VerticalOffset);
+            }));
         }
 
         // Debounced full zoom apply, shared by every Ctrl+scroll notch: while the wheel is moving

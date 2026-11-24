@@ -2481,7 +2481,49 @@ namespace KillerPDF.Controls
         {
             ClearPendingTrueZoom();
             _fitMode   = FitMode.None;
+            double oldZoom = _zoomLevel;
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, level));
+
+            if (HasReadDocument && oldZoom > 0 && Math.Abs(_zoomLevel - oldZoom) > 1e-5
+                && PagePreviewPanel.Visibility == Visibility.Visible
+                && PagePreviewPanel.ActualWidth > 0 && PagePreviewPanel.ActualHeight > 0)
+            {
+                if (_viewMode == ViewMode.Grid)
+                {
+                    if (_currentPage >= 0) _gridScrollToPage = _currentPage;
+                }
+                else
+                {
+                    double vw = PagePreviewPanel.ViewportWidth;
+                    double vh = PagePreviewPanel.ViewportHeight;
+                    double originX = PagePreviewPanel.ScrollableWidth > 0 && vw > 0 ? vw * 0.5 : 0;
+                    double originY = PagePreviewPanel.VerticalOffset > 0 && vh > 0 ? vh * 0.5 : 0;
+
+                    if (!_wheelZoomAnchorActive)
+                    {
+                        (_wheelZoomAnchorX, _wheelZoomAnchorY) = PinchZoomMath.CaptureAnchor(
+                            oldZoom, PagePreviewPanel.HorizontalOffset,
+                            PagePreviewPanel.VerticalOffset,
+                            originX, originY);
+                        _wheelZoomAnchorActive = true;
+                    }
+
+                    PinchZoomResult anchored = PinchZoomMath.ApplyAtAnchor(
+                        _zoomLevel, _wheelZoomAnchorX, _wheelZoomAnchorY,
+                        originX, originY);
+
+                    StartZoomSettleTimer();
+
+                    long revision = ++_wheelZoomRevision;
+                    Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
+                    {
+                        if (revision != _wheelZoomRevision) return;
+                        PagePreviewPanel.ScrollToHorizontalOffset(anchored.HorizontalOffset);
+                        PagePreviewPanel.ScrollToVerticalOffset(anchored.VerticalOffset);
+                    }));
+                }
+            }
+
             ApplyZoom();
             SyncZoomBox();
             if (HasReadDocument && _currentPage >= 0)
