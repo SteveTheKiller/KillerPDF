@@ -13,6 +13,55 @@ public static class PdfFdfFormData
 {
     private const int MaximumBytes = 64 * 1024 * 1024;
 
+    private static PdfDictionary ReadWithCrossReference(
+        ReadOnlyMemory<byte> source, Dictionary<(int, int), PdfObject> objects)
+    {
+        PdfStartXref startXref = PdfStartXref.Find(source.Span);
+        PdfCrossReferenceSection section = PdfCrossReferenceReader.ReadSection(source, startXref.Offset);
+        foreach (PdfCrossReferenceEntry entry in section.Values)
+        {
+            if (entry.Type != PdfCrossReferenceEntryType.InUse) continue;
+            PdfIndirectObject parsed = new PdfObjectParser(source, checked((int)entry.Field1)).ParseIndirectObject();
+            if (parsed.ObjectNumber != entry.ObjectNumber || parsed.Generation != entry.Field2)
+                throw new InvalidOperationException("An FDF cross-reference entry does not match its object header.");
+            AddObject(objects, parsed);
+        }
+        return section.Trailer;
+    }
+
+    // Without a cross-reference table the objects are read in file order up to the last trailer.
+    private static PdfDictionary ReadWithoutCrossReference(
+        ReadOnlyMemory<byte> source, Dictionary<(int, int), PdfObject> objects)
+    {
+        ReadOnlySpan<byte> bytes = source.Span;
+        int trailerOffset = bytes.LastIndexOf("trailer"u8);
+        if (trailerOffset < 0)
+            throw new InvalidOperationException("The FDF has neither a cross-reference table nor a trailer.");
+        int position = 0;
+        while (position < trailerOffset)
+        {
+            int lineEnd = bytes[position..trailerOffset].IndexOfAny((byte)'\r', (byte)'\n');
+            int next = lineEnd < 0 ? trailerOffset : position + lineEnd + 1;
+            int start = position;
+            while (start < next && bytes[start] is (byte)' ' or (byte)'\t') start++;
+            if (start < next && bytes[start] is >= (byte)'1' and <= (byte)'9')
+            {
+                PdfIndirectObject parsed = new PdfObjectParser(source, start).ParseIndirectObject(out int end);
+                AddObject(objects, parsed);
+                next = Math.Max(next, end);
+            }
+            position = next;
+        }
+        return new PdfObjectParser(source, trailerOffset + "trailer".Length).ParseObject() as PdfDictionary
+            ?? throw new InvalidOperationException("The FDF trailer is not a dictionary.");
+    }
+
+    private static void AddObject(Dictionary<(int, int), PdfObject> objects, PdfIndirectObject parsed)
+    {
+        if (!objects.TryAdd((parsed.ObjectNumber, parsed.Generation), parsed.Value))
+            throw new InvalidOperationException("The FDF contains a duplicate indirect object.");
+    }
+
     /// <summary>Reads form field values and the optional source PDF reference from FDF bytes.</summary>
     public static PdfFormDataSet Read(ReadOnlyMemory<byte> source)
     {
@@ -20,19 +69,13 @@ public static class PdfFdfFormData
             throw new ArgumentException("FDF data must be between 1 byte and 64 MB.", nameof(source));
         if (!source.Span.StartsWith("%FDF-"u8))
             throw new InvalidOperationException("The data has no FDF header.");
-        PdfStartXref startXref = PdfStartXref.Find(source.Span);
-        PdfCrossReferenceSection section = PdfCrossReferenceReader.ReadSection(source, startXref.Offset);
         var objects = new Dictionary<(int, int), PdfObject>();
-        foreach (PdfCrossReferenceEntry entry in section.Values)
-        {
-            if (entry.Type != PdfCrossReferenceEntryType.InUse) continue;
-            PdfIndirectObject parsed = new PdfObjectParser(source, checked((int)entry.Field1)).ParseIndirectObject();
-            if (parsed.ObjectNumber != entry.ObjectNumber || parsed.Generation != entry.Field2)
-                throw new InvalidOperationException("An FDF cross-reference entry does not match its object header.");
-            if (!objects.TryAdd((parsed.ObjectNumber, parsed.Generation), parsed.Value))
-                throw new InvalidOperationException("The FDF contains a duplicate indirect object.");
-        }
-        if (!section.Trailer.TryGetValue(Name("Root"), out PdfObject? rootValue))
+        // The cross-reference table is optional in FDF (ISO 32000-1 12.7.8), and pdftk, fdfgen
+        // and most other generators leave it out.
+        PdfDictionary trailer = source.Span.LastIndexOf("startxref"u8) < 0
+            ? ReadWithoutCrossReference(source, objects)
+            : ReadWithCrossReference(source, objects);
+        if (!trailer.TryGetValue(Name("Root"), out PdfObject? rootValue))
             throw new InvalidOperationException("The FDF trailer has no root reference.");
         PdfDictionary root = Resolve(rootValue) as PdfDictionary
             ?? throw new InvalidOperationException("The FDF root is not a dictionary.");
