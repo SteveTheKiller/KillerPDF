@@ -33,7 +33,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - Merge PDFs on the toolbar makes a new document with the open file listed first, instead of adding to the open file. The page card's Merge still inserts after that page (#495).
 - Switching between Single, Two-page and Continuous keeps your zoom, and leaving the thumbnail grid returns to the zoom you had (#521, thanks @Shakil-Ahmmed-Dev).
-- In the Open and Save dialogs, File type sits on the File name row, and its box matches the name box with the ink and grain in its list.
+- In the Open and Save dialogs, File type sits on the File name row, and its box matches the name box with the ink and grain in its list. The recent-locations arrow is larger and turns red on hover like a close X.
 - Under Trash Polka, a card's main button sits on dark ink with an accent outline. The Yellow accent is a bright yellow with dark text instead of a brownish gold.
 - Menu nav buttons, dialog buttons and card toggles are slimmer, so card tiles keep their own width in two-page view.
 - The About card has a new tagline in every language, an icon that spans the wordmark and tagline, and a monospace SHA-256 line.
