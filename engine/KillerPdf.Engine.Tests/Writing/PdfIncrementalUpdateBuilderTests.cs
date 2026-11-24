@@ -369,6 +369,8 @@ public sealed class PdfIncrementalUpdateBuilderTests
     [InlineData("D:20260824123456Z")]
     [InlineData("D:20260824123456-07'00'")]
     [InlineData("D:20260824123456+05'30")]
+    [InlineData("D:20260824123456+05")]
+    [InlineData("D:20260824123456+05'")]
     public void Build_AcceptsValidReplacementDocumentInformationDates(string date)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

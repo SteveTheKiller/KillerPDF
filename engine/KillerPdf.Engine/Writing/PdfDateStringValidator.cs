@@ -45,8 +45,12 @@ internal static class PdfDateStringValidator
         index++;
         if (!ReadDigits(text, ref index, 2, out int offsetHour)
             || offsetHour > 23) return false;
-        if (index >= text.Length || text[index] != '\'') return false;
+        // ISO 32000-1 7.9.4: the apostrophe after HH is only present with HH, and mm only
+        // after that apostrophe, so +01 and +01' are dates too, as PdfDateText already reads them.
+        if (index == text.Length) return true;
+        if (text[index] != '\'') return false;
         index++;
+        if (index == text.Length) return true;
         if (!ReadDigits(text, ref index, 2, out int offsetMinute)
             || offsetMinute > 59) return false;
         if (index < text.Length && text[index] == '\'') index++;

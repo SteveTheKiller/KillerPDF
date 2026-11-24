@@ -4524,6 +4524,32 @@ public sealed class PdfIncrementalPageEditorTests
             error.Message, StringComparison.Ordinal);
     }
 
+    // ISO 32000-1 7.9.4: the apostrophe after the offset hours is only present with them, and the minutes only after it.
+    [Theory]
+    [InlineData("D:20260824120000+07")]
+    [InlineData("D:20260824120000+07'")]
+    [InlineData("D:20260824120000-03'")]
+    public void Build_AcceptsImportedPdfDatesWithAnHourOnlyOffset(string date)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(200, 300)
+            .Build());
+        (_, PdfIndirectReference[] references, PdfDictionary[] pages) = FlatPages(source);
+        PdfDictionary datedPage = new(pages[0].Append(
+            new KeyValuePair<PdfName, PdfObject>(Name("LastModified"),
+                new PdfString(Encoding.ASCII.GetBytes(date), PdfStringForm.Literal))));
+        source = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(references[0].ObjectNumber, datedPage)
+            .Build());
+
+        PdfDocument merged = PdfDocument.Open(
+            new PdfIncrementalPageEditor(PdfDocument.Open(new PdfDocumentBuilder().Build()))
+                .AddImportedPage(source, 0)
+                .Build());
+
+        Assert.Equal(1, PdfDocumentInformation.Read(merged).PageCount);
+    }
+
     [Fact]
     public void Build_RejectsMalformedImportedPageSeparationInfo()
     {
