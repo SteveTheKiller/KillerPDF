@@ -310,16 +310,19 @@ namespace KillerPDF.Shell
         /// lines and ask for a bigger icon again, so the size steps up from zero to the first size
         /// that fits and stops there. It waits for the info panel's real width, because the card's
         /// first layout pass has none and wraps the tagline one word per line.
+        /// The 15px gap runs from the drawn page to the text: kp-icon's artwork leaves 12.5% of its
+        /// square empty on the right at every frame size, so the margin gives that much back.
         /// </summary>
         private void SizeAboutIcon()
         {
             double width = AboutInfoGrid.ActualWidth;
             if (width <= 0) return;
-            const double gap = 15, inset = 4;
+            const double gap = 15, inset = 4, artRightPad = 0.125;
+            static double IconMargin(double s) => gap - System.Math.Round(s * artRightPad);
             double size = 0;
             for (int i = 0; i < 12; i++)
             {
-                AboutHeaderText.Measure(new Size(System.Math.Max(0, width - gap - size), double.PositiveInfinity));
+                AboutHeaderText.Measure(new Size(System.Math.Max(0, width - IconMargin(size) - size), double.PositiveInfinity));
                 double next = System.Math.Max(0, AboutHeaderText.DesiredSize.Height - inset);
                 bool settled = System.Math.Abs(next - size) < 0.5;
                 size = next;
@@ -329,6 +332,7 @@ namespace KillerPDF.Shell
             if (System.Math.Abs(AboutIcon.Width - size) < 0.5) return;
             AboutIcon.Width = size;
             AboutIcon.Height = size;
+            AboutIcon.Margin = new Thickness(0, 0, IconMargin(size), 0);
         }
 
         // ---- Small helpers -------------------------------------------------------------------
