@@ -137,6 +137,29 @@ html[data-theme="light"] .acc[data-accent="yellow"] { background: #EAD900 !impor
 .lang-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; color: var(--text); font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
 .lang-item:hover { background: var(--accent-dim); }
 .lang-item[aria-pressed="true"] { color: var(--accent); font-weight: 600; }
+/* Language menu never runs past the bottom of the window; it scrolls on its own.
+   A window shorter than 860px gets two columns with a faded divider, 8px from the
+   frame to every highlight, 8px each side of the divider, 8px inside each row. */
+#langMenu { max-width: calc(100vw - 16px); max-height: calc(100dvh - 80px); overflow-x: hidden; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
+@media (max-height: 860px) {
+  #langMenu:not([hidden]) { display: grid; grid-template-columns: repeat(2, max-content); width: max-content; column-gap: 17px; padding: 7px; }
+  #langMenu .lang-item { padding: 7px 8px; }
+  #langMenu .lang-code { padding-left: 8px; }
+  #langMenu .lang-item:nth-child(odd)::after { content: ""; position: absolute; top: 0; bottom: 0; right: -9px; width: 1px; background: var(--border); pointer-events: none; }
+  #langMenu .lang-item:first-child::after { background: linear-gradient(to bottom, transparent, var(--border)); }
+  #langMenu .lang-item:nth-last-child(-n + 2):nth-child(odd)::after { background: linear-gradient(to bottom, var(--border), transparent); }
+}
+/* Rows read exactly like killertools.net: 14px text, a check after the active
+   name instead of an accent color, codes at 60%. */
+#langMenu .lang-item { font-size: 14px; }
+#langMenu .lang-item[aria-pressed="true"] { color: var(--text); font-weight: inherit; }
+#langMenu .lang-item[aria-pressed="true"] .lang-name::after { content: " \2713"; }
+/* On a phone the menu anchors to the full-width top bar instead of the button,
+   so it sits at the right edge wherever each page puts the language button. */
+@media (max-height: 860px) and (max-width: 420px) {
+  .lang-switch { position: static; }
+  #langMenu { right: 0; top: calc(100% - 2px); }
+}
 
 /* ---- App body: content + right-hand sidebar ---- */
 /* Chrome-toned shell: the gutter around the rounded content pane reads as grained chrome, like the app windows and killertools.net */

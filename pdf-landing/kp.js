@@ -301,6 +301,28 @@
     var c = LANG_CODES[String(b.getAttribute('data-lang')).toLowerCase()];
     if (c && !b.querySelector('.lang-code')) b.insertAdjacentHTML('beforeend', '<span class="lang-code">' + c + '</span>');
   });
+  // The language menu matches killertools.net row for row: the same native names in the
+  // same order (English first, then by locale code). CSS adds the check on the active row.
+  var LANG_NAMES = { en: 'English', bn: 'বাংলা', cs: 'Čeština', de: 'Deutsch', es: 'Español', fr: 'Français', hu: 'Magyar', it: 'Italiano', ja: '日本語', kk: 'Қазақша', ko: '한국어', nb: 'Norsk', pl: 'Polski', pt: 'Português', ru: 'Русский', sl: 'Slovenščina', sv: 'Svenska', tr: 'Türkçe', uk: 'Українська', vi: 'Tiếng Việt', 'zh-cn': '简体中文', zh: '繁體中文', 'zh-tw': '繁體中文' };
+  var LANG_ORDER = ['en', 'bn', 'cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'kk', 'ko', 'nb', 'pl', 'pt', 'ru', 'sl', 'sv', 'tr', 'uk', 'vi', 'zh-cn', 'zh', 'zh-tw'];
+  (function () {
+    var menu = document.getElementById('langMenu');
+    if (!menu) return;
+    var key = function (b) { return String(b.getAttribute('data-lang')).toLowerCase(); };
+    var rows = [].slice.call(menu.querySelectorAll('.lang-item[data-lang]'));
+    rows.forEach(function (b) {
+      var name = LANG_NAMES[key(b)];
+      if (!name || b.querySelector('.lang-name')) return;
+      [].slice.call(b.childNodes).forEach(function (n) { if (n.nodeType === 3) b.removeChild(n); });
+      var span = document.createElement('span');
+      span.className = 'lang-name';
+      span.textContent = name;
+      var flag = b.querySelector('.lang-flag');
+      b.insertBefore(span, flag ? flag.nextSibling : b.firstChild);
+    });
+    rows.sort(function (a, b) { return LANG_ORDER.indexOf(key(a)) - LANG_ORDER.indexOf(key(b)); });
+    rows.forEach(function (b) { menu.appendChild(b); });
+  })();
   var langItems = [].slice.call(document.querySelectorAll('.lang-item'));
   var langToggle = document.getElementById('langToggle');
   var langMenu = document.getElementById('langMenu');
