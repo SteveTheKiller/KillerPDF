@@ -3412,7 +3412,10 @@
                             <DropShadowEffect Color="Black" BlurRadius="10" ShadowDepth="2" Direction="270" Opacity="{DynamicResource AboutIconShadowOpacity}"/>
                         </icons:AppIcon.Effect>
                     </icons:AppIcon>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <!-- Lacquer's line box leaves 8px empty above "PDF" while its drips hang 5px
+                         below it, so a centered box puts the ink 6px under the icon's center. The
+                         -12 top margin lifts the ink onto the icon's center line. -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,-12,0,0">
                         <Grid>
                             <TextBlock x:Name="WhatsNewLogoShadowBlock"
                                        FontFamily="{DynamicResource WordmarkFont}" FontSize="16.43"
