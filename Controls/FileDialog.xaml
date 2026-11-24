@@ -33,7 +33,7 @@
             <Setter Property="Height" Value="{DynamicResource ComboButtonHeight}"/>
             <Setter Property="Margin" Value="0,0,1,0"/>
             <Setter Property="FontFamily" Value="{DynamicResource ComboChevFont}"/>
-            <Setter Property="FontSize" Value="8"/>
+            <Setter Property="FontSize" Value="11"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Focusable" Value="False"/>
@@ -57,8 +57,10 @@
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Grid>
                         <ControlTemplate.Triggers>
+                            <!-- Hover turns the chevron red like a card's close X, with no face behind it.
+                                 On 98SE AboutCloseHoverFg is the caption color, so a Win98 button stays put. -->
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="face" Property="Background" Value="{DynamicResource ComboButtonHoverBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AboutCloseHoverFg}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="bevelLight" Property="BorderBrush" Value="{DynamicResource BevelOuterDarkBrush}"/>
@@ -73,6 +75,7 @@
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
                     <Setter Property="Width" Value="{DynamicResource ComboButtonMinWidth}"/>
+                    <Setter Property="FontSize" Value="8"/>
                     <Setter Property="Height" Value="Auto"/>
                     <Setter Property="VerticalAlignment" Value="Stretch"/>
                     <Setter Property="Margin" Value="0,2,2,2"/>
