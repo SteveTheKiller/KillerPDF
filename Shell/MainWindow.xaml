@@ -3132,17 +3132,23 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
+                        <!-- The icon is as tall as the wordmark and tagline together, in every
+                             language: its size follows the text column's height. A narrower column
+                             only ever adds lines, so the layout settles instead of oscillating. -->
                         <icons:AppIcon Grid.Column="0" Source="pack://application:,,,/Resources/kp-icon.ico"
-                               Width="58" Height="58" Margin="0,0,15,0"
-                               VerticalAlignment="Center"
+                               Width="{Binding ActualHeight, ElementName=AboutHeaderText}"
+                               Height="{Binding ActualHeight, ElementName=AboutHeaderText}" Margin="0,0,15,0"
+                               VerticalAlignment="Top"
                                RenderOptions.BitmapScalingMode="NearestNeighbor">
                             <icons:AppIcon.Effect>
                                 <DropShadowEffect Color="Black" BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="{DynamicResource AboutIconShadowOpacity}"/>
                             </icons:AppIcon.Effect>
                         </icons:AppIcon>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <!-- Logo (populated in code-behind), with a soft layered shadow -->
-                            <Grid Margin="0,0,0,4">
+                        <StackPanel x:Name="AboutHeaderText" Grid.Column="1" VerticalAlignment="Top">
+                            <!-- Logo (populated in code-behind), with a soft layered shadow. Lacquer's
+                                 line box leaves 8px empty above "PDF"; the -8 top margin puts the ink
+                                 level with the icon's top edge. -->
+                            <Grid Margin="0,-8,0,4">
                                 <!-- Shadow copy populated in code-behind (BuildAboutLogo) with the SAME
                                      runs as the real wordmark. A static flat-size "KillerPDF" here sat
                                      at different metrics than the two-run logo and read as a long smear
