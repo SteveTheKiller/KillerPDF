@@ -3132,13 +3132,16 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <!-- The icon is as tall as the wordmark and tagline together, in every
-                             language: its size follows the text column's height. A narrower column
-                             only ever adds lines, so the layout settles instead of oscillating. -->
+                        <!-- The icon spans the wordmark and tagline in every language. Its bottom sits
+                             on the tagline's last row, and its top stays 4px below the top of "PDF".
+                             AboutIconSizer is the text column's height minus those 4px, and the icon
+                             takes its size from it. The icon is shorter than the column, so it never
+                             feeds back into the row height and the layout settles. -->
+                        <Border x:Name="AboutIconSizer" Grid.Column="1" Margin="0,4,0,0" IsHitTestVisible="False"/>
                         <icons:AppIcon Grid.Column="0" Source="pack://application:,,,/Resources/kp-icon.ico"
-                               Width="{Binding ActualHeight, ElementName=AboutHeaderText}"
-                               Height="{Binding ActualHeight, ElementName=AboutHeaderText}" Margin="0,0,15,0"
-                               VerticalAlignment="Top"
+                               Width="{Binding ActualHeight, ElementName=AboutIconSizer}"
+                               Height="{Binding ActualHeight, ElementName=AboutIconSizer}" Margin="0,0,15,0"
+                               VerticalAlignment="Bottom"
                                RenderOptions.BitmapScalingMode="NearestNeighbor">
                             <icons:AppIcon.Effect>
                                 <DropShadowEffect Color="Black" BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="{DynamicResource AboutIconShadowOpacity}"/>
@@ -3146,9 +3149,9 @@
                         </icons:AppIcon>
                         <StackPanel x:Name="AboutHeaderText" Grid.Column="1" VerticalAlignment="Top">
                             <!-- Logo (populated in code-behind), with a soft layered shadow. Lacquer's
-                                 line box leaves 8px empty above "PDF"; the -4 top margin keeps half of
-                                 that, so the ink sits a little below the icon's top edge. -->
-                            <Grid Margin="0,-4,0,4">
+                                 line box leaves 8px empty above "PDF"; the -8 top margin puts the ink
+                                 at the top of the column. -->
+                            <Grid Margin="0,-8,0,4">
                                 <!-- Shadow copy populated in code-behind (BuildAboutLogo) with the SAME
                                      runs as the real wordmark. A static flat-size "KillerPDF" here sat
                                      at different metrics than the two-run logo and read as a long smear
