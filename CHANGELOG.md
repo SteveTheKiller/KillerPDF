@@ -6,60 +6,47 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.6] - Unreleased
 
+1.9.6 adds color-managed printing, Swedish and Korean, highlighting on scans and page-by-page arranging in Merge files, and fixes a signature crash, merges that failed on certain files and text edits that lost their font.
+
 ### Fixed
 
-- Run as administrator, opening a file while KillerPDF is open sends it to the open window instead of starting a second one. Images to PDF from Explorer makes one PDF from all the images again, instead of one per image.
-- Dragging a signature onto the page no longer crashes KillerPDF when a file it needs is missing. The drag stops and the crash log names the file, and clicking to place still works (#515).
-- The keyboard shortcuts card fits its list and keyboard map, instead of filling most of a large window and leaving them in empty space.
-- Making a new folder in the file dialog no longer freezes the window on a share that stopped answering. A refused name is read out to a screen reader as well as shown.
-- Large tiled JPEG 2000 images use far less memory again. A 2717 by 3701 scan peaked at 361 MB in 1.9.5 and now peaks at 134 MB.
-- Merging accepts pages with a zero-size ArtBox, BleedBox or TrimBox, like Excel for Microsoft 365 exports, and those pages fall back to their CropBox (#455).
-- Merging a PDF without tags into a tagged one works instead of stopping with an error. The tagged pages keep their structure, and the merged pages come in untagged (#495).
-- Ctrl+click adds marks to a selection in the Select tool, like Shift+click, and a single text box's card shows Arrange so you can fit its frame to its text (#504).
-- The arrow on a card tile that opens more choices is as bright as the tile's label instead of gray (#508).
-- Pinch zoom on a touchpad holds the page still under your fingers instead of letting text jump for a frame (#494).
-- Toolbar captions and the sidebar heading draw Chinese in Microsoft YaHei UI and Japanese in Yu Gothic UI, like the menus. The file name in the title bar is a size smaller in Chinese and Japanese, so it no longer looks oversized (#490).
-- In Chinese, Japanese and Korean, the page and zoom line in the status bar is a size smaller, so it no longer looks oversized.
-- Editing a line of existing text keeps its real typeface and weight when the PDF hides them behind generic names like CIDFont+F2, as Word exports do. Bold Arial now opens and saves as bold Arial instead of plain Segoe UI. The first title on a page no longer picks up the size of a stray space drawn under it (#431).
-- While editing text, a click or the mouse wheel in the font list no longer closes it without picking a font. A font-only change on a scanned line sticks after you click away, and More settings stays open instead of closing or freezing the edit (#467).
-- Changing the accent under Trash Polka waits at most a second when a redraw hangs, instead of stalling. Its art cache only deletes its own files when it clears an older version.
-- Under Trash Polka, open drop-down lists and the file dialog's places, file list and preview panes carry the ink instead of flat slabs. The ink stays one image at any window size and returns to a surface that was hidden during a repaint.
-- Under Trash Polka Yellow, Book layout while it is on and the color picker's armed eyedropper and replace buttons draw dark on their yellow fill, instead of light text you could barely read.
-- After a language change, the start screen's Recent list says a file is missing in the new language instead of the old one.
-- The Restore last session bar switches to the new language along with the rest of the window, instead of keeping the old one until it closes.
-- A sidebar menu too tall for the window fits inside it and scrolls, instead of running past the window's foot.
-- On the sidebar card in two-page view, Two-page thumbnails no longer sits alone on its own row. It shares the top row with Book layout and Top, and Left, Bottom and Right sit below like the arrow keys, two rows of three.
-- Confirm dialogs size to what they say, so a short prompt is narrower. The heading sits a few pixels higher, with more room above the checkboxes, and on 98SE the dialog is spaced like a Win98 message box.
-- Menus, cards and drop-down lists opened inside the document pane keep all four corners rounded.
-- Customize Toolbar's two lists sit on grained panes in the pane color with the family drop shadow, instead of letting the window's texture show through.
-- The customize drawer closes with the same small X as the app's small windows, and only the X turns red on hover.
-- Theme and language menu labels line up with their radio buttons and the Film Grain box again, instead of sitting a pixel high. Both menus keep 8px between their rows and the card edge on every side, and on each side of the language menu's divider.
-- On 98SE the theme and language menus pack their rows like Win98 menus, tab titles sit centered, and the window frame is the 4px Win98 sizing frame.
-- One mouse wheel notch scrolls 120 pixels at the Windows default in the file dialog's folder tree and the card customize drawer, up from 60 and 40 pixels.
-- A tab joins its page without a seam line at app sizes other than 100%.
+- Dragging a signature onto the page no longer crashes KillerPDF when a file it needs is missing (#515).
+- Run as administrator, opening a file while KillerPDF is open sends it to the open window instead of starting a second one. Images to PDF from Explorer makes one PDF from all the images again.
+- Merging works when an untagged PDF goes into a tagged one (#495), and with pages that have a zero-size ArtBox, BleedBox or TrimBox, like Excel exports (#455).
+- Editing existing text keeps its real typeface and weight when the PDF hides them behind generic names, as Word exports do. Bold Arial stays bold Arial instead of turning into plain Segoe UI (#431).
+- While editing text, the font list no longer closes on a click or the mouse wheel, a font-only change on a scanned line sticks, and More settings stays open (#467).
+- Making a new folder in the file dialog no longer freezes the window on a share that stopped answering.
+- Large tiled JPEG 2000 images use far less memory again, 134 MB instead of 361 MB for a large scan.
+- Pinch zoom on a touchpad holds the page still instead of letting the text jump (#494).
+- Ctrl+click adds marks to a selection like Shift+click, and a single text box's card shows Arrange (#504).
+- After a language change, the Restore last session bar and the start screen's Recent list switch to the new language too.
+- Chinese, Japanese and Korean draw in the right fonts and at the right size in the toolbar, sidebar, title bar and status bar (#490).
+- Under Trash Polka, drop-down lists and the file dialog's panes carry the ink, Yellow buttons draw dark text, and changing the accent no longer stalls on a hung redraw.
+- A sidebar menu too tall for the window scrolls instead of running off the bottom, and the keyboard shortcuts card fits its contents.
+- One mouse wheel notch scrolls 120 pixels in the file dialog's folder tree and the customize drawer, up from 60 and 40.
+- Card tile arrows are as bright as their labels (#508), menus in the document pane keep all four corners rounded, and tabs join their page without a seam at every app size.
+- On 98SE, menus, confirm dialogs, tab titles and the window frame match Windows 98.
 
 ### Changed
 
-- Menu nav buttons are slimmer, and the nav row no longer widens a card, so card tiles keep their own width in two-page view. Dialog buttons, card toggles and segment buttons carry less padding on their sides.
-- Switching between Single, Two-page and Continuous keeps your zoom or fit instead of fitting the page, and leaving the thumbnail grid returns to the zoom you had before it. (#521, thanks @Shakil-Ahmmed-Dev)
-- Merge PDFs on the toolbar makes a new document instead of adding to the open file. The open file is listed first, so you can move it or take it out. The page card's Merge still inserts after that page (#495).
-- The tray icon's card shows the KillerPDF logo over one row of tiles, Open and then Exit, like the other cards.
-- Under Trash Polka, a card's main button sits on the dark ink with an accent outline and fills with the accent on hover. Other buttons sit on the lighter ink with a gray outline and turn gray on hover.
-- The Trash Polka Yellow accent is a bright yellow with dark text on selected rows and turned-on tiles, instead of a brownish gold.
-- The About card has a new tagline in every language. Its SHA-256 line is monospace, so the card is the same width on every build.
+- Merge PDFs on the toolbar makes a new document with the open file listed first, instead of adding to the open file. The page card's Merge still inserts after that page (#495).
+- Switching between Single, Two-page and Continuous keeps your zoom, and leaving the thumbnail grid returns to the zoom you had (#521, thanks @Shakil-Ahmmed-Dev).
+- Under Trash Polka, a card's main button sits on dark ink with an accent outline. The Yellow accent is a bright yellow with dark text instead of a brownish gold.
+- Menu nav buttons, dialog buttons and card toggles are slimmer, so card tiles keep their own width in two-page view.
+- The About card has a new tagline in every language, an icon that spans the wordmark and tagline, and a monospace SHA-256 line.
+- The tray icon's card shows the KillerPDF logo over Open and Exit, like the other cards.
 
 ### Added
 
-- The print window has a Color section where KillerPDF can manage print colors with an RGB printer profile from Color Management, a rendering intent and black-point compensation, and the preview shows how the profile predicts the page will print (#520).
-- The job asks the printer driver to skip its own color management and says when the driver confirms it, keeping the warning to turn it off by hand for drivers that don't (#520).
-- The page card's top box, with the selected-text tiles and Text, Image and Signature, has its own pencil, so you can reorder or hide those tiles too. The selected-text tiles keep their places while nothing is selected (#496).
-- Ctrl+Shift+U turns pages upside down, and the Upside Down tile shows it.
-- While customizing a card, Alt+arrow keys move the focused tile one place or one row, and a screen reader hears its new position.
+- The print window has a Color section that manages print colors with an RGB printer profile, a rendering intent and black-point compensation, and previews how the page will print. It asks the printer driver to skip its own color management and says when the driver confirms it (#520).
+- Merge files has Arrange pages, which shows every page as a thumbnail so you can reorder pages or drop some before merging (#495).
+- Highlight works on scans and pictures by highlighting the box you drag where there's no text (#514).
 - The Open dialog takes several files at once. Enter opens them as tabs, and Shift+Enter opens them together in a new window (#513).
-- Highlight works on scans and pictures. Where there's no text under the pointer, a drag highlights the box it covers (#514).
-- Swedish and Korean interface languages, machine-translated to start, with review welcome. Korean draws in Malgun Gothic like the other Asian languages, and OCR reads Swedish and Korean (#511).
-- Merge files has Arrange pages, which shows every page of the files as thumbnails. Drag pages into any order or take some out before merging (#495).
-- After an update, a What's new card shows that version's changelog once. Its box, also on the About card, turns it off.
+- Swedish and Korean interface languages, machine-translated to start, with OCR for both (#511).
+- After an update, a What's new card shows that version's changelog once, with a box to turn it off.
+- The page card's top box has its own pencil, so you can reorder or hide its tiles too (#496).
+- Ctrl+Shift+U turns pages upside down.
+- While customizing a card, Alt+arrow keys move the focused tile, and a screen reader hears its new position.
 
 ## [1.9.5] - 2026-11-20
 
