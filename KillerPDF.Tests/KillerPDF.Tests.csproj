@@ -35,6 +35,7 @@
     <Compile Include="..\Services\ThumbnailOverlay.cs" Link="Services\ThumbnailOverlay.cs" />
     <Compile Include="..\Services\BlurSliderScale.cs" Link="Services\BlurSliderScale.cs" />
     <Compile Include="..\Services\ClosedTabs.cs" Link="Services\ClosedTabs.cs" />
+    <Compile Include="..\Shell\SaveAsFormats.cs" Link="Shell\SaveAsFormats.cs" />
     <Compile Include="..\Services\SessionStore.cs" Link="Services\SessionStore.cs" />
     <Compile Include="..\Services\LegacyWindowsNotice.cs" Link="Services\LegacyWindowsNotice.cs" />
     <Compile Include="..\Services\ShortcutCardSize.cs" Link="Services\ShortcutCardSize.cs" />

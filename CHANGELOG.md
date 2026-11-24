@@ -35,6 +35,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Menu nav buttons, dialog buttons and card toggles are slimmer, so card tiles keep their own width in two-page view.
 - The About card has a new tagline in every language, an icon that spans the wordmark and tagline, and a monospace SHA-256 line.
 - The tray icon's card shows the KillerPDF logo over Open and Exit, like the other cards.
+- In the Open and Save dialogs, File type sits on the File name row, and its box matches the name box with the ink and grain in its list.
 
 ### Added
 
@@ -45,6 +46,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Swedish and Korean interface languages, machine-translated to start, with OCR for both (#511).
 - After an update, a What's new card shows that version's changelog once, with a box to turn it off.
 - The page card's top box has its own pencil, so you can reorder or hide its tiles too (#496).
+- Save as offers EPUB beside PDF and writes the same book as Export. The tab stays on its PDF.
 - Ctrl+Shift+U turns pages upside down.
 - While customizing a card, Alt+arrow keys move the focused tile, and a screen reader hears its new position.
 

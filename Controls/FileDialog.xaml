@@ -80,11 +80,14 @@
             </Style.Triggers>
         </Style>
 
-        <!-- The file type combo: its height follows the file name box above it, so on 98SE both
-             drop to the compact Win98 field height together instead of a 28px combo under a 22px
-             box. -->
-        <Style x:Key="PickerFilterCombo" TargetType="ComboBox" BasedOn="{StaticResource DarkComboBox}">
+        <!-- The file type combo: the family's field combo, so its face is the file name box's field
+             and its open list carries the grain and ink like every other dropdown. Its height
+             follows the file name box beside it, so on 98SE both drop to the compact Win98 field
+             height together. -->
+        <Style x:Key="PickerFilterCombo" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
             <Setter Property="Height" Value="26"/>
+            <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
+            <Setter Property="FontSize" Value="12"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
                     <Setter Property="Height" Value="{DynamicResource CompactInputMinHeight}"/>
@@ -705,34 +708,32 @@
                 </Grid>
             </Grid>
 
-            <!-- File name + filter. Labels are DimTextBrush on the dark card: 3.15:1, the tier
-                 these brushes are calibrated for. -->
+            <!-- File name and file type share one row: the name takes the width, the type only what
+                 its longest entry needs. With no filter (folder mode) the name runs the full row.
+                 Labels are DimTextBrush on the dark card: 3.15:1, the tier these brushes are
+                 calibrated for. -->
             <Grid x:Name="FileFields" Grid.Row="4" Margin="16,12,16,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Str_Dlg_FileName}" VerticalAlignment="Center"
+                <TextBlock Grid.Column="0" Text="{DynamicResource Str_Dlg_FileName}" VerticalAlignment="Center"
                            Margin="0,0,10,0" Foreground="{DynamicResource MutedTextBrush}" FontFamily="{DynamicResource UiFont}" FontSize="11"/>
-                <!-- Left padding 5, not 8: a TextBox's content host carries its own ~2px inset
-                     (WPF's TextBoxView), so at 8 the name started visibly right of the filter
-                     combo's text directly below it (combo padding is 7 with no inherent inset).
-                     5 + 2 lines the two up. (2026-07-31) -->
-                <TextBox x:Name="FileNameBox" Grid.Row="0" Grid.Column="1"
+                <!-- Left padding 2.5: a TextBox's content host carries its own ~2px inset (WPF's
+                     TextBoxView), so this starts the name where the combo's text starts. -->
+                <TextBox x:Name="FileNameBox" Grid.Column="1"
                          AutomationProperties.Name="{DynamicResource Str_Dlg_FileName}"
                          Style="{StaticResource DialogPickerTextBox}"
                          FontFamily="{DynamicResource UiFont}" FontSize="12" Padding="2.5,0,8,0"
                          VerticalContentAlignment="Center" KeyDown="FileNameBox_KeyDown"
                          TextChanged="FileNameBox_TextChanged"/>
 
-                <TextBlock x:Name="FilterLabel" Grid.Row="1" Grid.Column="0" Text="{DynamicResource Str_Dlg_FileType}" VerticalAlignment="Center"
-                           Margin="0,8,10,0" Foreground="{DynamicResource MutedTextBrush}" FontFamily="{DynamicResource UiFont}" FontSize="11"/>
-                <ComboBox x:Name="FilterCombo" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0"
+                <TextBlock x:Name="FilterLabel" Grid.Column="2" Text="{DynamicResource Str_Dlg_FileType}" VerticalAlignment="Center"
+                           Margin="16,0,10,0" Foreground="{DynamicResource MutedTextBrush}" FontFamily="{DynamicResource UiFont}" FontSize="11"/>
+                <ComboBox x:Name="FilterCombo" Grid.Column="3" Width="220"
                           AutomationProperties.Name="{DynamicResource Str_Dlg_FileType}"
                           Style="{StaticResource PickerFilterCombo}"
                           SelectionChanged="Filter_SelectionChanged"/>

@@ -1938,8 +1938,15 @@ namespace KillerPDF.Shell
             if (!restrictedFill && (!EnsureEditable() || !EnsureProtectionReadable())) return;
             OpenedProtection publishUnder = removeProtection ? OpenedProtection.None : _protection;
             CommitActiveTextBox();
+            // An EPUB copy is an export of the tab, not a new home for it, so a save that opens the copy or
+            // removes protection stays PDF only.
+            bool offerEpub = !openCopy && !removeProtection;
+            Func<bool> sourceCurrent = CaptureDocumentOrigin();
+            string? currentSource = _currentFile;
+            string? originalSource = _originalFile;
             var dlg = new Controls.FileDialog(Controls.FileDialogMode.Save)
-                          { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SavePdfAs"),
+                          { Filter = SaveAsFormats.Filter(Loc("Str_Filter_Pdf"), Loc("Str_Filter_Epub"), offerEpub),
+                            Title = Loc("Str_Dlg_SavePdfAs"),
                             CheckFileExists = false, CheckPathExists = true, RequireFilterExtension = true };
             // Seed the dialog from the last real save location. Guard every path call: on .NET Framework
             // Path.GetDirectoryName("") throws ArgumentException ("path is not of a legal form"), so a merged
@@ -1973,6 +1980,16 @@ namespace KillerPDF.Shell
             {
                 KillerDialog.Show(this, Loc("Str_Err_SaveFailed") + "\n" + dlg.FileName, "KillerPDF",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            if (offerEpub && SaveAsFormats.IsEpub(dlg.FileName))
+            {
+                // The same book Export writes; the tab stays on its PDF.
+                if (!sourceCurrent()) return;
+                if (restrictedFill && !EnsureEditable(continueAfterUnlock: false)) return;
+                if (!EnsureMayWrite(PdfOutput.Data, continueAfterUnlock: true)) return;
+                _ = ExportStructuredToAsync(PdfStructuredExportFormat.Epub, PdfOfficeExportMode.Editable, null,
+                    System.IO.Path.GetFullPath(dlg.FileName), sourceCurrent, currentSource, originalSource);
                 return;
             }
             if (restrictedFill)
@@ -2296,7 +2313,15 @@ namespace KillerPDF.Shell
                 FileName = System.IO.Path.GetFileNameWithoutExtension(_originalFile ?? _currentFile ?? "document") + extension
             };
             if (save.ShowDialog(this) != true || !sourceCurrent()) return;
-            string destination = System.IO.Path.GetFullPath(save.FileName);
+            await ExportStructuredToAsync(options.Format, options.OfficeMode, pages,
+                System.IO.Path.GetFullPath(save.FileName), sourceCurrent, currentSource, originalSource);
+        }
+
+        // Writes the tab as a Word, EPUB or other structured file at destination, after the caller has
+        // checked the tab may be copied out. Save as reaches it for EPUB, Export for every format.
+        private async Task ExportStructuredToAsync(PdfStructuredExportFormat format, PdfOfficeExportMode officeMode,
+            List<int>? pages, string destination, Func<bool> sourceCurrent, string? currentSource, string? originalSource)
+        {
             if (new[] { currentSource, originalSource }.Any(source => source is not null
                 && string.Equals(System.IO.Path.GetFullPath(source), destination, StringComparison.OrdinalIgnoreCase)))
             {
@@ -2310,11 +2335,11 @@ namespace KillerPDF.Shell
             try
             {
                 SavedCopy exportCopy = WriteSavedCopyToTemp(
-                    forRasterization: options.OfficeMode == PdfOfficeExportMode.PageImages, throwaway: true, flattenEditing: true);
+                    forRasterization: officeMode == PdfOfficeExportMode.PageImages, throwaway: true, flattenEditing: true);
                 snapshot = exportCopy.Path;
                 // The saved copy holds the tab's own bytes, so it reads under the tab's protection.
                 var document = PdfEngineIntegration.OpenForReading(System.IO.File.ReadAllBytes(snapshot), _protection);
-                PdfStructuredExportReport losses = PdfStructuredExport.InspectLosses(document, options.Format, pages, officeMode: options.OfficeMode);
+                PdfStructuredExportReport losses = PdfStructuredExport.InspectLosses(document, format, pages, officeMode: officeMode);
                 if (!losses.IsLossless)
                 {
                     if (!ConfirmExportLosses(losses)) return;
@@ -2324,7 +2349,7 @@ namespace KillerPDF.Shell
                 cancellation = BeginCancellableOp(Loc("Str_Op_Export"));
                 operationStarted = true;
                 byte[] output = await Task.Run(() => PdfStructuredExport.Export(
-                    document, options.Format, pages, cancellationToken: cancellation, officeMode: options.OfficeMode), cancellation);
+                    document, format, pages, cancellationToken: cancellation, officeMode: officeMode), cancellation);
                 if (cancellation.IsCancellationRequested || !sourceCurrent()) return;
                 await AtomicFileOutput.WriteAsync(destination, output, cancellation);
                 if (sourceCurrent()) SetStatus(exportCopy.Note(
