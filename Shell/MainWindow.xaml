@@ -3465,7 +3465,9 @@
                     <Border Background="{DynamicResource AboutPanelBrush}"
                             BorderBrush="{DynamicResource AboutPanelEdgeBrush}" BorderThickness="1"
                             CornerRadius="{DynamicResource ControlCornerRadius}">
-                        <Grid>
+                        <!-- Clipped to the pane's rounded inner edge (About.Extras.cs), so notes scrolling
+                             past the top and bottom stay inside the corners. -->
+                        <Grid x:Name="WhatsNewNotesClip" SizeChanged="WhatsNewNotesClip_SizeChanged">
                             <Border IsHitTestVisible="False" CornerRadius="{DynamicResource ControlCornerRadius}"
                                     Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
                             <!-- "What's new in 1.9.6" is the first line of the notes and scrolls with them;

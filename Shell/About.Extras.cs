@@ -222,6 +222,21 @@ namespace KillerPDF.Shell
             if (ShortcutsOverlay.Visibility == Visibility.Visible) FadeOverlayOut(ShortcutsOverlay);
             Controls.GrainTexture.Track(WhatsNewGrainBrush);
             BuildWordmark(WhatsNewLogoBlock, WhatsNewLogoShadowBlock);
+            ClipWhatsNewNotes();
+        }
+
+        private void WhatsNewNotesClip_SizeChanged(object sender, SizeChangedEventArgs e) => ClipWhatsNewNotes();
+
+        /// <summary>A Border's CornerRadius never clips its children, and the notes' ScrollViewer
+        /// clips square, so lines scrolling under the top and bottom edges painted over the rounded
+        /// corners. The clip follows the pane's inner edge: the theme's corner less the 1px border.</summary>
+        private void ClipWhatsNewNotes()
+        {
+            double width = WhatsNewNotesClip.ActualWidth, height = WhatsNewNotesClip.ActualHeight;
+            if (width <= 0 || height <= 0) return;
+            double corner = TryFindResource("ControlCornerRadius") is CornerRadius r ? r.TopLeft : 0;
+            double radius = Math.Max(0, corner - 1);
+            WhatsNewNotesClip.Clip = new RectangleGeometry(new Rect(0, 0, width, height), radius, radius);
         }
 
         /// <summary>"Killer" in the text color, "PDF" in the brand green, the pair clickable. The

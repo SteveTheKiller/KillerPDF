@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.7] - Unreleased
 
+### Fixed
+
+- Scrolling the What's new notes no longer draws text over the pane's rounded corners.
+
 ## [1.9.6] - 2026-11-24
 
 1.9.6 adds Swedish and Korean. The rest is interface refinements and bug fixes.

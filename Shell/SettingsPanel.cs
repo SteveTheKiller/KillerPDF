@@ -234,6 +234,8 @@ namespace KillerPDF.Shell
             // The 98SE pane reaches the frame while rounded themes retain an 8px outer gutter.
             // Reapply the saved sidebar side so switching away from 98SE restores that right edge.
             ApplySidebarSide();
+            // The What's new notes clip is a local value cut to the old theme's corner.
+            ClipWhatsNewNotes();
             // Refresh snapshot FindResource calls that were set as local values.
             // SetResourceReference bindings update automatically; sidebar tabs and
             // active tool button background still need an explicit refresh.
