@@ -16,6 +16,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Editing existing text keeps its real typeface and weight when the PDF hides them behind generic names, as Word exports do. Bold Arial stays bold Arial instead of turning into plain Segoe UI (#431).
 - While editing text, the font list no longer closes on a click or the mouse wheel, a font-only change on a scanned line sticks, and More settings stays open. Closing More settings with a click no longer leaves the window ignoring the mouse (#467).
 - Making a new folder in the file dialog no longer freezes the window on a share that stopped answering.
+- Import form data reads FDF files from pdftk, fdfgen and other tools that leave out the cross-reference table (#525, thanks @jayhemnani9910).
+- Pages and notes dated with an hour-only time zone, like `+01`, merge and take new comments instead of being refused (#524, thanks @andretorresdg).
 - Large tiled JPEG 2000 images use far less memory again, 134 MB instead of 361 MB for a large scan.
 - Pinch zoom on a touchpad holds the page still instead of letting the text jump (#494).
 - Ctrl+click adds marks to a selection like Shift+click, and a single text box's card shows Arrange (#504).
