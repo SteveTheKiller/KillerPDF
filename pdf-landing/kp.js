@@ -278,6 +278,11 @@
     sl: '<svg viewBox="0 0 24 24"><rect width="24" height="8" fill="#fff"/><rect y="8" width="24" height="8" fill="#005da4"/><rect y="16" width="24" height="8" fill="#ed1c24"/><path d="M4 5h7v5c0 3-3.5 4-3.5 4S4 13 4 10z" fill="#005da4" stroke="#ed1c24" stroke-width=".6"/><path d="M4.8 10l1.5-2 1.2 1 1.2-1 1.5 2z" fill="#fff"/></svg>',
     it: '<svg viewBox="0 0 24 24"><rect width="8" height="24" fill="#009246"/><rect x="8" width="8" height="24" fill="#fff"/><rect x="16" width="8" height="24" fill="#ce2b37"/></svg>'
   };
+  // Each menu row leads with the same round flag the toggle shows.
+  [].forEach.call(document.querySelectorAll('.lang-item[data-lang]'), function (b) {
+    var f = FLAGS[b.dataset.lang];
+    if (f && !b.querySelector('.lang-flag')) b.insertAdjacentHTML('afterbegin', '<span class="lang-flag" aria-hidden="true">' + f + '</span>');
+  });
   var langItems = [].slice.call(document.querySelectorAll('.lang-item'));
   var langToggle = document.getElementById('langToggle');
   var langMenu = document.getElementById('langMenu');
