@@ -3,22 +3,27 @@
 (function () {
   var root = document.documentElement;
   var scriptBase = document.currentScript ? new URL('.', document.currentScript.src).href : '/';
-  var THEMES = ['dark','light','hc','blood','greed','cyanotic','ectoplasm','decay','malaise','sepulchre','delirium','mourning'];
-  var NEUTRAL = ['dark','light','hc'];
+  var THEMES = ['dark','light','hc','blood','greed','cyanotic','ectoplasm','decay','malaise','sepulchre','delirium','mourning','trashpolka'];
+  // Themes that take an accent. Trash Polka keeps its own accent, stored apart from the others.
+  var NEUTRAL = ['dark','light','hc','trashpolka'];
+  var TP_ACCENT_KEY = 'kpdf-tp-accent';
   var THEMED = ['blood','greed','cyanotic','ectoplasm','decay','malaise','sepulchre','delirium','mourning'];  // fixed-color wordmark art
   // Per-family palette copied from the app: [ Accent (bright: text/links/logo/outlines), SelectionBg (darker fill: solid buttons, selected tab edges) ].
   var ACCENTS = {
     dark:  { red:['#FF7C77','#5E1C1C'], orange:['#E8962C','#F29A28'], yellow:['#EAD900','#F2E500'], green:['#22BB56','#1C5E38'], teal:['#1FB8A8','#1C5E5C'], blue:['#50AEE8','#1C3B5E'], purple:['#C08FE6','#411C5E'], magenta:['#FF6CD1','#FF2BBD'] },
     light: { red:['#901A1A','#901A1A'], orange:['#E8962C','#E8962C'], yellow:['#F2C500','#F2C500'], green:['#18541D','#18541D'], teal:['#085250','#085250'], blue:['#134D73','#134D73'], purple:['#5A1690','#5A1690'], magenta:['#8F0061','#8F0061'] },
-    hc:    { red:['#FF3131','#FF3131'], orange:['#FF910A','#FF910A'], yellow:['#FFEB00','#FFEB00'], green:['#00FF66','#00FF66'], teal:['#0AFFE7','#0AFFE7'], blue:['#298DFF','#298DFF'], purple:['#C34AFF','#C34AFF'], magenta:['#FF2BBD','#FF2BBD'] }
+    hc:    { red:['#FF3131','#FF3131'], orange:['#FF910A','#FF910A'], yellow:['#FFEB00','#FFEB00'], green:['#00FF66','#00FF66'], teal:['#0AFFE7','#0AFFE7'], blue:['#298DFF','#298DFF'], purple:['#C34AFF','#C34AFF'], magenta:['#FF2BBD','#FF2BBD'] },
+    // Trash Polka: hover and pressed stay on the base color, like the app.
+    trashpolka: { red:['#D7263D','#D7263D'], orange:['#EE7B22','#EE7B22'], yellow:['#EED500','#EED500'], green:['#7A9A3A','#7A9A3A'], teal:['#1E9A96','#1E9A96'], blue:['#3A6FD0','#3A6FD0'], purple:['#8A4CC2','#8A4CC2'], magenta:['#E4588E','#E4588E'] }
   };
   // SelectionBg (muted accent) for inactive tab/card edges; brightens to accent on hover. Mirrors KillerTools themes.ts.
   var SEL = {
     dark:  { red:'#5E1C1C', orange:'#5E3B16', yellow:'#2A2908', green:'#1C5E38', teal:'#1C5E5C', blue:'#1C3B5E', purple:'#411C5E', magenta:'#2A0D24' },
     light: { red:'#901A1A', orange:'#E8962C', yellow:'#F2C500', green:'#18541D', teal:'#085250', blue:'#134D73', purple:'#5A1690', magenta:'#8F0061' },
-    hc:    { red:'#380000', orange:'#4E2900', yellow:'#2E2B00', green:'#003314', teal:'#003832', blue:'#0A2C50', purple:'#250038', magenta:'#2E0022' }
+    hc:    { red:'#380000', orange:'#4E2900', yellow:'#2E2B00', green:'#003314', teal:'#003832', blue:'#0A2C50', purple:'#250038', magenta:'#2E0022' },
+    trashpolka: { red:'#4A1218', orange:'#55300E', yellow:'#EED500', green:'#303A1D', teal:'#153A39', blue:'#1D2D4A', purple:'#352346', magenta:'#502636' }
   };
-  function famFor(t) { return t === 'light' ? 'light' : t === 'hc' ? 'hc' : 'dark'; }
+  function famFor(t) { return t === 'light' ? 'light' : t === 'hc' ? 'hc' : t === 'trashpolka' ? 'trashpolka' : 'dark'; }
   // Text on an accent fill uses white or near-black, whichever contrasts more with that fill.
   // Swatches and filled buttons use a deeper red than the dark red accent text, which stays light for contrast.
   var FILL = { '#FF7C77': '#EA524C' };
@@ -116,7 +121,8 @@
     var theme = root.getAttribute('data-theme');
     var fam = famFor(theme);
     if (!ACCENTS[fam][name]) name = 'green';
-    ['dark', 'light', 'hc'].forEach(function (neutralTheme) {
+    ['dark', 'light', 'hc', 'trashpolka'].forEach(function (neutralTheme) {
+      if ((neutralTheme === 'trashpolka') !== (fam === 'trashpolka')) return;
       var preview = ACCENTS[neutralTheme][name];
       if (preview) document.querySelectorAll('.sw-' + neutralTheme).forEach(function (dot) {
         dot.style.setProperty('--sw-accent', neutralTheme === 'light' && name === 'yellow' ? 'linear-gradient(#FFF5A3, #FFD43B)' : fillOf(preview[0]));
@@ -150,7 +156,8 @@
       d.setAttribute('aria-pressed', d.dataset.accent === name ? 'true' : 'false');
     });
     if (accToggle) { accToggle.style.background = fam === 'light' && name === 'yellow' ? '#EAD900' : fillOf(pair[0]); accToggle.title = 'Accent color'; }
-    try { localStorage.setItem('kpdf-accent', name); } catch (e) {}
+    try { localStorage.setItem(fam === 'trashpolka' ? TP_ACCENT_KEY : 'kpdf-accent', name); } catch (e) {}
+    if (window.TrashPolka) { if (fam === 'trashpolka') window.TrashPolka.apply(pair[0]); else window.TrashPolka.clear(); }
     updateLogos();
     syncLocalPreviewLinks();
   }
@@ -162,7 +169,8 @@
       // AccentLogo resource (make-logo-svgs.py --themes).
       src = scriptBase + 'brand/killerpdf-logo-' + theme + '.svg';
     } else {
-      var variant = theme === 'light' ? 'light' : theme === 'hc' ? 'black' : 'dark';
+      // Trash Polka has no wordmark art of its own yet, so it uses the Black one in its accent.
+      var variant = theme === 'light' ? 'light' : (theme === 'hc' || theme === 'trashpolka') ? 'black' : 'dark';
       var color = (NEUTRAL.indexOf(theme) >= 0) ? curAccent : 'green';
       src = scriptBase + 'brand/killerpdf-logo-' + variant + '-' + color + '.svg';
     }
@@ -173,6 +181,12 @@
 
   function setTheme(name) {
     if (THEMES.indexOf(name) < 0) name = 'dark';
+    var wasTp = root.getAttribute('data-theme') === 'trashpolka';
+    if ((name === 'trashpolka') !== wasTp) {
+      var stored = null;
+      try { stored = localStorage.getItem(name === 'trashpolka' ? TP_ACCENT_KEY : 'kpdf-accent'); } catch (e) {}
+      curAccent = stored || (name === 'trashpolka' ? 'red' : 'green');
+    }
     root.setAttribute('data-theme', name);
     try { localStorage.setItem('kpdf-theme', name); } catch (e) {}
     swatches.forEach(function (s) { s.setAttribute('aria-pressed', s.dataset.theme === name ? 'true' : 'false'); });
@@ -493,6 +507,10 @@
   try { savedTheme = savedTheme || localStorage.getItem('kpdf-theme'); } catch (e) {}
   try { savedAccent = savedAccent || localStorage.getItem('kpdf-accent'); } catch (e) {}
   savedTheme = savedTheme || 'dark';
+  if (savedTheme === 'trashpolka' && !localPreviewSetting('accent')) {
+    try { savedAccent = localStorage.getItem(TP_ACCENT_KEY); } catch (e) { savedAccent = null; }
+    savedAccent = savedAccent || 'red';
+  }
   savedAccent = savedAccent || 'green';
   try { savedLang = localStorage.getItem('kpdf-lang') || 'en'; } catch (e) {}
   curAccent = savedAccent;

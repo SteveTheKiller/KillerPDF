@@ -110,6 +110,7 @@ html[data-theme="light"] .page-title { text-shadow: none; }
 .sw-ectoplasm { background:#5e1764; --sw-accent:#ead900; } .sw-decay { background:#403f3b; --sw-accent:#d1c8aa; }
 .sw-malaise { background:#563343; --sw-accent:#ffb4c6; } .sw-sepulchre { background:#3a352f; --sw-accent:#8ccac8; }
 .sw-delirium { background:#641d25; --sw-accent:#f29200; } .sw-mourning { background:#554c5d; --sw-accent:#ffa9bd; }
+.sw-trashpolka { background:#000; --sw-accent:#D7263D; }
 .acc { width: 17px; height: 17px; border-radius: 50%; cursor: pointer; border: 2px solid rgba(255,255,255,0.25); padding: 0; transition: transform 0.12s; }
 html[data-theme="light"] .acc[data-accent="yellow"] { background: #EAD900 !important; color: #EAD900 !important; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55)); }
 .acc:hover { transform: scale(1.18); }
@@ -989,4 +990,66 @@ html[data-theme] body .content .source-links a:hover {
   border-color: var(--pane-border);
   transform: translateY(-3px);
   box-shadow: 0 0 0 1px var(--accent), 0 20px 40px rgba(0,0,0,.5);
+}
+
+/* Trash Polka: Steve's tattoo theme, ported from KillerUI (Controls/TrashPolkaInk.cs) through
+   killertools.net. trash-polka.js draws the pieces in the chosen accent and sets --tp-page,
+   --tp-chrome, --tp-card, --tp-popup and --tp-size. Window surfaces pin the ink to the viewport
+   like the apps pin it to the window; popups draw from their own corner. A flat gray pane here
+   means a layer lost its ink, which is a bug, not a style. */
+html[data-theme="trashpolka"] { --bg:#333333; --surface:#121212; --panel:#3a3a3a; --sidebar:#000000; --canvas:#333333; --border:#404040; --pane-border:#2e2e2e; --dragline:#404040; --tab-edge:var(--sel,var(--btn)); --accent:#D7263D; --accent-text:#ffffff; --text:#f2f2f2; --text2:#bdbdbd; --muted:#bdbdbd; --footer-text:#bdbdbd; --danger:#ff5360; --grain:0.26; --btn:#D7263D; --btn-text:#ffffff; --logo-pdf:var(--accent); --chrome:#000000; --chrome-bg:#000000; --modal:#121212; --fade:rgba(0,0,0,0.6); --card-edge:#404040; }
+html[data-theme="trashpolka"][data-theme] body .content {
+  background-color: var(--bg);
+  background-image: var(--grain-img), var(--tp-page, none);
+  background-repeat: repeat, no-repeat;
+  background-size: 256px 256px, var(--tp-size, cover);
+  background-position: 0 0, 0 0;
+  background-attachment: fixed, fixed;
+}
+html[data-theme="trashpolka"][data-theme] body .shell,
+html[data-theme="trashpolka"][data-theme] body .topbar,
+html[data-theme="trashpolka"][data-theme] body .statusbar {
+  background-color: var(--chrome);
+  background-image: var(--tp-chrome, none);
+  background-repeat: no-repeat;
+  background-size: var(--tp-size, cover);
+  background-position: 0 0;
+  background-attachment: fixed;
+}
+html[data-theme="trashpolka"][data-theme] body .content .hero-info,
+html[data-theme="trashpolka"][data-theme] body .content .about-card,
+html[data-theme="trashpolka"][data-theme] body .content .codeblock,
+html[data-theme="trashpolka"][data-theme] body .content .code-block,
+html[data-theme="trashpolka"][data-theme] body .content .diagram,
+html[data-theme="trashpolka"][data-theme] body .content .tech-sec,
+html[data-theme="trashpolka"][data-theme] body .content .acc-item,
+html[data-theme="trashpolka"][data-theme] body .content .engine-doc pre,
+html[data-theme="trashpolka"][data-theme] body .content .doc-pager a,
+html[data-theme="trashpolka"][data-theme] body .content .feature-card,
+html[data-theme="trashpolka"][data-theme] body .content .feature-stage,
+html[data-theme="trashpolka"][data-theme] body .content .engine-intro,
+html[data-theme="trashpolka"][data-theme] body .content .result,
+html[data-theme="trashpolka"][data-theme] body .content .metric,
+html[data-theme="trashpolka"][data-theme] body .content .provenance-group,
+html[data-theme="trashpolka"][data-theme] body .content .source-links a {
+  background-color: var(--surface);
+  background-image: var(--grain-img), var(--tp-card, none);
+  background-repeat: repeat, no-repeat;
+  background-size: 256px 256px, var(--tp-size, cover);
+  background-position: 0 0, 0 0;
+  background-attachment: fixed, fixed;
+}
+/* A transform breaks fixed attachment (the ink would jump into the card's frame), so cards keep
+   the accent edge and shadow on hover but drop the lift. */
+html[data-theme="trashpolka"][data-theme] body .content *:hover { transform: none; }
+html[data-theme="trashpolka"][data-theme] .lang-menu,
+html[data-theme="trashpolka"][data-theme] .tb-more-menu,
+html[data-theme="trashpolka"][data-theme] .topbar .tgrp.open,
+html[data-theme="trashpolka"][data-theme] .accent-bar .pill {
+  background-color: var(--modal);
+  background-image: var(--grain-img), var(--tp-popup, none);
+  background-repeat: repeat, no-repeat;
+  background-size: 256px 256px, var(--tp-size, cover);
+  background-position: 0 0, 0 0;
+  background-attachment: local, local;
 }

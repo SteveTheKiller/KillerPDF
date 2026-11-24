@@ -143,8 +143,9 @@
   }
 
   function themeButtons() {
-    return ['dark','light','hc','blood','greed','cyanotic','ectoplasm','decay','malaise','sepulchre','delirium','mourning'].map(function (name) {
-      return '<button class="swatch sw-' + name + '" data-theme="' + name + '" title="' + name.charAt(0).toUpperCase() + name.slice(1) + '"></button>';
+    return ['dark','light','hc','blood','greed','cyanotic','ectoplasm','decay','malaise','sepulchre','delirium','mourning','trashpolka'].map(function (name) {
+      var title = name === 'trashpolka' ? 'Trash Polka' : name.charAt(0).toUpperCase() + name.slice(1);
+      return '<button class="swatch sw-' + name + '" data-theme="' + name + '" title="' + title + '"></button>';
     }).join('');
   }
 
@@ -310,5 +311,6 @@
   }
   loadDocsL10n();
   loadSharedScript('../kp-i18n.js?v=30');
-  loadSharedScript('../kp.js?v=19');
+  loadSharedScript('../trash-polka.js?v=1');
+  loadSharedScript('../kp.js?v=23');
 })(window);
