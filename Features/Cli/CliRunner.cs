@@ -154,7 +154,6 @@ namespace KillerPDF.Features
                 con = shellOutput;
                 CommandLineCrash.Console = con;
             }
-            if (CliSecrets.CommandLineWarning(options) is { } passwordWarning) con.WriteLine(passwordWarning);
             if (options.ContainsKey(CliSecrets.Option))
             {
                 // UTF-8, not the console code page, so passwords outside ASCII arrive intact.
