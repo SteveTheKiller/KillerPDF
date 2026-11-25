@@ -106,8 +106,9 @@ namespace KillerPDF.Shell
 
         private const double GlyphSmall = 14;
         private const double GlyphLarge = 20;
-        private const double CaptionBeside = 16;
-        private const double CaptionUnder = 14;
+        // The caption sizes are theme resources, so they follow the interface language (#490).
+        private const string CaptionBeside = "ToolbarCaptionFontSize";
+        private const string CaptionUnder = "ToolbarCaptionUnderFontSize";
         private const double CaptionUnderMaxWidth = 96;
 
         // ---- app hooks ----
@@ -269,10 +270,11 @@ namespace KillerPDF.Shell
             };
         }
 
-        private static TextBlock ToolbarCaption(string label, double size)
+        private static TextBlock ToolbarCaption(string label, string sizeKey)
         {
-            var text = new TextBlock { Text = label, FontSize = size, VerticalAlignment = VerticalAlignment.Center };
+            var text = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center };
             text.SetResourceReference(TextBlock.FontFamilyProperty, "BrandSansFont");
+            text.SetResourceReference(TextBlock.FontSizeProperty, sizeKey);
             return text;
         }
 

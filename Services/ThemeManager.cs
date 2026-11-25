@@ -1067,9 +1067,10 @@ namespace KillerPDF.Services
             // theme keeps its caption font beside its plain title.
             bool flatTitle = combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool ft && ft;
             SetIfAbsent("FileNameFont", flatTitle ? combined["ChromeFontFamily"] : KillerSansTitleStack);
-            // Chinese and Japanese ideographs fill the em box, so the title's file name drops to 16 to sit
-            // at the size Latin names read at 18 (#490).
-            SetIfAbsent("FileNameFontSize", flatTitle ? 11.0 : UiFontStack.IsCjk(UiLanguage) ? 16.0 : 18.0);
+            SetIfAbsent("FileNameFontSize", flatTitle ? 11.0 : UiFontStack.TitleFontSize(UiLanguage));
+            // Toolbar captions take a size smaller for CJK text, like the title (#490).
+            SetIfAbsent("ToolbarCaptionFontSize", UiFontStack.ToolbarCaptionSize(UiLanguage, under: false));
+            SetIfAbsent("ToolbarCaptionUnderFontSize", UiFontStack.ToolbarCaptionSize(UiLanguage, under: true));
             // The status bar's page and zoom line takes the same step for CJK text.
             SetIfAbsent("StatusFontSize", UiFontStack.StatusFontSize(UiLanguage));
             if (!combined.Contains("FileNameTransform"))

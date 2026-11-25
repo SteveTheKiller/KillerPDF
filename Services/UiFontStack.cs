@@ -36,6 +36,14 @@ namespace KillerPDF.Services
         internal static bool IsCjk(string? cultureName) =>
             IsLanguage(cultureName ?? "", "zh") || IsLanguage(cultureName ?? "", "ja") || IsLanguage(cultureName ?? "", "ko");
 
+        /// <summary>The title bar's file name: 18, or 15 for CJK, whose ideographs read larger at the same size
+        /// (#490).</summary>
+        internal static double TitleFontSize(string? cultureName) => IsCjk(cultureName) ? 15.0 : 18.0;
+
+        /// <summary>Toolbar captions: 16 beside the icon and 14 under it, one size smaller each for CJK (#490).</summary>
+        internal static double ToolbarCaptionSize(string? cultureName, bool under) =>
+            (under ? 14.0 : 16.0) - (IsCjk(cultureName) ? 1.0 : 0.0);
+
         /// <summary>The status bar's page and zoom line: 16, or 14 for CJK, whose fallback face reads a size
         /// larger than Killer Sans at the same size.</summary>
         internal static double StatusFontSize(string? cultureName) => IsCjk(cultureName) ? 14.0 : 16.0;

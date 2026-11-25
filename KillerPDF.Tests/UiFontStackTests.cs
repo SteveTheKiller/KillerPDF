@@ -108,6 +108,35 @@ public sealed class UiFontStackTests
     public void TheStatusLineDropsASizeForCjk(string? language, double size) =>
         Assert.Equal(size, UiFontStack.StatusFontSize(language));
 
+    // #490: the reporter, on Simplified Chinese at 150%, found the title and the toolbar captions still a size too big
+    // in 1.9.6. Every CJK language takes them a size smaller.
+    [Theory]
+    [InlineData("zh-CN", 15.0, 15.0, 13.0)]
+    [InlineData("zh-TW", 15.0, 15.0, 13.0)]
+    [InlineData("ja-JP", 15.0, 15.0, 13.0)]
+    [InlineData("ko-KR", 15.0, 15.0, 13.0)]
+    [InlineData("en-US", 18.0, 16.0, 14.0)]
+    [InlineData(null, 18.0, 16.0, 14.0)]
+    public void TheTitleAndToolbarCaptionsDropASizeForCjk(string? language, double title, double beside, double under)
+    {
+        Assert.Equal(title, UiFontStack.TitleFontSize(language));
+        Assert.Equal(beside, UiFontStack.ToolbarCaptionSize(language, under: false));
+        Assert.Equal(under, UiFontStack.ToolbarCaptionSize(language, under: true));
+    }
+
+    [Fact]
+    public void ToolbarCaptionsReadTheirSizeFromTheTheme()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "KillerPDF.sln"))) dir = dir.Parent;
+        string toolbar = File.ReadAllText(Path.Combine(dir!.FullName, "Shell", "ToolbarStyle.cs"));
+        Assert.Contains("text.SetResourceReference(TextBlock.FontSizeProperty, sizeKey);", toolbar);
+        string theme = File.ReadAllText(Path.Combine(dir.FullName, "Services", "ThemeManager.cs"));
+        Assert.Contains("SetIfAbsent(\"FileNameFontSize\", flatTitle ? 11.0 : UiFontStack.TitleFontSize(UiLanguage));", theme);
+        Assert.Contains("SetIfAbsent(\"ToolbarCaptionFontSize\", UiFontStack.ToolbarCaptionSize(UiLanguage, under: false));", theme);
+        Assert.Contains("SetIfAbsent(\"ToolbarCaptionUnderFontSize\", UiFontStack.ToolbarCaptionSize(UiLanguage, under: true));", theme);
+    }
+
     [Fact]
     public void TheStatusLineReadsItsSizeFromTheTheme()
     {
