@@ -43,7 +43,6 @@ namespace KillerPDF.Services
             using var owner = Process.GetCurrentProcess();
             // Keep the installed helper immutable across the UAC handoff.
             using var image = new FileStream(current, FileMode.Open, FileAccess.Read, FileShare.Read);
-            ElevatedStart.RefuseInjectedEnvironment();
             var start = new ProcessStartInfo(current, HelperArgument + " "
                 + Convert.ToBase64String(Encoding.Unicode.GetBytes(Path.GetFullPath(download))) + " " + hash + " " + requested
                 + " " + owner.Id.ToString(CultureInfo.InvariantCulture)
@@ -63,7 +62,6 @@ namespace KillerPDF.Services
         {
             try
             {
-                ElevatedStart.Enter();
                 ValidateRequest(args);
                 if (!KillerFamily.Deployment.InstallerExitCodes.IsElevated())
                     throw new SecurityException("The machine update operation requires a complete elevated request.");

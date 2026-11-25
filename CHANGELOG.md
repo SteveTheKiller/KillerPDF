@@ -13,7 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A link in a PDF opens exactly the address KillerPDF checked, not the raw text the PDF stored.
 - A signature made with a certificate whose stated uses leave out document signing, such as a web server certificate, is no longer shown as trusted. Certificates that state no uses, or allow email protection, code signing or document signing, are checked as before.
 - The setup program loads system libraries only from Windows' own folder, so a library planted next to it in Downloads is never picked up.
-- An install, uninstall or update that asks for administrator rights stops if your environment sets a variable that makes .NET load extra code, such as `DOTNET_STARTUP_HOOKS`, `DOTNET_ROOT` or a profiler, and names the variable to remove. KillerPDF also ignores startup hooks altogether, and the headless administrator steps load system libraries only from Windows' own folder.
+- An update must be signed with the publisher's own signing key, not just a certificate in the publisher's name from the same authority. An update installed for all users also stops when the certificate authority can't be reached to confirm the certificate hasn't been revoked; a per-user update still goes ahead.
 
 ### Fixed
 

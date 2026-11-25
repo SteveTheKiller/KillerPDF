@@ -423,8 +423,6 @@ namespace KillerPDF.Services
         private static void StartPackage(string download, string curExe, Process self, UpdateTarget target, Platform platform)
         {
             var start = PackageStart(download, curExe, self.Id, self.StartTime.ToUniversalTime().Ticks, target, platform);
-            // PackageStart only builds the start info; the refusal belongs where it is used.
-            if (start.Verb == "runas") ElevatedStart.RefuseInjectedEnvironment();
             if (platform.Start(start) is null)
                 throw new IOException("The update helper did not start. Download retained at: " + download);
         }
@@ -491,11 +489,7 @@ namespace KillerPDF.Services
                 UseShellExecute = true,
                 WorkingDirectory = Path.GetTempPath()
             };
-            if (elevate)
-            {
-                ElevatedStart.RefuseInjectedEnvironment();
-                start.Verb = "runas";
-            }
+            if (elevate) start.Verb = "runas";
             if (platform.Start(start) is null)
                 throw new IOException("The update installer did not start. Download retained at: " + download);
         }

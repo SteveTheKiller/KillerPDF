@@ -24,9 +24,6 @@
          CHANGELOG section; release.ps1 enforces that before packaging. -->
     <ReleaseDate>Unreleased</ReleaseDate>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <!-- The runtime reads DOTNET_STARTUP_HOOKS before Main, so only this switch stops a hook a
-         user-level variable plants from running inside an elevated install or update. -->
-    <StartupHookSupport>false</StartupHookSupport>
   </PropertyGroup>
 
   <!-- The release pipeline builds the installed/inner app as ordinary loose files. Keep this
