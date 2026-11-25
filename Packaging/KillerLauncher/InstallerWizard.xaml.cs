@@ -66,6 +66,7 @@ namespace KillerLauncher
                 DesktopShortcut.IsChecked = _existing.DesktopShortcut;
                 PreviewHandler.IsChecked = _existing.PreviewHandler;
             }
+            UpdatePreviewLabel();
             if (Program.IsStorePackage)
             {
                 PreviewHandler.IsChecked = false;
@@ -267,8 +268,19 @@ namespace KillerLauncher
             }
         }
 
+        // Classic Outlook only finds preview handlers registered for the whole machine (#410), so a per-user
+        // install promises File Explorer alone.
+        private void UpdatePreviewLabel()
+        {
+            if (PreviewHandlerLabel == null || AllUsers == null) return;
+            PreviewHandlerLabel.Text = AllUsers.IsChecked == true
+                ? LauncherStrings.Get("PreviewHandler")
+                : LauncherStrings.Get("PreviewHandlerExplorer");
+        }
+
         private void Scope_Checked(object sender, RoutedEventArgs e)
         {
+            UpdatePreviewLabel();
             if (NoticeOpen) return;
             if (InstallFolder == null) return;
             string user = Program.DefaultInstallDirectory(false);

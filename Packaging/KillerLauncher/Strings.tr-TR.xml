@@ -10,6 +10,7 @@
   <string key="Browse">Gözat...</string>
   <string key="DesktopShortcut">Masaüstü kısayolu oluştur</string>
   <string key="PreviewHandler">Dosya Gezgini ve Outlook'ta PDF önizleme</string>
+  <string key="PreviewHandlerExplorer">Dosya Gezgini'nde PDF önizleme</string>
   <string key="InstallingLabel">YÜKLENİYOR</string>
   <string key="Back">Geri</string>
   <string key="Cancel">İptal</string>

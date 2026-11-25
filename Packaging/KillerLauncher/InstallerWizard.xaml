@@ -164,7 +164,7 @@
                                     <Button Grid.Column="1" Content="{local:Loc Browse}" Style="{StaticResource WizardButton}" Height="27" MinWidth="72" Click="Browse_Click"/>
                                 </Grid>
                                 <CheckBox x:Name="DesktopShortcut" IsChecked="True"><TextBlock Text="{local:Loc DesktopShortcut}" TextWrapping="Wrap"/></CheckBox>
-                                <CheckBox x:Name="PreviewHandler"><TextBlock Text="{local:Loc PreviewHandler}" TextWrapping="Wrap"/></CheckBox>
+                                <CheckBox x:Name="PreviewHandler"><TextBlock x:Name="PreviewHandlerLabel" Text="{local:Loc PreviewHandlerExplorer}" TextWrapping="Wrap"/></CheckBox>
                             </StackPanel>
                             <Grid Grid.Row="3" Margin="0,6,0,9" MinHeight="14">
                                 <TextBlock x:Name="RuntimeStatus" TextWrapping="Wrap" FontFamily="Consolas" FontSize="10.5" HorizontalAlignment="Right"/>

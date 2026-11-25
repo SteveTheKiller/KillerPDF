@@ -10,6 +10,7 @@
   <string key="Browse">Duyệt...</string>
   <string key="DesktopShortcut">Tạo lối tắt trên màn hình nền</string>
   <string key="PreviewHandler">Xem trước PDF trong File Explorer và Outlook</string>
+  <string key="PreviewHandlerExplorer">Xem trước PDF trong File Explorer</string>
   <string key="InstallingLabel">ĐANG CÀI ĐẶT</string>
   <string key="Back">Quay lại</string>
   <string key="Cancel">Hủy</string>

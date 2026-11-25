@@ -10,6 +10,7 @@
   <string key="Browse">Examinar...</string>
   <string key="DesktopShortcut">Crear un acceso directo en el escritorio</string>
   <string key="PreviewHandler">Vista previa de PDF en el Explorador de archivos y Outlook</string>
+  <string key="PreviewHandlerExplorer">Vista previa de PDF en el Explorador de archivos</string>
   <string key="InstallingLabel">INSTALANDO</string>
   <string key="Back">Atrás</string>
   <string key="Cancel">Cancelar</string>

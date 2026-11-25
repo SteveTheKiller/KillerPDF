@@ -10,6 +10,7 @@
   <string key="Browse">Sfoglia...</string>
   <string key="DesktopShortcut">Crea collegamento programma sul desktop</string>
   <string key="PreviewHandler">Anteprima dei PDF in Esplora file e Outlook</string>
+  <string key="PreviewHandlerExplorer">Anteprima dei PDF in Esplora file</string>
   <string key="InstallingLabel">INSTALLAZIONE</string>
   <string key="Back">Indietro</string>
   <string key="Cancel">Annulla</string>

@@ -10,6 +10,7 @@
   <string key="Browse">Шолу...</string>
   <string key="DesktopShortcut">Жұмыс үстелінде төте жол жасау</string>
   <string key="PreviewHandler">Файл зерттеушісі мен Outlook-та PDF-ті алдын ала қарау</string>
+  <string key="PreviewHandlerExplorer">Файл зерттеушісінде PDF-ті алдын ала қарау</string>
   <string key="InstallingLabel">ОРНАТЫЛУДА</string>
   <string key="Back">Артқа</string>
   <string key="Cancel">Болдырмау</string>

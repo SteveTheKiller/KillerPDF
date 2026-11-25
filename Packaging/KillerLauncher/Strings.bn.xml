@@ -10,6 +10,7 @@
   <string key="Browse">ব্রাউজ...</string>
   <string key="DesktopShortcut">ডেস্কটপ শর্টকাট তৈরি করুন</string>
   <string key="PreviewHandler">File Explorer ও Outlook-এ PDF প্রিভিউ দেখান</string>
+  <string key="PreviewHandlerExplorer">File Explorer-এ PDF প্রিভিউ দেখান</string>
   <string key="InstallingLabel">ইনস্টল হচ্ছে</string>
   <string key="Back">পেছনে</string>
   <string key="Cancel">বাতিল</string>

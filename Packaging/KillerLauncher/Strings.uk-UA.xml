@@ -10,6 +10,7 @@
   <string key="Browse">Огляд...</string>
   <string key="DesktopShortcut">Створити ярлик на робочому столі</string>
   <string key="PreviewHandler">Попередній перегляд PDF у Провіднику та Outlook</string>
+  <string key="PreviewHandlerExplorer">Попередній перегляд PDF у Провіднику</string>
   <string key="InstallingLabel">ВСТАНОВЛЕННЯ</string>
   <string key="Back">Назад</string>
   <string key="Cancel">Скасувати</string>

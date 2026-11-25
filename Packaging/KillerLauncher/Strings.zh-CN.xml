@@ -10,6 +10,7 @@
   <string key="Browse">浏览...</string>
   <string key="DesktopShortcut">创建桌面快捷方式</string>
   <string key="PreviewHandler">在文件资源管理器和 Outlook 中预览 PDF</string>
+  <string key="PreviewHandlerExplorer">在文件资源管理器中预览 PDF</string>
   <string key="InstallingLabel">正在安装</string>
   <string key="Back">返回</string>
   <string key="Cancel">取消</string>

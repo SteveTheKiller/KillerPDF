@@ -10,6 +10,7 @@
   <string key="Browse">Procházet...</string>
   <string key="DesktopShortcut">Vytvořit zástupce na ploše</string>
   <string key="PreviewHandler">Náhled PDF v Průzkumníku souborů a Outlooku</string>
+  <string key="PreviewHandlerExplorer">Náhled PDF v Průzkumníku souborů</string>
   <string key="InstallingLabel">INSTALACE</string>
   <string key="Back">Zpět</string>
   <string key="Cancel">Zrušit</string>

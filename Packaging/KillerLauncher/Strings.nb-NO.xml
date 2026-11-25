@@ -10,6 +10,7 @@
   <string key="Browse">Bla gjennom...</string>
   <string key="DesktopShortcut">Opprett en snarvei på skrivebordet</string>
   <string key="PreviewHandler">Forhåndsvis PDF-filer i Filutforsker og Outlook</string>
+  <string key="PreviewHandlerExplorer">Forhåndsvis PDF-filer i Filutforsker</string>
   <string key="InstallingLabel">INSTALLERER</string>
   <string key="Back">Tilbake</string>
   <string key="Cancel">Avbryt</string>

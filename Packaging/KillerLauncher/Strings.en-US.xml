@@ -10,6 +10,7 @@
   <string key="Browse">Browse...</string>
   <string key="DesktopShortcut">Create a desktop shortcut</string>
   <string key="PreviewHandler">Preview PDFs in File Explorer and Outlook</string>
+  <string key="PreviewHandlerExplorer">Preview PDFs in File Explorer</string>
   <string key="InstallingLabel">INSTALLING</string>
   <string key="Back">Back</string>
   <string key="Cancel">Cancel</string>

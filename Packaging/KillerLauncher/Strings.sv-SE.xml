@@ -10,6 +10,7 @@
   <string key="Browse">Bläddra...</string>
   <string key="DesktopShortcut">Skapa en genväg på skrivbordet</string>
   <string key="PreviewHandler">Förhandsgranska PDF-filer i Utforskaren och Outlook</string>
+  <string key="PreviewHandlerExplorer">Förhandsgranska PDF-filer i Utforskaren</string>
   <string key="InstallingLabel">INSTALLERAR</string>
   <string key="Back">Tillbaka</string>
   <string key="Cancel">Avbryt</string>

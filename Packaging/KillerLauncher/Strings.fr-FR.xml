@@ -10,6 +10,7 @@
   <string key="Browse">Parcourir...</string>
   <string key="DesktopShortcut">Créer un raccourci sur le bureau</string>
   <string key="PreviewHandler">Afficher l'aperçu des PDF dans l'Explorateur de fichiers et Outlook</string>
+  <string key="PreviewHandlerExplorer">Afficher l'aperçu des PDF dans l'Explorateur de fichiers</string>
   <string key="InstallingLabel">INSTALLATION</string>
   <string key="Back">Retour</string>
   <string key="Cancel">Annuler</string>

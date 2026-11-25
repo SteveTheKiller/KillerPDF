@@ -10,6 +10,7 @@
   <string key="Browse">Durchsuchen...</string>
   <string key="DesktopShortcut">Desktopverknüpfung erstellen</string>
   <string key="PreviewHandler">PDF-Vorschau im Datei-Explorer und in Outlook anzeigen</string>
+  <string key="PreviewHandlerExplorer">PDF-Vorschau im Datei-Explorer anzeigen</string>
   <string key="InstallingLabel">INSTALLATION</string>
   <string key="Back">Zurück</string>
   <string key="Cancel">Abbrechen</string>

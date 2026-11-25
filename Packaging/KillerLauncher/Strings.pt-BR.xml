@@ -10,6 +10,7 @@
   <string key="Browse">Procurar...</string>
   <string key="DesktopShortcut">Criar um atalho na área de trabalho</string>
   <string key="PreviewHandler">Visualizar PDFs no Explorador de Arquivos e no Outlook</string>
+  <string key="PreviewHandlerExplorer">Visualizar PDFs no Explorador de Arquivos</string>
   <string key="InstallingLabel">INSTALANDO</string>
   <string key="Back">Voltar</string>
   <string key="Cancel">Cancelar</string>

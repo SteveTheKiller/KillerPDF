@@ -10,6 +10,7 @@
   <string key="Browse">Przeglądaj...</string>
   <string key="DesktopShortcut">Utwórz skrót na pulpicie</string>
   <string key="PreviewHandler">Podgląd plików PDF w Eksploratorze plików i Outlooku</string>
+  <string key="PreviewHandlerExplorer">Podgląd plików PDF w Eksploratorze plików</string>
   <string key="InstallingLabel">INSTALOWANIE</string>
   <string key="Back">Wstecz</string>
   <string key="Cancel">Anuluj</string>

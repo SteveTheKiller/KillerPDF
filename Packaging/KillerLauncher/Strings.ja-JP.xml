@@ -10,6 +10,7 @@
   <string key="Browse">参照...</string>
   <string key="DesktopShortcut">デスクトップにショートカットを作成</string>
   <string key="PreviewHandler">エクスプローラーと Outlook で PDF をプレビュー</string>
+  <string key="PreviewHandlerExplorer">エクスプローラーで PDF をプレビュー</string>
   <string key="InstallingLabel">インストール中</string>
   <string key="Back">戻る</string>
   <string key="Cancel">キャンセル</string>

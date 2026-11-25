@@ -32,6 +32,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Small text is sharper. Once the view settles, the part of the page on screen is drawn at the monitor's exact pixel size, so the page is no longer scaled down from a larger picture (#526).
 - In Chinese, Japanese and Korean, the file name in the title bar and the toolbar captions are one size smaller, to match how Latin text reads at its size (#490).
 - With an all-users install, classic Outlook finds the PDF preview, including 32-bit Outlook. It only looks for preview handlers registered for the whole machine (#410).
+- A per-user install offers PDF previews in File Explorer only, since classic Outlook can't see a preview installed for one account (#410).
 
 ## [1.9.6] - 2026-11-24
 

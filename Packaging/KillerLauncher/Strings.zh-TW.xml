@@ -10,6 +10,7 @@
   <string key="Browse">瀏覽...</string>
   <string key="DesktopShortcut">建立桌面捷徑</string>
   <string key="PreviewHandler">在檔案總管和 Outlook 中預覽 PDF</string>
+  <string key="PreviewHandlerExplorer">在檔案總管中預覽 PDF</string>
   <string key="InstallingLabel">正在安裝</string>
   <string key="Back">返回</string>
   <string key="Cancel">取消</string>

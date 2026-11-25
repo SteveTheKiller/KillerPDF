@@ -10,6 +10,7 @@
   <string key="Browse">Tallózás...</string>
   <string key="DesktopShortcut">Asztali parancsikon létrehozása</string>
   <string key="PreviewHandler">PDF-előnézet a Fájlkezelőben és az Outlookban</string>
+  <string key="PreviewHandlerExplorer">PDF-előnézet a Fájlkezelőben</string>
   <string key="InstallingLabel">TELEPÍTÉS</string>
   <string key="Back">Vissza</string>
   <string key="Cancel">Mégse</string>
