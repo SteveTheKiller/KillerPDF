@@ -138,7 +138,6 @@
     <Compile Include="..\Services\PublicAddressGuard.cs" Link="Services\PublicAddressGuard.cs" />
     <Compile Include="..\Services\CrashTextScrub.cs" Link="Services\CrashTextScrub.cs" />
     <Compile Include="..\Services\ExternalLink.cs" Link="Services\ExternalLink.cs" />
-    <Compile Include="..\Services\VerifiedFileHold.cs" Link="Services\VerifiedFileHold.cs" />
     <Compile Include="..\Services\BrowserHostTrust.cs" Link="Services\BrowserHostTrust.cs" />
     <Compile Include="..\Services\MacroRedactionPass.cs" Link="Services\MacroRedactionPass.cs" />
     <Compile Include="..\Services\PerspectiveWarp.cs" Link="Services\PerspectiveWarp.cs" />

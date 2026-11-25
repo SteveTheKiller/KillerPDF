@@ -86,10 +86,9 @@ namespace KillerPDF.Services
                     {
                         string file = res[NativePrefix.Length..];
                         // Tesseract's loader looks in the x64 subfolder; the flat copy covers any loader
-                        // path that does not append the platform name. Each copy is held open for the life
-                        // of the process from its hash check on, so nothing can swap it before a load.
-                        Hold(asm, res, Path.Combine(nativeDir, file));
-                        Hold(asm, res, Path.Combine(baseDir, file));
+                        // path that does not append the platform name.
+                        ExtractResource(asm, res, Path.Combine(nativeDir, file), onlyIfMissing: false);
+                        ExtractResource(asm, res, Path.Combine(baseDir, file), onlyIfMissing: false);
                     }
                 }
 
@@ -116,24 +115,24 @@ namespace KillerPDF.Services
             }
         }
 
-        // The verified native files, held so no other process can replace them while the app runs.
-        private static readonly List<FileStream> _nativeHolds = [];
-
-        private static void Hold(Assembly asm, string resourceName, string targetPath)
-        {
-            using var src = asm.GetManifestResourceStream(resourceName);
-            if (src == null) return;
-            _nativeHolds.Add(VerifiedFileHold.Open(src, targetPath));
-        }
-
         private static void ExtractResource(Assembly asm, string resourceName, string targetPath, bool onlyIfMissing)
         {
             // Language data is extracted only-if-missing: a user-downloaded pack (e.g. a high-quality model,
-            // or an HQ English) must never be clobbered by the bundled copy on the next launch.
+            // or an HQ English) must never be clobbered by the bundled copy on the next launch. Native libs
+            // are hash-checked so a same-length replacement cannot be trusted.
             if (onlyIfMissing && File.Exists(targetPath)) return;
 
             using var src = asm.GetManifestResourceStream(resourceName);
             if (src == null) return;
+
+            if (!onlyIfMissing && File.Exists(targetPath))
+            {
+                byte[] expectedHash = SHA256.HashData(src);
+                using var existing = File.OpenRead(targetPath);
+                byte[] existingHash = SHA256.HashData(existing);
+                if (CryptographicOperations.FixedTimeEquals(expectedHash, existingHash)) return;
+                src.Position = 0;
+            }
 
             string tmp = targetPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try

@@ -10,7 +10,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - Deleting pages, removing a link or comment, and editing text in place save the file as one clean revision, so the removed content can no longer be recovered from an earlier revision inside the file. A signed PDF keeps the old way of saving, which leaves its signatures valid.
 - Before it downloads a PDF a website sent with a `killerpdf://` link, KillerPDF names the site and asks. "Always open PDFs from this site" skips the question for that site from then on.
-- The OCR libraries are held open from the moment their contents are checked, so another program cannot swap them before KillerPDF loads them.
 - A link in a PDF opens exactly the address KillerPDF checked, not the raw text the PDF stored.
 - A password given on the command line, like `--password`, prints a warning that points to `--secrets-stdin`, which keeps it out of the process list and shell history.
 - A signature made with a certificate whose stated uses leave out document signing, such as a web server certificate, is no longer shown as trusted. Certificates that state no uses, or allow email protection, code signing or document signing, are checked as before.

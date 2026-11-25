@@ -19,10 +19,7 @@ public sealed class NativeLoadingSecurityTests
         Assert.Contains("LoadLibraryExW", ocr, StringComparison.Ordinal);
         Assert.Contains("LoadLibrarySearchDllLoadDir | LoadLibrarySearchSystem32", ocr,
             StringComparison.Ordinal);
-        string hold = File.ReadAllText(
-            Path.Combine(root, "Services", "VerifiedFileHold.cs"));
-        Assert.Contains("VerifiedFileHold.Open(", ocr, StringComparison.Ordinal);
-        Assert.Contains("SHA256.HashData", hold, StringComparison.Ordinal);
+        Assert.Contains("SHA256.HashData", ocr, StringComparison.Ordinal);
         Assert.DoesNotContain("SetDllDirectory", ocr, StringComparison.Ordinal);
         Assert.DoesNotContain("Directory.GetFiles(nativeDir", ocr, StringComparison.Ordinal);
     }
