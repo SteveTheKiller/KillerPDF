@@ -149,21 +149,15 @@ public sealed class UiFontStackTests
         Assert.Contains(">Killer Sans UI " + tag + "<", File.ReadAllText(file));
     }
 
-    // A theme's system face (98SE's Microsoft Sans Serif) scales CJK through a family built in code.
+    // Menus, dialogs and buttons draw at 10 to 13, where 90% clogs CJK strokes, so the UI stack and a theme's own
+    // face keep CJK at full size. Only the title and heading stacks scale it.
     [Fact]
-    public void AThemesSystemFaceDrawsCjkAtNinetyPercent()
+    public void SmallInterfaceTextKeepsCjkAtFullSize()
     {
-        RunSta(() =>
-        {
-            string stack = UiFontStack.WithFallbacks("Microsoft Sans Serif", "zh-CN");
-            var plain = new System.Windows.Media.FontFamily(stack);
-            var scaled = UiFontStack.SystemFamily(stack, "zh-CN");
-            Assert.Equal(Text(plain, "KillerPDF.pdf 12").WidthIncludingTrailingWhitespace,
-                Text(scaled, "KillerPDF.pdf 12").WidthIncludingTrailingWhitespace);
-            Assert.Equal(Text(plain, "Ag").Height, Text(scaled, "Ag").Height);
-            Assert.Equal(Text(plain, "试试新版").WidthIncludingTrailingWhitespace * UiFontStack.CjkScale,
-                Text(scaled, "试试新版").WidthIncludingTrailingWhitespace, 0.01);
-        });
+        string theme = File.ReadAllText(Path.Combine(RepoRoot(), "Services", "ThemeManager.cs"));
+        Assert.Contains("new(new Uri($\"pack://application:,,,/{AssemblyName};component/\"), UiFontStack.For(language));", theme);
+        Assert.Contains("combined[fontKey] = new FontFamily(UiFontStack.WithFallbacks(stated.Source, UiLanguage));", theme);
+        Assert.Contains("flat ? new FontFamily(UiFontStack.WithFallbacks(\"Microsoft Sans Serif\", UiLanguage)) : KillerSansUiStack", theme);
     }
 
     // Every composite file is embedded, or the app would quietly draw the plain stack.
@@ -340,12 +334,12 @@ public sealed class UiFontStackTests
         try
         {
             ThemeManager.SetUiLanguage("zh-CN");
-            Assert.Equal(UiFontStack.ScaledFor("zh-CN"), ThemeManager.KillerSansUiStack.Source);
+            Assert.Equal(UiFontStack.For("zh-CN"), ThemeManager.KillerSansUiStack.Source);
             Assert.Equal(UiFontStack.ScaledHeading("zh-CN"), ThemeManager.LacquerHeadingStack.Source);
             ThemeManager.SetUiLanguage("ja-JP");
-            Assert.Equal(UiFontStack.ScaledFor("ja-JP"), ThemeManager.KillerSansUiStack.Source);
+            Assert.Equal(UiFontStack.For("ja-JP"), ThemeManager.KillerSansUiStack.Source);
             ThemeManager.SetUiLanguage("de-DE");
-            Assert.Equal("./Fonts/#Killer Sans UI CJK, " + Today, ThemeManager.KillerSansUiStack.Source);
+            Assert.Equal(Today, ThemeManager.KillerSansUiStack.Source);
         }
         finally { ThemeManager.SetUiLanguage("en-US"); }
     }

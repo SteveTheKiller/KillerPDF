@@ -62,25 +62,6 @@ namespace KillerPDF.Services
         /// <summary>Lacquer over the scaled interface stack.</summary>
         internal static string ScaledHeading(string? cultureName) => "./Fonts/#Lacquer, " + ScaledFor(cultureName);
 
-        /// <summary>
-        /// A family of system faces (a theme's own face over <see cref="Fallbacks"/>) with CJK characters drawn at
-        /// <see cref="CjkScale"/>, as the composite font files do for Killer Sans. Built in code, since the theme
-        /// face is not ours to ship a file for. The line height and baseline stay the stack's own.
-        /// </summary>
-        internal static FontFamily SystemFamily(string stack, string? cultureName)
-        {
-            var plain = new FontFamily(stack);
-            var family = new FontFamily { LineSpacing = plain.LineSpacing, Baseline = plain.Baseline };
-            // The CJK map comes first, or the catch-all would take the CJK characters too.
-            family.FamilyMaps.Add(new FontFamilyMap
-            {
-                Unicode = CjkRanges,
-                Target = CjkFace(cultureName ?? "") + "Microsoft JhengHei UI, Malgun Gothic",
-                Scale = CjkScale,
-            });
-            family.FamilyMaps.Add(new FontFamilyMap { Unicode = "0000-10FFFF", Target = stack });
-            return family;
-        }
 
         /// <summary>The composite family for the language's CJK face: SC (Microsoft YaHei UI), JP (Yu Gothic UI),
         /// KR (Malgun Gothic), or CJK (Microsoft JhengHei UI) for Traditional Chinese and every other language.</summary>

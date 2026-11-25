@@ -44,9 +44,10 @@ namespace KillerPDF.Services
         // system default face.
         internal static FontFamily KillerSansTitleStack { get; private set; } = TitleStack(UiLanguage);
 
-        // Each stack draws CJK characters at UiFontStack.CjkScale against its Latin text (#490).
+        // The title and heading stacks draw CJK characters at UiFontStack.CjkScale against their Latin text (#490).
+        // The UI stack keeps CJK at full size: menus, dialogs and buttons draw at 10 to 13, where 90% clogs the strokes.
         private static FontFamily UiStack(string language) =>
-            new(new Uri($"pack://application:,,,/{AssemblyName};component/"), UiFontStack.ScaledFor(language));
+            new(new Uri($"pack://application:,,,/{AssemblyName};component/"), UiFontStack.For(language));
         private static FontFamily TitleStack(string language) =>
             new(new Uri("pack://application:,,,/"), UiFontStack.ScaledTitle(language));
         private static FontFamily HeadingStack(string language) =>
@@ -519,12 +520,12 @@ namespace KillerPDF.Services
             Mirror("ChipHoverBrush", "RowHoverBrush");
             // #490: a theme that names one face (98SE's Microsoft Sans Serif) has no CJK glyphs,
             // so Chinese and Japanese file names fell to the system default face. The face keeps
-            // its look for Latin text and hands CJK to the language's own face, scaled like the
-            // family stacks.
+            // its look for Latin text and hands CJK to the language's own face at full size, like the
+            // UI stack.
             foreach (string fontKey in new[] { "ChromeFontFamily", "UiFont", "MonoFont", "MenuFontFamily" })
                 if (combined.Contains(fontKey) && combined[fontKey] is FontFamily stated
                     && stated.Source != null && stated.Source.IndexOf('#') < 0)
-                    combined[fontKey] = UiFontStack.SystemFamily(UiFontStack.WithFallbacks(stated.Source, UiLanguage), UiLanguage);
+                    combined[fontKey] = new FontFamily(UiFontStack.WithFallbacks(stated.Source, UiLanguage));
             SetIfAbsent("ChromeFontFamily", KillerSansUiStack);
             SetIfAbsent("DialogWordmarkVisibility", Visibility.Visible);
             SetIfAbsent("DialogPlainTitleVisibility", Visibility.Collapsed);
@@ -1075,6 +1076,10 @@ namespace KillerPDF.Services
             SetIfAbsent("ToolbarCaptionUnderFontSize", 14.0);
             SetIfAbsent("ToolbarCaptionUnderMargin", new Thickness(0, UiFontStack.ToolbarCaptionUnderGap(UiLanguage), 0, 0));
             SetIfAbsent("StatusFontSize", 16.0);
+            // A sidebar page number takes the caption gap above it and gives the same amount back below, so a
+            // CJK label clears its thumbnail without making the item taller (#490).
+            double thumbLabelGap = UiFontStack.ToolbarCaptionUnderGap(UiLanguage);
+            SetIfAbsent("ThumbnailLabelMargin", new Thickness(0, thumbLabelGap, 0, 2 - thumbLabelGap));
             if (!combined.Contains("FileNameTransform"))
             {
                 // 2 puts the name's baseline on the wordmark's at 100% and 150%. The wordmark's shadow layer is
@@ -1204,7 +1209,7 @@ namespace KillerPDF.Services
                 // template's 12px blur at FlyoutShadowOpacity, and the flyout cards' shared
                 // CardShadowEffect.
                 combined["MenuShadowOpacity"] = flat ? 1.0 : combined["FlyoutShadowOpacity"];
-                if (!combined.Contains("MenuFontFamily")) combined["MenuFontFamily"] = flat ? UiFontStack.SystemFamily(UiFontStack.WithFallbacks("Microsoft Sans Serif", UiLanguage), UiLanguage) : KillerSansUiStack;
+                if (!combined.Contains("MenuFontFamily")) combined["MenuFontFamily"] = flat ? new FontFamily(UiFontStack.WithFallbacks("Microsoft Sans Serif", UiLanguage)) : KillerSansUiStack;
                 if (!combined.Contains("MenuFontSize")) combined["MenuFontSize"] = flat ? 11.0 : 12.0;
                 if (!combined.Contains("MenuItemPadding")) combined["MenuItemPadding"] = new Thickness(8, 6, 10, 6);
                 if (flat)
