@@ -94,21 +94,26 @@ namespace KillerPDF.Tests
             try
             {
                 var store = new SignatureStore(dir, file);
-                store.Add(new SavedSignature { Name = "Alpha" });
+                static SavedSignature Drawn(string name) => new()
+                    { Name = name, Strokes = [[new() { X = 0, Y = 0 }, new() { X = 10, Y = 10 }]] };
+                store.Add(Drawn("Alpha"));
                 Assert.True(store.Persist());
-                store.Add(new SavedSignature { Name = "Beta" });
+                store.Add(Drawn("Beta"));
                 Assert.True(store.Persist());
-                Assert.Contains("Alpha", System.IO.File.ReadAllText(file + ".bak"));
-                Assert.DoesNotContain("Beta", System.IO.File.ReadAllText(file + ".bak"));
+                var backup = new SignatureStore(dir, file + ".bak");
+                backup.Load();
+                Assert.Equal(["Alpha"], backup.Signatures.Select(s => s.Name));
 
                 // The library file is held open exclusively, so the replace cannot happen.
                 using (new System.IO.FileStream(file, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.None))
                 {
-                    store.Add(new SavedSignature { Name = "Gamma" });
+                    store.Add(Drawn("Gamma"));
                     Assert.False(store.Persist());
                 }
                 Assert.Equal(3, store.Signatures.Count);   // nothing lost in memory
-                Assert.DoesNotContain("Gamma", System.IO.File.ReadAllText(file));
+                var reopened = new SignatureStore(dir, file);
+                reopened.Load();
+                Assert.DoesNotContain(reopened.Signatures, s => s.Name == "Gamma");
             }
             finally
             {

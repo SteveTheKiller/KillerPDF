@@ -10,19 +10,35 @@ namespace KillerPDF.Services
             WriteIndented = true
         };
 
+        // A protected library is this header followed by the DPAPI blob; anything else is read as plain JSON.
+        private static readonly byte[] ProtectedHeader = "KPSIG-DPAPI1\n"u8.ToArray();
+        private static readonly byte[] Entropy = "KillerPDF signature library"u8.ToArray();
+
         private readonly string _dir;
         private readonly string _file;
+        private readonly bool _protect;
 
         private static string DefaultDir => AppDataPaths.UserRoot;
 
+        // A portable library travels between PCs and accounts, so only the installed one is tied to this user.
         public SignatureStore()
-            : this(DefaultDir, AppDataPaths.SignaturesFile) { }
+            : this(DefaultDir, AppDataPaths.SignaturesFile, protect: AppDataPaths.PortableRoot is null) { }
 
-        internal SignatureStore(string dir, string file)
+        internal SignatureStore(string dir, string file, bool protect = true)
         {
             _dir  = dir;
             _file = file;
+            _protect = protect;
         }
+
+        private static bool IsProtected(byte[] data) => data.AsSpan().StartsWith(ProtectedHeader);
+
+        private static byte[] Seal(byte[] plain) =>
+            [.. ProtectedHeader, .. UserDataProtection.Protect(plain, Entropy)];
+
+        private static byte[] Open(byte[] data) => IsProtected(data)
+            ? UserDataProtection.Unprotect(data[ProtectedHeader.Length..], Entropy)
+            : data.AsSpan().StartsWith((ReadOnlySpan<byte>)[0xEF, 0xBB, 0xBF]) ? data[3..] : data;
 
         private List<SavedSignature> _items = [];
 
@@ -41,7 +57,7 @@ namespace KillerPDF.Services
             if (!System.IO.File.Exists(_file)) return;
             try
             {
-                var json = System.IO.File.ReadAllText(_file);
+                var json = Open(System.IO.File.ReadAllBytes(_file));
                 var items = JsonSerializer.Deserialize<List<SavedSignature>>(json)
                     ?? throw new JsonException("The signature library must be an array.");
                 if (items.Any(item => !HasUsablePreview(item)))
@@ -49,9 +65,9 @@ namespace KillerPDF.Services
                 _items = items;
             }
             catch (Exception ex) when (ex is JsonException or System.IO.IOException or UnauthorizedAccessException
-                or NotSupportedException)
+                or NotSupportedException or System.Security.Cryptography.CryptographicException)
             {
-                // Unreadable is not the same as absent: keep the bytes before anything replaces them.
+                // Unreadable (including a library sealed for another Windows account) is not the same as absent: keep the bytes before anything replaces them.
                 try
                 {
                     string aside = _file + ".damaged-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
@@ -140,12 +156,17 @@ namespace KillerPDF.Services
                 System.IO.Directory.CreateDirectory(_dir);
                 byte[] json = JsonSerializer.SerializeToUtf8Bytes(_items, JsonOptions);
                 if (System.IO.File.Exists(_file) && PreservedDamagedFile is null)
-                    System.IO.File.Copy(_file, _file + ".bak", overwrite: true);
-                AtomicFileOutput.Write(_file, json);
+                {
+                    // The backup of a plaintext library from before protection is sealed too.
+                    byte[] previous = System.IO.File.ReadAllBytes(_file);
+                    AtomicFileOutput.Write(_file + ".bak",
+                        _protect && !IsProtected(previous) ? Seal(previous) : previous);
+                }
+                AtomicFileOutput.Write(_file, _protect ? Seal(json) : json);
                 return true;
             }
             catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException
-                or NotSupportedException)
+                or NotSupportedException or System.Security.Cryptography.CryptographicException)
             {
                 return false;
             }
