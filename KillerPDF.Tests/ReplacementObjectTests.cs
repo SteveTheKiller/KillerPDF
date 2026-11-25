@@ -31,6 +31,21 @@ public sealed class ReplacementObjectTests
         Assert.Contains(text, fromCover);
     }
 
+    // A paste adds the copied marks in list order, so the cover has to come before its text or the pasted cover
+    // hides the text and the edit draws white.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CopyingKeepsThePageStackOrderWhicheverLayerWasSelected(bool fromText)
+    {
+        var (text, cover, page) = Pair();
+        var ink = (InkAnnotation)page[2];
+
+        var copied = ReplacementLayers.CopyMembers(fromText ? [ink, text] : [ink, cover], page);
+
+        Assert.Equal([cover, text, ink], copied);
+    }
+
     [Fact]
     public void CopyingKeepsOtherSelectedMarksOnce()
     {

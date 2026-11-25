@@ -118,7 +118,9 @@ public static class ReplacementLayers
         annotation.IsVisible && (!HasPairState(annotation) || annotation.PairVisible);
 
     /// <summary>The marks a copy takes: everything selected, and the other layer of each replacement in it, linked or
-    /// not, so a pasted replacement is the whole object rather than an orphaned text box. (#467)</summary>
+    /// not, so a pasted replacement is the whole object rather than an orphaned text box. The list follows the
+    /// page's stack order, because a paste adds marks in list order and a cover added after its text hides it.
+    /// Marks that aren't on the page lead, in selection order. (#467)</summary>
     public static IReadOnlyList<PageAnnotation> CopyMembers(IEnumerable<PageAnnotation> selection, IReadOnlyList<PageAnnotation> page)
     {
         var copied = new List<PageAnnotation>();
@@ -129,7 +131,13 @@ public static class ReplacementLayers
                 foreach (PageAnnotation layer in new PageAnnotation[] { pair.Cover, pair.Text })
                     if (!copied.Contains(layer)) copied.Add(layer);
         }
-        return copied;
+        int StackIndex(PageAnnotation item)
+        {
+            for (int index = 0; index < page.Count; index++)
+                if (ReferenceEquals(page[index], item)) return index;
+            return -1;
+        }
+        return [.. copied.OrderBy(StackIndex)];
     }
 
     /// <summary>The members of a selection free to move. A layer locked on its own stays put while its partner

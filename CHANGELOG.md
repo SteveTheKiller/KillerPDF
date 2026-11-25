@@ -26,6 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Editing and merging accept a PDF whose language is set but empty, which means the language is unknown, instead of refusing the file (#532).
 - Convert to Searchable PDF works on tagged PDFs, such as the ones Word exports. The text layer goes in without changing the document's tags (#533).
 - Scans whose images state a size larger than the file, like invoices from some scanner apps, render instead of showing a white page (#531).
+- A copied text edit pastes with its text on top of its white cover, so the pasted edit no longer shows as a blank white box (#467).
 
 ## [1.9.6] - 2026-11-24
 
