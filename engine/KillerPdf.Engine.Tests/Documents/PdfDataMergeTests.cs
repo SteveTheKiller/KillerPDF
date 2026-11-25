@@ -570,13 +570,25 @@ public sealed class PdfDataMergeTests
             [new PdfDataMergeDocumentResult(0, null, null, "Bad record")]));
     }
 
-    private static byte[] SharedStringWorkbook()
+    [Fact]
+    public void XlsxPartWithADocumentTypeDeclarationIsRefused()
+    {
+        const string entityBomb =
+            "<!DOCTYPE workbook [<!ENTITY a \"aaaaaaaaaa\"><!ENTITY b \"&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;\">]>";
+
+        FormatException error = Assert.Throws<FormatException>(() =>
+            PdfDataRecordReader.FromXlsx(SharedStringWorkbook(entityBomb), "Records"));
+
+        Assert.Contains("xl/workbook.xml", error.Message);
+    }
+
+    private static byte[] SharedStringWorkbook(string workbookPrologue = "")
     {
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
         {
-            Write("xl/workbook.xml",
-                "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"Records\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>");
+            Write("xl/workbook.xml", workbookPrologue +
+                "<workbookxmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"Records\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>");
             Write("xl/_rels/workbook.xml.rels",
                 "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Target=\"worksheets/sheet1.xml\"/></Relationships>");
             Write("xl/sharedStrings.xml",
