@@ -108,13 +108,13 @@ public sealed class UiFontStackTests
     public void TheStatusLineDropsASizeForCjk(string? language, double size) =>
         Assert.Equal(size, UiFontStack.StatusFontSize(language));
 
-    // #490: the reporter, on Simplified Chinese at 150%, found the title and the toolbar captions still a size too big
-    // in 1.9.6. Every CJK language takes them a size smaller.
+    // #490: the reporter, on Simplified Chinese at 150%, found the toolbar captions still a size too big in 1.9.6.
+    // Every CJK language takes them a size smaller. The title stays at 16, since 15 made ".pdf" hard to read.
     [Theory]
-    [InlineData("zh-CN", 15.0, 15.0, 13.0)]
-    [InlineData("zh-TW", 15.0, 15.0, 13.0)]
-    [InlineData("ja-JP", 15.0, 15.0, 13.0)]
-    [InlineData("ko-KR", 15.0, 15.0, 13.0)]
+    [InlineData("zh-CN", 16.0, 15.0, 13.0)]
+    [InlineData("zh-TW", 16.0, 15.0, 13.0)]
+    [InlineData("ja-JP", 16.0, 15.0, 13.0)]
+    [InlineData("ko-KR", 16.0, 15.0, 13.0)]
     [InlineData("en-US", 18.0, 16.0, 14.0)]
     [InlineData(null, 18.0, 16.0, 14.0)]
     public void TheTitleAndToolbarCaptionsDropASizeForCjk(string? language, double title, double beside, double under)
