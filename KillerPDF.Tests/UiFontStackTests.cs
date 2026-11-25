@@ -124,6 +124,78 @@ public sealed class UiFontStackTests
         Assert.Equal(under, UiFontStack.ToolbarCaptionSize(language, under: true));
     }
 
+    // #490: Killer Sans sets the caption's line height and CJK glyphs rise above it, so with the Latin gap a Chinese
+    // caption sat about a pixel under its icon. Drawn at 150% like the reporter's monitor, every CJK caption has to
+    // clear the icon by as much as an English one, within a device pixel.
+    [Theory]
+    [InlineData("zh-CN", "添加")]
+    [InlineData("zh-TW", "開啟")]
+    [InlineData("ja-JP", "開く")]
+    [InlineData("ko-KR", "열기")]
+    public void ACjkCaptionSitsAsFarUnderItsIconAsALatinOne(string language, string caption)
+    {
+        double latin = 0, cjk = 0;
+        RunSta(() =>
+        {
+            latin = InkGapUnderIcon("en-US", "Add");
+            cjk = InkGapUnderIcon(language, caption);
+        });
+        // One device pixel at 150% is 2/3 DIP; the small slack keeps an exact pixel inside the range.
+        Assert.InRange(cjk, latin - 2 / 3.0 - 1e-9, latin + 2 / 3.0 + 1e-9);
+    }
+
+    // The gap in DIPs between a 14-DIP icon and the first inked row of its caption, laid out as ToolbarStyle lays a
+    // caption under its icon.
+    private static double InkGapUnderIcon(string language, string caption)
+    {
+        const double scale = 1.5, icon = 14;
+        var text = new System.Windows.Controls.TextBlock
+        {
+            Text = caption,
+            FontFamily = new System.Windows.Media.FontFamily(new Uri(RepoRoot() + Path.DirectorySeparatorChar),
+                UiFontStack.Title(language)),
+            FontSize = UiFontStack.ToolbarCaptionSize(language, under: true),
+            Margin = new System.Windows.Thickness(0, UiFontStack.ToolbarCaptionUnderGap(language), 0, 0),
+            Foreground = System.Windows.Media.Brushes.Black,
+        };
+        var column = new System.Windows.Controls.StackPanel();
+        column.Children.Add(new System.Windows.Controls.Border { Height = icon });
+        column.Children.Add(text);
+        column.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+        column.Arrange(new System.Windows.Rect(column.DesiredSize));
+        int width = (int)Math.Ceiling(column.ActualWidth * scale), height = (int)Math.Ceiling(column.ActualHeight * scale);
+        var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(width, height, 96 * scale, 96 * scale,
+            System.Windows.Media.PixelFormats.Pbgra32);
+        bitmap.Render(column);
+        byte[] pixels = new byte[width * height * 4];
+        bitmap.CopyPixels(pixels, width * 4, 0);
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                if (pixels[(y * width + x) * 4 + 3] > 96) return y / scale - icon;
+        throw new InvalidOperationException("The caption drew nothing.");
+    }
+
+    private static string RepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "KillerPDF.sln"))) dir = dir.Parent;
+        return dir!.FullName;
+    }
+
+    private static void RunSta(Action action)
+    {
+        Exception? error = null;
+        var thread = new System.Threading.Thread(() =>
+        {
+            try { action(); }
+            catch (Exception exception) { error = exception; }
+        });
+        thread.SetApartmentState(System.Threading.ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (error is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
+    }
+
     [Fact]
     public void ToolbarCaptionsReadTheirSizeFromTheTheme()
     {
@@ -135,6 +207,8 @@ public sealed class UiFontStackTests
         Assert.Contains("SetIfAbsent(\"FileNameFontSize\", flatTitle ? 11.0 : UiFontStack.TitleFontSize(UiLanguage));", theme);
         Assert.Contains("SetIfAbsent(\"ToolbarCaptionFontSize\", UiFontStack.ToolbarCaptionSize(UiLanguage, under: false));", theme);
         Assert.Contains("SetIfAbsent(\"ToolbarCaptionUnderFontSize\", UiFontStack.ToolbarCaptionSize(UiLanguage, under: true));", theme);
+        Assert.Contains("under.SetResourceReference(FrameworkElement.MarginProperty, CaptionUnderMargin);", toolbar);
+        Assert.Contains("SetIfAbsent(\"ToolbarCaptionUnderMargin\", new Thickness(0, UiFontStack.ToolbarCaptionUnderGap(UiLanguage), 0, 0));", theme);
     }
 
     [Fact]

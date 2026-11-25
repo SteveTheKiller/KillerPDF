@@ -1071,6 +1071,7 @@ namespace KillerPDF.Services
             // Toolbar captions take a size smaller for CJK text, like the title (#490).
             SetIfAbsent("ToolbarCaptionFontSize", UiFontStack.ToolbarCaptionSize(UiLanguage, under: false));
             SetIfAbsent("ToolbarCaptionUnderFontSize", UiFontStack.ToolbarCaptionSize(UiLanguage, under: true));
+            SetIfAbsent("ToolbarCaptionUnderMargin", new Thickness(0, UiFontStack.ToolbarCaptionUnderGap(UiLanguage), 0, 0));
             // The status bar's page and zoom line takes the same step for CJK text.
             SetIfAbsent("StatusFontSize", UiFontStack.StatusFontSize(UiLanguage));
             if (!combined.Contains("FileNameTransform"))

@@ -109,6 +109,7 @@ namespace KillerPDF.Shell
         // The caption sizes are theme resources, so they follow the interface language (#490).
         private const string CaptionBeside = "ToolbarCaptionFontSize";
         private const string CaptionUnder = "ToolbarCaptionUnderFontSize";
+        private const string CaptionUnderMargin = "ToolbarCaptionUnderMargin";
         private const double CaptionUnderMaxWidth = 96;
 
         // ---- app hooks ----
@@ -303,7 +304,7 @@ namespace KillerPDF.Shell
 
             var col = new StackPanel { Orientation = Orientation.Vertical, HorizontalAlignment = HorizontalAlignment.Center };
             var under = ToolbarCaption(label, CaptionUnder);
-            under.Margin = new Thickness(0, 2, 0, 0);
+            under.SetResourceReference(FrameworkElement.MarginProperty, CaptionUnderMargin);
             under.MaxWidth = CaptionUnderMaxWidth;
             under.HorizontalAlignment = HorizontalAlignment.Center;
             under.TextAlignment = TextAlignment.Center;

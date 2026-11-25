@@ -44,6 +44,11 @@ namespace KillerPDF.Services
         internal static double ToolbarCaptionSize(string? cultureName, bool under) =>
             (under ? 14.0 : 16.0) - (IsCjk(cultureName) ? 1.0 : 0.0);
 
+        /// <summary>The space above a caption under its icon. Killer Sans sets the caption's line height, and CJK
+        /// glyphs from the fallback face rise about 1.5 above that line while Latin text starts 2.7 inside it, so
+        /// CJK takes 4 more to sit as far below the icon (#490).</summary>
+        internal static double ToolbarCaptionUnderGap(string? cultureName) => IsCjk(cultureName) ? 6.0 : 2.0;
+
         /// <summary>The status bar's page and zoom line: 16, or 14 for CJK, whose fallback face reads a size
         /// larger than Killer Sans at the same size.</summary>
         internal static double StatusFontSize(string? cultureName) => IsCjk(cultureName) ? 14.0 : 16.0;
