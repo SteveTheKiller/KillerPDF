@@ -301,10 +301,14 @@ namespace KillerPDF
                 BorderThickness    = new Thickness(1),
                 Padding            = new Thickness(6, 4, 6, 4),
                 CaretBrush         = Brush("TextBrush"),
-                SelectionBrush     = Brush("RowSelectedBrush"),
-                SelectionTextBrush = Brush("TextBrush"),
                 Template           = FieldTemplate()
             };
+            // The theme's text selection, the same as every XAML text box. RowSelectedBrush is a
+            // list row tint that is near-black or transparent on most themes, so a selection
+            // painted with it at 0.3 opacity was invisible (#527).
+            tb.SetResourceReference(TextBox.SelectionBrushProperty, "TextSelectionBrush");
+            tb.SetResourceReference(TextBox.SelectionTextBrushProperty, "TextSelectionTextBrush");
+            tb.SetResourceReference(TextBox.SelectionOpacityProperty, "TextSelectionOpacity");
             if (!double.IsNaN(width)) tb.Width = width;
             return tb;
         }
@@ -351,6 +355,10 @@ namespace KillerPDF
             root.AppendChild(innerLight);
             var template = new ControlTemplate(typeof(TextBox)) { VisualTree = root };
             AddCompactInputTrigger(template);
+            // A disabled field reads as off, like the dialogs' other disabled inputs.
+            var disabled = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
+            disabled.Setters.Add(new Setter(UIElement.OpacityProperty, 0.4));
+            template.Triggers.Add(disabled);
             return template;
         }
 

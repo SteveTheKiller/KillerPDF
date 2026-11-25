@@ -411,9 +411,12 @@ namespace KillerPDF
                 Background = R("BgCanvas"), Foreground = R("TextBrush"),
                 BorderBrush = R("CardBorderBrush"), BorderThickness = new Thickness(1),
                 Padding = new Thickness(6, 4, 6, 4), CaretBrush = R("TextBrush"),
-                SelectionBrush = R("RowSelectedBrush"), SelectionTextBrush = R("TextBrush"),
                 Template = MakeTextBoxTemplate()
             };
+            // The theme's text selection; RowSelectedBrush made it invisible on most themes (#527).
+            tb.SetResourceReference(TextBox.SelectionBrushProperty, "TextSelectionBrush");
+            tb.SetResourceReference(TextBox.SelectionTextBrushProperty, "TextSelectionTextBrush");
+            tb.SetResourceReference(TextBox.SelectionOpacityProperty, "TextSelectionOpacity");
             return tb;
         }
 

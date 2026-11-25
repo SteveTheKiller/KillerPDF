@@ -311,7 +311,10 @@ namespace KillerPDF.Shell
             sizeBox.SetResourceReference(TextBox.ForegroundProperty, "TextBrush");
             sizeBox.SetResourceReference(TextBox.BorderBrushProperty, "CardBorderBrush");
             sizeBox.SetResourceReference(TextBox.CaretBrushProperty, "PrimaryBrush");
-            sizeBox.SetResourceReference(TextBox.SelectionBrushProperty, "RowSelectedBrush");   // no WPF-default blue
+            // The theme's text selection: no WPF-default blue, and not the list row tint that hid it (#527).
+            sizeBox.SetResourceReference(TextBox.SelectionBrushProperty, "TextSelectionBrush");
+            sizeBox.SetResourceReference(TextBox.SelectionTextBrushProperty, "TextSelectionTextBrush");
+            sizeBox.SetResourceReference(TextBox.SelectionOpacityProperty, "TextSelectionOpacity");
             var ptLabel = new TextBlock
             {
                 Text = "pt",

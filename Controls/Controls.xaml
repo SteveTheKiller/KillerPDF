@@ -3452,8 +3452,9 @@
                                          Foreground="{DynamicResource TextBrush}" FontFamily="{DynamicResource UiFont}"
                                          FontSize="11" VerticalAlignment="Center"
                                          IsReadOnly="{TemplateBinding IsReadOnly}" Visibility="Hidden"
-                                         Focusable="True" SelectionBrush="{DynamicResource RowSelectedBrush}"
-                                         SelectionTextBrush="{DynamicResource PrimaryBrush}"
+                                         Focusable="True" SelectionBrush="{DynamicResource TextSelectionBrush}"
+                                         SelectionTextBrush="{DynamicResource TextSelectionTextBrush}"
+                                         SelectionOpacity="{DynamicResource TextSelectionOpacity}"
                                          CaretBrush="{DynamicResource PrimaryBrush}"/>
                                 <TextBlock x:Name="modernChev" Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
                                            FontSize="8" Foreground="{DynamicResource MutedTextBrush}"
