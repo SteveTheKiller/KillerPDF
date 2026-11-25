@@ -267,8 +267,8 @@ public partial class PdfViewer
             new Point(PagePreviewPanel.ViewportWidth, PagePreviewPanel.ViewportHeight)));
         visible.Intersect(drawn);
         if (visible.IsEmpty || visible.Width <= 0 || visible.Height <= 0) return;
-        int maximum = Math.Clamp((int)Math.Ceiling(Math.Max(drawn.Width, drawn.Height)), 1, 6144);
-        if (maximum <= Math.Max(source.PixelWidth, source.PixelHeight) * 1.05) return;
+        if (VisibleDetail.DetailMaximum(drawn.Width, drawn.Height, source.PixelWidth, source.PixelHeight)
+            is not { } maximum) return;
         double left = (visible.Left - drawn.Left) / drawn.Width, top = (visible.Top - drawn.Top) / drawn.Height;
         double right = (visible.Right - drawn.Left) / drawn.Width, bottom = (visible.Bottom - drawn.Top) / drawn.Height;
         var result = await _viewportRenderQueue.Enqueue((request, "visible-float", page), 20,

@@ -214,16 +214,18 @@ public partial class PdfViewer
                 if (!Current() || !ReferenceEquals(image.Source, source)) return;
                 PresentRenderWarning(image, RenderWarnings.TryGetValue(result.bitmap, out _)
                     ? result.bitmap : source, page);
+                // #526: the tile sits on whole device pixels at exactly its own size, so it is shown 1:1, unfiltered.
+                var box = VisibleDetail.Placement(imageStart, deviceWidth, deviceHeight, image.ActualWidth,
+                    image.ActualHeight, result.region, result.bitmap.PixelWidth, result.bitmap.PixelHeight);
                 var detail = new Image
                 {
                     Source = result.bitmap, IsHitTestVisible = false, Stretch = Stretch.Fill,
-                    UseLayoutRounding = false,
+                    UseLayoutRounding = false, SnapsToDevicePixels = false,
                     HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
-                    Width = image.ActualWidth * result.bitmap.PixelWidth / result.region.DisplayWidth,
-                    Height = image.ActualHeight * result.bitmap.PixelHeight / result.region.DisplayHeight,
-                    Margin = new Thickness(image.ActualWidth * result.region.DisplayLeft / result.region.DisplayWidth,
-                        image.ActualHeight * result.region.DisplayTop / result.region.DisplayHeight, 0, 0)
+                    Width = box.Width, Height = box.Height,
+                    Margin = new Thickness(box.Left, box.Top, 0, 0)
                 };
+                RenderOptions.SetBitmapScalingMode(detail, BitmapScalingMode.NearestNeighbor);
                 // Keep the annotation canvas at index 1; its input and coordinate mapping stay intact.
                 Panel.SetZIndex(detail, -1);
                 Panel.SetZIndex(image, -2);

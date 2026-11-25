@@ -29,6 +29,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A copied text edit pastes with its text on top of its white cover, so the pasted edit no longer shows as a blank white box (#467).
 - Arrange pages in Merge files shows a line where dragged pages will go, and a drop between two pages lands there instead of at the end. Dragging one of several selected pages moves all of them, and files dropped onto the pages go in where they were dropped (#495).
 - Redacting or editing a signed PDF keeps a visible signature's name and date readable in Adobe Acrobat too. The signature box becomes a stamp with the same look, because Acrobat drew the cleared signature field as an empty gray box (#505).
+- Small text looks as sharp as in other PDF readers. Once the view settles, the part of the page on screen is drawn at the monitor's exact pixel size, so the page is no longer scaled down from a larger picture (#526).
 
 ## [1.9.6] - 2026-11-24
 

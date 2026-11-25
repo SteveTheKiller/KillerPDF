@@ -39,14 +39,31 @@ internal static class VisibleDetail
         PdfViewingPixels Viewing);
 
     /// <summary>
-    /// The fitted page size to draw the detail at, or null when the base raster is already within 5% of the drawn size.
-    /// Same 5% hysteresis as the 1.8 re-sharpen: a base render within 5% of the drawn size shows no visible softness,
-    /// and re-rendering it only delays the settled view.
+    /// The fitted page size to draw the detail at, or null when the base raster is already drawn at its own size. Any
+    /// other base is resampled on screen, larger or smaller, and that softens small text (#526), so the settled view
+    /// draws the visible part at device resolution.
     /// </summary>
     internal static int? DetailMaximum(double deviceWidth, double deviceHeight, int baseWidth, int baseHeight)
     {
         int maximum = Math.Clamp((int)Math.Ceiling(Math.Max(deviceWidth, deviceHeight)), 1, MaximumSize);
-        return maximum <= Math.Max(baseWidth, baseHeight) * 1.05 ? null : maximum;
+        return Math.Abs(maximum - Math.Max(baseWidth, baseHeight)) <= 1 ? null : maximum;
+    }
+
+    /// <summary>
+    /// Where the tile goes inside its page image, in the image's own units. The tile starts on a whole device pixel and
+    /// spans exactly its own pixel count, so it is shown 1:1 and nothing resamples it (#526). The rounding moves it by
+    /// under half a device pixel.
+    /// </summary>
+    internal static System.Windows.Rect Placement(System.Windows.Point imageScreenOrigin, double deviceWidth,
+        double deviceHeight, double imageWidth, double imageHeight, VisibleRenderRegion region, int pixelWidth,
+        int pixelHeight)
+    {
+        double perX = deviceWidth / imageWidth, perY = deviceHeight / imageHeight;
+        double left = Math.Round(imageScreenOrigin.X + deviceWidth * region.DisplayLeft / region.DisplayWidth)
+            - imageScreenOrigin.X;
+        double top = Math.Round(imageScreenOrigin.Y + deviceHeight * region.DisplayTop / region.DisplayHeight)
+            - imageScreenOrigin.Y;
+        return new System.Windows.Rect(left / perX, top / perY, pixelWidth / perX, pixelHeight / perY);
     }
 
     /// <summary>Draws the tile for a page drawn at the given device size, or returns null when the base suffices.</summary>
