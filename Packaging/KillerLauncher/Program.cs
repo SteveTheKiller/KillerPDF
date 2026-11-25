@@ -34,9 +34,10 @@ namespace KillerLauncher
         private static int Main(string[] args)
         {
             // A setup exe is usually run from Downloads, where a planted version.dll or similar
-            // would load before any system copy. Later loads search System32 and the exe's own
-            // folder only, and the current directory drops out of the search.
-            SetDefaultDllDirectories(LoadLibrarySearchSystem32 | LoadLibrarySearchApplicationDir);
+            // would win over a system copy. Later loads search System32 only: the launcher ships
+            // no native DLL of its own, so its folder and the current directory stay out of the
+            // search. DLLs the CLR host loads before Main are outside this call's reach.
+            SetDefaultDllDirectories(LoadLibrarySearchSystem32);
             SetDllDirectory("");
             KillerFamily.Accessibility.AccessibleControls.Initialize();
             try
@@ -603,7 +604,6 @@ namespace KillerLauncher
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), IsArm64Host());
 
         private const ushort ImageFileMachineArm64 = 0xAA64;
-        private const uint LoadLibrarySearchApplicationDir = 0x00000200;
         private const uint LoadLibrarySearchSystem32 = 0x00000800;
 
         [DllImport("kernel32.dll", SetLastError = true)]

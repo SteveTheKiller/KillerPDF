@@ -19,9 +19,25 @@ public sealed class NativeLoadingSecurityTests
         Assert.Contains("LoadLibraryExW", ocr, StringComparison.Ordinal);
         Assert.Contains("LoadLibrarySearchDllLoadDir | LoadLibrarySearchSystem32", ocr,
             StringComparison.Ordinal);
-        Assert.Contains("SHA256.HashData", ocr, StringComparison.Ordinal);
+        string hold = File.ReadAllText(
+            Path.Combine(root, "Services", "VerifiedFileHold.cs"));
+        Assert.Contains("VerifiedFileHold.Open(", ocr, StringComparison.Ordinal);
+        Assert.Contains("SHA256.HashData", hold, StringComparison.Ordinal);
         Assert.DoesNotContain("SetDllDirectory", ocr, StringComparison.Ordinal);
         Assert.DoesNotContain("Directory.GetFiles(nativeDir", ocr, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LauncherSearchesOnlySystem32ForLaterDllLoads()
+    {
+        // The setup exe usually runs from Downloads. With APPLICATION_DIR in the default search,
+        // a planted non-KnownDLL next to it wins every later delay-load or LoadLibrary call.
+        string launcher = File.ReadAllText(
+            Path.Combine(FindRepositoryRoot(), "Packaging", "KillerLauncher", "Program.cs"));
+
+        Assert.Contains("SetDefaultDllDirectories(LoadLibrarySearchSystem32);", launcher,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("LoadLibrarySearchApplicationDir", launcher, StringComparison.Ordinal);
     }
 
     private static string FindRepositoryRoot()
