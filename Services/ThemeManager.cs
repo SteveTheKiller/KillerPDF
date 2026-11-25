@@ -1077,7 +1077,9 @@ namespace KillerPDF.Services
             SetIfAbsent("StatusFontSize", 16.0);
             if (!combined.Contains("FileNameTransform"))
             {
-                var fileNameShift = new TranslateTransform(0, flatTitle ? 0 : 3);
+                // 2 puts the name's baseline on the wordmark's at 100% and 150%. The wordmark's shadow layer is
+                // offset 2px, which lifts the centered "Killer" a pixel, so 3 left the name a pixel low (#490).
+                var fileNameShift = new TranslateTransform(0, flatTitle ? 0 : 2);
                 fileNameShift.Freeze();
                 combined["FileNameTransform"] = fileNameShift;
             }
