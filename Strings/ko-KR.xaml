@@ -1614,6 +1614,8 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_Compare_DetailsTitle">PDF 비교 세부 정보</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">PDF를 {0}에서 다운로드하여 여시겠습니까?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">이 사이트의 PDF는 항상 열기</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF에서 브라우저 PDF를 열 수 없습니다.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">KillerPDF가 알지 못하는 브라우저 명령입니다.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">핸드오프에 PDF 주소가 포함되어 있지 않습니다.</sys:String>

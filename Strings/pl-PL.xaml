@@ -1592,6 +1592,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Compare_DetailsTitle">Szczegóły porównania PDF</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Pobrać i otworzyć plik PDF z witryny {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">Zawsze otwieraj pliki PDF z tej witryny</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF nie mógł otworzyć pliku PDF przeglądarki.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">To polecenie przeglądarki nie jest znane KillerPDF.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Przekazanie nie zawierało adresu PDF.</sys:String>

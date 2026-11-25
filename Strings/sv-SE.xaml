@@ -1614,6 +1614,8 @@ Vill du skala dem till en storlek som stöds? Sidorna behåller sitt utseende oc
     <sys:String x:Key="Str_Compare_DetailsTitle">Detaljer för PDF-jämförelse</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Ladda ned och öppna en PDF från {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">Öppna alltid PDF:er från den här webbplatsen</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF kunde inte öppna PDF:en från webbläsaren.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">KillerPDF känner inte igen det webbläsarkommandot.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Överlämningen innehöll ingen PDF-adress.</sys:String>

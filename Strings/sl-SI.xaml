@@ -1497,6 +1497,8 @@
     <sys:String x:Key="Str_Compare_ViewDetails">Prikaži celotno poročilo primerjave</sys:String>
     <sys:String x:Key="Str_Compare_BuildingReport">Preverjanje vseh strani...</sys:String>
     <sys:String x:Key="Str_Compare_DetailsTitle">Podrobnosti primerjave datotek PDF</sys:String>
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Ali želite prenesti in odpreti PDF s spletnega mesta {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">PDF-je s tega spletnega mesta vedno odpri</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF ni mogel odpreti PDF-ja iz brskalnika.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">KillerPDF ne pozna tega ukaza brskalnika.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Predaja ni vsebovala naslova PDF-ja.</sys:String>

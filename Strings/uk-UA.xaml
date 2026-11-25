@@ -1604,6 +1604,8 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Compare_DetailsTitle">Подробиці порівняння PDF</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Завантажити й відкрити PDF із сайту {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">Завжди відкривати PDF із цього сайту</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF не зміг відкрити PDF із браузера.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">KillerPDF не знає цієї команди браузера.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Передача не містила адреси PDF.</sys:String>

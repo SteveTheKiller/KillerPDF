@@ -1589,6 +1589,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Compare_DetailsTitle">Podrobnosti o porovnání PDF</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Stáhnout a otevřít PDF z webu {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">PDF z tohoto webu otevírat vždy</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF nemohl otevřít PDF prohlížeče.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">Tento příkaz prohlížeče KillerPDF nezná.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Předání nezahrnovalo adresu PDF.</sys:String>

@@ -69,6 +69,7 @@ namespace KillerPDF.Shell
             }
             if (ProtocolRegistrar.TryGetTargetUrl(path, out var target, out var rejection) && target != null)
             {
+                if (!ConfirmBrowserHost(target)) return;
                 _externalOpenInFlight++;
                 try { await OpenProtocolUrlAsync(target); }
                 finally { _externalOpenInFlight--; }
@@ -143,6 +144,24 @@ namespace KillerPDF.Shell
             name = name.Trim().TrimEnd('.');
             if (name.Length == 0) name = "document";
             return name.EndsWith(".pdf", System.StringComparison.OrdinalIgnoreCase) ? name : name + ".pdf";
+        }
+
+        // Any website can start a killerpdf:// open after one browser prompt, so KillerPDF names the host and
+        // asks before it downloads anything, unless the user chose to always open PDFs from that host.
+        private bool ConfirmBrowserHost(System.Uri target)
+        {
+            string? trusted = App.GetSetting(BrowserHostTrust.Setting);
+            if (BrowserHostTrust.IsTrusted(trusted, target)) return true;
+            RestoreAndActivate();
+            var (result, always) = KillerDialog.ShowWithCheckbox(
+                this,
+                string.Format(Loc("Str_Handoff_ConfirmHost"), BrowserHostTrust.DisplayHost(target)),
+                Loc("Str_Handoff_TrustHost"),
+                "KillerPDF",
+                MessageBoxButton.OKCancel);
+            if (result != MessageBoxResult.OK) return false;
+            if (always) App.SetSetting(BrowserHostTrust.Setting, BrowserHostTrust.Add(trusted, target));
+            return true;
         }
 
         private async Task OpenProtocolUrlAsync(System.Uri target)

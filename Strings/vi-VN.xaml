@@ -1604,6 +1604,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Compare_DetailsTitle">Chi tiết so sánh PDF</sys:String>
 
     <!-- ── Từ chối chuyển giao trình duyệt ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Tải xuống và mở tệp PDF từ {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">Luôn mở tệp PDF từ trang này</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF không thể mở tệp PDF trên trình duyệt.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">KillerPDF không nhận ra lệnh trình duyệt đó.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Quá trình chuyển đổi không bao gồm địa chỉ PDF.</sys:String>

@@ -1604,6 +1604,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Compare_DetailsTitle">PDF 比較の詳細</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">PDF を {0} からダウンロードして開きますか?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">このサイトの PDF は常に開く</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF はブラウザーの PDF を開けませんでした。</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">そのブラウザーコマンドは KillerPDF には認識できません。</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">引き渡し情報に PDF のアドレスが含まれていませんでした。</sys:String>

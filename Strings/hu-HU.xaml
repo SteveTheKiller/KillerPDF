@@ -1591,6 +1591,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Compare_DetailsTitle">PDF-összehasonlítás részletei</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Letölti és megnyitja a PDF-et innen: {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">Erről a webhelyről mindig nyissa meg a PDF-eket</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">A KillerPDF nem tudta megnyitni a böngésző PDF-jét.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">Ez a böngészőparancs nem egy KillerPDF által ismert parancs.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Az átadás nem tartalmazott PDF-címet.</sys:String>

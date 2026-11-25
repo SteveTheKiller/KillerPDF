@@ -1607,6 +1607,8 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Compare_BuildingReport">Әр бет тексерілуде...</sys:String>
     <sys:String x:Key="Str_Compare_DetailsTitle">PDF салыстыру мәліметтері</sys:String>
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">PDF файлын мына сайттан жүктеп, ашу керек пе: {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">Бұл сайттың PDF файлдарын әрқашан ашу</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF браузердегі PDF-ті аша алмады.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">KillerPDF бұл браузер пәрменін танымайды.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Тасымалдауда PDF мекенжайы көрсетілмеген.</sys:String>

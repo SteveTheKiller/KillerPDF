@@ -1584,6 +1584,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Compare_DetailsTitle">পিডিএফের তুলনামূলক বিবরণ</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">এই সাইট থেকে একটি পিডিএফ ডাউনলোড করে খুলবেন: {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">এই সাইটের পিডিএফ সবসময় খুলুন</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF ব্রাউজার পিডিএফ খুলতে পারেনি ।</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">সেই ব্রাউজার কমান্ডটি KillerPDF চেনে না।</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">হ্যান্ডঅফটিতে কোনও পিডিএফ ঠিকানা অন্তর্ভুক্ত করা হয়নি ।</sys:String>

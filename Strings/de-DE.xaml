@@ -1593,6 +1593,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Compare_DetailsTitle">PDF-Vergleichsdetails</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">PDF von {0} herunterladen und öffnen?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">PDFs von dieser Website immer öffnen</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF konnte die Browser-PDF nicht öffnen.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">Dieser Browserbefehl ist KillerPDF nicht bekannt.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Die Übergabe enthielt keine PDF-Adresse.</sys:String>

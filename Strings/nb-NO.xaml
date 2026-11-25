@@ -1604,6 +1604,8 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Compare_DetailsTitle">Detaljer om PDF-sammenligning</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Laste ned og åpne en PDF fra {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">Åpne alltid PDF-er fra dette nettstedet</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF kunne ikke åpne nettleser-PDF-en.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">Den nettleserkommandoen er ukjent for KillerPDF.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Overleveringen inneholdt ingen PDF-adresse.</sys:String>

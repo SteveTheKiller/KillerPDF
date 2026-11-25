@@ -1604,6 +1604,8 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Compare_DetailsTitle">Détails de la comparaison PDF</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Télécharger et ouvrir un PDF depuis {0} ?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">Toujours ouvrir les PDF de ce site</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF n'a pas pu ouvrir le PDF du navigateur.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">Cette commande de navigateur est inconnue de KillerPDF.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Le transfert ne contenait pas d'adresse PDF.</sys:String>

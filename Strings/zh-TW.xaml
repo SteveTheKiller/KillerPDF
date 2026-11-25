@@ -1586,6 +1586,8 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Compare_DetailsTitle">PDF比較詳情</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">要從 {0} 下載並開啟 PDF 嗎?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">一律開啟來自此網站的 PDF</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF無法開啟瀏覽器PDF。</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">那個瀏覽器命令不是KillerPDF所知道的。</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">交接不包含PDF地址。</sys:String>

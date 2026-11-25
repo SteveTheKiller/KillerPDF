@@ -1604,6 +1604,8 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Compare_DetailsTitle">Detalhes da comparação de PDFs</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Baixar e abrir um PDF de {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">Sempre abrir PDFs deste site</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">O KillerPDF não conseguiu abrir o PDF do navegador.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">Esse comando do navegador não é reconhecido pelo KillerPDF.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">A transferência não incluiu um endereço de PDF.</sys:String>

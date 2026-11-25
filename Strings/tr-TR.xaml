@@ -1584,6 +1584,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Compare_DetailsTitle">Kıyaslama Detayları</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Şu siteden bir PDF indirilip açılsın mı: {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">Bu sitedeki PDF&apos;leri her zaman aç</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF tarayıcı PDF&apos;sini açamadı.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">Bu tarayıcı komutu KillerPDF&apos;nin bildiği bir komut değil.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Devir teslimde PDF adresi yoktu.</sys:String>

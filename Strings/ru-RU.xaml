@@ -1607,6 +1607,8 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Compare_DetailsTitle">Подробные сведения о сравнении PDF-файлов</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_ConfirmHost">Скачать и открыть PDF с сайта {0}?</sys:String>
+    <sys:String x:Key="Str_Handoff_TrustHost">Всегда открывать PDF с этого сайта</sys:String>
     <sys:String x:Key="Str_Handoff_Failed">KillerPDF не удалось открыть файл PDF в браузере.</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">Эта команда браузера не является той, которую знает KillerPDF.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">При передаче не был указан адрес PDF файла.</sys:String>
