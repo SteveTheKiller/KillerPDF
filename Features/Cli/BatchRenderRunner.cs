@@ -65,7 +65,12 @@ namespace KillerPDF.Features
                 }
                 else if (string.Equals(a, "--password", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (i + 1 < args.Length) password = args[++i];
+                    if (i + 1 < args.Length)
+                    {
+                        password = args[++i];
+                        con.WriteLine(CliSecrets.CommandLineWarning(
+                            new Dictionary<string, string> { ["--password"] = "" }));
+                    }
                     else badUsage = true;
                 }
                 else if (string.Equals(a, "--size", StringComparison.OrdinalIgnoreCase))

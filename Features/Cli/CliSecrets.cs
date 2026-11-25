@@ -14,6 +14,16 @@ namespace KillerPDF.Features
         internal const string Option = "--secrets-stdin";
         private static readonly string[] Names = ["password", "user-password", "owner-password", "pfx-password"];
 
+        // A warning naming each password given as a command-line option, or null when there is none. Call it
+        // before Read, which adds the standard-input secrets under the same option names.
+        internal static string? CommandLineWarning(IReadOnlyDictionary<string, string> options)
+        {
+            string[] given = [.. Names.Select(name => "--" + name).Where(options.ContainsKey)];
+            return given.Length == 0
+                ? null
+                : "Warning: " + string.Join(", ", given) + " on the command line can be read by other programs and is kept in shell history. Use " + Option + " instead.";
+        }
+
         // Adds the secrets to the parsed options. Returns a usage message when the input is not one JSON
         // object of known secrets with string values, or null when it was read.
         internal static string? Read(TextReader input, IDictionary<string, string> options)

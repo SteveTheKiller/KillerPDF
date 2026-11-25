@@ -31,6 +31,25 @@ public sealed class CliSecretsTests
         Assert.False(options.ContainsKey("--dpi"));
     }
 
+    [Theory]
+    [InlineData("--password")]
+    [InlineData("--user-password")]
+    [InlineData("--owner-password")]
+    [InlineData("--pfx-password")]
+    public void APasswordOnTheCommandLineGetsAWarningThatPointsToStandardInput(string option)
+    {
+        var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [option] = "hunter2", ["--dpi"] = "150" };
+        string? warning = CliSecrets.CommandLineWarning(options);
+        Assert.NotNull(warning);
+        Assert.Contains(option, warning, StringComparison.Ordinal);
+        Assert.Contains("--secrets-stdin", warning, StringComparison.Ordinal);
+        Assert.DoesNotContain("hunter2", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NoWarningWithoutACommandLinePassword() =>
+        Assert.Null(CliSecrets.CommandLineWarning(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["--dpi"] = "150" }));
+
     [Fact]
     public void HelpListsTheOptionSoCallersCanTellItIsSupported()
     {

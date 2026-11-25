@@ -6,6 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.7] - Unreleased
 
+### Security
+
+- A link in a PDF opens exactly the address KillerPDF checked, not the raw text the PDF stored.
+- A password given on the command line, like `--password`, prints a warning that points to `--secrets-stdin`, which keeps it out of the process list and shell history.
+
 ### Fixed
 
 - PDFs with damaged image transparency, common in CAD and building drawings, render instead of showing a blank page and "Image soft-mask sample data has an invalid length."
