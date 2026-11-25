@@ -1,2 +1,0 @@
-(function(){var button=document.getElementById('copyBenchmark');if(!button)return;var command='Set-ExecutionPolicy Bypass -Scope Process -Force; $f="$env:TEMP\\benchmark_corpus.ps1"; irm https://raw.githubusercontent.com/SteveTheKiller/KillerPDF-Corpus/main/scripts/benchmark_corpus.ps1 -OutFile $f; & $f';button.addEventListener('click',function(){navigator.clipboard.writeText(command).then(function(){button.classList.add('is-copied');setTimeout(function(){button.classList.remove('is-copied');},2000);});});})();
-window.setupOutlineNavigation();
