@@ -899,6 +899,38 @@ public sealed class PdfIncrementalAnnotationEditorTests
         }
     }
 
+    // ISO 32000-1 14.9.2.1: an empty language identifier means the language is unknown.
+    [Fact]
+    public void Build_AcceptsExistingAnnotationWithAnEmptyLanguage()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage()
+            .Build());
+        (PdfIndirectReference Reference, PdfDictionary Page) = Pages(source)[0];
+        var setup = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference existing = setup.AddObject(new PdfDictionary([
+            new(Name("Type"), Name("Annot")),
+            new(Name("Subtype"), Name("Text")),
+            new(Name("Rect"), new PdfArray([
+                new PdfInteger(0), new PdfInteger(0),
+                new PdfInteger(10), new PdfInteger(10)
+            ])),
+            new(Name("P"), Reference),
+            new(Name("Lang"), new PdfString(""u8, PdfStringForm.Literal))
+        ]));
+        PdfDocument document = PdfDocument.Open(setup
+            .ReplaceObject(Reference.ObjectNumber, new PdfDictionary(Page.Append(
+                new KeyValuePair<PdfName, PdfObject>(Name("Annots"),
+                    new PdfArray([existing])))))
+            .Build());
+
+        PdfDocument updated = PdfDocument.Open(new PdfIncrementalAnnotationEditor(document)
+            .AddTextNote(0, 20, 20, "New note")
+            .Build());
+
+        Assert.Equal(2, Assert.IsType<PdfArray>(Pages(updated)[0].Page[Name("Annots")]).Count);
+    }
+
     [Fact]
     public void Build_RejectsExistingReplyTargetNotRegisteredOnPage()
     {
