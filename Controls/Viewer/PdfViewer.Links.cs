@@ -84,33 +84,8 @@ namespace KillerPDF.Controls
             return true;
         }
 
-        // Schemes we will hand to the OS shell when a PDF link is clicked. A PDF can embed ANY URI, and
-        // Process.Start(UseShellExecute=true) would happily launch file:// paths, UNC shares, javascript:,
-        // or registered protocol handlers (ms-msdt:/search-ms: - real malware vectors). Anything outside
-        // this allow-list is refused. http/https = web links; mailto = email links.
-        private static readonly HashSet<string> AllowedLinkSchemes =
-            new(StringComparer.OrdinalIgnoreCase) { "http", "https", "mailto" };
-
-        // True only for an absolute URI in an allowed scheme. Rejects scheme-less / relative URIs (a bare
-        // "www.example.com" is a Tier 2 follow-up), plus file:, javascript:, and custom protocol handlers.
-        private static bool IsAllowedLinkUri(string url) =>
-            Uri.TryCreate(url, UriKind.Absolute, out var uri) && AllowedLinkSchemes.Contains(uri.Scheme);
-
-        // A PDF can store a scheme-less link like "www.example.com" or "example.com/page". Treat a domain-
-        // shaped target as https so it still opens; anything with an explicit scheme, a backslash (UNC/path),
-        // or whitespace is left untouched (and thus refused by IsAllowedLinkUri unless it's http/https/mailto).
-        private static string NormalizeLinkUri(string raw)
-        {
-            raw = raw.Trim();
-            if (raw.Length == 0) return raw;
-            if (raw.Contains('\\') || raw.Contains(' ')) return raw;    // Windows path / UNC / junk - don't touch
-            if (raw.Contains("://")) return raw;                        // already scheme://...
-            int colon = raw.IndexOf(':');
-            int slash = raw.IndexOf('/');
-            if (colon >= 0 && (slash < 0 || colon < slash)) return raw; // "scheme:" (mailto:, file:, C:) - don't touch
-            string host = slash >= 0 ? raw[..slash] : raw;              // host part before any path
-            return host.Contains('.') ? "https://" + raw : raw;         // dotted host => assume https
-        }
+        // Which link schemes reach the shell, and the exact launched text, live in Services/ExternalLink.cs.
+        private static bool IsAllowedLinkUri(string url) => ExternalLink.IsAllowed(url);
 
         // Maps a PDF rectangle (points, origin bottom-left, already min/max-normalized) to a canvas-space
         // rectangle (pixels, origin top-left) for a page rendered at bitmapW x bitmapH. Shared by the
@@ -182,8 +157,8 @@ namespace KillerPDF.Controls
             if (target is not string raw || string.IsNullOrWhiteSpace(raw)) return;
 
             // Scheme-less but domain-shaped targets (e.g. "www.example.com") become https:// here.
-            string url = NormalizeLinkUri(raw);
-            if (!IsAllowedLinkUri(url))
+            // The shell gets the parsed AbsoluteUri, the same text that passed the scheme check.
+            if (ExternalLink.LaunchTarget(raw) is not { } url)
             {
                 SetStatus($"{Loc("Str_LinkBlocked")} {raw}");
                 return;
