@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<script>/* Apply saved theme + accent before first paint to avoid a reload flash */(function(){try{var d=document.documentElement,t=localStorage.getItem('kpdf-theme');if(t){d.setAttribute('data-theme',t);if({dark:1,light:1,hc:1,trashpolka:1}[t]){var v=localStorage.getItem('kpdf-av');if(v){var s=v.split('|');d.style.setProperty('--accent',s[0]);d.style.setProperty('--btn',s[1]);}}}}catch(e){}})();</script>
+<script src="theme-boot.js?v=1"></script>
 <link rel="preload" href="brand/KillerSans-Regular.ttf" as="font" type="font/ttf" crossorigin><link rel="preload" href="brand/Punktype.ttf" as="font" type="font/ttf" crossorigin><link rel="preload" href="brand/Lacquer-Regular.ttf" as="font" type="font/ttf" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="darkreader-lock">
@@ -473,166 +473,7 @@ html[data-theme="light"] .kbmap { --kc-file:#009e99; --kc-tools:#a67c00; --kc-ed
 <div class="kbmap-detail" id="kbmapDetail">&nbsp;</div>
 </div>
 <script src="shortcuts.generated.js?v=1.9.5-2"></script>
-<script>
-(function(){
-var SHORTCUTS = window.KillerPDFShortcuts;
-var KBL = SHORTCUTS.map;
-function shortcutLocale(){
-  var lang=document.documentElement.getAttribute('lang')||'en';
-  if(lang.indexOf('zh-Hant')===0) lang='zh'; else if(lang.indexOf('zh-Hans')===0) lang='zh-cn'; else lang=lang.split('-')[0];
-  return SHORTCUTS.locales[lang] || SHORTCUTS.locales.en;
-}
-function kbText(fallback, key){
-  var lang=document.documentElement.getAttribute('lang')||'en';
-  if(lang.indexOf('zh-Hant')===0) lang='zh'; else if(lang.indexOf('zh-Hans')===0) lang='zh-cn'; else lang=lang.split('-')[0];
-  var dict=(typeof I18N!=='undefined' && I18N[lang]) || null, raw=dict && dict[key];
-  if(raw==null) return fallback;
-  var tmp=document.createElement('div'); tmp.innerHTML=raw; return tmp.textContent || fallback;
-}
-function kbAction(key){ return shortcutLocale().labels[key] || SHORTCUTS.locales.en.labels[key] || key; }
-function kbCategory(category){
-  var group=shortcutLocale().groups.find(function(item){ return item.id===category; });
-  return group ? group.title : category;
-}
-function renderShortcutList(){
-  document.querySelectorAll('[data-shortcut-label]').forEach(function(button){
-    var key=button.getAttribute('data-shortcut-label'), label=kbAction(key);
-    var binding=shortcutLocale().rows.find(function(row){ return row.label===label; });
-    if(!binding) return;
-    var hint=button.querySelector('.kbd');
-    if(!hint){ hint=document.createElement('span'); hint.className='kbd'; button.insertBefore(hint,button.querySelector('.chev')); }
-    hint.textContent=binding.keys;
-  });
-  var container=document.querySelector('.kbd-cols');
-  if(!container) return;
-  var locale=shortcutLocale(), columns=[document.createElement('div'),document.createElement('div')];
-  columns.forEach(function(column){ column.className='kbd-col'; });
-  locale.groups.forEach(function(group){
-    var section=document.createElement('div'), heading=document.createElement('h4');
-    section.className='kbd-group'; heading.textContent=group.title; section.appendChild(heading);
-    locale.rows.filter(function(row){ return row.category===group.id; }).forEach(function(row){
-      var element=document.createElement('div'), keys=document.createElement('span'), label=document.createElement('span');
-      element.className='kbd-row'; keys.className='k'; label.className='d';
-      keys.textContent=row.keys; label.textContent=row.label;
-      element.append(keys,label); section.appendChild(element);
-    });
-    columns[group.right ? 1 : 0].appendChild(section);
-  });
-  container.replaceChildren.apply(container,columns);
-}
-document.addEventListener('DOMContentLoaded',renderShortcutList);
-var KEY_CAPS = {
-  Ctrl:['Ctrl','ui_Key_Ctrl'], RCtrl:['Ctrl','ui_Key_Ctrl'],
-  Alt:['Alt','ui_Key_Alt'], RAlt:['Alt','ui_Key_Alt'],
-  Shift:['Shift','ui_Key_Shift'], RShift:['Shift','ui_Key_Shift'],
-  Del:['Del','ui_Key_Delete'], Enter:['Enter','ui_Key_Enter'], Esc:['Esc','ui_Key_Esc'],
-  Menu:['Menu','ui_Key_Menu'], Home:['Home','ui_Key_Home'], End:['End','ui_Key_End'],
-  PgUp:['PgUp','ui_Key_PgUp'], PgDn:['PgDn','ui_Key_PgDn'], Tab:['Tab','ui_Key_Tab']
-};
-function kbKey(id, fallback){ var v=KEY_CAPS[id]; return v ? kbText(v[0],v[1]) : fallback; }
-function localizeShortcutLabels(){
-  document.querySelector('[data-kblayer="ctrl"]').textContent=kbText('Ctrl','ui_Key_Ctrl');
-  document.querySelector('[data-kblayer="ctrlshift"]').textContent=kbText('Ctrl','ui_Key_Ctrl')+'+'+kbText('Shift','ui_Key_Shift');
-  document.querySelector('[data-kblayer="shift"]').textContent=kbText('Shift','ui_Key_Shift');
-  document.querySelector('[data-kblayer="alt"]').textContent=kbText('Alt','ui_Key_Alt');
-  document.querySelector('[data-kblayer="altshift"]').textContent=kbText('Alt','ui_Key_Alt')+'+'+kbText('Shift','ui_Key_Shift');
-  document.querySelector('[data-kblayer="ctrlaltshift"]').textContent=kbText('Ctrl','ui_Key_Ctrl')+'+'+kbText('Alt','ui_Key_Alt')+'+'+kbText('Shift','ui_Key_Shift');
-  Object.keys(keys).forEach(function(id){
-    var cap=keys[id].firstChild;
-    cap.style.transform='';
-    cap.textContent=kbKey(id,keys[id].getAttribute('data-key-cap')||'');
-    requestAnimationFrame(function(){
-      var available=keys[id].clientWidth-6;
-      if(cap.scrollWidth>available) cap.style.transform='scaleX('+(available/cap.scrollWidth)+')';
-    });
-  });
-}
-var KBROWS = [
-[['Esc','Esc',1],['',0.8],['F1','F1',1],['F2','F2',1],['F3','F3',1],['F4','F4',1],['',0.6],['F5','F5',1],['F6','F6',1],['F7','F7',1],['F8','F8',1],['',0.6],['F9','F9',1],['F10','F10',1],['F11','F11',1],['F12','F12',1]],
-[['Grave','`',1],['D1','1',1],['D2','2',1],['D3','3',1],['D4','4',1],['D5','5',1],['D6','6',1],['D7','7',1],['D8','8',1],['D9','9',1],['D0','0',1],['Minus','-',1],['Equals','=',1],['Back','⌫',2],['',0.6],['Ins','Ins',1],['Home','Home',1],['PgUp','PgUp',1]],
-[['Tab','Tab',1.5],['Q','Q',1],['W','W',1],['E','E',1],['R','R',1],['T','T',1],['Y','Y',1],['U','U',1],['I','I',1],['O','O',1],['P','P',1],['LBr','[',1],['RBr',']',1],['Bslash','\\',1.5],['',0.6],['Del','Del',1],['End','End',1],['PgDn','PgDn',1]],
-[['Caps','Caps',1.8],['A','A',1],['S','S',1],['D','D',1],['F','F',1],['G','G',1],['H','H',1],['J','J',1],['K','K',1],['L','L',1],['Semi',';',1],['Quote','\'',1],['Enter','Enter',2.2]],
-[['Shift','Shift',2.3],['Z','Z',1],['X','X',1],['C','C',1],['V','V',1],['B','B',1],['N','N',1],['M','M',1],['Comma',',',1],['Period','.',1],['Slash','/',1],['RShift','Shift',2.7],['',1.6],['Up','↑',1]],
-[['Ctrl','Ctrl',1.5],['Win','Win',1.2],['Alt','Alt',1.5],['Space','',6.8],['RAlt','Alt',1.5],['Menu','☰',1],['RCtrl','Ctrl',1.5],['',0.6],['Left','←',1],['Down','↓',1],['Right','→',1]]];
-var MODS = { base:[], ctrl:['Ctrl','RCtrl'], ctrlshift:['Ctrl','RCtrl','Shift','RShift'], shift:['Shift','RShift'], alt:['Alt','RAlt'], altshift:['Alt','RAlt','Shift','RShift'], ctrlaltshift:['Ctrl','RCtrl','Alt','RAlt','Shift','RShift'] };
-var U = 46, board = document.getElementById('kbmapBoard'), detail = document.getElementById('kbmapDetail');
-var layer = 'base', keys = {}, hover = null;
-function startMarquee(h){   // a cut-off caption scrolls, marquee-style
-  var b = KBL[layer][h.id];
-  if (!b || !h.m.animate) return;
-  h.act.classList.add('scrolling');   // unclamps the span so the full text width is measurable
-  var d = h.m.offsetWidth - h.act.clientWidth + 4;   // +4: the act's own side padding
-  if (d > 2) {
-    h.k._anim = h.m.animate([{transform:'translateX(0)'},{transform:'translateX(' + (-d) + 'px)'}],
-      {duration: Math.max(600, d * 40), direction: 'alternate', iterations: Infinity, easing: 'linear', delay: 350});
-  } else { h.act.classList.remove('scrolling'); }
-}
-function stopMarquee(h){
-  if (h.k._anim) { h.k._anim.cancel(); h.k._anim = null; }
-  h.act.classList.remove('scrolling');
-}
-KBROWS.forEach(function(row){
-  var r = document.createElement('div'); r.className = 'kbmap-row';
-  row.forEach(function(c){
-    if (!c[0]) { var g = document.createElement('div'); g.style.cssText = 'flex:none;width:' + (U * c[1]) + 'px'; r.appendChild(g); return; }
-    var k = document.createElement('div'); k.className = 'kb-key'; k.style.width = (U * c[2] - 4) + 'px';
-    k.innerHTML = '<span class="cap"></span><span class="act"><span></span></span><span class="bar"></span>';
-    k.setAttribute('data-key-cap',c[1]);
-    k.firstChild.textContent = kbKey(c[0],c[1]);
-    var id = c[0], act = k.querySelector('.act'), m = act.firstChild;
-    k._h = { k: k, act: act, m: m, id: id };
-    k.addEventListener('mouseenter', function(){
-      var b = KBL[layer][id];
-      hover = k._h;
-      startMarquee(k._h);
-      detail.textContent = b ? (kbCategory(b[0]) + ' :: ' + kbAction(b[1])) : ' '; });
-    k.addEventListener('mouseleave', function(){
-      stopMarquee(k._h);
-      hover = null;
-      detail.textContent = ' '; });
-    keys[id] = k; r.appendChild(k);
-  });
-  board.appendChild(r);
-});
-function paint(){
-  Object.keys(keys).forEach(function(id){
-    var k = keys[id], b = KBL[layer][id];
-    k.classList.toggle('bound', !!b);
-    if (b) { k.style.setProperty('--kc', 'var(--kc-' + b[0] + ')'); k.querySelector('.act').firstChild.textContent = kbAction(b[1]); }
-    k.classList.toggle('mod-on', MODS[layer].indexOf(id) >= 0);
-  });
-  document.querySelectorAll('.kbmap-layers button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-kblayer') === layer); });
-  // Layer changed while a key is hovered (held modifier): restart its marquee for the NEW caption.
-  if (hover) {
-    stopMarquee(hover);
-    startMarquee(hover);
-    var hb = KBL[layer][hover.id];
-    detail.textContent = hb ? (kbCategory(hb[0]) + ' :: ' + kbAction(hb[1])) : ' ';
-  }
-}
-document.querySelectorAll('.kbmap-layers button').forEach(function(b){
-  b.addEventListener('click', function(){ layer = b.getAttribute('data-kblayer'); paint(); });
-});
-function sync(e){
-  var l = e.ctrlKey && e.altKey && e.shiftKey ? 'ctrlaltshift' : e.ctrlKey && e.shiftKey ? 'ctrlshift' : e.ctrlKey ? 'ctrl' : e.altKey && e.shiftKey ? 'altshift' : e.altKey ? 'alt' : e.shiftKey ? 'shift' : 'base';
-  if (l !== layer) { layer = l; paint(); }
-}
-window.addEventListener('keydown', sync);
-window.addEventListener('keyup', sync);
-document.addEventListener('kpdf-languagechange', function(){ localizeShortcutLabels(); renderShortcutList(); paint(); });
-localizeShortcutLabels();
-paint();
-// Scale the board down to the column width instead of scrolling, like the app's Viewbox.
-function fit(){
-  var wrap = board.parentNode;
-  board.style.transform = ''; wrap.style.height = '';
-  var s = wrap.clientWidth / board.offsetWidth;
-  if (s < 1) { board.style.transform = 'scale(' + s + ')'; wrap.style.height = (board.offsetHeight * s + 6) + 'px'; }
-}
-fit();
-window.addEventListener('resize', fit);
-})();
-</script>
+<script src="help-keyboard.js?v=1"></script>
 <div class="kbd-cols"><div class="kbd-col"><div class="kbd-group"><h4>FILE</h4><div class="kbd-row"><span class="k">Alt+Shift+T</span><span class="d">Export table</span></div><div class="kbd-row"><span class="k">Alt+Shift+E</span><span class="d">Export Pages as Images...</span></div><div class="kbd-row"><span class="k">Alt+Shift+Z</span><span class="d">Reduce File Size...</span></div><div class="kbd-row"><span class="k">Alt+Shift+C</span><span class="d">Compress to ZIP</span></div><div class="kbd-row"><span class="k">Alt+Shift+F</span><span class="d">Flatten</span></div><div class="kbd-row"><span class="k">Alt+Shift+B</span><span class="d">Merge PDFs</span></div><div class="kbd-row"><span class="k">Alt+Shift+X</span><span class="d">Extract Page(s)</span></div><div class="kbd-row"><span class="k">Ctrl+O</span><span class="d">Open</span></div><div class="kbd-row"><span class="k">Ctrl+S</span><span class="d">Save</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+S</span><span class="d">Save As</span></div><div class="kbd-row"><span class="k">Ctrl+W</span><span class="d">Close file</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+W</span><span class="d">Close other tabs</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+Q</span><span class="d">Close all</span></div><div class="kbd-row"><span class="k">Ctrl+Q</span><span class="d">Quit</span></div><div class="kbd-row"><span class="k">Ctrl+N</span><span class="d">New blank document</span></div><div class="kbd-row"><span class="k">Ctrl+P</span><span class="d">Print</span></div><div class="kbd-row"><span class="k">Ctrl+D / F4</span><span class="d">Document info</span></div><div class="kbd-row"><span class="k">Shift+F4</span><span class="d">Show current file size</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+E</span><span class="d">Export Document...</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+P</span><span class="d">Protect Document</span></div></div><div class="kbd-group"><h4>TOOLS</h4><div class="kbd-row"><span class="k">Alt+Shift+1</span><span class="d">Distance</span></div><div class="kbd-row"><span class="k">Alt+Shift+2</span><span class="d">Perimeter</span></div><div class="kbd-row"><span class="k">Alt+Shift+3</span><span class="d">Area</span></div><div class="kbd-row"><span class="k">Alt+Shift+4</span><span class="d">Angle</span></div><div class="kbd-row"><span class="k">Alt+Shift+5</span><span class="d">Set the drawing scale for this page</span></div><div class="kbd-row"><span class="k">V</span><span class="d">Select</span></div><div class="kbd-row"><span class="k">T</span><span class="d">Text</span></div><div class="kbd-row"><span class="k">H</span><span class="d">Highlight</span></div><div class="kbd-row"><span class="k">L (or U)</span><span class="d">Line</span></div><div class="kbd-row"><span class="k">O</span><span class="d">Shapes</span></div><div class="kbd-row"><span class="k">Shift+O</span><span class="d">Next shape type</span></div><div class="kbd-row"><span class="k">D</span><span class="d">Draw</span></div><div class="kbd-row"><span class="k">I</span><span class="d">Add Image</span></div><div class="kbd-row"><span class="k">G</span><span class="d">Signature</span></div><div class="kbd-row"><span class="k">C</span><span class="d">Crop</span></div><div class="kbd-row"><span class="k">R</span><span class="d">Transform</span></div><div class="kbd-row"><span class="k">Ctrl+R</span><span class="d">Rotate Page CW</span></div><div class="kbd-row"><span class="k">Ctrl+L</span><span class="d">Rotate Page CCW</span></div><div class="kbd-row"><span class="k">S</span><span class="d">Stamp Pages</span></div><div class="kbd-row"><span class="k">F</span><span class="d">Fillable text field</span></div><div class="kbd-row"><span class="k">E</span><span class="d">Color Correction</span></div><div class="kbd-row"><span class="k">M</span><span class="d">Measure</span></div><div class="kbd-row"><span class="k">Shift+M</span><span class="d">Next measurement type</span></div><div class="kbd-row"><span class="k">X</span><span class="d">Redact</span></div><div class="kbd-row"><span class="k">Backspace</span><span class="d">Remove last point</span></div></div><div class="kbd-group"><h4>EDITING</h4><div class="kbd-row"><span class="k">Alt+Shift+P</span><span class="d">Edit paragraph</span></div><div class="kbd-row"><span class="k">Ctrl+Z</span><span class="d">Undo</span></div><div class="kbd-row"><span class="k">Ctrl+Y</span><span class="d">Redo</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+Z</span><span class="d">Redo</span></div><div class="kbd-row"><span class="k">Ctrl+C</span><span class="d">Copy selected text</span></div><div class="kbd-row"><span class="k">Ctrl+X</span><span class="d">Cut</span></div><div class="kbd-row"><span class="k">Ctrl+V</span><span class="d">Paste image / text</span></div><div class="kbd-row"><span class="k">Ctrl+B / I / U</span><span class="d">Bold / italic / underline (text box)</span></div><div class="kbd-row"><span class="k">Delete</span><span class="d">Delete selected annotation or pages</span></div><div class="kbd-row"><span class="k">Ctrl+Enter</span><span class="d">Save text (Enter adds a line)</span></div><div class="kbd-row"><span class="k">F2</span><span class="d">Rename</span></div><div class="kbd-row"><span class="k">Enter / Esc</span><span class="d">Confirm / cancel crop or measurement</span></div><div class="kbd-row"><span class="k">Menu / Shift+F10</span><span class="d">Context menu at selection</span></div></div><div class="kbd-group"><h4>HELP</h4><div class="kbd-row"><span class="k">F1 / Ctrl+?</span><span class="d">This shortcut list</span></div><div class="kbd-row"><span class="k">F12</span><span class="d">About dialog</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+K</span><span class="d">Toggle keyboard shortcuts</span></div></div></div><div class="kbd-col"><div class="kbd-group"><h4>NAVIGATION</h4><div class="kbd-row"><span class="k">Alt+1</span><span class="d">Pages</span></div><div class="kbd-row"><span class="k">Alt+2</span><span class="d">Outline</span></div><div class="kbd-row"><span class="k">Alt+3</span><span class="d">Comments and measurements</span></div><div class="kbd-row"><span class="k">Alt+4</span><span class="d">Attachments</span></div><div class="kbd-row"><span class="k">Alt+5</span><span class="d">Layers</span></div><div class="kbd-row"><span class="k">Alt+6</span><span class="d">Signatures</span></div><div class="kbd-row"><span class="k">Alt+7</span><span class="d">Document tools</span></div><div class="kbd-row"><span class="k">← / → or PgUp/PgDn</span><span class="d">Previous / next page</span></div><div class="kbd-row"><span class="k">Home / End</span><span class="d">First / last page</span></div><div class="kbd-row"><span class="k">Alt+← / Alt+→</span><span class="d">Back / forward (jump history)</span></div><div class="kbd-row"><span class="k">↑ / ↓</span><span class="d">Scroll (flips page at the edges)</span></div><div class="kbd-row"><span class="k">Ctrl+Scroll</span><span class="d">Zoom in / out (cursor-anchored)</span></div><div class="kbd-row"><span class="k">Ctrl+= / Ctrl+-</span><span class="d">Zoom in / out</span></div><div class="kbd-row"><span class="k">Ctrl+0</span><span class="d">Reset zoom to 100%</span></div><div class="kbd-row"><span class="k">Ctrl+1 / 2 / 3</span><span class="d">Actual size / fit width / fit page</span></div><div class="kbd-row"><span class="k">Middle drag</span><span class="d">Pan view</span></div><div class="kbd-row"><span class="k">Space + drag</span><span class="d">Pan view</span></div><div class="kbd-row"><span class="k">F9</span><span class="d">Toggle sidebar</span></div><div class="kbd-row"><span class="k">Ctrl+Alt+Shift+← / → / ↑ / ↓</span><span class="d">Move sidebar left, right, top or bottom</span></div><div class="kbd-row"><span class="k">Ctrl+Tab</span><span class="d">Next tab (Shift: previous)</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+Tab</span><span class="d">Previous tab</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+N</span><span class="d">Move to New Window</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+T</span><span class="d">Reopen Closed Tab</span></div></div><div class="kbd-group"><h4>VIEW</h4><div class="kbd-row"><span class="k">Alt+Shift+Up</span><span class="d">Tabs on top</span></div><div class="kbd-row"><span class="k">Alt+Shift+Down</span><span class="d">Tabs on bottom</span></div><div class="kbd-row"><span class="k">F5</span><span class="d">Continuous</span></div><div class="kbd-row"><span class="k">F6</span><span class="d">Single Page</span></div><div class="kbd-row"><span class="k">F7</span><span class="d">Two Page</span></div><div class="kbd-row"><span class="k">B</span><span class="d">Book layout</span></div><div class="kbd-row"><span class="k">F8</span><span class="d">Grid</span></div><div class="kbd-row"><span class="k">F10</span><span class="d">Split pane: two documents side by side</span></div><div class="kbd-row"><span class="k">F11 / Esc</span><span class="d">Full screen</span></div><div class="kbd-row"><span class="k">Alt+M</span><span class="d">Hide toolbar</span></div><div class="kbd-row"><span class="k">N</span><span class="d">Invert document colors</span></div><div class="kbd-row"><span class="k">Shift+N</span><span class="d">Invert images too</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+= / - / 0</span><span class="d">Zoom the whole app (accessibility)</span></div><div class="kbd-row"><span class="k">Wheel on logo</span><span class="d">Zoom the whole app (accessibility)</span></div><div class="kbd-row"><span class="k">Alt+Shift+G</span><span class="d">Film Grain</span></div><div class="kbd-row"><span class="k">Alt+Shift+N</span><span class="d">Show page navigation buttons</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+1-6</span><span class="d">Toolbar appearance</span></div></div><div class="kbd-group"><h4>OCR</h4><div class="kbd-row"><span class="k">Ctrl+Shift+O</span><span class="d">OCR Page (Copy Text)</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+I</span><span class="d">OCR Region...</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+R</span><span class="d">Convert Scan to Text...</span></div></div><div class="kbd-group"><h4>SEARCH &amp; SELECT</h4><div class="kbd-row"><span class="k">Ctrl+K</span><span class="d">Search Tools</span></div><div class="kbd-row"><span class="k">Ctrl+F</span><span class="d">Find Text</span></div><div class="kbd-row"><span class="k">Ctrl+H</span><span class="d">Find and replace</span></div><div class="kbd-row"><span class="k">F3 / Shift+F3</span><span class="d">Next / previous result</span></div><div class="kbd-row"><span class="k">Enter / Shift+Enter</span><span class="d">Next / previous result</span></div><div class="kbd-row"><span class="k">Alt+C / Alt+W</span><span class="d">Match case / whole word (Find Text)</span></div><div class="kbd-row"><span class="k">Ctrl+Alt+Enter</span><span class="d">Replace All</span></div><div class="kbd-row"><span class="k">Ctrl+A</span><span class="d">Select all text on page</span></div><div class="kbd-row"><span class="k">Shift+Click</span><span class="d">Add to selection</span></div></div><div class="kbd-group"><h4>DOCUMENT TOOLS</h4><div class="kbd-row"><span class="k">Ctrl+Shift+G</span><span class="d">Digital Signature...</span></div><div class="kbd-row"><span class="k">Alt+Shift+V</span><span class="d">Compare PDFs</span></div><div class="kbd-row"><span class="k">Alt+Shift+W</span><span class="d">Automatic folders</span></div><div class="kbd-row"><span class="k">Alt+Shift+A</span><span class="d">Add Blank Page</span></div><div class="kbd-row"><span class="k">Alt+Shift+R</span><span class="d">Reverse Page Order</span></div><div class="kbd-row"><span class="k">Alt+Shift+O</span><span class="d">Fix Page Orientation</span></div><div class="kbd-row"><span class="k">Alt+Shift+S</span><span class="d">Straighten Scanned Pages</span></div><div class="kbd-row"><span class="k">Alt+Shift+D</span><span class="d">Divide Spreads...</span></div><div class="kbd-row"><span class="k">Alt+Shift+L</span><span class="d">Rasterize Region...</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D</span><span class="d">Document tools</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, P</span><span class="d">Preflight report</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, R</span><span class="d">Print production report</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, S</span><span class="d">Separation preview report</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, A</span><span class="d">Accessibility review</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, W</span><span class="d">Signatures report</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, Z</span><span class="d">Certificates</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, L</span><span class="d">Layers report</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, E</span><span class="d">Edit layers</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, F</span><span class="d">Portfolio report</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, O</span><span class="d">Edit portfolio</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, U</span><span class="d">Edit portfolio structure</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, T</span><span class="d">Edit attachments</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, K</span><span class="d">Comments</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, Y</span><span class="d">Measurements</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, N</span><span class="d">Navigation audit</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, B</span><span class="d">Create bookmarks from headings</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, G</span><span class="d">Edit page labels</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, V</span><span class="d">Initial view settings</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, C</span><span class="d">Structural comparison report</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+X / Ctrl+Shift+D, X</span><span class="d">Guided tasks</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+M / Ctrl+Shift+D, M</span><span class="d">Macros</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, D</span><span class="d">Data merge</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, I</span><span class="d">Insert table of contents</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, H</span><span class="d">Form data</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, J</span><span class="d">Bookmark data</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, Q</span><span class="d">Production layouts and Bates batches</span></div><div class="kbd-row"><span class="k">Ctrl+Shift+D, 0</span><span class="d">Color Management</span></div></div></div></div>
 </div>
 </div>
@@ -649,23 +490,6 @@ window.addEventListener('resize', fit);
 <script src="kp-site-info.js?v=2"></script>
 <script src="trash-polka.js?v=1"></script>
 <script src="kp.js?v=24"></script>
-<script>
-(function(){
-  var items=[].slice.call(document.querySelectorAll('.acc-item'));
-  items.forEach(function(it){ var h=it.querySelector('.acc-head'), b=it.querySelector('.acc-body');
-    h.addEventListener('click', function(){
-      var open=it.classList.contains('open');
-      items.forEach(function(o){ o.classList.remove('open'); o.querySelector('.acc-body').style.maxHeight=null; });
-      if(!open){ it.classList.add('open'); b.style.maxHeight=b.scrollHeight+'px'; }
-    });
-  });
-  var links=[].slice.call(document.querySelectorAll('.outline a'));
-  var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'));}).filter(Boolean);
-  var sc=document.querySelector('.content-scroll');
-  function spy(){ var y=(sc?sc.scrollTop:window.scrollY)+100, cur=secs[0]; secs.forEach(function(s){ if(s&&s.offsetTop<=y) cur=s; });
-    links.forEach(function(a){ a.classList.toggle('on', cur && a.getAttribute('href')==='#'+cur.id); }); }
-  (sc||window).addEventListener('scroll',spy,{passive:true}); spy();
-})();
-</script>
+<script src="help-page.js?v=1"></script>
 </body>
 </html>

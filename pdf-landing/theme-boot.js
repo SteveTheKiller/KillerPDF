@@ -1,0 +1,3 @@
+/* Apply saved theme + accent before first paint to avoid a reload flash. Loaded without defer in <head>.
+   data-root-class on the script tag adds a class to <html> first (index uses "js", mcp "logo-pending"). */
+(function(){var d=document.documentElement,s=document.currentScript,c=s&&s.getAttribute('data-root-class');if(c)d.classList.add(c);try{var t=localStorage.getItem('kpdf-theme');if(t){d.setAttribute('data-theme',t);if({dark:1,light:1,hc:1,trashpolka:1}[t]){var v=localStorage.getItem('kpdf-av');if(v){var p=v.split('|');d.style.setProperty('--accent',p[0]);d.style.setProperty('--btn',p[1]);}}}}catch(e){}})();
