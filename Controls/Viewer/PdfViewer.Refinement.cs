@@ -214,8 +214,9 @@ public partial class PdfViewer
                 if (!Current() || !ReferenceEquals(image.Source, source)) return;
                 PresentRenderWarning(image, RenderWarnings.TryGetValue(result.bitmap, out _)
                     ? result.bitmap : source, page);
-                // #526: the tile sits on whole device pixels at exactly its own size, so it is shown 1:1, unfiltered.
-                var box = VisibleDetail.Placement(imageStart, deviceWidth, deviceHeight, image.ActualWidth,
+                // #526: a tile at the page's device size sits on whole device pixels at exactly its own size, so it
+                // is shown 1:1, unfiltered. A capped tile is stretched with the default scaling.
+                var (box, oneToOne) = VisibleDetail.Placement(imageStart, deviceWidth, deviceHeight, image.ActualWidth,
                     image.ActualHeight, result.region, result.bitmap.PixelWidth, result.bitmap.PixelHeight);
                 var detail = new Image
                 {
@@ -225,7 +226,7 @@ public partial class PdfViewer
                     Width = box.Width, Height = box.Height,
                     Margin = new Thickness(box.Left, box.Top, 0, 0)
                 };
-                RenderOptions.SetBitmapScalingMode(detail, BitmapScalingMode.NearestNeighbor);
+                if (oneToOne) RenderOptions.SetBitmapScalingMode(detail, BitmapScalingMode.NearestNeighbor);
                 // Keep the annotation canvas at index 1; its input and coordinate mapping stay intact.
                 Panel.SetZIndex(detail, -1);
                 Panel.SetZIndex(image, -2);

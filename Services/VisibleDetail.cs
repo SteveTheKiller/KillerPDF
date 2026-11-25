@@ -49,21 +49,30 @@ internal static class VisibleDetail
         return Math.Abs(maximum - Math.Max(baseWidth, baseHeight)) <= 1 ? null : maximum;
     }
 
+    /// <summary>Where a tile goes inside its page image, and whether it is shown 1:1 at device pixels.</summary>
+    internal readonly record struct TilePlacement(System.Windows.Rect Box, bool OneToOne);
+
     /// <summary>
-    /// Where the tile goes inside its page image, in the image's own units. The tile starts on a whole device pixel and
-    /// spans exactly its own pixel count, so it is shown 1:1 and nothing resamples it (#526). The rounding moves it by
-    /// under half a device pixel.
+    /// Where the tile goes inside its page image, in the image's own units. A tile drawn at the page's device size
+    /// starts on a whole device pixel and spans exactly its own pixel count, so it is shown 1:1 and nothing resamples it
+    /// (#526); the rounding moves it by under half a device pixel. A page drawn larger than <see cref="MaximumSize"/>
+    /// gets a smaller tile, which is stretched over its part of the page as before.
     /// </summary>
-    internal static System.Windows.Rect Placement(System.Windows.Point imageScreenOrigin, double deviceWidth,
+    internal static TilePlacement Placement(System.Windows.Point imageScreenOrigin, double deviceWidth,
         double deviceHeight, double imageWidth, double imageHeight, VisibleRenderRegion region, int pixelWidth,
         int pixelHeight)
     {
+        // The fitted page is within a pixel or two of the drawn size whenever it was not capped.
+        if (Math.Abs(region.DisplayWidth - deviceWidth) > 2 || Math.Abs(region.DisplayHeight - deviceHeight) > 2)
+            return new(new System.Windows.Rect(imageWidth * region.DisplayLeft / region.DisplayWidth,
+                imageHeight * region.DisplayTop / region.DisplayHeight, imageWidth * pixelWidth / region.DisplayWidth,
+                imageHeight * pixelHeight / region.DisplayHeight), false);
         double perX = deviceWidth / imageWidth, perY = deviceHeight / imageHeight;
         double left = Math.Round(imageScreenOrigin.X + deviceWidth * region.DisplayLeft / region.DisplayWidth)
             - imageScreenOrigin.X;
         double top = Math.Round(imageScreenOrigin.Y + deviceHeight * region.DisplayTop / region.DisplayHeight)
             - imageScreenOrigin.Y;
-        return new System.Windows.Rect(left / perX, top / perY, pixelWidth / perX, pixelHeight / perY);
+        return new(new System.Windows.Rect(left / perX, top / perY, pixelWidth / perX, pixelHeight / perY), true);
     }
 
     /// <summary>Draws the tile for a page drawn at the given device size, or returns null when the base suffices.</summary>

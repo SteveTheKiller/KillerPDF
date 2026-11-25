@@ -71,8 +71,9 @@ public sealed class VisibleDetailTests
         double deviceWidth = imageWidth * scale, deviceHeight = imageHeight * scale;
         int pageWidth = (int)Math.Round(deviceWidth), pageHeight = (int)Math.Round(deviceHeight);
         var region = new VisibleRenderRegion(101, 203, 333, 377, 101, 203, pageWidth, pageHeight);
-        var box = VisibleDetail.Placement(new System.Windows.Point(originX, originY), deviceWidth, deviceHeight,
+        var (box, oneToOne) = VisibleDetail.Placement(new System.Windows.Point(originX, originY), deviceWidth, deviceHeight,
             imageWidth, imageHeight, region, 333, 377);
+        Assert.True(oneToOne);
         double perX = deviceWidth / imageWidth, perY = deviceHeight / imageHeight;
         double left = originX + box.Left * perX, top = originY + box.Top * perY;
         Assert.Equal(Math.Round(left), left, 6);
@@ -82,6 +83,39 @@ public sealed class VisibleDetailTests
         // Within a device pixel of where the region sits on the page.
         Assert.InRange(left - (originX + deviceWidth * 101 / pageWidth), -.5, .5);
         Assert.InRange(top - (originY + deviceHeight * 203 / pageHeight), -.5, .5);
+    }
+
+    // A turned page is drawn landscape: the region's display width pairs with the image's width.
+    [Fact]
+    public void ATurnedPageTileLandsOnWholeDevicePixelsToo()
+    {
+        double imageWidth = 792, imageHeight = 612, scale = 1.14;
+        double deviceWidth = imageWidth * scale, deviceHeight = imageHeight * scale;
+        var region = new VisibleRenderRegion(40, 60, 300, 200, 40, 60,
+            (int)Math.Round(deviceWidth), (int)Math.Round(deviceHeight));
+        var (box, oneToOne) = VisibleDetail.Placement(new System.Windows.Point(10.4, 20.6), deviceWidth, deviceHeight,
+            imageWidth, imageHeight, region, 300, 200);
+        Assert.True(oneToOne);
+        Assert.Equal(300, box.Width * scale, 6);
+        Assert.Equal(200, box.Height * scale, 6);
+    }
+
+    // A page drawn past MaximumSize gets a tile at the capped size, which must still cover its part of the page:
+    // stretched as before, never shrunk to its pixel count.
+    [Fact]
+    public void ACappedTileIsStretchedOverItsPartOfThePage()
+    {
+        double imageWidth = 612, imageHeight = 792;
+        double deviceWidth = 12000, deviceHeight = 12000 * 792.0 / 612;
+        int pageWidth = (int)Math.Round(6144 * 612.0 / 792), pageHeight = 6144;
+        var region = new VisibleRenderRegion(500, 700, 1000, 1200, 500, 700, pageWidth, pageHeight);
+        var (box, oneToOne) = VisibleDetail.Placement(new System.Windows.Point(3.3, 7.7), deviceWidth, deviceHeight,
+            imageWidth, imageHeight, region, 1000, 1200);
+        Assert.False(oneToOne);
+        Assert.Equal(imageWidth * 500 / pageWidth, box.Left, 9);
+        Assert.Equal(imageHeight * 700 / pageHeight, box.Top, 9);
+        Assert.Equal(imageWidth * 1000 / pageWidth, box.Width, 9);
+        Assert.Equal(imageHeight * 1200 / pageHeight, box.Height, 9);
     }
 
     [Theory]
