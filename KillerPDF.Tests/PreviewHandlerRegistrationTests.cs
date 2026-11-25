@@ -99,6 +99,37 @@ public sealed class PreviewHandlerRegistrationTests : IDisposable
         Assert.Equal("{AAAAAAAA-2222-3333-4444-555555555555}", Read(PreviewPath));
     }
 
+    // #410: classic Outlook lists only the preview handlers in HKLM, the 32-bit Outlook in the 32-bit view. An
+    // all-users install adds the handler there too; a per-user install keeps everything in its own hive.
+    [Fact]
+    public void AnAllUsersInstallListsTheHandlerForThirtyTwoBitOutlookToo()
+    {
+        const string handlers = @"Software\Microsoft\Windows\CurrentVersion\PreviewHandlers";
+        string wowPath = _rootPath + "-wow";
+        try
+        {
+            using RegistryKey wow = Registry.CurrentUser.CreateSubKey(wowPath);
+            PreviewHandlerRegistration.Register(_root, _directory, wow);
+            using (RegistryKey? list = wow.OpenSubKey(handlers))
+                Assert.Equal("KillerPDF Preview Handler", list?.GetValue(PreviewHandlerRegistration.ClassId));
+
+            PreviewHandlerRegistration.Unregister(_root, wow);
+            using (RegistryKey? list = wow.OpenSubKey(handlers))
+                Assert.Null(list?.GetValue(PreviewHandlerRegistration.ClassId));
+        }
+        finally { Registry.CurrentUser.DeleteSubKeyTree(wowPath, throwOnMissingSubKey: false); }
+    }
+
+    [Fact]
+    public void OnlyTheMachineHiveHasAThirtyTwoBitList()
+    {
+        Assert.Null(PreviewHandlerRegistration.ThirtyTwoBitMachineRoot(Registry.CurrentUser));
+        Assert.Null(PreviewHandlerRegistration.ThirtyTwoBitMachineRoot(_root));
+        using RegistryKey? machine = PreviewHandlerRegistration.ThirtyTwoBitMachineRoot(Registry.LocalMachine);
+        Assert.NotNull(machine);
+        Assert.Equal(RegistryView.Registry32, machine.View);
+    }
+
     [Fact]
     public void Register_RefusesAnInstallationWithoutTheHandler()
     {

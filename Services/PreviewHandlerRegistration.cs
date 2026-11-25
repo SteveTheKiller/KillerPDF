@@ -39,7 +39,31 @@ internal static class PreviewHandlerRegistration
         }
     }
 
+    private const string HandlerListKey = @"Software\Microsoft\Windows\CurrentVersion\PreviewHandlers";
+
+    /// <summary>
+    /// The 32-bit view of HKLM for an all-users install, or null for a per-user one. Classic Outlook lists only the
+    /// handlers in HKLM, and 32-bit Outlook reads its own view of it (#410). A per-user install writes nothing
+    /// machine-wide.
+    /// </summary>
+    internal static RegistryKey? ThirtyTwoBitMachineRoot(RegistryKey root) =>
+        root.Name == Registry.LocalMachine.Name
+            ? RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)
+            : null;
+
     internal static void Register(RegistryKey root, string installDirectory)
+    {
+        using RegistryKey? thirtyTwoBit = ThirtyTwoBitMachineRoot(root);
+        Register(root, installDirectory, thirtyTwoBit);
+    }
+
+    internal static void Unregister(RegistryKey root)
+    {
+        using RegistryKey? thirtyTwoBit = ThirtyTwoBitMachineRoot(root);
+        Unregister(root, thirtyTwoBit);
+    }
+
+    internal static void Register(RegistryKey root, string installDirectory, RegistryKey? thirtyTwoBitRoot)
     {
         string host = Path.Combine(installDirectory, HostFileName);
         if (!File.Exists(host))
@@ -76,11 +100,16 @@ internal static class PreviewHandlerRegistration
         }
         using (RegistryKey key = root.CreateSubKey(ProgIdKey))
             key.SetValue("", ClassId);
-        using (RegistryKey key = root.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\PreviewHandlers"))
+        using (RegistryKey key = root.CreateSubKey(HandlerListKey))
             key.SetValue(ClassId, DisplayName);
+        if (thirtyTwoBitRoot is not null)
+        {
+            using RegistryKey key = thirtyTwoBitRoot.CreateSubKey(HandlerListKey);
+            key.SetValue(ClassId, DisplayName);
+        }
     }
 
-    internal static void Unregister(RegistryKey root)
+    internal static void Unregister(RegistryKey root, RegistryKey? thirtyTwoBitRoot)
     {
         Try(() =>
         {
@@ -99,11 +128,12 @@ internal static class PreviewHandlerRegistration
         Try(() => root.DeleteSubKeyTree(ProgIdKey, throwOnMissingSubKey: false));
         Try(() => root.DeleteSubKeyTree(ClassKey, throwOnMissingSubKey: false));
         Try(() => root.DeleteSubKeyTree(@"Software\Classes\AppID\" + AppId, throwOnMissingSubKey: false));
-        Try(() =>
-        {
-            using RegistryKey? key = root.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\PreviewHandlers", writable: true);
-            key?.DeleteValue(ClassId, throwOnMissingValue: false);
-        });
+        foreach (RegistryKey? hive in new[] { root, thirtyTwoBitRoot })
+            Try(() =>
+            {
+                using RegistryKey? key = hive?.OpenSubKey(HandlerListKey, writable: true);
+                key?.DeleteValue(ClassId, throwOnMissingValue: false);
+            });
         Try(() => root.DeleteSubKeyTree(StateKey, throwOnMissingSubKey: false));
     }
 
