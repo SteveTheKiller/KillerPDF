@@ -402,7 +402,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Theme_Ectoplasm">Эктоплазма</sys:String>
     <sys:String x:Key="Str_Theme_Decay">Распад</sys:String>
     <sys:String x:Key="Str_Theme_Mourning">Траур</sys:String>
-    <sys:String x:Key="Str_Theme_TrashPolka">Trash Polka</sys:String>
+    <sys:String x:Key="Str_Theme_TrashPolka">Треш-полька</sys:String>
     <sys:String x:Key="Str_Theme_FilmGrain">Зернистость плёнки</sys:String>
     <sys:String x:Key="Str_Theme_Sepulchre">Склеп</sys:String>
     <sys:String x:Key="Str_Theme_Delirium">Бред</sys:String>

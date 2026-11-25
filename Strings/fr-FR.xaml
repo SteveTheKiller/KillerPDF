@@ -402,7 +402,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Theme_Ectoplasm">Ectoplasme</sys:String>
     <sys:String x:Key="Str_Theme_Decay">Décomposition</sys:String>
     <sys:String x:Key="Str_Theme_Mourning">Deuil</sys:String>
-    <sys:String x:Key="Str_Theme_TrashPolka">Trash Polka</sys:String>
+    <sys:String x:Key="Str_Theme_TrashPolka">Polka poubelle</sys:String>
     <sys:String x:Key="Str_Theme_FilmGrain">Grain de film</sys:String>
     <sys:String x:Key="Str_Theme_Sepulchre">Sépulcre</sys:String>
     <sys:String x:Key="Str_Theme_Delirium">Délire</sys:String>

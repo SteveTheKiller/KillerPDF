@@ -402,7 +402,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Theme_Ectoplasm">Ectoplasma</sys:String>
     <sys:String x:Key="Str_Theme_Decay">Decadência</sys:String>
     <sys:String x:Key="Str_Theme_Mourning">Luto</sys:String>
-    <sys:String x:Key="Str_Theme_TrashPolka">Trash Polka</sys:String>
+    <sys:String x:Key="Str_Theme_TrashPolka">Polca lixo</sys:String>
     <sys:String x:Key="Str_Theme_FilmGrain">Granulação de filme</sys:String>
     <sys:String x:Key="Str_Theme_Sepulchre">Sepulcro</sys:String>
     <sys:String x:Key="Str_Theme_Delirium">Delírio</sys:String>

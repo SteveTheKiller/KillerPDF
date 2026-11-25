@@ -337,7 +337,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Theme_Ectoplasm">Ectoplasma</sys:String>
     <sys:String x:Key="Str_Theme_Decay">Descomposición</sys:String>
     <sys:String x:Key="Str_Theme_Mourning">Luto</sys:String>
-    <sys:String x:Key="Str_Theme_TrashPolka">Trash Polka</sys:String>
+    <sys:String x:Key="Str_Theme_TrashPolka">Polca basura</sys:String>
     <sys:String x:Key="Str_Theme_FilmGrain">Grano de película</sys:String>
     <sys:String x:Key="Str_Theme_Sepulchre">Sepulcro</sys:String>
     <sys:String x:Key="Str_Theme_Delirium">Delirio</sys:String>

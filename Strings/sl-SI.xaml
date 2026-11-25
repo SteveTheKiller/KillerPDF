@@ -360,7 +360,7 @@
     <sys:String x:Key="Str_Theme_Ectoplasm">Ektoplazma</sys:String>
     <sys:String x:Key="Str_Theme_Decay">Razkroj</sys:String>
     <sys:String x:Key="Str_Theme_Mourning">Žalovanje</sys:String>
-    <sys:String x:Key="Str_Theme_TrashPolka">Trash Polka</sys:String>
+    <sys:String x:Key="Str_Theme_TrashPolka">Smetna polka</sys:String>
     <sys:String x:Key="Str_Theme_FilmGrain">Filmska zrnatost</sys:String>
     <sys:String x:Key="Str_Theme_Sepulchre">Grobnica</sys:String>
     <sys:String x:Key="Str_Theme_Delirium">Delirij</sys:String>

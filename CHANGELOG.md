@@ -20,6 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - PDFs with damaged image transparency, common in CAD and building drawings, render instead of showing a blank page and "Image soft-mask sample data has an invalid length."
 - Scrolling the What's new notes no longer draws text over the pane's rounded corners.
+- The Trash Polka theme's name is translated in every language, like the other themes.
 - Selected text shows a visible highlight in dialog text boxes, such as the export DPI box, and in the text size box, the page number box and editable dropdowns. The selection worked before, but it was invisible on most themes.
 - A dialog text box dims when it is turned off, so the DPI box no longer looks editable while "Keep each page's resolution" is ticked.
 - Printing with "KillerPDF manages colors" works again on Windows builds that rejected the print settings with "Only 'name' is allowed". The printer properties button no longer fails the same way, and printers with document-level two-sided printing are fixed too (#520).

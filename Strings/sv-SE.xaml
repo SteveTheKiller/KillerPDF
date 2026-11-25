@@ -403,7 +403,7 @@ Vill du skala dem till en storlek som stöds? Sidorna behåller sitt utseende oc
     <sys:String x:Key="Str_Theme_Ectoplasm">Ektoplasma</sys:String>
     <sys:String x:Key="Str_Theme_Decay">Förfall</sys:String>
     <sys:String x:Key="Str_Theme_Mourning">Sorg</sys:String>
-    <sys:String x:Key="Str_Theme_TrashPolka">Trash Polka</sys:String>
+    <sys:String x:Key="Str_Theme_TrashPolka">Skräppolka</sys:String>
     <sys:String x:Key="Str_Theme_FilmGrain">Filmkorn</sys:String>
     <sys:String x:Key="Str_Theme_Sepulchre">Gravkammare</sys:String>
     <sys:String x:Key="Str_Theme_Delirium">Delirium</sys:String>
