@@ -96,33 +96,89 @@ public sealed class UiFontStackTests
     public void ChineseJapaneseAndKoreanCountAsCjk(string? language, bool cjk) =>
         Assert.Equal(cjk, UiFontStack.IsCjk(language));
 
-    // The status bar's page and zoom line is 16 in Killer Sans, which has no CJK glyphs, so Korean fell to Malgun
-    // Gothic at 16 and read a size too big (Steve 2026-11-23). CJK languages take it at 14, like the title's step.
+    // #490: CJK text read a size too big against Latin text, and dropping the whole line a size crushed the CJK
+    // glyphs and shrank ".pdf" with them. The stacks scale only CJK characters, to 90%, so Latin text keeps its exact
+    // width and the line keeps its height, in every language and in an English interface showing a Chinese name.
+    // The composite families live in Fonts/*.CompositeFont, since a family built in code cannot reach the app's
+    // embedded fonts. Measured from the repo's Fonts folder, as the app reads them from its resources.
     [Theory]
-    [InlineData("ko-KR", 14.0)]
-    [InlineData("zh-CN", 14.0)]
-    [InlineData("ja-JP", 14.0)]
-    [InlineData("en-US", 16.0)]
-    [InlineData("de-DE", 16.0)]
-    [InlineData(null, 16.0)]
-    public void TheStatusLineDropsASizeForCjk(string? language, double size) =>
-        Assert.Equal(size, UiFontStack.StatusFontSize(language));
-
-    // #490: the reporter, on Simplified Chinese at 150%, found the toolbar captions still a size too big in 1.9.6.
-    // Every CJK language takes them a size smaller. The title stays at 16, since 15 made ".pdf" hard to read.
-    [Theory]
-    [InlineData("zh-CN", 16.0, 15.0, 13.0)]
-    [InlineData("zh-TW", 16.0, 15.0, 13.0)]
-    [InlineData("ja-JP", 16.0, 15.0, 13.0)]
-    [InlineData("ko-KR", 16.0, 15.0, 13.0)]
-    [InlineData("en-US", 18.0, 16.0, 14.0)]
-    [InlineData(null, 18.0, 16.0, 14.0)]
-    public void TheTitleAndToolbarCaptionsDropASizeForCjk(string? language, double title, double beside, double under)
+    [InlineData("zh-CN", "试试新版")]
+    [InlineData("zh-TW", "開啟檔案")]
+    [InlineData("ja-JP", "ファイル")]
+    [InlineData("ko-KR", "파일열기")]
+    [InlineData("en-US", "试试新版")]
+    public void CjkCharactersDrawAtNinetyPercentWhileLatinKeepsItsSize(string language, string cjk)
     {
-        Assert.Equal(title, UiFontStack.TitleFontSize(language));
-        Assert.Equal(beside, UiFontStack.ToolbarCaptionSize(language, under: false));
-        Assert.Equal(under, UiFontStack.ToolbarCaptionSize(language, under: true));
+        RunSta(() =>
+        {
+            var fonts = new Uri(RepoRoot() + Path.DirectorySeparatorChar);
+            foreach (var (plainStack, scaledStack) in new[]
+            {
+                (UiFontStack.For(language), UiFontStack.ScaledFor(language)),
+                (UiFontStack.Title(language), UiFontStack.ScaledTitle(language)),
+                (UiFontStack.Heading(language), UiFontStack.ScaledHeading(language)),
+            })
+            {
+                var plain = new System.Windows.Media.FontFamily(fonts, plainStack);
+                var scaled = new System.Windows.Media.FontFamily(fonts, scaledStack);
+                Assert.Equal(Text(plain, "KillerPDF.pdf 12").WidthIncludingTrailingWhitespace,
+                    Text(scaled, "KillerPDF.pdf 12").WidthIncludingTrailingWhitespace);
+                Assert.Equal(Text(plain, "Ag").Height, Text(scaled, "Ag").Height);
+                Assert.Equal(Text(plain, "Ag").Baseline, Text(scaled, "Ag").Baseline);
+                // Yu Gothic's kana land a few thousandths of a DIP off an exact 90%.
+                Assert.Equal(Text(plain, cjk).WidthIncludingTrailingWhitespace * UiFontStack.CjkScale,
+                    Text(scaled, cjk).WidthIncludingTrailingWhitespace, 0.01);
+            }
+        });
     }
+
+    // Each language names the composite for its CJK face, and the plain stack follows it.
+    [Theory]
+    [InlineData("zh-CN", "SC")]
+    [InlineData("zh-TW", "CJK")]
+    [InlineData("ja-JP", "JP")]
+    [InlineData("ko-KR", "KR")]
+    [InlineData("en-US", "CJK")]
+    [InlineData(null, "CJK")]
+    public void EachLanguageNamesItsCompositeFamily(string? language, string tag)
+    {
+        Assert.Equal("./Fonts/#Killer Sans UI " + tag + ", " + UiFontStack.For(language), UiFontStack.ScaledFor(language));
+        Assert.Equal("./Fonts/#Killer Sans " + tag + ", " + UiFontStack.Title(language), UiFontStack.ScaledTitle(language));
+        Assert.Equal("./Fonts/#Lacquer, " + UiFontStack.ScaledFor(language), UiFontStack.ScaledHeading(language));
+        string file = Path.Combine(RepoRoot(), "Fonts", "KillerSansUI-" + tag + ".CompositeFont");
+        Assert.Contains(">Killer Sans UI " + tag + "<", File.ReadAllText(file));
+    }
+
+    // A theme's system face (98SE's Microsoft Sans Serif) scales CJK through a family built in code.
+    [Fact]
+    public void AThemesSystemFaceDrawsCjkAtNinetyPercent()
+    {
+        RunSta(() =>
+        {
+            string stack = UiFontStack.WithFallbacks("Microsoft Sans Serif", "zh-CN");
+            var plain = new System.Windows.Media.FontFamily(stack);
+            var scaled = UiFontStack.SystemFamily(stack, "zh-CN");
+            Assert.Equal(Text(plain, "KillerPDF.pdf 12").WidthIncludingTrailingWhitespace,
+                Text(scaled, "KillerPDF.pdf 12").WidthIncludingTrailingWhitespace);
+            Assert.Equal(Text(plain, "Ag").Height, Text(scaled, "Ag").Height);
+            Assert.Equal(Text(plain, "试试新版").WidthIncludingTrailingWhitespace * UiFontStack.CjkScale,
+                Text(scaled, "试试新版").WidthIncludingTrailingWhitespace, 0.01);
+        });
+    }
+
+    // Every composite file is embedded, or the app would quietly draw the plain stack.
+    [Fact]
+    public void TheCompositeFontFilesAreEmbedded()
+    {
+        string project = File.ReadAllText(Path.Combine(RepoRoot(), "KillerPDF.csproj"));
+        Assert.Contains("<Resource Include=\"Fonts\\*.CompositeFont\" />", project);
+        Assert.Equal(8, Directory.GetFiles(Path.Combine(RepoRoot(), "Fonts"), "*.CompositeFont").Length);
+    }
+
+    private static System.Windows.Media.FormattedText Text(System.Windows.Media.FontFamily family, string text) =>
+        new(text, System.Globalization.CultureInfo.InvariantCulture, System.Windows.FlowDirection.LeftToRight,
+            new System.Windows.Media.Typeface(family, System.Windows.FontStyles.Normal, System.Windows.FontWeights.Normal,
+                System.Windows.FontStretches.Normal), 18, System.Windows.Media.Brushes.Black, 1.0);
 
     // #490: Killer Sans sets the caption's line height and CJK glyphs rise above it, so with the Latin gap a Chinese
     // caption sat about a pixel under its icon. Drawn at 150% like the reporter's monitor, every CJK caption has to
@@ -152,9 +208,8 @@ public sealed class UiFontStackTests
         var text = new System.Windows.Controls.TextBlock
         {
             Text = caption,
-            FontFamily = new System.Windows.Media.FontFamily(new Uri(RepoRoot() + Path.DirectorySeparatorChar),
-                UiFontStack.Title(language)),
-            FontSize = UiFontStack.ToolbarCaptionSize(language, under: true),
+            FontFamily = new System.Windows.Media.FontFamily(new Uri(RepoRoot() + Path.DirectorySeparatorChar), UiFontStack.ScaledTitle(language)),
+            FontSize = 14,
             Margin = new System.Windows.Thickness(0, UiFontStack.ToolbarCaptionUnderGap(language), 0, 0),
             Foreground = System.Windows.Media.Brushes.Black,
         };
@@ -204,9 +259,10 @@ public sealed class UiFontStackTests
         string toolbar = File.ReadAllText(Path.Combine(dir!.FullName, "Shell", "ToolbarStyle.cs"));
         Assert.Contains("text.SetResourceReference(TextBlock.FontSizeProperty, sizeKey);", toolbar);
         string theme = File.ReadAllText(Path.Combine(dir.FullName, "Services", "ThemeManager.cs"));
-        Assert.Contains("SetIfAbsent(\"FileNameFontSize\", flatTitle ? 11.0 : UiFontStack.TitleFontSize(UiLanguage));", theme);
-        Assert.Contains("SetIfAbsent(\"ToolbarCaptionFontSize\", UiFontStack.ToolbarCaptionSize(UiLanguage, under: false));", theme);
-        Assert.Contains("SetIfAbsent(\"ToolbarCaptionUnderFontSize\", UiFontStack.ToolbarCaptionSize(UiLanguage, under: true));", theme);
+        Assert.Contains("SetIfAbsent(\"FileNameFontSize\", flatTitle ? 11.0 : 18.0);", theme);
+        Assert.Contains("SetIfAbsent(\"ToolbarCaptionFontSize\", 16.0);", theme);
+        Assert.Contains("SetIfAbsent(\"ToolbarCaptionUnderFontSize\", 14.0);", theme);
+        Assert.Contains("SetIfAbsent(\"StatusFontSize\", 16.0);", theme);
         Assert.Contains("under.SetResourceReference(FrameworkElement.MarginProperty, CaptionUnderMargin);", toolbar);
         Assert.Contains("SetIfAbsent(\"ToolbarCaptionUnderMargin\", new Thickness(0, UiFontStack.ToolbarCaptionUnderGap(UiLanguage), 0, 0));", theme);
     }
@@ -229,9 +285,9 @@ public sealed class UiFontStackTests
         try
         {
             ThemeManager.SetUiLanguage("zh-CN");
-            Assert.Equal(UiFontStack.Title("zh-CN"), ThemeManager.KillerSansTitleStack.Source);
+            Assert.Equal(UiFontStack.ScaledTitle("zh-CN"), ThemeManager.KillerSansTitleStack.Source);
             ThemeManager.SetUiLanguage("ja-JP");
-            Assert.Equal(UiFontStack.Title("ja-JP"), ThemeManager.KillerSansTitleStack.Source);
+            Assert.Equal(UiFontStack.ScaledTitle("ja-JP"), ThemeManager.KillerSansTitleStack.Source);
         }
         finally { ThemeManager.SetUiLanguage("en-US"); }
     }
@@ -284,12 +340,12 @@ public sealed class UiFontStackTests
         try
         {
             ThemeManager.SetUiLanguage("zh-CN");
-            Assert.Equal(UiFontStack.For("zh-CN"), ThemeManager.KillerSansUiStack.Source);
-            Assert.Equal(UiFontStack.Heading("zh-CN"), ThemeManager.LacquerHeadingStack.Source);
+            Assert.Equal(UiFontStack.ScaledFor("zh-CN"), ThemeManager.KillerSansUiStack.Source);
+            Assert.Equal(UiFontStack.ScaledHeading("zh-CN"), ThemeManager.LacquerHeadingStack.Source);
             ThemeManager.SetUiLanguage("ja-JP");
-            Assert.Equal(UiFontStack.For("ja-JP"), ThemeManager.KillerSansUiStack.Source);
+            Assert.Equal(UiFontStack.ScaledFor("ja-JP"), ThemeManager.KillerSansUiStack.Source);
             ThemeManager.SetUiLanguage("de-DE");
-            Assert.Equal(Today, ThemeManager.KillerSansUiStack.Source);
+            Assert.Equal("./Fonts/#Killer Sans UI CJK, " + Today, ThemeManager.KillerSansUiStack.Source);
         }
         finally { ThemeManager.SetUiLanguage("en-US"); }
     }

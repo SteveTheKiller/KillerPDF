@@ -44,12 +44,13 @@ namespace KillerPDF.Services
         // system default face.
         internal static FontFamily KillerSansTitleStack { get; private set; } = TitleStack(UiLanguage);
 
+        // Each stack draws CJK characters at UiFontStack.CjkScale against its Latin text (#490).
         private static FontFamily UiStack(string language) =>
-            new(new Uri($"pack://application:,,,/{AssemblyName};component/"), UiFontStack.For(language));
+            new(new Uri($"pack://application:,,,/{AssemblyName};component/"), UiFontStack.ScaledFor(language));
         private static FontFamily TitleStack(string language) =>
-            new(new Uri("pack://application:,,,/"), UiFontStack.Title(language));
+            new(new Uri("pack://application:,,,/"), UiFontStack.ScaledTitle(language));
         private static FontFamily HeadingStack(string language) =>
-            new(new Uri("pack://application:,,,/"), UiFontStack.Heading(language));
+            new(new Uri("pack://application:,,,/"), UiFontStack.ScaledHeading(language));
 
         /// <summary>
         /// Builds the font stacks for an interface language and republishes the theme when they
@@ -58,8 +59,7 @@ namespace KillerPDF.Services
         /// </summary>
         internal static void SetUiLanguage(string language)
         {
-            bool changed = UiFontStack.For(language) != UiFontStack.For(UiLanguage)
-                || UiFontStack.IsCjk(language) != UiFontStack.IsCjk(UiLanguage);   // the title's size follows it too
+            bool changed = UiFontStack.ScaledFor(language) != UiFontStack.ScaledFor(UiLanguage);
             UiLanguage = language;
             if (!changed) return;
             KillerSansUiStack = UiStack(language);
@@ -519,10 +519,12 @@ namespace KillerPDF.Services
             Mirror("ChipHoverBrush", "RowHoverBrush");
             // #490: a theme that names one face (98SE's Microsoft Sans Serif) has no CJK glyphs,
             // so Chinese and Japanese file names fell to the system default face. The face keeps
-            // its look for Latin text and hands CJK to the language's own face.
+            // its look for Latin text and hands CJK to the language's own face, scaled like the
+            // family stacks.
             foreach (string fontKey in new[] { "ChromeFontFamily", "UiFont", "MonoFont", "MenuFontFamily" })
-                if (combined.Contains(fontKey) && combined[fontKey] is FontFamily stated && stated.Source.IndexOf('#') < 0)
-                    combined[fontKey] = new FontFamily(stated.BaseUri, UiFontStack.WithFallbacks(stated.Source, UiLanguage));
+                if (combined.Contains(fontKey) && combined[fontKey] is FontFamily stated
+                    && stated.Source != null && stated.Source.IndexOf('#') < 0)
+                    combined[fontKey] = UiFontStack.SystemFamily(UiFontStack.WithFallbacks(stated.Source, UiLanguage), UiLanguage);
             SetIfAbsent("ChromeFontFamily", KillerSansUiStack);
             SetIfAbsent("DialogWordmarkVisibility", Visibility.Visible);
             SetIfAbsent("DialogPlainTitleVisibility", Visibility.Collapsed);
@@ -1067,13 +1069,12 @@ namespace KillerPDF.Services
             // theme keeps its caption font beside its plain title.
             bool flatTitle = combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool ft && ft;
             SetIfAbsent("FileNameFont", flatTitle ? combined["ChromeFontFamily"] : KillerSansTitleStack);
-            SetIfAbsent("FileNameFontSize", flatTitle ? 11.0 : UiFontStack.TitleFontSize(UiLanguage));
-            // Toolbar captions take a size smaller for CJK text, like the title (#490).
-            SetIfAbsent("ToolbarCaptionFontSize", UiFontStack.ToolbarCaptionSize(UiLanguage, under: false));
-            SetIfAbsent("ToolbarCaptionUnderFontSize", UiFontStack.ToolbarCaptionSize(UiLanguage, under: true));
+            // Every language keeps these sizes: the stacks scale CJK characters themselves (#490).
+            SetIfAbsent("FileNameFontSize", flatTitle ? 11.0 : 18.0);
+            SetIfAbsent("ToolbarCaptionFontSize", 16.0);
+            SetIfAbsent("ToolbarCaptionUnderFontSize", 14.0);
             SetIfAbsent("ToolbarCaptionUnderMargin", new Thickness(0, UiFontStack.ToolbarCaptionUnderGap(UiLanguage), 0, 0));
-            // The status bar's page and zoom line takes the same step for CJK text.
-            SetIfAbsent("StatusFontSize", UiFontStack.StatusFontSize(UiLanguage));
+            SetIfAbsent("StatusFontSize", 16.0);
             if (!combined.Contains("FileNameTransform"))
             {
                 var fileNameShift = new TranslateTransform(0, flatTitle ? 0 : 3);
@@ -1201,7 +1202,7 @@ namespace KillerPDF.Services
                 // template's 12px blur at FlyoutShadowOpacity, and the flyout cards' shared
                 // CardShadowEffect.
                 combined["MenuShadowOpacity"] = flat ? 1.0 : combined["FlyoutShadowOpacity"];
-                if (!combined.Contains("MenuFontFamily")) combined["MenuFontFamily"] = flat ? new FontFamily(UiFontStack.WithFallbacks("Microsoft Sans Serif", UiLanguage)) : KillerSansUiStack;
+                if (!combined.Contains("MenuFontFamily")) combined["MenuFontFamily"] = flat ? UiFontStack.SystemFamily(UiFontStack.WithFallbacks("Microsoft Sans Serif", UiLanguage), UiLanguage) : KillerSansUiStack;
                 if (!combined.Contains("MenuFontSize")) combined["MenuFontSize"] = flat ? 11.0 : 12.0;
                 if (!combined.Contains("MenuItemPadding")) combined["MenuItemPadding"] = new Thickness(8, 6, 10, 6);
                 if (flat)

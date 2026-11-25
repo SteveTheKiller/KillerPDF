@@ -47,7 +47,7 @@ namespace KillerFamily.Layout
         /// <summary>How far below the line box's middle the middle of the capitals sits, in px.</summary>
         public static double Offset(FontFamily family, double size)
         {
-            string key = (family.BaseUri?.ToString() ?? "") + "|" + family.Source + "|" + size.ToString("R", CultureInfo.InvariantCulture);
+            string key = Key(family) + "|" + size.ToString("R", CultureInfo.InvariantCulture);
             lock (Cache)
                 if (Cache.TryGetValue(key, out double cached)) return cached;
             double shift = 0;
@@ -63,6 +63,18 @@ namespace KillerFamily.Layout
             catch { shift = 0; }   // an unreadable font keeps the plain margin rather than failing layout
             lock (Cache) Cache[key] = shift;
             return shift;
+        }
+
+        /// <summary>The family's name, or for a composite family with no Source (the language stacks, which scale
+        /// CJK characters), its maps, so two stacks never share a cached offset.</summary>
+        private static string Key(FontFamily family)
+        {
+            if (family.Source != null) return (family.BaseUri?.ToString() ?? "") + "|" + family.Source;
+            var key = new System.Text.StringBuilder();
+            foreach (FontFamilyMap map in family.FamilyMaps)
+                key.Append(map.Unicode).Append('=').Append(map.Target).Append('@')
+                   .Append(map.Scale.ToString("R", CultureInfo.InvariantCulture)).Append(';');
+            return key.ToString();
         }
 
         private static Thickness ParseMargin(string? text)

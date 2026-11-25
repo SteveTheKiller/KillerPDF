@@ -72,8 +72,13 @@ internal static class DialogTextSmoke
                         }).ToArray();
                         if (text.Length == 0) throw new InvalidOperationException($"{test.Name} message was not visible.");
                         foreach (TextBlock block in text)
-                            if (block.FontSize > 13 || block.FontFamily.Source.Contains("Lacquer", StringComparison.OrdinalIgnoreCase))
-                                throw new InvalidOperationException($"{name} {test.Name} message uses {block.FontSize} DIP {block.FontFamily.Source}.");
+                        {
+                            // The language stacks are composite families with no Source; their faces are in the maps.
+                            string face = block.FontFamily.Source
+                                ?? string.Join(", ", block.FontFamily.FamilyMaps.Select(map => map.Target));
+                            if (block.FontSize > 13 || face.Contains("Lacquer", StringComparison.OrdinalIgnoreCase))
+                                throw new InvalidOperationException($"{name} {test.Name} message uses {block.FontSize} DIP {face}.");
+                        }
                         var image = new RenderTargetBitmap((int)Math.Ceiling(shown.ActualWidth),
                             (int)Math.Ceiling(shown.ActualHeight), 96, 96, PixelFormats.Pbgra32);
                         image.Render(shown);

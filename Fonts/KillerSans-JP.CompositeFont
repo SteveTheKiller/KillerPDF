@@ -1,0 +1,15 @@
+<!-- Killer Sans with Japanese drawn at 90% in Yu Gothic UI, so CJK text reads the same size as the
+     Latin text around it (#490). UiFontStack names this family for ja. -->
+<FontFamily xmlns="http://schemas.microsoft.com/winfx/2006/xaml/composite-font"
+            xmlns:System="clr-namespace:System;assembly=mscorlib"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            LineSpacing="0.8738670694864048" Baseline="0.70770392749244715">
+  <FontFamily.FamilyNames>
+    <System:String x:Key="en-US">Killer Sans JP</System:String>
+  </FontFamily.FamilyNames>
+  <FontFamily.FamilyMaps>
+    <FontFamilyMap Unicode="1100-11FF, 2E80-9FFF, A960-A97F, AC00-D7FF, F900-FAFF, FE30-FE4F, FF00-FFEF, 20000-3FFFF"
+                   Target="Yu Gothic UI, Microsoft JhengHei UI, Malgun Gothic" Scale="0.9"/>
+    <FontFamilyMap Unicode="0000-10FFFF" Target="./#Killer Sans, Segoe UI, Nirmala UI"/>
+  </FontFamily.FamilyMaps>
+</FontFamily>

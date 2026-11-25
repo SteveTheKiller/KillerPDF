@@ -145,6 +145,8 @@
     <Resource Include="Resources\kp-icon.png" />
     <Resource Include="Fonts\KillerSans-Regular.ttf" />
     <Resource Include="Fonts\KillerSansUI-Regular.ttf" />
+    <!-- Killer Sans and Killer Sans UI with CJK text drawn at 90% (#490). -->
+    <Resource Include="Fonts\*.CompositeFont" />
     <Resource Include="Fonts\Punktype.ttf" />
     <Resource Include="Fonts\Lacquer-Regular.ttf" />
 	<Resource Include="Resources\open_hand.cur" />
