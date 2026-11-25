@@ -27,6 +27,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Convert to Searchable PDF works on tagged PDFs, such as the ones Word exports. The text layer goes in without changing the document's tags (#533).
 - Scans whose images state a size larger than the file, like invoices from some scanner apps, render instead of showing a white page (#531).
 - A copied text edit pastes with its text on top of its white cover, so the pasted edit no longer shows as a blank white box (#467).
+- Arrange pages in Merge files shows a line where dragged pages will go, and a drop between two pages lands there instead of at the end. Dragging one of several selected pages moves all of them, and files dropped onto the pages go in where they were dropped (#495).
 
 ## [1.9.6] - 2026-11-24
 

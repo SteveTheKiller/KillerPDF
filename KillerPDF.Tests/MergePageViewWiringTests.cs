@@ -84,6 +84,28 @@ public sealed class MergePageViewWiringTests
         Assert.DoesNotContain("GetData(PageFormat) is int[]", drop, StringComparison.Ordinal);
     }
 
+    // The reporter's three points: drops land where the marker shows, a drag takes the whole selection, and a file
+    // dropped on the page view goes in where it was dropped.
+    [Fact]
+    public void DropsUseTheTileBoundsAndFilesGoInAtTheDropSlot()
+    {
+        string dialog = Source("Controls", "MergeFilesDialog.cs");
+        string drop = Method(dialog, "private void OnDrop(");
+        Assert.Contains("int slot = DropTarget(spot).Index;", drop, StringComparison.Ordinal);
+        Assert.Contains("if (OverGrid(spot)) InsertDropped(dropped, DropTarget(spot).Index);", drop, StringComparison.Ordinal);
+        Assert.Contains("ShowDropMarker(DropTarget(spot));", Method(dialog, "private void OnDragOver("), StringComparison.Ordinal);
+        Assert.Contains("_arrangement.InsertFile(file, null, at + count);", Method(dialog, "private void InsertDropped("), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void APressOnASelectedTileKeepsTheSelectionForTheDrag()
+    {
+        string dialog = Source("Controls", "MergeFilesDialog.cs").ReplaceLineEndings("\n");
+        Assert.Contains("&& _grid.SelectedItems.Contains(_grid.Items[_pagePressTile]))", dialog, StringComparison.Ordinal);
+        Assert.Contains("_collapseToTile = _pagePressTile;\n                _grid.Focus();\n                e.Handled = true;", dialog, StringComparison.Ordinal);
+        Assert.Contains("_collapseToTile = -1;\n        int[] selected = SelectedTiles();", dialog, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void AFileTakenOutAndAddedBackLoadsItsPagesAgain()
     {

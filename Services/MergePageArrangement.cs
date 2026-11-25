@@ -33,12 +33,19 @@ internal sealed class MergePageArrangement
         return arrangement;
     }
 
-    internal void AddFile(string path, int? pageCount)
+    internal void AddFile(string path, int? pageCount) => InsertFile(path, pageCount, _pages.Count);
+
+    /// <summary>Puts a file's pages before the page now at <paramref name="before"/> (the end for
+    /// <see cref="Pages"/>.Count or more), so a file dropped on the page view goes where it was dropped. A file
+    /// already listed stays as it is. Returns how many entries went in.</summary>
+    internal int InsertFile(string path, int? pageCount, int before)
     {
-        if (_counts.ContainsKey(path)) return;
+        if (_counts.ContainsKey(path)) return 0;
         _counts[path] = pageCount;
-        if (pageCount is not int count) { _pages.Add(new MergePage(path, MergePage.WholeFile)); return; }
-        for (int page = 0; page < count; page++) _pages.Add(new MergePage(path, page));
+        before = Math.Clamp(before, 0, _pages.Count);
+        if (pageCount is not int count) { _pages.Insert(before, new MergePage(path, MergePage.WholeFile)); return 1; }
+        _pages.InsertRange(before, Enumerable.Range(0, count).Select(page => new MergePage(path, page)));
+        return count;
     }
 
     /// <summary>Gives a file listed without a count its <paramref name="pageCount"/> pages, in the place its

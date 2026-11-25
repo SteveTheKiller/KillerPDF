@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -38,6 +39,10 @@ internal sealed class MergeFilesDialog : Window
     private bool _showingPages;
     private Point? _pagePressAt;
     private int _pagePressTile = -1;
+    // A press on a tile of a several-tile selection keeps the selection so a drag takes all of it; let go without a
+    // drag and only that tile stays selected, as a plain click does.
+    private int _collapseToTile = -1;
+    private PageDropMarker? _dropMarker;
 
     // Page counts and thumbnails load off the UI thread, one file at a time, once the page view is first shown.
     private readonly CancellationTokenSource _loading = new();
@@ -147,10 +152,29 @@ internal sealed class MergeFilesDialog : Window
         {
             _pagePressAt = e.GetPosition(_grid);
             _pagePressTile = TileAt(e.GetPosition(_grid));
+            _collapseToTile = -1;
+            if (_pagePressTile >= 0 && Keyboard.Modifiers == ModifierKeys.None && _grid.SelectedItems.Count > 1
+                && _grid.SelectedItems.Contains(_grid.Items[_pagePressTile]))
+            {
+                // The list would narrow the selection to this tile before the drag starts. (#495)
+                _collapseToTile = _pagePressTile;
+                _grid.Focus();
+                e.Handled = true;
+            }
+        };
+        _grid.PreviewMouseLeftButtonUp += (_, _) =>
+        {
+            if (_collapseToTile >= 0 && _collapseToTile < _grid.Items.Count)
+            {
+                _grid.SelectedItems.Clear();
+                _grid.SelectedIndex = _collapseToTile;
+            }
+            _collapseToTile = -1;
         };
         _grid.PreviewMouseMove += StartPageDrag;
         _grid.PreviewKeyDown += OnGridKey;
         DragOver += OnDragOver;
+        DragLeave += (_, _) => _dropMarker?.Hide();
         Drop += OnDrop;
         // The loader holds the files open, and the open document's snapshot is deleted once this closes.
         Closed += (_, _) => StopLoading();
@@ -393,23 +417,67 @@ internal sealed class MergeFilesDialog : Window
             && Math.Abs(moved.Y) < SystemParameters.MinimumVerticalDragDistance) return;
         int tile = _pagePressTile;
         _pagePressAt = null;
+        _collapseToTile = -1;
         int[] selected = SelectedTiles();
         int[] moving = selected.Contains(tile) ? selected : [tile];
         // The drag holds the pages, not their places: a page count can arrive while it runs and open a whole
         // file up into its pages, which moves every place after it.
         _draggedPages = [.. moving.Select(index => _arrangement.Pages[index])];
         try { DragDrop.DoDragDrop(_grid, new DataObject(PageFormat, moving), DragDropEffects.Move); }
-        finally { _draggedPages = null; }
+        finally { _draggedPages = null; _dropMarker?.Hide(); }
     }
 
-    // Where dropped pages go: before the tile under the pointer, or after it past its middle; the end below the last.
-    private int DropSlot(Point at)
+    // Where a drop on the page view goes, worked out from the tiles' bounds so the space between tiles counts. (#495)
+    private MergeDropTarget DropTarget(Point at)
     {
-        int tile = TileAt(at);
-        if (tile < 0) return _arrangement.Pages.Count;
-        var item = (ListBoxItem)_grid.Items[tile];
-        Point inside = _grid.TranslatePoint(at, item);
-        return inside.X > item.ActualWidth / 2 ? tile + 1 : tile;
+        var tiles = new List<Rect>(_grid.Items.Count);
+        foreach (ListBoxItem item in _grid.Items)
+            tiles.Add(item.TransformToAncestor(_grid).TransformBounds(new Rect(item.RenderSize)));
+        return MergeDropSlot.Find(tiles, at);
+    }
+
+    private bool OverGrid(Point spot) =>
+        _showingPages && spot.X >= 0 && spot.Y >= 0 && spot.X <= _grid.ActualWidth && spot.Y <= _grid.ActualHeight;
+
+    // The line between tiles where a drop goes, the same look as the Outlines panel's drop line.
+    private void ShowDropMarker(MergeDropTarget target)
+    {
+        if (_dropMarker is null)
+        {
+            if (AdornerLayer.GetAdornerLayer(_grid) is not AdornerLayer layer) return;
+            _dropMarker = new PageDropMarker(_grid);
+            layer.Add(_dropMarker);
+        }
+        double top = Math.Max(0, target.Top), bottom = Math.Min(_grid.ActualHeight, target.Bottom);
+        if (_arrangement.Pages.Count == 0 || bottom <= top) { _dropMarker.Hide(); return; }
+        _dropMarker.Show(target.X, top, bottom, TryFindResource("PrimaryBrush") as Brush ?? Brushes.SteelBlue);
+    }
+
+    private sealed class PageDropMarker : Adorner
+    {
+        private double _x, _top, _bottom;
+        private Brush _brush = Brushes.SteelBlue;
+
+        internal PageDropMarker(UIElement grid) : base(grid)
+        {
+            IsHitTestVisible = false;
+            Visibility = Visibility.Collapsed;
+        }
+
+        internal void Show(double x, double top, double bottom, Brush brush)
+        {
+            (_x, _top, _bottom, _brush) = (x, top, bottom, brush);
+            Visibility = Visibility.Visible;
+            InvalidateVisual();
+        }
+
+        internal void Hide() => Visibility = Visibility.Collapsed;
+
+        protected override void OnRender(DrawingContext dc)
+        {
+            dc.DrawRectangle(_brush, null, new Rect(_x - 1, _top + 3, 2, Math.Max(0, _bottom - _top - 6)));
+            dc.DrawEllipse(_brush, null, new Point(_x, _top + 3), 3, 3);
+        }
     }
 
     private void Queue(string path)
@@ -513,18 +581,24 @@ internal sealed class MergeFilesDialog : Window
         e.Effects = e.Data.GetDataPresent(RowFormat) || e.Data.GetDataPresent(PageFormat) ? DragDropEffects.Move
             : e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;
+        Point spot = e.GetPosition(_grid);
+        bool pagesOrFiles = e.Data.GetDataPresent(PageFormat) || e.Data.GetDataPresent(DataFormats.FileDrop);
+        if (pagesOrFiles && OverGrid(spot)) ShowDropMarker(DropTarget(spot));
+        else _dropMarker?.Hide();
     }
 
     private void OnDrop(object sender, DragEventArgs e)
     {
         e.Handled = true;
+        _dropMarker?.Hide();
         if (e.Data.GetDataPresent(PageFormat))
         {
             if (_draggedPages is null) return;
             Point spot = e.GetPosition(_grid);
-            if (spot.X < 0 || spot.Y < 0 || spot.X > _grid.ActualWidth || spot.Y > _grid.ActualHeight) return;
+            if (!OverGrid(spot)) return;
+            int slot = DropTarget(spot).Index;
             int[] pages = _arrangement.IndicesOf(_draggedPages);
-            int landing = _arrangement.MoveTo(pages, DropSlot(spot));
+            int landing = _arrangement.MoveTo(pages, slot);
             if (landing >= 0) SelectTiles(landing, pages.Length);
             return;
         }
@@ -540,7 +614,29 @@ internal sealed class MergeFilesDialog : Window
             Refresh(Math.Clamp(to, 0, _files.Paths.Count - 1));
             return;
         }
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] dropped) AddAndSelect(dropped);
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] dropped)
+        {
+            // On the page view, the new files' pages go where they were dropped, not at the end. (#495)
+            Point spot = e.GetPosition(_grid);
+            if (OverGrid(spot)) InsertDropped(dropped, DropTarget(spot).Index);
+            else AddAndSelect(dropped);
+        }
+    }
+
+    private void InsertDropped(IEnumerable<string> paths, int slot)
+    {
+        int before = _files.Paths.Count;
+        _files.Add(paths);
+        int at = Math.Clamp(slot, 0, _arrangement.Pages.Count), count = 0;
+        foreach (string file in _files.Paths.Skip(before))
+        {
+            if (!_arranged.Add(file)) continue;
+            int added = _arrangement.InsertFile(file, null, at + count);
+            count += added;
+            if (_loadStarted) Queue(file);
+        }
+        Refresh(_files.Paths.Count > before ? before : _list.SelectedIndex);
+        if (count > 0) SelectTiles(at, count);
     }
 
     private static string L(string key) => Application.Current.TryFindResource(key) as string ?? key;

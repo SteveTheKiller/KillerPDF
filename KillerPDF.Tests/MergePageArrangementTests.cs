@@ -81,6 +81,24 @@ public sealed class MergePageArrangementTests : IDisposable
         Assert.Equal([P("c", 0), P("a", 0), P("a", 1)], pages.Pages);
     }
 
+    // Dropped on the page view after page 1 of a three-page file, a new file goes in as 1 A B C 2 3, and its pages
+    // open up in that place when the count arrives.
+    [Fact]
+    public void AFileDroppedOnThePageViewGoesInWhereItWasDropped()
+    {
+        var pages = MergePageArrangement.For([("doc", 3)]);
+
+        Assert.Equal(1, pages.InsertFile("new", null, 1));
+        Assert.Equal([P("doc", 0), P("new", MergePage.WholeFile), P("doc", 1), P("doc", 2)], pages.Pages);
+        pages.ExpandFile("new", 3);
+        Assert.Equal([P("doc", 0), P("new", 0), P("new", 1), P("new", 2), P("doc", 1), P("doc", 2)], pages.Pages);
+
+        // Already listed, it stays where it is; past the end, it goes at the end.
+        Assert.Equal(0, pages.InsertFile("DOC", 2, 0));
+        Assert.Equal(2, pages.InsertFile("last", 2, 99));
+        Assert.Equal([P("last", 0), P("last", 1)], pages.Pages.Skip(6));
+    }
+
     [Fact]
     public void APageCountThatArrivesLaterFillsTheFilesPlace()
     {
