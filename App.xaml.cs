@@ -1372,7 +1372,16 @@ namespace KillerPDF
                 {
                     try { File.SetAttributes(installExe, FileAttributes.Normal); } catch { }
                 }
-                File.Copy(src, installExe, overwrite: true);
+                // The check above read the exe by its path, which in Downloads can be renamed and
+                // replaced before the copy. So the copy is checked again where it is staged, inside
+                // the install folder, and only a copy from the publisher is published. A machine
+                // install also needs the publisher's root and signing key, since it runs elevated.
+                Services.ExecutableDeployment.Install(src, installExe, new Services.ExecutableDeployment.FileOperations(), staged =>
+                {
+                    if (!VerifyAuthenticode(staged).Valid)
+                        throw new System.Security.SecurityException("The staged copy has no valid Authenticode signature.");
+                    if (machine) Services.PublisherChain.Verify(staged);
+                });
                 try { File.SetAttributes(installExe, FileAttributes.Normal); } catch { }
                 if (RegisterInstalledCopy(machine: machine, desktop: Environment.GetCommandLineArgs()
                         .Any(argument => string.Equals(argument, "/desktop", StringComparison.OrdinalIgnoreCase)),

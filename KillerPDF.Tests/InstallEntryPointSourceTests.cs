@@ -43,7 +43,7 @@ public sealed class InstallEntryPointSourceTests
         Assert.True(method >= 0);
         string body = source[method..];
         int guard = body.IndexOf("CurrentExeIsSelfContained()", StringComparison.Ordinal);
-        int copy = body.IndexOf("File.Copy(", StringComparison.Ordinal);
+        int copy = body.IndexOf("ExecutableDeployment.Install(", StringComparison.Ordinal);
         Assert.True(guard > 0 && guard < copy, "The self-contained check must come before the copy.");
         Assert.Contains("InstallerExitCodes.Failure", body[guard..copy], StringComparison.Ordinal);
     }
