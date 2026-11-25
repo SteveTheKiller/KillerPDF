@@ -1082,9 +1082,9 @@ namespace KillerPDF.Services
             SetIfAbsent("ThumbnailLabelMargin", new Thickness(0, thumbLabelGap, 0, 2 - thumbLabelGap));
             if (!combined.Contains("FileNameTransform"))
             {
-                // 2 puts the name's baseline on the wordmark's at 100% and 150%. The wordmark's shadow layer is
-                // offset 2px, which lifts the centered "Killer" a pixel, so 3 left the name a pixel low (#490).
-                var fileNameShift = new TranslateTransform(0, flatTitle ? 0 : 2);
+                // 1 puts the name's baseline on the wordmark's in the running app. Screenshots of the real title bar
+                // showed 3 leaving the name 2px low and 2 leaving it 1px low (#490).
+                var fileNameShift = new TranslateTransform(0, flatTitle ? 0 : 1);
                 fileNameShift.Freeze();
                 combined["FileNameTransform"] = fileNameShift;
             }
