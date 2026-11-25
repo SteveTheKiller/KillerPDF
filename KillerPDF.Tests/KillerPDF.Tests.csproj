@@ -280,6 +280,7 @@
     <Compile Include="..\Services\CodeSignature.cs" Link="Services\CodeSignature.cs" />
     <Compile Include="..\Services\PublisherChain.cs" Link="Services\PublisherChain.cs" />
     <Compile Include="..\Services\ImmutablePowerShell.cs" Link="Services\ImmutablePowerShell.cs" />
+    <Compile Include="..\Services\ElevatedStart.cs" Link="Services\ElevatedStart.cs" />
     <Compile Include="..\Services\InstallerExitCodes.cs" Link="Services\InstallerExitCodes.cs" />
     <Compile Include="..\Services\InstallationFiles.cs" Link="Services\InstallationFiles.cs" />
     <Compile Include="..\Services\ExecutableDeployment.cs" Link="Services\ExecutableDeployment.cs" />

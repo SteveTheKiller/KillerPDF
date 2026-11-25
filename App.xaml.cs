@@ -80,6 +80,7 @@ namespace KillerPDF
             // The elevated machine-update helper (Services/TrustedUpdate.cs) runs headless and exits.
             if (e.Args.Length > 0 && string.Equals(e.Args[0], Services.TrustedUpdate.HelperArgument, StringComparison.OrdinalIgnoreCase))
             {
+                // Apply calls Services.ElevatedStart.Enter itself, before reading its arguments.
                 Shutdown(Services.TrustedUpdate.Apply(e.Args));
                 return;
             }
@@ -124,6 +125,9 @@ namespace KillerPDF
                 bool setupRollsBack = !e.Args.Any(a => string.Equals(a, "/no-rollback", StringComparison.OrdinalIgnoreCase));
                 try
                 {
+                    // The launcher hands a machine registration over elevated; it shows no window,
+                    // so limiting DLL loads to System32 costs it nothing.
+                    if (machine) Services.ElevatedStart.Enter();
                     if (RegisterInstalledCopy(machine, desktop, preview, setupRollsBack: setupRollsBack) is { } desktopProblem)
                         Console.Error.WriteLine("Installed without the desktop shortcut: " + desktopProblem);
                     Shutdown(0);
@@ -1132,6 +1136,7 @@ namespace KillerPDF
             {
                 try
                 {
+                    Services.ElevatedStart.RefuseInjectedEnvironment();
                     using var p = Process.Start(new ProcessStartInfo(current, "/remove-machine-conflict")
                     { UseShellExecute = true, Verb = "runas" });
                     p?.WaitForExit();
@@ -1247,7 +1252,11 @@ namespace KillerPDF
             try
             {
                 var psi = new ProcessStartInfo(program, arguments) { UseShellExecute = elevate };
-                if (elevate) psi.Verb = "runas";
+                if (elevate)
+                {
+                    Services.ElevatedStart.RefuseInjectedEnvironment();
+                    psi.Verb = "runas";
+                }
                 using var process = Process.Start(psi);
                 process?.WaitForExit();
                 return process is not null && process.ExitCode == 0;
@@ -1329,6 +1338,7 @@ namespace KillerPDF
         {
             try
             {
+                Services.ElevatedStart.Enter();
                 using var installLease = KillerFamily.Deployment.InstallerExitCodes.Acquire(AppName);
                 string src = Environment.ProcessPath
                     ?? throw new InvalidOperationException("The current executable path is unavailable.");
@@ -2015,6 +2025,7 @@ namespace KillerPDF
                 if (principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator))
                     return null;
 
+                Services.ElevatedStart.RefuseInjectedEnvironment();
                 using Process elevated = Process.Start(new ProcessStartInfo(
                     Environment.ProcessPath
                         ?? throw new InvalidOperationException("The current executable path is unavailable."),
