@@ -22,6 +22,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Scrolling the What's new notes no longer draws text over the pane's rounded corners.
 - Selected text shows a visible highlight in dialog text boxes, such as the export DPI box, and in the text size box, the page number box and editable dropdowns. The selection worked before, but it was invisible on most themes.
 - A dialog text box dims when it is turned off, so the DPI box no longer looks editable while "Keep each page's resolution" is ticked.
+- Printing with "KillerPDF manages colors" works again on Windows builds that rejected the print settings with "Only 'name' is allowed". The printer properties button no longer fails the same way, and printers with document-level two-sided printing are fixed too (#520).
+- Editing and merging accept a PDF whose language is set but empty, which means the language is unknown, instead of refusing the file (#532).
 
 ## [1.9.6] - 2026-11-24
 

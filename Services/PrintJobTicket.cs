@@ -45,10 +45,10 @@ internal static class PrintJobTicket
         root.Elements(Framework + "Feature")
             .Where(element => HasKeyword(element, "PageColorManagement"))
             .Remove();
+        string keywords = KeywordPrefix(root);
         var feature = new XElement(Framework + "Feature",
-            new XAttribute(XNamespace.Xmlns + "kpcolor", Keywords.NamespaceName),
-            new XAttribute("name", "kpcolor:PageColorManagement"),
-            new XElement(Framework + "Option", new XAttribute("name", "kpcolor:None")));
+            new XAttribute("name", $"{keywords}:PageColorManagement"),
+            new XElement(Framework + "Option", new XAttribute("name", $"{keywords}:None")));
         root.Add(feature);
         using var rewritten = new System.IO.MemoryStream();
         document.Save(rewritten);
@@ -119,13 +119,13 @@ internal static class PrintJobTicket
             .Remove();
         feature ??= new XElement(Framework + "Feature");
         if (feature.Parent is null) root.Add(feature);
-        feature.SetAttributeValue(XNamespace.Xmlns + "kpduplex", Keywords.NamespaceName);
-        feature.SetAttributeValue("name", "kpduplex:DocumentDuplex");
+        string keywords = KeywordPrefix(root);
+        feature.SetAttributeValue("name", $"{keywords}:DocumentDuplex");
         if (feature.Element(Framework + "Option") is not { } selected
             || !HasKeyword(selected, duplex.ToString()))
         {
             feature.Elements(Framework + "Option").Remove();
-            feature.Add(new XElement(Framework + "Option", new XAttribute("name", $"kpduplex:{duplex}")));
+            feature.Add(new XElement(Framework + "Option", new XAttribute("name", $"{keywords}:{duplex}")));
         }
         using var rewritten = new System.IO.MemoryStream();
         document.Save(rewritten);
@@ -191,6 +191,19 @@ internal static class PrintJobTicket
         if (HasKeyword(option, "TwoSidedLongEdge")) return Duplexing.TwoSidedLongEdge;
         if (HasKeyword(option, "TwoSidedShortEdge")) return Duplexing.TwoSidedShortEdge;
         return null;
+    }
+
+    /// <summary>The ticket's prefix for the Print Schema keywords, declared on the root when the
+    /// ticket has none. The spooler allows only a name attribute on a Feature or Option, so a
+    /// declaration there fails the whole job (#520).</summary>
+    private static string KeywordPrefix(XElement root)
+    {
+        string? prefix = root.GetPrefixOfNamespace(Keywords);
+        if (prefix is not null) return prefix;
+        prefix = "psk";
+        for (int n = 1; root.GetNamespaceOfPrefix(prefix) is not null; n++) prefix = $"psk{n}";
+        root.SetAttributeValue(XNamespace.Xmlns + prefix, Keywords.NamespaceName);
+        return prefix;
     }
 
     private static bool HasKeyword(XElement element, string name)

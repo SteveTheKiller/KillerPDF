@@ -342,6 +342,47 @@ public sealed class PrintJobTicketTests
             && ((string?)element.Attribute("name"))?.EndsWith(":PageColorManagement") == true);
     }
 
+    // The print spooler rejects a ticket whose Feature or Option carries anything but name,
+    // including a namespace declaration (#520: "Only 'name' is allowed").
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Apply_FeaturesCarryOnlyTheNameAttribute(bool appManagesColor, bool documentDuplex)
+    {
+        var settings = new PrintJobTicket.Settings(false, TwoSided: true, false, null, null,
+            AppManagesColor: appManagesColor);
+
+        PrintTicket applied = PrintJobTicket.Apply(new PrintTicket(), settings, copies: 1,
+            fromDriverDialog: false, documentDuplex);
+
+        using var written = applied.GetXmlStream();
+        XDocument document = XDocument.Load(written);
+        foreach (XElement element in document.Descendants()
+                     .Where(element => element.Name.LocalName is "Feature" or "Option"))
+            Assert.All(element.Attributes(), attribute => Assert.Equal("name", attribute.Name.ToString()));
+        Assert.Equal(appManagesColor, PrintJobTicket.AsksForNoDriverColorManagement(applied));
+        if (documentDuplex)
+            Assert.True(PrintJobTicket.Read(applied).TwoSided);
+    }
+
+    [Fact]
+    public void WithoutDriverColorManagement_ReusesTheTicketsKeywordPrefix()
+    {
+        using var xml = new MemoryStream(Encoding.UTF8.GetBytes("""
+            <f:PrintTicket xmlns:f="http://schemas.microsoft.com/windows/2003/08/printing/printschemaframework"
+                xmlns:k="http://schemas.microsoft.com/windows/2003/08/printing/printschemakeywords" version="1">
+              <f:Feature name="k:PageOrientation"><f:Option name="k:Landscape" /></f:Feature>
+            </f:PrintTicket>
+            """));
+
+        PrintTicket applied = PrintJobTicket.WithoutDriverColorManagement(new PrintTicket(xml));
+
+        using var written = applied.GetXmlStream();
+        XElement root = XDocument.Load(written).Root!;
+        Assert.Contains(root.Elements(), element => (string?)element.Attribute("name") == "k:PageColorManagement");
+    }
+
     [Theory]
     [InlineData("<psf:Option name=\"psk:None\" /><psf:Option name=\"psk:System\" />", true, true)]
     [InlineData("<psf:Option name=\"psk:Device\" /><psf:Option name=\"psk:System\" />", true, false)]
