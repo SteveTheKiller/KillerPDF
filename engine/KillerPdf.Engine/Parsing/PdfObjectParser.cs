@@ -341,7 +341,12 @@ public sealed class PdfObjectParser(
         ReadOnlySpan<byte> marker = "endstream"u8;
         ReadOnlySpan<byte> source = _source.Span;
         int searchStart = dataOffset;
-        int searchEnd = Math.Min(source.Length, checked(dataOffset + Math.Max(declaredLength, 0) + 1_048_576));
+        // Without a usable Length the payload can be any size, so the search runs to the end of
+        // the file; a scanner app writing an image's decoded size as its Length overran the 1 MB
+        // window and the page rendered blank (#531).
+        int searchEnd = declaredLength < 0
+            ? source.Length
+            : (int)Math.Min(source.Length, (long)dataOffset + declaredLength + 1_048_576);
         int expectedEnd = Math.Min(source.Length, checked(dataOffset + declaredLength));
         int best = -1;
         int bestDistance = int.MaxValue;

@@ -137,6 +137,26 @@ public sealed class PdfObjectParserTests
         Assert.Equal(expected, Encoding.ASCII.GetString(stream.EncodedData.Span));
     }
 
+    // #531: a scanner app wrote an image's decoded size as its Length, far past the end of
+    // the file, and the payload ran over the old 1 MB search window for endstream.
+    [Fact]
+    public void ParseIndirectObject_CompatibilityRecoveryFindsEndstreamPastALengthLongerThanTheFile()
+    {
+        byte[] payload = new byte[3 * 1024 * 1024];
+        new Random(531).NextBytes(payload);
+        for (int index = 0; index < payload.Length; index++)
+            if (payload[index] == (byte)'e') payload[index] = (byte)'f';
+        byte[] source = [
+            .. Encoding.ASCII.GetBytes("1 0 obj\n<< /Length 15044784 >>\nstream\n"),
+            .. payload,
+            .. Encoding.ASCII.GetBytes("\nendstream\nendobj")];
+        var lenient = new PdfObjectParser(source, allowDuplicateDictionaryKeys: true);
+
+        PdfStream stream = Assert.IsType<PdfStream>(lenient.ParseIndirectObject().Value);
+
+        Assert.True(stream.EncodedData.Span.SequenceEqual(payload));
+    }
+
     [Fact]
     public void ParseObject_CompatibilityRecoverySkipsNonNameDictionaryKeys()
     {
