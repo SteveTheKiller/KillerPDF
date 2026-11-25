@@ -230,7 +230,13 @@ public static class PdfDataRecordReader
         if (entry.Length > MaximumWorkbookPartBytes)
             throw new FormatException($"The XLSX part '{path}' exceeds the supported size limit.");
         using Stream stream = entry.Open();
-        try { return XDocument.Load(stream, LoadOptions.None); }
+        // A workbook part never needs a DTD, so one is refused rather than skipped.
+        var settings = new System.Xml.XmlReaderSettings { DtdProcessing = System.Xml.DtdProcessing.Prohibit, XmlResolver = null };
+        try
+        {
+            using var reader = System.Xml.XmlReader.Create(stream, settings);
+            return XDocument.Load(reader, LoadOptions.None);
+        }
         catch (Exception error) when (error is System.Xml.XmlException or InvalidOperationException)
         {
             throw new FormatException($"The XLSX part '{path}' is malformed.", error);
