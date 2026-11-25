@@ -2132,7 +2132,7 @@
                                                    FontFamily="{DynamicResource BrandSansFont}"
                                                    FontSize="14"
                                                    HorizontalAlignment="Center"
-                                                   Margin="0,2,0,0">
+                                                   Margin="{DynamicResource ToolbarCaptionUnderMargin}">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
