@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- PDFs with damaged image transparency, common in CAD and building drawings, render instead of showing a blank page and "Image soft-mask sample data has an invalid length."
 - Scrolling the What's new notes no longer draws text over the pane's rounded corners.
 
 ## [1.9.6] - 2026-11-24

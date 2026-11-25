@@ -5654,9 +5654,6 @@ public sealed partial class PdfPageRenderer
         DecodedImage DecodeMask()
         {
             int expected = RawImageLayout(width, height, 1, bits, out _);
-            byte[] packed = _document.DecodeStream(stream, expected);
-            if (packed.Length != expected)
-                throw new FormatException("Image soft-mask sample data has an invalid length.");
             double decodeStart = 0, decodeEnd = 1;
             if (stream.Dictionary.TryGetValue(Name("Decode"), out PdfObject? decodeValue))
             {
@@ -5664,6 +5661,8 @@ public sealed partial class PdfPageRenderer
                 decodeStart = Number(Resolve(decode[0]));
                 decodeEnd = Number(Resolve(decode[1]));
             }
+            byte[] packed = DecodeMaskSamples(stream, expected, decodeStart, decodeEnd,
+                "Image soft-mask sample data has an invalid length.", diagnostics);
             return new DecodedImage(packed, width, height, MaskBits: bits,
                 MaskDecodeStart: decodeStart, MaskDecodeEnd: decodeEnd);
         }
@@ -5694,16 +5693,35 @@ public sealed partial class PdfPageRenderer
         DecodedImage DecodeMask()
         {
             int expected = RawImageLayout(width, height, 1, 1, out _);
-            byte[] packed = _document.DecodeStream(stream, expected);
-            if (packed.Length != expected)
-                throw new FormatException("Image mask sample data has an invalid length.");
-            if (recoveredGrayMask)
-                return new DecodedImage(packed, width, height, MaskBits: 1,
-                    MaskDecodeStart: 0, MaskDecodeEnd: 1);
-            bool paintsOne = StencilPaintsOne(stream.Dictionary);
+            bool paintsOne = recoveredGrayMask || StencilPaintsOne(stream.Dictionary);
+            double decodeStart = paintsOne ? 0 : 1, decodeEnd = paintsOne ? 1 : 0;
+            byte[] packed = DecodeMaskSamples(stream, expected, decodeStart, decodeEnd,
+                "Image mask sample data has an invalid length.", diagnostics: null);
             return new DecodedImage(packed, width, height, MaskBits: 1,
-                MaskDecodeStart: paintsOne ? 0 : 1, MaskDecodeEnd: paintsOne ? 1 : 0);
+                MaskDecodeStart: decodeStart, MaskDecodeEnd: decodeEnd);
         }
+    }
+
+    // Damaged CAD and scanner exports often carry mask streams a few bytes off. During
+    // compatibility recovery, trim extra samples and treat missing ones as opaque so the
+    // image stays visible instead of the whole page failing to render.
+    private byte[] DecodeMaskSamples(PdfStream stream, int expected, double decodeStart,
+        double decodeEnd, string invalidLengthMessage, HashSet<string>? diagnostics)
+    {
+        if (!_document.UsesCompatibilityRecovery)
+        {
+            byte[] exact = _document.DecodeStream(stream, expected);
+            return exact.Length == expected ? exact : throw new FormatException(invalidLengthMessage);
+        }
+        byte[] packed = _document.DecodeImageSamples(stream,
+            Math.Max(expected, PdfStreamDecoder.DefaultMaximumDecodedBytes), expected);
+        if (packed.Length > expected) return packed[..expected];
+        if (packed.Length == expected) return packed;
+        var padded = new byte[expected];
+        packed.CopyTo(padded, 0);
+        padded.AsSpan(packed.Length).Fill(decodeEnd >= decodeStart ? (byte)0xFF : (byte)0x00);
+        diagnostics?.Add("An image mask was missing sample data; the missing area was treated as opaque.");
+        return padded;
     }
 
     private bool StencilPaintsOne(PdfDictionary dictionary)

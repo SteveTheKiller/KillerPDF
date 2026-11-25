@@ -98,9 +98,55 @@ public sealed class PdfSingleComponentSoftMaskTests
         Assert.Equal(new byte[] { 255, 255, 255, 255 }, Pixel(Render(null, paintImage: false), 5));
     }
 
+    [Fact]
+    public void OverlongMaskSamplesAreTrimmedDuringRecovery()
+    {
+        PdfRenderedPage rendered = Render(N("DeviceGray"), recovery: true,
+            maskData: [128, 0, 0, 0]);
+        Assert.Equal(new byte[] { 127, 127, 255, 255 }, Pixel(rendered, 5));
+        Assert.Equal(new byte[] { 0, 255, 0, 255 }, Pixel(rendered, 15));
+    }
+
+    [Fact]
+    public void ShortMaskSamplesArePaddedOpaqueDuringRecovery()
+    {
+        PdfRenderedPage rendered = Render(N("DeviceGray"), recovery: true,
+            maskData: [0], maskHeight: 2);
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, Pixel(rendered, 5, 2));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(rendered, 5, 7));
+        Assert.Equal(new byte[] { 0, 255, 0, 255 }, Pixel(rendered, 15));
+    }
+
+    [Fact]
+    public void EmptyMaskDuringRecoveryRetainsBaseImageInsteadOfFailingThePage()
+    {
+        PdfRenderedPage rendered = Render(N("DeviceGray"), recovery: true, maskData: []);
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(rendered, 5));
+        Assert.Equal(new byte[] { 0, 255, 0, 255 }, Pixel(rendered, 15));
+        Assert.Contains("An image mask was missing sample data; the missing area was treated as opaque.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void InvertedShortMaskStillPadsOpaque()
+    {
+        PdfRenderedPage rendered = Render(N("DeviceGray"), recovery: true, invert: true,
+            maskData: []);
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(rendered, 5));
+    }
+
+    [Fact]
+    public void BadMaskLengthStillFailsWithoutRecovery()
+    {
+        PdfRenderedPage rendered = Render(N("DeviceGray"), maskData: [128, 0]);
+        Assert.Equal(new byte[] { 0, 255, 0, 255 }, Pixel(rendered, 15));
+        Assert.NotEqual(new byte[] { 127, 127, 255, 255 }, Pixel(rendered, 5));
+    }
+
     private static PdfRenderedPage Render(PdfObject? maskSpace, bool recovery = false,
         bool paintImage = true, bool invert = false, bool explicitMask = false,
-        bool paintFollowing = true, byte maskSample = 128)
+        bool paintFollowing = true, byte maskSample = 128, byte[]? maskData = null,
+        int maskHeight = 1)
     {
         string content = (paintImage ? "q 10 0 0 10 0 0 cm /Image Do Q " : "")
             + (paintFollowing ? "0 1 0 rg 10 0 10 10 re f" : "");
@@ -117,9 +163,10 @@ public sealed class PdfSingleComponentSoftMaskTests
         if (maskSpace is not null)
         {
             PdfDictionary mask = D(("Subtype", N("Image")), ("Width", new PdfInteger(1)),
-                ("Height", new PdfInteger(1)), ("BitsPerComponent", new PdfInteger(8)),
+                ("Height", new PdfInteger(maskHeight)), ("BitsPerComponent", new PdfInteger(8)),
                 ("ColorSpace", maskSpace), ("Decode", invert ? A(1, 0) : A(0, 1)));
-            imageEntries.Add(("SMask", update.AddObject(new PdfStream(mask, new byte[] { maskSample }))));
+            imageEntries.Add(("SMask", update.AddObject(new PdfStream(mask,
+                maskData ?? new byte[] { maskSample }))));
         }
         if (explicitMask)
             imageEntries.Add(("Mask", new PdfArray([new PdfInteger(255), new PdfInteger(255),
@@ -133,8 +180,8 @@ public sealed class PdfSingleComponentSoftMaskTests
             : PdfDocument.Open(bytes)).Render(0, new PdfRenderOptions(20, 10));
     }
 
-    private static byte[] Pixel(PdfRenderedPage page, int x) =>
-        page.Pixels.Slice((5 * 20 + x) * 4, 4).ToArray();
+    private static byte[] Pixel(PdfRenderedPage page, int x, int y = 5) =>
+        page.Pixels.Slice((y * 20 + x) * 4, 4).ToArray();
     private static PdfArray A(params double[] values) => new(values.Select(value => (PdfObject)new PdfReal(value)));
     private static PdfName N(string value) => new(Encoding.ASCII.GetBytes(value));
     private static PdfDictionary D(params (string Name, PdfObject Value)[] values) =>
