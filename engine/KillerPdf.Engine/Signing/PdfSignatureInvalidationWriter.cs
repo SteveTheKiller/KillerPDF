@@ -14,10 +14,24 @@ public static class PdfSignatureInvalidationWriter
     private static readonly PdfName SignatureName = Name("Sig");
     private static readonly PdfName ValueName = Name("V");
     private static readonly PdfName PermissionsName = Name("Perms");
+    private static readonly PdfName SubtypeName = Name("Subtype");
+    private static readonly PdfName WidgetName = Name("Widget");
+    private static readonly PdfName StampName = Name("Stamp");
+    private static readonly PdfName RectName = Name("Rect");
+    private static readonly PdfName FlagsName = Name("F");
+    private static readonly PdfName AppearanceName = Name("AP");
+    private static readonly PdfName NormalName = Name("N");
+    private static readonly PdfName TitleName = Name("T");
+
+    // Field and signature keys a stamp made from a signature widget leaves behind.
+    private static readonly PdfName[] FieldOnlyNames =
+        [.. new[] { "FT", "T", "TU", "TM", "V", "Ff", "Lock", "SV", "Parent", "Kids", "DA", "MK" }.Select(Name)];
 
     /// <summary>
-    /// Appends a revision that removes every signature field value and catalog certification
-    /// permission while preserving the empty fields and their widgets for later re-signing.
+    /// Appends a revision that removes every signature value and catalog certification permission.
+    /// A signed field with a visible widget becomes a stamp annotation with the same appearance, so the
+    /// signer's name and date stay on the page; viewers such as Acrobat draw an unsigned signature field
+    /// as an empty box (#505). An invisible signature keeps its empty field for later re-signing.
     /// Returns the original bytes when the document contains no invalidatable signature state.
     /// </summary>
     public static byte[] ClearSignatureValues(PdfDocument document)
@@ -83,7 +97,7 @@ public static class PdfSignatureInvalidationWriter
             if (depth >= 256)
                 throw new InvalidOperationException("The AcroForm field tree is too deeply nested.");
             bool arrayChanged = false;
-            var values = new PdfObject[fields.Count];
+            var values = new List<PdfObject>(fields.Count);
             for (int index = 0; index < fields.Count; index++)
             {
                 PdfObject original = fields[index];
@@ -95,9 +109,17 @@ public static class PdfSignatureInvalidationWriter
                     type = Resolve(document, typeValue, "An AcroForm field /FT value").Value
                         as PdfName ?? throw new InvalidOperationException(
                             "An AcroForm field /FT value is not a name.");
+                bool signed = type?.Equals(SignatureName) == true && field.ContainsKey(ValueName);
+                // A signed field whose widgets show on the page leaves the field tree; its widgets stay in
+                // the pages' annotation lists as stamps with the same appearance. (#505)
+                if (signed && resolved.Reference is not null && ConvertToStamps(field, resolved.Reference))
+                {
+                    changed = true;
+                    arrayChanged = true;
+                    continue;
+                }
                 var entries = field.ToDictionary(entry => entry.Key, entry => entry.Value);
-                bool fieldChanged = type?.Equals(SignatureName) == true
-                    && entries.Remove(ValueName);
+                bool fieldChanged = signed && entries.Remove(ValueName);
                 if (field.TryGetValue(KidsName, out PdfObject? kidsValue))
                 {
                     Resolved kidsResolved = Resolve(document, kidsValue, "An AcroForm field /Kids value");
@@ -116,21 +138,90 @@ public static class PdfSignatureInvalidationWriter
                         fieldChanged = true;
                     }
                 }
-                if (!fieldChanged) { values[index] = original; continue; }
+                if (!fieldChanged) { values.Add(original); continue; }
                 changed = true;
                 var rewritten = new PdfDictionary(entries);
                 if (resolved.Reference is PdfIndirectReference reference)
                 {
                     replaceObject(reference.ObjectNumber, rewritten);
-                    values[index] = original;
+                    values.Add(original);
                 }
                 else
-                    values[index] = rewritten;
+                    values.Add(rewritten);
                 arrayChanged = true;
             }
             return arrayChanged ? new PdfArray(values) : fields;
         }
+
+        // The field is its own widget, or its kids are its widgets. Converts them when at least one
+        // shows on the page; otherwise the field stays as an empty field.
+        bool ConvertToStamps(PdfDictionary field, PdfIndirectReference reference)
+        {
+            if (IsWidget(field))
+            {
+                if (!ShowsOnPage(field)) return false;
+                replaceObject(reference.ObjectNumber, Stamp(field));
+                return true;
+            }
+            if (!field.TryGetValue(KidsName, out PdfObject? kidsValue)
+                || Resolve(document, kidsValue, "An AcroForm field /Kids value").Value is not PdfArray kids)
+                return false;
+            var widgets = new List<(PdfIndirectReference Reference, PdfDictionary Widget)>();
+            foreach (PdfObject kid in kids)
+            {
+                Resolved kidResolved = Resolve(document, kid, "A signature field widget");
+                if (kidResolved.Reference is not PdfIndirectReference kidReference
+                    || kidResolved.Value is not PdfDictionary widget
+                    || !IsWidget(widget) || widget.ContainsKey(TitleName))
+                    return false;
+                widgets.Add((kidReference, widget));
+            }
+            if (!widgets.Any(entry => ShowsOnPage(entry.Widget))) return false;
+            foreach (var (kidReference, widget) in widgets)
+                replaceObject(kidReference.ObjectNumber, Stamp(widget));
+            return true;
+        }
+
+        bool IsWidget(PdfDictionary annotation) =>
+            annotation.TryGetValue(SubtypeName, out PdfObject? subtype)
+            && Resolve(document, subtype, "An annotation /Subtype value").Value is PdfName name
+            && name.Equals(WidgetName);
+
+        // A nonempty /Rect, not hidden, and a normal appearance to draw.
+        bool ShowsOnPage(PdfDictionary widget)
+        {
+            if (!widget.TryGetValue(RectName, out PdfObject? rectValue)
+                || Resolve(document, rectValue, "A widget /Rect value").Value is not PdfArray rect
+                || rect.Count != 4)
+                return false;
+            double[] corners = new double[4];
+            for (int corner = 0; corner < 4; corner++)
+            {
+                if (Number(Resolve(document, rect[corner], "A widget /Rect value").Value) is not double value)
+                    return false;
+                corners[corner] = value;
+            }
+            if (corners[0] == corners[2] || corners[1] == corners[3]) return false;
+            if (widget.TryGetValue(FlagsName, out PdfObject? flagsValue)
+                && Resolve(document, flagsValue, "A widget /F value").Value is PdfInteger flags
+                && (flags.Value & (2 | 32)) != 0)
+                return false;
+            return widget.TryGetValue(AppearanceName, out PdfObject? appearanceValue)
+                && Resolve(document, appearanceValue, "A widget /AP value").Value is PdfDictionary appearances
+                && appearances.ContainsKey(NormalName);
+        }
     }
+
+    private static PdfDictionary Stamp(PdfDictionary widget) =>
+        new(widget.Where(entry => !entry.Key.Equals(SubtypeName) && !FieldOnlyNames.Contains(entry.Key))
+            .Append(new KeyValuePair<PdfName, PdfObject>(SubtypeName, StampName)));
+
+    private static double? Number(PdfObject value) => value switch
+    {
+        PdfInteger integer => integer.Value,
+        PdfReal real => real.Value,
+        _ => null
+    };
 
     private static PdfDictionary Replace(
         PdfDictionary source, PdfName name, PdfObject value) =>
