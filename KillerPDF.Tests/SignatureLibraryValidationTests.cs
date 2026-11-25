@@ -125,53 +125,6 @@ public sealed class SignatureLibraryValidationTests
         finally { Directory.Delete(dir, recursive: true); }
     }
 
-    [Fact]
-    public void SavedLibraryIsEncryptedForTheUserAndPlaintextLibrariesStillLoad()
-    {
-        string dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        string file = Path.Combine(dir, "signatures.json");
-        const string legacy = "[{\"Name\":\"ZebraMarker\",\"Strokes\":[[{\"X\":0,\"Y\":0},{\"X\":10,\"Y\":10}]]}]";
-        try
-        {
-            File.WriteAllText(file, legacy);
-            var store = new SignatureStore(dir, file);
-            store.Load();
-            Assert.Single(store.Signatures);
-            Assert.True(store.Persist());
-
-            foreach (string written in new[] { file, file + ".bak" })
-            {
-                string raw = System.Text.Encoding.Latin1.GetString(File.ReadAllBytes(written));
-                Assert.DoesNotContain("ZebraMarker", raw);
-                Assert.DoesNotContain("Strokes", raw);
-            }
-
-            var reopened = new SignatureStore(dir, file);
-            reopened.Load();
-            Assert.Null(reopened.PreservedDamagedFile);
-            Assert.Equal("ZebraMarker", Assert.Single(reopened.Signatures).Name);
-        }
-        finally { Directory.Delete(dir, recursive: true); }
-    }
-
-    [Fact]
-    public void PortableLibraryStaysReadableOnAnotherAccount()
-    {
-        string dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        string file = Path.Combine(dir, "signatures.json");
-        try
-        {
-            var store = new SignatureStore(dir, file, protect: false);
-            store.Add(new KillerPDF.SavedSignature { Name = "ZebraMarker",
-                Strokes = [[new() { X = 0, Y = 0 }, new() { X = 10, Y = 10 }]] });
-            Assert.True(store.Persist());
-            Assert.Contains("ZebraMarker", File.ReadAllText(file));
-        }
-        finally { Directory.Delete(dir, recursive: true); }
-    }
-
     private static void CheckDamaged(string json)
     {
         string dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));

@@ -84,7 +84,6 @@
     <Compile Include="..\Services\ImageLaunchCollector.cs" Link="Services\ImageLaunchCollector.cs" />
     <Compile Include="..\Services\ShellPrintFailure.cs" Link="Services\ShellPrintFailure.cs" />
     <Compile Include="..\Services\SignatureStore.cs" Link="Services\SignatureStore.cs" />
-    <Compile Include="..\Services\UserDataProtection.cs" Link="Services\UserDataProtection.cs" />
     <Compile Include="..\Services\SavedSignatureButton.cs" Link="Services\SavedSignatureButton.cs" />
     <Compile Include="..\Services\TextFieldPresetStore.cs" Link="Services\TextFieldPresetStore.cs" />
     <Compile Include="..\Services\TextFieldPresetCapture.cs" Link="Services\TextFieldPresetCapture.cs" />

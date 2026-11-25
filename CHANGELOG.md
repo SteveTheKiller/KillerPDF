@@ -13,7 +13,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The OCR libraries are held open from the moment their contents are checked, so another program cannot swap them before KillerPDF loads them.
 - A link in a PDF opens exactly the address KillerPDF checked, not the raw text the PDF stored.
 - A password given on the command line, like `--password`, prints a warning that points to `--secrets-stdin`, which keeps it out of the process list and shell history.
-- Saved signatures are encrypted for your Windows account, so a copy of the library taken off this PC cannot be read. An older library still opens and is encrypted the next time it is saved. The portable edition keeps its library readable so it still works on another PC.
 - A signature made with a certificate whose stated uses leave out document signing, such as a web server certificate, is no longer shown as trusted. Certificates that state no uses, or allow email protection, code signing or document signing, are checked as before.
 - The setup program loads system libraries only from Windows' own folder, so a library planted next to it in Downloads is never picked up.
 - An install, uninstall or update that asks for administrator rights stops if your environment sets a variable that makes .NET load extra code, such as `DOTNET_STARTUP_HOOKS`, `DOTNET_ROOT` or a profiler, and names the variable to remove. KillerPDF also ignores startup hooks altogether, and the headless administrator steps load system libraries only from Windows' own folder.
