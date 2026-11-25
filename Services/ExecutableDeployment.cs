@@ -18,6 +18,14 @@ namespace KillerPDF.Services
             => Install(source, destination, new FileOperations());
 
         internal static void Install(string source, string destination, FileOperations files)
+            => Install(source, destination, files, verifyStaged: null);
+
+        /// <summary>Copies <paramref name="source"/> to a staged file beside <paramref name="destination"/>,
+        /// checks that the copy matches the source byte for byte, hands the staged path to
+        /// <paramref name="verifyStaged"/>, and publishes only when that returns. The check runs on the
+        /// copy that will be published, in the destination's own folder, so a source swapped after an
+        /// earlier check on its path cannot be published in its place.</summary>
+        internal static void Install(string source, string destination, FileOperations files, Action<string>? verifyStaged)
         {
             source = Path.GetFullPath(source);
             destination = Path.GetFullPath(destination);
@@ -45,6 +53,7 @@ namespace KillerPDF.Services
                             throw new InvalidDataException("The staged executable does not match the complete source.");
                     }
                 }
+                verifyStaged?.Invoke(staged);
                 Publish(staged, destination, files, ref retainStaged);
             }
             finally
