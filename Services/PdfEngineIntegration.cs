@@ -1617,7 +1617,8 @@ internal static partial class PdfEngineIntegration
         byte[] result = new PdfIncrementalAnnotationEditor(source)
             .RemoveAnnotationAt(pageIndex, annotationIndex)
             .Build();
-        ReplaceWithBuiltResult(path, result);
+        // A removed link or comment must not stay recoverable from an earlier revision of the file.
+        ReplaceWithBuiltResult(path, PdfRevisionConsolidation.Consolidate(result));
     }
 
     /// <summary>
@@ -2783,7 +2784,10 @@ internal static partial class PdfEngineIntegration
         return result;
     }
 
-    /// <summary>Removes pages as one byte-preserving incremental revision.</summary>
+    /// <summary>
+    /// Removes pages and folds the file into one revision, so a deleted page cannot be recovered from an
+    /// earlier one. A signed file keeps the incremental save that leaves its signatures valid.
+    /// </summary>
     internal static void RemovePages(string path, IReadOnlyCollection<int> pageIndices)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -2795,7 +2799,7 @@ internal static partial class PdfEngineIntegration
         PdfDocument document = PdfDocument.Open(source);
         var editor = new PdfIncrementalPageEditor(document);
         foreach (int pageIndex in removed) editor.RemovePage(pageIndex);
-        ReplaceWithBuiltResult(path, editor.Build());
+        ReplaceWithBuiltResult(path, PdfRevisionConsolidation.Consolidate(editor.Build()));
     }
 
     /// <summary>Renumbers application rotation state after pages are removed.</summary>

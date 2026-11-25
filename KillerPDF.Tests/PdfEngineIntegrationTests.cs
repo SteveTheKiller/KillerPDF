@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using KillerPdf.Engine.Authoring;
@@ -579,7 +580,6 @@ public sealed class PdfEngineIntegrationTests
             PdfArray annotations = Assert.IsType<PdfArray>(
                 Page(reopened, 0)[new PdfName("Annots"u8)]);
             Assert.Single(annotations);
-            Assert.True(result.AsSpan(0, source.Length).SequenceEqual(source));
         }
         finally
         {
@@ -1893,6 +1893,67 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void RemovePages_LeavesNoTraceOfTheDeletedPageInTheSavedFile()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-delete-trace-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            byte[] source = new PdfDocumentBuilder()
+                .AddPage(200, 200, Encoding.ASCII.GetBytes("BT /F1 12 Tf (KEEPPAGEMARKER) Tj ET"))
+                .AddPage(200, 200, Encoding.ASCII.GetBytes("BT /F1 12 Tf (DELETEDPAGEMARKER) Tj ET"))
+                .Build();
+            Assert.True(Contains(source, "DELETEDPAGEMARKER"), "The fixture must store page content uncompressed.");
+            File.WriteAllBytes(path, source);
+
+            PdfEngineIntegration.RemovePages(path, [1]);
+
+            byte[] result = File.ReadAllBytes(path);
+            Assert.False(Contains(result, "DELETEDPAGEMARKER"));
+            Assert.True(Contains(result, "KEEPPAGEMARKER"));
+            Assert.Equal(1, CountOf(result, "%%EOF"));
+            Assert.Equal(1, PageCount(PdfDocument.Open(result)));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
+    public void RemoveAnnotation_LeavesNoTraceOfTheRemovedLinkInTheSavedFile()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-link-trace-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            byte[] source = new PdfDocumentBuilder()
+                .AddBlankPage(200, 200)
+                .AddUriLink(0, 10, 10, 50, 20, "https://removed-link-marker.example/")
+                .Build();
+            Assert.True(Contains(source, "removed-link-marker"), "The fixture must store the link URI in clear.");
+            File.WriteAllBytes(path, source);
+
+            PdfEngineIntegration.RemoveAnnotation(path, 0, 0);
+
+            byte[] result = File.ReadAllBytes(path);
+            Assert.False(Contains(result, "removed-link-marker"));
+            Assert.Equal(1, CountOf(result, "%%EOF"));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    private static bool Contains(byte[] data, string text) => CountOf(data, text) > 0;
+
+    private static int CountOf(byte[] data, string text)
+    {
+        byte[] needle = Encoding.ASCII.GetBytes(text);
+        int count = 0;
+        for (int at = data.AsSpan().IndexOf(needle); at >= 0;)
+        {
+            count++;
+            int next = data.AsSpan(at + needle.Length).IndexOf(needle);
+            at = next < 0 ? -1 : at + needle.Length + next;
+        }
+        return count;
+    }
+
+    [Fact]
     public void RemovePages_DeletesSelectedPagesAndPreservesRetainedRotations()
     {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-delete-{Guid.NewGuid():N}.pdf");
@@ -1909,7 +1970,6 @@ public sealed class PdfEngineIntegrationTests
             PdfEngineIntegration.RemovePages(path, [2, 0]);
 
             byte[] result = File.ReadAllBytes(path);
-            Assert.True(result.AsSpan(0, source.Length).SequenceEqual(source));
             PdfDocument reopened = PdfDocument.Open(result);
             Assert.Equal(2, PageCount(reopened));
             Assert.Equal([0d, 0d, 200d, 300d], PageMediaBox(reopened, 0));

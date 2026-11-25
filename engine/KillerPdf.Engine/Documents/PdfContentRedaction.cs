@@ -272,7 +272,8 @@ public static partial class PdfContentRedaction
 
     /// <summary>
     /// Removes the text drawn under opaque covers, such as the cover of an in-place text edit, and
-    /// returns the document with an incremental update, or null when no text lies under them.
+    /// returns the document folded into one revision (or, for a signed document, with an incremental
+    /// update), or null when no text lies under them.
     /// </summary>
     /// <remarks>
     /// A glyph goes when its center lies inside a region. Images, drawings, annotations and every
@@ -328,7 +329,8 @@ public static partial class PdfContentRedaction
             update.ReplaceObject(page.Reference.ObjectNumber, new PdfDictionary(entries));
             changed = true;
         }
-        return changed ? update.Build() : null;
+        // The removed glyphs must not stay in the revision the update was appended to.
+        return changed ? PdfRevisionConsolidation.Consolidate(update.Build()) : null;
     }
 
     private static PdfDocumentWriteResult Rewrite(PdfDocument document, PdfPageTree tree,

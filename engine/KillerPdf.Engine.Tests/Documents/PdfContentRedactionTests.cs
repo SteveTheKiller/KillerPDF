@@ -1939,7 +1939,8 @@ public sealed class PdfContentRedactionTests
 
         Assert.NotNull(updated);
         PdfDocument output = PdfDocument.Open(updated);
-        Assert.True(output.CrossReferences.Sections.Count > 1, "the change is an incremental update");
+        Assert.Single(output.CrossReferences.Sections);
+        Assert.DoesNotContain("OLDTEXT", Encoding.Latin1.GetString(updated), StringComparison.Ordinal);
         // Only glyphs centered under the cover go; the rest of the word keeps its place.
         Assert.Equal("TEXTKeep", Letters(output, 0));
         AssertKeptLettersUnmoved(document, output, 0, [region]);
