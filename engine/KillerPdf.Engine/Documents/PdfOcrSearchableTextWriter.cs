@@ -89,9 +89,13 @@ public static class PdfOcrSearchableTextWriter
             }
             content.EndText().RestoreState();
             if (pageWords == 0) continue;
-            editor.AppendPageContent(pageIndex, new PdfContentBounds(
+            var pageBounds = new PdfContentBounds(
                 geometry.Left, geometry.Bottom,
-                geometry.Left + geometry.Width, geometry.Bottom + geometry.Height), content);
+                geometry.Left + geometry.Width, geometry.Bottom + geometry.Height);
+            // A tagged PDF refuses content outside its structure tree, so the hidden OCR layer
+            // goes in as an artifact there and the document's own tags stay as they are (#533).
+            if (editor.IsTagged) editor.AppendPageArtifact(pageIndex, pageBounds, content);
+            else editor.AppendPageContent(pageIndex, pageBounds, content);
             writtenWords += pageWords;
         }
         return new PdfOcrSearchableTextResult(

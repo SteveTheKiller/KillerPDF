@@ -3,7 +3,9 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Tests.Fonts;
+using KillerPdf.Engine.Writing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -48,6 +50,44 @@ public sealed class PdfOcrSearchableTextWriterTests
         var reader = new PdfPageContentReader(reopened);
         for (int index = 0; index < 4; index++)
             Assert.Contains("A", reader.Read(index).Text);
+    }
+
+    // #533: Word exports tagged PDFs, and an untagged OCR layer was refused outright.
+    [Fact]
+    public void WriterAddsSearchableTextToATaggedPdfWithoutTouchingItsStructure()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "Tagged scan", Language = "en-US" })
+            .EnablePdfUa2Conformance()
+            .AddPage(200, 100, new PdfContentStreamBuilder()
+                .BeginMarkedContent(PdfStructureType.Figure, 0)
+                .Rectangle(10, 10, 20, 20).Fill().EndMarkedContent())
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureElement(PdfStructureType.Figure, 0, 0, 1, alternateDescription: "A scan")
+            .Build();
+        PdfDocument document = PdfDocument.Open(source);
+        TrueTypeFont font = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: false));
+        PdfOcrPixelPage[] pages =
+        [
+            new(400, 200, [new PdfOcrPixelWord("A", 1, 20, 20, 80, 60)])
+        ];
+
+        PdfOcrSearchableTextResult result = PdfOcrSearchableTextWriter.Write(
+            document, pages, _ => font);
+
+        Assert.Equal(1, result.WrittenWords);
+        Assert.True(result.Document.AsSpan(0, source.Length).SequenceEqual(source));
+        PdfDocument reopened = PdfDocument.Open(result.Document);
+        Assert.Contains("A", new PdfPageContentReader(reopened).Read(0).Text);
+        Assert.Equal(StructureRoot(document), StructureRoot(reopened));
+    }
+
+    private static string StructureRoot(PdfDocument document)
+    {
+        var catalog = (PdfDictionary)document.Resolve(
+            (PdfIndirectReference)document.Trailer[new PdfName("Root"u8)]);
+        return Convert.ToHexString(PdfObjectWriter.Write(catalog[new PdfName("StructTreeRoot"u8)]));
     }
 
     [Fact]

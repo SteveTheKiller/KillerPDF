@@ -2079,6 +2079,24 @@ public sealed class PdfIncrementalPageEditor
         return this;
     }
 
+    /// <summary>Whether the source document has a logical structure tree.</summary>
+    internal bool IsTagged => _tree.Catalog.ContainsKey(StructTreeRootName);
+
+    /// <summary>Appends an artifact at an explicit destination-page rectangle.</summary>
+    internal PdfIncrementalPageEditor AppendPageArtifact(
+        int pageIndex, PdfContentBounds destinationBounds, PdfContentStreamBuilder content)
+    {
+        if (!double.IsFinite(destinationBounds.Left)
+            || !double.IsFinite(destinationBounds.Bottom)
+            || !double.IsFinite(destinationBounds.Right)
+            || !double.IsFinite(destinationBounds.Top)
+            || destinationBounds.Width <= 0 || destinationBounds.Height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(destinationBounds));
+        return AppendTypedPageContent(pageIndex, destinationBounds.Width,
+            destinationBounds.Height, content, artifact: true, marker: null,
+            destinationBounds.Left, destinationBounds.Bottom);
+    }
+
     internal PdfIncrementalPageEditor AppendPageArtifact(
         int pageIndex, double width, double height, PdfContentStreamBuilder content,
         string marker)
