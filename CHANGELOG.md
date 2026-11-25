@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Security
 
+- Deleting pages, removing a link or comment, and editing text in place save the file as one clean revision, so the removed content can no longer be recovered from an earlier revision inside the file. A signed PDF keeps the old way of saving, which leaves its signatures valid.
 - A link in a PDF opens exactly the address KillerPDF checked, not the raw text the PDF stored.
 - A password given on the command line, like `--password`, prints a warning that points to `--secrets-stdin`, which keeps it out of the process list and shell history.
 
