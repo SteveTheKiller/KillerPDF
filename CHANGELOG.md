@@ -19,7 +19,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - An update must be signed with the publisher's own signing key, not just a certificate in the publisher's name from the same authority. An update installed for all users also stops when the certificate authority can't be reached to confirm the certificate hasn't been revoked; a per-user update still goes ahead.
 - An install, uninstall or update that asks for administrator rights stops if your environment sets a variable that makes .NET load extra code, such as `DOTNET_STARTUP_HOOKS`, `DOTNET_ROOT` or a profiler, and names the variable to remove. KillerPDF also ignores startup hooks altogether, and the headless administrator steps load system libraries only from Windows' own folder.
 - A silent install (`/silent`) checks the signature on the copy it writes into the install folder, not just on the file it was started from, so the file cannot be swapped between the check and the copy. An install for all users also requires the publisher's own certificate authority and signing key.
-- Mail merge refuses a spreadsheet whose workbook files carry a document type declaration, instead of quietly skipping it. Spreadsheets saved by Excel and other office apps never contain one.
 
 ### Fixed
 
