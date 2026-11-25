@@ -18,6 +18,35 @@ public static partial class PdfSignatureVerifier
         PdfCertificateRevocationStatus Revocation = PdfCertificateRevocationStatus.NotChecked,
         string? Error = null, string? AuthoritySubject = null, string? AuthorityCertificateSha256 = null);
 
+    // The usages Acrobat accepts on a signing certificate, plus the IETF document-signing purpose.
+    private static readonly HashSet<string> DocumentSigningUsages =
+    [
+        "2.5.29.37.0",                 // any extended key usage
+        "1.3.6.1.5.5.7.3.4",           // email protection
+        "1.3.6.1.5.5.7.3.3",           // code signing
+        "1.3.6.1.5.5.7.3.36",          // document signing
+        "1.3.6.1.4.1.311.10.3.12",     // Microsoft document signing
+        "1.2.840.113583.1.1.5",        // Adobe Authentic Documents Trust
+    ];
+
+    private const string SignerUsageError =
+        "The signing certificate's extended key usage does not allow document signing.";
+
+    /// <summary>A certificate without an extended key usage extension may be used for anything.</summary>
+    private static bool SignerUsageAllowsDocumentSigning(X509Certificate2 certificate)
+    {
+        var usage = certificate.Extensions.OfType<X509EnhancedKeyUsageExtension>().FirstOrDefault();
+        return usage is null || usage.EnhancedKeyUsages.Cast<Oid>()
+            .Any(oid => oid.Value is { } value && DocumentSigningUsages.Contains(value));
+    }
+
+    private static ChainEvaluation RequireSignerUsage(ChainEvaluation evaluation, X509Certificate2 signer) =>
+        SignerUsageAllowsDocumentSigning(signer) ? evaluation : evaluation with
+        {
+            Trust = PdfCertificateTrustStatus.Untrusted,
+            Errors = [.. evaluation.Errors, SignerUsageError]
+        };
+
     private static bool HasDefiniteTrustFailure(X509ChainStatusFlags flags) =>
         (flags & ~(X509ChainStatusFlags.NotTimeValid | X509ChainStatusFlags.RevocationStatusUnknown
             | X509ChainStatusFlags.OfflineRevocation)) != X509ChainStatusFlags.NoError;

@@ -113,6 +113,8 @@ public static partial class PdfSignatureVerifier
                         };
                     }
                 }
+                // A document timestamp is signed by a timestamp authority, which carries its own usage.
+                if (!signature.IsDocumentTimestamp) evaluation = RequireSignerUsage(evaluation, signer);
                 return new PdfSignatureVerificationResult
                 {
                     IsStructurallyValid = true,
