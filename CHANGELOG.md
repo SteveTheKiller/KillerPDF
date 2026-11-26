@@ -45,6 +45,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Changed
 - The title bar is 3px shorter, so the bottom of the wordmark's drip meets the toolbar. The toolbar also sits 2px closer to the page below it, and its buttons sit 1px from the window's left and right edges instead of 4.
 - The status text in the bottom-left corner lines up with the sidebar above it.
+- The sidebar rail's icons are evenly spaced. Document info no longer has a wider gap above it than the other icons.
 - The page number box in the sidebar has a dark field like the other text boxes, so a selected number is easy to see.
 - The sidebar starts 1px below the toolbar instead of 6px, and the gap around the document pane, a split view and the About card is 4px instead of 8.
 - The sidebar's resize line runs the full height of the sidebar, with faded ends like the comparison bar. The page list's scrollbar fills the gap beside the thumbnails with 1px to spare when it widens on hover.

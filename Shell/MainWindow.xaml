@@ -2274,8 +2274,7 @@
                                     ToolTip="{DynamicResource Str_Rail_Signatures}" IsEnabled="False" Click="SidebarSignaturesTab_Click"/>
                             <!-- Document tools: enabled with nothing open too, since Macros and Certificates need no document. -->
                             <Button x:Name="SidebarDocumentToolsTab" Style="{StaticResource RailPanelBtn}" Content="&#xE9D2;"
-                                    ToolTip="{DynamicResource Str_Rail_DocumentTools}" Click="SidebarDocumentToolsTab_Click"
-                                    Margin="0,0,0,14"/>
+                                    ToolTip="{DynamicResource Str_Rail_DocumentTools}" Click="SidebarDocumentToolsTab_Click"/>
                             <Button x:Name="DocInfoRailBtn" Click="DocInfo_Click"
                                     Cursor="Hand" FocusVisualStyle="{x:Null}"
                                     ToolTip="{DynamicResource Str_TT_DocInfo}"
