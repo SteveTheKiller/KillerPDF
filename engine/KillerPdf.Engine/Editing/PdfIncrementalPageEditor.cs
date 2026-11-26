@@ -11395,7 +11395,8 @@ public sealed class PdfIncrementalPageEditor
                 $"{description} is not a string or resolves to null.");
         string language = PdfUnicodeEncoding.DecodeTextString(
             text.Bytes.Span, description);
-        if (!PdfLanguageTag.IsValid(language))
+        // ISO 32000-1 14.9.2.1: an empty language identifier means the language is unknown.
+        if (language.Length != 0 && !PdfLanguageTag.IsValid(language))
             throw new InvalidOperationException(
                 $"{description} is not a valid BCP 47 language tag.");
     }
