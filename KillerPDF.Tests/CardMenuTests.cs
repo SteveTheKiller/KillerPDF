@@ -260,7 +260,7 @@ public sealed class CardMenuTests
         Assert.Equal(1, Count(ocr, "QuickStrip("));
         Assert.DoesNotContain("new Separator()", ocr);
         Assert.DoesNotContain("Str_Ocr_FormAware", ocr);
-        string language = Between(Read("Shell", "Ocr.cs"), "private MenuItem BuildLanguageMenu()", "private async void DownloadOcrLanguage(");
+        string language = Between(Read("Shell", "Ocr.cs"), "private MenuItem BuildLanguageMenu()", "private async Task<bool> DownloadOcrLanguage(");
         Assert.Contains("Content = Loc(\"Str_Ocr_FormAware\")", language);
         Assert.Contains("App.SetSetting(\"OcrFormAware\"", language);
         // Steve 2026-11-26: the list is the locale picker's two-column panel with flags, as checkboxes.
@@ -268,6 +268,10 @@ public sealed class CardMenuTests
         Assert.Contains("FindResource(\"ThemeCheck\")", language);
         Assert.Contains("FindResource(\"PanelMenuItem\")", language);
         Assert.DoesNotContain("IsCheckable = true", language);
+        // Steve 2026-11-26: a language downloaded from the list checks its row in the open card.
+        Assert.Contains("installed = await DownloadOcrLanguage(code, name);", language);
+        Assert.Contains("row.IsChecked = installed;", language);
+        Assert.DoesNotContain("CloseCard()", language);
     }
 
     [Fact]

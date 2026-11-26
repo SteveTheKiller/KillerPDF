@@ -105,14 +105,6 @@ namespace KillerPDF.Shell
             // A row that is not installed yet shows only its name: clicking it downloads the language,
             // which needs no "(download)" label, and the label made the columns far wider (Steve 2026-11-26).
 
-            // Closes the whole OCR card, for a row that starts a download.
-            void CloseCard()
-            {
-                root.IsSubmenuOpen = false;
-                for (DependencyObject? d = root; d != null; d = LogicalTreeHelper.GetParent(d) ?? (d is Visual ? VisualTreeHelper.GetParent(d) : null))
-                    if (d is ContextMenu card) { card.IsOpen = false; return; }
-            }
-
             // Margins as in the locale picker: each hover row 8px from the card's outer edge. One grid holds
             // both columns and, under a rule, the two settings side by side, one under each column. The two
             // columns share one width (at least the locale picker's 226) and grow to the longest
@@ -186,25 +178,30 @@ namespace KillerPDF.Shell
                 grid.Children.Add(codeBlock);
 
                 var row = new CheckBox { Content = grid, Style = checkStyle, IsChecked = installed && selected.Contains(code) };
-                if (installed)
+                row.Click += async (_, _) =>
                 {
-                    row.Click += (_, _) =>
+                    if (!installed)
                     {
-                        var sel = GetSelectedOcrLanguages();
-                        if (row.IsChecked == true) { if (!sel.Contains(code)) sel.Add(code); }
-                        else
-                        {
-                            if (sel.Count <= 1) { row.IsChecked = true; return; }   // keep at least one selected
-                            sel.Remove(code);
-                        }
-                        SetSelectedOcrLanguages(sel);
-                        SetStatus(string.Format(Loc("Str_St_OcrLanguage"), string.Join("+", sel)));
-                    };
-                }
-                else
-                {
-                    row.Click += (_, _) => { row.IsChecked = false; CloseCard(); DownloadOcrLanguage(code, name); };
-                }
+                        // A row that is not installed downloads its language with the card still open, then
+                        // checks itself once the file lands, so the list shows the result (Steve 2026-11-26).
+                        // It is disabled meanwhile so a second click can't start a second download.
+                        row.IsChecked = false;
+                        row.IsEnabled = false;
+                        installed = await DownloadOcrLanguage(code, name);
+                        row.IsEnabled = true;
+                        row.IsChecked = installed;
+                        return;
+                    }
+                    var sel = GetSelectedOcrLanguages();
+                    if (row.IsChecked == true) { if (!sel.Contains(code)) sel.Add(code); }
+                    else
+                    {
+                        if (sel.Count <= 1) { row.IsChecked = true; return; }   // keep at least one selected
+                        sel.Remove(code);
+                    }
+                    SetSelectedOcrLanguages(sel);
+                    SetStatus(string.Format(Loc("Str_St_OcrLanguage"), string.Join("+", sel)));
+                };
                 (index++ < half ? left : right).Children.Add(row);
             }
 
@@ -260,7 +257,8 @@ namespace KillerPDF.Shell
         }
 
         // Downloads a single language's traineddata (standard or HQ, per the toggle) and selects it.
-        private async void DownloadOcrLanguage(string code, string name)
+        // True when the language is installed and selected, so the open list can check its row.
+        private async Task<bool> DownloadOcrLanguage(string code, string name)
         {
             var ct = BeginCancellableOp(Loc("Str_Op_LangDownload"));
             var busy = ShowBusyOverlay(string.Format(Loc("Str_Busy_LangData"), name));
@@ -278,6 +276,7 @@ namespace KillerPDF.Shell
                 if (!sel.Contains(code)) { sel.Add(code); SetSelectedOcrLanguages(sel); }
                 HideBusyOverlay(busy);
                 SetStatus(string.Format(Loc("Str_St_LangInstalled"), name, string.Join("+", GetSelectedOcrLanguages())));
+                return true;
             }
             catch (OperationCanceledException)
             {
@@ -298,6 +297,7 @@ namespace KillerPDF.Shell
             {
                 EndCancellableOp(ct);
             }
+            return false;
         }
 
         // Re-downloads every currently-selected language in high quality (tessdata_best), replacing the
