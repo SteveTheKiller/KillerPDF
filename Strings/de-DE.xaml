@@ -1278,7 +1278,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_MergeFiles_DropHint">Legen Sie PDF-Dateien oder Ordner hier ab oder verwenden Sie „Dateien hinzufügen“ und „Ordner hinzufügen“. Ziehen Sie eine Datei, um die Reihenfolge zu ändern.</sys:String>
     <sys:String x:Key="Str_MergeFiles_ShowPages">Seiten anordnen</sys:String>
     <sys:String x:Key="Str_MergeFiles_ShowFiles">Dateien anzeigen</sys:String>
-    <sys:String x:Key="Str_MergeFiles_PageHint">Ziehen Sie Seiten in die gewünschte Reihenfolge oder wählen Sie sie aus und nutzen Sie die Pfeilschaltflächen. Entfernen nimmt eine Seite heraus.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Ziehen Sie Seiten in die gewünschte Reihenfolge oder wählen Sie sie aus und nutzen Sie die Pfeilschaltflächen. Entf nimmt eine Seite heraus.</sys:String>
     <sys:String x:Key="Str_MergeFiles_PageTile">{0}, Seite {1}</sys:String>
     <sys:String x:Key="Str_MergeFiles_WholeFile">Alle Seiten</sys:String>
     <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Alle Seiten wurden herausgenommen, daher gibt es nichts zusammenzuführen.</sys:String>
@@ -2066,7 +2066,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Watch_Empty">Noch keine Dateien.</sys:String>
     <sys:String x:Key="Str_Watch_Limits">PDFs bis 64 MB. Identische Dateien werden pro Aufgabenkonfiguration einmal verarbeitet. Dateien mit Kennwörtern oder Schritte mit erforderlichen Eingaben müssen manuell ausgeführt werden.</sys:String>
     <sys:String x:Key="Str_Watch_QueueLimit">Die gespeicherte Auftragsliste fasst bis zu 2.000 Dateien.</sys:String>
-    <sys:String x:Key="Str_Watch_Changed">Speichern und starten verwendet das ausgewählte Makro in seinem aktuellen Zustand. Spätere Makroänderungen ändern diese Aufgabe nicht. Änderungen an Ordnern, des Filters oder des Makros beginnen eine neue Auftragsliste.</sys:String>
+    <sys:String x:Key="Str_Watch_Changed">Speichern und starten verwendet das ausgewählte Makro in seinem aktuellen Zustand. Spätere Makroänderungen ändern diese Aufgabe nicht. Änderungen an den Ordnern, dem Filter oder dem Makro beginnen eine neue Auftragsliste.</sys:String>
     <sys:String x:Key="Str_Watch_InvalidSetup">Wählen Sie zwei unterschiedliche Ordner, einen PDF-Filter und ein unterstütztes gespeichertes Makro.</sys:String>
     <sys:String x:Key="Str_Watch_Unavailable">Ein Ordner oder die gespeicherte Auftragsliste ist nicht verfügbar. Prüfen Sie den Zugriff und setzen Sie dann fort.</sys:String>
     <sys:String x:Key="Str_Watch_Unsupported">Diese Datei oder dieses Makro muss manuell ausgeführt werden.</sys:String>
@@ -2275,7 +2275,7 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_CM_NoProfile">Kein Profil ausgewählt</sys:String>
     <sys:String x:Key="Str_CM_UnavailableProfile">Profil nicht verfügbar</sys:String>
     <sys:String x:Key="Str_CM_ProfileUnavailable">Das ausgewählte Profil ist nicht verfügbar. Die Anzeige verwendet normale Farben.</sys:String>
-    <sys:String x:Key="Str_CM_Intent">Darstellungsart</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Rendering-Intent</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Perzeptiv</sys:String>
     <sys:String x:Key="Str_CM_Relative">Relativ farbmetrisch</sys:String>
     <sys:String x:Key="Str_CM_Saturation">Sättigung</sys:String>
@@ -2424,7 +2424,7 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_Rep_Sig_Reason">Grund: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_Location">Ort: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_Contact">Kontakt: {0}</sys:String>
-    <sys:String x:Key="Str_Rep_Sig_RequestedRevocation">Angeforderter Widerrufsmodus: {0}</sys:String>
+    <sys:String x:Key="Str_Rep_Sig_RequestedRevocation">Angeforderter Sperrprüfungsmodus: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_RequestedTime">Angeforderter Prüfzeitpunkt: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_EvaluatedTime">Ausgewerteter Prüfzeitpunkt: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_Timestamp">Signaturzeitstempel: {0}</sys:String>
