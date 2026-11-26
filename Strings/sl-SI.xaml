@@ -1373,8 +1373,6 @@
     <sys:String x:Key="Str_Busy_OpeningProtected">Odpiranje zaščitenega PDF-ja...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Vsi izbrani jeziki že uporabljajo visoko kakovost</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Modeli visoke kakovosti bodo uporabljeni pri naslednjem izvajanju OCR</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(prenos)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(prenos HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved">Iskalni PDF je shranjen:&#10;{0}&#10;&#10;Obdelane strani: {1}, prepoznane besede: {2}.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved">Pretvorjeni PDF je shranjen:&#10;{0}&#10;&#10;Pretvorjene optično prebrane strani: {1}, besede, pretvorjene v besedilo: {2}. Besede, ki se niso dovolj ujemale s sliko ({3}), ostanejo na sliki in iskalne.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Ta dokument nima optično prebranih strani za pretvorbo, zato ni bilo nič shranjeno. Strani, ki že vsebujejo besedilo ali risbe, ostanejo nespremenjene.</sys:String>

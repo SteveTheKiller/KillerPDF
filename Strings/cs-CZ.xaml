@@ -1462,8 +1462,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Busy_OpeningProtected">Otevírání chráněného PDF...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Všechny vybrané jazyky jsou již ve vysoké kvalitě</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Modely vysoké kvality se použijí při příštím spuštění OCR</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(stáhnout)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(stáhnout HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Prohledávatelné PDF uloženo:&#10;{0}&#10;&#10;{1} stránek zpracováno, {2} slov rozpoznáno.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">Převedené PDF uloženo:&#10;{0}&#10;&#10;Převedeno naskenovaných stránek: {1}, slov převedených na text: {2}. Slova, která přesně neodpovídala skenu ({3}), zůstávají naskenovaná a lze je prohledávat.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Tento dokument nemá žádné naskenované stránky k převodu, proto nebylo nic uloženo. Stránky, které už obsahují text nebo kresby, zůstávají beze změny.</sys:String>

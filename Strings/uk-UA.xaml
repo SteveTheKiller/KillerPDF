@@ -1476,8 +1476,6 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Busy_OpeningProtected">Відкриття захищеного PDF...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Усі вибрані мови вже високої якості</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Моделі високої якості використовуватимуться під час наступного запуску OCR</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(завантажити)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(завантажити HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">PDF з пошуком збережено:&#10;{0}&#10;&#10;Оброблено сторінок: {1}, розпізнано слів: {2}.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">Перетворений PDF збережено:&#10;{0}&#10;&#10;Перетворено відсканованих сторінок: {1}, слів стало текстом: {2}. Слова, що недостатньо точно збіглися зі сканом ({3}), залишаються відсканованими, і за ними можна шукати.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">У цьому документі немає відсканованих сторінок для перетворення, тому нічого не збережено. Сторінки, на яких уже є текст або малюнки, залишаються без змін.</sys:String>

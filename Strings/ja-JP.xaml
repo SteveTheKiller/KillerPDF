@@ -1476,8 +1476,6 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Busy_OpeningProtected">保護された PDF を開いています...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">選択したすべての言語はすでに高品質です</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">高品質モデルは次回の OCR 実行時に使用されます</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(ダウンロード)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(HQ ダウンロード)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">検索可能な PDF を保存しました：&#10;{0}&#10;&#10;{1} ページを処理、{2} 語を認識。</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">変換した PDF を保存しました：&#10;{0}&#10;&#10;{1} ページのスキャンを変換し、{2} 語をテキストにしました。スキャンと十分に一致しなかった {3} 語はスキャンのまま残り、検索できます。</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">この文書には変換できるスキャンページがないため、何も保存されませんでした。テキストや図形がすでにあるページはそのまま残ります。</sys:String>

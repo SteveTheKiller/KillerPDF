@@ -1457,8 +1457,6 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Busy_OpeningProtected">Korumalı PDF açılıyor...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Seçili tüm diller zaten yüksek kalitede</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Yüksek kaliteli modeller bir sonraki OCR çalıştırmasında kullanılacak</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(indir)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(HQ indir)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Aranabilir PDF kaydedildi:&#10;{0}&#10;&#10;{1} sayfa işlendi, {2} sözcük tanındı.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">Dönüştürülen PDF kaydedildi:&#10;{0}&#10;&#10;{1} taranmış sayfa dönüştürüldü, {2} sözcük artık metin. Taramayla yeterince eşleşmeyen {3} sözcük taranmış hâliyle kalır ve aranabilir.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Bu belgede dönüştürülecek taranmış sayfa yok, bu yüzden hiçbir şey kaydedilmedi. Zaten metin veya çizim içeren sayfalar olduğu gibi bırakılır.</sys:String>

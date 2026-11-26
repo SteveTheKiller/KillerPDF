@@ -1476,8 +1476,6 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Busy_OpeningProtected">Đang mở PDF được bảo vệ...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Tất cả các ngôn ngữ đã chọn đều đã ở chất lượng cao</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Các mô hình chất lượng cao sẽ được sử dụng vào lần chạy OCR tiếp theo</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(tải xuống)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(tải xuống chất lượng cao)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Đã lưu PDF có thể tìm kiếm:&#10;{0}&#10;&#10;Đã xử lý {1} trang, nhận dạng được {2} từ.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">Đã lưu PDF đã chuyển đổi:&#10;{0}&#10;&#10;Đã chuyển {1} trang quét, {2} từ giờ là văn bản. {3} từ không khớp sát với bản quét vẫn giữ dạng quét và vẫn tìm kiếm được.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Tài liệu này không có trang quét nào để chuyển đổi nên không có gì được lưu. Các trang đã có văn bản hoặc hình vẽ được giữ nguyên.</sys:String>

@@ -1483,8 +1483,6 @@ Vill du skala dem till en storlek som stöds? Sidorna behåller sitt utseende oc
     <sys:String x:Key="Str_Busy_OpeningProtected">Öppnar skyddad PDF...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Alla valda språk har redan hög kvalitet</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Modeller med hög kvalitet används nästa gång du kör OCR</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(ladda ned)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(ladda ned HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Sökbar PDF sparad:&#10;{0}&#10;&#10;{1} sidor bearbetade, {2} ord igenkända.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">Konverterad PDF sparad:&#10;{0}&#10;&#10;{1} skannade sidor konverterade, {2} ord är nu text. {3} ord som inte stämde väl överens med skanningen förblir skannade och är fortfarande sökbara.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Det här dokumentet har inga skannade sidor att konvertera, så inget sparades. Sidor som redan har text eller ritningar lämnas som de är.</sys:String>

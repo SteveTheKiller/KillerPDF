@@ -1476,8 +1476,6 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Busy_OpeningProtected">Apertura PDF protetto...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Tutte le lingue selezionate sono già in alta qualità</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Alla successiva esecuzione dell'OCR verranno usati modelli in alta qualità</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(download)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(download HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">PDF ricercabile salvato:&#10;{0}&#10;&#10;{1} pagine elaborate, {2} parole riconosciute.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">PDF convertito salvato:&#10;{0}&#10;&#10;{1} pagine scansionate convertite, {2} parole ora sono testo. {3} parole che non corrispondevano bene alla scansione restano scansionate e ricercabili.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Questo documento non ha pagine scansionate da convertire, quindi non è stato salvato nulla. Le pagine che contengono già testo o disegni restano invariate.</sys:String>

@@ -130,12 +130,16 @@ public sealed class ToolOptionsDockFloatingTests
         dock.SlideTo(0);
         Relayout(dock, 600);
         Assert.Equal(new CornerRadius(0, 0, r, 0), bar.CornerRadius);
+        Assert.Equal(new Thickness(0, 0, 1, 1), bar.BorderThickness);
+        // Flush right, the pane's border is the bar's right edge too: its own would double it to 2px.
         dock.SlideTo(5000);
         Relayout(dock, 600);
         Assert.Equal(new CornerRadius(0, 0, 0, r), bar.CornerRadius);
+        Assert.Equal(new Thickness(1, 0, 0, 1), bar.BorderThickness);
         dock.SlideTo(100);
         Relayout(dock, 600);
         Assert.Equal(new CornerRadius(0, 0, r, r), bar.CornerRadius);
+        Assert.Equal(new Thickness(1, 0, 1, 1), bar.BorderThickness);
 
         dock.SlideTo(0);
         dock.ToggleMinimized();
@@ -143,6 +147,7 @@ public sealed class ToolOptionsDockFloatingTests
         var strip = Assert.IsType<Border>(dock.MinimizedStrip);
         double m = ToolOptionsDock.MinimizedCornerRadius, h = ToolOptionsDock.MinimizedHeight;
         Assert.Equal(new CornerRadius(0, 0, m, 0), strip.CornerRadius);
+        Assert.Equal(new Thickness(0, 0, 1, 1), strip.BorderThickness);
         Assert.True(bar.Clip!.FillContains(new Point(0.3, h - 0.3)));
         Assert.False(bar.Clip.FillContains(new Point(199.7, h - 0.3)));
     });

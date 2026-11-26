@@ -1483,8 +1483,6 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Busy_OpeningProtected">Opening protected PDF...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">All selected languages are already high quality</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">High quality models will be used the next time you run OCR</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(download)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(download HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Saved searchable PDF:&#10;{0}&#10;&#10;{1} pages processed, {2} words recognized.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">Saved converted PDF:&#10;{0}&#10;&#10;{1} scanned pages converted, {2} words are now text. {3} words that did not closely match the scan stay as scanned and remain searchable.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">This document has no scanned pages to convert, so nothing was saved. Pages that already have text or drawings are left as they are.</sys:String>

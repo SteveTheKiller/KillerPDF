@@ -594,8 +594,8 @@ namespace KillerPDF.Controls
                 if (_bar is not null)
                 {
                     double left = FloatingLeft(final.Width), width = BarWidth(final.Width);
-                    // Slid flush against the pane's left edge, the bar drops its own left border so the pane's
-                    // border is its edge, as the right edge already reads when the bar sits against it.
+                    // Slid flush against either side of the pane, the bar drops its own border on that side so
+                    // the pane's border is its edge; kept, the two lines read as one 2px edge.
                     // A top corner under the active tab rounds off; under an inactive tab it meets the
                     // pane's border square, and on the pane's own edge the pane's border is the bar's side.
                     double right = left + width;
@@ -604,7 +604,7 @@ namespace KillerPDF.Controls
                     // the pane's edge like a docked one instead of curling away from it.
                     if (_plainChrome is { Bar: var chromed } && ReferenceEquals(chromed, _bar))
                     {
-                        var sides = new Thickness(flushLeft ? 0 : 1, 0, 1, 1);
+                        var sides = new Thickness(flushLeft ? 0 : 1, 0, flushRight ? 0 : 1, 1);
                         if (chromed.BorderThickness != sides) chromed.BorderThickness = sides;
                         var corners = new CornerRadius(0, 0, flushRight ? 0 : _cornerRadius, flushLeft ? 0 : _cornerRadius);
                         if (chromed.CornerRadius != corners) chromed.CornerRadius = corners;
@@ -621,7 +621,7 @@ namespace KillerPDF.Controls
                         if (_bar is Border source)
                         {
                             _strip!.BorderBrush = source.BorderBrush;
-                            _strip.BorderThickness = new Thickness(1, 0, 1, 1);
+                            _strip.BorderThickness = new Thickness(flushLeft ? 0 : 1, 0, flushRight ? 0 : 1, 1);
                             _strip.CornerRadius = new CornerRadius(0, 0, flushRight ? 0 : StripRadius, flushLeft ? 0 : StripRadius);
                         }
                         _strip!.Clip = cut;

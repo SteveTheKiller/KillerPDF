@@ -1461,8 +1461,6 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Busy_OpeningProtected">正在打开受保护的 PDF...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">所有选定的语言都已是高质量</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">下次运行 OCR 时将使用高质量模型</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(下载)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(下载 HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">可搜索 PDF 已保存：&#10;{0}&#10;&#10;已处理 {1} 页，识别 {2} 个单词。</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">转换后的 PDF 已保存：&#10;{0}&#10;&#10;已转换 {1} 个扫描页，{2} 个单词已成为文本。与扫描不够吻合的 {3} 个单词保持扫描原样，仍可搜索。</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">此文档没有可转换的扫描页，因此未保存任何内容。已有文本或图形的页面保持不变。</sys:String>

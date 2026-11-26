@@ -2371,7 +2371,11 @@
                                             <ControlTemplate TargetType="ContextMenu">
                                                 <Border Style="{StaticResource FlyoutCard}">
                                                     <Grid>
-                                                        <ItemsPresenter/>
+                                                        <!-- A window too short for the menu caps its height (FlyoutPlacement.FitWindow), and
+                                                             the rest scrolls; a bare ItemsPresenter cut the rows off instead. -->
+                                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
+                                                            <ItemsPresenter/>
+                                                        </ScrollViewer>
                                                         <Border Style="{StaticResource FlyoutGrain}"/>
                                                         <Border Panel.ZIndex="1" IsHitTestVisible="False" CornerRadius="{DynamicResource FlyoutCornerRadius}" BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
                                                         <Border Panel.ZIndex="1" IsHitTestVisible="False" CornerRadius="{DynamicResource FlyoutCornerRadius}" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource BevelDarkThickness}"/>
@@ -2417,7 +2421,10 @@
                                             <ControlTemplate TargetType="ContextMenu">
                                                 <Border Style="{StaticResource FlyoutCard}">
                                                     <Grid>
-                                                        <ItemsPresenter/>
+                                                        <!-- Scrolls when FlyoutPlacement.FitWindow caps it in a short window, like LangMenu. -->
+                                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
+                                                            <ItemsPresenter/>
+                                                        </ScrollViewer>
                                                         <Border Style="{StaticResource FlyoutGrain}"/>
                                                         <Border Panel.ZIndex="1" IsHitTestVisible="False" CornerRadius="{DynamicResource FlyoutCornerRadius}" BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
                                                         <Border Panel.ZIndex="1" IsHitTestVisible="False" CornerRadius="{DynamicResource FlyoutCornerRadius}" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource BevelDarkThickness}"/>
@@ -2717,7 +2724,9 @@
                 </Border>
                 <Popup x:Name="ComparisonDetailsPopup" PlacementTarget="{Binding ElementName=ComparisonResultButton}"
                        Placement="Top" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
-                    <Border Width="430" MaxHeight="360" Margin="8" Padding="12"
+                    <!-- No right padding: the scrollbar runs against the card's right edge, and the text keeps
+                         its 12px from the scrollbar instead. -->
+                    <Border Width="430" MaxHeight="360" Margin="8" Padding="12,12,0,12"
                             Background="{DynamicResource MenuBackgroundBrush}" BorderBrush="{DynamicResource PrimaryBrush}"
                             BorderThickness="1" CornerRadius="{DynamicResource FlyoutCornerRadius}">
                         <Border.Effect>
@@ -2727,9 +2736,9 @@
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <TextBlock x:Name="ComparisonDetailsText" FontFamily="{DynamicResource MenuFontFamily}"
                                            FontSize="{DynamicResource MenuFontSize}" Foreground="{DynamicResource TextBrush}"
-                                           TextWrapping="Wrap"/>
+                                           TextWrapping="Wrap" Margin="0,0,12,0"/>
                             </ScrollViewer>
-                            <Border Margin="-12" CornerRadius="{DynamicResource FlyoutCornerRadius}"
+                            <Border Margin="-12,-12,0,-12" CornerRadius="{DynamicResource FlyoutCornerRadius}"
                                     IsHitTestVisible="False" Background="{StaticResource GrainBrushShared}"
                                     Opacity="{DynamicResource GrainOpacity}"/>
                         </Grid>

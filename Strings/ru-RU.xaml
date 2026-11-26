@@ -1476,8 +1476,6 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Busy_OpeningProtected">Открытие защищенного PDF...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Все выбранные языки уже имеют высокое качество</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">При следующем запуске распознавания текста будут использованы высококачественные модели</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(загрузка)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(загрузка HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Сохранен PDF-файл с возможностью поиска:
 {0}
 

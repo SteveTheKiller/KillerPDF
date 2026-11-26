@@ -1371,8 +1371,6 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Busy_OpeningProtected">Қорғалған PDF ашылуда...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Таңдалған барлық тілдер әлдеқашан жоғары сапада</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Жоғары сапалы үлгілер келесі OCR іске қосқанда пайдаланылады</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(жүктеу)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(HQ жүктеу)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Ізделетін PDF сақталды:&#10;{0}&#10;&#10;{1} бет өңделді, {2} сөз танылды.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">Түрлендірілген PDF сақталды:&#10;{0}&#10;&#10;{1} сканерленген бет түрлендірілді, {2} сөз енді мәтін. Сканмен дәл сәйкес келмеген {3} сөз сканерленген күйінде қалады және оларды іздеуге болады.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Бұл құжатта түрлендіретін сканерленген бет жоқ, сондықтан ештеңе сақталмады. Мәтіні немесе суреттері бар беттер өзгеріссіз қалады.</sys:String>

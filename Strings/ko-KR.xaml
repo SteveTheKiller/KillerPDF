@@ -1483,8 +1483,6 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_Busy_OpeningProtected">보호된 PDF 여는 중...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">선택한 모든 언어가 이미 고품질입니다</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">다음에 OCR을 실행할 때 고품질 모델이 사용됩니다</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(다운로드)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(HQ 다운로드)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">검색 가능한 PDF를 저장했습니다:&#10;{0}&#10;&#10;{1}페이지를 처리했고 단어 {2}개를 인식했습니다.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">변환된 PDF를 저장했습니다:&#10;{0}&#10;&#10;스캔 페이지 {1}개를 변환했고 단어 {2}개가 이제 텍스트입니다. 스캔과 거의 일치하지 않는 단어 {3}개는 스캔 상태로 남아 있으며 계속 검색할 수 있습니다.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">이 문서에는 변환할 스캔 페이지가 없으므로 아무것도 저장되지 않았습니다. 이미 텍스트나 그림이 있는 페이지는 그대로 유지됩니다.</sys:String>

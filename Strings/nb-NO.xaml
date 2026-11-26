@@ -1476,8 +1476,6 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Busy_OpeningProtected">Åpner beskyttet PDF...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Alle valgte språk har allerede høy kvalitet</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Modeller med høy kvalitet brukes neste gang du kjører OCR</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(last ned)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(last ned, høy kvalitet)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Lagret søkbar PDF:&#10;{0}&#10;&#10;{1} sider behandlet, {2} ord gjenkjent.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">Lagret konvertert PDF:&#10;{0}&#10;&#10;{1} skannede sider konvertert, {2} ord er nå tekst. {3} ord som ikke passet godt nok til skanningen, forblir skannet og er fortsatt søkbare.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Dette dokumentet har ingen skannede sider å konvertere, så ingenting ble lagret. Sider som allerede har tekst eller tegninger, blir latt være som de er.</sys:String>

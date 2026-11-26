@@ -1463,8 +1463,6 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Busy_OpeningProtected">Geschützte PDF wird geöffnet...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Alle ausgewählten Sprachen sind bereits in hoher Qualität</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Hochwertige Modelle werden beim nächsten OCR-Lauf verwendet</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(herunterladen)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(HQ herunterladen)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Durchsuchbare PDF gespeichert:&#10;{0}&#10;&#10;{1} Seiten verarbeitet, {2} Wörter erkannt.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">Umgewandeltes PDF gespeichert:
 {0}

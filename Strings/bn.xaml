@@ -1457,8 +1457,6 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Busy_OpeningProtected">সুরক্ষিত PDF খোলা হচ্ছে...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">নির্বাচিত সব ভাষা ইতিমধ্যে উচ্চমানের</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">পরের বার OCR চালালে উচ্চমানের মডেল ব্যবহার হবে</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(ডাউনলোড)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(HQ ডাউনলোড)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">অনুসন্ধানযোগ্য PDF সংরক্ষিত:&#10;{0}&#10;&#10;{1} পাতা প্রক্রিয়া হয়েছে, {2}টি শব্দ শনাক্ত।</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">রূপান্তরিত PDF সংরক্ষিত:&#10;{0}&#10;&#10;{1}টি স্ক্যান করা পাতা রূপান্তরিত হয়েছে, {2}টি শব্দ এখন লেখা। স্ক্যানের সাথে ঠিকমতো না মেলা {3}টি শব্দ স্ক্যান করা অবস্থায় থাকে এবং অনুসন্ধানযোগ্য থাকে।</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">এই নথিতে রূপান্তর করার মতো কোনো স্ক্যান করা পাতা নেই, তাই কিছু সংরক্ষণ করা হয়নি। যেসব পাতায় আগে থেকেই লেখা বা আঁকা আছে সেগুলো যেমন আছে তেমন থাকে।</sys:String>

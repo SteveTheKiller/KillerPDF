@@ -1476,8 +1476,6 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Busy_OpeningProtected">Abrindo PDF protegido...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Todos os idiomas selecionados já estão em alta qualidade</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Os modelos de alta qualidade serão usados na próxima vez que você executar o OCR</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(download)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(download HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">PDF pesquisável salvo:&#10;{0}&#10;&#10;{1} páginas processadas, {2} palavras reconhecidas.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">PDF convertido salvo:&#10;{0}&#10;&#10;{1} páginas digitalizadas convertidas, {2} palavras agora são texto. {3} palavras que não corresponderam bem à digitalização continuam digitalizadas e pesquisáveis.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Este documento não tem páginas digitalizadas para converter, então nada foi salvo. Páginas que já têm texto ou desenhos ficam como estão.</sys:String>

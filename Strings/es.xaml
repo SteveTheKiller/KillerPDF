@@ -1457,8 +1457,6 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Busy_OpeningProtected">Abriendo PDF protegido...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Todos los idiomas seleccionados ya son de alta calidad</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Los modelos de alta calidad se usarán la próxima vez que ejecute OCR</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(descargar)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(descargar HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">PDF con texto buscable guardado:&#10;{0}&#10;&#10;{1} páginas procesadas, {2} palabras reconocidas.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">PDF convertido guardado:&#10;{0}&#10;&#10;{1} páginas escaneadas convertidas, {2} palabras ahora son texto. {3} palabras que no coincidían bien con el escaneo se quedan escaneadas y siguen siendo buscables.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Este documento no tiene páginas escaneadas que convertir, así que no se guardó nada. Las páginas que ya tienen texto o dibujos se dejan como están.</sys:String>

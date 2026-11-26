@@ -1476,8 +1476,6 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Busy_OpeningProtected">Ouverture du PDF protégé...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Toutes les langues sélectionnées sont déjà en haute qualité</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Les modèles de haute qualité seront utilisés à la prochaine exécution de l'OCR</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(télécharger)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(télécharger HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">PDF interrogeable enregistré :&#10;{0}&#10;&#10;{1} pages traitées, {2} mots reconnus.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">PDF converti enregistré :&#10;{0}&#10;&#10;{1} pages numérisées converties, {2} mots sont maintenant du texte. {3} mots qui ne correspondaient pas assez au scan restent numérisés et interrogeables.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Ce document n'a aucune page numérisée à convertir, rien n'a donc été enregistré. Les pages qui contiennent déjà du texte ou des dessins restent telles quelles.</sys:String>

@@ -102,10 +102,8 @@ namespace KillerPDF.Shell
             };
             // The list copies the kit's locale picker (Controls/LanguageMenu.cs, Steve 2026-11-26): two
             // columns of flag, name and code rows in one panel, so all 22 languages fit a short window.
-            // Not-yet-installed rows keep their name blocks so the HQ toggle can refresh their
-            // "(download)" suffixes in place while the menu stays open.
-            var downloadRows = new List<(TextBlock label, string name)>();
-            string Suffix(bool hq) => Loc(hq ? "Str_Ocr_SuffixDownloadHq" : "Str_Ocr_SuffixDownload");
+            // A row that is not installed yet shows only its name: clicking it downloads the language,
+            // which needs no "(download)" label, and the label made the columns far wider (Steve 2026-11-26).
 
             // Closes the whole OCR card, for a row that starts a download.
             void CloseCard()
@@ -118,7 +116,7 @@ namespace KillerPDF.Shell
             // Margins as in the locale picker: each hover row 8px from the card's outer edge. One grid holds
             // both columns and, under a rule, the two settings side by side, one under each column. The two
             // columns share one width (at least the locale picker's 226) and grow to the longest
-            // "Name  (download)" row, so no name is trimmed (Steve 2026-11-25).
+            // row, so no name is trimmed (Steve 2026-11-25).
             var columns = new Grid();
             Grid.SetIsSharedSizeScope(columns, true);
             columns.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, SharedSizeGroup = "OcrCol", MinWidth = 226 });
@@ -172,7 +170,7 @@ namespace KillerPDF.Shell
                 }
                 var label = new TextBlock
                 {
-                    Text = installed ? name : $"{name}  {Suffix(hqPref)}",
+                    Text = name,
                     VerticalAlignment = VerticalAlignment.Center,
                 };
                 Grid.SetColumn(label, 1);
@@ -205,7 +203,6 @@ namespace KillerPDF.Shell
                 }
                 else
                 {
-                    downloadRows.Add((label, name));
                     row.Click += (_, _) => { row.IsChecked = false; CloseCard(); DownloadOcrLanguage(code, name); };
                 }
                 (index++ < half ? left : right).Children.Add(row);
@@ -226,15 +223,13 @@ namespace KillerPDF.Shell
             columns.Children.Add(rule);
             // High-quality toggle. Enabling it upgrades the languages already selected and makes future
             // downloads pull the "best" models too. It flips the persisted preference directly so the
-            // setting can't drift from the visual state, and the "(download)" suffixes refresh in place.
+            // setting can't drift from the visual state.
             var hq = new CheckBox { Content = Loc("Str_Ocr_HighQuality"), Style = checkStyle, IsChecked = hqPref };
             hq.Click += (_, _) =>
             {
                 bool now = !OcrHighQuality;
                 SetOcrHighQuality(now);
                 hq.IsChecked = now;
-                foreach (var (label, name) in downloadRows)
-                    label.Text = $"{name}  {Suffix(now)}";
                 if (now) RedownloadSelectedHighQuality();
             };
             Grid.SetRow(hq, 2);

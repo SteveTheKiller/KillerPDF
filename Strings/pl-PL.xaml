@@ -1465,8 +1465,6 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Busy_OpeningProtected">Otwieranie chronionego PDF...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Wszystkie wybrane języki są już w wysokiej jakości</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Modele wysokiej jakości zostaną użyte przy następnym uruchomieniu OCR</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(pobierz)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(pobierz HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Zapisano przeszukiwalny PDF:&#10;{0}&#10;&#10;Przetworzono stron: {1}, rozpoznano słów: {2}.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">Zapisano przekonwertowany PDF:&#10;{0}&#10;&#10;Przekonwertowane zeskanowane strony: {1}, słowa zamienione na tekst: {2}. Słowa, które nie pasowały dokładnie do skanu ({3}), pozostają zeskanowane i można je wyszukiwać.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Ten dokument nie ma zeskanowanych stron do konwersji, więc nic nie zapisano. Strony, które mają już tekst lub rysunki, pozostają bez zmian.</sys:String>

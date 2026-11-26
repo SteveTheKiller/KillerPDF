@@ -1464,8 +1464,6 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Busy_OpeningProtected">Védett PDF megnyitása...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Minden kiválasztott nyelv már kiváló minőségű</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">A kiváló minőségű modellek a következő OCR-futtatáskor lesznek használva</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(letöltés)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(HQ letöltés)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Kereshető PDF mentve:&#10;{0}&#10;&#10;{1} oldal feldolgozva, {2} szó felismerve.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextSaved" xml:space="preserve">Átalakított PDF mentve:&#10;{0}&#10;&#10;{1} szkennelt oldal átalakítva, {2} szó lett szöveg. {3} szó, amely nem egyezett pontosan a szkenneléssel, szkennelt marad és kereshető.</sys:String>
     <sys:String x:Key="Str_Dlg_ScanTextNone">Ebben a dokumentumban nincs átalakítható szkennelt oldal, ezért semmi sem lett mentve. A már szöveget vagy rajzot tartalmazó oldalak változatlanok maradnak.</sys:String>
