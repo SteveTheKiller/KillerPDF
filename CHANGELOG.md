@@ -18,6 +18,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- The KillerPDF wordmark in confirmation dialogs draws "PDF" in its own lettering again, instead of a plain system font sitting too high (#490).
+- A confirmation that names a file, or is in a language the heading lettering can't draw, uses the interface font at a smaller size, lined up with the alert icon (#490).
 - PDFs with damaged image transparency, common in CAD and building drawings, render instead of showing a blank page and "Image soft-mask sample data has an invalid length."
 - Scrolling the What's new notes no longer draws text over the pane's rounded corners.
 - The Trash Polka theme's name is translated in every language, like the other themes.

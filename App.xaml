@@ -151,6 +151,10 @@
                  same as the websites. -->
             <FontFamily x:Key="WordmarkFont">./Fonts/#Punktype</FontFamily>
             <FontFamily x:Key="WordmarkFontPdf">./Fonts/#Lacquer</FontFamily>
+            <!-- The kit's Controls.xaml names the KillerPDF assembly, but a release build is
+                 KillerPDF.App, so the dialogs' "PDF" found no Lacquer there and fell back to the
+                 system font. A path relative to this file follows the real assembly name. -->
+            <FontFamily x:Key="WordmarkAccentFont">./Fonts/#Lacquer</FontFamily>
             <FontFamily x:Key="BrandSansFont">./Fonts/#Killer Sans</FontFamily>
             <FontFamily x:Key="MonoFont">./Fonts/#Killer Sans UI, Segoe UI, Microsoft JhengHei UI, Nirmala UI</FontFamily>
             <FontFamily x:Key="IconFont">Segoe MDL2 Assets</FontFamily>

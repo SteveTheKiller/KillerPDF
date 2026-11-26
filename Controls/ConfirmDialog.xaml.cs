@@ -214,12 +214,41 @@ namespace KillerPDF.Controls
                     DetailText.Visibility = Visibility.Visible;
                 }
             }
-            if ((HeadingText.Text ?? "").Length > 90)
+            string line = HeadingText.Text ?? "";
+            if (line.Length > 90)
             {
                 HeadingText.ClearValue(System.Windows.Controls.TextBlock.FontFamilyProperty);
                 HeadingText.ClearValue(System.Windows.Media.TextOptions.TextFormattingModeProperty);
                 HeadingText.FontSize = 13;
             }
+            else if (NamesAFile(line) || !LacquerCovers(line))
+            {
+                // A file name is never hand-lettered, and a line Lacquer cannot fully draw (Chinese,
+                // Cyrillic) goes whole into the interface font instead of mixing two faces.
+                // The 18 px size and the 4 px lift are tuned for Lacquer's small, low-sitting letters;
+                // in the interface font they make a line that is too big and rides above the ring.
+                // 14 px with the first line centred on the 28 px ring.
+                HeadingText.ClearValue(System.Windows.Controls.TextBlock.FontFamilyProperty);
+                HeadingText.ClearValue(System.Windows.Media.TextOptions.TextFormattingModeProperty);
+                HeadingText.FontSize = 14;
+                HeadingText.Margin = new Thickness(0, 4, 0, 4);
+            }
+        }
+
+        // A word ending in a dot and a short extension, like "report.pdf" or "notes.txt".
+        private static readonly System.Text.RegularExpressions.Regex FileNamePattern =
+            new(@"\S\.[A-Za-z][A-Za-z0-9]{0,7}(?=$|[\s?？!！,，。:：;；""”'’)）»])");
+
+        internal static bool NamesAFile(string text) => FileNamePattern.IsMatch(text);
+
+        private bool LacquerCovers(string text)
+        {
+            if (TryFindResource("WordmarkAccentFont") is not System.Windows.Media.FontFamily lacquer
+                || !new System.Windows.Media.Typeface(lacquer, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal)
+                    .TryGetGlyphTypeface(out System.Windows.Media.GlyphTypeface face)) return false;
+            foreach (char c in text)
+                if (!char.IsWhiteSpace(c) && !face.CharacterToGlyphMap.ContainsKey(c)) return false;
+            return true;
         }
 
         private void OK_Click(object sender, RoutedEventArgs e)
