@@ -102,6 +102,19 @@ public sealed class DocumentToolsPanelTests
         => Assert.Equal(columns, DocumentToolsLayout.Columns(width));
 
     [Theory]
+    [InlineData(1200, 12, 12)]   // a wide strip: never more columns than the longest section
+    [InlineData(1200, 20, 13)]   // more tools than fit: as many 92px tiles as the width holds
+    [InlineData(500, 12, 5)]
+    [InlineData(60, 12, 1)]
+    [InlineData(0, 12, 1)]
+    public void AStripRowRunsTheFullWidthWithWiderTiles(double width, int mostTools, int columns)
+        => Assert.Equal(columns, DocumentToolsLayout.Columns(width, strip: true, mostTools));
+
+    [Fact]
+    public void TheColumnSidebarKeepsItsOwnColumnCount()
+        => Assert.Equal(DocumentToolsLayout.Columns(240), DocumentToolsLayout.Columns(240, strip: false, 2));
+
+    [Theory]
     [InlineData(Key.P, ModifierKeys.None, false, 'P')]
     [InlineData(Key.X, ModifierKeys.Shift, false, 'X')]
     [InlineData(Key.D0, ModifierKeys.None, false, '0')]

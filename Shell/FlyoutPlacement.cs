@@ -17,7 +17,8 @@ namespace KillerPDF.Controls
     /// of stranded down in the corner. It never drops below the corner and never rises past the
     /// pane's top, except a menu taller than the pane: that one keeps its foot in the corner and
     /// rises as high as it needs, bounded only by the window. With the sidebar on the right the same rule mirrors; on
-    /// the top or bottom the menu takes the pane's near corner, as before.
+    /// the top or bottom the menu takes the pane's near right corner, because the strip's rail
+    /// buttons sit at its right end (2026-11-25).
     ///
     /// Why the pane and not the button or a built-in mode: a Popup is its own top-level window and
     /// WPF's modes only avoid the SCREEN edge. They do not know the app window, the footer or the
@@ -188,7 +189,9 @@ namespace KillerPDF.Controls
             double fx = flyout.ActualWidth > 0 ? popupSize.Width / flyout.ActualWidth : sx;
             double fy = flyout.ActualHeight > 0 ? popupSize.Height / flyout.ActualHeight : sy;
 
-            double x = _side != SidebarSide.Right
+            // A top or bottom strip keeps its rail buttons at its right end, so its menus take
+            // the pane's right corner, under or over the buttons that open them.
+            double x = _side == SidebarSide.Left
                 ? topLeft.X + inX - halo.Left * fx
                 : bottomRight.X - popupSize.Width + halo.Right * fx - inX;
 
@@ -284,7 +287,7 @@ namespace KillerPDF.Controls
             menu.CustomPopupPlacementCallback = (popupSize, targetSize, _) =>
             {
                 var halo = FlyoutCardHalo();
-                double x = _side == SidebarSide.Right
+                double x = _side != SidebarSide.Left
                     ? targetSize.Width - popupSize.Width + halo.Right - Inset
                     : Inset - halo.Left;
                 // Popup target sizes include the app's layout scale. TranslatePoint returns

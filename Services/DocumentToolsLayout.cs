@@ -78,6 +78,21 @@ internal static class DocumentToolsLayout
     internal static int Columns(double width)
         => double.IsFinite(width) && width > 0 ? Math.Max(1, (int)Math.Floor(width / MinColumnWidth)) : 1;
 
+    /// <summary>The narrowest tile in a top or bottom strip: wide enough that most names sit whole on one line.</summary>
+    internal const double MinStripColumnWidth = 92;
+
+    /// <summary>
+    /// The column count for the panel. In a strip the tiles are wider, and there are never more columns than the
+    /// longest section has tools, so its row runs the strip's full width instead of stopping partway along.
+    /// </summary>
+    internal static int Columns(double width, bool strip, int mostTools)
+    {
+        if (!strip) return Columns(width);
+        if (!double.IsFinite(width) || width <= 0) return 1;
+        int fit = Math.Max(1, (int)Math.Floor(width / MinStripColumnWidth));
+        return Math.Max(1, Math.Min(fit, mostTools));
+    }
+
     /// <summary>
     /// The tool key a key press stands for while the panel has the keyboard: a letter or zero, bare or with Shift.
     /// Right after Ctrl+Shift+D (<paramref name="chordJustPressed"/>) Ctrl and Shift may still be held from the

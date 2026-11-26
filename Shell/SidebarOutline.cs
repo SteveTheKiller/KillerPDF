@@ -56,7 +56,8 @@ namespace KillerPDF.Shell
 
             SidebarSplitter.IsEnabled = true;   // pages are resizable too now (drag the splitter)
             _sidebarCol.MaxWidth = SbPx(SidebarMaxFor(SidebarPanel.Pages));
-            if (!_sidebarCollapsed)
+            // A strip keeps the height it has: every panel shares it (SidebarPanels.RememberSidebarWidth).
+            if (!_sidebarCollapsed && !_sidebarSide.IsStrip())
             {
                 double target = _savedPagesWidth;
                 Dispatcher.BeginInvoke(
@@ -80,7 +81,7 @@ namespace KillerPDF.Shell
             ShowControlPanelHeader(SidebarPanel.Outlines);
             SidebarSplitter.IsEnabled = true;
             _sidebarCol.MaxWidth = SbPx(SidebarMaxFor(SidebarPanel.Outlines));
-            if (!_sidebarCollapsed)
+            if (!_sidebarCollapsed && !_sidebarSide.IsStrip())
             {
                 if (!_outlinesFitted)
                     Dispatcher.BeginInvoke(
@@ -104,12 +105,8 @@ namespace KillerPDF.Shell
         {
             if (_sidebarCollapsed) return;
             // A top or bottom strip's size is its height, which the bookmark text says nothing
-            // about: keep the remembered size and leave the fit for when the sidebar is a column.
-            if (_sidebarSide.IsStrip())
-            {
-                _sidebarCol.Width = new GridLength(Math.Min(_savedOutlinesWidth, SbPx(SidebarMaxFor(SidebarPanel.Outlines))));
-                return;
-            }
+            // about: keep the strip as it is and leave the fit for when the sidebar is a column.
+            if (_sidebarSide.IsStrip()) return;
 
             var typeface = new Typeface(
                 OutlineTree.FontFamily, OutlineTree.FontStyle,

@@ -461,10 +461,52 @@ namespace KillerPDF.Shell
             && (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
             && App.GetSetting("TwoPageThumbnails") == "1";
 
+        // Two-page thumbnails in a top or bottom strip: the halves of a spread sit together and the
+        // usual gap falls between spreads, the strip's answer to the column's two-up rows.
+        private bool PairedStripActive => _sidebarStripLayout
+            && (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
+            && App.GetSetting("TwoPageThumbnails") == "1";
+        private bool? _stripPairBook;   // null: the strip's items carry their usual padding
+
+        private void ApplyStripPairing()
+        {
+            bool? book = PairedStripActive ? Controls.PdfViewer.BookMode : null;
+            if (book == _stripPairBook) return;
+            _stripPairBook = book;
+            if (book is not bool firstAlone)
+            {
+                PageList.ClearValue(ItemsControl.ItemContainerStyleProperty);
+                return;
+            }
+            var style = new Style(typeof(ListBoxItem), TryFindResource(typeof(ListBoxItem)) as Style);
+            style.Setters.Add(new Setter(Control.PaddingProperty,
+                new System.Windows.Data.Binding(nameof(PageThumbnailVm.PageIndex)) { Converter = new StripPairPadding(firstAlone) }));
+            PageList.ItemContainerStyle = style;
+        }
+
+        /// <summary>A strip item's padding for its place in a spread: the left page keeps the gap on its
+        /// left, the right page on its right, and a book's first page stands alone with both.</summary>
+        internal sealed class StripPairPadding(bool firstPageAlone) : System.Windows.Data.IValueConverter
+        {
+            internal static Thickness For(int index, bool firstPageAlone)
+            {
+                if (index < 0 || (firstPageAlone && index == 0)) return new Thickness(8, 6, 8, 6);
+                bool left = (firstPageAlone ? index - 1 : index) % 2 == 0;
+                return left ? new Thickness(8, 6, 0, 6) : new Thickness(0, 6, 8, 6);
+            }
+
+            public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+                => For(value is int index ? index : -1, firstPageAlone);
+
+            public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+                => System.Windows.Data.Binding.DoNothing;
+        }
+
         private void ApplyPageThumbnailLayout()
         {
             if (PageList is null) return;
             PageList.Tag = PairedThumbnailsActive;
+            ApplyStripPairing();
             _pageColumnPanel ??= PageList.ItemsPanel;
             ItemsPanelTemplate desired = _pageColumnPanel;
             if (_sidebarStripLayout)
@@ -906,6 +948,41 @@ namespace KillerPDF.Shell
             PageListFadeBottomOuter.Color = FadeMaskAlpha(1 - bottom);
             PageListFadeTopInner.Offset = Math.Min(0.45, PageListTopFadePx / height);
             PageListFadeBottomInner.Offset = Math.Max(0.5, 1 - PageListBottomFadePx / height);
+        }
+
+        /// <summary>
+        /// The page list's edge fades for any vertically scrolling sidebar panel (Document tools): its content melts
+        /// out at the top and bottom edges while there is more to scroll that way, and the scroll bar stays crisp.
+        /// </summary>
+        private void SyncScrollEdgeFades(ScrollViewer sv)
+        {
+            if (sv.Template?.FindName("PART_ScrollContentPresenter", sv) is not ScrollContentPresenter viewport) return;
+            double height = viewport.ActualHeight;
+            double fade = TryFindResource("EdgeFadeOpacity") is double value ? value : 1.0;
+            double hidden = sv.ExtentHeight - sv.ViewportHeight;
+            double top = EdgeFadeRamp(sv.VerticalOffset, PageListTopFadePx) * fade;
+            double bottom = EdgeFadeRamp(hidden - sv.VerticalOffset, PageListBottomFadePx) * fade;
+            if (height <= 1 || (top <= 0 && bottom <= 0))
+            {
+                viewport.OpacityMask = null;
+                return;
+            }
+            var mask = viewport.OpacityMask as LinearGradientBrush;
+            if (mask is null || mask.GradientStops.Count != 4)
+            {
+                mask = new LinearGradientBrush { MappingMode = BrushMappingMode.Absolute, StartPoint = new Point(0, 0) };
+                for (int i = 0; i < 4; i++) mask.GradientStops.Add(new GradientStop());
+            }
+            mask.EndPoint = new Point(0, height);
+            mask.GradientStops[0].Color = FadeMaskAlpha(1 - top);
+            mask.GradientStops[0].Offset = 0;
+            mask.GradientStops[1].Color = Colors.Black;
+            mask.GradientStops[1].Offset = Math.Min(0.45, PageListTopFadePx / height);
+            mask.GradientStops[2].Color = Colors.Black;
+            mask.GradientStops[2].Offset = Math.Max(0.5, 1 - PageListBottomFadePx / height);
+            mask.GradientStops[3].Color = FadeMaskAlpha(1 - bottom);
+            mask.GradientStops[3].Offset = 1;
+            viewport.OpacityMask = mask;
         }
 
         private static double EdgeFadeRamp(double distance, double depth) =>

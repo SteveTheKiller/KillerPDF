@@ -66,6 +66,8 @@ namespace KillerPDF.Shell
                 double f = scale / prev;
                 _savedPagesWidth    *= f;
                 _savedOutlinesWidth *= f;
+                _savedListPanelWidth *= f;
+                _savedStripHeight *= f;
                 if (_sidebarCol is { } col)
                 {
                     if (col.Width.GridUnitType == GridUnitType.Pixel)

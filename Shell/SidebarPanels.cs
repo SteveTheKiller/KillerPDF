@@ -30,6 +30,7 @@ namespace KillerPDF.Shell
     {
         private SidebarPanel _sidebarPanel = SidebarPanel.Pages;
         private double _savedListPanelWidth = 260;
+        private double _savedStripHeight = 180;
         private CommentsFilter _commentsFilter = CommentsFilter.All;
         private int _sidebarPanelGeneration;
         private DispatcherTimer? _sidebarPanelRefreshTimer;
@@ -79,6 +80,13 @@ namespace KillerPDF.Shell
         private void RememberSidebarWidth(double width)
         {
             double clamped = Math.Min(width, SbPx(SidebarMaxFor(_sidebarPanel)));
+            // A top or bottom strip's size is its height, and every panel shares it: switching panels in a strip
+            // never makes the strip jump (Steve). The columns' own widths stay as they were.
+            if (_sidebarSide.IsStrip())
+            {
+                _savedStripHeight = clamped;
+                return;
+            }
             switch (_sidebarPanel)
             {
                 case SidebarPanel.Pages: _savedPagesWidth = clamped; break;
@@ -88,7 +96,7 @@ namespace KillerPDF.Shell
         }
 
         /// <summary>The width the open panel last had, in screen pixels.</summary>
-        private double SavedSidebarWidth() => _sidebarPanel switch
+        private double SavedSidebarWidth() => _sidebarSide.IsStrip() ? _savedStripHeight : _sidebarPanel switch
         {
             SidebarPanel.Pages => _savedPagesWidth,
             SidebarPanel.Outlines => _savedOutlinesWidth,
@@ -128,7 +136,7 @@ namespace KillerPDF.Shell
                 SidebarPanelEditButton.ToolTip = ShortcutTip("Str_Lbl_DigitalSig", "CtrlShift:G");
             SidebarSplitter.IsEnabled = true;
             _sidebarCol.MaxWidth = SbPx(SidebarMaxFor(panel));
-            if (!_sidebarCollapsed)
+            if (!_sidebarCollapsed && !_sidebarSide.IsStrip())
             {
                 double target = _savedListPanelWidth;
                 Dispatcher.BeginInvoke(DispatcherPriority.Render,

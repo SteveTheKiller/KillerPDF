@@ -34,6 +34,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - In the title bar, toolbar captions, sidebar and status bar, Chinese, Japanese and Korean characters draw at 90%, so they read the same size as the Latin text beside them while Latin keeps its size in every language. This covers Chinese file names in an English interface too. Menus, dialogs and buttons keep CJK at full size, where smaller text would be hard to read. The file name in the title bar sits on the same line as the KillerPDF wordmark instead of a pixel or two below it. A caption under its icon and a page number under its sidebar thumbnail also have as much space above them as English text, where they used to sit right against the icon or page (#490).
 - With an all-users install, classic Outlook finds the PDF preview, including 32-bit Outlook. It only looks for preview handlers registered for the whole machine (#410).
 - A per-user install offers PDF previews in File Explorer only, since classic Outlook can't see a preview installed for one account (#410).
+- With the sidebar on the top or bottom, switching to Outlines, Comments or another panel keeps the strip's height instead of jumping to that panel's own size.
+- Document tools in a top or bottom sidebar fill the strip's width with wider tiles, so names no longer get cut off. When the tools scroll, their edges fade like the page list's.
+- Menus opened from a top or bottom sidebar's buttons open at the right side of the page area, next to the buttons, instead of at the left.
+- In a top or bottom sidebar, two-page thumbnails sit together in pairs with the usual gap between pairs, as they do in a side column. A book's first page stands on its own.
 
 ### Changed
 - The title bar is 3px shorter, so the bottom of the wordmark's drip meets the toolbar. The toolbar also sits 2px closer to the page below it, and its buttons sit 1px from the window's left and right edges instead of 4.

@@ -185,12 +185,20 @@ public partial class MainWindow
         void Fit()
         {
             double width = scroll.ViewportWidth > 0 ? scroll.ViewportWidth : scroll.ActualWidth;
-            int columns = DocumentToolsLayout.Columns(width - sections.Margin.Left - sections.Margin.Right);
+            // A top or bottom strip is wide, so its tiles get room for a whole name on a line and spread across
+            // the strip instead of bunching at its left end.
+            int columns = DocumentToolsLayout.Columns(width - sections.Margin.Left - sections.Margin.Right,
+                _sidebarSide.IsStrip(), grids.Select(grid => grid.Children.Count).DefaultIfEmpty(1).Max());
             foreach (var grid in grids)
                 if (grid.Columns != columns) grid.Columns = columns;
         }
-        scroll.SizeChanged += (_, _) => Fit();
-        scroll.ScrollChanged += (_, e) => { if (e.ViewportWidthChange != 0) Fit(); };
+        scroll.SizeChanged += (_, _) => { Fit(); SyncScrollEdgeFades(scroll); };
+        scroll.ScrollChanged += (_, e) =>
+        {
+            if (e.ViewportWidthChange != 0) Fit();
+            SyncScrollEdgeFades(scroll);
+        };
+        scroll.Loaded += (_, _) => SyncScrollEdgeFades(scroll);
         scroll.LostKeyboardFocus += (_, _) =>
         {
             if (!scroll.IsKeyboardFocusWithin) _documentToolsChordPressed = false;
