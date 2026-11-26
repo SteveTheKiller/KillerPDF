@@ -427,6 +427,9 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
                     <Grid>
+                        <!-- The theme's radii, held here so the open triggers can square only the joined corners. -->
+                        <Border x:Name="radius" CornerRadius="{DynamicResource ControlCornerRadius}" Visibility="Collapsed"/>
+                        <Border x:Name="menuRadius" CornerRadius="{DynamicResource MenuCornerRadius}" Visibility="Collapsed"/>
                         <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource ControlCornerRadius}"/>
                         <Grid Margin="{TemplateBinding Padding}">
@@ -463,32 +466,49 @@
                             </ToggleButton.Template>
                         </ToggleButton>
                         <Popup x:Name="PART_Popup" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
-                               Placement="Bottom" AllowsTransparency="True" PopupAnimation="Fade">
+                               Placement="Bottom" VerticalOffset="-1" AllowsTransparency="True" PopupAnimation="Fade">
                             <!-- ComboPopupBrush: MenuBackgroundBrush everywhere, WHITE on 98SE -
                                  a Win98 dropdown list is a white well with the navy highlight. -->
                             <!-- Marked here, not left to ThemeMotif's popup pass: WPF only sends Loaded into a subtree
                                  that has an instance handler, so the open list was never found and stayed flat. -->
-                            <Border MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                            <!-- The list hangs straight off the box: the 1px offset shares the box's edge, and the
+                                 margin leaves the shadow room on the three free sides only. -->
+                            <Border x:Name="PopupBd" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
                                     kui:ThemeMotif.Part="Popup" kui:ThemeMotif.BaseBrush="ComboPopupBrush"
                                     Background="{DynamicResource ComboPopupBrush}" BorderBrush="{DynamicResource MenuBorderBrush}"
-                                    BorderThickness="1" CornerRadius="{DynamicResource MenuCornerRadius}" Margin="6"
+                                    BorderThickness="1" CornerRadius="{DynamicResource MenuCornerRadius}" Margin="22,0,22,26" UseLayoutRounding="True"
                                     Effect="{DynamicResource ComboPopupShadow}">
                                 <Grid>
                                     <ScrollViewer Margin="0,4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
                                     </ScrollViewer>
                                     <!-- Grain last, over the items, so a highlighted row keeps its texture. -->
-                                    <Border IsHitTestVisible="False" CornerRadius="{DynamicResource MenuCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                                    <Border IsHitTestVisible="False" CornerRadius="{Binding CornerRadius, ElementName=PopupBd}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
                                 </Grid>
                             </Border>
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="kl:ComboDrop.OpensUp" Value="True">
+                            <Setter TargetName="PART_Popup" Property="Placement" Value="Top"/>
+                            <Setter TargetName="PART_Popup" Property="VerticalOffset" Value="1"/>
+                            <Setter TargetName="PopupBd" Property="Margin" Value="22,18,22,0"/>
+                        </Trigger>
                         <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource InputHoverBrush}"/></Trigger>
                         <Trigger Property="IsDropDownOpen" Value="True">
                             <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
                             <Setter TargetName="chev" Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                            <Setter TargetName="border" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareBottom}}"/>
+                            <Setter TargetName="PopupBd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=menuRadius, Converter={x:Static kl:ComboDrop.SquareTop}}"/>
                         </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsDropDownOpen" Value="True"/>
+                                <Condition Property="kl:ComboDrop.OpensUp" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="border" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareTop}}"/>
+                            <Setter TargetName="PopupBd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=menuRadius, Converter={x:Static kl:ComboDrop.SquareBottom}}"/>
+                        </MultiTrigger>
                         <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

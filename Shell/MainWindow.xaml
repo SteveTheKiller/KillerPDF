@@ -1294,6 +1294,8 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBox">
                         <Grid>
+                            <!-- The theme's radius, held here so the open trigger can square only the joined corners. -->
+                            <Border x:Name="radius" CornerRadius="{DynamicResource SmallCornerRadius}" Visibility="Collapsed"/>
                             <Border x:Name="Bd" Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
@@ -1337,19 +1339,22 @@
                             </Border>
                             <Popup x:Name="PART_Popup" AllowsTransparency="True"
                                    IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False"
-                                   PopupAnimation="Fade" Placement="Bottom">
-                                <Border Background="{DynamicResource FooterZoomSurfaceBrush}"
+                                   PopupAnimation="Fade" Placement="Top" VerticalOffset="1">
+                                <!-- The zoom box sits at the window's foot, so its list opens upward and hangs
+                                     straight off the box's top edge: the 1px offset shares that edge, the corners
+                                     where they meet go square while open, and the margin leaves the family
+                                     shadow room on the three free sides. -->
+                                <Border x:Name="PopupBd" Background="{DynamicResource FooterZoomSurfaceBrush}"
                                         BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
-                                        CornerRadius="{DynamicResource SmallCornerRadius}" Margin="0,2,6,6"
-                                        MinWidth="96" MaxHeight="220">
-                                    <Border.Effect>
-                                        <DropShadowEffect Color="Black" BlurRadius="12" ShadowDepth="2" Direction="270" Opacity="0.5"/>
-                                    </Border.Effect>
+                                        CornerRadius="{DynamicResource SmallCornerRadius}" Margin="22,18,22,0" UseLayoutRounding="True"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="220"
+                                        Effect="{DynamicResource ComboPopupShadow}">
                                     <Grid>
                                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="2">
                                             <ItemsPresenter/>
                                         </ScrollViewer>
                                         <Border IsHitTestVisible="False" Background="{StaticResource GrainBrushShared}"
+                                                CornerRadius="{Binding CornerRadius, ElementName=PopupBd}"
                                                 Opacity="{DynamicResource GrainOpacity}"/>
                                     </Grid>
                                 </Border>
@@ -1366,6 +1371,8 @@
                             <Trigger Property="IsDropDownOpen" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource FooterZoomSurfaceBrush}"/>
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                <Setter TargetName="Bd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareTop}}"/>
+                                <Setter TargetName="PopupBd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareBottom}}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

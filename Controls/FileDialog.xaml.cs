@@ -1262,6 +1262,23 @@ namespace KillerPDF.Controls
             RecentsPopup.IsOpen = true;
         }
 
+        // The recents list joins the path box like a dropdown joins its box: square corners where
+        // they meet while it is open, and the theme's own corners back once it closes. ClearValue
+        // hands each border back to its resource-bound radius, so a theme switch still lands.
+        private void RecentsPopup_Opened(object? sender, EventArgs e)
+        {
+            if (PathBox.Template?.FindName("border", PathBox) is Border box)
+                box.CornerRadius = (CornerRadius)KillerFamily.Layout.ComboDrop.SquareBottom.Convert(box.CornerRadius, typeof(CornerRadius), null!, System.Globalization.CultureInfo.InvariantCulture);
+            RecentsBd.CornerRadius = (CornerRadius)KillerFamily.Layout.ComboDrop.SquareTop.Convert(RecentsBd.CornerRadius, typeof(CornerRadius), null!, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private void RecentsPopup_Closed(object? sender, EventArgs e)
+        {
+            if (PathBox.Template?.FindName("border", PathBox) is Border box)
+                box.ClearValue(Border.CornerRadiusProperty);
+            RecentsBd.SetResourceReference(Border.CornerRadiusProperty, "MenuCornerRadius");
+        }
+
         private void RecentsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_navigating) return;

@@ -399,14 +399,16 @@
                             HorizontalAlignment="Right"/>
                     <!-- Recent locations: the family dropdown list, built exactly like the implicit
                          ComboBox's popup in Controls.xaml (surface, edge, corners, shadow, ink and
-                         grain), as wide as the path box and flush under it. The popup already
-                         places the list inside its 6px shadow margin, so no offset is needed. -->
+                         grain), as wide as the path box and hanging straight off it. The 1px offset
+                         shares the box's bottom edge, the margin leaves the shadow room on the three
+                         free sides, and RecentsPopup_Opened squares the corners where the two meet. -->
                     <Popup x:Name="RecentsPopup" PlacementTarget="{Binding ElementName=PathBox}"
-                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
-                        <Border Width="{Binding ActualWidth, ElementName=PathBox}" MaxHeight="280"
+                           Placement="Bottom" VerticalOffset="-1" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+                           Opened="RecentsPopup_Opened" Closed="RecentsPopup_Closed">
+                        <Border x:Name="RecentsBd" Width="{Binding ActualWidth, ElementName=PathBox}" MaxHeight="280"
                                 kui:ThemeMotif.Part="Popup" kui:ThemeMotif.BaseBrush="ComboPopupBrush"
                                 Background="{DynamicResource ComboPopupBrush}" BorderBrush="{DynamicResource MenuBorderBrush}"
-                                BorderThickness="1" CornerRadius="{DynamicResource MenuCornerRadius}" Margin="6"
+                                BorderThickness="1" CornerRadius="{DynamicResource MenuCornerRadius}" Margin="22,0,22,26" UseLayoutRounding="True"
                                 Effect="{DynamicResource ComboPopupShadow}">
                             <Grid>
                                 <ListBox x:Name="RecentsList" Background="Transparent" BorderThickness="0" Padding="0" Margin="0,4"
@@ -421,7 +423,7 @@
                                     </ListBox.ItemTemplate>
                                 </ListBox>
                                 <!-- Grain last, over the rows, so a highlighted row keeps its texture. -->
-                                <Border IsHitTestVisible="False" CornerRadius="{DynamicResource MenuCornerRadius}"
+                                <Border IsHitTestVisible="False" CornerRadius="{Binding CornerRadius, ElementName=RecentsBd}"
                                         Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
                             </Grid>
                         </Border>

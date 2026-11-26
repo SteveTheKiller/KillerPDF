@@ -58,6 +58,67 @@ public sealed class ComboDropJoinTests
     }
 
     [Fact]
+    public void ThePlainComboListJoinsItsBox()
+    {
+        var controls = XDocument.Load(Path.Combine(RepoRoot(), "Controls", "Controls.xaml"));
+        var template = controls.Descendants(Wpf + "Style")
+            .Single(s => (string?)s.Attribute("TargetType") == "ComboBox" && s.Attribute(Xaml + "Key") is null)
+            .Descendants(Wpf + "ControlTemplate").First();
+        var popup = template.Descendants(Wpf + "Popup").Single();
+        var list = popup.Elements(Wpf + "Border").Single();
+        Assert.Equal("Bottom", (string?)popup.Attribute("Placement"));
+        Assert.Equal("-1", (string?)popup.Attribute("VerticalOffset"));
+        Assert.Equal("PopupBd", (string?)list.Attribute(Xaml + "Name"));
+        Assert.Equal("22,0,22,26", (string?)list.Attribute("Margin"));
+
+        var triggers = template.Element(Wpf + "ControlTemplate.Triggers")!.Elements().ToList();
+        var up = triggers.Single(t => (string?)t.Attribute("Property") == "kl:ComboDrop.OpensUp");
+        Assert.Equal("Top", Setter(up, "PART_Popup", "Placement"));
+        Assert.Equal("22,18,22,0", Setter(up, "PopupBd", "Margin"));
+        var open = triggers.Single(t => t.Name == Wpf + "Trigger" && (string?)t.Attribute("Property") == "IsDropDownOpen");
+        Assert.Contains("ComboDrop.SquareBottom", Setter(open, "border", "CornerRadius"));
+        Assert.Contains("ComboDrop.SquareTop", Setter(open, "PopupBd", "CornerRadius"));
+        var openUp = triggers.Single(t => t.Name == Wpf + "MultiTrigger");
+        Assert.Contains("ComboDrop.SquareTop", Setter(openUp, "border", "CornerRadius"));
+        Assert.Contains("ComboDrop.SquareBottom", Setter(openUp, "PopupBd", "CornerRadius"));
+    }
+
+    [Fact]
+    public void TheFooterZoomListOpensUpwardOffItsBox()
+    {
+        var main = XDocument.Load(Path.Combine(RepoRoot(), "Shell", "MainWindow.xaml"));
+        var template = main.Descendants(Wpf + "Style").Single(s => (string?)s.Attribute(Xaml + "Key") == "FooterZoomCombo")
+            .Descendants(Wpf + "ControlTemplate").First();
+        var popup = template.Descendants(Wpf + "Popup").Single(p => (string?)p.Attribute(Xaml + "Name") == "PART_Popup");
+        var list = popup.Elements(Wpf + "Border").Single();
+        Assert.Equal("Top", (string?)popup.Attribute("Placement"));
+        Assert.Equal("1", (string?)popup.Attribute("VerticalOffset"));
+        Assert.Equal("22,18,22,0", (string?)list.Attribute("Margin"));
+        Assert.Equal("{DynamicResource ComboPopupShadow}", (string?)list.Attribute("Effect"));
+
+        var open = template.Element(Wpf + "ControlTemplate.Triggers")!.Elements()
+            .Single(t => (string?)t.Attribute("Property") == "IsDropDownOpen");
+        Assert.Contains("ComboDrop.SquareTop", Setter(open, "Bd", "CornerRadius"));
+        Assert.Contains("ComboDrop.SquareBottom", Setter(open, "PopupBd", "CornerRadius"));
+    }
+
+    [Fact]
+    public void TheRecentLocationsListJoinsThePathBox()
+    {
+        var dialog = XDocument.Load(Path.Combine(RepoRoot(), "Controls", "FileDialog.xaml"));
+        var popup = dialog.Descendants(Wpf + "Popup").Single(p => (string?)p.Attribute(Xaml + "Name") == "RecentsPopup");
+        var list = popup.Elements(Wpf + "Border").Single();
+        Assert.Equal("-1", (string?)popup.Attribute("VerticalOffset"));
+        Assert.Equal("RecentsPopup_Opened", (string?)popup.Attribute("Opened"));
+        Assert.Equal("RecentsPopup_Closed", (string?)popup.Attribute("Closed"));
+        Assert.Equal("22,0,22,26", (string?)list.Attribute("Margin"));
+
+        string code = File.ReadAllText(Path.Combine(RepoRoot(), "Controls", "FileDialog.xaml.cs"));
+        Assert.Contains("ComboDrop.SquareBottom.Convert(box.CornerRadius", code);
+        Assert.Contains("box.ClearValue(Border.CornerRadiusProperty);", code);
+    }
+
+    [Fact]
     public void TheMacroStepPickerOpensUpward()
     {
         string macro = File.ReadAllText(Path.Combine(RepoRoot(), "Controls", "MacroDialog.cs"));
