@@ -180,7 +180,7 @@ namespace KillerPDF
                         // so a dialog's title reads like the title bar it came from.
                         if (!wordmarkRun) run.SetResourceReference(System.Windows.Documents.TextElement.FontFamilyProperty, "FileNameFont");
                         if (!shadow) run.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty,
-                            run.Text == "PDF" ? "AccentLogo" : wordmarkRun ? "ChromeTextBrush" : "FilenameBrush");
+                            run.Text == "PDF" ? "AccentLogo" : wordmarkRun ? "TextBrush" : "FilenameBrush");
                     }
                 }
                 return sp;
@@ -218,17 +218,33 @@ namespace KillerPDF
                 accentShadow.Effect = new BlurEffect { Radius = 3 };
                 accentShadow.RenderTransform = new TranslateTransform(1, 2);
                 title.Children.Add(accentShadow);
-                var crisp = BuildWordmark(false);
-                // The main window's file name draws ClearType in Ideal formatting. A dialog is a layered
-                // window that Configure sets to grayscale, which drew the same font and size visibly
-                // thinner. ClearTypeHint lets this opaque caption keep ClearType on a layered window.
-                TextOptions.SetTextFormattingMode(crisp, TextFormattingMode.Ideal);
-                TextOptions.SetTextRenderingMode(crisp, TextRenderingMode.ClearType);
-                RenderOptions.SetClearTypeHint(crisp, ClearTypeHint.Enabled);
-                title.Children.Add(crisp);
+                // Two copies of the same line, so the wordmark and the words after it share one baseline
+                // but draw the way the main title bar draws each. The wordmark layer carries the family
+                // bevel, as the main window's does, and leaves the words after it invisible. The text
+                // layer shows only those words, in ClearType and Ideal formatting like the main
+                // window's file name. A dialog is a layered window that Configure sets to grayscale,
+                // and ClearTypeHint lets this opaque caption keep ClearType there. ClearType on the
+                // wordmark itself fringed and crushed it, so it stays on the text layer only.
+                var wordmarkLayer = BuildWordmark(false);
+                var textLayer = BuildWordmark(false);
+                foreach (var (layer, showWordmark) in new[] { (wordmarkLayer, true), (textLayer, false) })
+                    foreach (var text in layer.Children.OfType<TextBlock>())
+                    {
+                        foreach (var run in text.Inlines.OfType<System.Windows.Documents.Run>())
+                            if ((run.Text == lead || run.Text == "PDF") != showWordmark) run.Foreground = Brushes.Transparent;
+                        if (showWordmark) KillerFamily.Theming.Bevel.SetEnabled(text, true);
+                    }
+                TextOptions.SetTextFormattingMode(textLayer, TextFormattingMode.Ideal);
+                TextOptions.SetTextRenderingMode(textLayer, TextRenderingMode.ClearType);
+                RenderOptions.SetClearTypeHint(textLayer, ClearTypeHint.Enabled);
+                textLayer.IsHitTestVisible = false;
+                title.Children.Add(wordmarkLayer);
+                title.Children.Add(textLayer);
                 // Same lift as the main title bar: Lacquer's deep descent makes the centred line sit low.
+                // One more pixel than the main bar's 5 evens the gap above the caption with the gap to its
+                // left (Steve 2026-11-26, on the color picker).
                 if (fullTitle?.Contains(brand, StringComparison.Ordinal) == true)
-                    title.RenderTransform = new TranslateTransform(0, -5);
+                    title.RenderTransform = new TranslateTransform(0, -6);
             }
             // The app icon leads the caption, at the main title bar's size and spacing.
             var titleRow = new StackPanel
@@ -242,8 +258,11 @@ namespace KillerPDF
             // dialog body so the drips can hang over it.
             var rowIcon = TitleIcon(owner, icon);
             // The dialog icon sat 2px high against the wordmark compared with the main title bar
-            // (Steve 2026-11-25), so the wordmark themes drop it 2px. Classic captions keep it centered.
-            if (!caption) rowIcon.RenderTransform = new TranslateTransform(0, 2);
+            // (Steve 2026-11-25), so the wordmark themes dropped it 2px. It rides 1px higher with the
+            // wordmark's extra pixel (Steve 2026-11-26), so the gap above it matches the gap to its left.
+            // Classic captions keep it centered. The color picker's wheel icon sits 1px higher still
+            // (Steve 2026-11-25); the wordmark beside it does not move.
+            if (!caption) rowIcon.RenderTransform = new TranslateTransform(0, icon == "color-icon.ico" ? 0 : 1);
             titleRow.Children.Add(rowIcon);
             var titleHost = new Grid { VerticalAlignment = VerticalAlignment.Center };
             titleHost.Children.Add(plain);

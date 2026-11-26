@@ -50,6 +50,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Message boxes and confirmations keep 16px on every side, and the icon in a dialog's title bar sits 3px from the corner.
 - A dialog's title draws in the same font, size, color and ClearType as the file name in the main title bar. It used to look smaller and thinner. It also follows the wordmark without a dash, as the file name does.
 - The color picker has the same title bar as the other dialogs, with its own color wheel icon and a ColorPDF wordmark in the theme's colors.
+- A dialog's wordmark has the same bevel as the main window's, and it sits 1px higher along with the dialog's icon.
+- The color picker's fields are laid out in even rows. The preview and a larger eyedropper button sit side by side, with Hex, R, G and B in one row under small captions, and Replace and Reset as an even pair under the swatches.
+- The color picker's hue strip fills the space to the right edge without a gray bar beside it, and its handle is the theme's slider thumb. The color square also sits closer to the title.
 - The file dialog uses the 4px gutter at its sides and between its panes, and the address bar sits closer to the title bar and the panes.
 - The OCR language list shows two columns with flags, like the interface language picker, so it fits a short window.
 - The keyboard shortcuts card keeps its rounded corners and thin top edge while the list is scrolled.
