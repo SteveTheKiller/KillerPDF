@@ -20,7 +20,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - The KillerPDF wordmark in confirmation dialogs draws "PDF" in its own lettering again. A confirmation that names a file, or is in a language the heading lettering can't draw, uses the interface font lined up with the alert icon (#490).
 - PDFs with damaged image transparency, common in CAD and building drawings, render instead of showing a blank page and "Image soft-mask sample data has an invalid length."
-- On Trash Polka, the line under the inactive tabs stops where the active tab's foot curves into it, and the file picker's drive and bookmark list no longer ends in a flat gray band.
 - Scrolling the What's new notes no longer draws text over the pane's rounded corners.
 - On a right-click card near the right side of the screen, the Hidden drawer from the edit pencil opens against the card's left edge and slides out from behind it, instead of sliding in from a gap off to the side.
 - The Trash Polka theme's name is translated in every language, like the other themes.
