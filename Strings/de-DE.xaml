@@ -309,7 +309,7 @@ KillerPDF legt keine zwei installierten Kopien an.</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">Desktopverknüpfung hinzufügen</sys:String>
     <sys:String x:Key="Str_Chk_AllUsers">Für alle Benutzer dieses Computers installieren (erfordert Administrator)</sys:String>
     <sys:String x:Key="Str_Status_InstallFailed">Installation nicht abgeschlossen - KillerPDF läuft weiterhin portabel.</sys:String>
-    <sys:String x:Key="Str_Status_RelaunchDeferred">Die Installation ist abgeschlossen. KillerPDF blieb geöffnet, um während der Installation geänderte Arbeit zu schützen.</sys:String>
+    <sys:String x:Key="Str_Status_RelaunchDeferred">Die Installation ist abgeschlossen. KillerPDF blieb geöffnet, um während der Installation die geänderte Arbeit zu schützen.</sys:String>
     <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Möchten Sie KillerPDF als Standard-PDF-Betrachter festlegen?
 
 Öffnet die Windows-Einstellungen - Standard-Apps.</sys:String>
@@ -577,7 +577,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_InitialView_CustomZoom">Eigener Zoom</sys:String>
     <sys:String x:Key="Str_InitialView_Invalid">Geben Sie eine gültige Seitenzahl und einen eigenen Zoom von 1 % bis 6400 % ein.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Portfoliobericht</sys:String>
-    <sys:String x:Key="Str_DocumentTools_Separations">Separationenvorschaubericht</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Separationsvorschaubericht</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Strukturvergleichsbericht</sys:String>
     <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Öffnen Sie in jedem Bereich ein Dokument, um deren Struktur zu vergleichen.</sys:String>
     <sys:String x:Key="Str_DocumentTools_InsertToc">Inhaltsverzeichnis einfügen</sys:String>
@@ -813,7 +813,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Sign_Desc">Versiegelt {0} mit einem Zertifikat und speichert eine signierte Kopie.</sys:String>
     <sys:String x:Key="Str_Sign_Certificate">Zertifikat</sys:String>
     <sys:String x:Key="Str_Sign_FromFile">Aus einer Datei (.pfx / .p12)</sys:String>
-    <sys:String x:Key="Str_Sign_FromStore">Aus dem Windows-Zertifikatspeicher / USB-Token</sys:String>
+    <sys:String x:Key="Str_Sign_FromStore">Aus dem Windows-Zertifikatsspeicher / USB-Token</sys:String>
     <sys:String x:Key="Str_Sign_Browse">Durchsuchen...</sys:String>
     <sys:String x:Key="Str_Sign_Password">Passwort</sys:String>
     <sys:String x:Key="Str_Sign_Reason">Grund (optional)</sys:String>
@@ -833,10 +833,10 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Protect_Confirm">Passwort bestätigen</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">Berechtigungskennwort (optional)</sys:String>
     <sys:String x:Key="Str_Protect_OwnerHint">Wer es eingibt, erhält vollen Zugriff ohne die Einschränkungen unten. Bleibt es leer, hält ein zufälliges Passwort die Einschränkungen aufrecht, und niemand kann sie aufheben.</sys:String>
-    <sys:String x:Key="Str_Protect_ForRecipients">Zertifikatempfänger</sys:String>
+    <sys:String x:Key="Str_Protect_ForRecipients">Zertifikatsempfänger</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">Nur die Inhaber dieser Zertifikate können die Kopie öffnen. Fügen Sie Ihr eigenes Zertifikat hinzu, um den Zugriff zu behalten.</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">Hinzufügen</sys:String>
-    <sys:String x:Key="Str_Protect_AddFile">Zertifikatdatei hinzufügen...</sys:String>
+    <sys:String x:Key="Str_Protect_AddFile">Zertifikatsdatei hinzufügen...</sys:String>
     <sys:String x:Key="Str_Protect_Remove">Entfernen</sys:String>
     <sys:String x:Key="Str_Protect_Allow">Erlauben</sys:String>
     <sys:String x:Key="Str_Protect_AllowPrint">Drucken</sys:String>
@@ -855,7 +855,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Protect_SavedTo">Geschützte Kopie gespeichert unter:</sys:String>
     <sys:String x:Key="Str_Protect_ChooseCert">Empfängerzertifikat auswählen</sys:String>
     <sys:String x:Key="Str_Dlg_SaveBeforeProtect">Speichern Sie zuerst das Dokument, damit die geschützte Kopie Ihre Änderungen enthält.</sys:String>
-    <sys:String x:Key="Str_Dlg_NoRecipientCertificate">Diese PDF-Datei ist für Zertifikatinhaber verschlüsselt, und kein Zertifikat in Ihrem Windows-Zertifikatspeicher kann sie öffnen.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoRecipientCertificate">Diese PDF-Datei ist für Zertifikatsinhaber verschlüsselt, und kein Zertifikat in Ihrem Windows-Zertifikatsspeicher kann sie öffnen.</sys:String>
     <sys:String x:Key="Str_Sign_VisibleAppearance">Sichtbare Signatur anzeigen</sys:String>
     <sys:String x:Key="Str_Sign_AppearanceText">Signaturtext</sys:String>
     <sys:String x:Key="Str_Sign_AppearanceDefault">Digital signiert von {name}&#10;Datum: {date}&#10;Grund: {reason}&#10;Ort: {location}</sys:String>
@@ -1224,7 +1224,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Print_NoRgbPrinterProfile">Importieren Sie im Farbmanagement ein RGB-Druckerprofil, um es hier auszuwählen.</sys:String>
     <sys:String x:Key="Str_Print_PrinterProfileUnusable">Dieses Profil hat keine für den Druck nutzbaren Tabellen. Wählen Sie ein anderes Profil.</sys:String>
     <sys:String x:Key="Str_Print_TurnOffDriverColor">Schalten Sie das Farbmanagement auch in den Druckereigenschaften aus, sonst werden die Farben zweimal umgerechnet.</sys:String>
-    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">Der Druckertreiber hat bestätigt, dass er sein eigenes Farbmanagement auslässt. Wenn Ausdrucke trotzdem falsch aussehen, prüfen Sie seine Eigenschaften auf eine automatische Farbkorrektur.</sys:String>
+    <sys:String x:Key="Str_Print_DriverColorOffConfirmed">Der Druckertreiber hat bestätigt, dass er sein eigenes Farbmanagement nicht verwendet. Wenn Ausdrucke trotzdem falsch aussehen, prüfen Sie in den Eigenschaften, ob die automatische Farbkorrektur aktiviert ist.</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">AUSGABE</sys:String>
     <sys:String x:Key="Str_View_BookMode">Buchlayout</sys:String>
     <sys:String x:Key="Str_Tf_Levels">TONWERTE</sys:String>
@@ -1260,7 +1260,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Filter_Djvu">DjVu-Dokumente</sys:String>
     <sys:String x:Key="Str_Shell_SaveAsKillerPdf">Als KillerPDF speichern</sys:String>
     <sys:String x:Key="Str_ImagesToPdf_Failed">KillerPDF konnte aus {0} kein PDF erstellen.</sys:String>
-    <sys:String x:Key="Str_Filter_Cert">Zertifikatdateien</sys:String>
+    <sys:String x:Key="Str_Filter_Cert">Zertifikatsdateien</sys:String>
     <sys:String x:Key="Str_Filter_Text">Textdatei</sys:String>
     <sys:String x:Key="Str_Print_Sending">Wird an den Drucker gesendet…</sys:String>
     <sys:String x:Key="Str_Forms_FontSize">Schriftgröße:</sys:String>
@@ -1275,10 +1275,10 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_MergeFiles_AddFolder">Ordner hinzufügen</sys:String>
     <sys:String x:Key="Str_MergeFiles_Remove">Entfernen</sys:String>
     <sys:String x:Key="Str_MergeFiles_Merge">Zusammenführen</sys:String>
-    <sys:String x:Key="Str_MergeFiles_DropHint">Legen Sie PDF-Dateien oder Ordner hier ab, oder verwenden Sie "Dateien hinzufügen" und "Ordner hinzufügen". Ziehen Sie eine Datei, um die Reihenfolge zu ändern.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_DropHint">Legen Sie PDF-Dateien oder Ordner hier ab oder verwenden Sie „Dateien hinzufügen“ und „Ordner hinzufügen“. Ziehen Sie eine Datei, um die Reihenfolge zu ändern.</sys:String>
     <sys:String x:Key="Str_MergeFiles_ShowPages">Seiten anordnen</sys:String>
     <sys:String x:Key="Str_MergeFiles_ShowFiles">Dateien anzeigen</sys:String>
-    <sys:String x:Key="Str_MergeFiles_PageHint">Ziehen Sie Seiten in die gewünschte Reihenfolge, oder wählen Sie sie aus und nutzen Sie die Pfeilschaltflächen. Entf nimmt eine Seite heraus.</sys:String>
+    <sys:String x:Key="Str_MergeFiles_PageHint">Ziehen Sie Seiten in die gewünschte Reihenfolge oder wählen Sie sie aus und nutzen Sie die Pfeilschaltflächen. Entf nimmt eine Seite heraus.</sys:String>
     <sys:String x:Key="Str_MergeFiles_PageTile">{0}, Seite {1}</sys:String>
     <sys:String x:Key="Str_MergeFiles_WholeFile">Alle Seiten</sys:String>
     <sys:String x:Key="Str_MergeFiles_NoPagesLeft">Alle Seiten wurden herausgenommen, daher gibt es nichts zusammenzuführen.</sys:String>
@@ -1296,8 +1296,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_ImageAsset_Empty">Noch keine gespeicherten Bilder. Mit „Bild importieren“ fügen Sie eines hinzu.</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Desktopverknüpfung erstellen</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">ENTWURF</sys:String>
-    <sys:String x:Key="Str_Sign_NeedCertFile">Wählen Sie zuerst eine Zertifikatdatei (.pfx / .p12).</sys:String>
-    <sys:String x:Key="Str_Sign_NoStoreCert">Im Windows-Zertifikatspeicher ist kein Signaturzertifikat verfügbar.</sys:String>
+    <sys:String x:Key="Str_Sign_NeedCertFile">Wählen Sie zuerst eine Zertifikatsdatei (.pfx / .p12).</sys:String>
+    <sys:String x:Key="Str_Sign_NoStoreCert">Im Windows-Zertifikatsspeicher ist kein Signaturzertifikat verfügbar.</sys:String>
     <sys:String x:Key="Str_Sign_NeedOutput">Wählen Sie, wo die signierte Kopie gespeichert werden soll.</sys:String>
     <sys:String x:Key="Str_Sign_BadCert" xml:space="preserve">Das Zertifikat konnte nicht geöffnet werden.&#10;&#10;Das Passwort ist möglicherweise falsch oder die Datei ist kein gültiges .pfx- bzw. .p12-Zertifikat.</sys:String>
     <sys:String x:Key="Str_Sign_CertLoadFailed">Das Zertifikat konnte nicht geladen werden:</sys:String>
@@ -1997,7 +1997,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Production_NUp">Mehrere Seiten pro Blatt</sys:String>
     <sys:String x:Key="Str_Production_Booklet">Broschüre</sys:String>
     <sys:String x:Key="Str_Production_Repeat">Schritt und Wiederholung</sys:String>
-    <sys:String x:Key="Str_Production_CutStack">Schneiden und Stapeln</sys:String>
+    <sys:String x:Key="Str_Production_CutStack">Schneiden und stapeln</sys:String>
     <sys:String x:Key="Str_Production_Manual">Manuelle Seitenfolge</sys:String>
     <sys:String x:Key="Str_Production_Poster">Posterkacheln</sys:String>
     <sys:String x:Key="Str_Production_Bates">Fortlaufende Bates-Stapelnummerierung</sys:String>
@@ -2066,7 +2066,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Watch_Empty">Noch keine Dateien.</sys:String>
     <sys:String x:Key="Str_Watch_Limits">PDFs bis 64 MB. Identische Dateien werden pro Aufgabenkonfiguration einmal verarbeitet. Dateien mit Kennwörtern oder Schritte mit erforderlichen Eingaben müssen manuell ausgeführt werden.</sys:String>
     <sys:String x:Key="Str_Watch_QueueLimit">Die gespeicherte Auftragsliste fasst bis zu 2.000 Dateien.</sys:String>
-    <sys:String x:Key="Str_Watch_Changed">Speichern und starten verwendet das ausgewählte Makro in seinem aktuellen Zustand. Spätere Makroänderungen ändern diese Aufgabe nicht. Änderungen an Ordnern, Filter oder Makro beginnen eine neue Auftragsliste.</sys:String>
+    <sys:String x:Key="Str_Watch_Changed">Speichern und starten verwendet das ausgewählte Makro in seinem aktuellen Zustand. Spätere Makroänderungen ändern diese Aufgabe nicht. Änderungen an den Ordnern, dem Filter oder dem Makro beginnen eine neue Auftragsliste.</sys:String>
     <sys:String x:Key="Str_Watch_InvalidSetup">Wählen Sie zwei unterschiedliche Ordner, einen PDF-Filter und ein unterstütztes gespeichertes Makro.</sys:String>
     <sys:String x:Key="Str_Watch_Unavailable">Ein Ordner oder die gespeicherte Auftragsliste ist nicht verfügbar. Prüfen Sie den Zugriff und setzen Sie dann fort.</sys:String>
     <sys:String x:Key="Str_Watch_Unsupported">Diese Datei oder dieses Makro muss manuell ausgeführt werden.</sys:String>
@@ -2198,18 +2198,18 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_CertCatalog_TrustPrompt">"{0}" in KillerPDF als Stammzertifikat vertrauen? Von diesem Zertifikat ausgestellte Zertifikate können dann zur Signaturprüfung akzeptiert werden. Die Vertrauenseinstellungen von Windows bleiben unverändert.</sys:String>
     <sys:String x:Key="Str_CertCatalog_RemovePrompt">"{0}" aus dem KillerPDF-Zertifikatskatalog entfernen?</sys:String>
     <sys:String x:Key="Str_CertCatalog_Error">Der Zertifikatskatalog konnte nicht aktualisiert werden:</sys:String>
-    <sys:String x:Key="Str_CertCatalog_LoadError">Die Zertifikatliste konnte nicht gelesen werden:</sys:String>
-    <sys:String x:Key="Str_CertCatalog_WrongFileType">Wählen Sie eine öffentliche Zertifikatdatei (.cer, .crt oder .pem).</sys:String>
+    <sys:String x:Key="Str_CertCatalog_LoadError">Die Zertifikatsliste konnte nicht gelesen werden:</sys:String>
+    <sys:String x:Key="Str_CertCatalog_WrongFileType">Wählen Sie eine öffentliche Zertifikatsdatei (.cer, .crt oder .pem).</sys:String>
     <sys:String x:Key="Str_CertCatalog_NotACertificate">Die Datei enthält kein lesbares öffentliches Zertifikat.</sys:String>
     <sys:String x:Key="Str_CertCatalog_PrivateKey">Private Schlüssel und PFX-Dateien werden nicht akzeptiert. Importieren Sie nur öffentliche Zertifikate.</sys:String>
-    <sys:String x:Key="Str_CertCatalog_TooLarge">Die Zertifikatdatei ist leer oder zu groß.</sys:String>
+    <sys:String x:Key="Str_CertCatalog_TooLarge">Die Zertifikatsdatei ist leer oder zu groß.</sys:String>
     <sys:String x:Key="Str_CertCatalog_Full">KillerPDF kann bis zu {0} importierte Zertifikate speichern.</sys:String>
-    <sys:String x:Key="Str_CertCatalog_Damaged">Der KillerPDF-Zertifikatkatalog kann nicht gelesen werden und wurde unverändert gelassen. Signaturen werden nur gegen das Windows-Vertrauen geprüft. Um neu zu beginnen, löschen Sie {0}.</sys:String>
+    <sys:String x:Key="Str_CertCatalog_Damaged">Der KillerPDF-Zertifikatskatalog kann nicht gelesen werden und wurde unverändert gelassen. Signaturen werden nur gegen das Windows-Vertrauen geprüft. Um neu zu beginnen, löschen Sie {0}.</sys:String>
     <sys:String x:Key="Str_CertCatalog_Imported">{0} Zertifikat(e) importiert. Prüfen Sie ein Stammzertifikat, bevor Sie ihm vertrauen.</sys:String>
     <sys:String x:Key="Str_CertCatalog_ReadOnly">Von Windows verwaltet.</sys:String>
     <sys:String x:Key="Str_CertCatalog_Type">Zertifikatstyp</sys:String>
     <sys:String x:Key="Str_CertCatalog_CA">Zertifizierungsstelle</sys:String>
-    <sys:String x:Key="Str_CertCatalog_Leaf">Endentität</sys:String>
+    <sys:String x:Key="Str_CertCatalog_Leaf">End-Entität</sys:String>
     <sys:String x:Key="Str_Layout_TabsTop">Tabs oben</sys:String>
     <sys:String x:Key="Str_Layout_TabsBottom">Tabs unten</sys:String>
     <sys:String x:Key="Str_About_ShowShortcutsInMenus">Tastenkürzel in Menüs anzeigen</sys:String>
@@ -2253,7 +2253,7 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_NativePdf_Convert">In PDF konvertieren</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">Die PDF wird in einem neuen Tab geöffnet. Ihre Originaldatei bleibt unverändert.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Geben Sie ein gültiges Papierformat und Ränder ein, die Platz für den Inhalt lassen.</sys:String>
-    <sys:String x:Key="Str_NativePdf_DestinationOpen">Diese PDF-Datei ist in einem Tab geöffnet. Schließen Sie sie zuerst, oder wählen Sie einen anderen Namen.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">Diese PDF-Datei ist in einem Tab geöffnet. Schließen Sie sie zuerst oder wählen Sie einen anderen Namen.</sys:String>
     <sys:String x:Key="Str_Convert_FontUnavailable">Die zum Konvertieren dieses Buchs benötigte Schriftart ist auf diesem Computer nicht verfügbar.</sys:String>
     <sys:String x:Key="Str_Convert_DestinationNotPermanent">Die konvertierte PDF-Datei muss in einem dauerhaften Ordner gespeichert werden, nicht in einem temporären.</sys:String>
     <sys:String x:Key="Str_Convert_SameAsSource">Wählen Sie einen anderen Namen für die konvertierte PDF-Datei. Sie darf das Buch, aus dem sie stammt, nicht ersetzen.</sys:String>
@@ -2433,7 +2433,7 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_Rep_Sig_TimestampEvidence">Zeitstempelnachweis: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_TsaSubject">Antragsteller der Zeitstempelstelle: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_TsaSha256">SHA-256 des Zeitstempelstellen-Zertifikats: {0}</sys:String>
-    <sys:String x:Key="Str_Rep_Sig_NetworkRetrieval">Zertifikatabruf über das Netzwerk: {0}</sys:String>
+    <sys:String x:Key="Str_Rep_Sig_NetworkRetrieval">Zertifikatsabruf über das Netzwerk: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_SignerSubject">Antragsteller des Unterzeichners: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_SignerIssuer">Aussteller des Unterzeichners: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_CertificateSha256">Zertifikat SHA-256: {0}</sys:String>
@@ -2443,7 +2443,7 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_Rep_Sig_ValidFrom">Zertifikat gültig ab: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_ValidUntil">Zertifikat gültig bis: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_CertificateTime">Zeitliche Gültigkeit des Zertifikats: {0}</sys:String>
-    <sys:String x:Key="Str_Rep_Sig_Chain">Zertifikatkette: {0}</sys:String>
+    <sys:String x:Key="Str_Rep_Sig_Chain">Zertifikatskette: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_ChainCertificate">Kettenzertifikat {0}: {1}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_Issuer">Aussteller: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Sig_Sha256">SHA-256: {0}</sys:String>
@@ -2598,9 +2598,9 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_Rep_Pre_Structural_InvalidIndirectObject">Ein Objekt kann nicht sicher gelesen oder aufgelöst werden.</sys:String>
     <sys:String x:Key="Str_Rep_Pre_Structural_InvalidStartXref">Die startxref-Angabe fehlt oder ist fehlerhaft.</sys:String>
     <sys:String x:Key="Str_Rep_Pre_Structural_MissingCatalogRoot">Der Trailer verweist auf keinen Dokumentkatalog.</sys:String>
-    <sys:String x:Key="Str_Rep_Pre_Transparency_GraphicsState">Ein Grafikzustand verwendet Transparenz oder einen anderen Füllmodus als Normal.</sys:String>
+    <sys:String x:Key="Str_Rep_Pre_Transparency_GraphicsState">Ein Grafikzustand verwendet Transparenz oder einen anderen Füllmodus als „Normal“.</sys:String>
     <sys:String x:Key="Str_Rep_Pre_Transparency_Group">Ein Formular-XObject verwendet eine Transparenzgruppe.</sys:String>
-    <sys:String x:Key="Str_Rep_Pre_Transparency_ImageSoftMask">Ein Bild verwendet eine Transparenz-Softmask.</sys:String>
+    <sys:String x:Key="Str_Rep_Pre_Transparency_ImageSoftMask">Ein Bild verwendet eine weiche Transparenzmaske.</sys:String>
     <sys:String x:Key="Str_Rep_Pre_Transparency_Invalid">Die Transparenz kann nicht geprüft werden: {0}</sys:String>
     <sys:String x:Key="Str_Rep_Record">Datensatz {0}: {1}</sys:String>
     <sys:String x:Key="Str_Rep_RecordOutput">Datensatz {0}: {1}, Ausgabe {2}</sys:String>
