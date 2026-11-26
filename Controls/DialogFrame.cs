@@ -158,17 +158,25 @@ namespace KillerPDF
                 else
                 {
                     // A title without the wordmark reads as the qualifier does: Killer Sans at 18.
-                    sp.Children.Add(new TextBlock { Text = fullTitle ?? "", FontFamily = UiKit.BrandSansFont, FontSize = 18, Foreground = primary, VerticalAlignment = VerticalAlignment.Center });
+                    var plainTitle = new TextBlock { Text = fullTitle ?? "", FontFamily = UiKit.BrandSansFont, FontSize = 18, Foreground = primary, VerticalAlignment = VerticalAlignment.Center };
+                    // Drawn like the main window's file name, from the same resources.
+                    plainTitle.SetResourceReference(TextBlock.FontFamilyProperty, "FileNameFont");
+                    plainTitle.SetResourceReference(TextBlock.FontSizeProperty, "FileNameFontSize");
+                    sp.Children.Add(plainTitle);
                 }
                 foreach (var text in sp.Children.OfType<TextBlock>())
                 {
-                    if (!shadow) text.SetResourceReference(TextBlock.ForegroundProperty, "ChromeTextBrush");
+                    if (!shadow) text.SetResourceReference(TextBlock.ForegroundProperty, text.Inlines.Count == 0 ? "FilenameBrush" : "ChromeTextBrush");
                     foreach (var run in text.Inlines.OfType<System.Windows.Documents.Run>())
                     {
+                        bool wordmarkRun = run.Text is "Killer" or "PDF";
                         run.SetResourceReference(System.Windows.Documents.TextElement.FontSizeProperty,
-                            run.Text == "Killer" ? "TitleWordmarkSize" : run.Text == "PDF" ? "TitleWordmarkBoldSize" : "TitleSubtitleSize");
+                            run.Text == "Killer" ? "TitleWordmarkSize" : run.Text == "PDF" ? "TitleWordmarkBoldSize" : "FileNameFontSize");
+                        // The words after the wordmark take the main window's file name face, size and color,
+                        // so a dialog's title reads like the title bar it came from.
+                        if (!wordmarkRun) run.SetResourceReference(System.Windows.Documents.TextElement.FontFamilyProperty, "FileNameFont");
                         if (!shadow) run.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty,
-                            run.Text == "PDF" ? "AccentLogo" : "ChromeTextBrush");
+                            run.Text == "PDF" ? "AccentLogo" : wordmarkRun ? "ChromeTextBrush" : "FilenameBrush");
                     }
                 }
                 return sp;
