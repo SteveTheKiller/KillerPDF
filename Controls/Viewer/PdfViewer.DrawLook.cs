@@ -82,6 +82,23 @@ public partial class PdfViewer
     }
 
     /// <summary>
+    /// The text box card changed the selected box's color or size: the text bar the selection opened shows the new
+    /// values, so its next change starts from the box instead of writing the old color or size back.
+    /// </summary>
+    internal void RefreshSelectedTextBar()
+    {
+        if (_selectedAnnotation is not TextAnnotation box) return;
+        var col = box.GetColor();
+        _textColor = col;
+        _textOpacity = col.A;
+        double sy = 1.0;
+        if (_doc is not null && _renderDims.TryGetValue(box.PageIndex, out var rd) && rd.h > 0)
+            sy = PointsPerCanvasUnit(box.PageIndex, rd.h);
+        _textFontSize = Math.Max(1, Math.Round(box.FontSize * sy));
+        if (!KeepsOwnBar(_currentTool)) ShowTextSettings();
+    }
+
+    /// <summary>
     /// What settings save for the draw tools: the look the bar returns to, not a selected mark's. It releases
     /// nothing, because a close or sign-out that saves settings can still be cancelled (1.9.3 review r2 BF-002, r3 BF-001).
     /// </summary>

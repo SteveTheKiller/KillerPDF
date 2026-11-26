@@ -7,11 +7,12 @@ using KillerFamily.Controls;
 
 namespace KillerPDF.Shell
 {
-    // The right-click card for markup on the page (KillerUI card menu). A header names what was clicked; quick buttons
-    // edit, copy, raise, lower, group and delete it; a highlight, Shapes rectangle or drawing gets its color, opacity
-    // (and a drawing its width) right on the card, and a highlight can turn into an underline or a strikethrough in
-    // place. The Highlight bar stays the place to set up the next mark: the card changes only the marks it was opened
-    // on and never the bar's settings. A multi-selection gets the controls that apply to all of it.
+    // The right-click card for markup on the page (KillerUI card menu). The page card's nav row comes first, then a
+    // header that names what was clicked with Delete at its end. The first tile row holds the three actions that matter
+    // most for that kind of mark, the next rows reorder, group and pair it, and the labeled rows below set what that
+    // kind of mark has: color, a shape's fill, opacity, a line's width, a highlight's style, or a text box's ink and
+    // size. The bars stay the place to set up the next mark: the card changes only the marks it was opened on and
+    // never the bar's settings. A multi-selection gets the controls that apply to all of it.
     public partial class MainWindow
     {
         private void AddAnnotationCard(PageAnnotation hit)
@@ -20,6 +21,8 @@ namespace KillerPDF.Shell
             bool multi = SelectionCount() > 1;
             var targets = CardTargets(hit);
 
+            // Every object card opens with the same nav row as the page card: Back, Forward, Undo, Redo, Print and the page.
+            AddNavRow(_ctxMenu, hit.PageIndex);
             _ctxMenu.Items.Add(CardSlot(WithHeaderDelete(AnnotationCardHeader(hit, multi, targets.Count), true), new Thickness(4, 2, 4, 6)));
 
             _annotations.TryGetValue(hit.PageIndex, out var pageList);
@@ -27,16 +30,18 @@ namespace KillerPDF.Shell
             bool canRaise = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, hit, +1) >= 0;
             bool canLower = pageList is not null && idx >= 0 && OverlapNeighbor(pageList, idx, hit, -1) >= 0;
             // Family card grid (KillerUI CardBuilder.TileGroups): three across, one group per row, most used first.
-            // Delete sits in the header; Paste keeps its spot, dimmed with nothing to paste.
-            var clipboard = new List<CardTile>();
-            if (!multi && CanEditAnnotation(hit)) clipboard.Add(new("\uE70F", Loc("Str_Ctx_Edit"), null, () => EditAnnotation(hit), false, true));
-            clipboard.Add(new("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true));
-            clipboard.Add(new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteAnnotations(hit.PageIndex), false, MarkupToPaste()));
+            // Delete sits in the header; Paste keeps its spot, dimmed with nothing to paste. The first row holds the
+            // three actions that matter most for the kind of mark that was clicked.
+            var clipboard = MarkCardTopRow(hit, multi);
             var layers = new List<CardTile>
             {
+                new("\uE74A", Loc("Str_Ctx_BringToFront"), null, () => MoveAnnotationToEdge(hit, front: true), false, canRaise),
                 new("\uE70E", Loc("Str_Ctx_Raise"), null, () => MoveAnnotationLayer(hit, +1), false, canRaise),
                 new("\uE70D", Loc("Str_Ctx_Lower"), null, () => MoveAnnotationLayer(hit, -1), false, canLower),
+                new("\uE74B", Loc("Str_Ctx_SendToBack"), null, () => MoveAnnotationToEdge(hit, front: false), false, canLower),
             };
+            // A text box's Paste moves off its first row (Edit, Duplicate, Copy) and leads the order row instead.
+            if (!clipboard.Any(t => t.Glyph == "\uE77F")) layers.Insert(0, PasteTile(hit));
             var grouping = new List<CardTile>();
             if (hit.GroupId.Length > 0)
             {
@@ -55,34 +60,79 @@ namespace KillerPDF.Shell
             _ctxMenu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(_ctxMenu, strip);
 
+            // Labeled rows start on the icon column, as the kit's CardLabel slots do (KillerUI CardBuilder).
             var colored = targets.Where(HasCardColor).ToList();
             if (colored.Count > 0)
-            {
-                // Labeled rows start on the icon column, as the kit's CardLabel slots do (KillerUI CardBuilder).
                 _ctxMenu.Items.Add(CardSlot(CardColorRow(colored), new Thickness(8, 8, 4, 2)));
-                _ctxMenu.Items.Add(CardSlot(CardSliderRow(Loc("Str_Bar_Opacity"), 10, 255, colored[0] is InkAnnotation ink ? ink.ColorA : ((HighlightAnnotation)colored[0]).ColorA,
-                    value => $"{(int)Math.Round(value / 255.0 * 100)}%", (value, gesture) => ApplyCardStyle(colored, a => SetCardOpacity(a, (byte)value), gesture)),
+            // A closed shape's inside: any color, or none.
+            var filled = targets.Where(IsClosedShape).ToList();
+            if (filled.Count > 0)
+                _ctxMenu.Items.Add(CardSlot(CardFillRow(filled), new Thickness(8, 2, 4, 2)));
+            // A cover stays opaque, so it has no opacity to set.
+            var translucent = colored.Where(a => a is not CoverAnnotation).ToList();
+            if (translucent.Count > 0)
+                _ctxMenu.Items.Add(CardSlot(CardSliderRow(Loc("Str_Bar_Opacity"), 10, 255, CardAlphaOf(translucent[0]),
+                    value => $"{(int)Math.Round(value / 255.0 * 100)}%", (value, gesture) => ApplyCardStyle(translucent, a => SetCardOpacity(a, (byte)value), gesture)),
                     new Thickness(8, 2, 4, 2)));
-            }
-            var inks = targets.Where(a => a is InkAnnotation).ToList();
-            if (inks.Count > 0)
-                _ctxMenu.Items.Add(CardSlot(CardSliderRow(Loc("Str_Bar_Size"), 1, 60, ((InkAnnotation)inks[0]).StrokeWidth, value => $"{value:F0}px",
-                    (value, gesture) => ApplyCardStyle(inks, a => ((InkAnnotation)a).StrokeWidth = Math.Round(value), gesture)), new Thickness(8, 2, 4, 2)));
+            var lines = targets.Where(a => a is InkAnnotation or MeasurementAnnotation).ToList();
+            if (lines.Count > 0)
+                _ctxMenu.Items.Add(CardSlot(CardSliderRow(Loc("Str_Bar_Size"), 1, 60, CardWidthOf(lines[0]), value => $"{value:F0}px",
+                    (value, gesture) => ApplyCardStyle(lines, a => SetCardWidth(a, Math.Round(value)), gesture)), new Thickness(8, 2, 4, 2)));
             var marks = targets.OfType<HighlightAnnotation>().Where(h => h is not CoverAnnotation && !h.IsShape).ToList();
             if (marks.Count > 0)
                 _ctxMenu.Items.Add(CardSlot(CardStyleRow(marks), new Thickness(8, 4, 4, 6)));
+            // Text boxes get their ink and size here; the text bar that opened with the selection keeps the font.
+            var texts = targets.OfType<TextAnnotation>().Cast<PageAnnotation>().ToList();
+            if (texts.Count > 0)
+            {
+                _ctxMenu.Items.Add(CardSlot(CardTextColorRow(texts), new Thickness(8, 8, 4, 2)));
+                _ctxMenu.Items.Add(CardSlot(CardSliderRow(Loc("Str_Bar_Size"), 6, 96, TextPointSize((TextAnnotation)texts[0]), value => $"{value:F0} pt",
+                    (value, gesture) => ApplyTextCardStyle(texts, a => SetTextPointSize((TextAnnotation)a, Math.Round(value)), gesture)), new Thickness(8, 2, 4, 6)));
+            }
+        }
+
+        // The first row of a mark card: the three things done most with this kind of mark. Paste keeps its spot,
+        // dimmed with nothing to paste; a text box or signature leads with Edit.
+        private List<CardTile> MarkCardTopRow(PageAnnotation hit, bool multi)
+        {
+            CardTile copy = new("\uE8C8", Loc("Str_Ctx_Copy"), "Ctrl:C", CopySelectedAnnotations, false, true);
+            CardTile duplicate = new("\uE710", Loc("Str_Ctx_Duplicate"), null, () => DuplicateSelectedAnnotations(hit.PageIndex), false, true);
+            if (!multi && CanEditAnnotation(hit))
+                return [new("\uE70F", Loc("Str_Ctx_Edit"), null, () => EditAnnotation(hit), false, true), duplicate, copy];
+            if (multi) return [duplicate, copy, PasteTile(hit)];
+            return hit switch
+            {
+                // A highlight or cover belongs to the text under it, so a second copy on top of it says nothing new.
+                CoverAnnotation or HighlightAnnotation { IsShape: false } => [copy, PasteTile(hit)],
+                MeasurementAnnotation m => [new("\uE8EF", Loc("Str_Ctx_CopyValue"), null, () => CopyMeasurementValue(m), false, true), copy, PasteTile(hit)],
+                _ => [duplicate, copy, PasteTile(hit)],
+            };
+        }
+
+        private CardTile PasteTile(PageAnnotation hit) =>
+            new("\uE77F", Loc("Str_Ctx_Paste"), "Ctrl:V", () => PasteAnnotations(hit.PageIndex), false, MarkupToPaste());
+
+        private void CopyMeasurementValue(MeasurementAnnotation measurement)
+        {
+            string value = ActiveViewer.MeasurementLabelExt(measurement);
+            if (string.IsNullOrWhiteSpace(value)) return;
+            try { Clipboard.SetText(value); } catch (System.Runtime.InteropServices.ExternalException) { return; }
+            SetStatus(Loc("Str_St_Copied"));
         }
 
         // A mark card's Delete sits at the right end of its header, a nav-row icon button with the Del shortcut in its
         // tooltip, so the strip below keeps its room for the other actions (Steve 2026-11-19). One entry: no Delete tile.
-        private FrameworkElement WithHeaderDelete(FrameworkElement header, bool enabled)
+        private FrameworkElement WithHeaderDelete(FrameworkElement header, bool enabled) =>
+            WithHeaderAction(header, NavRowButton(_ctxMenu!, "\uE74D", "Str_Ctx_DeleteSel", "Del", DeleteSelected, enabled));
+
+        // Any object card's header button: it docks right, ahead of the title, so the title trims before the button goes.
+        private static FrameworkElement WithHeaderAction(FrameworkElement header, FrameworkElement button)
         {
             if (header is not DockPanel dock) return header;
-            var delete = NavRowButton(_ctxMenu!, "\uE74D", "Str_Ctx_DeleteSel", "Del", DeleteSelected, enabled);
-            delete.VerticalAlignment = VerticalAlignment.Center;
-            delete.Margin = new Thickness(8, 0, 0, 0);
-            DockPanel.SetDock(delete, Dock.Right);
-            dock.Children.Insert(dock.Children.Count - 1, delete);
+            button.VerticalAlignment = VerticalAlignment.Center;
+            button.Margin = new Thickness(8, 0, 0, 0);
+            DockPanel.SetDock(button, Dock.Right);
+            dock.Children.Insert(dock.Children.Count - 1, button);
             return dock;
         }
 
@@ -129,26 +179,120 @@ namespace KillerPDF.Shell
             return targets;
         }
 
-        private static bool HasCardColor(PageAnnotation a) => a is InkAnnotation || a is HighlightAnnotation and not CoverAnnotation;
+        private static bool HasCardColor(PageAnnotation a) => a is InkAnnotation or HighlightAnnotation or MeasurementAnnotation;
+
+        // The Shapes tool commits a closed outline: its last point repeats its first.
+        private static bool IsClosedShape(PageAnnotation a) =>
+            a is InkAnnotation ink && (ink.HasFill || (ink.Points.Count > 2 && ink.Points[0] == ink.Points[^1]));
+
+        private static byte CardAlphaOf(PageAnnotation a) => a switch
+        {
+            InkAnnotation ink => ink.ColorA,
+            HighlightAnnotation h => h.ColorA,
+            MeasurementAnnotation m => m.ColorA,
+            _ => 255
+        };
+
+        private static double CardWidthOf(PageAnnotation a) => a switch
+        {
+            InkAnnotation ink => ink.StrokeWidth,
+            MeasurementAnnotation m => m.StrokeWidth,
+            _ => 1
+        };
+
+        private static void SetCardWidth(PageAnnotation a, double width)
+        {
+            if (a is InkAnnotation ink) ink.StrokeWidth = width;
+            else if (a is MeasurementAnnotation m) m.StrokeWidth = width;
+        }
+
+        // A shape's fill: a swatch fills it at the fill's own opacity (or the outline's, when it had none), and the
+        // outline swatch empties it.
+        private FrameworkElement CardFillRow(List<PageAnnotation> shapes)
+        {
+            var row = new SwatchRow { PickerName = Loc("Str_Bar_MoreColors") };
+            var fills = shapes.Cast<InkAnnotation>().Select(s => s.HasFill ? SwatchRow.Hex(Color.FromRgb(s.FillR, s.FillG, s.FillB)) : "").Distinct().ToList();
+            row.Show(SwatchColors, fills.Count == 1 ? fills[0] : null);
+            void Fill(Color? chosen) => ApplyCardStyle(shapes, a =>
+            {
+                var ink = (InkAnnotation)a;
+                if (chosen is not { } c) { ink.FillA = 0; return; }
+                byte alpha = ink.FillA > 0 ? ink.FillA : ink.ColorA;
+                ink.SetFillColor(Color.FromArgb(alpha, c.R, c.G, c.B));
+            });
+            row.ColorChosen += hex => Fill(hex.Length == 0 ? null : (Color)ColorConverter.ConvertFromString(hex));
+            row.PickRequested += () =>
+            {
+                _ctxMenu.IsOpen = false;
+                var first = (InkAnnotation)shapes[0];
+                OpenColorPicker(first.HasFill ? first.GetFillColor() : first.GetColor(), chosen => Fill(chosen));
+            };
+            return LabelledCardRow(Loc("Str_Bar_ShapeFill"), row);
+        }
+
+        private FrameworkElement CardTextColorRow(List<PageAnnotation> texts)
+        {
+            var row = new SwatchRow { PickerName = Loc("Str_Bar_MoreColors") };
+            var colors = texts.Cast<TextAnnotation>().Select(t => Color.FromRgb(t.ColorR, t.ColorG, t.ColorB)).Distinct().ToList();
+            row.Show(SwatchColors, colors.Count == 1 ? SwatchRow.Hex(colors[0]) : null);
+            // Text always has a color, so the kit's no-color outline has nothing to do here.
+            if (row.Children.Count > 0) row.Children.RemoveAt(0);
+            void Ink(Color c) => ApplyTextCardStyle(texts, a =>
+            {
+                var text = (TextAnnotation)a;
+                text.SetColor(Color.FromArgb(text.ColorA, c.R, c.G, c.B));
+            });
+            row.ColorChosen += hex => { if (hex.Length > 0) Ink((Color)ColorConverter.ConvertFromString(hex)); };
+            row.PickRequested += () =>
+            {
+                _ctxMenu.IsOpen = false;
+                OpenColorPicker(colors.Count > 0 ? colors[0] : Colors.Black, Ink);
+            };
+            return LabelledCardRow(Loc("Str_Bar_Color"), row);
+        }
+
+        // A text box's size in points, the unit the text bar shows, from its size in canvas units.
+        private double TextPointSize(TextAnnotation text)
+        {
+            double sy = _renderDims.TryGetValue(text.PageIndex, out var rd) && rd.h > 0 ? PointsPerCanvasUnit(text.PageIndex, rd.h) : 1;
+            return Math.Clamp(Math.Round(text.FontSize * (sy > 0 ? sy : 1)), 6, 96);
+        }
+
+        private void SetTextPointSize(TextAnnotation text, double points)
+        {
+            double sy = _renderDims.TryGetValue(text.PageIndex, out var rd) && rd.h > 0 ? PointsPerCanvasUnit(text.PageIndex, rd.h) : 1;
+            if (sy > 0) text.FontSize = points / sy;
+        }
+
+        // A text card change, then the text bar the selection opened catches up so its next change keeps the new look.
+        private void ApplyTextCardStyle(List<PageAnnotation> texts, Action<PageAnnotation> change, Controls.SliderGesture? gesture = null)
+        {
+            ApplyCardStyle(texts, change, gesture);
+            // A size drag catches the bar up once it settles, on the same timer as the draw bar.
+            if (gesture is null) ActiveViewer.RefreshSelectedTextBar();
+        }
 
         private FrameworkElement AnnotationCardHeader(PageAnnotation hit, bool multi, int count)
         {
+            Color? color = hit switch { InkAnnotation ink => ink.GetColor(), HighlightAnnotation h => h.GetColor(), TextAnnotation t => t.GetColor(), MeasurementAnnotation m => m.GetColor(), _ => null };
+            string title = multi ? string.Format(Loc("Str_Card_ItemsSelected"), count) : AnnotationKindLabel(hit);
+            string meta = string.Format(Loc("Str_PageLabel"), hit.PageIndex + 1);
+            if (!multi && color is { } shade && hit is HighlightAnnotation or InkAnnotation or MeasurementAnnotation)
+                meta += " · " + (int)Math.Round(shade.A / 255.0 * 100) + "%";
+            return ObjectCardHeader(title, meta, color);
+        }
+
+        // An object card's header: an optional color dot, the title and a dim line under it.
+        private static FrameworkElement ObjectCardHeader(string titleText, string meta, Color? color)
+        {
             var dot = new Ellipse { Width = 10, Height = 10, StrokeThickness = 1, Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center };
             dot.SetResourceReference(Shape.StrokeProperty, "MenuBorderBrush");
-            Color? color = hit switch { InkAnnotation ink => ink.GetColor(), HighlightAnnotation h => h.GetColor(), TextAnnotation t => t.GetColor(), _ => null };
             if (color is { } c) dot.Fill = new SolidColorBrush(Color.FromRgb(c.R, c.G, c.B));
             else dot.Visibility = Visibility.Collapsed;
 
-            var title = new TextBlock
-            {
-                Text = multi ? string.Format(Loc("Str_Card_ItemsSelected"), count) : AnnotationKindLabel(hit),
-                FontSize = 14, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis
-            };
+            var title = new TextBlock { Text = titleText, FontSize = 14, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
             title.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-            string meta = string.Format(Loc("Str_PageLabel"), hit.PageIndex + 1);
-            if (!multi && color is { } shade && hit is HighlightAnnotation or InkAnnotation)
-                meta += " · " + (int)Math.Round(shade.A / 255.0 * 100) + "%";
-            var sub = new TextBlock { Text = meta, FontSize = 11, Margin = new Thickness(0, 1, 0, 0) };
+            var sub = new TextBlock { Text = meta, FontSize = 11, Margin = new Thickness(0, 1, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
             sub.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
             var text = new StackPanel();
             text.Children.Add(title);
@@ -235,19 +379,23 @@ namespace KillerPDF.Shell
         {
             InkAnnotation ink => Color.FromRgb(ink.ColorR, ink.ColorG, ink.ColorB),
             HighlightAnnotation h => Color.FromRgb(h.ColorR, h.ColorG, h.ColorB),
+            MeasurementAnnotation m => Color.FromRgb(m.ColorR, m.ColorG, m.ColorB),
             _ => Colors.Transparent
         };
 
+        // A cover's own SetColor keeps it opaque, so recoloring one never lets the old text show through.
         private static void SetCardColor(PageAnnotation a, Color c)
         {
             if (a is InkAnnotation ink) ink.SetColor(Color.FromArgb(ink.ColorA, c.R, c.G, c.B));
             else if (a is HighlightAnnotation h) h.SetColor(Color.FromArgb(h.ColorA, c.R, c.G, c.B));
+            else if (a is MeasurementAnnotation m) m.SetColor(Color.FromArgb(m.ColorA, c.R, c.G, c.B));
         }
 
         private static void SetCardOpacity(PageAnnotation a, byte alpha)
         {
             if (a is InkAnnotation ink) ink.SetColor(Color.FromArgb(alpha, ink.ColorR, ink.ColorG, ink.ColorB));
             else if (a is HighlightAnnotation h) h.SetColor(Color.FromArgb(alpha, h.ColorR, h.ColorG, h.ColorB));
+            else if (a is MeasurementAnnotation m) m.SetColor(Color.FromArgb(alpha, m.ColorR, m.ColorG, m.ColorB));
         }
 
         // Changes the card's marks directly, never the bar: one undo step per change (a slider drag is one gesture).
@@ -271,7 +419,12 @@ namespace KillerPDF.Shell
                 // The pane the card changed, not whichever pane has focus when the timer fires (r3 BF-003).
                 _cardBarRefreshPane = ActiveViewer;
                 _cardBarRefresh ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromMilliseconds(200),
-                    System.Windows.Threading.DispatcherPriority.Background, (_, _) => { _cardBarRefresh!.Stop(); _cardBarRefreshPane?.RefreshSelectedDrawBar(); }, Dispatcher);
+                    System.Windows.Threading.DispatcherPriority.Background, (_, _) =>
+                    {
+                        _cardBarRefresh!.Stop();
+                        _cardBarRefreshPane?.RefreshSelectedDrawBar();
+                        _cardBarRefreshPane?.RefreshSelectedTextBar();
+                    }, Dispatcher);
                 _cardBarRefresh.Stop();
                 _cardBarRefresh.Start();
             }

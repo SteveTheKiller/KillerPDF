@@ -81,6 +81,9 @@ namespace KillerPDF.Features
         /// <summary>Fills a themed menu with the card style's tile grid (Shell/PageCard.cs QuickStrip),
         /// so the viewer's own menus (the tab menu) match the page and gray-area cards.</summary>
         void FillCardMenu(ContextMenu menu, int columns, IReadOnlyList<ViewerCardTile> tiles);
+        /// <summary>Opens an object card for something the viewer owns, such as a form field: the page card's nav row,
+        /// a header with an optional Delete, and the card's tile rows, at the mouse over <paramref name="target"/>.</summary>
+        void ShowObjectCard(PdfViewer viewer, ViewerObjectCard card, UIElement target);
         void CloseSearchBar();
         void HideSignaturePopup();
         void SaveTempAndReload(bool keepAnnotations, bool preserveZoom,
@@ -199,5 +202,12 @@ namespace KillerPDF.Features
     {
         public MenuItem? Flyout { get; init; }
         public bool? Checked { get; init; }
+    }
+
+    /// <summary>An object card the viewer asks the host to open (IViewerHost.ShowObjectCard). Rows are tile groups,
+    /// three across, most used first. Delete, when set, is the header's Delete button.</summary>
+    internal sealed record ViewerObjectCard(int PageIndex, string Title, string Meta, IReadOnlyList<IReadOnlyList<ViewerCardTile>> Rows)
+    {
+        public System.Action? Delete { get; init; }
     }
 }

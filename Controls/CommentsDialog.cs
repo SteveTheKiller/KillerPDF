@@ -232,6 +232,24 @@ internal sealed class CommentsDialog : Window
         _text.Focus();
     }
 
+    /// <summary>Selects the comment a right-click card was opened on; false when the list does not hold it.</summary>
+    internal bool Select(PdfCommentInfo comment)
+    {
+        foreach (ListBoxItem item in _list.Items)
+            if (item.Tag is Node { Source: { } source } && source.PageIndex == comment.PageIndex
+                && source.AnnotationIndex == comment.AnnotationIndex)
+            {
+                _list.SelectedItem = item;
+                _list.ScrollIntoView(item);
+                _text.Focus();
+                return true;
+            }
+        return false;
+    }
+
+    /// <summary>Starts a reply to the selected comment, as the Reply button does.</summary>
+    internal void Reply() => AddReply();
+
     private void AddReply()
     {
         if (Selected is not Node parent || string.IsNullOrEmpty(parent.Name)) return;

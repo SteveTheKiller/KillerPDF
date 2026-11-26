@@ -263,7 +263,9 @@ public sealed class SignatureEditorTests
         Assert.Contains("private static bool CanEditAnnotation(", edit, StringComparison.Ordinal);
 
         string card = ShellSource.Read("Shell", "AnnotationCard.cs");
-        Assert.Contains("if (!multi && CanEditAnnotation(hit)) clipboard.Add(", card, StringComparison.Ordinal);
+        string top = ShellSource.Between(card, "private List<CardTile> MarkCardTopRow(", "private CardTile PasteTile(");
+        Assert.Contains("if (!multi && CanEditAnnotation(hit))", top, StringComparison.Ordinal);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(top, @"=> EditAnnotation\(hit\)"));
     }
 
     [Fact]

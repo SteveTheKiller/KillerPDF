@@ -61,6 +61,8 @@ namespace KillerPDF.Shell
             menu.Items.Add(CardSlot(grid, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, grid);
         }
+        void IViewerHost.ShowObjectCard(PdfViewer viewer, ViewerObjectCard card, UIElement target)
+            => ((IViewerHost)this).RunWithViewerContext(viewer, () => ShowObjectCard(card, target));
         void IViewerHost.CloseSearchBar() => CloseSearchBar();
         void IViewerHost.HideSignaturePopup() => HideSignaturePopup();
         void IViewerHost.SaveTempAndReload(bool keepAnnotations, bool preserveZoom,

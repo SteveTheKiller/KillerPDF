@@ -106,6 +106,10 @@ namespace KillerPDF.Shell
             // under the cursor by bounds-check and offer the same menu the single-page overlay carries.
             else if (LinkAt(pt, pageIdx) is { } lk)
                 AddLinkMenuItems(_ctxMenu, lk.target, lk.annotIndex, pageIdx);
+            // A review comment from the file gets its own card, unless text is selected: then the page card's
+            // selected-text actions come first.
+            else if (string.IsNullOrEmpty(_selectedText) && ActiveViewer.CommentAtExt(pageIdx, pt) is { } comment)
+                AddCommentCard(comment);
             else if (ActiveViewer.TrySelectSourceImageExt(pageIdx, pt) && ActiveViewer.SelectedSourceImageExt is { } sourcePicture)
                 AddPictureCard(sourcePicture, placed: false);
             else AddPageMenuItems(pt, pageIdx);
@@ -143,6 +147,7 @@ namespace KillerPDF.Shell
             InkAnnotation => Loc("Str_Annot_Drawing"),
             SignatureAnnotation => Loc("Str_Annot_Signature"),
             ImageAnnotation => Loc("Str_Annot_Image"),
+            MeasurementAnnotation => Loc("Str_Annot_Measurement"),
             HighlightAnnotation { IsShape: true } => Loc("Str_Annot_Drawing"),
             HighlightAnnotation h => h.Style switch
             {
@@ -354,13 +359,14 @@ namespace KillerPDF.Shell
             menu.Items.Add(new Separator());
         }
 
-        private Button NavRowButton(ContextMenu menu, string glyph, string labelKey, string cap, Action act, bool enabled)
+        // cap null: the action has no key of its own, so the tooltip is just its name.
+        private Button NavRowButton(ContextMenu menu, string glyph, string labelKey, string? cap, Action act, bool enabled)
         {
             var button = new Button
             {
                 Content = glyph,
                 IsEnabled = enabled,
-                ToolTip = WithGesture(Loc(labelKey), cap),
+                ToolTip = cap is null ? Loc(labelKey) : WithGesture(Loc(labelKey), cap),
             };
             if (TryFindResource("ToolbarButton") is Style style) button.Style = style;
             // Slimmer than a 36x32 toolbar button, so the nav row never runs wider than the card's three tiles
@@ -487,6 +493,21 @@ namespace KillerPDF.Shell
             PushPageSnapshotUndo(a.PageIndex);
             list.RemoveAt(i);
             list.Insert(target, a);   // after removal, inserting at the neighbor's old index lands a past it
+            RenderAllAnnotations(a.PageIndex);
+            ReattachSelectionVisuals();
+            MarkDirty();
+        }
+
+        // Bring to Front puts a mark over everything on its page and Send to Back under everything; the card only
+        // offers each while something overlaps the mark on that side.
+        private void MoveAnnotationToEdge(PageAnnotation a, bool front)
+        {
+            if (!_annotations.TryGetValue(a.PageIndex, out var list)) return;
+            int i = list.IndexOf(a);
+            if (i < 0 || i == (front ? list.Count - 1 : 0)) return;
+            PushPageSnapshotUndo(a.PageIndex);
+            list.RemoveAt(i);
+            list.Insert(front ? list.Count : 0, a);
             RenderAllAnnotations(a.PageIndex);
             ReattachSelectionVisuals();
             MarkDirty();
@@ -642,11 +663,31 @@ namespace KillerPDF.Shell
         // Copy the current selection (primary or multi-select) into the annotation clipboard.
         private void CopySelectedAnnotations()
         {
+            var copies = CloneSelectedAnnotations();
+            if (copies.Count == 0) return;
+            _annotationClipboard.Set(copies, Services.MarkupClipboard.SystemSequence());
+
+            SetStatus(string.Format(Loc(copies.Count == 1
+                ? "Str_St_CopiedAnnotationOne" : "Str_St_CopiedAnnotationMany"), copies.Count));
+        }
+
+        // Duplicate drops a copy of the selection beside it in one step, leaving the clipboard as it was.
+        private void DuplicateSelectedAnnotations(int pageIdx)
+        {
+            var copies = CloneSelectedAnnotations();
+            if (PlaceAnnotationCopies(copies, pageIdx) is int placed and > 0)
+                SetStatus(string.Format(Loc(placed == 1
+                    ? "Str_St_DuplicatedAnnotationOne" : "Str_St_DuplicatedAnnotationMany"), placed));
+        }
+
+        // Independent clones of the selection, each page's marks in stack order.
+        private List<PageAnnotation> CloneSelectedAnnotations()
+        {
             var sel = new List<PageAnnotation>();
             if (ActiveViewer.SelectedSourceImageExt is { } sourceImage) sel.Add(sourceImage);
             if (_selectedAnnotation is not null) sel.Add(_selectedAnnotation);
             foreach (var a in _selectedSet) if (!sel.Contains(a)) sel.Add(a);
-            if (sel.Count == 0) return;
+            if (sel.Count == 0) return [];
             // A replacement copies as the whole object, cover and text, whichever layer was selected, and each
             // page's marks keep their stack order so the paste doesn't put a cover over its text. (#467)
             var expanded = new List<PageAnnotation>();
@@ -659,10 +700,7 @@ namespace KillerPDF.Shell
             var copies = new List<PageAnnotation>();
             foreach (var a in sel)
                 if (CloneAnnotation(a) is { } c) copies.Add(c);
-            _annotationClipboard.Set(copies, Services.MarkupClipboard.SystemSequence());
-
-            SetStatus(string.Format(Loc(copies.Count == 1
-                ? "Str_St_CopiedAnnotationOne" : "Str_St_CopiedAnnotationMany"), copies.Count));
+            return copies;
         }
 
         // Paste the clipboard onto pageIdx: fresh clones nudged down-right so they don't sit exactly on
@@ -671,13 +709,23 @@ namespace KillerPDF.Shell
         private void PasteAnnotations(int pageIdx)
         {
             // EPUB and DjVu books are read-only; annotations cannot be added to them.
-            if (!MarkupToPaste() || pageIdx < 0 || ActiveViewer.NativeDocumentRef is not null) return;
+            if (!MarkupToPaste() || pageIdx < 0) return;
+            if (PlaceAnnotationCopies(_annotationClipboard.Items, pageIdx) is int placed and > 0)
+                SetStatus(string.Format(Loc(placed == 1
+                    ? "Str_St_PastedAnnotationOne" : "Str_St_PastedAnnotationMany"), placed));
+        }
+
+        // Shared by Paste and Duplicate: adds fresh clones of sources to pageIdx and selects them; returns the count.
+        private int PlaceAnnotationCopies(IEnumerable<PageAnnotation> sources, int pageIdx)
+        {
+            // EPUB and DjVu books are read-only; annotations cannot be added to them.
+            if (pageIdx < 0 || ActiveViewer.NativeDocumentRef is not null) return 0;
             const double off = 14;
 
             var pasted = new List<PageAnnotation>();
             var pairMap = new Dictionary<string, string>();
             var groupMap = new Dictionary<string, string>();
-            foreach (var src in _annotationClipboard.Items)
+            foreach (var src in sources)
             {
                 if (CloneAnnotation(src) is not { } c) continue;
                 c.PageIndex = pageIdx;
@@ -705,7 +753,7 @@ namespace KillerPDF.Shell
                 AnnotSetPos(c, ClampAnnotPos(c));
                 pasted.Add(c);
             }
-            if (pasted.Count == 0) return;
+            if (pasted.Count == 0) return 0;
 
             ClearSelection();
             foreach (var c in pasted) AddAnnotation(c);
@@ -717,9 +765,7 @@ namespace KillerPDF.Shell
                 SelectAnnotation(pasted[0], AnnotBounds(pasted[0]));
             else
                 foreach (var c in pasted) ToggleMultiSelect(c, AnnotBounds(c), canvas);
-
-            SetStatus(string.Format(Loc(pasted.Count == 1
-                ? "Str_St_PastedAnnotationOne" : "Str_St_PastedAnnotationMany"), pasted.Count));
+            return pasted.Count;
         }
 
         // --- Edit / pairing / grouping menu actions ------------------------------------------------

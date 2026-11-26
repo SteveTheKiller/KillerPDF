@@ -22,6 +22,8 @@ namespace KillerPDF.Shell
         {
             if (TryFindResource("CardMenu") is Style card) _ctxMenu.Style = card;
             bool canRemove = placed || ActiveViewer.CanDeleteSelectedSourceImageExt;
+            // The nav row every object card shares with the page card.
+            AddNavRow(_ctxMenu, picture.PageIndex);
             _ctxMenu.Items.Add(CardSlot(WithHeaderDelete(PictureCardHeader(picture), canRemove), new Thickness(4, 2, 4, 6)));
 
             // Family card grid (KillerUI CardBuilder.TileGroups): three across, four full rows by default, most used
@@ -85,7 +87,7 @@ namespace KillerPDF.Shell
             sub.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
             var glyph = new TextBlock
             {
-                Text = "", FontSize = 18, Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center,
+                Text = "\uEB9F", FontSize = 18, Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center,
                 FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets")
             };
             glyph.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryBrush");

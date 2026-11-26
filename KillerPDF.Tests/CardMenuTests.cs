@@ -51,7 +51,7 @@ public sealed class CardMenuTests
         // edge the header and the ordinary rows' icons use; at 24, past the gutter, the labels sat in from everything.
         string annotation = Read("Shell", "AnnotationCard.cs");
         Assert.DoesNotMatch(@"CardSlot\([^;]*new Thickness\(24,", annotation);
-        Assert.Equal(4, System.Text.RegularExpressions.Regex.Matches(annotation, @"new Thickness\(8, \d, 4, \d\)").Count);
+        Assert.Equal(7, System.Text.RegularExpressions.Regex.Matches(annotation, @"new Thickness\(8, \d, 4, \d\)").Count);
         // The quick strip draws no rules and adds no padding: with CardMenu's 7 and the 1px border, a tile's hover sits
         // 8 px from every edge of the card (family rule, Steve 2026-11-19).
         string strip = Between(Read("Controls", "CardBuilder.cs"), "var strip = new Border", "return strip;");
@@ -300,5 +300,31 @@ public sealed class CardMenuTests
         Assert.Contains("if (grids.TryGetValue(edit.Key, out var last)) { grids.Remove(edit.Key); last.Unhook(); }", kit);
         Assert.Contains("other.EndEditing();", kit);
         Assert.Contains("SavedLayout(order,", kit);
+    }
+
+    // 1.9.7: every object gets its own card. Marks, pictures, comments and form fields each open a card that starts
+    // with the shared nav row, puts Delete in the header, and shows only that object's tiles.
+    [Fact]
+    public void EachObjectOpensItsOwnCardUnderTheSharedNavRow()
+    {
+        string menu = Read("Shell", "ContextMenu.cs");
+        Assert.Contains("ActiveViewer.CommentAtExt(pageIdx, pt) is { } comment", menu);
+        Assert.True(menu.IndexOf("CommentAtExt(", StringComparison.Ordinal) < menu.IndexOf("else AddPageMenuItems(pt, pageIdx);", StringComparison.Ordinal));
+        foreach (string file in new[] { "AnnotationCard.cs", "PictureCard.cs", "Comments.cs", "ObjectCard.cs" })
+        {
+            string card = Read("Shell", file);
+            Assert.Contains("AddNavRow(", card);
+            Assert.DoesNotContain(card, c => c >= (char)0xE000 && c <= (char)0xF8FF);
+        }
+        string annotation = Read("Shell", "AnnotationCard.cs");
+        Assert.Contains("Str_Ctx_Duplicate", annotation);
+        Assert.Contains("Str_Ctx_BringToFront", annotation);
+        Assert.Contains("Str_Ctx_SendToBack", annotation);
+        // Form fields go through the host's object card instead of a plain context menu.
+        string presets = Read("Controls", "Viewer", "PdfViewer.FieldPresets.cs");
+        Assert.Contains("host.ShowObjectCard(this, new ViewerObjectCard(", presets);
+        Assert.DoesNotContain("ShowFormFieldMenu", presets);
+        Assert.Contains("ShowFormFieldCard(field, pageIndex, element);", Read("Controls", "Viewer", "PdfViewer.Forms.cs"));
+        Assert.Contains("void ShowObjectCard(PdfViewer viewer, ViewerObjectCard card, UIElement target);", Read("Features", "Viewer", "IViewerHost.cs"));
     }
 }

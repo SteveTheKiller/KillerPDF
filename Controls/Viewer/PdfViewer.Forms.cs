@@ -107,9 +107,10 @@ namespace KillerPDF.Controls
             };
             element.PreviewMouseRightButtonDown += (_, e) =>
             {
-                if (_currentTool != EditTool.FormField || field.FieldType != "/Tx") return;
+                // A field being typed in keeps its own edit menu (cut, copy, paste) outside the Form Field tool.
+                if (_currentTool != EditTool.FormField && element.IsKeyboardFocusWithin) return;
                 e.Handled = true;
-                ShowFormFieldMenu(field, pageIndex, element);
+                ShowFormFieldCard(field, pageIndex, element);
             };
             element.PreviewMouseMove += (_, e) =>
             {

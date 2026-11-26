@@ -47,6 +47,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The OCR language list shows two columns with flags, like the interface language picker, so it fits a short window.
 - The keyboard shortcuts card keeps its rounded corners and thin top edge while the list is scrolled.
 
+### Added
+- Right-clicking a drawing, text box, picture, comment or form field opens a card made for it, under the same Back, Forward, Undo, Redo and Print row as the page card. Delete sits in the card's header.
+- A mark's card duplicates it, brings it to the front or sends it to the back, and sets its color, fill, opacity and line width. A text box's card also sets its text color and size.
+- A comment's card edits it, replies to it, copies its text or deletes it.
+- A form field's card fills, clears or copies its value and copies the field's name. A text field's card also saves and manages presets.
+
 ## [1.9.6] - 2026-11-24
 
 1.9.6 adds Swedish and Korean. The rest is interface refinements and bug fixes.
