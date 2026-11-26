@@ -326,6 +326,7 @@
     <Compile Include="..\Services\OfficeConversion.cs" Link="Services\OfficeConversion.cs" />
     <Compile Include="..\Services\PreviewHandlerRegistration.cs" Link="Services\PreviewHandlerRegistration.cs" />
     <Compile Include="..\PreviewHandler\ShellInterfaces.cs" Link="PreviewHandler\ShellInterfaces.cs" />
+    <Compile Include="..\PreviewHandler\PreviewUiThread.cs" Link="PreviewHandler\PreviewUiThread.cs" />
     <Compile Include="..\Services\CommandLinePath.cs" Link="Services\CommandLinePath.cs" />
     <Compile Include="..\Features\Cli\CliSecrets.cs" Link="Features\Cli\CliSecrets.cs" />
     <Compile Include="..\Packaging\KillerLauncher\PortableProcessIdentity.cs" Link="Packaging\PortableProcessIdentity.cs" />

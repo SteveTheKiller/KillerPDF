@@ -1,9 +1,15 @@
+using System.Runtime.InteropServices;
 using System.Windows.Threading;
 
 namespace KillerPDF.PreviewHandler;
 
-internal static class PreviewUiThread
+internal static partial class PreviewUiThread
 {
+    // prevhost.exe is only system DPI aware, but Outlook and Explorer hand the preview its bounds in
+    // physical pixels. A system-aware window on a monitor scaled unlike the primary one gets those
+    // bounds rescaled and lands off to the side (#410), so this thread runs per-monitor aware.
+    private static readonly IntPtr PerMonitorAwareV2 = new(-4);
+
     private static readonly Lazy<Dispatcher> Owner = new(Start);
 
     internal static void Invoke(Action action)
@@ -26,6 +32,8 @@ internal static class PreviewUiThread
         {
             try
             {
+                // Before any window exists on this thread; a failure leaves the host's own mode.
+                SetThreadDpiAwarenessContext(PerMonitorAwareV2);
                 Dispatcher dispatcher = Dispatcher.CurrentDispatcher;
                 dispatcher.BeginInvoke(DispatcherPriority.Send, () => ready.TrySetResult(dispatcher));
                 Dispatcher.Run();
@@ -36,4 +44,7 @@ internal static class PreviewUiThread
         thread.Start();
         return ready.Task.GetAwaiter().GetResult();
     }
+
+    [LibraryImport("user32.dll")]
+    private static partial IntPtr SetThreadDpiAwarenessContext(IntPtr context);
 }
