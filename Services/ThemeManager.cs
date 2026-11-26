@@ -1053,7 +1053,16 @@ namespace KillerPDF.Services
             SetIfAbsent("DialogCaptionButtonsMargin", new Thickness(0, 0,
                 combined["CaptionButtonsMargin"] is Thickness pickerButtons ? pickerButtons.Right : 0, 0));
             SetIfAbsent("TitleLogoMargin", combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool fc && fc
-                ? combined["TitleBarPadding"] : new Thickness(4, 4, 0, -2));
+                ? combined["TitleBarPadding"] : new Thickness(4, 0, 0, 0));
+            if (!combined.Contains("TitleLogoTransform"))
+            {
+                // The logo row gets the whole bar as its slot and moves down 3 with a transform, so the 27px icon
+                // sits 4 below the top. A slot no taller than the icon let WPF's layout clip shave its top off.
+                bool captionLogo = combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool fl && fl;
+                var logoShift = new TranslateTransform(0, captionLogo ? 0 : 3);
+                logoShift.Freeze();
+                combined["TitleLogoTransform"] = logoShift;
+            }
             // The UI face for everything that is not the app (mono) slot; a flat theme keeps its caption font.
             SetIfAbsent("UiFont", combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool fu && fu
                 ? combined["ChromeFontFamily"] : KillerSansUiStack);
@@ -1093,9 +1102,7 @@ namespace KillerPDF.Services
                 combined["FileNameTransform"] = fileNameShift;
             }
             // The title bar lost 3px at the bottom. The file name takes a 3px top margin, so it stays centered
-            // where it was and only the toolbar moves up. The logo row keeps the same center with 4 above and
-            // -2 below: its slot stays 27 high for the 27px icon. A top margin of 6 left a 23px slot, and WPF's
-            // layout clip then cut the wordmark's drips off at the bottom of the bar.
+            // where it was and only the toolbar moves up. The logo row's offset lives in TitleLogoTransform.
             SetIfAbsent("FileNameMargin", new Thickness(16, flatTitle ? 0 : 3, 12, 0));
             // The app (mono) slot: Killer Sans UI, the family UI face, over the Segoe stack. It is
             // completed here rather than in AppStyles.xaml so 98SE can state its own face; a font

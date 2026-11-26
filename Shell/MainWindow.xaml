@@ -1624,7 +1624,8 @@
                         ToolTip="{DynamicResource Str_TT_AppSize}"
                         MouseWheel="LogoBar_MouseWheel"
                         MouseLeftButtonDown="LogoBar_MouseLeftButtonDown">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="{DynamicResource TitleLogoMargin}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="{DynamicResource TitleLogoMargin}"
+                            RenderTransform="{DynamicResource TitleLogoTransform}">
                     <icons:AppIcon x:Name="TitleIcon"
                            Width="{DynamicResource TitleIconSize}" Height="{DynamicResource TitleIconSize}" Margin="{DynamicResource TitleIconMargin}" VerticalAlignment="Center"
                            RenderOptions.BitmapScalingMode="NearestNeighbor">
