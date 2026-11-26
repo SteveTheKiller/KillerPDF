@@ -25,7 +25,8 @@ KillerPDF is a free, open-source PDF editor for Windows. Read, annotate, edit, o
 - Redact by area, text search or sensitive-data pattern, verify the result, and save a separate redacted copy.
 - Protect copies with passwords or certificate recipients. Sign PDFs and inspect signature integrity, certificate chains, timestamps and later changes.
 - Check documents with Preflight, including PDF/UA-1 and PDF/UA-2 accessibility checks. Repeat work with guided tasks, macros, watched folders, data merge and the command line.
-- View pages color-managed on monitors with a color profile, and proof a document against a printer profile.
+- View pages color-managed on monitors with a color profile, proof a document against a printer profile, and print with a printer profile.
+- Preview PDFs in File Explorer and classic Outlook with an installed copy, with scrolling, zoom and a button that opens the file in KillerPDF.
 - Choose from 14 themes and 22 interface languages, customize shortcuts and right-click cards, and scale the whole interface.
 
 Source-text and paragraph editing work on supported layouts and fonts; scanned pages need OCR first. Exported Office files can change layout, so review them before sharing. Signature reports tell failed checks apart from evidence that is unavailable or has not been checked.
