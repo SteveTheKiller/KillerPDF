@@ -213,5 +213,7 @@ namespace KillerPDF.Features
         public System.Action? Delete { get; init; }
         /// <summary>Set for a card the user can customize (KillerUI CardEdit): its saved name, such as "FormField".</summary>
         public string? CardKey { get; init; }
+        /// <summary>Glyphs of the tiles a customizable card never hides, so it can't be emptied.</summary>
+        public string[] LockedGlyphs { get; init; } = [];
     }
 }

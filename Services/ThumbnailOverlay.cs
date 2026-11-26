@@ -55,7 +55,7 @@ internal static class ThumbnailOverlay
                         StartLineCap = ink.SquareEnds ? PenLineCap.Square : PenLineCap.Round,
                         EndLineCap = ink.SquareEnds ? PenLineCap.Square : PenLineCap.Round,
                         LineJoin = ink.SquareEnds ? PenLineJoin.Miter : PenLineJoin.Round,
-                        MiterLimit = InkAnnotation.SquareMiterLimit,
+                        MiterLimit = InkAnnotation.SquareMiterLimitWpf,
                     },
                     line);
                 break;

@@ -279,7 +279,7 @@ namespace KillerPDF.Controls
                             Stroke = new SolidColorBrush(ia.GetColor()),
                             StrokeThickness = ia.StrokeWidth,
                             StrokeLineJoin = ia.SquareEnds ? PenLineJoin.Miter : PenLineJoin.Round,
-                            StrokeMiterLimit = InkAnnotation.SquareMiterLimit,
+                            StrokeMiterLimit = InkAnnotation.SquareMiterLimitWpf,
                             StrokeStartLineCap = inkCap,
                             StrokeEndLineCap = inkCap
                         };

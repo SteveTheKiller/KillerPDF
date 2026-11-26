@@ -115,7 +115,7 @@ namespace KillerPDF.Controls
                 : null;
             string meta = field.Label + " · " + string.Format(Loc("Str_PageLabel"), pageIndex + 1);
             host.ShowObjectCard(this, new ViewerObjectCard(pageIndex, FormFieldKindLabel(field), meta, rows)
-                { Delete = delete, CardKey = "FormField" }, element);
+                { Delete = delete, CardKey = "FormField", LockedGlyphs = [""] }, element);
         }
 
         // Where the Z goes: the field's box as it sits on the page now, under its last line of text.
@@ -148,8 +148,9 @@ namespace KillerPDF.Controls
             };
             z.SetColor(Colors.Black);
             z.Points.AddRange(points);
-            AddAnnotation(z);
-            RenderAllAnnotations(pageIndex);
+            // The lock and the Z are one edit. The document undo the reload captures holds the page before both,
+            // so the Z joins the annotations only once the lock is published and pushes no entry of its own: one
+            // Ctrl+Z takes off the Z and unlocks the field, and a failed lock leaves no Z behind.
             try
             {
                 SaveTempAndReload(
@@ -157,13 +158,19 @@ namespace KillerPDF.Controls
                     preserveZoom: true,
                     finalizeSavedFile: path => PdfEngineIntegration.SetFormFieldReadOnly(path, field.FieldName),
                     selectedPageAfterReload: pageIndex,
-                    preserveRenderedPages: true);
+                    preserveRenderedPages: true,
+                    onPublished: () =>
+                    {
+                        if (!_annotations.TryGetValue(pageIndex, out var marks)) _annotations[pageIndex] = marks = [];
+                        marks.Add(z);
+                    });
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
                 ReportEditFailure(ex);
                 return;
             }
+            RenderAllAnnotations(pageIndex);
             SetStatus(string.Format(Loc("Str_St_FieldUnusedSpaceFilled"), field.Label));
         }
 

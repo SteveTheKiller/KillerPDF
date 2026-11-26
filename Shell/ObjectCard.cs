@@ -21,7 +21,7 @@ namespace KillerPDF.Shell
             menu.Items.Add(CardSlot(header, new Thickness(4, 2, 4, 6)));
             IEnumerable<CardTile>[] groups = [.. card.Rows.Select(row => row.Select(ToCardTile))];
             // A customizable card locks nothing, so every tile can be hidden; its spare tiles start in the Hidden drawer.
-            var strip = card.CardKey is { } key ? EditableTileGroups(menu, key, [], [], groups) : TileGroups(menu, groups);
+            var strip = card.CardKey is { } key ? EditableTileGroups(menu, key, card.LockedGlyphs, [], groups) : TileGroups(menu, groups);
             menu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, strip);
             menu.PlacementTarget = target;

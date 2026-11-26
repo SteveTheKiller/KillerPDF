@@ -141,9 +141,11 @@ namespace KillerPDF
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
         public bool SquareEnds { get; set; }
 
-        // How far a sharp corner may reach before it is cut flat, as a multiple of half the stroke width. Screen,
-        // thumbnail and saved file use the same limit, so a long, flat Z never spikes past its field.
+        // How long a sharp corner may get before it is cut flat, as a multiple of the stroke width: PDF's M operator.
+        // WPF measures its limit against half the width, so the screen and thumbnail use twice this. At 4 a corner
+        // reaches at most 2 widths past its point, inside the Z's inset, so a long, flat Z never spikes past its field.
         public const double SquareMiterLimit = 4;
+        public const double SquareMiterLimitWpf = SquareMiterLimit * 2;
         public Color GetFillColor() => Color.FromArgb(FillA, FillR, FillG, FillB);
         public void SetFillColor(Color c) { FillR = c.R; FillG = c.G; FillB = c.B; FillA = c.A; }
     }
