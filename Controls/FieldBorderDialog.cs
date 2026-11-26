@@ -50,7 +50,6 @@ internal sealed class FieldBorderDialog : Window
         DialogFrame.Configure(this, owner);
 
         var body = new StackPanel { Margin = new Thickness(20, 6, 20, 16) };
-        body.Children.Add(UiKit.GroupLabel(L("Str_FieldBorder_Color")));
         _swatch = new Border
         {
             Width = 44,
@@ -70,7 +69,8 @@ internal sealed class FieldBorderDialog : Window
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
             Padding = new Thickness(0),
-            Margin = new Thickness(0, 3, 0, 12),
+            Margin = new Thickness(0, 3, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
             Template = new ControlTemplate(typeof(Button)) { VisualTree = new FrameworkElementFactory(typeof(ContentPresenter)) }
         };
         System.Windows.Automation.AutomationProperties.SetName(_swatchButton, L("Str_FieldBorder_Color"));
@@ -84,10 +84,8 @@ internal sealed class FieldBorderDialog : Window
             _swatch.Background = new SolidColorBrush(BorderColor);
             UpdatePreview();
         };
-        body.Children.Add(_swatchButton);
-
-        body.Children.Add(UiKit.GroupLabel(L("Str_FieldBorder_Width")));
-        _width = new ComboBox { Margin = new Thickness(0, 3, 0, 12) };
+        // Color and width share a row: the swatch on the left, a short width list beside it.
+        _width = new ComboBox { Width = 120, Margin = new Thickness(0, 3, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
         if (owner.TryFindResource("DarkComboBox") is Style comboStyle) _width.Style = comboStyle;
         double startWidth = hasBorder ? width : 1;
         List<double> widths = [.. Widths];
@@ -98,7 +96,24 @@ internal sealed class FieldBorderDialog : Window
         _width.SelectedIndex = widths.IndexOf(startWidth);
         _width.SelectionChanged += (_, _) => UpdatePreview();
         System.Windows.Automation.AutomationProperties.SetName(_width, L("Str_FieldBorder_Width"));
-        body.Children.Add(_width);
+        var colorAndWidth = new Grid { Margin = new Thickness(0, 0, 0, 12) };
+        colorAndWidth.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        colorAndWidth.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        colorAndWidth.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        colorAndWidth.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var colorLabel = UiKit.GroupLabel(L("Str_FieldBorder_Color"));
+        var widthLabel = UiKit.GroupLabel(L("Str_FieldBorder_Width"));
+        Grid.SetColumn(widthLabel, 1);
+        Grid.SetRow(_swatchButton, 1);
+        Grid.SetRow(_width, 1);
+        Grid.SetColumn(_width, 1);
+        widthLabel.Margin = new Thickness(widthLabel.Margin.Left + 24, widthLabel.Margin.Top, widthLabel.Margin.Right, widthLabel.Margin.Bottom);
+        _width.Margin = new Thickness(24, 3, 0, 0);
+        colorAndWidth.Children.Add(colorLabel);
+        colorAndWidth.Children.Add(widthLabel);
+        colorAndWidth.Children.Add(_swatchButton);
+        colorAndWidth.Children.Add(_width);
+        body.Children.Add(colorAndWidth);
 
         body.Children.Add(UiKit.GroupLabel(L("Str_FieldBorder_Style")));
         _style = new ComboBox { Margin = new Thickness(0, 3, 0, 12) };
