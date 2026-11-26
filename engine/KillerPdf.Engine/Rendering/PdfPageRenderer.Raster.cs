@@ -579,9 +579,15 @@ public sealed partial class PdfPageRenderer
         double pageLineWidth, RendererLineCap lineCap, RendererLineJoin lineJoin,
         double miterLimit, RasterFrame frame, bool rent = false,
         (int Left, int Top, int Right, int Bottom)? bounds = null, bool strokeAdjust = false,
-        Matrix? userTransform = null)
+        Matrix? userTransform = null, bool strokeAddsWeight = false)
     {
-        double radius = Math.Max(pageLineWidth * frame.StrokeScale / 2, 0.5);
+        // A lone stroke keeps a one-pixel minimum so thin lines stay visible. A stroke over its
+        // own fill (text mode 2, synthetic bold) only adds weight, and a floor or a snap to
+        // whole pixels would make that weight grow as the page zooms out. A zero width still
+        // means the thinnest line the device can draw.
+        double radius = pageLineWidth * frame.StrokeScale / 2;
+        if (strokeAddsWeight) strokeAdjust = false;
+        if (!strokeAddsWeight || !(radius > 0)) radius = Math.Max(radius, 0.5);
         var polygons = new List<Point[]>();
         UserSpacePen? pen = userTransform is Matrix user && !strokeAdjust
             ? UserSpacePen.Create(user, frame, pageLineWidth) : null;

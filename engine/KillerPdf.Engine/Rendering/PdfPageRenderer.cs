@@ -1280,7 +1280,7 @@ public sealed partial class PdfPageRenderer
                 }
             }
 
-            void PaintStroke(IReadOnlyList<List<Point>> strokePath)
+            void PaintStroke(IReadOnlyList<List<Point>> strokePath, bool strokeAddsWeight = false)
             {
                 ValidatePreciseProcessSource(pixels, state.StrokeColorSpace, state.RenderingIntent, state.BlackPointCompensation);
                 double lineWidth = state.LineWidth * state.Transform.StrokeScale;
@@ -1300,12 +1300,13 @@ public sealed partial class PdfPageRenderer
                         paintedPath, state.PaintStroke, state.StrokeAlpha, lineWidth,
                         state.LineCap, state.LineJoin, state.MiterLimit,
                         state.BlendMode, state.Clips, state.GraphicsSoftMask, state.Knockout,
-                        cancellationToken, state.AlphaIsShape, state.StrokeAdjust, state.Transform);
+                        cancellationToken, state.AlphaIsShape, state.StrokeAdjust, state.Transform,
+                        strokeAddsWeight);
                     return;
                 }
                 var strokeClip = new ClipRegion(RasterizeStroke(paintedPath, lineWidth,
                     state.LineCap, state.LineJoin, state.MiterLimit, frame, strokeAdjust: state.StrokeAdjust,
-                    userTransform: state.Transform));
+                    userTransform: state.Transform, strokeAddsWeight: strokeAddsWeight));
                 RenderPattern(state.StrokePattern, paintedPath, strokeClip,
                     resources, state, depth, state.StrokeAlpha);
             }
@@ -1757,7 +1758,8 @@ public sealed partial class PdfPageRenderer
                             if (paintMode is 1 or 2)
                             {
                                 if (state.StrokePattern is not null)
-                                    PaintStroke(glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform));
+                                    PaintStroke(glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform),
+                                        strokeAddsWeight: paintMode == 2);
                                 else StrokePaths(pixels, options.Width,
                                     options.Height, scaleX, scaleY,
                                     glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform),
@@ -1766,7 +1768,8 @@ public sealed partial class PdfPageRenderer
                                     state.LineCap, state.LineJoin, state.MiterLimit,
                                     state.BlendMode, state.Clips, state.GraphicsSoftMask,
                                     state.Knockout,
-                                    cancellationToken, state.AlphaIsShape, state.StrokeAdjust);
+                                    cancellationToken, state.AlphaIsShape, state.StrokeAdjust,
+                                    strokeAddsWeight: paintMode == 2);
                             }
                             if (clipsText)
                             {
@@ -8218,13 +8221,13 @@ public sealed partial class PdfPageRenderer
         IReadOnlyList<ClipRegion> clips, GraphicsSoftMask? graphicsSoftMask,
         KnockoutState? knockout,
         CancellationToken cancellationToken, bool alphaIsShape = false, bool strokeAdjust = false,
-        Matrix? userTransform = null)
+        Matrix? userTransform = null, bool strokeAddsWeight = false)
     {
         if (color.DoesNotPaint) return;
         var frame = new RasterFrame(width, height, scaleX, scaleY);
         CoverageMask mask = RasterizeStroke(paths, lineWidth, lineCap, lineJoin, miterLimit, frame,
             rent: true, bounds: (pixels.Left, pixels.Top, pixels.Right, pixels.Bottom), strokeAdjust: strokeAdjust,
-            userTransform: userTransform);
+            userTransform: userTransform, strokeAddsWeight: strokeAddsWeight);
         try
         {
             PaintCoverage(pixels, width, mask, color, alpha, blendMode, clips,
