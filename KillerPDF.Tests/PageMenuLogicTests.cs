@@ -9,7 +9,7 @@ public sealed class PageMenuLogicTests
 {
     private static string ContextMenu => ShellSource.Read("Shell", "ContextMenu.cs");
 
-    private static string PageMenuBody => ShellSource.Between(ContextMenu, "private void AddPageMenuItems(", "private FrameworkElement LabelledStrip(");
+    private static string PageMenuBody => ShellSource.Between(ContextMenu, "private void AddPageMenuItems(", "private static void MergePageTopLayout(");
 
     [Fact]
     public void ABookGetsOnlyTheRowsThatWorkOnABook()

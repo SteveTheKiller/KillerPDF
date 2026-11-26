@@ -621,35 +621,20 @@
                             <Border Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
                         </Grid>
                     </Border>
-                    <!-- Same edge fades for the places list (2026-07-30): rows dissolve
-                         at both ends unless the list is flush there. Same surface, same ramp
-                         (SyncPlacesEdgeFades); no scrollbar lift needed - horizontal scrolling
-                         is disabled on this list. -->
-                    <Border x:Name="PlacesFadeTop" Grid.Row="2" Height="18" Opacity="0"
-                            VerticalAlignment="Top" Margin="0,0,12,0" IsHitTestVisible="False">
-                        <Border.OpacityMask>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <GradientStop Color="#FF000000" Offset="0"/>
-                                <GradientStop Color="#00000000" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Border.OpacityMask>
-                        <Grid>
-                            <Border Background="{DynamicResource FileDialogPaneBrush}"/>
-                            <Border Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
-                        </Grid>
+                    <!-- The places list's scroll cues: the family scroll shadow (ScrollTopCue and
+                         ScrollBottomCue), shown only while there is more past that edge and ramped in
+                         by SyncPlacesEdgeFades. They used to be a band of the flat pane color, which on
+                         Trash Polka covered the ink and read as a dead chin under the list (Steve
+                         2026-11-26). The shadow runs under the scrollbar to the pane's edges. -->
+                    <Border x:Name="PlacesFadeTop" Grid.Row="2" Height="24" Opacity="0"
+                            VerticalAlignment="Top" IsHitTestVisible="False">
+                        <Border Style="{StaticResource ScrollTopCue}" Height="24"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"/>
                     </Border>
-                    <Border x:Name="PlacesFadeBottom" Grid.Row="2" Height="22" Opacity="0"
-                            VerticalAlignment="Bottom" Margin="0,0,12,0" IsHitTestVisible="False">
-                        <Border.OpacityMask>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <GradientStop Color="#00000000" Offset="0"/>
-                                <GradientStop Color="#FF000000" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Border.OpacityMask>
-                        <Grid>
-                            <Border Background="{DynamicResource FileDialogPaneBrush}"/>
-                            <Border Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
-                        </Grid>
+                    <Border x:Name="PlacesFadeBottom" Grid.Row="2" Height="28" Opacity="0"
+                            VerticalAlignment="Bottom" IsHitTestVisible="False">
+                        <Border Style="{StaticResource ScrollBottomCue}" Height="28"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"/>
                     </Border>
                 </Grid>
 

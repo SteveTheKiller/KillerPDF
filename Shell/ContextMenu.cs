@@ -206,15 +206,6 @@ namespace KillerPDF.Shell
                     else { SetTool(EditTool.Signature); ShowSignaturePopup(); }
                 }, false, true),
             ];
-            // #496: the top box is one customizable grid of its own, beside the page tools' grid below. The selected-text
-            // tiles only come with a selection, and the layout keeps their places while they're away.
-            var topStrip = EditableTileGroups(_ctxMenu, "PageTop", [], [], take, marks, place);
-            // The caption only names the selection when there is one; the place tiles say what they place (Steve).
-            _ctxMenu.Items.Add(CardSlot(take.Count > 0 ? LabelledStrip(Loc("Str_Card_SelectedText"), topStrip) : topStrip, new Thickness(0)));
-            FocusFirstActionFromKeyboard(_ctxMenu, topStrip);
-
-            _ctxMenu.Items.Add(new Separator());
-
             var tools = MakeMenuItem(Loc("Str_Card_PageTools"), (_, _) => { }, gesture: "", glyph: "\uE7C3");
             tools.Items.Add(MakeTransformMenuItem(Loc("Str_Lbl_Rotate"), (s, e) => OpenTransformWindow(page: pageIdx), GestureFor("R")));
             tools.Items.Add(MakeMenuItem(Loc("Str_ColorCorrection"), (s, e) =>
@@ -275,20 +266,25 @@ namespace KillerPDF.Shell
                 Spare("deletepage", new("\uE74D", Loc("Str_Ctx_DeletePage"), null, () => DeletePages(pageIdx), false, true)),
                 Spare("addblank", new("\uE7C3", Loc("Str_Ctx_AddBlankPage"), "AltShift:A", AddBlankPageAtEnd, false, true)),
             ];
-            var pageStrip = EditableTileGroups(_ctxMenu, "Page", ["\uE77F", "\uE8B3", "\uE74D"], ["\uE7C4"], turns, clipboard, onPage, more, spares);
+            // One customizable grid for the whole card, so any tile can go anywhere under one pencil (Steve 2026-11-26).
+            // It was two (#496), the selection and place tiles over the page tools, each with its own pencil. The
+            // selected-text tiles only come with a selection, and the layout keeps their places while they're away.
+            MergePageTopLayout();
+            var pageStrip = EditableTileGroups(_ctxMenu, "Page", ["\uE77F", "\uE8B3", "\uE74D"], ["\uE7C4"],
+                take, marks, place, turns, clipboard, onPage, more, spares);
             _ctxMenu.Items.Add(CardSlot(pageStrip, new Thickness(0)));
+            FocusFirstActionFromKeyboard(_ctxMenu, pageStrip);
         }
 
-        // A small caption over a card strip ("Selected text", "Place here").
-        private FrameworkElement LabelledStrip(string label, FrameworkElement strip)
+        // A layout saved for the old top grid (Card.PageTop) folds into the page card's one grid (Card.Page), once.
+        private static void MergePageTopLayout()
         {
-            var caption = new TextBlock { Text = label, FontSize = 11, Margin = new Thickness(8, 6, 0, 2) };
-            caption.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
-            var panel = new StackPanel();
-            panel.Children.Add(caption);
-            panel.Children.Add(strip);
-            return panel;
+            string? top = App.GetSetting("Card.PageTop.Hidden");
+            if (string.IsNullOrEmpty(top)) return;
+            App.SetSetting("Card.Page.Hidden", Services.PageCardLayout.Merge(top, App.GetSetting("Card.Page.Hidden")));
+            App.SetSetting("Card.PageTop.Hidden", "");
         }
+
 
         // A native EPUB or DjVu book has no PDF page behind it, so its page menu holds only what works on a book:
         // the jump history, copying the selected text, Select All, converting to a PDF and the view items.

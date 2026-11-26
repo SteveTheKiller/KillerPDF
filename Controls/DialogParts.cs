@@ -99,6 +99,7 @@ internal static class DialogParts
             if (control.Padding == default) control.Padding = new Thickness(3);
         }
         var well = new Grid();
+        well.Children.Add(WellShadow());
         var fill = new Border { Opacity = 0.5, IsHitTestVisible = false };
         fill.SetResourceReference(Border.BackgroundProperty, "WellFillBrush");
         fill.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
@@ -114,6 +115,29 @@ internal static class DialogParts
         }
         well.Children.Add(edge);
         return well;
+    }
+
+    /// <summary>
+    /// The family pane shadow under a well (PaneShadowEffect, null on 98SE), so a dialog's content area sits on the
+    /// window the way the main window's panes and the file picker's panes do (Steve 2026-11-26). The well is
+    /// see-through, so the shadow's caster would darken the texture inside it: the caster is clipped away inside the
+    /// well's own rounded rect and only the shadow falling outside it shows.
+    /// </summary>
+    private static Grid WellShadow()
+    {
+        var caster = new Border { Background = Brushes.Black, IsHitTestVisible = false };
+        caster.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
+        caster.SetResourceReference(UIElement.EffectProperty, "PaneShadowEffect");
+        var host = new Grid { IsHitTestVisible = false };
+        host.Children.Add(caster);
+        host.SizeChanged += (_, e) =>
+        {
+            double w = e.NewSize.Width, h = e.NewSize.Height, r = caster.CornerRadius.TopLeft;
+            host.Clip = new CombinedGeometry(GeometryCombineMode.Exclude,
+                new RectangleGeometry(new Rect(-40, -40, w + 80, h + 80)),
+                new RectangleGeometry(new Rect(0, 0, w, h), r, r));
+        };
+        return host;
     }
 
     private static readonly ControlTemplate SeeThroughList = BuildSeeThroughList();

@@ -87,8 +87,10 @@ internal sealed class MacroDialog : Window
         _run = Button("Str_Btn_Run", (_, _) => Run(), accent: true);
         _run.IsDefault = true;
 
-        var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16) };
-        var bottom = new StackPanel();
+        // The two panes sit 8 from the window's sides and 8 from each other, as the file picker's panes do; 20 on the
+        // sides left a wide empty margin around them (Steve 2026-11-26). The footer keeps the 20 every dialog footer has.
+        var body = new DockPanel { Margin = new Thickness(8, 6, 8, 16) };
+        var bottom = new StackPanel { Margin = new Thickness(12, 0, 12, 0) };
         DockPanel.SetDock(bottom, Dock.Bottom);
         _availability.Margin = new Thickness(0, 8, 0, 8);
         _availability.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
@@ -123,7 +125,7 @@ internal sealed class MacroDialog : Window
 
         var columns = new Grid();
         columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(240) });
-        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
         columns.ColumnDefinitions.Add(new ColumnDefinition());
         UIElement saved = BuildSavedPanel(create, duplicate, import, export, delete);
         Grid.SetColumn(saved, 0);

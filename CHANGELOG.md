@@ -43,8 +43,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Menus opened from a top or bottom sidebar's buttons open at the right side of the page area, next to the buttons, instead of at the left.
 - In a top or bottom sidebar, two-page thumbnails sit together in pairs with the usual gap between pairs, as they do in a side column. A book's first page stands on its own.
 - In the two-page views, the right-click menu grows to fit its top row, so "Page 20 of 20" is no longer cut off beside the Book layout button.
+- On Trash Polka, the file picker's drive and bookmark list no longer ends in a flat gray band. When the list scrolls, its top and bottom edges show the family scroll shadow instead.
 
 ### Changed
+- The page's right-click menu has one edit pencil for the whole card, so any tile, including Text, Add Image, Signature and the selected-text tiles, can go anywhere on it. A layout you already customized carries over.
+- The content area of a dialog, such as a report, a list or the Macros steps, has the same drop shadow as the main window's panes.
+- The Macros window's two panes sit 8px from the window's sides and from each other, instead of 20px.
+- Extract Pages groups its four choices in one panel, with the file name box under the two choices that use it.
 - The title bar is 3px shorter, so the bottom of the wordmark's drip meets the toolbar. The toolbar also sits 2px closer to the page below it, and its buttons sit 1px from the window's left and right edges instead of 4.
 - The status text in the bottom-left corner lines up with the sidebar above it.
 - The sidebar rail's icons are evenly spaced. Document info no longer has a wider gap above it than the other icons.

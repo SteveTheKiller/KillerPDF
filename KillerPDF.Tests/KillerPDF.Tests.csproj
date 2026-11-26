@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Compile Include="..\Controls\MotifPlacement.cs" Link="Controls\MotifPlacement.cs" />
+    <Compile Include="..\Services\PageCardLayout.cs" Link="Services\PageCardLayout.cs" />
     <Compile Include="..\Controls\DialogTitleText.cs" Link="Controls\DialogTitleText.cs" />
     <Compile Include="..\Controls\FilmGrainTip.cs" Link="Controls\FilmGrainTip.cs" />
     <Compile Include="..\Features\Cli\PdfUaBatch.cs" Link="Features\Cli\PdfUaBatch.cs" />

@@ -1010,9 +1010,9 @@ namespace KillerPDF.Controls
             var sv = FindDescendant<ScrollViewer>(PlacesList);
             if (sv == null) return;
 
-            PlacesFadeTop.Opacity    = Ramp(sv.VerticalOffset, PlacesFadeTop.Height, 18);
+            PlacesFadeTop.Opacity    = Ramp(sv.VerticalOffset, PlacesFadeTop.Height, 24);
             PlacesFadeBottom.Opacity = Ramp(sv.ExtentHeight - sv.ViewportHeight - sv.VerticalOffset,
-                                            PlacesFadeBottom.Height, 22);
+                                            PlacesFadeBottom.Height, 28);
         }
 
         /// <summary>

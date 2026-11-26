@@ -66,7 +66,12 @@ internal sealed class SplitDialog : Window
         _everyPage = Choose("Str_Split_EveryPage", radioStyle);
         _everyN = Choose("Str_Split_EveryN", radioStyle, _every);
         (contiguous ? _range : _list).IsChecked = true;
-        foreach (RadioButton choice in new[] { _range, _list, _everyPage, _everyN }) body.Children.Add(choice);
+        // The choices sit in a well, as every other dialog's content does, with the file name row under the two
+        // choices it belongs to and lined up with their text. The summary and any problem stay under the well. Loose
+        // on the window, the choices, the dimmed name field and the summary read as unrelated lines (Steve 2026-11-26).
+        var choices = new StackPanel { Margin = new Thickness(12, 4, 12, 12) };
+        foreach (RadioButton choice in new[] { _range, _list, _everyPage, _everyN }) choices.Children.Add(choice);
+        body.Children.Add(DialogParts.Well(choices));
 
         // A typed number or page list picks its own choice, so typing is enough.
         Follow(_from, _range);
@@ -83,10 +88,10 @@ internal sealed class SplitDialog : Window
         _baseName = Box(baseName, double.NaN, "SplitBaseName");
         System.Windows.Automation.AutomationProperties.SetName(_baseName, L("Str_Split_BaseName"));
         nameRow.Children.Add(_baseName);
-        body.Children.Add(nameRow);
+        choices.Children.Add(nameRow);
         _baseName.TextChanged += (_, _) => Replan();
 
-        _summary = new TextBlock { FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
+        _summary = new TextBlock { FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 10, 0, 0) };
         _summary.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
         System.Windows.Automation.AutomationProperties.SetAutomationId(_summary, "SplitSummary");
         body.Children.Add(_summary);
@@ -107,6 +112,9 @@ internal sealed class SplitDialog : Window
         Replan();
         Loaded += (_, _) =>
         {
+            // The name row starts where the choices' text does, past the radio glyph, which each theme sizes.
+            if (_everyN.Content is FrameworkElement text)
+                nameRow.Margin = new Thickness(Math.Max(0, text.TranslatePoint(new Point(), choices).X), 10, 0, 0);
             TextBox first = contiguous ? _from : _pages;
             first.Focus();
             first.SelectAll();

@@ -154,15 +154,15 @@ public sealed class CardMenuTests
         Assert.Contains("FocusFirstActionFromKeyboard(menu, strip);", Read("Shell", "PageCard.cs"));
         // r2 BF-004/005/009: the page menu's strips, the page list's Menu key, and the selected mark itself.
         string menu2 = Read("Shell", "ContextMenu.cs");
-        Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, topStrip);", menu2);
+        Assert.Contains("FocusFirstActionFromKeyboard(_ctxMenu, pageStrip);", menu2);
         // Text, Paragraph, Image and Signature stay in the page menu with no Place here label (Steve).
         Assert.DoesNotContain("Str_Card_PlaceHere", menu2);
         Assert.Contains("PlaceTextBox(pt, pageIdx);", menu2);
         Assert.Contains("PlaceImageFromDialog(pt, pageIdx);", menu2);
         Assert.Contains("PlaceSignature(pt, pageIdx);", menu2);
         Assert.Contains("EditParagraph(pageIdx, pt)", menu2);
-        // The selected-text strip wraps into rows of three so the page menu stays narrow.
-        Assert.Contains("take, marks, place);", menu2);
+        // The selected-text tiles lead the card's one grid, which wraps into rows of three so the page menu stays narrow.
+        Assert.Contains("take, marks, place, turns,", menu2);
         Assert.Contains("var hit = target ?? AnnotationAt(pt, pageIdx);", menu2);
         string keys = Read("Shell", "KeyboardShortcuts.cs");
         Assert.Contains("if (!OpenPageCardFromKeyboard()) OpenContextMenuAtSelection();", keys);
@@ -196,7 +196,7 @@ public sealed class CardMenuTests
     [Fact]
     public void ThePageMenuIsShortWithItsPageToolsUnderPage()
     {
-        string page = Between(Read("Shell", "ContextMenu.cs"), "private void AddPageMenuItems(", "private FrameworkElement LabelledStrip(");
+        string page = Between(Read("Shell", "ContextMenu.cs"), "private void AddPageMenuItems(", "private static void MergePageTopLayout(");
         Assert.InRange(Count(page, "_ctxMenu.Items.Add("), 1, 14);
         Assert.Equal(8, Count(page, "tools.Items.Add(Make"));
         Assert.Contains("AddNavRow(_ctxMenu, pageIdx);", page);
@@ -227,7 +227,7 @@ public sealed class CardMenuTests
         Assert.Contains("WithFlyoutChevron(button)", kit);
         Assert.Contains("PlacementMode.Right", Between(kit, "private static ContextMenu TileFlyout(", "return flyout;"));
 
-        string page = Between(Read("Shell", "ContextMenu.cs"), "private void AddPageMenuItems(", "private FrameworkElement LabelledStrip(");
+        string page = Between(Read("Shell", "ContextMenu.cs"), "private void AddPageMenuItems(", "private static void MergePageTopLayout(");
         Assert.Contains("FlyoutTile(\"\\uE8A1\", Loc(\"Str_FieldPreset_Menu\"), null, BuildFieldPresetMenu(pt, pageIdx))", page);
         Assert.Contains("Loc(\"Str_TT_ComparePDFs\"), \"AltShift:V\", BuildComparisonContextItem())", page);
         Assert.Contains("Loc(\"Str_Card_PageTools\"), null, tools)", page);
@@ -287,20 +287,30 @@ public sealed class CardMenuTests
         Assert.Contains("ActiveViewer.ReattachMultiOutlinesExt();", apply);
     }
 
-    // #496: the page card's top box (the selected-text tiles and Text, Image, Signature) is customizable like the
-    // tools grid under it, saved under its own key, and the kit keeps two grids on one card apart.
+    // #496, then Steve 2026-11-26: the page card is one customizable grid under one pencil, the selected-text and place
+    // tiles included, so any tile can go anywhere. The kit still keeps two grids on one card apart for other cards.
     [Fact]
-    public void ThePageCardsTopBoxIsCustomizableOnItsOwn()
+    public void ThePageCardIsOneCustomizableGrid()
     {
         string menu = Read("Shell", "ContextMenu.cs");
-        Assert.Contains("EditableTileGroups(_ctxMenu, \"PageTop\", [], [], take, marks, place)", menu);
-        Assert.Contains("EditableTileGroups(_ctxMenu, \"Page\",", menu);
+        Assert.DoesNotContain("EditableTileGroups(_ctxMenu, \"PageTop\"", menu);
+        Assert.Contains("take, marks, place, turns, clipboard, onPage, more, spares);", menu);
+        Assert.Equal(1, Count(Between(menu, "private void AddPageMenuItems(", "private static void MergePageTopLayout("), "EditableTileGroups("));
         Assert.Contains("Key = card,", Read("Shell", "PageCard.cs"));
         string kit = Read("Controls", "CardBuilder.cs");
         Assert.Contains("if (grids.TryGetValue(edit.Key, out var last)) { grids.Remove(edit.Key); last.Unhook(); }", kit);
         Assert.Contains("other.EndEditing();", kit);
         Assert.Contains("SavedLayout(order,", kit);
     }
+
+    // A layout saved while the card had two grids keeps the top grid's tiles first, then the tools', with both hidden
+    // sets; a tools grid on its defaults names nothing, so its tiles take their default places after.
+    [Theory]
+    [InlineData("v2:a|b/x", "v2:c|d/y", "v2:a|b|c|d/x|y")]
+    [InlineData("v2:a|b/x", null, "v2:a|b/x")]
+    [InlineData("v2:a|b/", "v1:y", "v2:a|b/y")]
+    public void ALayoutSavedForTwoGridsFoldsIntoOne(string top, string? page, string merged)
+        => Assert.Equal(merged, KillerPDF.Services.PageCardLayout.Merge(top, page));
 
     // 1.9.7: every object gets its own card. Marks, pictures, comments and form fields each open a card that starts
     // with the shared nav row, puts Delete in the header, and shows only that object's tiles.
