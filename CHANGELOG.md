@@ -18,15 +18,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
-- The KillerPDF wordmark in confirmation dialogs draws "PDF" in its own lettering again, instead of a plain system font sitting too high (#490).
-- A confirmation that names a file, or is in a language the heading lettering can't draw, uses the interface font at a smaller size, lined up with the alert icon (#490).
+- The KillerPDF wordmark in confirmation dialogs draws "PDF" in its own lettering again. A confirmation that names a file, or is in a language the heading lettering can't draw, uses the interface font lined up with the alert icon (#490).
 - PDFs with damaged image transparency, common in CAD and building drawings, render instead of showing a blank page and "Image soft-mask sample data has an invalid length."
+- On Trash Polka, the line under the inactive tabs stops where the active tab's foot curves into it, and the file picker's drive and bookmark list no longer ends in a flat gray band.
 - Scrolling the What's new notes no longer draws text over the pane's rounded corners.
-- On Trash Polka, the line under the inactive tabs stops where the active tab's foot curves into it, instead of running a few pixels on under the curve.
 - On a right-click card near the right side of the screen, the Hidden drawer from the edit pencil opens against the card's left edge and slides out from behind it, instead of sliding in from a gap off to the side.
 - The Trash Polka theme's name is translated in every language, like the other themes.
-- Selected text shows a visible highlight in dialog text boxes, such as the export DPI box, and in the text size box, the page number box and editable dropdowns. The selection worked before, but it was invisible on most themes.
-- A dialog text box dims when it is turned off, so the DPI box no longer looks editable while "Keep each page's resolution" is ticked.
+- Selected text shows a visible highlight in dialog text boxes, the text size and page number boxes, and editable dropdowns, where it was invisible on most themes. A dialog text box also dims when it is turned off.
 - Printing with "KillerPDF manages colors" works again on Windows builds that rejected the print settings with "Only 'name' is allowed". The printer properties button no longer fails the same way, and printers with document-level two-sided printing are fixed too (#520).
 - Editing and merging accept a PDF whose language is set but empty, which means the language is unknown, instead of refusing the file (#532).
 - Convert to Searchable PDF works on tagged PDFs, such as the ones Word exports. The text layer goes in without changing the document's tags (#533).
@@ -38,54 +36,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - In the title bar, toolbar captions, sidebar and status bar, Chinese, Japanese and Korean characters draw at 90%, so they read the same size as the Latin text beside them while Latin keeps its size in every language. This covers Chinese file names in an English interface too. Menus, dialogs and buttons keep CJK at full size, where smaller text would be hard to read. The file name in the title bar sits on the same line as the KillerPDF wordmark instead of a pixel or two below it. A caption under its icon and a page number under its sidebar thumbnail also have as much space above them as English text, where they used to sit right against the icon or page (#490).
 - With an all-users install, classic Outlook finds the PDF preview, including 32-bit Outlook. It only looks for preview handlers registered for the whole machine (#410).
 - A per-user install offers PDF previews in File Explorer only, since classic Outlook can't see a preview installed for one account (#410).
-- With the sidebar on the top or bottom, switching to Outlines, Comments or another panel keeps the strip's height instead of jumping to that panel's own size.
-- Document tools in a top or bottom sidebar fill the strip's width with wider tiles, so names no longer get cut off. When the tools scroll, their edges fade like the page list's.
-- Menus opened from a top or bottom sidebar's buttons open at the right side of the page area, next to the buttons, instead of at the left.
-- In a top or bottom sidebar, two-page thumbnails sit together in pairs with the usual gap between pairs, as they do in a side column. A book's first page stands on its own.
+- A top or bottom sidebar keeps its height when you switch panels, and opens its menus next to its buttons. Its document tools get wider tiles so names fit, and two-page thumbnails sit in pairs as they do in a side column.
 - In the two-page views, the right-click menu grows to fit its top row, so "Page 20 of 20" is no longer cut off beside the Book layout button.
-- On Trash Polka, the file picker's drive and bookmark list no longer ends in a flat gray band. When the list scrolls, its top and bottom edges show the family scroll shadow instead.
 
 ### Changed
-- The page's right-click menu has one edit pencil for the whole card, so any tile, including Text, Add Image, Signature and the selected-text tiles, can go anywhere on it. A layout you already customized carries over.
-- The content area of a dialog, such as a report, a list or the Macros steps, has the same drop shadow as the main window's panes.
-- The Macros window's two panes sit 8px from the window's sides and from each other, instead of 20px.
+- The page's right-click menu has one edit pencil for the whole card, so any tile can go anywhere on it. A layout you already customized carries over.
+- Transform keeps a page's text and links when it rotates, scales or flips it, instead of turning the page into an image (#538). Only perspective, levels, color and output quality still rasterize and bring up the warning.
+- Document tabs are redesigned (#528). They are narrower and shorter, the active tab curves into the page below with a fading accent line, and a long title fades out instead of ending in "...". In split view, the other pane's active tab shows its line in gray.
+- The main window is tighter. The title bar, toolbar, tool options bar and Restore last session bar are slimmer, and the gaps around the sidebar, document pane, split view and About card are 4px.
+- The sidebar has evenly spaced rail icons, a full-height resize line and a dark page number box, and the status text lines up under it. With the sidebar on top, its menus open inside the page area instead of over the tabs.
+- A floating tool bar under the active tab or against the pane's side tucks behind the pane's border and rounded corners instead of drawing over them.
+- Dialogs match the main window. Their content areas carry the pane shadow, they keep 16px margins, and their title, wordmark, icon and close X sit like the main window's. Dialog buttons are a step smaller, 26px tall everywhere.
+- Every dropdown's list comes straight off its box with square corners where they meet, and the open box and list share one shadow. Lists at the foot of a window, like the Macros steps and the footer zoom, open upward.
+- Page windows such as Transform, Color correction, Stamp and Print put the page right under the title bar, with the settings starting higher.
+- The file dialog's title names the operation, such as "Save PDF as". Its panes, and the Macros window's, sit 8px from the sides and each other.
+- The color picker has the family title bar with its own icon, even rows of fields, and a hue strip that fills to the edge.
 - Extract Pages groups its four choices in one panel, with the file name box under the two choices that use it.
-- The title bar is 3px shorter, so the bottom of the wordmark's drip meets the toolbar. The toolbar also sits 2px closer to the page below it, and its buttons sit 1px from the window's left and right edges instead of 4.
-- The status text in the bottom-left corner lines up with the sidebar above it.
-- The sidebar rail's icons are evenly spaced. Document info no longer has a wider gap above it than the other icons.
-- The page number box in the sidebar has a dark field like the other text boxes, so a selected number is easy to see.
-- The sidebar starts 1px below the toolbar instead of 6px, and the gap around the document pane, a split view and the About card is 4px instead of 8.
-- The sidebar's resize line runs the full height of the sidebar, with faded ends like the comparison bar. The page list's scrollbar fills the gap beside the thumbnails with 1px to spare when it widens on hover.
-- Transform keeps a page's text and links when it rotates, scales or flips it, instead of turning the page into an image (#538). Perspective, levels, color and output quality settings still rasterize, and only they bring up the warning.
-- Transform, Color correction, Stamp, Print, the separation preview and Edit paragraph put the page right under the title bar. The page arrows sit 4px from the edges, the preview's shadow no longer draws over them, and the settings start 10px higher.
-- Message boxes and confirmations keep 16px on every side, and the icon in a dialog's title bar sits 3px from the corner.
-- A dialog's title draws in the same font, size, color and ClearType as the file name in the main title bar. It used to look smaller and thinner. It also follows the wordmark without a dash, as the file name does.
-- The color picker has the same title bar as the other dialogs, with its own color wheel icon and a ColorPDF wordmark in the theme's colors.
-- A dialog's wordmark has the same bevel as the main window's, and it sits 1px higher along with the dialog's icon.
-- The color picker's fields are laid out in even rows. The preview and a larger eyedropper button sit side by side, with Hex, R, G and B in one row under small captions, and Replace and Reset as an even pair under the swatches.
-- The color picker's hue strip fills the space to the right edge without a gray bar beside it, and its handle is the theme's slider thumb. The color square also sits closer to the title.
-- The file dialog's panes sit 8px from its sides and from each other, each with the pane border, and the address bar sits closer to the title bar and the panes. The address bar, the file name row and the buttons sit 16px from the sides and bottom like the other dialogs.
-- The file dialog's title shows the wordmark followed by the operation, such as "Save PDF as", like the other dialogs.
-- The OCR language list shows two columns with flags, like the interface language picker, so it fits a short window. It has the picker's margins, its columns widen so no name is cut off, and its two settings sit in one row under them.
-- The keyboard shortcuts card keeps its rounded corners and thin top edge while the list is scrolled.
-- Document tabs are redesigned (#528). The active tab has rounded top corners, the pane's own border, and a foot that curves into the page below it, with an accent line along its bottom that fades out at both ends.
-- Tabs are narrower and shorter, and inactive tabs sit on the window background with dividers that fade out toward the top.
-- A long tab title fades out on the right instead of ending in "...", and scrolls to its end while the pointer is on the tab.
-- In split view, the focused pane's active tab keeps its accent outline, and the other pane's active tab shows its accent line in gray.
-- A floating tool bar slid under the active tab keeps the pane's top border above it, and its top corner rounds while it is under that tab.
-- Windows resize from their visible edge. The main window, page windows and the file dialog grab a drag up to 4px inside the edge instead of only out in the shadow past it.
-- The Restore last session bar keeps 4px above and below its buttons instead of 8, so it matches the slimmer tool bar and tabs.
-- Dialog buttons are a step smaller, 26px tall, the same size everywhere from the restore bar to the file picker.
-- Every dropdown's list comes straight off its box, sharing its edge, with square corners where the two meet. That includes the file picker's recent folders list. The list's shadow no longer gets cut off square, and the box carries the same shadow while open, so the two lift as one piece.
-- The Macros step list opens upward, over the steps, instead of past the bottom of the window.
-- The footer zoom list opens upward off the zoom box and is only as wide as the box unless its entries need more.
-- A floating tool bar pushed against the left or right side of the pane sits behind the pane's rounded corner instead of drawing a square line over it, and its bottom corner on that side goes square.
-- The tool options bar is 7 pixels shorter, with 4 pixels above and below its controls to match the shorter tabs.
-- With the sidebar on top, its menus open 8px inside the top right of the page area instead of over the document tabs.
-- The keyboard shortcuts list splits its sections so both columns are about the same length.
-- Customize Shortcuts shows its list on a pane with the usual drop shadow and scroll fades, with less space above its buttons.
+- The OCR language list shows two columns with flags, like the interface language picker, so it fits a short window.
+- The keyboard shortcuts card keeps its rounded corners while scrolling and balances its two columns. Customize Shortcuts shows its list on a shadowed pane with scroll fades.
 - The About card's text sits 8px from its sides again, so the description no longer runs into the right edge.
-- Every window's close X sits the same distance from the top and right of its window, centered on the title row.
+- Windows resize from their visible edge, up to 4px inside it, instead of only out in the shadow past it.
 
 ### Added
 - Right-clicking a drawing, text box, picture, comment or form field opens a card made for it, under the same Back, Forward, Undo, Redo and Print row as the page card. A mark, picture or comment card has Delete in its header.
