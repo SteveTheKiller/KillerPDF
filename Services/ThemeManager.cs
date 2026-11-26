@@ -554,10 +554,10 @@ namespace KillerPDF.Services
             SetIfAbsent("RailColumnWidth", new GridLength(24));
             // The confirm dialog's body inset, checkbox gaps and button row. 98SE packs them
             // the way a Win98 message box does.
-            // 8 all round (24 and 18 until KillerPDF 1.9.7 tightened the dialogs with the 4px gutter).
-            SetIfAbsent("ConfirmBodyMargin", new Thickness(8));
+            // 16 all round (24 and 18 until KillerPDF 1.9.7; 8 crowded the text and buttons against the edge).
+            SetIfAbsent("ConfirmBodyMargin", new Thickness(16));
             SetIfAbsent("ConfirmCheckMargin", new Thickness(0, 8, 0, 0));
-            SetIfAbsent("ConfirmButtonsMargin", new Thickness(8, 0, 8, 8));
+            SetIfAbsent("ConfirmButtonsMargin", new Thickness(16, 0, 16, 16));
             SetIfAbsent("ConfirmButtonGap", new Thickness(0, 0, 8, 0));
             SetIfAbsent("DialogButtonHeight", 28.0);
             SetIfAbsent("DialogContentMargin", new Thickness(0));

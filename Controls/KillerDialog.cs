@@ -42,11 +42,12 @@ namespace KillerPDF
 
         // One even inset for every message box: the notice and text sit this far in from the left,
         // top and right, and the button row sits the same distance from the right and bottom edges.
-        // 12 on a Win98 caption theme, as a Win98 message box packs its content; 8 elsewhere, every side
-        // the same (20 until 1.9.7). These used to be 24,18 for the body and 16,0,24,20 for the buttons,
-        // so nothing lined up and the buttons hung low on 98SE.
+        // 12 on a Win98 caption theme, as a Win98 message box packs its content; 16 elsewhere, every side
+        // the same (20 until 1.9.7; 8 crowded the text and buttons against the edge). These used to be
+        // 24,18 for the body and 16,0,24,20 for the buttons, so nothing lined up and the buttons hung low
+        // on 98SE.
         private static double Inset()
-            => Application.Current?.TryFindResource("UseDialogCaption") is true ? 12 : 8;
+            => Application.Current?.TryFindResource("UseDialogCaption") is true ? 12 : 16;
 
         private static Border ButtonRowHost(StackPanel buttons)
         {
