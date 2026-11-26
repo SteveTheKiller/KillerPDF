@@ -30,6 +30,11 @@ namespace KillerPDF.Controls
         private double _wheelZoomAnchorX;
         private double _wheelZoomAnchorY;
 
+        private bool _toolbarZoomAnchorActive;
+        private double _toolbarZoomAnchorX;
+        private double _toolbarZoomAnchorY;
+        private bool _toolbarZoomAnchorTop;
+
         // ============================================================
         // Zoom
         // ============================================================
@@ -237,8 +242,8 @@ namespace KillerPDF.Controls
             PresentCurrentPageStatus();
         }
 
-        // Wheel over the toolbar zoom dropdown: same multiplicative step as Ctrl+scroll, without
-        // the cursor anchoring (the cursor is on the toolbar, not the page). Handled is set so the
+        // Wheel over the toolbar zoom dropdown: same multiplicative step as Ctrl+scroll, anchored
+        // to the viewport center (the cursor is on the toolbar, not the page). Handled is set so the
         // ComboBox does not cycle its preset items under the wheel.
         internal void ZoomBoxWheel(MouseWheelEventArgs e)
         {
@@ -247,11 +252,13 @@ namespace KillerPDF.Controls
             if (_viewMode == ViewMode.Grid) { GridZoomStep(e.Delta < 0); return; }
             MarkViewportIntent();
             if (AdjustPendingTrueZoom(Math.Pow(WheelZoomFactor, e.Delta / 120.0))) return;
-            _fitMode   = FitMode.None;
-            _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax,
+
+            double oldZoom = _zoomLevel;
+            double targetZoom = Math.Max(ZoomMin, Math.Min(ZoomMax,
                 _zoomLevel * Math.Pow(WheelZoomFactor, e.Delta / 120.0)));
-            ApplyZoom(lite: true);   // SyncZoomBox inside keeps the shown % live per notch
-            StartZoomSettleTimer();
+            if (Math.Abs(targetZoom - oldZoom) < 1e-5) return;
+
+            ZoomAnchoredToCenter(targetZoom, lite: true);
         }
 
         // Debounced full zoom apply, shared by every Ctrl+scroll notch: while the wheel is moving
@@ -268,6 +275,7 @@ namespace KillerPDF.Controls
                     { Interval = TimeSpan.FromMilliseconds(200) };
                 _zoomSettleTimer.Tick += (_, _) =>
                 {
+                    _toolbarZoomAnchorActive = false;
                     _zoomSettleTimer!.Stop();
                     _wheelZoomAnchorActive = false;
                     if (!HasReadDocument) return;

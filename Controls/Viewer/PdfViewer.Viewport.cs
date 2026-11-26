@@ -2503,6 +2503,77 @@ namespace KillerPDF.Controls
             SetZoom(trueZoom / zf);
         }
 
+        /// <summary>
+        /// A zoom the user picked from the zoom box: like <see cref="SetTrueZoom"/>, but the spot in
+        /// the middle of the window stays in the middle. SetTrueZoom itself keeps its old behavior,
+        /// because a view mode switch, Ctrl+0 and Ctrl+1 call it too.
+        /// </summary>
+        private void SetTrueZoomAnchored(double trueZoom)
+        {
+            MarkViewportIntent();
+            if (DeferTrueZoom(trueZoom)) return;
+            double zf = DisplayZoomFactor();
+            if (zf <= 0) zf = 1.0;
+            if (_viewMode == ViewMode.Grid)
+            {
+                if (_currentPage >= 0) _gridScrollToPage = _currentPage;
+                SetZoom(trueZoom / zf);
+            }
+            else
+            {
+                ZoomAnchoredToCenter(trueZoom / zf);
+            }
+        }
+
+        internal void ZoomAnchoredToCenter(double level, bool lite = false)
+        {
+            ClearPendingTrueZoom();
+            _fitMode = FitMode.None;
+            double oldZoom = _zoomLevel;
+            double targetZoom = Math.Max(ZoomMin, Math.Min(ZoomMax, level));
+            if (Math.Abs(targetZoom - oldZoom) < 1e-5) return;
+
+            bool canAnchor = HasReadDocument && oldZoom > 0
+                && PagePreviewPanel.Visibility == Visibility.Visible
+                && PagePreviewPanel.ActualWidth > 0 && PagePreviewPanel.ActualHeight > 0
+                && _viewMode != ViewMode.Grid;
+
+            // The anchor is the page point under the viewport's center, read in PageContentGrid's own
+            // unscaled coordinates. Offset arithmetic alone drifts here: a page narrower than the view is
+            // centered rather than at offset 0, the margins around the grid do not scale, and a zoom that
+            // adds or drops a scrollbar changes the viewport itself. A document read from the top stays
+            // at the top. Quick repeated steps reuse one anchor until the settle timer clears it.
+            if (canAnchor && !_toolbarZoomAnchorActive)
+            {
+                Point center = PagePreviewPanel.TranslatePoint(
+                    new Point(PagePreviewPanel.ViewportWidth / 2, PagePreviewPanel.ViewportHeight / 2), PageContentGrid);
+                _toolbarZoomAnchorX = center.X;
+                _toolbarZoomAnchorY = center.Y;
+                _toolbarZoomAnchorTop = PagePreviewPanel.VerticalOffset <= 0;
+                _toolbarZoomAnchorActive = true;
+            }
+
+            _zoomLevel = targetZoom;
+            ApplyZoom(lite);
+            SyncZoomBox();
+
+            if (canAnchor)
+            {
+                PagePreviewPanel.UpdateLayout();
+                Point now = PageContentGrid.TranslatePoint(
+                    new Point(_toolbarZoomAnchorX, _toolbarZoomAnchorY), PagePreviewPanel);
+                PagePreviewPanel.ScrollToHorizontalOffset(Math.Max(0,
+                    PagePreviewPanel.HorizontalOffset + now.X - PagePreviewPanel.ViewportWidth / 2));
+                PagePreviewPanel.ScrollToVerticalOffset(_toolbarZoomAnchorTop ? 0 : Math.Max(0,
+                    PagePreviewPanel.VerticalOffset + now.Y - PagePreviewPanel.ViewportHeight / 2));
+            }
+
+            StartZoomSettleTimer();
+
+            if (HasReadDocument && _currentPage >= 0)
+                SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, ReadPageTotal) + $" - {DisplayZoomPct():F0}%");
+        }
+
         internal void ZoomIn_Click(object sender, RoutedEventArgs e) => StepZoomByUser(zoomIn: true);
         internal void ZoomOut_Click(object sender, RoutedEventArgs e) => StepZoomByUser(zoomIn: false);
 
@@ -2516,7 +2587,7 @@ namespace KillerPDF.Controls
             MarkViewportIntent();
             double step = zoomIn ? ZoomStep : -ZoomStep;
             if (_viewMode == ViewMode.Grid) GridZoomStep(!zoomIn);
-            else if (!AdjustPendingZoomStep(step)) SetZoom(_zoomLevel + step);
+            else if (!AdjustPendingZoomStep(step)) ZoomAnchoredToCenter(_zoomLevel + step);
         }
 
         /// <summary>Set by SyncZoomBox around its programmatic writes. Same story as
@@ -2575,7 +2646,7 @@ namespace KillerPDF.Controls
             if (double.TryParse(tag, System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out double z))
             {
-                SetTrueZoom(z);
+                SetTrueZoomAnchored(z);
                 if (_currentPage >= 0 && HasReadDocument)
                     SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, ReadPageTotal) + $" - {DisplayZoomPct():F0}%");
             }
