@@ -22,6 +22,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A confirmation that names a file, or is in a language the heading lettering can't draw, uses the interface font at a smaller size, lined up with the alert icon (#490).
 - PDFs with damaged image transparency, common in CAD and building drawings, render instead of showing a blank page and "Image soft-mask sample data has an invalid length."
 - Scrolling the What's new notes no longer draws text over the pane's rounded corners.
+- On a right-click card near the right side of the screen, the Hidden drawer from the edit pencil opens against the card's left edge and slides out from behind it, instead of sliding in from a gap off to the side.
 - The Trash Polka theme's name is translated in every language, like the other themes.
 - Selected text shows a visible highlight in dialog text boxes, such as the export DPI box, and in the text size box, the page number box and editable dropdowns. The selection worked before, but it was invisible on most themes.
 - A dialog text box dims when it is turned off, so the DPI box no longer looks editable while "Keep each page's resolution" is ticked.

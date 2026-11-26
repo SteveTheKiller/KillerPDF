@@ -369,7 +369,7 @@ namespace KillerFamily.Controls
             root.Children.Add(pencil);
 
             // The drawer: its own panel beside the card, its own shape and size, sliding out from behind the card's
-            // right edge. It holds the tiles stashed away, two across and scrolling, under Reset to default and the
+            // right edge, or its left edge near the monitor's right side. It holds the tiles stashed away, two across and scrolling, under Reset to default and the
             // close X that ends editing, the same X the family's small windows close with.
             var drawerTiles = new Border { HorizontalAlignment = HorizontalAlignment.Left };
             var drawerHint = new TextBlock { Text = edit.HiddenHint, TextWrapping = TextWrapping.Wrap, FontSize = 11, Margin = new Thickness(4, 6, 4, 6), TextAlignment = TextAlignment.Center };
@@ -417,7 +417,7 @@ namespace KillerFamily.Controls
             var drawerClip = new Border { ClipToBounds = true, Child = slideHost };
             var drawer = new Popup
             {
-                AllowsTransparency = true, StaysOpen = true, Placement = PlacementMode.Right, PlacementTarget = card,
+                AllowsTransparency = true, StaysOpen = true, Placement = PlacementMode.Relative, PlacementTarget = card,
                 Child = drawerClip, Focusable = false,
             };
             TextOptions.SetTextFormattingMode(drawerClip, TextFormattingMode.Display);
@@ -530,16 +530,35 @@ namespace KillerFamily.Controls
 
             double tileWidth = 0;
             bool doneHot = false;
+            // Which side of the card the drawer opens on. It opens on the right; a card too near the right edge of its
+            // monitor for the drawer to fit there gets it on the left instead, mirrored, so it still slides out from
+            // behind the card's own edge. The side is chosen here rather than left to WPF's flip, which moved the
+            // drawer left of the card's shadow halo while it still slid in from the left (Steve 2026-11-26).
+            bool onLeft = false;
             void PlaceDrawer()
             {
-                // The card's visible face sits inside its shadow halo. The drawer is attached to that face's right edge,
+                // The card's visible face sits inside its shadow halo. The drawer is attached to that face's edge,
                 // covering the card's border where they meet. It starts just under the card's top corner and never runs
                 // past its bottom one: a full drawer scrolls instead.
                 card.UpdateLayout();
                 var face = Descendants(card).OfType<Border>().FirstOrDefault(b => ReferenceEquals(b.BorderBrush, card.BorderBrush) && b.BorderThickness.Left > 0);
                 Rect r = face is not null && card.IsAncestorOf(face) ? face.TransformToAncestor(card).TransformBounds(new Rect(face.RenderSize)) : new Rect(card.RenderSize);
                 var radius = card.TryFindResource("MenuCornerRadius") is CornerRadius cr ? cr : new CornerRadius(0);
-                drawerFace.CornerRadius = new CornerRadius(0, radius.TopRight, radius.BottomRight, 0);
+                double inset = Math.Max(4, Math.Max(radius.TopRight, radius.BottomRight));
+                double room = Math.Max(60, r.Height - 2 * inset);
+                drawerTiles.Width = 2 * tileWidth;
+                drawerHint.MaxWidth = 2 * tileWidth;
+                drawerFace.MaxHeight = room;
+                drawerFace.MinHeight = Math.Min(120, room);
+                drawerFace.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                double width = drawerFace.DesiredSize.Width;
+                // While the drawer is open its side stays put; a rebuild during editing never swaps it across the card.
+                if (!drawer.IsOpen) onLeft = !FitsRightOfCard(card, r.Right, width);
+                // Open on the card side: no border and square corners where it joins the card.
+                drawerFace.CornerRadius = onLeft
+                    ? new CornerRadius(radius.TopLeft, 0, 0, radius.BottomLeft)
+                    : new CornerRadius(0, radius.TopRight, radius.BottomRight, 0);
+                drawerFace.BorderThickness = onLeft ? new Thickness(1, 1, 0, 1) : new Thickness(0, 1, 1, 1);
                 // A flat theme (98SE) has no accent edge on its menus: the drawer takes the menu's border and bevels.
                 bool flat = card.TryFindResource("UseDialogCaption") is true;
                 drawerFace.SetResourceReference(Border.BorderBrushProperty, flat ? "MenuBorderBrush" : "PrimaryBrush");
@@ -548,22 +567,28 @@ namespace KillerFamily.Controls
                 {
                     var (_, thicknessKey, inner) = ((string, string, bool))bevel.Tag;
                     var t = card.TryFindResource(thicknessKey) is Thickness th ? th : new Thickness(0);
-                    bevel.BorderThickness = new Thickness(0, t.Top, t.Right, t.Bottom);
-                    bevel.Margin = inner ? new Thickness(0, innerMargin.Top, innerMargin.Right, innerMargin.Bottom) : new Thickness(0);
+                    bevel.BorderThickness = onLeft ? new Thickness(t.Left, t.Top, 0, t.Bottom) : new Thickness(0, t.Top, t.Right, t.Bottom);
+                    bevel.Margin = !inner ? new Thickness(0)
+                        : onLeft ? new Thickness(innerMargin.Left, innerMargin.Top, 0, innerMargin.Bottom)
+                        : new Thickness(0, innerMargin.Top, innerMargin.Right, innerMargin.Bottom);
                 }
-                grain.CornerRadius = new CornerRadius(0, Math.Max(0, radius.TopRight - 1), Math.Max(0, radius.BottomRight - 1), 0);
-                double inset = Math.Max(4, Math.Max(radius.TopRight, radius.BottomRight));
-                double room = Math.Max(60, r.Height - 2 * inset);
-                drawerTiles.Width = 2 * tileWidth;
-                drawerHint.MaxWidth = 2 * tileWidth;
-                drawerFace.MaxHeight = room;
-                drawerFace.MinHeight = Math.Min(120, room);
-                drawerFace.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                double seam = face?.BorderThickness.Right ?? 0;
-                drawer.HorizontalOffset = r.Right - card.ActualWidth - seam;
-                // The drawer's first column of pixels lies over the card's border; it is clipped away so the card's border
-                // shows unbroken between the card and the drawer (Steve 2026-11-19).
-                drawerClip.Clip = new RectangleGeometry(new Rect(seam, 0, 100000, 100000));
+                grain.CornerRadius = onLeft
+                    ? new CornerRadius(Math.Max(0, radius.TopLeft - 1), 0, 0, Math.Max(0, radius.BottomLeft - 1))
+                    : new CornerRadius(0, Math.Max(0, radius.TopRight - 1), Math.Max(0, radius.BottomRight - 1), 0);
+                // The drawer's column of pixels next to the card lies over the card's border; it is clipped away so the
+                // card's border shows unbroken between the card and the drawer (Steve 2026-11-19).
+                if (onLeft)
+                {
+                    double seam = face?.BorderThickness.Left ?? 0;
+                    drawer.HorizontalOffset = r.Left + seam - width;
+                    drawerClip.Clip = new RectangleGeometry(new Rect(0, 0, Math.Max(0, width - seam), 100000));
+                }
+                else
+                {
+                    double seam = face?.BorderThickness.Right ?? 0;
+                    drawer.HorizontalOffset = r.Right - seam;
+                    drawerClip.Clip = new RectangleGeometry(new Rect(seam, 0, 100000, 100000));
+                }
                 drawer.VerticalOffset = r.Top + inset;
             }
 
@@ -620,7 +645,8 @@ namespace KillerFamily.Controls
                     PlaceDrawer();
                     double width = drawerFace.DesiredSize.Width;
                     drawer.IsOpen = true;
-                    slide.BeginAnimation(TranslateTransform.XProperty, new System.Windows.Media.Animation.DoubleAnimation(-width, 0, TimeSpan.FromMilliseconds(180))
+                    // It comes out from behind the edge it joins: rightward on the right, leftward on the left.
+                    slide.BeginAnimation(TranslateTransform.XProperty, new System.Windows.Media.Animation.DoubleAnimation(onLeft ? width : -width, 0, TimeSpan.FromMilliseconds(180))
                     { EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut } });
                 }
                 else
@@ -628,7 +654,7 @@ namespace KillerFamily.Controls
                     card.ClearValue(Control.BorderBrushProperty);
                     if (!animate || !drawer.IsOpen) { slide.BeginAnimation(TranslateTransform.XProperty, null); drawer.IsOpen = false; HoldMouse(); return; }
                     // Slides back in under the card, then closes.
-                    var tuck = new System.Windows.Media.Animation.DoubleAnimation(-drawerFace.ActualWidth, TimeSpan.FromMilliseconds(150))
+                    var tuck = new System.Windows.Media.Animation.DoubleAnimation(onLeft ? drawerFace.ActualWidth : -drawerFace.ActualWidth, TimeSpan.FromMilliseconds(150))
                     { EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseIn } };
                     tuck.Completed += (_, _) => { if (!editing) { slide.BeginAnimation(TranslateTransform.XProperty, null); drawer.IsOpen = false; HoldMouse(); } };
                     slide.BeginAnimation(TranslateTransform.XProperty, tuck);
@@ -1137,6 +1163,29 @@ namespace KillerFamily.Controls
         }
 
         private static readonly DependencyProperty TileProperty = DependencyProperty.RegisterAttached("Tile", typeof(CardTile), typeof(CardBuilder));
+
+        // Whether a drawer this wide fits between the card face's right edge (in the card's own units) and the right
+        // side of the monitor the card is on. A card not yet on screen counts as fitting.
+        private static bool FitsRightOfCard(FrameworkElement card, double faceRight, double width)
+        {
+            if (PresentationSource.FromVisual(card) is not System.Windows.Interop.HwndSource source) return true;
+            IntPtr monitor = MonitorFromWindow(source.Handle, MonitorDefaultToNearest);
+            var info = new MonitorInfo { Size = System.Runtime.InteropServices.Marshal.SizeOf<MonitorInfo>() };
+            if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref info)) return true;
+            Point edge = card.PointToScreen(new Point(faceRight, 0));
+            Point far = card.PointToScreen(new Point(faceRight + width, 0));
+            return Math.Max(edge.X, far.X) <= info.Monitor.Right;
+        }
+
+        private const uint MonitorDefaultToNearest = 2;
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct ScreenRect { public int Left, Top, Right, Bottom; }
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct MonitorInfo { public int Size; public ScreenRect Monitor; public ScreenRect Work; public uint Flags; }
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
 
         /// <summary>Test hook on an editable card's grid: press, drag and release in screen points, the card order, and
         /// edit mode on or off.</summary>
