@@ -150,9 +150,10 @@ namespace KillerPDF
                     logoTb.Inlines.Add(new System.Windows.Documents.Run("PDF") { FontFamily = wordmarkPdf, FontWeight = FontWeights.Normal, FontSize = Value(owner, "TitleWordmarkBoldSize", 22.52), Foreground = logo });
                     // The qualifier ("- Transform") rides in the same TextBlock so it shares the
                     // wordmark's baseline instead of centring on its own and floating high.
-                    string after = fullTitle![(kp + "KillerPDF".Length)..];
+                    // No dash after the wordmark, as the main window shows its file name.
+                    string after = DialogTitleText.Qualifier(fullTitle!);
                     if (!string.IsNullOrEmpty(after))
-                        logoTb.Inlines.Add(new System.Windows.Documents.Run("  " + after.TrimStart()) { FontFamily = UiKit.BrandSansFont, FontWeight = FontWeights.Normal, FontSize = Value(owner, "TitleSubtitleSize", 18.0), Foreground = secondary });
+                        logoTb.Inlines.Add(new System.Windows.Documents.Run("  " + after) { FontFamily = UiKit.BrandSansFont, FontWeight = FontWeights.Normal, FontSize = Value(owner, "TitleSubtitleSize", 18.0), Foreground = secondary });
                     sp.Children.Add(logoTb);
                 }
                 else
