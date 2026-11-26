@@ -1454,6 +1454,8 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Ctx_CopyValue">Мәнді көшіру</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Мәнді тазалау</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Өріс атауын көшіру</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Бос орынды сызып тастау</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">{0} өрісінің бос орнына Z сызылды, өріс енді тек оқуға арналған</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Пікір</sys:String>
     <sys:String x:Key="Str_Field_Text">Мәтін өрісі</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Құсбелгі</sys:String>

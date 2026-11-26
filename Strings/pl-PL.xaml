@@ -1543,6 +1543,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Ctx_CopyValue">Kopiuj wartość</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Wyczyść wartość</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Kopiuj nazwę pola</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Przekreśl wolne miejsce</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">Wolne miejsce w polu {0} przekreślono literą Z, a pole jest teraz tylko do odczytu</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Komentarz</sys:String>
     <sys:String x:Key="Str_Field_Text">Pole tekstowe</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Pole wyboru</sys:String>

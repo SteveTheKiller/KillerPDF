@@ -1542,6 +1542,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Ctx_CopyValue">Érték másolása</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Érték törlése</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Mezőnév másolása</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Üres hely kihúzása</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">A(z) {0} üres helye Z jellel kihúzva, a mező most csak olvasható</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Megjegyzés</sys:String>
     <sys:String x:Key="Str_Field_Text">Szövegmező</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Jelölőnégyzet</sys:String>

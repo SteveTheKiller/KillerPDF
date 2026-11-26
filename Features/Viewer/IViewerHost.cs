@@ -202,6 +202,8 @@ namespace KillerPDF.Features
     {
         public MenuItem? Flyout { get; init; }
         public bool? Checked { get; init; }
+        /// <summary>A spare tile's stable name on a customizable card: it starts in the Hidden drawer.</summary>
+        public string? SpareId { get; init; }
     }
 
     /// <summary>An object card the viewer asks the host to open (IViewerHost.ShowObjectCard). Rows are tile groups,
@@ -209,5 +211,7 @@ namespace KillerPDF.Features
     internal sealed record ViewerObjectCard(int PageIndex, string Title, string Meta, IReadOnlyList<IReadOnlyList<ViewerCardTile>> Rows)
     {
         public System.Action? Delete { get; init; }
+        /// <summary>Set for a card the user can customize (KillerUI CardEdit): its saved name, such as "FormField".</summary>
+        public string? CardKey { get; init; }
     }
 }

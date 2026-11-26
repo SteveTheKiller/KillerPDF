@@ -1537,6 +1537,8 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Ctx_CopyValue">複製值</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">清除值</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">複製欄位名稱</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">劃掉空白處</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">已在 {0} 的空白處畫上 Z，此欄位現為唯讀</sys:String>
     <sys:String x:Key="Str_Annot_Comment">註解</sys:String>
     <sys:String x:Key="Str_Field_Text">文字欄位</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">核取方塊</sys:String>

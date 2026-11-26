@@ -1555,6 +1555,8 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Ctx_CopyValue">Copia valore</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Cancella valore</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Copia nome campo</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Annulla spazio vuoto</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">Tracciata una Z nello spazio vuoto di {0}, ora il campo è di sola lettura</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Commento</sys:String>
     <sys:String x:Key="Str_Field_Text">Campo di testo</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Casella di controllo</sys:String>

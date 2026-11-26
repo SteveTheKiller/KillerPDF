@@ -1544,6 +1544,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Ctx_CopyValue">Wert kopieren</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Wert löschen</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Feldnamen kopieren</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Freien Platz entwerten</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">Freier Platz in {0} mit einem Z entwertet, das Feld ist jetzt schreibgeschützt</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Kommentar</sys:String>
     <sys:String x:Key="Str_Field_Text">Textfeld</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Kontrollkästchen</sys:String>

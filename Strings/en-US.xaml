@@ -1565,6 +1565,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Ctx_CopyValue">Copy Value</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Clear Value</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Copy Field Name</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Fill Unused Space</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">Drew a Z through the unused space in {0} and made it read-only</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Comment</sys:String>
     <sys:String x:Key="Str_Field_Text">Text Field</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Check Box</sys:String>

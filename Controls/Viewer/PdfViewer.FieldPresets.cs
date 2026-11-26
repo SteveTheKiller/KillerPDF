@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using KillerPdf.Engine.Authoring;
 using KillerPDF.Features;
 using KillerPDF.Services;
@@ -95,6 +96,14 @@ namespace KillerPDF.Controls
                 };
                 if (!field.IsPassword) presets.Add(copyName);
                 rows.Add(presets);
+                // #536: a Z through the space nobody wrote in, on a multiline or empty field. A spare tile, so it
+                // waits in the card's Hidden drawer until someone puts it on the card.
+                if (!field.IsPassword && !field.IsComb && (field.IsMultiLine || value.Length == 0))
+                {
+                    IReadOnlyList<Point>? z = inFile && !field.IsReadOnly ? FieldZMarkPoints(field, element) : null;
+                    rows.Add([new ViewerCardTile(GlyphText(0xED63), Loc("Str_Ctx_FillUnusedSpace"), null,
+                        () => FillUnusedSpace(field, pageIndex, z!), z is not null) { SpareId = "fillUnusedSpace" }]);
+                }
             }
             else if (field.IsCheckBox) rows.Add([clear, copyName]);
             else if (field.IsMultiSelectChoice) rows.Add([clear, copyValue, copyName]);
@@ -105,7 +114,57 @@ namespace KillerPDF.Controls
                 ? () => { _selectedFormFieldName = field.FieldName; DeleteSelectedFormField(); }
                 : null;
             string meta = field.Label + " · " + string.Format(Loc("Str_PageLabel"), pageIndex + 1);
-            host.ShowObjectCard(this, new ViewerObjectCard(pageIndex, FormFieldKindLabel(field), meta, rows) { Delete = delete }, element);
+            host.ShowObjectCard(this, new ViewerObjectCard(pageIndex, FormFieldKindLabel(field), meta, rows)
+                { Delete = delete, CardKey = "FormField" }, element);
+        }
+
+        // Where the Z goes: the field's box as it sits on the page now, under its last line of text.
+        private IReadOnlyList<Point>? FieldZMarkPoints(FormFieldInfo field, FrameworkElement element)
+        {
+            double left = Canvas.GetLeft(element), top = Canvas.GetTop(element);
+            if (!double.IsFinite(left) || !double.IsFinite(top)) return null;
+            var box = new Rect(left, top, field.Cw, element.ActualHeight > 0 ? element.ActualHeight : field.Ch);
+            double used = 0;
+            if (element is TextBox text && text.Text.TrimEnd().Length is int length and > 0)
+            {
+                // The bottom of the last character that shows ink; trailing blank lines are unused space too.
+                Rect last = text.GetRectFromCharacterIndex(length - 1, true);
+                if (last.IsEmpty) return null;
+                used = last.Bottom;
+            }
+            return FieldZMark.Points(box, used, field.Scale);
+        }
+
+        // Fill unused space (#536): the Z goes on as an ordinary black ink mark, so it moves, resizes, undoes and
+        // flattens like any drawing, and the field becomes read-only so nothing gets written under it later.
+        private void FillUnusedSpace(FormFieldInfo field, int pageIndex, IReadOnlyList<Point> points)
+        {
+            if (_currentFile is null || points.Count < 2) return;
+            var z = new InkAnnotation
+            {
+                PageIndex = pageIndex,
+                StrokeWidth = FieldZMark.StrokePoints * field.Scale,
+                SquareEnds = true,
+            };
+            z.SetColor(Colors.Black);
+            z.Points.AddRange(points);
+            AddAnnotation(z);
+            RenderAllAnnotations(pageIndex);
+            try
+            {
+                SaveTempAndReload(
+                    keepAnnotations: true,
+                    preserveZoom: true,
+                    finalizeSavedFile: path => PdfEngineIntegration.SetFormFieldReadOnly(path, field.FieldName),
+                    selectedPageAfterReload: pageIndex,
+                    preserveRenderedPages: true);
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                ReportEditFailure(ex);
+                return;
+            }
+            SetStatus(string.Format(Loc("Str_St_FieldUnusedSpaceFilled"), field.Label));
         }
 
         private string FormFieldKindLabel(FormFieldInfo field) => field switch

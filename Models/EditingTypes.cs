@@ -135,6 +135,15 @@ namespace KillerPDF
         public byte FillA { get; set; }
 
         public bool HasFill => FillA > 0;
+
+        // Square ends and sharp corners, drawn like the Killer Sans Z, for the Z that fills a form field's unused
+        // space (#536). Hand-drawn strokes keep their round ends. Not written when false, so ink serializes as before.
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+        public bool SquareEnds { get; set; }
+
+        // How far a sharp corner may reach before it is cut flat, as a multiple of half the stroke width. Screen,
+        // thumbnail and saved file use the same limit, so a long, flat Z never spikes past its field.
+        public const double SquareMiterLimit = 4;
         public Color GetFillColor() => Color.FromArgb(FillA, FillR, FillG, FillB);
         public void SetFillColor(Color c) { FillR = c.R; FillG = c.G; FillB = c.B; FillA = c.A; }
     }

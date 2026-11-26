@@ -1555,6 +1555,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Ctx_CopyValue">Sao chép giá trị</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Xóa giá trị</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Sao chép tên trường</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Gạch bỏ chỗ trống</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">Đã vẽ chữ Z vào chỗ trống của {0} và đặt trường ở chế độ chỉ đọc</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Bình luận</sys:String>
     <sys:String x:Key="Str_Field_Text">Trường văn bản</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Hộp kiểm</sys:String>

@@ -1540,6 +1540,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Ctx_CopyValue">Kopírovat hodnotu</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Vymazat hodnotu</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Kopírovat název pole</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Proškrtnout volné místo</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">Volné místo v poli {0} bylo proškrtnuto písmenem Z a pole je nyní jen pro čtení</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Komentář</sys:String>
     <sys:String x:Key="Str_Field_Text">Textové pole</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Zaškrtávací políčko</sys:String>

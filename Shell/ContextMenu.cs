@@ -620,7 +620,8 @@ namespace KillerPDF.Shell
                 FillR = ink.FillR,
                 FillG = ink.FillG,
                 FillB = ink.FillB,
-                FillA = ink.FillA
+                FillA = ink.FillA,
+                SquareEnds = ink.SquareEnds
             },
             SignatureAnnotation s => new SignatureAnnotation
             {

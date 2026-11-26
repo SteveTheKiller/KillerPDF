@@ -273,13 +273,15 @@ namespace KillerPDF.Controls
                             _activeCanvas.Children.Add(pg);
                             break;
                         }
+                        PenLineCap inkCap = ia.SquareEnds ? PenLineCap.Square : PenLineCap.Round;
                         var poly = new Polyline
                         {
                             Stroke = new SolidColorBrush(ia.GetColor()),
                             StrokeThickness = ia.StrokeWidth,
-                            StrokeLineJoin = PenLineJoin.Round,
-                            StrokeStartLineCap = PenLineCap.Round,
-                            StrokeEndLineCap = PenLineCap.Round
+                            StrokeLineJoin = ia.SquareEnds ? PenLineJoin.Miter : PenLineJoin.Round,
+                            StrokeMiterLimit = InkAnnotation.SquareMiterLimit,
+                            StrokeStartLineCap = inkCap,
+                            StrokeEndLineCap = inkCap
                         };
                         foreach (var pt in ia.Points) poly.Points.Add(pt);
                         _activeCanvas.Children.Add(poly);

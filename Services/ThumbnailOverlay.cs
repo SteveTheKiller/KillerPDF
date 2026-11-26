@@ -51,7 +51,12 @@ internal static class ThumbnailOverlay
                 }
                 context.DrawGeometry(ink.HasFill ? new SolidColorBrush(ink.GetFillColor()) : null,
                     new Pen(new SolidColorBrush(ink.GetColor()), Math.Max(1, ink.StrokeWidth))
-                    { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round },
+                    {
+                        StartLineCap = ink.SquareEnds ? PenLineCap.Square : PenLineCap.Round,
+                        EndLineCap = ink.SquareEnds ? PenLineCap.Square : PenLineCap.Round,
+                        LineJoin = ink.SquareEnds ? PenLineJoin.Miter : PenLineJoin.Round,
+                        MiterLimit = InkAnnotation.SquareMiterLimit,
+                    },
                     line);
                 break;
 

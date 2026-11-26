@@ -1535,6 +1535,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Ctx_CopyValue">মান কপি করুন</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">মান মুছুন</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">ফিল্ডের নাম কপি করুন</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">খালি জায়গা পূরণ করুন</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">{0}-এর খালি জায়গায় একটি Z আঁকা হয়েছে এবং ফিল্ডটি শুধু-পঠনযোগ্য করা হয়েছে</sys:String>
     <sys:String x:Key="Str_Annot_Comment">মন্তব্য</sys:String>
     <sys:String x:Key="Str_Field_Text">টেক্সট ফিল্ড</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">চেক বক্স</sys:String>

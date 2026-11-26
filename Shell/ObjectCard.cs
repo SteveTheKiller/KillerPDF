@@ -19,7 +19,9 @@ namespace KillerPDF.Shell
             if (card.Delete is { } delete)
                 header = WithHeaderAction(header, NavRowButton(menu, "\uE74D", "Str_Ctx_DeleteSel", "Del", delete, true));
             menu.Items.Add(CardSlot(header, new Thickness(4, 2, 4, 6)));
-            var strip = TileGroups(menu, [.. card.Rows.Select(row => row.Select(ToCardTile))]);
+            IEnumerable<CardTile>[] groups = [.. card.Rows.Select(row => row.Select(ToCardTile))];
+            // A customizable card locks nothing, so every tile can be hidden; its spare tiles start in the Hidden drawer.
+            var strip = card.CardKey is { } key ? EditableTileGroups(menu, key, [], [], groups) : TileGroups(menu, groups);
             menu.Items.Add(CardSlot(strip, new Thickness(0)));
             FocusFirstActionFromKeyboard(menu, strip);
             menu.PlacementTarget = target;
@@ -27,8 +29,12 @@ namespace KillerPDF.Shell
             menu.IsOpen = true;
         }
 
-        private CardTile ToCardTile(ViewerCardTile t) => t.Flyout is { } rows
-            ? FlyoutTile(t.Glyph, t.Caption, t.Gesture, rows) with { Enabled = t.Enabled && rows.IsEnabled }
-            : new CardTile(t.Glyph, t.Caption, t.Gesture, t.Act, false, t.Enabled) { Checked = t.Checked };
+        private CardTile ToCardTile(ViewerCardTile t)
+        {
+            CardTile tile = t.Flyout is { } rows
+                ? FlyoutTile(t.Glyph, t.Caption, t.Gesture, rows) with { Enabled = t.Enabled && rows.IsEnabled }
+                : new CardTile(t.Glyph, t.Caption, t.Gesture, t.Act, false, t.Enabled) { Checked = t.Checked };
+            return t.SpareId is { } id ? Spare(id, tile) : tile;
+        }
     }
 }

@@ -967,6 +967,26 @@ internal static partial class PdfEngineIntegration
         ReplaceWithBuiltResult(path, result);
     }
 
+    /// <summary>Makes a field read-only, keeping its Required and No Export flags, as one engine revision (#536).</summary>
+    internal static void SetFormFieldReadOnly(string path, string fieldName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
+        PdfDocument document = AttachUnlistedFormFields(PdfDocument.Open(File.ReadAllBytes(path)));
+        long? flags = null;
+        int pageCount = PdfPageInformation.Read(document).Count;
+        for (int index = 0; index < pageCount && flags is null; index++)
+            foreach (PdfFormWidgetInfo widget in PdfFormWidgetReader.ReadPage(document, index))
+                if (widget.FieldName == fieldName) { flags = widget.Flags; break; }
+        if (flags is not long current)
+            throw new InvalidOperationException($"The form has no field named '{fieldName}'.");
+        if ((current & 1) != 0) return;
+        byte[] result = new PdfIncrementalPageEditor(document)
+            .SetFormFieldFlags(fieldName, readOnly: true, required: (current & 2) != 0, noExport: (current & 4) != 0)
+            .Build();
+        ReplaceWithBuiltResult(path, result);
+    }
+
     /// <summary>Replaces the document bookmark hierarchy as one engine revision.</summary>
     internal static void ReplaceBookmarks(string path, IReadOnlyList<PdfBookmarkInfo> bookmarks)
     {

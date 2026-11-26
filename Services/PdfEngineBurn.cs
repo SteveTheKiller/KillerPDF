@@ -732,9 +732,12 @@ internal static class PdfEngineBurn
             content.ClosePath().FillEvenOdd();
         }
         content.SetStrokeRgb(ink.ColorR / 255d, ink.ColorG / 255d, ink.ColorB / 255d)
-            .SetOpacity(1, ink.ColorA / 255d).SetLineWidth(Math.Max(.01, ink.StrokeWidth * sx))
-            .SetLineCap(PdfLineCap.Round).SetLineJoin(PdfLineJoin.Round)
-            .MoveTo(ink.Points[0].X * sx, ink.Points[0].Y * sy);
+            .SetOpacity(1, ink.ColorA / 255d).SetLineWidth(Math.Max(.01, ink.StrokeWidth * sx));
+        if (ink.SquareEnds)
+            content.SetLineCap(PdfLineCap.ProjectingSquare).SetLineJoin(PdfLineJoin.Miter)
+                .SetMiterLimit(InkAnnotation.SquareMiterLimit);
+        else content.SetLineCap(PdfLineCap.Round).SetLineJoin(PdfLineJoin.Round);
+        content.MoveTo(ink.Points[0].X * sx, ink.Points[0].Y * sy);
         foreach (WpfPoint point in ink.Points.Skip(1)) content.LineTo(point.X * sx, point.Y * sy);
         content.Stroke().RestoreState();
     }

@@ -1535,6 +1535,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Ctx_CopyValue">Değeri kopyala</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Değeri temizle</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Alan adını kopyala</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Boş alanı çiz</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">{0} içindeki boş alana Z çizildi ve alan artık salt okunur</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Yorum</sys:String>
     <sys:String x:Key="Str_Field_Text">Metin alanı</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Onay kutusu</sys:String>

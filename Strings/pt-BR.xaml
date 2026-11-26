@@ -1555,6 +1555,8 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Ctx_CopyValue">Copiar valor</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Limpar valor</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Copiar nome do campo</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Inutilizar espaço vazio</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">Um Z foi traçado no espaço vazio de {0}, e o campo agora é somente leitura</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Comentário</sys:String>
     <sys:String x:Key="Str_Field_Text">Campo de texto</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Caixa de seleção</sys:String>

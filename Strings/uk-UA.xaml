@@ -1555,6 +1555,8 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Ctx_CopyValue">Копіювати значення</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Очистити значення</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Копіювати назву поля</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Прокреслити порожнє місце</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">Порожнє місце в полі {0} прокреслено знаком Z, поле тепер лише для читання</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Коментар</sys:String>
     <sys:String x:Key="Str_Field_Text">Текстове поле</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Прапорець</sys:String>

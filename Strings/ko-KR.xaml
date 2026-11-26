@@ -1565,6 +1565,8 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_Ctx_CopyValue">값 복사</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">값 지우기</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">필드 이름 복사</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">빈 공간 채우기</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">{0}의 빈 공간에 Z를 그리고 필드를 읽기 전용으로 만들었습니다</sys:String>
     <sys:String x:Key="Str_Annot_Comment">댓글</sys:String>
     <sys:String x:Key="Str_Field_Text">텍스트 필드</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">확인란</sys:String>

@@ -1451,6 +1451,8 @@
     <sys:String x:Key="Str_Ctx_CopyValue">Kopiraj vrednost</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">Počisti vrednost</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">Kopiraj ime polja</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">Prečrtaj prazen prostor</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">Prazen prostor v polju {0} je prečrtan z Z, polje je zdaj samo za branje</sys:String>
     <sys:String x:Key="Str_Annot_Comment">Komentar</sys:String>
     <sys:String x:Key="Str_Field_Text">Besedilno polje</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">Potrditveno polje</sys:String>

@@ -33,6 +33,7 @@
     <Compile Include="..\Services\TextMarkupToolPolicy.cs" Link="Services\TextMarkupToolPolicy.cs" />
     <Compile Include="..\Services\LiftedPicture.cs" Link="Services\LiftedPicture.cs" />
     <Compile Include="..\Services\ThumbnailOverlay.cs" Link="Services\ThumbnailOverlay.cs" />
+    <Compile Include="..\Services\FieldZMark.cs" Link="Services\FieldZMark.cs" />
     <Compile Include="..\Services\BlurSliderScale.cs" Link="Services\BlurSliderScale.cs" />
     <Compile Include="..\Services\ClosedTabs.cs" Link="Services\ClosedTabs.cs" />
     <Compile Include="..\Shell\SaveAsFormats.cs" Link="Shell\SaveAsFormats.cs" />

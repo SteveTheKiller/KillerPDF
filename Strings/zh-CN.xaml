@@ -1539,6 +1539,8 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Ctx_CopyValue">复制值</sys:String>
     <sys:String x:Key="Str_Ctx_ClearValue">清除值</sys:String>
     <sys:String x:Key="Str_Ctx_CopyFieldName">复制字段名称</sys:String>
+    <sys:String x:Key="Str_Ctx_FillUnusedSpace">划掉空白处</sys:String>
+    <sys:String x:Key="Str_St_FieldUnusedSpaceFilled">已在 {0} 的空白处画上 Z，该字段现为只读</sys:String>
     <sys:String x:Key="Str_Annot_Comment">批注</sys:String>
     <sys:String x:Key="Str_Field_Text">文本字段</sys:String>
     <sys:String x:Key="Str_Field_CheckBox">复选框</sys:String>
