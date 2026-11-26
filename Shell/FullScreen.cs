@@ -17,6 +17,10 @@ namespace KillerPDF.Shell
         private WindowState _fsPrevState;
         private bool _fsPrevTopmost;
         private ResizeMode _fsPrevResize;
+        // The window's own placement in native pixels. Putting back Left, Top, Width and Height in WPF units came
+        // out far too big on a desktop that mixes display scales, such as a 4K monitor at 150% beside one at 100%.
+        private WINDOWPLACEMENT _fsPrevPlacement;
+        // The same bounds in WPF units, only for the window settings saved when KillerPDF closes in full screen.
         private double _fsPrevLeft, _fsPrevTop, _fsPrevW, _fsPrevH;
         private bool _fsAnimating;
 
@@ -123,6 +127,9 @@ namespace KillerPDF.Shell
                 _fsPrevTopmost = Topmost;
                 _fsPrevResize = ResizeMode;
                 _fsPrevLeft = Left; _fsPrevTop = Top; _fsPrevW = Width; _fsPrevH = Height;
+                _fsPrevPlacement = new WINDOWPLACEMENT { length = Marshal.SizeOf<WINDOWPLACEMENT>() };
+                if (!GetWindowPlacement(new WindowInteropHelper(this).Handle, ref _fsPrevPlacement))
+                    _fsPrevPlacement.length = 0;
 
                 // Read the target monitor while still on it (before any WindowState change). Set the target
                 // bounds FIRST, then drop to Normal: WPF restores to the just-set bounds, so the window lands
@@ -174,8 +181,15 @@ namespace KillerPDF.Shell
                 ResizeMode = _fsPrevResize;
                 Controls.AltDrag.SetIsEnabled(this, true);
                 WindowState = WindowState.Normal;
-                Left = _fsPrevLeft; Top = _fsPrevTop; Width = _fsPrevW; Height = _fsPrevH;
-                if (_fsPrevState == WindowState.Maximized) WindowState = WindowState.Maximized;
+                if (_fsPrevPlacement.length != 0)
+                {
+                    // Windows puts back the normal rectangle and the maximized state together, in pixels.
+                    var placement = _fsPrevPlacement;
+                    placement.flags = 0;
+                    placement.showCmd = _fsPrevState == WindowState.Maximized ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL;
+                    SetWindowPlacement(new WindowInteropHelper(this).Handle, ref placement);
+                }
+                else if (_fsPrevState == WindowState.Maximized) WindowState = WindowState.Maximized;
             }
 
             // Re-apply the frame treatment: squared (no border, square corners, full clip) in full screen,
@@ -245,5 +259,23 @@ namespace KillerPDF.Shell
             };
             t.Start();
         }
+
+        private const int SW_SHOWNORMAL = 1, SW_SHOWMAXIMIZED = 3;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WINDOWPLACEMENT
+        {
+            public int length, flags, showCmd;
+            public POINT ptMinPosition, ptMaxPosition;
+            public RECT rcNormalPosition;
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT placement);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT placement);
     }
 }

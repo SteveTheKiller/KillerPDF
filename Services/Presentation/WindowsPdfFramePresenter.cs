@@ -98,6 +98,8 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
         var rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
         if (rejected != null) return (rejected);
 
+        // A surface made before the display changed (HDR switched on or off, a driver reset) is never drawn into again.
+        if (_transport is { IsStale: true } stale) ReleaseTransport(stale);
         var transport = _transport ?? new WindowsPdfNativeTransport(state.SurfacePixelWidth, state.SurfacePixelHeight);
         try
         {

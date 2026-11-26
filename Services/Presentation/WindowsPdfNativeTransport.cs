@@ -8,7 +8,7 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
     const uint FloatRgbaFormat = 10;
     const uint LinearSrgbColorSpace = 1;
     readonly List<nint> _owned = [];
-    nint _composition, _target, _context, _swap, _swap3, _buffer, _visual, _viewport;
+    nint _composition, _target, _device, _context, _factory, _swap, _swap3, _buffer, _visual, _viewport;
     bool _attached;
     bool _disposed;
 
@@ -35,10 +35,10 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
             Release(context); Release(device);
             hr = D3D11CreateDevice(0, 5, 0, 0x20, 0, 0, 7, out device, out _, out context);
         }
-        Capture(device); Capture(context); Check("D3D11CreateDevice", hr); Require(device); Require(context); _context = context;
+        Capture(device); Capture(context); Check("D3D11CreateDevice", hr); Require(device); Require(context); _device = device; _context = context;
         Guid factoryId = new("50c83a1c-e072-4c48-87b0-3630fa36a6d0");
         hr = CreateDXGIFactory2(0, ref factoryId, out nint factory);
-        Capture(factory); Check("CreateDXGIFactory2", hr); Require(factory);
+        Capture(factory); Check("CreateDXGIFactory2", hr); Require(factory); _factory = factory;
         var requested = new SwapDesc
         {
             Width = checked((uint)Width), Height = checked((uint)Height), Format = FloatRgbaFormat,
@@ -75,6 +75,24 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
         hr = ((delegate* unmanaged[Stdcall]<nint, nint*, int>)Slot(composition, 7))(composition, &visual);
         Capture(visual); Check("CreateVisual", hr); Require(visual); _visual = visual;
         Check("SetContent", ((delegate* unmanaged[Stdcall]<nint, nint, int>)Slot(visual, 15))(visual, swap));
+    }
+
+    /// <summary>
+    /// True once this surface no longer belongs to the current display setup. Turning HDR on or off, or a driver
+    /// reset, leaves the factory out of date and can remove the device; drawing into either one again crashed
+    /// inside the graphics driver. A stale transport is thrown away and built again on the new display.
+    /// </summary>
+    internal bool IsStale
+    {
+        get
+        {
+            if (_disposed || _factory == 0 || _device == 0 || _composition == 0) return true;
+            // IDXGIFactory1::IsCurrent, ID3D11Device::GetDeviceRemovedReason, IDCompositionDevice::CheckDeviceState.
+            if (((delegate* unmanaged[Stdcall]<nint, int>)Slot(_factory, 13))(_factory) == 0) return true;
+            if (((delegate* unmanaged[Stdcall]<nint, int>)Slot(_device, 39))(_device) != 0) return true;
+            int valid = 0;
+            return ((delegate* unmanaged[Stdcall]<nint, int*, int>)Slot(_composition, 26))(_composition, &valid) < 0 || valid == 0;
+        }
     }
 
     internal void Resize(int width, int height)
@@ -172,7 +190,7 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
         }
         if (_context != 0) ((delegate* unmanaged[Stdcall]<nint, void>)Slot(_context, 110))(_context);
         for (int i = _owned.Count - 1; i >= 0; i--) Release(_owned[i]);
-        _owned.Clear(); _composition = _target = _context = _swap = _swap3 = _buffer = _visual = 0;
+        _owned.Clear(); _composition = _target = _device = _context = _factory = _swap = _swap3 = _buffer = _visual = 0;
     }
 
     nint Query(nint pointer, Guid id, string operation)

@@ -176,6 +176,41 @@ public sealed class ViewerPresentationPinTests
         return count;
     }
 
+    // #534 sitting on SHREDDER: turning HDR off and on again with the native page window up froze the window and then
+    // crashed inside the AMD driver (AMDXN64.DLL, 0xc0000005). The surface kept drawing through a factory and device made
+    // for the old display. Before every frame the presenter now asks whether its surface is stale and builds a new one.
+    [Fact]
+    public void AFrameIsNeverDrawnIntoASurfaceMadeForTheOldDisplay()
+    {
+        string presenter = Source("Services", "Presentation", "WindowsPdfFramePresenter.cs");
+        string transport = Source("Services", "Presentation", "WindowsPdfNativeTransport.cs");
+        string stale = Between(transport, "internal bool IsStale", "internal void Resize(");
+
+        Assert.Contains("if (_transport is { IsStale: true } stale) ReleaseTransport(stale);", presenter);
+        Assert.True(presenter.IndexOf("IsStale: true", StringComparison.Ordinal)
+            < presenter.IndexOf("var transport = _transport ??", StringComparison.Ordinal));
+        Assert.Contains("Slot(_factory, 13))(_factory) == 0", stale);       // IDXGIFactory1::IsCurrent
+        Assert.Contains("Slot(_device, 39))(_device) != 0", stale);         // ID3D11Device::GetDeviceRemovedReason
+        Assert.Contains("Slot(_composition, 26))(_composition, &valid)", stale); // IDCompositionDevice::CheckDeviceState
+        Assert.Contains("_device = device; _context = context;", transport);
+        Assert.Contains("_factory = factory;", transport);
+    }
+
+    // #534 sitting on SHREDDER: leaving full screen on a desktop that mixes display scales put the window back far too
+    // big. Restoring Left, Top, Width and Height in WPF units is what went wrong; the native placement goes back instead.
+    [Fact]
+    public void LeavingFullScreenPutsBackTheNativeWindowPlacement()
+    {
+        string fullScreen = Source("Shell", "FullScreen.cs");
+
+        Assert.Contains("GetWindowPlacement(new WindowInteropHelper(this).Handle, ref _fsPrevPlacement)", fullScreen);
+        Assert.Contains("SetWindowPlacement(new WindowInteropHelper(this).Handle, ref placement);", fullScreen);
+        Assert.DoesNotContain("Width = _fsPrevW", fullScreen);
+        Assert.True(fullScreen.IndexOf("GetWindowPlacement(new", StringComparison.Ordinal)
+            < fullScreen.IndexOf("WindowState = WindowState.Normal;", StringComparison.Ordinal),
+            "The placement has to be read before full screen changes the window state.");
+    }
+
     private static string Between(string source, string start, string end)
     {
         int from = source.IndexOf(start, StringComparison.Ordinal);
