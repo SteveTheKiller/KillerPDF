@@ -425,7 +425,7 @@ namespace KillerPDF.Shell
                 // The close is anchored to the card's top-right corner like the About card's. The
                 // header row is as tall as the close and starts at the close's top inset, so the
                 // title and the X share one centerline; the right margin keeps the title clear of it.
-                var closeMargin = FindResource("AboutCloseMargin") is Thickness cm ? cm : new Thickness(0, 6, 6, 0);
+                var closeMargin = FindResource("AboutCloseMargin") is Thickness cm ? cm : new Thickness(0, 3, 2, 0);
                 double closeWidth = FindResource("AboutCloseWidth") is double cw ? cw : 28;
                 sigCloseControl.VerticalAlignment = VerticalAlignment.Top;
                 sigCloseControl.Margin = closeMargin;

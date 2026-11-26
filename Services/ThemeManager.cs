@@ -1050,8 +1050,11 @@ namespace KillerPDF.Services
             double bar = combined["DialogTitleBarHeight"] is double barH ? barH : 32.0;
             SetIfAbsent("DialogCloseWidth", pickerCaption ? bar - 2 : 28.0);
             SetIfAbsent("DialogCloseHeight", pickerCaption ? bar - 4 : 26.0);
+            // Without a caption the bare X sits as far in from the card's right edge as its centre
+            // sits below the card's top, the same corner as the overlay cards' X (AboutCloseMargin).
+            // Flush right it sat 2px closer to the side than to the top (Steve 2026-11-26).
             SetIfAbsent("DialogCaptionButtonsMargin", new Thickness(0, 0,
-                combined["CaptionButtonsMargin"] is Thickness pickerButtons ? pickerButtons.Right : 0, 0));
+                !pickerCaption ? 2 : combined["CaptionButtonsMargin"] is Thickness pickerButtons ? pickerButtons.Right : 0, 0));
             SetIfAbsent("TitleLogoMargin", combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool fc && fc
                 ? combined["TitleBarPadding"] : new Thickness(4, 0, 0, 0));
             if (!combined.Contains("TitleLogoTransform"))
@@ -1178,7 +1181,11 @@ namespace KillerPDF.Services
                 // bare glyph always occupied (matching KillerNotes' card).
                 combined["AboutCloseWidth"]  = flat ? 16.0 : 28.0;
                 combined["AboutCloseHeight"] = flat ? 14.0 : 26.0;
-                combined["AboutCloseMargin"] = flat ? new Thickness(0, 5, 5, 0) : new Thickness(0, 6, 6, 0);
+                // The card X's centre sits 17px below the card's top and 17px in from its right,
+                // where the file picker's and the confirm dialog's X sit on their title rows, so
+                // every window's close lands in the same corner (Steve 2026-11-26: at 6,6 it sat
+                // 20 and 21 in, and read as randomly placed against the dialogs).
+                combined["AboutCloseMargin"] = flat ? new Thickness(0, 5, 5, 0) : new Thickness(0, 3, 2, 0);
 
                 // ...and the rest of the OverlayCloseButton split (Controls.xaml): the ordinary
                 // themes keep the card X's ORIGINAL look - muted U+2715, red glyph on hover, no

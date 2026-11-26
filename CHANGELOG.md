@@ -57,7 +57,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A dialog's wordmark has the same bevel as the main window's, and it sits 1px higher along with the dialog's icon.
 - The color picker's fields are laid out in even rows. The preview and a larger eyedropper button sit side by side, with Hex, R, G and B in one row under small captions, and Replace and Reset as an even pair under the swatches.
 - The color picker's hue strip fills the space to the right edge without a gray bar beside it, and its handle is the theme's slider thumb. The color square also sits closer to the title.
-- The file dialog keeps the 4px gutter around its two panes, and the address bar sits closer to the title bar and the panes. The address bar, the file name row and the buttons sit 16px from the sides and bottom like the other dialogs.
+- The file dialog's panes sit 8px from its sides and from each other, each with the pane border, and the address bar sits closer to the title bar and the panes. The address bar, the file name row and the buttons sit 16px from the sides and bottom like the other dialogs.
 - The file dialog's title shows the wordmark followed by the operation, such as "Save PDF as", like the other dialogs.
 - The OCR language list shows two columns with flags, like the interface language picker, so it fits a short window. It has the picker's margins, its columns widen so no name is cut off, and its two settings sit in one row under them.
 - The keyboard shortcuts card keeps its rounded corners and thin top edge while the list is scrolled.
@@ -70,6 +70,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The Restore last session bar keeps 4px above and below its buttons instead of 8, so it matches the slimmer tool bar and tabs.
 - A floating tool bar pushed against the left or right side of the pane sits behind the pane's rounded corner instead of drawing a square line over it, and its bottom corner on that side goes square.
 - The tool options bar is 7 pixels shorter, with 4 pixels above and below its controls to match the shorter tabs.
+- With the sidebar on top, its menus open 8px inside the top right of the page area instead of over the document tabs.
+- The keyboard shortcuts list splits its sections so both columns are about the same length.
+- Customize Shortcuts shows its list on a pane with the usual drop shadow and scroll fades, with less space above its buttons.
+- The About card's text sits 8px from its sides again, so the description no longer runs into the right edge.
+- Every window's close X sits the same distance from the top and right of its window, centered on the title row.
 
 ### Added
 - Right-clicking a drawing, text box, picture, comment or form field opens a card made for it, under the same Back, Forward, Undo, Redo and Print row as the page card. A mark, picture or comment card has Delete in its header.

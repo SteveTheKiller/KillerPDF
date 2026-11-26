@@ -62,6 +62,12 @@ namespace KillerPDF.Shell
             // Every rail flyout, the kit's theme and language menus included, opens on the rail's
             // side from the first open of the session (Shell/FlyoutPlacement.cs wiring).
             FlyoutPlacement.UsePane(ContentPane, _sidebarSide);
+            // With the strip on top, its menus open 8px inside the card's top right, below the
+            // document tabs. Split panes show both tab bands, so the active card's top serves both.
+            FlyoutPlacement.SetVisibleHead(ContentPane, root =>
+                ActiveViewer?.PaneBorder is { IsVisible: true } card && card.IsDescendantOf(root)
+                    ? card.TransformToAncestor(root).Transform(new Point()).Y
+                    : double.NaN);
             RowDefinition firstRow = MainContentGrid.RowDefinitions[0];
             RowDefinition secondRow = MainContentGrid.RowDefinitions[1];
 

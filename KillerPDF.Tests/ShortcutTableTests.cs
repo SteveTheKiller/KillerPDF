@@ -145,6 +145,17 @@ namespace KillerPDF.Tests
             Assert.Equal("Str_KS_DocumentTools", ShortcutTable.SectionTitleKey("Docs"));
         }
 
+        /// <summary>The overlay's two columns hold about the same number of lines, a section
+        /// heading counting as one. The right column once ran some thirty rows past the left.</summary>
+        [Fact]
+        public void KsColumnsStayBalanced()
+        {
+            int Lines(bool right) => ShortcutTable.KsGroups.Where(g => g.Right == right)
+                .Sum(g => 1 + ShortcutTable.KsAll.Count(b => b.Cat == g.Cat));
+            int left = Lines(false), right = Lines(true);
+            Assert.True(Math.Abs(left - right) <= 6, $"left column {left} lines, right column {right}");
+        }
+
         /// <summary>A section with no bindings would render as a heading over nothing.</summary>
         [Fact]
         public void EverySectionHasAtLeastOneBinding()

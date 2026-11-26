@@ -206,8 +206,9 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <!-- The four-layer sunken edge as one control, for the picker's wells. Every thickness is
-             zero on the flat themes, so it draws nothing there. -->
+        <!-- The pane's 1px frame in PaneBorderBrush, as the main window's panes have, then the
+             four-layer sunken edge. The bevel thicknesses are zero on the flat themes, so only
+             the frame draws there; on 98SE the bevel's outer ring covers the frame. -->
         <Style x:Key="PaneBevelOverlay" TargetType="{x:Type Control}">
             <Setter Property="IsHitTestVisible" Value="False"/>
             <Setter Property="Focusable" Value="False"/>
@@ -215,6 +216,8 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Control}">
                         <Grid>
+                            <Border BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1"
+                                    CornerRadius="{DynamicResource ControlCornerRadius}"/>
                             <Border BorderBrush="{DynamicResource PaneBevelDarkBrush}" BorderThickness="{DynamicResource PaneBevelLightThickness}"/>
                             <Border BorderBrush="{DynamicResource PaneBevelLightBrush}" BorderThickness="{DynamicResource PaneBevelDarkThickness}"/>
                             <Border Margin="{DynamicResource PaneBevelInnerMargin}" BorderBrush="{DynamicResource PaneBevelDark2Brush}" BorderThickness="{DynamicResource PaneBevel2LightThickness}"/>
@@ -461,12 +464,13 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Main: quick places on the left, folder contents on the right. The panes keep the
-                 main window's 4 px gutter; the rows around them sit 16 in, as dialog content does. -->
-            <Grid Grid.Row="3" Margin="4,0">
+            <!-- Main: quick places on the left, folder contents on the right. The panes sit 8 px
+                 from the card's sides and from each other; the rows around them sit 16 in, as
+                 dialog content does. The 4 px window gutter looked cramped here (Steve 2026-11-26). -->
+            <Grid Grid.Row="3" Margin="8,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="170"/>
-                    <ColumnDefinition Width="4"/>
+                    <ColumnDefinition Width="8"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition x:Name="ImagePreviewGapColumn" Width="0"/>
                     <ColumnDefinition x:Name="ImagePreviewColumn" Width="0"/>

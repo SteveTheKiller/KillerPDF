@@ -356,14 +356,17 @@ namespace KillerPDF
         ];
 
         // Section title and column for each category. Order here is the order sections appear.
+        // The columns hold about the same number of rows (KsColumnsStayBalanced): Document tools
+        // alone is a long section, so Tools rides with it on the right and Navigation and View
+        // sit on the left (Steve 2026-11-26, the right column ran far past the left).
         internal static readonly (string Cat, string TitleKey, bool Right)[] KsGroups =
         [
             ("File",   "Str_KS_File",         false),
-            ("Tools",  "Str_KS_Tools",        false),
             ("Edit",   "Str_KS_Editing",      false),
+            ("Nav",    "Str_KS_Navigation",   false),
+            ("View",   "Str_KS_View",         false),
             ("Help",   "Str_KS_Help",         false),
-            ("Nav",    "Str_KS_Navigation",   true),
-            ("View",   "Str_KS_View",         true),
+            ("Tools",  "Str_KS_Tools",        true),
             ("Ocr",    "Str_KS_Ocr",          true),
             ("Search", "Str_KS_SearchSelect", true),
             ("Docs",   "Str_KS_DocumentTools", true),

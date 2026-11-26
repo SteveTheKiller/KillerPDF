@@ -3147,8 +3147,9 @@
                                     ViewportUnits="Absolute" Viewport="0,0,256,256" Stretch="None"/>
                     </Border.Background>
                 </Border>
-                <!-- 4 in from the card's sides, the family gutter (8 until 1.9.7). -->
-                <Grid Grid.Row="1" Margin="4,8,4,18">
+                <!-- 8 in from the card's sides. 1.9.7 tried the 4px window gutter here and the
+                     tagline ran into the card's right edge (Steve 2026-11-26). -->
+                <Grid Grid.Row="1" Margin="8,8,8,18">
                     <StackPanel Margin="0">
                     <!-- Header: bloody KillerPDF icon to the left of the title + tagline.
                          A Grid (not a horizontal StackPanel) so the text column is bounded and the

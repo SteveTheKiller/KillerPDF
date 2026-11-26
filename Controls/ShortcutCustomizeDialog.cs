@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace KillerPDF;
 
@@ -48,7 +49,7 @@ internal sealed class ShortcutCustomizeDialog : Window
             FontFamily = UiKit.UiFont,
             FontSize = 12,
             Margin = new Thickness(0, 8, 0, 0),
-            MinHeight = 16
+            Visibility = Visibility.Collapsed
         };
         _status.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
 
@@ -56,7 +57,7 @@ internal sealed class ShortcutCustomizeDialog : Window
         resetAll.Click += (_, _) =>
         {
             _remap.ResetAll();
-            _status.Text = "";
+            ShowStatus("");
             RefreshKeys();
         };
         var cancel = UiKit.Make(L("Str_Tf_Cancel"), accent: false);
@@ -89,18 +90,56 @@ internal sealed class ShortcutCustomizeDialog : Window
             list.Children.Add(header);
             foreach (ShortcutCommand command in commands) list.Children.Add(Row(command));
         }
+        // The rows scroll right to the pane's edges under the family edge fades (OverlayScrollViewer),
+        // so the list's breathing room lives on the list itself rather than as a gap the rows clip at.
+        list.Margin = new Thickness(10, 8, 6, 8);
         var scroll = new ScrollViewer
         {
             Content = list,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            Padding = new Thickness(8, 6, 6, 6)
+            BorderBrush = Brushes.Transparent
         };
-        body.Children.Add(DialogParts.Well(scroll));
+        // The style is merged into the main window's resources, not the application's.
+        if (owner.TryFindResource("OverlayScrollViewer") is Style overlay) scroll.Style = overlay;
+        body.Children.Add(ListPane(owner, scroll));
 
         PreviewKeyDown += CaptureKey;
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         RefreshKeys();
+    }
+
+    /// <summary>The list on a framed pane in the pane color with its own grain and the family drop
+    /// shadow, the same pane Customize Toolbar's lists sit on.</summary>
+    private static FrameworkElement ListPane(Window owner, ScrollViewer scroll)
+    {
+        var host = new Grid();
+        if (DialogFrame.GrainTexture(owner) is ImageSource grain)
+            host.Children.Add(new Border
+            {
+                IsHitTestVisible = false,
+                Opacity = Application.Current.Resources["GrainOpacity"] is double go ? go : 0.05,
+                Background = new ImageBrush(grain) { TileMode = TileMode.Tile, ViewportUnits = BrushMappingMode.Absolute, Viewport = new Rect(0, 0, 256, 256), Stretch = Stretch.None }
+            });
+        host.Children.Add(scroll);
+        var pane = new Border
+        {
+            BorderThickness = new Thickness(1),
+            CornerRadius = UiKit.RadCard,
+            ClipToBounds = true,
+            Child = host
+        };
+        pane.SetResourceReference(Border.BackgroundProperty, "PaneBrush");
+        pane.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
+        return UiKit.PaneWithShadow(pane);
+    }
+
+    /// <summary>The status line takes no room while it has nothing to say, so the footer sits the
+    /// usual gap under the list.</summary>
+    private void ShowStatus(string text)
+    {
+        _status.Text = text;
+        _status.Visibility = text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private UIElement Row(ShortcutCommand command)
@@ -149,7 +188,7 @@ internal sealed class ShortcutCustomizeDialog : Window
         _capturing = command;
         RefreshKeys();
         _keyButtons[ShortcutRemap.Name(command.Original)].Content = L("Str_KS_PressKey");
-        _status.Text = "";
+        ShowStatus("");
     }
 
     private void CaptureKey(object sender, KeyEventArgs e)
@@ -168,12 +207,12 @@ internal sealed class ShortcutCustomizeDialog : Window
         if (MainWindow.CapIdForKey(pressed) is not string id
             || MainWindow.LayerFor(Keyboard.Modifiers) is not KbLayer layer)
         {
-            _status.Text = L("Str_KS_KeyNotAllowed");
+            ShowStatus(L("Str_KS_KeyNotAllowed"));
             RefreshKeys();
             return;
         }
         string? taken = _remap.Assign(command.Original, new KsCap(layer, id, ""));
-        _status.Text = taken is null ? "" : string.Format(L("Str_KS_KeyTaken"), L(taken));
+        ShowStatus(taken is null ? "" : string.Format(L("Str_KS_KeyTaken"), L(taken)));
         RefreshKeys();
     }
 

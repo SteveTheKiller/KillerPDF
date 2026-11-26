@@ -1337,7 +1337,7 @@ namespace KillerPDF.Controls
             }
 
             ImagePreviewHost.Visibility = Visibility.Visible;
-            ImagePreviewGapColumn.Width = new GridLength(4);
+            ImagePreviewGapColumn.Width = new GridLength(8);   // the gap between the panes
             ImagePreviewColumn.Width = new GridLength(230);
 
             // A preview should not consume the file list. Only image pickers grow; the remembered

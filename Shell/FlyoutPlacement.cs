@@ -52,6 +52,10 @@ namespace KillerPDF.Controls
     /// above that strip instead of over it. It is read each time a flyout opens, so it follows
     /// the strip as it comes and goes. An app that never sets it keeps the pane's own foot.
     ///
+    /// A strip along the pane's head (a row of document tabs above the card) works the same way
+    /// with SetVisibleHead: a top sidebar's menus then sit eight pixels below the card's top
+    /// instead of over the tabs (2026-11-26).
+    ///
     /// Fixed placements for menus that are not rail flyouts, measured against the pane itself:
     ///     AttachTopLeft(popup)                  the pane's top-left corner
     ///     AttachTopRight(menu)                  8px in from the pane's top-right (title bar menus)
@@ -113,11 +117,29 @@ namespace KillerPDF.Controls
         internal static void SetVisibleFoot(FrameworkElement pane, Func<FrameworkElement, double>? foot)
             => pane.SetValue(VisibleFootProperty, foot);
 
+        /// <summary>The pane's visible head: the Y of the card's top below a strip along the
+        /// pane's head, in the root's DIPs, or NaN while no strip covers the head.</summary>
+        internal static readonly DependencyProperty VisibleHeadProperty = DependencyProperty.RegisterAttached(
+            "VisibleHead", typeof(Func<FrameworkElement, double>), typeof(FlyoutPlacement), new PropertyMetadata(null));
+
+        internal static void SetVisibleHead(FrameworkElement pane, Func<FrameworkElement, double>? head)
+            => pane.SetValue(VisibleHeadProperty, head);
+
         /// <summary>The pane in the root's DIPs, its foot raised to the visible foot when the pane
-        /// gives one. A top sidebar's corner is at the pane's top, so its foot is left alone.</summary>
+        /// gives one. A top sidebar's corner is at the pane's top, so its foot is left alone and
+        /// its top drops to the visible head instead.</summary>
         private static Rect PaneIn(FrameworkElement pane, FrameworkElement root)
         {
             Rect bounds = pane.TransformToAncestor(root).TransformBounds(new Rect(pane.RenderSize));
+            if (_side == SidebarSide.Top && pane.GetValue(VisibleHeadProperty) is Func<FrameworkElement, double> head)
+            {
+                double y = head(root);
+                if (!double.IsNaN(y) && y > bounds.Top && y < bounds.Bottom)
+                {
+                    bounds.Height = bounds.Bottom - y;
+                    bounds.Y = y;
+                }
+            }
             if (_side != SidebarSide.Top && pane.GetValue(VisibleFootProperty) is Func<FrameworkElement, double> foot)
             {
                 double y = foot(root);
