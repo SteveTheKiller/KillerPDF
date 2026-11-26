@@ -274,9 +274,9 @@ namespace KillerPDF.Controls
                     { Interval = TimeSpan.FromMilliseconds(200) };
                 _zoomSettleTimer.Tick += (_, _) =>
                 {
+                    _toolbarZoomAnchorActive = false;
                     _zoomSettleTimer!.Stop();
                     _wheelZoomAnchorActive = false;
-                    _toolbarZoomAnchorActive = false;
                     _wheelZoomRevision++;
                     if (!HasReadDocument) return;
                     ApplyZoom();
