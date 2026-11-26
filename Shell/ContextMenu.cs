@@ -310,7 +310,10 @@ namespace KillerPDF.Shell
         // (Alt+Left, Alt+Right, the mouse's side buttons), then Undo, Redo and Print, and the page on the right.
         private void AddNavRow(ContextMenu menu, int pageIdx = -1, string? zoomIn = null, string? zoomOut = null)
         {
-            var row = new NavRowPanel { Margin = new Thickness(4, 0, 4, 2), LastChildFill = true };
+            // A plain DockPanel reports its full width, so when the buttons and "Page 20 of 20" need more
+            // room than the tiles (Book layout on the row in the two-page views), the card grows to fit the
+            // whole row instead of cutting the page text off (Steve 2026-11-25).
+            var row = new DockPanel { Margin = new Thickness(4, 0, 4, 2), LastChildFill = true };
             var buttons = new StackPanel { Orientation = Orientation.Horizontal };
             buttons.Children.Add(NavRowButton(menu, "\uE72B", "Str_Kb_Back", "Alt:Left", () => NavHistoryGo(true), _navBack.Count > 0));
             buttons.Children.Add(NavRowButton(menu, "\uE72A", "Str_Kb_Forward", "Alt:Right", () => NavHistoryGo(false), _navForward.Count > 0));
@@ -382,17 +385,6 @@ namespace KillerPDF.Shell
                 act();
             };
             return button;
-        }
-
-        // The nav row takes the card's width instead of setting it: the three tiles across decide how wide a card is,
-        // and a long "Page 1 of 1,000" trims instead of stretching every tile (Steve 2026-11-23).
-        private sealed class NavRowPanel : DockPanel
-        {
-            protected override Size MeasureOverride(Size constraint)
-            {
-                var size = base.MeasureOverride(constraint);
-                return new Size(0, size.Height);
-            }
         }
 
         // The row's host item draws only the buttons: no highlight, no gutter, no click of its own.

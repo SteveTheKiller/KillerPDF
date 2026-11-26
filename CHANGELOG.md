@@ -40,6 +40,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Document tools in a top or bottom sidebar fill the strip's width with wider tiles, so names no longer get cut off. When the tools scroll, their edges fade like the page list's.
 - Menus opened from a top or bottom sidebar's buttons open at the right side of the page area, next to the buttons, instead of at the left.
 - In a top or bottom sidebar, two-page thumbnails sit together in pairs with the usual gap between pairs, as they do in a side column. A book's first page stands on its own.
+- In the two-page views, the right-click menu grows to fit its top row, so "Page 20 of 20" is no longer cut off beside the Book layout button.
 
 ### Changed
 - The title bar is 3px shorter, so the bottom of the wordmark's drip meets the toolbar. The toolbar also sits 2px closer to the page below it, and its buttons sit 1px from the window's left and right edges instead of 4.

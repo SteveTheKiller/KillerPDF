@@ -4,8 +4,9 @@ using Xunit;
 
 namespace KillerPDF.Tests
 {
-    // A card is three tiles wide. The nav row on top takes that width instead of setting it, and its buttons are
-    // slimmer than toolbar buttons, so back, forward, undo, redo, print, Book and "Page 1 of 85" never stretch the tiles.
+    // The nav row's buttons are slimmer than toolbar buttons so the row usually fits the card's three tiles. When it
+    // doesn't (Book layout on the row in the two-page views), the card grows to fit the whole row, so "Page 20 of 20"
+    // is never cut off at the card's edge (Steve 2026-11-25).
     public class NavRowWidthTests
     {
         private static string Menu()
@@ -16,13 +17,11 @@ namespace KillerPDF.Tests
         }
 
         [Fact]
-        public void TheNavRowReportsNoWidthOfItsOwn()
+        public void TheNavRowReportsItsFullWidthSoTheCardGrowsToFitIt()
         {
             string menu = Menu();
-            Assert.Contains("var row = new NavRowPanel", menu);
-            int panel = menu.IndexOf("private sealed class NavRowPanel : DockPanel", StringComparison.Ordinal);
-            Assert.True(panel > 0);
-            Assert.Contains("return new Size(0, size.Height);", menu[panel..(panel + 400)]);
+            Assert.Contains("var row = new DockPanel { Margin = new Thickness(4, 0, 4, 2), LastChildFill = true };", menu);
+            Assert.DoesNotContain("class NavRowPanel", menu);
         }
 
         [Fact]
