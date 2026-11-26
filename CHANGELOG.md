@@ -36,7 +36,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A per-user install offers PDF previews in File Explorer only, since classic Outlook can't see a preview installed for one account (#410).
 
 ### Changed
-- The title bar is 3px shorter, so the bottom of the wordmark's drip meets the toolbar. The toolbar also sits 2px closer to the page below it.
+- The title bar is 3px shorter, so the bottom of the wordmark's drip meets the toolbar. The toolbar also sits 2px closer to the page below it, and its buttons sit 1px from the window's left and right edges instead of 4.
 - The page number box in the sidebar has a dark field like the other text boxes, so a selected number is easy to see.
 
 ## [1.9.6] - 2026-11-24

@@ -1711,7 +1711,7 @@
             <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
             <!-- Background=Transparent is load-bearing: without it the grid's empty stretches have no
                  hit surface and the right-click appearance picker only opens over the buttons. -->
-            <Grid x:Name="ToolbarGrid" SizeChanged="ToolbarGrid_SizeChanged" Margin="4,2,4,0" Background="Transparent">
+            <Grid x:Name="ToolbarGrid" SizeChanged="ToolbarGrid_SizeChanged" Margin="1,2,1,0" Background="Transparent">
                 <Grid.ContextMenu>
                     <!-- Items are built in code (BuildToolbarMenu, SettingsPanel.cs) so captions re-Loc on
                          language switch; attached here so WPF supplies the inheritance context that lets
