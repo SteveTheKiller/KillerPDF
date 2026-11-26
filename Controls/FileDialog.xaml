@@ -9,6 +9,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:a11y="clr-namespace:KillerFamily.Accessibility"
         xmlns:kui="clr-namespace:KillerPDF.Controls"
+        xmlns:theme="clr-namespace:KillerFamily.Theming"
         Title="KillerPDF"
         Width="720" Height="520" MinWidth="560" MinHeight="420"
         WindowStyle="None" ResizeMode="CanResize" ShowInTaskbar="False"
@@ -302,12 +303,35 @@
                     <kui:AppIcon x:Name="TitleIcon" Width="{DynamicResource TitleIconSize}" Height="{DynamicResource TitleIconSize}"
                                  Margin="{DynamicResource TitleIconMargin}" VerticalAlignment="Center"
                                  RenderOptions.BitmapScalingMode="NearestNeighbor"/>
-                    <!-- A file picker caption names the operation. It is window chrome, not a
-                         branding surface; the caller's Title belongs here and nowhere else. -->
+                    <!-- The family wordmark, then the caller's Title ("Save PDF as") in the main
+                         window's file name face, as DialogFrame titles its dialogs. The wordmark
+                         block is ConfirmDialog's, copied as is; the title rides in the same TextBlock
+                         so it shares the wordmark's baseline. The title layer is split from the
+                         bevelled wordmark layer so it keeps ClearType, as DialogFrame does. -->
+                    <Grid VerticalAlignment="Center" Margin="0,-18,0,-22" IsHitTestVisible="False">
+                        <Grid.RenderTransform><TranslateTransform Y="-5"/></Grid.RenderTransform>
+                        <StackPanel Orientation="Horizontal" Margin="1,2,0,0"
+                                    Visibility="{DynamicResource DialogWordmarkVisibility}"
+                                    Opacity="{DynamicResource WordmarkShadowOpacity}">
+                            <StackPanel.Effect><BlurEffect Radius="3"/></StackPanel.Effect>
+                            <TextBlock FontFamily="{DynamicResource WordmarkFont}" FontSize="{DynamicResource TitleWordmarkSize}"><Run x:Name="WordLead0" Text="Killer" Foreground="#D8000000"/><Run x:Name="WordAccent0" FontFamily="{DynamicResource WordmarkAccentFont}" Text="App" FontSize="{DynamicResource TitleWordmarkBoldSize}" Foreground="#D8000000"/><Run FontFamily="{DynamicResource FileNameFont}" FontSize="{DynamicResource FileNameFontSize}" Foreground="#D8000000" Text="{Binding Title, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Mode=OneWay, StringFormat='{}  {0}'}"/></TextBlock>
+                        </StackPanel>
+                        <TextBlock FontFamily="{DynamicResource WordmarkFont}" FontSize="{DynamicResource TitleWordmarkSize}"
+                                   Visibility="{DynamicResource DialogWordmarkVisibility}" Margin="1,2,0,0" Opacity="{DynamicResource WordmarkAccentShadowOpacity}"><TextBlock.Effect><BlurEffect Radius="3"/></TextBlock.Effect><Run x:Name="WordLead1" Text="Killer" Foreground="Transparent"/><Run x:Name="WordAccent1" FontFamily="{DynamicResource WordmarkAccentFont}" Text="App" FontSize="{DynamicResource TitleWordmarkBoldSize}" Foreground="#D8000000"/></TextBlock>
+                        <TextBlock theme:Bevel.Enabled="True" FontFamily="{DynamicResource WordmarkFont}" FontSize="{DynamicResource TitleWordmarkSize}"
+                                   Visibility="{DynamicResource DialogWordmarkVisibility}"><Run x:Name="WordLead2" Text="Killer" Foreground="{DynamicResource TextBrush}"/><Run x:Name="WordAccent2" FontFamily="{DynamicResource WordmarkAccentFont}" Text="App" FontSize="{DynamicResource TitleWordmarkBoldSize}" Foreground="{DynamicResource AccentLogo}"/><Run FontFamily="{DynamicResource FileNameFont}" FontSize="{DynamicResource FileNameFontSize}" Foreground="Transparent" Text="{Binding Title, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Mode=OneWay, StringFormat='{}  {0}'}"/></TextBlock>
+                        <TextBlock FontFamily="{DynamicResource WordmarkFont}" FontSize="{DynamicResource TitleWordmarkSize}"
+                                   Visibility="{DynamicResource DialogWordmarkVisibility}"
+                                   TextOptions.TextFormattingMode="Ideal" TextOptions.TextRenderingMode="ClearType"
+                                   RenderOptions.ClearTypeHint="Enabled"><Run x:Name="WordLead3" Text="Killer" Foreground="Transparent"/><Run x:Name="WordAccent3" FontFamily="{DynamicResource WordmarkAccentFont}" Text="App" FontSize="{DynamicResource TitleWordmarkBoldSize}" Foreground="Transparent"/><Run FontFamily="{DynamicResource FileNameFont}" FontSize="{DynamicResource FileNameFontSize}" Foreground="{DynamicResource FilenameBrush}" Text="{Binding Title, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Mode=OneWay, StringFormat='{}  {0}'}"/></TextBlock>
+                    </Grid>
+                    <!-- 98SE's plain caption keeps the bare operation name, outside the wordmark grid so
+                         the wordmark's lift and bleed never move it. -->
                     <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
                                FontFamily="{DynamicResource ChromeFontFamily}"
                                FontSize="{DynamicResource MenuFontSize}" FontWeight="Bold"
                                Foreground="{DynamicResource ChromeTextBrush}"
+                               Visibility="{DynamicResource DialogPlainTitleVisibility}"
                                VerticalAlignment="Center" IsHitTestVisible="False"/>
                     </StackPanel>
                     <!-- The family overlay and dialog close (App.xaml, OverlayCloseButton): the glyph
@@ -325,9 +349,9 @@
             </Border>
 
             <!-- Path row: up one level + current path + view modes -->
-            <!-- 4 at the sides like the window gutter; -4 above takes the 12 spare under the title bar
-                 (8,8 until KillerPDF 1.9.7, which left 12 too many above and 4 too many below). -->
-            <Grid Grid.Row="2" Margin="4,-4,4,4">
+            <!-- 16 at the sides like every other dialog body; only the two panes below keep the 4 px
+                 window gutter. -4 above takes the 12 spare under the title bar. -->
+            <Grid Grid.Row="2" Margin="16,-4,16,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -437,7 +461,8 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Main: quick places on the left, folder contents on the right -->
+            <!-- Main: quick places on the left, folder contents on the right. The panes keep the
+                 main window's 4 px gutter; the rows around them sit 16 in, as dialog content does. -->
             <Grid Grid.Row="3" Margin="4,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="170"/>
@@ -739,7 +764,7 @@
                  its longest entry needs. With no filter (folder mode) the name runs the full row.
                  Labels are DimTextBrush on the dark card: 3.15:1, the tier these brushes are
                  calibrated for. -->
-            <Grid x:Name="FileFields" Grid.Row="4" Margin="4,12,4,0">
+            <Grid x:Name="FileFields" Grid.Row="4" Margin="16,12,16,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -766,8 +791,9 @@
                           SelectionChanged="Filter_SelectionChanged"/>
             </Grid>
 
-            <!-- Footer: selection details on the left, actions on the right -->
-            <Grid Grid.Row="5" Margin="4,12,4,16">
+            <!-- Footer: selection details on the left, actions on the right, 16 from the sides and
+                 bottom like the confirm dialogs' button row. -->
+            <Grid Grid.Row="5" Margin="16,12,16,16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>

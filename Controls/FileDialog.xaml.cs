@@ -345,12 +345,25 @@ namespace KillerPDF.Controls
 
         private bool _fadeDone;
 
+        // The caption's wordmark carries the app's own name, as ConfirmDialog's does: "Killer" plus
+        // the accent word for a KillerX app, "The " plus the name otherwise (The Killendar).
+        private void ApplyAppName()
+        {
+            string name = Services.AppInfo.DisplayName;
+            bool killer = name.StartsWith("Killer") && name.Length > "Killer".Length;
+            string lead = killer ? "Killer" : "The ";
+            string accent = killer ? name.Substring("Killer".Length) : name;
+            foreach (var run in new[] { WordLead0, WordLead1, WordLead2, WordLead3 }) run.Text = lead;
+            foreach (var run in new[] { WordAccent0, WordAccent1, WordAccent2, WordAccent3 }) run.Text = accent;
+        }
+
         public FileDialog(FileDialogMode mode = FileDialogMode.Open)
         {
             _mode = mode;
             InitializeComponent();
             Closed += (_, _) => CloseDirectoryListing();
             if (!DialogChrome.SetTitleIcon(TitleIcon)) TitleIcon.Visibility = Visibility.Collapsed;
+            ApplyAppName();
             Loaded += (_, _) => Anim.FadeIn(RootFade);
             SourceInitialized += (_, _) => KillerFamily.Windowing.WorkAreaFit.Fit(this);
 
