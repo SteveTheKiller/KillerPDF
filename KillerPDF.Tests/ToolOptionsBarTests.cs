@@ -286,8 +286,8 @@ public sealed class ToolOptionsBarTests
         return bar;
     }
 
-    // The real row lays out the fit above: one line, 34 tall, the shed groups in the "..." menu, and
-    // every control still in the row lying fully inside it.
+    // The real row lays out the fit above: one line, 27 tall, the shed groups in the "..." menu, and
+    // every control still in the row lying fully inside it, one pixel below the top and above the border.
     [Fact]
     public void TheRowShedsIntoItsMenuAndNeverWrapsOrClips()
     {
@@ -300,7 +300,7 @@ public sealed class ToolOptionsBarTests
             bar.Arrange(new Rect(0, 0, 900, bar.DesiredSize.Height));
             bar.UpdateLayout();
 
-            Assert.Equal(34, bar.ActualHeight);
+            Assert.Equal(27, bar.ActualHeight);
             Assert.Equal(["modes", "scale", "units", "pagesize", "report", "color"], bar.InlineIds);
             Assert.Equal(["size", "opacity"], bar.OverflowIds);
             Assert.True(bar.IsCompact);
@@ -309,8 +309,11 @@ public sealed class ToolOptionsBarTests
             {
                 Point at = contents[id].TranslatePoint(new Point(0, 0), bar);
                 Assert.True(at.X >= 8 && at.X + contents[id].ActualWidth <= 900 - 8, $"{id} at {at.X}");
-                Assert.True(at.Y >= 0 && at.Y + contents[id].ActualHeight <= 34, $"{id} at y {at.Y}");
+                Assert.True(at.Y >= 0 && at.Y + contents[id].ActualHeight <= 27, $"{id} at y {at.Y}");
             }
+            Point more = bar.OverflowButton.TranslatePoint(new Point(0, 0), bar);
+            Assert.Equal(1, more.Y);
+            Assert.Equal(1, 27 - 1 - (more.Y + bar.OverflowButton.ActualHeight));
         });
     }
 

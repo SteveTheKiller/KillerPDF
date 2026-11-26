@@ -15,8 +15,9 @@ namespace KillerPDF.Controls
     /// </summary>
     public sealed class ToolOptionsBar : Border
     {
-        /// <summary>Row height; every control in it is 24 tall and centered.</summary>
-        public const double RowHeight = 34;
+        /// <summary>Row height; every control in it is 24 tall and centered, one pixel from the top and from
+        /// the bottom border.</summary>
+        public const double RowHeight = 27;
 
         private sealed class Group(string id, FrameworkElement content, ButtonBase? compact, bool overflowOnly)
         {
