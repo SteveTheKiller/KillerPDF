@@ -1998,7 +1998,7 @@
                                          TextAlignment="Center" VerticalContentAlignment="Center"
                                          FontFamily="{DynamicResource BrandSansFont}" FontSize="16"
                                          TextOptions.TextFormattingMode="Ideal"
-                                         Background="{DynamicResource PaneBrush}"
+                                         Background="{DynamicResource TextFieldBrush}"
                                          Foreground="{DynamicResource TextBrush}"
                                          BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                          CaretBrush="{DynamicResource PrimaryBrush}"
