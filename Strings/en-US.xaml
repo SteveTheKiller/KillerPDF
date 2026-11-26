@@ -199,6 +199,8 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_KS_ZoomInOut">Zoom in / out</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Reset zoom to 100%</sys:String>
     <sys:String x:Key="Str_KS_PanView">Pan view</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Move the window</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Resize the window from the nearest edge or corner</sys:String>
     <sys:String x:Key="Str_KS_Editing">EDITING</sys:String>
     <sys:String x:Key="Str_KS_Undo">Undo</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Delete selected annotation or pages</sys:String>
@@ -1197,6 +1199,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Key_WheelLogo">Wheel on logo</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Middle drag</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Space + drag</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + drag</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + right drag</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Open</sys:String>

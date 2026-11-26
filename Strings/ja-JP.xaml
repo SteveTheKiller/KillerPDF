@@ -198,6 +198,8 @@
     <sys:String x:Key="Str_KS_ZoomInOut">ズームイン / アウト</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">ズームを 100% にリセット</sys:String>
     <sys:String x:Key="Str_KS_PanView">ビューをパン</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">ウィンドウを移動</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">最も近い端または角からウィンドウのサイズを変更</sys:String>
     <sys:String x:Key="Str_KS_Editing">編集</sys:String>
     <sys:String x:Key="Str_KS_Undo">元に戻す</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">選択した注釈またはページを削除</sys:String>
@@ -1196,6 +1198,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Key_WheelLogo">ロゴ上でホイール</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">中ボタンでドラッグ</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Space + ドラッグ</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + ドラッグ</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + 右ボタンでドラッグ</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">開く</sys:String>

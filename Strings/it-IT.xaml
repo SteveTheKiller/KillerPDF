@@ -198,6 +198,8 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_KS_ZoomInOut">Zoom +/-</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Ripristina zoom al 100%</sys:String>
     <sys:String x:Key="Str_KS_PanView">Sposta vista</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Sposta la finestra</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Ridimensiona la finestra dal bordo o dall'angolo più vicino</sys:String>
     <sys:String x:Key="Str_KS_Editing">MODIFICA</sys:String>
     <sys:String x:Key="Str_KS_Undo">Annulla operazione</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Elimina annotazione o pagine selezionate</sys:String>
@@ -1196,6 +1198,8 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Key_WheelLogo">Rotella nel logo</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Trascinamento medio</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Spazio + trascina</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + trascina</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + trascina con il tasto destro</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Apri</sys:String>

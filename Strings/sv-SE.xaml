@@ -199,6 +199,8 @@ Sidan kan ersättas med en bild av sig själv där de markerade områdena är sv
     <sys:String x:Key="Str_KS_ZoomInOut">Zooma in / ut</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Återställ zoom till 100 %</sys:String>
     <sys:String x:Key="Str_KS_PanView">Panorera vyn</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Flytta fönstret</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Ändra storlek på fönstret från närmaste kant eller hörn</sys:String>
     <sys:String x:Key="Str_KS_Editing">REDIGERING</sys:String>
     <sys:String x:Key="Str_KS_Undo">Ångra</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Ta bort markerad anteckning eller markerade sidor</sys:String>
@@ -1197,6 +1199,8 @@ Vill du skala dem till en storlek som stöds? Sidorna behåller sitt utseende oc
     <sys:String x:Key="Str_Key_WheelLogo">Hjulet på logotypen</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Dra med mittenknappen</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Space + dra</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + dra</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + dra med högerknappen</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Öppna</sys:String>

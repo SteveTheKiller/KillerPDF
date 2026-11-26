@@ -194,6 +194,8 @@ La página se puede sustituir por una imagen de sí misma con las áreas marcada
     <sys:String x:Key="Str_KS_ZoomInOut">Acercar / alejar</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Restablecer zoom al 100%</sys:String>
     <sys:String x:Key="Str_KS_PanView">Desplazar vista</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Mover la ventana</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Cambiar el tamaño de la ventana desde el borde o la esquina más cercanos</sys:String>
     <sys:String x:Key="Str_KS_Editing">EDICIÓN</sys:String>
     <sys:String x:Key="Str_KS_Undo">Deshacer</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Eliminar la anotación o las páginas seleccionadas</sys:String>
@@ -1156,6 +1158,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Key_WheelLogo">Rueda sobre el logotipo</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Arrastrar con el botón central</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Espacio + arrastrar</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + arrastrar</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + arrastrar con el botón derecho</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Abrir</sys:String>

@@ -199,6 +199,8 @@
     <sys:String x:Key="Str_KS_ZoomInOut">확대 / 축소</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">확대/축소를 100%로 초기화</sys:String>
     <sys:String x:Key="Str_KS_PanView">보기 이동</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">창 이동</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">가장 가까운 가장자리나 모서리에서 창 크기 조정</sys:String>
     <sys:String x:Key="Str_KS_Editing">편집</sys:String>
     <sys:String x:Key="Str_KS_Undo">실행 취소</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">선택한 주석 또는 페이지 삭제</sys:String>
@@ -1197,6 +1199,8 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_Key_WheelLogo">로고에서 휠</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">가운데 버튼 끌기</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Space + 끌기</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + 끌기</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + 오른쪽 버튼 끌기</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">열기</sys:String>

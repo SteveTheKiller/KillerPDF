@@ -198,6 +198,8 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_KS_ZoomInOut">Nagyítás / kicsinyítés</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Nagyítás visszaállítása 100%-ra</sys:String>
     <sys:String x:Key="Str_KS_PanView">Nézet mozgatása</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Ablak mozgatása</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Ablak átméretezése a legközelebbi szélnél vagy saroknál</sys:String>
     <sys:String x:Key="Str_KS_Editing">SZERKESZTÉS</sys:String>
     <sys:String x:Key="Str_KS_Undo">Visszavonás</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Kijelölt jegyzet vagy oldalak törlése</sys:String>
@@ -1194,6 +1196,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Key_WheelLogo">Görgő a logó felett</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Húzás középső gombbal</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Szóköz + húzás</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + húzás</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + húzás jobb gombbal</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Megnyitás</sys:String>

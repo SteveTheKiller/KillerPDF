@@ -198,6 +198,8 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_KS_ZoomInOut">Zoom inn / ut</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Tilbakestill zoom til 100 %</sys:String>
     <sys:String x:Key="Str_KS_PanView">Panorer visningen</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Flytt vinduet</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Endre størrelse på vinduet fra nærmeste kant eller hjørne</sys:String>
     <sys:String x:Key="Str_KS_Editing">REDIGERING</sys:String>
     <sys:String x:Key="Str_KS_Undo">Angre</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Slett valgt merknad eller valgte sider</sys:String>
@@ -1196,6 +1198,8 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Key_WheelLogo">Hjul over logoen</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Dra med midtknappen</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Space + dra</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + dra</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + dra med høyreknappen</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Åpne</sys:String>

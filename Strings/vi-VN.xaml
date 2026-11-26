@@ -198,6 +198,8 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_KS_ZoomInOut">Phóng to / thu nhỏ</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Đặt lại thu phóng về 100%</sys:String>
     <sys:String x:Key="Str_KS_PanView">Đẩy khung nhìn</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Di chuyển cửa sổ</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Đổi kích thước cửa sổ từ cạnh hoặc góc gần nhất</sys:String>
     <sys:String x:Key="Str_KS_Editing">CHỈNH SỬA</sys:String>
     <sys:String x:Key="Str_KS_Undo">Hoàn tác</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Xóa chú thích hoặc trang đã chọn</sys:String>
@@ -1196,6 +1198,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Key_WheelLogo">Lăn chuột trên logo</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Kéo bằng nút giữa</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Space + kéo</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + kéo</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + kéo bằng nút phải</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Mở</sys:String>

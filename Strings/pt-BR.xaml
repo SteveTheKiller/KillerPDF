@@ -198,6 +198,8 @@ A página pode ser substituída por uma imagem dela mesma com as áreas marcadas
     <sys:String x:Key="Str_KS_ZoomInOut">Aumentar / diminuir zoom</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Redefinir zoom para 100%</sys:String>
     <sys:String x:Key="Str_KS_PanView">Mover visualização</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Mover a janela</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Redimensionar a janela pela borda ou pelo canto mais próximo</sys:String>
     <sys:String x:Key="Str_KS_Editing">EDIÇÃO</sys:String>
     <sys:String x:Key="Str_KS_Undo">Desfazer</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Excluir anotação ou páginas selecionadas</sys:String>
@@ -1196,6 +1198,8 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Key_WheelLogo">Roda sobre o logotipo</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Arrastar com o botão do meio</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Espaço + arrastar</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + arrastar</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + arrastar com o botão direito</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Abrir</sys:String>

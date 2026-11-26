@@ -182,6 +182,8 @@
     <sys:String x:Key="Str_KS_ZoomInOut">Povečaj / pomanjšaj</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Ponastavi povečavo na 100 %</sys:String>
     <sys:String x:Key="Str_KS_PanView">Premakni pogled</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Premakni okno</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Spremeni velikost okna od najbližjega roba ali kota</sys:String>
     <sys:String x:Key="Str_KS_Editing">UREJANJE</sys:String>
     <sys:String x:Key="Str_KS_Undo">Razveljavi</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Izbriši izbrano pripombo ali strani</sys:String>
@@ -1104,6 +1106,8 @@
     <sys:String x:Key="Str_Key_WheelLogo">Kolesce nad logotipom</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Vlečenje s srednjim gumbom</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Preslednica + vlečenje</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + vlečenje</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + vlečenje z desnim gumbom</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Odpri</sys:String>

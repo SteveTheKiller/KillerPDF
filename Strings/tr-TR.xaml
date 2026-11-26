@@ -194,6 +194,8 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_KS_ZoomInOut">Yakınlaştır / uzaklaştır</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Yakınlaştırmayı %100'e sıfırla</sys:String>
     <sys:String x:Key="Str_KS_PanView">Görünümü kaydır</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Pencereyi taşı</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Pencereyi en yakın kenardan veya köşeden yeniden boyutlandır</sys:String>
     <sys:String x:Key="Str_KS_Editing">DÜZENLEME</sys:String>
     <sys:String x:Key="Str_KS_Undo">Geri al</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Seçili açıklamayı veya sayfaları sil</sys:String>
@@ -1156,6 +1158,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Key_WheelLogo">Logo üzerinde tekerlek</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Orta tuşla sürükleme</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Boşluk + sürükleme</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + sürükleme</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + sağ tuşla sürükleme</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Aç</sys:String>

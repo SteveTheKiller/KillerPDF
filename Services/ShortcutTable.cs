@@ -65,6 +65,8 @@ namespace KillerPDF
             ("%wheellogo%",  "Str_Key_WheelLogo"),
             ("%middledrag%", "Str_Key_MiddleDrag"),
             ("%spacedrag%",  "Str_Key_SpaceDrag"),
+            ("%altdrag%",    "Str_Key_AltDrag"),
+            ("%altrightdrag%", "Str_Key_AltRightDrag"),
         ];
 
         /// <summary>The character the website prints for zoom in. The app prints what the reader's
@@ -326,6 +328,10 @@ namespace KillerPDF
                                                                              Cap("CtrlShift:Minus"),
                                                                              Cap("CtrlShift:D0")),
             B("%wheellogo%",   "Str_KS_AppSize",      "View"),
+            // Every window moves and resizes from anywhere inside it (Controls/AltDrag.cs). Mouse
+            // gestures, so they light no cap on the board.
+            B("%altdrag%",      "Str_KS_MoveWindow",   "View"),
+            B("%altrightdrag%", "Str_KS_ResizeWindow", "View"),
             B("%alt%+%shift%+G", "Str_Theme_FilmGrain", "View", Cap("AltShift:G")),
             B("%alt%+%shift%+N", "Str_NavigationButtons_Show", "View", Cap("AltShift:N")),
             // The toolbar appearance six, mirroring the bar's right-click menu top to bottom.

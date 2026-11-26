@@ -198,6 +198,8 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_KS_ZoomInOut">Přiblížit / oddálit</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Obnovit přiblížení na 100 %</sys:String>
     <sys:String x:Key="Str_KS_PanView">Posun zobrazení</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Přesunutí okna</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Změna velikosti okna od nejbližšího okraje nebo rohu</sys:String>
     <sys:String x:Key="Str_KS_Editing">ÚPRAVY</sys:String>
     <sys:String x:Key="Str_KS_Undo">Zpět</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Smazat vybranou anotaci nebo stránky</sys:String>
@@ -1161,6 +1163,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Key_WheelLogo">Kolečko nad logem</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Tažení prostředním tlačítkem</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Mezerník + tažení</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + tažení</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + tažení pravým tlačítkem</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Otevřít</sys:String>

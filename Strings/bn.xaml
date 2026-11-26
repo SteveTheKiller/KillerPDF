@@ -194,6 +194,8 @@
     <sys:String x:Key="Str_KS_ZoomInOut">জুম ইন / আউট</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">জুম ১০০%-এ রিসেট করুন</sys:String>
     <sys:String x:Key="Str_KS_PanView">ভিউ প্যান করুন</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">উইন্ডো সরান</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">সবচেয়ে কাছের প্রান্ত বা কোণ থেকে উইন্ডোর আকার বদলান</sys:String>
     <sys:String x:Key="Str_KS_Editing">সম্পাদনা</sys:String>
     <sys:String x:Key="Str_KS_Undo">পূর্বাবস্থায় ফেরান</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">নির্বাচিত অ্যানোটেশন বা পৃষ্ঠা মুছুন</sys:String>
@@ -1156,6 +1158,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Key_WheelLogo">লোগোর উপর হুইল</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">মাঝের বোতামে টানুন</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">স্পেস + টানুন</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + টানুন</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + ডান বোতামে টানুন</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">খুলুন</sys:String>

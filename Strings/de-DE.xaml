@@ -194,6 +194,8 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_KS_ZoomInOut">Vergrößern / Verkleinern</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Zoom auf 100 % zurücksetzen</sys:String>
     <sys:String x:Key="Str_KS_PanView">Ansicht verschieben</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Fenster verschieben</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Fenstergröße vom nächsten Rand oder der nächsten Ecke aus ändern</sys:String>
     <sys:String x:Key="Str_KS_Editing">BEARBEITUNG</sys:String>
     <sys:String x:Key="Str_KS_Undo">Rückgängig</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Ausgewählte Anmerkung oder Seiten löschen</sys:String>
@@ -1162,6 +1164,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Key_WheelLogo">Rad über Logo</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Mittlere Taste ziehen</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Leertaste + ziehen</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + ziehen</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + rechte Taste ziehen</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Öffnen</sys:String>

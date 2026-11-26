@@ -198,6 +198,8 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_KS_ZoomInOut">Powiększ / pomniejsz</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Zresetuj powiększenie do 100%</sys:String>
     <sys:String x:Key="Str_KS_PanView">Przesuń widok</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Przesuń okno</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Zmień rozmiar okna od najbliższej krawędzi lub narożnika</sys:String>
     <sys:String x:Key="Str_KS_Editing">EDYTOWANIE</sys:String>
     <sys:String x:Key="Str_KS_Undo">Cofnij</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Usuń zaznaczoną adnotację lub strony</sys:String>
@@ -1152,6 +1154,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Key_WheelLogo">Kółko nad logo</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Przeciąganie środkowym przyciskiem</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Spacja + przeciąganie</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + przeciąganie</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + przeciąganie prawym przyciskiem</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Otwórz</sys:String>

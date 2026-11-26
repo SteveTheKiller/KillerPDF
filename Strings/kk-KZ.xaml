@@ -119,6 +119,8 @@
     <sys:String x:Key="Str_KS_ZoomInOut">Үлкейту / кішірейту</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Масштабты 100%-ға қайтару</sys:String>
     <sys:String x:Key="Str_KS_PanView">Көріністі жылжыту</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Терезені жылжыту</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Терезе өлшемін ең жақын жиектен немесе бұрыштан өзгерту</sys:String>
     <sys:String x:Key="Str_KS_Editing">ӨҢДЕУ</sys:String>
     <sys:String x:Key="Str_KS_Undo">Кері қайтару</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Таңдалған ескертпені немесе беттерді жою</sys:String>
@@ -1091,6 +1093,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Key_WheelLogo">Логотиптегі дөңгелек</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">Ортаңғы батырмамен сүйреу</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Бос орын + сүйреу</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + сүйреу</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + оң батырмамен сүйреу</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Ашу</sys:String>

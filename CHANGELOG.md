@@ -75,6 +75,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Fill Unused Space draws a black Z through the part of a multiline or empty text field that nobody wrote in, then makes the field read-only. It starts in the form field card's Hidden drawer, and the Z is a normal drawing you can move, resize, undo or flatten. (#536)
 - Shift+Enter on PDFs selected in File Explorer opens them together in a new KillerPDF window. Hold Shift until KillerPDF picks them up, since Explorer doesn't pass it along (#513).
 - Alt+left-drag anywhere in a KillerPDF window moves it, and Alt+right-drag resizes it from the nearest edge or corner, as on Linux. Full screen stays put.
+- The keyboard shortcuts card and the website list Alt+drag and Alt+right-drag.
 
 ## [1.9.6] - 2026-11-24
 

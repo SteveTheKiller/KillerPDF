@@ -333,7 +333,8 @@ namespace KillerPDF.Tests
 
             Assert.Equal(
                 new[] { "Str_KS_ZoomCursor", "Str_KS_PanView",
-                        "Str_KS_AppSize", "Str_KS_MultiSelect", "Str_Replace_All" }
+                        "Str_KS_AppSize", "Str_KS_MultiSelect", "Str_Replace_All",
+                        "Str_KS_MoveWindow", "Str_KS_ResizeWindow" }
                     .OrderBy(s => s, StringComparer.Ordinal).ToArray(),
                 capless.OrderBy(s => s, StringComparer.Ordinal).ToArray());
         }

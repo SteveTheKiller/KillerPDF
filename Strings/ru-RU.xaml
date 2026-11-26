@@ -198,6 +198,8 @@
     <sys:String x:Key="Str_KS_ZoomInOut">Увеличение / уменьшение масштаба</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">Сбросьте масштаб до 100%</sys:String>
     <sys:String x:Key="Str_KS_PanView">Панорамирование</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">Перемещение окна</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">Изменение размера окна от ближайшего края или угла</sys:String>
     <sys:String x:Key="Str_KS_Editing">РЕДАКТИРОВАНИЕ</sys:String>
     <sys:String x:Key="Str_KS_Undo">Отменить</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">Удалить выбранную аннотацию или страницы</sys:String>
@@ -1196,6 +1198,8 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Key_WheelLogo">Колесико на логотипе</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">СКМ перетаскивание</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">Space + тащить</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + перетаскивание</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + перетаскивание ПКМ</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">Открыть</sys:String>

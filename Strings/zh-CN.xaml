@@ -194,6 +194,8 @@
     <sys:String x:Key="Str_KS_ZoomInOut">放大 / 缩小</sys:String>
     <sys:String x:Key="Str_KS_ResetZoom">重设缩放至 100%</sys:String>
     <sys:String x:Key="Str_KS_PanView">平移查看</sys:String>
+    <sys:String x:Key="Str_KS_MoveWindow">移动窗口</sys:String>
+    <sys:String x:Key="Str_KS_ResizeWindow">从最近的边缘或角调整窗口大小</sys:String>
     <sys:String x:Key="Str_KS_Editing">编辑</sys:String>
     <sys:String x:Key="Str_KS_Undo">撤销</sys:String>
     <sys:String x:Key="Str_KS_DeleteAnnot">删除选取的注释或页面</sys:String>
@@ -1160,6 +1162,8 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Key_WheelLogo">在徽标上滚动滚轮</sys:String>
     <sys:String x:Key="Str_Key_MiddleDrag">中键拖动</sys:String>
     <sys:String x:Key="Str_Key_SpaceDrag">空格 + 拖动</sys:String>
+    <sys:String x:Key="Str_Key_AltDrag">Alt + 拖动</sys:String>
+    <sys:String x:Key="Str_Key_AltRightDrag">Alt + 右键拖动</sys:String>
     <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
     <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
     <sys:String x:Key="Str_Btn_Open">打开</sys:String>
