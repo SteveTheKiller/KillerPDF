@@ -92,6 +92,47 @@ public sealed class RetroTabBorderTests
         Assert.Equal(Colors.White, Pixel(tab, 199, 29));
     });
 
+    [Fact]
+    public void APaintedFaceClippedToTheTabStillCoversTheCardLineInsideTheCurve() => OnSta(() =>
+    {
+        // Trash Polka paints the active tab with a brush clipped to the tab's own rectangle, so the
+        // face inside the foot's curve, which lies outside the tab, painted nothing and the card's
+        // top line ran on under the curve to the tab's side. Out there the face takes the pane color.
+        Color pane = Color.FromRgb(200, 0, 0), edge = Color.FromRgb(0, 0, 255), line = Color.FromRgb(0, 200, 0);
+        var clipped = new DrawingGroup { ClipGeometry = new RectangleGeometry(new Rect(0, 0, 200, 30)) };
+        clipped.Children.Add(new GeometryDrawing(Brushes.White, null, new RectangleGeometry(new Rect(-50, 0, 300, 30))));
+        var painted = new DrawingBrush(clipped)
+        {
+            Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top,
+            ViewportUnits = BrushMappingMode.Absolute, Viewport = new Rect(0, 0, 200, 30),
+            ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(0, 0, 200, 30),
+        };
+        var tab = new RetroTabBorder
+        {
+            Width = 200, Height = 30, HorizontalAlignment = HorizontalAlignment.Left,
+            CornerRadius = new CornerRadius(6, 6, 0, 0), BorderThickness = new Thickness(1, 1, 1, 0),
+            BorderBrush = new SolidColorBrush(edge), Background = painted, FlareLeft = false,
+        };
+        tab.Resources["ContentPaneBrush"] = new SolidColorBrush(pane);
+        var host = new Grid { Width = 220, Height = 30, Background = Brushes.Black };
+        host.Children.Add(new Border { Height = 1, VerticalAlignment = VerticalAlignment.Bottom, Background = new SolidColorBrush(line) });
+        host.Children.Add(tab);
+        host.Measure(new Size(220, 30));
+        host.Arrange(new Rect(0, 0, 220, 30));
+
+        // The last row: the tab's side column, then four face pixels outside it, then the curve's
+        // two edge pixels, then the card line carrying on under the next tab.
+        Assert.Equal(Colors.White, Pixel(host, 199, 29));
+        foreach (int x in new[] { 200, 201, 202, 203 })
+            Assert.Equal(pane, Pixel(host, x, 29));
+        Assert.Equal(edge, Pixel(host, 204, 29));
+        Assert.Equal(edge, Pixel(host, 205, 29));
+        Assert.Equal(line, Pixel(host, 206, 29));
+        // The row above: two face pixels, then the curve.
+        Assert.Equal(pane, Pixel(host, 201, 28));
+        Assert.Equal(edge, Pixel(host, 202, 28));
+    });
+
     [Theory]
     [InlineData(false, false, false, 3, 3, 6, 6)]
     [InlineData(true, false, false, 0, 3, 6, 6)]

@@ -145,6 +145,12 @@ namespace KillerPDF.Controls
             // face reaches, both as offsets outward from the side column.
             (int From, int To, int Face)[] rows = { (5, 6, 4), (3, 4, 2), (2, 2, 1), (1, 1, 0) };
             void Px(Brush brush, int x, int y, int cw = 1) => dc.DrawRectangle(brush, null, new Rect(x, y, cw, 1));
+            // The face inside the curve lies outside the tab. A theme's painted face (Trash Polka's ink, ThemeMotif) is
+            // clipped to the tab's own rectangle and paints nothing there, so the card's top line under the next tab
+            // showed through and ran on to the tab's side (Steve 2026-11-26). Out there the face takes the pane's own
+            // solid color: the active tab's face is ContentPaneBrush, the base the painted face is laid over.
+            Brush? outside = Background is SolidColorBrush ? Background
+                : TryFindResource("ContentPaneBrush") as SolidColorBrush ?? Background;
             for (int k = 0; k < rows.Length; k++)
             {
                 int y = h - 1 - k;
@@ -152,13 +158,15 @@ namespace KillerPDF.Controls
                 // Left: the side column is 0 and outward is negative.
                 if (FlareLeft)
                 {
-                    if (Background != null) Px(Background, -face, y, face + 1);
+                    if (Background != null) Px(Background, 0, y);
+                    if (outside != null && face > 0) Px(outside, -face, y, face);
                     Px(edge, -to, y, to - from + 1);
                 }
                 // Right: the side column is w - 1 and outward is positive.
                 if (FlareRight)
                 {
-                    if (Background != null) Px(Background, w - 1, y, face + 1);
+                    if (Background != null) Px(Background, w - 1, y);
+                    if (outside != null && face > 0) Px(outside, w, y, face);
                     Px(edge, w - 1 + from, y, to - from + 1);
                 }
             }
