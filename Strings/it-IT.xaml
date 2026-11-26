@@ -1035,7 +1035,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Tf_Reset">Ripristina</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Annulla</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Applica</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">La trasformazione di una pagina (rotazione o ridimensionamento) la rasterizza: la pagina viene salvata nuovamente come immagine, quindi qualsiasi testo selezionabile in essa verrà perso. Successivamente è possibile eseguire l'OCR per renderlo nuovamente ricercabile.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Le impostazioni di prospettiva, livelli, colore e qualità di output rasterizzano la pagina (la sola rotazione, il ridimensionamento o il capovolgimento mantengono il testo): la pagina viene salvata nuovamente come immagine, quindi qualsiasi testo selezionabile in essa verrà perso. Successivamente è possibile eseguire l'OCR per renderlo nuovamente ricercabile.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">Non avvisarmi più</sys:String>
     <sys:String x:Key="Str_Tf_Done">Pagina trasformata {0}</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">Trasformate {0} pagine</sys:String>

@@ -1006,7 +1006,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Tf_Reset">Obnovit</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Zrušit</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Použít</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">Transformace stránky (otočení nebo změna měřítka) ji rastruje: stránka se znovu uloží jako obrázek, takže veškerý vybratelný text na ní bude ztracen. Následným spuštěním OCR ji můžete znovu učinit prohledávatelnou.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Nastavení perspektivy, úrovní, barev a výstupní kvality stránku rastrují (samotné otočení, změna měřítka a převrácení text zachovají): stránka se znovu uloží jako obrázek, takže veškerý vybratelný text na ní bude ztracen. Následným spuštěním OCR ji můžete znovu učinit prohledávatelnou.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">Příště nevarovat</sys:String>
     <sys:String x:Key="Str_Tf_Done">Transformována stránka {0}</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">Transformováno {0} stránek</sys:String>

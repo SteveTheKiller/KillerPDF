@@ -297,6 +297,8 @@
     <Compile Include="..\Services\PageSizeFormatter.cs" Link="Services\PageSizeFormatter.cs" />
     <Compile Include="..\Services\BitonalPageDetector.cs" Link="Services\BitonalPageDetector.cs" />
     <Compile Include="..\Services\BitmapHelpers.cs" Link="Services\BitmapHelpers.cs" />
+    <Compile Include="..\Services\PageTransformGeometry.cs" Link="Services\PageTransformGeometry.cs" />
+    <Compile Include="..\Services\PageTransformRaster.cs" Link="Services\PageTransformRaster.cs" />
     <Compile Include="..\Services\PdfPageDifference.cs" Link="Services\PdfPageDifference.cs" />
     <Compile Include="..\Services\PageAnnotationInsertion.cs" Link="Services\PageAnnotationInsertion.cs" />
     <Compile Include="..\Services\PageGeometry.cs" Link="Services\PageGeometry.cs" />

@@ -1036,7 +1036,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Tf_Reset">Reset</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Cancel</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Apply</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">Transforming a page (rotate or scale) rasterizes it: the page is re-saved as an image, so any selectable text on it is lost. You can run OCR afterward to make it searchable again.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Perspective, levels, color and output quality settings rasterize the page (rotating, scaling and flipping alone keep its text): the page is re-saved as an image, so any selectable text on it is lost. You can run OCR afterward to make it searchable again.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">Don't warn me again</sys:String>
     <sys:String x:Key="Str_Tf_Done">Transformed page {0}</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">Transformed {0} pages</sys:String>

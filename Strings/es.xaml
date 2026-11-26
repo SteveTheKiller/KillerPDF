@@ -943,7 +943,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Tf_Reset">Restablecer</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Cancelar</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Aplicar</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">Transformar una página (rotar o escalar) la rasteriza: la página se vuelve a guardar como imagen, por lo que se pierde cualquier texto seleccionable. Puedes ejecutar OCR después para volver a hacerla buscable.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Los ajustes de perspectiva, niveles, color y calidad de salida rasterizan la página (solo rotar, escalar o voltear conserva el texto): la página se vuelve a guardar como imagen, por lo que se pierde cualquier texto seleccionable. Puedes ejecutar OCR después para volver a hacerla buscable.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">No volver a avisarme</sys:String>
     <sys:String x:Key="Str_Tf_Done">Página {0} transformada</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">{0} páginas transformadas</sys:String>

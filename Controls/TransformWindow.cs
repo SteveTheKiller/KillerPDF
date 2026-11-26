@@ -1014,7 +1014,7 @@ namespace KillerPDF
             _rotReadout?.Text = $"{total:0.0}°";
             _preview.Source = (total == 0 && _scale == 1.0 && !_flipH && !_flipV)
                 ? _src
-                : MainWindow.ComposeTransform(_src, total, _scale, _fixedPage, _flipH, _flipV);
+                : Services.PageTransformRaster.ComposeTransform(_src, total, _scale, _fixedPage, _flipH, _flipV);
             // #174: levels ride on top of whatever geometry the preview shows.
             if (_preview.Source is BitmapSource lvlSrc && !LevelsIdentity(LevelBlack, LevelWhite, LevelGamma))
                 _preview.Source = ApplyLevels(lvlSrc, LevelBlack, LevelWhite, LevelGamma);

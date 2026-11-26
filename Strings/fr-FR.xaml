@@ -1035,7 +1035,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Tf_Reset">Réinitialiser</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Annuler</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Appliquer</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">Transformer une page (pivoter ou mettre à l'échelle) la rastérise : la page est réenregistrée en tant qu'image, donc tout texte sélectionnable est perdu. Vous pouvez ensuite lancer l'OCR pour la rendre à nouveau interrogeable.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Les réglages de perspective, de niveaux, de couleur et de qualité de sortie rastérisent la page (pivoter, mettre à l'échelle ou retourner seuls conservent le texte) : la page est réenregistrée en tant qu'image, donc tout texte sélectionnable est perdu. Vous pouvez ensuite lancer l'OCR pour la rendre à nouveau interrogeable.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">Ne plus m'avertir</sys:String>
     <sys:String x:Key="Str_Tf_Done">Page {0} transformée</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">{0} pages transformées</sys:String>

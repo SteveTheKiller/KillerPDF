@@ -966,7 +966,7 @@
     <sys:String x:Key="Str_Tf_Reset">Ponastavi</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Prekliči</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Uporabi</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">Preoblikovanje strani (vrtenje ali spreminjanje merila) jo rastrira: stran se znova shrani kot slika, zato se izgubi besedilo, ki ga je mogoče izbrati. Nato lahko izvedete OCR, da bo spet mogoče iskati po njej.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Nastavitve perspektive, ravni, barve in kakovosti izhoda stran rastrirajo (samo vrtenje, spreminjanje merila in zrcaljenje ohranijo besedilo): stran se znova shrani kot slika, zato se izgubi besedilo, ki ga je mogoče izbrati. Nato lahko izvedete OCR, da bo spet mogoče iskati po njej.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">Ne opozarjaj več</sys:String>
     <sys:String x:Key="Str_Tf_Done">Stran {0} je preoblikovana</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">Preoblikovane strani: {0}</sys:String>

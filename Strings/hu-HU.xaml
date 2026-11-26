@@ -1035,7 +1035,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Tf_Reset">Visszaállítás</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Mégse</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Alkalmaz</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">Egy oldal átalakítása (forgatás vagy méretezés) raszterizálja azt: az oldal képként mentődik újra, így a rajta lévő kijelölhető szöveg elvész. Utána OCR-t futtatva ismét kereshetővé teheti.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">A perspektíva, a szintek, a szín és a kimeneti minőség beállításai raszterizálják az oldalt (a puszta forgatás, méretezés és tükrözés megtartja a szöveget): az oldal képként mentődik újra, így a rajta lévő kijelölhető szöveg elvész. Utána OCR-t futtatva ismét kereshetővé teheti.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">Ne figyelmeztessen újra</sys:String>
     <sys:String x:Key="Str_Tf_Done">{0}. oldal átalakítva</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">{0} oldal átalakítva</sys:String>

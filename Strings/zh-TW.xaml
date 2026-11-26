@@ -945,7 +945,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Tf_Reset">重設</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">取消</sys:String>
     <sys:String x:Key="Str_Tf_Apply">套用</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">變形頁面（旋轉或縮放）會將其點陣化：頁面會重新儲存為圖片，因此頁面上任何可選取的文字都會遺失。您之後可以執行 OCR 讓它再次可搜尋。</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">透視、色階、色彩與輸出品質設定會將頁面點陣化（僅旋轉、縮放與翻轉會保留文字）：頁面會重新儲存為圖片，因此頁面上任何可選取的文字都會遺失。您之後可以執行 OCR 讓它再次可搜尋。</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">不要再警告我</sys:String>
     <sys:String x:Key="Str_Tf_Done">已變形第 {0} 頁</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">已變形 {0} 頁</sys:String>

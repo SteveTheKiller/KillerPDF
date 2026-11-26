@@ -13,8 +13,9 @@ namespace KillerPDF.Shell
         // ============================================================
         // Transform tool (rotate + scale; draggable corner handles + aspect-unlock next).
         // The toolbar button opens a modal TransformWindow that renders the page on its own canvas (so the
-        // main view mode is irrelevant). Apply rasterizes at full resolution into an expanded white page
-        // (no cropped corners) and swaps the page in, with undo.
+        // main view mode is irrelevant). Turning, scaling and mirroring apply as one PDF matrix around the page's own
+        // content, so its text stays text. Perspective, levels, color and output quality rasterize at full resolution
+        // into an expanded white page (no cropped corners) and swap the page in. Both are one undo step.
         // ============================================================
 
         private void ToolRotate_Click(object sender, RoutedEventArgs e)
@@ -69,16 +70,6 @@ namespace KillerPDF.Shell
             }
             if (RenderPreview(pageIndices[0]) is not { } first) return;
 
-            // First-use warning that a transform rasterizes the page; persists the opt-out.
-            if (App.GetSetting("RotateWarnAck") != "1")
-            {
-                var (res, dontWarn) = KillerDialog.ShowWithCheckbox(this,
-                    Loc("Str_Tf_Warn"),
-                    Loc("Str_Tf_DontWarn"), toolName, MessageBoxButton.OKCancel);
-                if (res != MessageBoxResult.OK) return;
-                if (dontWarn) App.SetSetting("RotateWarnAck", "1");
-            }
-
             // Apply changes the page in the window (or the opening selection) and the window stays open, so the
             // next page can be flipped to and changed; each Apply is its own undo step.
             var win = new TransformWindow(this, _doc.PageCount, pageIndices, first, RenderPreview,
@@ -86,19 +77,19 @@ namespace KillerPDF.Shell
                     ? ApplyPageTransformsAsync(pages, window.Angle, window.Scale, window.FixedPage, window.FlipH, window.FlipV,
                         window.PerspectiveCorners, window.LevelBlack, window.LevelWhite, window.LevelGamma,
                         window.ColorMode, window.BlackWhiteThreshold, window.OutputDpi,
-                        window.UseJpegCompression, window.JpegQuality, window.ColorAdjustments)
+                        window.UseJpegCompression, window.JpegQuality, window.ColorAdjustments, toolName)
                     : Task.FromResult(false), mode);
             win.ShowDialog();
         }
 
-        // Rasterizes every selected page with one transform setup and swaps the batch in as one undo step.
+        // Transforms every selected page with one setup and swaps the batch in as one undo step.
         private async Task<bool> ApplyPageTransformsAsync(IReadOnlyList<int> pageIndices, double angleDeg,
             double scale, bool fixedPage, bool flipH, bool flipV, Point[] perspectiveCorners,
             int levelBlack = 0, int levelWhite = 255, double levelGamma = 1.0,
             PageColorMode colorMode = PageColorMode.Color,
             int blackWhiteThreshold = 160, int outputDpi = 0,
             bool useJpegCompression = false, int jpegQuality = 85,
-            ColorCorrectionSettings? colorAdjustments = null)
+            ColorCorrectionSettings? colorAdjustments = null, string? toolName = null)
         {
             if (_doc is null || _currentFile is null) return false;
             if (!EnsureEditable(continueAfterUnlock: false)) return false;
@@ -124,6 +115,53 @@ namespace KillerPDF.Shell
 
                 // Retain the complete pre-transform state for the central history push.
                 UndoEntry? documentUndo = CaptureDocumentUndo();
+
+                // Turning, scaling and mirroring keep the page as PDF content, so its text stays text. Only the
+                // perspective, levels, color and output quality settings need the page rendered to a picture.
+                if (KeepsVectorContent(perspectiveCorners, levelBlack, levelWhite, levelGamma, colorMode,
+                        outputDpi, useJpegCompression, colorAdjustments))
+                {
+                    int[] annotated = [.. pages.Where(page => _annotations.TryGetValue(page, out var list) && list.Count > 0)];
+                    var liveAnnotations = _annotations;
+                    var renderDims = _renderDims;
+                    var rotations = new Dictionary<int, int>(_pageRotations);
+                    int skipped = 0;
+                    SaveTempAndReload(
+                        keepAnnotations: true,
+                        // The app's own marks on these pages are burned into them first, so they turn with the page.
+                        remapAnnotations: annotations => PdfEngineBurn.RemapAfterBake(annotations, annotated),
+                        finalizeSavedFile: path =>
+                        {
+                            foreach (int page in annotated)
+                            {
+                                PdfEngineBurn.Burn(path, liveAnnotations, renderDims, null, page, rotations);
+                                skipped += PdfEngineBurn.SkippedPictures;
+                            }
+                            PageTransformGeometry.TransformPages(path, pages, rotations, angleDeg, scale, fixedPage, flipH, flipV);
+                        },
+                        remapRotations: rotationMap =>
+                            PdfEngineIntegration.RemapRotationsAfterPageReplacements(rotationMap, pages),
+                        selectedPageAfterReload: pages[0],
+                        documentUndo: documentUndo);
+                    ReselectTransformedPages(sourceViewer, sourceSession, pages);
+                    SetStatus(Services.PicturesSkippedNote.Append(pages.Length == 1
+                        ? string.Format(Loc("Str_Tf_Done"), pages[0] + 1)
+                        : string.Format(Loc("Str_Tf_DoneBatch"), pages.Length),
+                        skipped, Loc("Str_Save_PicturesSkipped")));
+                    return true;
+                }
+
+                // The raster path changes the page into a picture, so it says so once.
+                if (App.GetSetting("RotateWarnAck") != "1")
+                {
+                    if (busy is not null) { HideBusyOverlay(busy); busy = null; }
+                    var (res, dontWarn) = KillerDialog.ShowWithCheckbox(this,
+                        Loc("Str_Tf_Warn"), Loc("Str_Tf_DontWarn"), toolName ?? Loc("Str_Tf_Suffix"), MessageBoxButton.OKCancel);
+                    if (res != MessageBoxResult.OK) return false;
+                    if (dontWarn) App.SetSetting("RotateWarnAck", "1");
+                    if (!IsSourceCurrent() || ct.IsCancellationRequested) return false;
+                    busy = ShowBusyOverlay($"{Loc("Str_Tf_Suffix")}: 1/{pages.Length}");
+                }
 
                 // If the page carries annotations, bake just that page's annotations into the PDF so they
                 // rotate/scale with the page (it is being rasterized anyway, and the user was warned). The
@@ -160,7 +198,7 @@ namespace KillerPDF.Shell
                     var src = RenderPageBitmap(pageIdx, renderBudget, burned) ?? throw new InvalidOperationException(Loc("Str_Tf_NoRender"));
                     var perspective = PerspectiveWarp.IsIdentity(perspectiveCorners)
                         ? src : PerspectiveWarp.Apply(src, perspectiveCorners);
-                    var composed = ComposeTransform(perspective, angleDeg, scale, fixedPage, flipH, flipV);
+                    var composed = PageTransformRaster.ComposeTransform(perspective, angleDeg, scale, fixedPage, flipH, flipV);
                     composed = TransformWindow.ApplyLevels(composed, levelBlack, levelWhite, levelGamma);
                     composed = ColorCorrection.Apply(composed, colorAdjustments ?? new());
                     composed = PageQualityConverter.ApplyColorMode(
@@ -206,15 +244,7 @@ namespace KillerPDF.Shell
                             rotations, pages),
                     selectedPageAfterReload: pages[0],
                     documentUndo: documentUndo);
-                _ = Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
-                {
-                    if (!ReferenceEquals(ActiveViewer, sourceViewer)
-                        || !ReferenceEquals(sourceViewer.ActiveSessionExt, sourceSession)) return;
-                    PageList.SelectedItems.Clear();
-                    foreach (int pageIdx in pages)
-                        if (pageIdx >= 0 && pageIdx < PageList.Items.Count)
-                            PageList.SelectedItems.Add(PageList.Items[pageIdx]);
-                }));
+                ReselectTransformedPages(sourceViewer, sourceSession, pages);
                 SetStatus(Services.PicturesSkippedNote.Append(pages.Length == 1
                     ? string.Format(Loc("Str_Tf_Done"), pages[0] + 1)
                     : string.Format(Loc("Str_Tf_DoneBatch"), pages.Length),
@@ -233,6 +263,27 @@ namespace KillerPDF.Shell
             }
             return false;
         }
+
+        // The settings a PDF matrix can carry. Anything else changes pixels and needs the raster path.
+        internal static bool KeepsVectorContent(Point[] perspectiveCorners, int levelBlack, int levelWhite,
+            double levelGamma, PageColorMode colorMode, int outputDpi, bool useJpegCompression,
+            ColorCorrectionSettings? colorAdjustments) =>
+            PerspectiveWarp.IsIdentity(perspectiveCorners)
+            && TransformWindow.LevelsIdentity(levelBlack, levelWhite, levelGamma)
+            && colorMode == PageColorMode.Color
+            && (colorAdjustments?.IsIdentity ?? true)
+            && outputDpi <= 0 && !useJpegCompression;
+
+        private void ReselectTransformedPages(object sourceViewer, object? sourceSession, int[] pages) =>
+            _ = Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
+            {
+                if (!ReferenceEquals(ActiveViewer, sourceViewer)
+                    || !ReferenceEquals(ActiveViewer.ActiveSessionExt, sourceSession)) return;
+                PageList.SelectedItems.Clear();
+                foreach (int pageIdx in pages)
+                    if (pageIdx >= 0 && pageIdx < PageList.Items.Count)
+                        PageList.SelectedItems.Add(PageList.Items[pageIdx]);
+            }));
 
         // Saves the document with ONE page's annotations burned in, to a temp PDF, and returns its path
         // (null if the page has no annotations - the caller then renders the normal source). Non-destructive:
@@ -314,81 +365,6 @@ namespace KillerPDF.Shell
                 return rtb;
             }
             catch { return null; }
-        }
-
-        // Scale (per page-size mode) then rotate. Used by both the window preview and full-resolution Apply.
-        internal static BitmapSource ComposeTransform(BitmapSource src, double angleDeg, double scale, bool fixedPage, bool flipH, bool flipV)
-        {
-            var s = ApplyFlip(src, flipH, flipV);
-            var scaled = Math.Abs(scale - 1.0) < 0.001 ? s : ScaleCompose(s, scale, fixedPage);
-            return Math.Abs(angleDeg) < 0.001 ? scaled : RotateExpand(scaled, angleDeg);
-        }
-
-        private static BitmapSource ApplyFlip(BitmapSource src, bool flipH, bool flipV)
-        {
-            if (!flipH && !flipV) return src;
-            var tb = new TransformedBitmap(src, new ScaleTransform(flipH ? -1 : 1, flipV ? -1 : 1));
-            tb.Freeze();
-            return tb;
-        }
-
-        // fixedPage=true: keep the canvas size, shrink the content with white margins. false: resize the page
-        // (fewer pixels at the same points-per-pixel = a physically smaller page).
-        private static RenderTargetBitmap ScaleCompose(BitmapSource src, double scale, bool fixedPage)
-        {
-            int w = src.PixelWidth, h = src.PixelHeight;
-            int sw = Math.Max(1, (int)Math.Round(w * scale));
-            int sh = Math.Max(1, (int)Math.Round(h * scale));
-
-            var dv = new DrawingVisual();
-            if (fixedPage)
-            {
-                using (var dc = dv.RenderOpen())
-                {
-                    dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, w, h));
-                    dc.DrawImage(src, new Rect((w - sw) / 2.0, (h - sh) / 2.0, sw, sh));
-                }
-                var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
-                rtb.Render(dv);
-                rtb.Freeze();
-                return rtb;
-            }
-            else
-            {
-                using (var dc = dv.RenderOpen())
-                    dc.DrawImage(src, new Rect(0, 0, sw, sh));
-                var rtb = new RenderTargetBitmap(sw, sh, 96, 96, PixelFormats.Pbgra32);
-                rtb.Render(dv);
-                rtb.Freeze();
-                return rtb;
-            }
-        }
-
-        // Rotates a bitmap by angleDeg about its center into a canvas grown to the rotated bounding box, with
-        // the new corners filled white.
-        internal static BitmapSource RotateExpand(BitmapSource src, double angleDeg)
-        {
-            double w = src.PixelWidth, h = src.PixelHeight;
-            double rad = angleDeg * Math.PI / 180.0;
-            double cos = Math.Abs(Math.Cos(rad));
-            double sin = Math.Abs(Math.Sin(rad));
-            int nw = (int)Math.Ceiling(w * cos + h * sin);
-            int nh = (int)Math.Ceiling(w * sin + h * cos);
-
-            var dv = new DrawingVisual();
-            using (var dc = dv.RenderOpen())
-            {
-                dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, nw, nh));
-                dc.PushTransform(new TranslateTransform(nw / 2.0, nh / 2.0));
-                dc.PushTransform(new RotateTransform(angleDeg));
-                dc.DrawImage(src, new Rect(-w / 2.0, -h / 2.0, w, h));
-                dc.Pop();
-                dc.Pop();
-            }
-            var rtb = new RenderTargetBitmap(nw, nh, 96, 96, PixelFormats.Pbgra32);
-            rtb.Render(dv);
-            rtb.Freeze();
-            return rtb;
         }
 
     }

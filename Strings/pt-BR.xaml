@@ -1035,7 +1035,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Tf_Reset">Redefinir</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Cancelar</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Aplicar</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">Transformar uma página (girar ou dimensionar) a rasteriza: a página é salva novamente como imagem, e qualquer texto selecionável nela é perdido. Depois, você pode executar o OCR para torná-la pesquisável de novo.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">As configurações de perspectiva, níveis, cor e qualidade de saída rasterizam a página (apenas girar, dimensionar ou espelhar mantém o texto): a página é salva novamente como imagem, e qualquer texto selecionável nela é perdido. Depois, você pode executar o OCR para torná-la pesquisável de novo.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">Não avisar novamente</sys:String>
     <sys:String x:Key="Str_Tf_Done">Página {0} transformada</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">{0} páginas transformadas</sys:String>

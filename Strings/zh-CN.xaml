@@ -945,7 +945,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Tf_Reset">重置</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">取消</sys:String>
     <sys:String x:Key="Str_Tf_Apply">应用</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">变换页面（旋转或缩放）会将其栅格化：页面会重新另存为图片，因此其中任何可选取的文本都会丢失。之后您可以运行 OCR 使其重新可搜索。</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">透视、色阶、颜色和输出质量设置会将页面栅格化（仅旋转、缩放和翻转会保留文本）：页面会重新另存为图片，因此其中任何可选取的文本都会丢失。之后您可以运行 OCR 使其重新可搜索。</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">不再警告我</sys:String>
     <sys:String x:Key="Str_Tf_Done">已变换第 {0} 页</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">已变换 {0} 页</sys:String>

@@ -1036,7 +1036,7 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_Tf_Reset">초기화</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">취소</sys:String>
     <sys:String x:Key="Str_Tf_Apply">적용</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">페이지를 변형(회전 또는 배율 조정)하면 래스터화됩니다. 페이지가 이미지로 다시 저장되므로 선택 가능한 텍스트가 모두 사라집니다. 나중에 OCR을 실행하면 다시 검색할 수 있습니다.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">원근, 레벨, 색상, 출력 품질 설정은 페이지를 래스터화합니다(회전, 배율 조정, 뒤집기만 하면 텍스트가 유지됩니다). 페이지가 이미지로 다시 저장되므로 선택 가능한 텍스트가 모두 사라집니다. 나중에 OCR을 실행하면 다시 검색할 수 있습니다.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">다시 경고하지 않음</sys:String>
     <sys:String x:Key="Str_Tf_Done">{0} 페이지를 변형했습니다</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">{0}개 페이지를 변형했습니다</sys:String>

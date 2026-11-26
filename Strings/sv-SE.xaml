@@ -1036,7 +1036,7 @@ Vill du skala dem till en storlek som stöds? Sidorna behåller sitt utseende oc
     <sys:String x:Key="Str_Tf_Reset">Återställ</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Avbryt</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Verkställ</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">När du transformerar en sida (roterar eller skalar) rastreras den: sidan sparas om som en bild, så all markerbar text på den går förlorad. Du kan köra OCR efteråt för att göra den sökbar igen.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Inställningar för perspektiv, nivåer, färg och utdatakvalitet rastrerar sidan (enbart rotering, skalning och spegling behåller texten): sidan sparas om som en bild, så all markerbar text på den går förlorad. Du kan köra OCR efteråt för att göra den sökbar igen.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">Varna mig inte igen</sys:String>
     <sys:String x:Key="Str_Tf_Done">Sidan {0} har transformerats</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">{0} sidor har transformerats</sys:String>

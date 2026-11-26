@@ -1035,7 +1035,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Tf_Reset">Đặt lại</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Hủy</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Áp dụng</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">Chuyển đổi trang (xoay hoặc thu phóng) sẽ chuyển trang thành dạng raster: trang được lưu lại dưới dạng hình ảnh, do đó mọi văn bản có thể chọn trên trang sẽ bị mất. Bạn có thể chạy OCR sau đó để làm cho trang có thể tìm kiếm lại được.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Các thiết lập phối cảnh, mức sáng, màu và chất lượng đầu ra sẽ chuyển trang thành dạng raster (chỉ xoay, thu phóng và lật thì vẫn giữ văn bản): trang được lưu lại dưới dạng hình ảnh, do đó mọi văn bản có thể chọn trên trang sẽ bị mất. Bạn có thể chạy OCR sau đó để làm cho trang có thể tìm kiếm lại được.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">Không hiển thị lại cảnh báo này</sys:String>
     <sys:String x:Key="Str_Tf_Done">Đã chuyển đổi trang {0}</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">Đã chuyển đổi {0} trang</sys:String>

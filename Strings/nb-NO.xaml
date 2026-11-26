@@ -1035,7 +1035,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Tf_Reset">Tilbakestill</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Avbryt</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Bruk</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">Når en side transformeres (roteres eller skaleres), rasteriseres den: siden lagres på nytt som et bilde, så all markerbar tekst på den går tapt. Du kan kjøre OCR etterpå for å gjøre den søkbar igjen.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Innstillinger for perspektiv, nivåer, farge og utskriftskvalitet rasteriserer siden (bare rotering, skalering og speilvending beholder teksten): siden lagres på nytt som et bilde, så all markerbar tekst på den går tapt. Du kan kjøre OCR etterpå for å gjøre den søkbar igjen.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">Ikke advar meg igjen</sys:String>
     <sys:String x:Key="Str_Tf_Done">Transformerte side {0}</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">Transformerte {0} sider</sys:String>

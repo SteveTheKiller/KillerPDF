@@ -945,7 +945,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Tf_Reset">Zurücksetzen</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Abbrechen</sys:String>
     <sys:String x:Key="Str_Tf_Apply">Anwenden</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">Beim Transformieren einer Seite (Drehen oder Skalieren) wird diese gerastert: Die Seite wird als Bild neu gespeichert, sodass auswählbarer Text darauf verloren geht. Sie können anschließend eine OCR-Erkennung ausführen, um die Seite wieder durchsuchbar zu machen.</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Die Einstellungen für Perspektive, Tonwerte, Farbe und Ausgabequalität rastern die Seite (reines Drehen, Skalieren und Spiegeln behält den Text): Die Seite wird als Bild neu gespeichert, sodass auswählbarer Text darauf verloren geht. Sie können anschließend eine OCR-Erkennung ausführen, um die Seite wieder durchsuchbar zu machen.</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">Nicht erneut warnen</sys:String>
     <sys:String x:Key="Str_Tf_Done">Seite {0} transformiert</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">{0} Seiten transformiert</sys:String>

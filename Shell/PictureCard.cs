@@ -179,7 +179,7 @@ namespace KillerPDF.Shell
         private void FlipPicture(ImageAnnotation picture, bool placed, bool horizontal)
         {
             bool acrossPixels = PictureShape.FlipsAcrossPixels(horizontal, picture.Rotation);
-            if (RecodePicture(picture, bitmap => ApplyFlip(bitmap, acrossPixels, !acrossPixels)) is not { } data) return;
+            if (RecodePicture(picture, bitmap => PageTransformRaster.ApplyFlip(bitmap, acrossPixels, !acrossPixels)) is not { } data) return;
             EditPicture(picture, placed, p => p.ImageData = data);
         }
 
