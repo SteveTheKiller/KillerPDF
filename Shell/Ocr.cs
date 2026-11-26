@@ -178,6 +178,9 @@ namespace KillerPDF.Shell
                 grid.Children.Add(codeBlock);
 
                 var row = new CheckBox { Content = grid, Style = checkStyle, IsChecked = installed && selected.Contains(code) };
+                // The locale picker's row spacing, so both language lists match on every theme.
+                row.Margin = Controls.LanguageMenu.RowMargin;
+                row.Padding = Controls.LanguageMenu.RowPadding(row.Padding.Left, row.Padding.Right);
                 row.Click += async (_, _) =>
                 {
                     if (!installed)

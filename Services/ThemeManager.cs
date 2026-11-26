@@ -550,6 +550,12 @@ namespace KillerPDF.Services
             SetIfAbsent("ThemeCommandRowPadding", new Thickness(14, 5, 6, 5));
             SetIfAbsent("ThemeFlyoutInnerMargin", new Thickness(15, 7, 5, 7));
             SetIfAbsent("AccentStripDotMargin", new Thickness(0, 0, 0, 8));
+            // The two-column language lists (the locale picker and OCR's languages) share one row
+            // spacing: the gap under a row and the top and bottom padding inside it. On the card
+            // themes it is the flyout rows' spacing; 98SE sets its own, between its 18px menu rows and
+            // the card themes' (Steve 2026-11-26).
+            SetIfAbsent("LanguageRowMargin", new Thickness(0, 0, 0, 8));
+            SetIfAbsent("LanguageRowPadding", new Thickness(0, 4, 0, 4));
             // The icon rail column. 98SE narrows it to hug the 20px rail buttons.
             SetIfAbsent("RailColumnWidth", new GridLength(24));
             // The confirm dialog's body inset, checkbox gaps and button row. 98SE packs them

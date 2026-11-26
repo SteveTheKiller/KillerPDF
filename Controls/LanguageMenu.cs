@@ -106,6 +106,12 @@ namespace KillerPDF.Controls
             columns.Children.Add(left);
             columns.Children.Add(divider);
             columns.Children.Add(right);
+            // The rows take the language lists' spacing (any other two-column language list in the app uses
+            // RowMargin and RowPadding too) in place of the flyout rows' (on 98SE those are packed menu rows).
+            // Horizontal padding stays the radio row's.
+            var radioPad = (Thickness)Application.Current.FindResource("ThemeRadioPadding");
+            columns.Resources["ThemeRadioMargin"] = RowMargin;
+            columns.Resources["ThemeRadioPadding"] = RowPadding(radioPad.Left, radioPad.Right);
 
             int half = (Languages.Length + 1) / 2;
             int index = 0;
@@ -157,6 +163,16 @@ namespace KillerPDF.Controls
                 StaysOpenOnClick = true,
                 Style = (Style)Application.Current.FindResource("PanelMenuItem"),
             });
+        }
+
+        /// <summary>The gap under a row in the two-column language lists, from the theme.</summary>
+        internal static Thickness RowMargin => (Thickness)Application.Current.FindResource("LanguageRowMargin");
+
+        /// <summary>A language-list row's padding: the theme's top and bottom with the caller's sides.</summary>
+        internal static Thickness RowPadding(double left, double right)
+        {
+            var pad = (Thickness)Application.Current.FindResource("LanguageRowPadding");
+            return new Thickness(left, pad.Top, right, pad.Bottom);
         }
 
         private void LocaleItem_Checked(object sender, RoutedEventArgs e)

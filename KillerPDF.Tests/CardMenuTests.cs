@@ -272,6 +272,9 @@ public sealed class CardMenuTests
         Assert.Contains("installed = await DownloadOcrLanguage(code, name);", language);
         Assert.Contains("row.IsChecked = installed;", language);
         Assert.DoesNotContain("CloseCard()", language);
+        // Steve 2026-11-26: the OCR list and the locale picker share one row spacing from the theme.
+        Assert.Contains("row.Margin = Controls.LanguageMenu.RowMargin;", language);
+        Assert.Contains("columns.Resources[\"ThemeRadioMargin\"] = RowMargin;", Read("Controls", "LanguageMenu.cs"));
     }
 
     [Fact]

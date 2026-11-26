@@ -44,6 +44,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 - The page's right-click menu has one edit pencil for the whole card, so any tile can go anywhere on it. A layout you already customized carries over.
+- The language picker and the OCR language list space their rows the same way. In 98SE both sit between the old tight picker and the old roomy OCR list.
 - Transform keeps a page's text and links when it rotates, scales or flips it, instead of turning the page into an image (#538). Only perspective, levels, color and output quality still rasterize and bring up the warning.
 - Document tabs are redesigned (#528). They are narrower and shorter, the active tab curves into the page below with a fading accent line, and a long title fades out instead of ending in "...". In split view, the other pane's active tab shows its line in gray.
 - The main window is tighter. The title bar, toolbar, tool options bar and Restore last session bar are slimmer, and the gaps around the sidebar, document pane, split view and About card are 4px.
