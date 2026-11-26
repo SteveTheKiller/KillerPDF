@@ -268,24 +268,9 @@ namespace KillerPDF.Services
             Default("DangerRed", new SolidColorBrush(Color.FromRgb(0xef, 0x44, 0x44)));
             Default("BgOverlay", new SolidColorBrush(Color.FromArgb(0xbb, 0, 0, 0)));
             Default("HeaderShadowOpacity", 0.5);
-            // The shade along the foot of the tab strip follows the bar shadow unless a theme turns it off (Trash Polka:
-            // inactive tabs sit on the window background with no darkening).
-            Default("TabStripFadeOpacity", d.Contains("BarShadowOpacity") ? d["BarShadowOpacity"] : 0.38);
-            // The active document tab's shadow. Light softens BarShadowOpacity for its toolbar, which left the tab with
-            // no visible edge against the strip, so the tab keeps at least the 0.38 every other theme uses. Flat themes
-            // (98SE) stay shadowless.
-            if (!d.Contains("DocumentTabShadowEffect"))
-            {
-                double bar = d.Contains("BarShadowOpacity") && d["BarShadowOpacity"] is double o ? o : 0.38;
-                if (bar > 0)
-                {
-                    var tabShadow = new System.Windows.Media.Effects.DropShadowEffect
-                    { Color = Colors.Black, BlurRadius = 9, ShadowDepth = 0, Opacity = Math.Max(bar, 0.38) };
-                    tabShadow.Freeze();
-                    d["DocumentTabShadowEffect"] = tabShadow;
-                }
-                else d["DocumentTabShadowEffect"] = null;
-            }
+            // Inactive tabs sit straight on the window background, with no shade under the strip, and the active tab
+            // is outlined by the pane border instead of a shadow (#528).
+            Default("TabStripFadeOpacity", 0.0);
             Default("AboutShadowOpacity", d.Contains("FlyoutShadowOpacity") ? d["FlyoutShadowOpacity"] : 0.6);
             Default("AboutIconShadowOpacity", 0.6);
             Default("AboutCaptionVisibility", Visibility.Collapsed);
@@ -317,7 +302,7 @@ namespace KillerPDF.Services
             // The active tab's corner (matched by the card's corners at each end of the band), the
             // title and the close x, as KillerShell has them. 98SE keeps its classic sizes.
             bool compactDialogCaption = d["UseDialogCaption"] is true;
-            Default("TabActiveCornerRadius", compactDialogCaption ? new CornerRadius(2, 2, 0, 0) : new CornerRadius(3, 3, 0, 0));
+            Default("TabActiveCornerRadius", compactDialogCaption ? new CornerRadius(2, 2, 0, 0) : new CornerRadius(8, 8, 0, 0));
             Default("TabTitleFontSize", compactDialogCaption ? 11.0 : 12.0);
             Default("TabCloseFontSize", compactDialogCaption ? 14.0 : 17.0);
             // Annotation bars attach directly beneath the main toolbar: their top edge is always

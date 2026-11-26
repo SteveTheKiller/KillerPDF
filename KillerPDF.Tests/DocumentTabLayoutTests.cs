@@ -192,7 +192,7 @@ public sealed class DocumentTabLayoutTests
             "TabFocusLastPadding", "TabFocusOnlyPadding", "TabActiveRingFadeBrush", "TabActiveRingBrush" })
             Assert.DoesNotContain($"\"{kitKey}\"", theme, StringComparison.Ordinal);
         // 98SE keeps its classic corner, title and close x.
-        Assert.Contains("Default(\"TabActiveCornerRadius\", compactDialogCaption ? new CornerRadius(2, 2, 0, 0) : new CornerRadius(3, 3, 0, 0));",
+        Assert.Contains("Default(\"TabActiveCornerRadius\", compactDialogCaption ? new CornerRadius(2, 2, 0, 0) : new CornerRadius(8, 8, 0, 0));",
             theme, StringComparison.Ordinal);
         Assert.Contains("Default(\"TabTitleFontSize\", compactDialogCaption ? 11.0 : 12.0);", theme, StringComparison.Ordinal);
         Assert.Contains("Default(\"TabCloseFontSize\", compactDialogCaption ? 14.0 : 17.0);", theme, StringComparison.Ordinal);
@@ -207,9 +207,12 @@ public sealed class DocumentTabLayoutTests
             && (string?)element.Attribute("Property") == "CornerRadius"
             && (string?)element.Attribute("Value") == "{DynamicResource TabActiveCornerRadius}");
 
-        // One pane open: the active tab's sides fade toward its foot.
+        // One pane open: the active tab wears the pane's own border, with no accent on its outline (#528).
         XElement lone = document.Descendants().Single(element => element.Name.LocalName == "MultiDataTrigger"
-            && element.Descendants().Any(setter => (string?)setter.Attribute("Value") == "{DynamicResource TabActiveRingFadeBrush}"));
+            && element.Descendants().Any(condition => condition.Name.LocalName == "Condition"
+                && (string?)condition.Attribute("Binding") == "{Binding PaneDimmed}" && (string?)condition.Attribute("Value") == "False")
+            && element.Descendants().Any(condition => condition.Name.LocalName == "Condition"
+                && (string?)condition.Attribute("Binding") == "{Binding PaneFocused}"));
         string[] conditions = lone.Descendants().Where(element => element.Name.LocalName == "Condition")
             .Select(condition => $"{(string?)condition.Attribute("Binding")}={(string?)condition.Attribute("Value")}").ToArray();
         Assert.Equal(new[] { "{Binding IsActive}=True", "{Binding PaneFocused}=False", "{Binding PaneDimmed}=False" }, conditions);
@@ -219,8 +222,15 @@ public sealed class DocumentTabLayoutTests
         {
             "BorderThickness={DynamicResource TabFocusThickness}",
             "Padding={DynamicResource TabFocusPadding}",
-            "BorderBrush={DynamicResource TabActiveRingFadeBrush}",
+            "BorderBrush={DynamicResource PaneBorderBrush}",
         }, setters);
+
+        // Split view: the other pane's active tab keeps its accent line, desaturated.
+        XElement dimmed = document.Descendants().Single(element => element.Name.LocalName == "DataTrigger"
+            && (string?)element.Attribute("Binding") == "{Binding PaneDimmed}" && (string?)element.Attribute("Value") == "True");
+        Assert.Contains(dimmed.Elements(), setter => (string?)setter.Attribute("TargetName") == "tabAccentLine"
+            && (string?)setter.Attribute("Property") == "Background"
+            && (string?)setter.Attribute("Value") == "{DynamicResource TabAccentDimBrush}");
 
         // The card's corners at the band and the content clip under them follow the tab.
         string strip = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.TabStrip.cs"));

@@ -40,6 +40,32 @@ namespace KillerPDF.Controls
             set => SetValue(DividerBrushProperty, value);
         }
 
+        /// <summary>
+        /// Whether the foot curves out on the left. False for a tab standing on the card's left edge:
+        /// there is no card top edge to curve into, the curve falls outside the strip and is clipped,
+        /// and its face fill would cut 4px out of the side line. The side runs straight down instead.
+        /// </summary>
+        public static readonly DependencyProperty FlareLeftProperty = DependencyProperty.Register(
+            nameof(FlareLeft), typeof(bool), typeof(RetroTabBorder),
+            new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public bool FlareLeft
+        {
+            get => (bool)GetValue(FlareLeftProperty);
+            set => SetValue(FlareLeftProperty, value);
+        }
+
+        /// <summary>The same as <see cref="FlareLeft"/> for a tab standing on the card's right edge.</summary>
+        public static readonly DependencyProperty FlareRightProperty = DependencyProperty.Register(
+            nameof(FlareRight), typeof(bool), typeof(RetroTabBorder),
+            new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public bool FlareRight
+        {
+            get => (bool)GetValue(FlareRightProperty);
+            set => SetValue(FlareRightProperty, value);
+        }
+
         protected override void OnRender(DrawingContext drawingContext)
         {
             if (RetroBottomEdges || !DrawRoundedTop(drawingContext)) base.OnRender(drawingContext);
@@ -74,6 +100,7 @@ namespace KillerPDF.Controls
             if (BorderBrush != null)
                 dc.DrawGeometry(BorderBrush, null, new CombinedGeometry(GeometryCombineMode.Exclude, outerShape, face));
             if (Background != null) dc.DrawGeometry(Background, null, face);
+            DrawFlare(dc, outer, b);
             return true;
         }
 
@@ -98,6 +125,43 @@ namespace KillerPDF.Controls
                     : null;
             }
             return arranged;
+        }
+
+        /// <summary>
+        /// The tab's foot curves out into the card's top edge on both sides (#528), so the outline
+        /// runs from the tab into the pane's border without a hard corner.
+        /// </summary>
+        /// <remarks>
+        /// Drawn pixel by pixel in the edge's own color, like the 98SE edges below. An anti-aliased
+        /// arc this small came out as dim half-pixels that read as a break between the tab's side
+        /// and the card. The tab's last row is the card's top border row (the card tucks into the
+        /// band by 1px), so the curve lands on that row.
+        /// </remarks>
+        private void DrawFlare(DrawingContext dc, Rect outer, Thickness b)
+        {
+            int w = (int)Math.Round(outer.Width), h = (int)Math.Round(outer.Height);
+            if (h < 12 || w < 24 || BorderBrush is not Brush edge || b.Left <= 0 || b.Right <= 0) return;
+            // Per row, counted up from the tab's last row: the curve's pixels and how far out the
+            // face reaches, both as offsets outward from the side column.
+            (int From, int To, int Face)[] rows = { (5, 6, 4), (3, 4, 2), (2, 2, 1), (1, 1, 0) };
+            void Px(Brush brush, int x, int y, int cw = 1) => dc.DrawRectangle(brush, null, new Rect(x, y, cw, 1));
+            for (int k = 0; k < rows.Length; k++)
+            {
+                int y = h - 1 - k;
+                var (from, to, face) = rows[k];
+                // Left: the side column is 0 and outward is negative.
+                if (FlareLeft)
+                {
+                    if (Background != null) Px(Background, -face, y, face + 1);
+                    Px(edge, -to, y, to - from + 1);
+                }
+                // Right: the side column is w - 1 and outward is positive.
+                if (FlareRight)
+                {
+                    if (Background != null) Px(Background, w - 1, y, face + 1);
+                    Px(edge, w - 1 + from, y, to - from + 1);
+                }
+            }
         }
 
         private static Geometry TopRounded(Rect rect, double left, double right)

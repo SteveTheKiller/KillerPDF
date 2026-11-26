@@ -13,7 +13,8 @@ public sealed class TabLabelInsetTests
     {
         string root = FindRepositoryRoot();
         string viewer = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.xaml"));
-        int label = viewer.IndexOf("x:Name=\"tabLbl\"", StringComparison.Ordinal);
+        // The inset sits on the title's clip (#528), which fades and scrolls a long title inside it.
+        int label = viewer.IndexOf("x:Name=\"tabLblClip\"", StringComparison.Ordinal);
         Assert.True(label >= 0);
         string labelTag = viewer[label..viewer.IndexOf("/>", label, StringComparison.Ordinal)];
         Assert.Contains("Margin=\"{DynamicResource TabLabelInset}\"", labelTag, StringComparison.Ordinal);

@@ -53,6 +53,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The file dialog uses the 4px gutter at its sides and between its panes, and the address bar sits closer to the title bar and the panes.
 - The OCR language list shows two columns with flags, like the interface language picker, so it fits a short window.
 - The keyboard shortcuts card keeps its rounded corners and thin top edge while the list is scrolled.
+- Document tabs are redesigned (#528). The active tab has rounded top corners, the pane's own border, and a foot that curves into the page below it, with an accent line along its bottom that fades out at both ends.
+- Tabs are narrower and shorter, and inactive tabs sit on the window background with dividers that fade out toward the top.
+- A long tab title fades out on the right instead of ending in "...", and scrolls to its end while the pointer is on the tab.
+- In split view, the focused pane's active tab keeps its accent outline, and the other pane's active tab shows its accent line in gray.
 
 ### Added
 - Right-clicking a drawing, text box, picture, comment or form field opens a card made for it, under the same Back, Forward, Undo, Redo and Print row as the page card. A mark, picture or comment card has Delete in its header.

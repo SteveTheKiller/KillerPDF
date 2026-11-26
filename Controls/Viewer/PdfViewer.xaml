@@ -166,11 +166,11 @@
                                          selected tab visually connected to the document pane. -->
                                     <local:RetroTabBorder x:Name="tabBd" CornerRadius="0" Margin="{DynamicResource TabMargin}" Padding="{DynamicResource TabPadding}"
                                             RetroBottomEdges="{DynamicResource TabRetroBottomEdges}"
-                                            MinWidth="160" MaxWidth="260"
+                                            MinWidth="160" MaxWidth="165"
                                             RenderTransform="{DynamicResource TabPlacementTransform}" RenderTransformOrigin="0.5,0.5"
                                             UseLayoutRounding="True" SnapsToDevicePixels="True"
                                             Cursor="Hand" Background="Transparent"
-                                            BorderThickness="0,0,1,0" BorderBrush="{DynamicResource PaneEdgeBrush}"
+                                            BorderThickness="0,0,1,0" BorderBrush="{DynamicResource TabDividerFadeBrush}"
                                             DividerBrush="{DynamicResource PaneBorderBrush}"
                                             ToolTip="{Binding TabTip}"
                                             MouseDown="Tab_MouseDown"
@@ -197,10 +197,24 @@
                                                         VerticalAlignment="Center" FocusVisualStyle="{x:Null}"
                                                         ToolTip="{DynamicResource Str_TT_CloseTab}"
                                                         Tag="{Binding}" Click="CloseTab_Click"/>
-                                                <TextBlock x:Name="tabLbl" Text="{Binding TabLabel}" Margin="{DynamicResource TabLabelInset}"
-                                                           FontFamily="{DynamicResource MonoFont}" FontSize="{DynamicResource TabTitleFontSize}"
-                                                           Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"
-                                                           TextTrimming="CharacterEllipsis"/>
+                                                <!-- A title too long for the tab fades out on the right, and
+                                                     scrolls to its end while the pointer is on the tab (#528).
+                                                     The kit's TabTitleScroll sets the fade and runs the scroll. -->
+                                                <Border x:Name="tabLblClip" ClipToBounds="True" VerticalAlignment="Center"
+                                                        Margin="{DynamicResource TabLabelInset}"
+                                                        local:TabTitleScroll.HoverSource="{Binding ElementName=tabBd}">
+                                                    <!-- The horizontal StackPanel lays the title out at its full
+                                                         length. Arranged straight in the clip, WPF cut the text at
+                                                         the clip's width, so the scroll ran out of letters. -->
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock x:Name="tabLbl" Text="{Binding TabLabel}"
+                                                                   FontFamily="{DynamicResource MonoFont}" FontSize="{DynamicResource TabTitleFontSize}"
+                                                                   Foreground="{DynamicResource MutedTextBrush}" HorizontalAlignment="Left"
+                                                                   TextTrimming="None" TextWrapping="NoWrap">
+                                                            <TextBlock.RenderTransform><TranslateTransform/></TextBlock.RenderTransform>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </Border>
                                             </DockPanel>
                                             <Border x:Name="tabActiveRetroOuterOutline" IsHitTestVisible="False" Panel.ZIndex="3"
                                                     Margin="{DynamicResource TabActiveOuterOutlineMargin}"
@@ -226,6 +240,20 @@
                                                     BorderBrush="{DynamicResource TabActiveInnerBevelBrush}"
                                                     BorderThickness="{DynamicResource TabActiveInnerBevelThickness}"
                                                     SnapsToDevicePixels="True" Visibility="Collapsed"/>
+                                            <!-- The accent line on the active tab's foot, fading out at both ends (#528). -->
+                                            <Border x:Name="tabAccentLine" IsHitTestVisible="False" Panel.ZIndex="7"
+                                                    Height="2" VerticalAlignment="Bottom" Margin="9,0,6,-2"
+                                                    Background="{DynamicResource TabActiveRingBrush}"
+                                                    SnapsToDevicePixels="True" Visibility="Collapsed">
+                                                <Border.OpacityMask>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                        <GradientStop Color="#00000000" Offset="0"/>
+                                                        <GradientStop Color="#FF000000" Offset="0.3"/>
+                                                        <GradientStop Color="#FF000000" Offset="0.7"/>
+                                                        <GradientStop Color="#00000000" Offset="1"/>
+                                                    </LinearGradientBrush>
+                                                </Border.OpacityMask>
+                                            </Border>
                                         </Grid>
                                     </local:RetroTabBorder>
                                     <DataTemplate.Triggers>
@@ -236,6 +264,12 @@
                                              still wins when the last tab is also the active one. -->
                                         <DataTrigger Binding="{Binding IsLast}" Value="True">
                                             <Setter TargetName="tabBd" Property="BorderThickness" Value="0"/>
+                                            <Setter TargetName="tabBd" Property="FlareRight" Value="False"/>
+                                        </DataTrigger>
+                                        <!-- A tab on the card's edge runs its side straight down into the
+                                             card's border; there is nothing to curve into (#528). -->
+                                        <DataTrigger Binding="{Binding IsFirst}" Value="True">
+                                            <Setter TargetName="tabBd" Property="FlareLeft" Value="False"/>
                                         </DataTrigger>
                                         <MultiDataTrigger>
                                             <MultiDataTrigger.Conditions>
@@ -275,11 +309,8 @@
                                             <!-- Top padding gives back the 3px the accent stripe
                                                  takes, so the title does not drop on activation. -->
                                             <Setter TargetName="tabBd" Property="Padding" Value="{DynamicResource TabActivePadding}"/>
-                                            <Setter TargetName="tabBd" Property="BorderBrush" Value="{DynamicResource TabActiveRingBrush}"/>
-                                            <!-- Modern themes use the original raised-tab shadow. 98SE
-                                                 disables it in the theme-gated trigger below because an Effect
-                                                 rasterizes the label and destroys the crisp classic text. -->
-                                            <Setter TargetName="tabBd" Property="Effect" Value="{DynamicResource DocumentTabShadowEffect}"/>
+                                            <Setter TargetName="tabBd" Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
+                                            <Setter TargetName="tabAccentLine" Property="Visibility" Value="Visible"/>
                                             <Setter TargetName="tabLbl" Property="Foreground" Value="{DynamicResource TextBrush}"/>
                                             <Setter TargetName="tabBevelDark" Property="BorderThickness" Value="{DynamicResource TabActiveBevelDarkThickness}"/>
                                             <Setter TargetName="tabBevelDark" Property="Margin" Value="{DynamicResource TabActiveBevelDarkMargin}"/>
@@ -288,6 +319,7 @@
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding UseRetroTabChrome}" Value="True">
                                             <Setter TargetName="tabBd" Property="Effect" Value="{x:Null}"/>
+                                            <Setter TargetName="tabAccentLine" Property="Visibility" Value="Collapsed"/>
                                         </DataTrigger>
                                         <MultiDataTrigger>
                                             <MultiDataTrigger.Conditions>
@@ -334,7 +366,7 @@
                                             </MultiDataTrigger.Conditions>
                                             <Setter TargetName="tabBd" Property="BorderThickness" Value="{DynamicResource TabFocusThickness}"/>
                                             <Setter TargetName="tabBd" Property="Padding" Value="{DynamicResource TabFocusPadding}"/>
-                                            <Setter TargetName="tabBd" Property="BorderBrush" Value="{DynamicResource TabActiveRingFadeBrush}"/>
+                                            <Setter TargetName="tabBd" Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
                                         </MultiDataTrigger>
                                         <!-- Unfocused pane: the lip drops off the accent entirely
                                              and takes the card's own border color, so the whole
@@ -348,6 +380,7 @@
                                              and the lone pane's lip stays bright. -->
                                         <DataTrigger Binding="{Binding PaneDimmed}" Value="True">
                                             <Setter TargetName="tabBd" Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
+                                            <Setter TargetName="tabAccentLine" Property="Background" Value="{DynamicResource TabAccentDimBrush}"/>
                                         </DataTrigger>
                                         <!-- Focused pane: the ring continues UP both sides of the
                                              active tab, so the tab and the card read as one

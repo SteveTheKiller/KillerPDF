@@ -762,18 +762,18 @@ namespace KillerPDF.Services
             // keeps the active padding: its ring brush is transparent, and even a transparent
             // 1px border kept the tab's fill out of its own edge column, which let the menu
             // bar's white top line show through as a stray white pixel.
-            SetIfAbsent("TabFocusThickness",      new Thickness(1, 3, 1, 0));
-            SetIfAbsent("TabFocusFirstThickness", new Thickness(0, 3, 1, 0));
-            SetIfAbsent("TabFocusLastThickness",  new Thickness(1, 3, 0, 0));
-            SetIfAbsent("TabFocusOnlyThickness",  new Thickness(0, 3, 0, 0));
+            SetIfAbsent("TabFocusThickness",      new Thickness(1, 1, 1, 0));
+            SetIfAbsent("TabFocusFirstThickness", new Thickness(0, 1, 1, 0));
+            SetIfAbsent("TabFocusLastThickness",  new Thickness(1, 1, 0, 0));
+            SetIfAbsent("TabFocusOnlyThickness",  new Thickness(0, 1, 0, 0));
             // Every tab padding below carries 2px more on top and 2px less below than the band
             // needs, so the icon and title sit level in the tab: the art and Killer Sans both
             // ride high in their boxes. Same total height, and the same top in every state, so
             // nothing jumps when a tab becomes active.
-            SetIfAbsent("TabFocusPadding",      new Thickness(1, 3, 4, 3));
-            SetIfAbsent("TabFocusFirstPadding", new Thickness(2, 3, 4, 3));
-            SetIfAbsent("TabFocusLastPadding",  new Thickness(1, 3, 5, 3));
-            SetIfAbsent("TabFocusOnlyPadding",  new Thickness(2, 3, 5, 3));
+            SetIfAbsent("TabFocusPadding",      new Thickness(1, 2, 4, 3));
+            SetIfAbsent("TabFocusFirstPadding", new Thickness(2, 2, 4, 3));
+            SetIfAbsent("TabFocusLastPadding",  new Thickness(1, 2, 5, 3));
+            SetIfAbsent("TabFocusOnlyPadding",  new Thickness(2, 2, 5, 3));
             Mirror("MonitorCellBrush", "MenuBackgroundBrush");
 
             // A terminal that overrides its BACKGROUND has to override its foreground and accent
@@ -876,7 +876,7 @@ namespace KillerPDF.Services
             // supplies its compact horizontal inset and state-aligned vertical padding.
             // Pulls the X into the tab's right padding, leaving 8px from the glyph to the edge.
             SetIfAbsent("TabCloseMargin", new Thickness(4, -4, -4, 0));
-            SetIfAbsent("TabPadding", new Thickness(2, 6, 5, 3));   // 2px lower: see TabFocusPadding
+            SetIfAbsent("TabPadding", new Thickness(2, 3, 5, 3));   // 2px lower: see TabFocusPadding
             // No PageBevel* keys: the tab page reuses the PaneBevel* set the sidebar well already
             // uses, so the two recesses are the same four Borders and cannot drift apart. A
             // single-ring PageBevel* pair was tried on 2026-08-09 and rejected - a Win98 recess is
@@ -1367,10 +1367,10 @@ namespace KillerPDF.Services
                 // A flat theme gets none because a Win98 tab is identified by its bevel and join.
                 // The padding compensates either way so the title never shifts on activation.
                 if (!combined.Contains("TabStripeThickness"))
-                    combined["TabStripeThickness"] = flat ? new Thickness(0) : new Thickness(1, 3, 1, 0);
+                    combined["TabStripeThickness"] = flat ? new Thickness(0) : new Thickness(1, 1, 1, 0);
                 if (!combined.Contains("TabActivePadding"))
                     combined["TabActivePadding"] = flat ? new Thickness(12, 4, 5, 5)
-                                                        : new Thickness(1, 3, 4, 3);
+                                                        : new Thickness(1, 2, 4, 3);
 
                 // The tab's picture: larger on the rounded themes, overlapping the tab's padding by
                 // a pixel top and bottom so the tab keeps its height. 98SE keeps its 20px box.
@@ -1439,6 +1439,40 @@ namespace KillerPDF.Services
                     combined["TabActiveRingFadeBrush"] = fade;
                 }
                 else combined["TabActiveRingFadeBrush"] = combined["TabActiveRingBrush"];
+            }
+
+            // Split view: the unfocused pane's active tab keeps its accent line, desaturated to
+            // the accent's own gray (same brightness), so only the focused pane carries color (#528).
+            if (!combined.Contains("TabAccentDimBrush"))
+            {
+                if (combined["TabActiveRingBrush"] is SolidColorBrush ring)
+                {
+                    var c = ring.Color;
+                    byte gray = (byte)Math.Round(0.2126 * c.R + 0.7152 * c.G + 0.0722 * c.B);
+                    var dim = new SolidColorBrush(Color.FromArgb(c.A, gray, gray, gray));
+                    dim.Freeze();
+                    combined["TabAccentDimBrush"] = dim;
+                }
+                else combined["TabAccentDimBrush"] = combined["TabActiveRingBrush"];
+            }
+
+            // The divider between inactive tabs fades out toward the top, so the tabs read as one
+            // strip that only splits near the card (#528). 98SE keeps its solid frame.
+            if (!combined.Contains("TabDividerFadeBrush"))
+            {
+                bool flatDivider = combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool flatTheme && flatTheme;
+                if (!flatDivider && combined.Contains("PaneEdgeBrush") && combined["PaneEdgeBrush"] is SolidColorBrush divider)
+                {
+                    var c = divider.Color;
+                    var fade = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
+                    fade.GradientStops.Add(new GradientStop(Color.FromArgb(0, c.R, c.G, c.B), 0));
+                    fade.GradientStops.Add(new GradientStop(c, 0.6));
+                    fade.GradientStops.Add(new GradientStop(c, 1));
+                    fade.Freeze();
+                    combined["TabDividerFadeBrush"] = fade;
+                }
+                else if (combined.Contains("PaneEdgeBrush"))
+                    combined["TabDividerFadeBrush"] = combined["PaneEdgeBrush"];
             }
 
             // A flat-theme checkbox keeps its white sunken well when selected, so its mark uses

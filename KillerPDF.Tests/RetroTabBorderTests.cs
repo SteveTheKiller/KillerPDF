@@ -59,18 +59,37 @@ public sealed class RetroTabBorderTests
         tab.DividerBrush = new SolidColorBrush(edge);
         tab.BorderBrush = new LinearGradientBrush(accent, Color.FromArgb(0, 0, 0, 255), 90);
 
-        // At the foot the accent has faded out, and the pane's edge carries on up both sides.
+        // Just above the foot's flare the accent has all but faded out, and the pane's edge carries
+        // on up both sides.
         foreach (int x in new[] { 0, 199 })
         {
-            Color foot = Pixel(tab, x, 29);
+            Color foot = Pixel(tab, x, 25);
             Assert.Equal(255, foot.A);
-            Assert.True(foot.G > 180 && foot.B < 40, $"Side {x} at the foot is {foot}.");
+            Assert.True(foot.G > 150 && foot.B < 64, $"Side {x} above the foot is {foot}.");
         }
+        // The foot curves out into the card (#528), so the face fills the side column on the last row.
+        Assert.Equal(Colors.White, Pixel(tab, 0, 29));
         Assert.Equal(Colors.White, Pixel(tab, 1, 29));
 
         // A solid ring (the focused pane's) is drawn as it is.
         tab.BorderBrush = new SolidColorBrush(accent);
-        Assert.Equal(accent, Pixel(tab, 0, 29));
+        Assert.Equal(accent, Pixel(tab, 0, 20));
+    });
+
+    [Fact]
+    public void ATabOnTheCardsEdgeRunsItsSideStraightDown() => OnSta(() =>
+    {
+        // #528: the first tab stands on the card's left edge. Its foot used to curve out past the
+        // strip, where the viewport clipped the curve, and the face fill cut 4px out of the side.
+        Color edge = Color.FromRgb(0, 200, 0);
+        var tab = Tab(new CornerRadius(8, 8, 0, 0), new Thickness(1, 1, 1, 0), new Grid());
+        tab.Background = Brushes.White;
+        tab.BorderBrush = new SolidColorBrush(edge);
+        tab.FlareLeft = false;
+        foreach (int y in new[] { 25, 26, 27, 28, 29 })
+            Assert.Equal(edge, Pixel(tab, 0, y));
+        // The right foot still curves out into the card, so the face fills its side column there.
+        Assert.Equal(Colors.White, Pixel(tab, 199, 29));
     });
 
     [Theory]

@@ -24,7 +24,7 @@ public sealed class TabPlacementTests
             {
                 var markup = new XElement(Named(ViewerMarkup(), "tabBd"));
                 string[] events = ["MouseDown", "MouseRightButtonUp", "PreviewMouseLeftButtonDown",
-                    "PreviewMouseMove", "PreviewMouseLeftButtonUp", "Click"];
+                    "PreviewMouseMove", "PreviewMouseLeftButtonUp", "Click", "MouseEnter", "MouseLeave", "SizeChanged"];
                 foreach (var attribute in markup.DescendantsAndSelf().Attributes().Where(item => events.Contains(item.Name.LocalName)).ToList())
                     attribute.Remove();
                 // The face is the app's RetroTabBorder; this assembly reads it as the Border it derives from.
@@ -145,7 +145,7 @@ public sealed class TabPlacementTests
             && (string?)item.Attribute("TargetName") == "tabLbl"
             && (string?)item.Attribute("Property") is "FontSize" or "FontWeight");
         Assert.Equal("160", (string?)Named(document, "tabBd").Attribute("MinWidth"));
-        Assert.Equal("260", (string?)Named(document, "tabBd").Attribute("MaxWidth"));
+        Assert.Equal("165", (string?)Named(document, "tabBd").Attribute("MaxWidth"));
     }
 
     [Fact]

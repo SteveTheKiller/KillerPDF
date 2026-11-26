@@ -253,7 +253,9 @@ namespace KillerPDF.Controls
         private const double TabFloorWidth = 160;
 
         /// <summary>Widest a tab may grow when only a few documents are open.</summary>
-        private const double TabCeilingWidth = 260;
+        /// <remarks>Matches the tab face's MaxWidth in PdfViewer.xaml (#528). A wider slot than the face
+        /// centered each tab in it and left gaps before and between the tabs.</remarks>
+        private const double TabCeilingWidth = 165;
 
         private const double TabNewWidth = 26;
 

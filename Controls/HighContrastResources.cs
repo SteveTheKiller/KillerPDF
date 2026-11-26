@@ -146,7 +146,7 @@ namespace KillerFamily.Accessibility
                 "SurfaceButtonEdgeBrush", "KsCatFile", "KsCatTools", "KsCatEdit", "KsCatNav", "KsCatView",
                 "KsCatSearch", "KsCatHelp", "KsCatOcr", "KsCatAppt", "KsCatTabs");
             Brushes(windowTextBrush, "CaptionCloseBrush", "AboutCloseFg", "OutlineTextBrush", "TitleMetaBrush",
-                "DatabaseActiveTextBrush", "DatabaseMetadataBrush", "InputEdgeBrush", "PaneEdgeBrush", "BarEdgeBrush",
+                "DatabaseActiveTextBrush", "DatabaseMetadataBrush", "InputEdgeBrush", "PaneEdgeBrush", "TabDividerFadeBrush", "TabAccentDimBrush", "BarEdgeBrush",
                 "BarSepBrush", "ChipEdgeBrush", "AboutPanelEdgeBrush", "ConsoleTextBrush",
                 "ConsoleBorderBrush", "ReportMetricBrush", "TreeLineBrush", "TopologyNodeTextBrush", "TopologyNodeBorderBrush",
                 "TopologyNodeHoverTextBrush", "TerminalForegroundBrush", "MonitorTextBrush", "MonitorMutedBrush",
