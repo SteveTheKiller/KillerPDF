@@ -1439,16 +1439,19 @@ namespace KillerPDF.Controls
         {
             if (e.Key != Key.Enter) return;
             e.Handled = true;
-            await _nameEnter.RunAsync(AcceptTypedNameAsync);
+            // #513: Shift is read as Enter comes down. The folder probe below awaits, and a quick
+            // Shift+Enter has let go of Shift by the time the accept runs.
+            bool shift = (e.KeyboardDevice.Modifiers & ModifierKeys.Shift) != 0;
+            await _nameEnter.RunAsync(() => AcceptTypedNameAsync(shift));
         }
 
-        private async Task AcceptTypedNameAsync()
+        private async Task AcceptTypedNameAsync(bool shift)
         {
             var typed = FileNameBox.Text?.Trim() ?? "";
 
             // Several quoted names are a multiselect answer, not a path.
             var quoted = Multiselect && _mode == FileDialogMode.Open ? QuotedNames(typed) : null;
-            if (quoted != null && quoted.Length > 1) { Accept(); return; }
+            if (quoted != null && quoted.Length > 1) { Accept(shift); return; }
             if (IsMalformedTyped(typed.Trim('"'))) { RejectTyped(); return; }
 
             // A directory typed into the name box navigates instead of accepting - matches the
@@ -1464,7 +1467,7 @@ namespace KillerPDF.Controls
 
             if (TryApplyWildcard(typed)) return;
 
-            Accept();
+            Accept(shift);
         }
 
         /// <summary>A wildcard retargets the listing rather than naming a file: it becomes the first
@@ -1657,10 +1660,11 @@ namespace KillerPDF.Controls
         /// leaves the dialog OPEN with focus back in the name box - a file dialog that closes on a
         /// bad name and makes you start over is the worst outcome.
         /// </summary>
-        private async void Accept()
+        private async void Accept(bool? shiftAtKey = null)
         {
-            // Read as the key or click arrives: the accept below may wait on a slow folder probe.
-            OpenInNewWindow = PickerAcceptRule.OpensInNewWindow((Keyboard.Modifiers & ModifierKeys.Shift) != 0, _mode == FileDialogMode.Open);
+            // Read as the key or click arrives: the accept below may wait on a slow folder probe. The name
+            // box passes the Shift state it saw at Enter, because its own folder probe ran first.
+            OpenInNewWindow = PickerAcceptRule.OpensInNewWindow(shiftAtKey ?? (Keyboard.Modifiers & ModifierKeys.Shift) != 0, _mode == FileDialogMode.Open);
             // A name no path can carry is refused with its message straight away: that needs no
             // listing, so a folder still loading (after a filter change, say) must not swallow it.
             if (_mode != FileDialogMode.Folder && !_accepting)

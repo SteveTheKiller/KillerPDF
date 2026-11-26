@@ -38,6 +38,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A top or bottom sidebar keeps its height when you switch panels, and opens its menus next to its buttons. Its document tools get wider tiles so names fit, and two-page thumbnails sit in pairs as they do in a side column. The theme and language menus scroll when the window is too short for them instead of cutting off their last rows.
 - In the two-page views, the right-click menu grows to fit its top row, so "Page 20 of 20" is no longer cut off beside the Book layout button.
 - Zooming with the zoom buttons or the zoom box keeps your place. The spot in the middle of the view stays there instead of the view jumping up or down the document, and a document read from the top stays at the top (#523).
+- Shift+Enter in the Open dialog's file name box opens the files in a new window, as it already did from the file list. A quick press used to open them as tabs of the same window (#513).
 
 ### Changed
 - The page's right-click menu has one edit pencil for the whole card, so any tile can go anywhere on it. A layout you already customized carries over.

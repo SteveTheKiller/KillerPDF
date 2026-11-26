@@ -68,4 +68,19 @@ public sealed class PickerAcceptRuleTests
         string preview = ShellSource.Between(dialog, "protected override void OnPreviewKeyDown(", "protected override void OnKeyDown(");
         Assert.Contains("PickerAcceptRule.ListEnterOpensFolder(", preview);
     }
+
+    // #513: Enter in the name box probes for a folder before it accepts. Shift has to be read before that
+    // await, or a quick Shift+Enter has let go of Shift and the files open as tabs of the same window.
+    [Fact]
+    public void TheNameBoxReadsShiftBeforeItsFolderProbe()
+    {
+        string dialog = ShellSource.Read("Controls", "FileDialog.xaml.cs");
+        string keyDown = ShellSource.Between(dialog, "private async void FileNameBox_KeyDown(", "private async Task AcceptTypedNameAsync(");
+        int shift = keyDown.IndexOf("ModifierKeys.Shift", StringComparison.Ordinal);
+        int await = keyDown.IndexOf("await ", StringComparison.Ordinal);
+        Assert.True(shift >= 0 && shift < await, "The name box must read Shift before it awaits.");
+        string typed = ShellSource.Between(dialog, "private async Task AcceptTypedNameAsync(bool shift)", "/// <summary>A wildcard retargets the listing");
+        Assert.DoesNotContain("Accept();", typed);
+        Assert.Contains("Accept(shift);", typed);
+    }
 }
