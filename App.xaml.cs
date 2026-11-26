@@ -283,6 +283,7 @@ namespace KillerPDF
             AppTheme.Configure();
             ThemeManager.Initialize();
             FilmGrain.Initialize();   // Services/FilmGrain.cs - after the theme, before any window
+            Controls.AltDrag.Register();   // Alt+left-drag moves any window, Alt+right-drag resizes it (family)
             StartupTrace.Mark("Theme initialized");
             // #211: translator test mode - load an external translation file as the language
             // override and re-apply it on every save (see LocaleManager). Documented in
