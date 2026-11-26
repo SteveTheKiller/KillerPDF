@@ -17,4 +17,11 @@ public sealed class DialogTitleQualifierTests
     {
         Assert.Equal(expected, DialogTitleText.Qualifier(title));
     }
+
+    // The color picker's caption is the ColorPDF wordmark alone, with nothing after it.
+    [Fact]
+    public void ColorPdfCaptionHasNoQualifier()
+    {
+        Assert.Equal("", DialogTitleText.Qualifier("ColorPDF", "ColorPDF"));
+    }
 }

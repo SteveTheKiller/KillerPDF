@@ -49,10 +49,13 @@ namespace KillerPDF
         private static readonly Color[] DefaultSwatches = UiKit.DefaultSwatches;
         private static Brush R(string key) => (Brush)Application.Current.Resources[key];
         private static string L(string key) => Application.Current.TryFindResource(key) as string ?? key;
+        internal const string ColorPdfTitle = "ColorPDF";
         public ColorPickerDialog(Window? owner, Color initial)
         {
-            Title = "KillerPDF - " + L("Str_Color_Name");
+            Title = ColorPdfTitle;
             System.Windows.Automation.AutomationProperties.SetAutomationId(this, "ColorPickerDialog");
+            // The caption is a joke wordmark, so a screen reader still hears what the window is for.
+            System.Windows.Automation.AutomationProperties.SetName(this, L("Str_Color_Pick"));
             Width = 300;
             SizeToContent = SizeToContent.Height;
             DialogFrame.Configure(this, owner);
@@ -61,60 +64,18 @@ namespace KillerPDF
             (_h, _s, _v) = RgbToHsv(initial);
             BuildUi();
             SyncFromHsv();
-            KeyDown += (_, e) => { if (e.Key == Key.Escape) { DialogResult = false; Close(); } else if (e.Key == Key.Enter) Accept(); };
+            // The frame already closes on Escape and marks the key handled; closing twice would throw.
+            KeyDown += (_, e) => { if (e.Handled) return; if (e.Key == Key.Escape) { DialogResult = false; Close(); } else if (e.Key == Key.Enter) Accept(); };
         }
         // ── UI ──────────────────────────────────────────────────────────────────
         private void BuildUi()
         {
-            var panel = new StackPanel { Margin = new Thickness(18, 14, 18, 16) };
-            // 98SE: the hand-rolled card (black outline + 1px AddBevels ring) never read as a
-            // classic window. Use the shared DialogFrame.Frame instead - the same classic caption
-            // bar and five-ring raised frame KillerDialog gets - and let the caption carry the
-            // title, so the in-panel accent heading is skipped.
-            if (Services.ThemeManager.Current == Services.Theme.SE98)
-            {
-                Content = DialogFrame.Frame(this, Owner, L("Str_Color_Pick"),
-                    () => { DialogResult = false; Close(); }, panel);
-            }
-            else
-            {
-            var card = new Controls.PickerBorder
-            {
-                Background = R("MenuBackgroundBrush"),
-                BorderBrush = UiKit.Brush("DialogFrameBrush"),
-                BorderThickness = Application.Current.TryFindResource("DialogFrameThickness") is Thickness dft ? dft : new Thickness(1),
-                Padding = Application.Current.TryFindResource("DialogFramePadding") is Thickness dfp ? dfp : new Thickness(0),
-                CornerRadius = UiKit.RadWindow,
-                Margin = Application.Current.TryFindResource("DialogHaloMargin") is Thickness hm ? hm : new Thickness(14),
-                Effect = UiKit.ShadowDialog()
-            };
-            // Film-grain overlay so the dialog carries the same texture as the rest of the app - dimmed
-            // by the shared GrainOpacity so it stays subtle (was rendering at full strength before).
-            var root = new Grid();
-            // The grain lives in the main window's resources. A picker opened from another dialog (the field
-            // Border dialog, say) is owned by that dialog, so walk up to the first window that has it.
-            Window? grainHost = Owner;
-            while (grainHost is not null && grainHost.TryFindResource("GrainBrushShared") is not Brush) grainHost = grainHost.Owner;
-            if (grainHost?.TryFindResource("GrainBrushShared") is Brush grain)
-            {
-                double grainOp = grainHost.TryFindResource("GrainOpacity") is double go ? go : 0.12;
-                root.Children.Add(new Border { Background = grain, Opacity = grainOp, CornerRadius = UiKit.RadWindow, IsHitTestVisible = false });
-            }
-            DialogFrame.AddBevels(root, Owner);
-            root.Children.Add(panel);
-            card.Child = root;
-            Content = card;
-            // Accent heading with a 1px drop shadow - the shared style for these secondary-window titles.
-            var title = new TextBlock
-            {
-                Text = L("Str_Color_Pick"), Foreground = R("PrimaryBrush"),
-                FontSize = 14, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 12),
-                Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 2, ShadowDepth = 1, Direction = 270, Opacity = 0.7 },
-                Cursor = Cursors.SizeAll
-            };
-            title.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
-            panel.Children.Add(title);
-            }
+            var panel = new StackPanel { Margin = new Thickness(18, 6, 18, 16) };
+            // The picker wears the shared dialog frame on every theme, with its own play on the name:
+            // the ColorPDF wordmark and the color wheel icon. The PDF half takes the theme's accent as
+            // KillerPDF's does. 98SE shows the plain caption, which reads ColorPDF too.
+            Content = DialogFrame.Frame(this, Owner, ColorPdfTitle,
+                () => { DialogResult = false; Close(); }, panel, lead: "Color", icon: "color-icon.ico");
             // SV square + hue strip
             var pickRow = new StackPanel { Orientation = Orientation.Horizontal };
             _svHue = new Rectangle { Width = SvW, Height = SvH };

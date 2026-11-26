@@ -35,9 +35,9 @@ namespace KillerPDF
         private static Style? CloseStyle(Window? owner, string key)
             => (owner?.TryFindResource(key) ?? Application.Current?.TryFindResource(key)) as Style;
 
-        internal static Image TitleIcon(Window? owner = null)
+        internal static Image TitleIcon(Window? owner = null, string iconFile = "kp-icon.ico")
         {
-            var frames = BitmapDecoder.Create(new Uri("pack://application:,,,/Resources/kp-icon.ico"),
+            var frames = BitmapDecoder.Create(new Uri("pack://application:,,,/Resources/" + iconFile),
                 BitmapCreateOptions.None, BitmapCacheOption.OnLoad).Frames;
             var icon = new KillerPDF.Controls.AppIcon
             {
@@ -82,8 +82,11 @@ namespace KillerPDF
         //   accessory  - optional control placed just left of the close button (Print's 1 / 2 / Book
         //                switch); it stays clickable inside the WindowChrome resize band
         public static Border BuildTitleBar(Window win, Window? owner, string? fullTitle, Action onClose,
-            FrameworkElement? accessory = null)
+            FrameworkElement? accessory = null, string lead = "Killer", string icon = "kp-icon.ico")
         {
+            // lead and icon swap the wordmark's first half and the caption icon for a dialog with its own
+            // play on the name (the color picker is ColorPDF). The PDF half keeps its accent.
+            string brand = lead + "PDF";
             // Transparent (not null) background so the WHOLE bar is hit-testable and acts as a drag handle.
             bool caption = Value(owner, "UseDialogCaption", false);
             var bar = new CaptionBorder
@@ -141,17 +144,17 @@ namespace KillerPDF
                 Brush primary   = shadow ? Brushes.Black : Brush(owner, "ChromeTextBrush", Brushes.White);
                 Brush logo      = shadow ? Brushes.Black : Brush(owner, "AccentLogo", Brushes.LimeGreen);
                 Brush secondary = shadow ? Brushes.Black : Brush(owner, "ChromeTextBrush", Brushes.White);
-                int kp = fullTitle?.IndexOf("KillerPDF", StringComparison.Ordinal) ?? -1;
+                int kp = fullTitle?.IndexOf(brand, StringComparison.Ordinal) ?? -1;
                 if (kp >= 0)
                 {
                     // Killer + PDF in one TextBlock so the two sizes share a baseline (cohesive wordmark).
                     var logoTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-                    logoTb.Inlines.Add(new System.Windows.Documents.Run("Killer") { FontFamily = wordmark, FontWeight = FontWeights.Normal, FontSize = Value(owner, "TitleWordmarkSize", 15.0), Foreground = primary });
+                    logoTb.Inlines.Add(new System.Windows.Documents.Run(lead) { FontFamily = wordmark, FontWeight = FontWeights.Normal, FontSize = Value(owner, "TitleWordmarkSize", 15.0), Foreground = primary });
                     logoTb.Inlines.Add(new System.Windows.Documents.Run("PDF") { FontFamily = wordmarkPdf, FontWeight = FontWeights.Normal, FontSize = Value(owner, "TitleWordmarkBoldSize", 22.52), Foreground = logo });
                     // The qualifier ("- Transform") rides in the same TextBlock so it shares the
                     // wordmark's baseline instead of centring on its own and floating high.
                     // No dash after the wordmark, as the main window shows its file name.
-                    string after = DialogTitleText.Qualifier(fullTitle!);
+                    string after = DialogTitleText.Qualifier(fullTitle!, brand);
                     if (!string.IsNullOrEmpty(after))
                         logoTb.Inlines.Add(new System.Windows.Documents.Run("  " + after) { FontFamily = UiKit.BrandSansFont, FontWeight = FontWeights.Normal, FontSize = Value(owner, "TitleSubtitleSize", 18.0), Foreground = secondary });
                     sp.Children.Add(logoTb);
@@ -170,9 +173,9 @@ namespace KillerPDF
                     if (!shadow) text.SetResourceReference(TextBlock.ForegroundProperty, text.Inlines.Count == 0 ? "FilenameBrush" : "ChromeTextBrush");
                     foreach (var run in text.Inlines.OfType<System.Windows.Documents.Run>())
                     {
-                        bool wordmarkRun = run.Text is "Killer" or "PDF";
+                        bool wordmarkRun = run.Text == lead || run.Text == "PDF";
                         run.SetResourceReference(System.Windows.Documents.TextElement.FontSizeProperty,
-                            run.Text == "Killer" ? "TitleWordmarkSize" : run.Text == "PDF" ? "TitleWordmarkBoldSize" : "FileNameFontSize");
+                            run.Text == lead ? "TitleWordmarkSize" : run.Text == "PDF" ? "TitleWordmarkBoldSize" : "FileNameFontSize");
                         // The words after the wordmark take the main window's file name face, size and color,
                         // so a dialog's title reads like the title bar it came from.
                         if (!wordmarkRun) run.SetResourceReference(System.Windows.Documents.TextElement.FontFamilyProperty, "FileNameFont");
@@ -224,7 +227,7 @@ namespace KillerPDF
                 RenderOptions.SetClearTypeHint(crisp, ClearTypeHint.Enabled);
                 title.Children.Add(crisp);
                 // Same lift as the main title bar: Lacquer's deep descent makes the centred line sit low.
-                if (fullTitle?.Contains("KillerPDF", StringComparison.Ordinal) == true)
+                if (fullTitle?.Contains(brand, StringComparison.Ordinal) == true)
                     title.RenderTransform = new TranslateTransform(0, -5);
             }
             // The app icon leads the caption, at the main title bar's size and spacing.
@@ -237,7 +240,7 @@ namespace KillerPDF
             // Negative margins keep the wordmark's deep Lacquer descent out of the layout so the bar
             // never clips its drips (2px imbalance as in the main title bar); the bar sits above the
             // dialog body so the drips can hang over it.
-            var rowIcon = TitleIcon(owner);
+            var rowIcon = TitleIcon(owner, icon);
             // The dialog icon sat 2px high against the wordmark compared with the main title bar
             // (Steve 2026-11-25), so the wordmark themes drop it 2px. Classic captions keep it centered.
             if (!caption) rowIcon.RenderTransform = new TranslateTransform(0, 2);
@@ -689,7 +692,8 @@ namespace KillerPDF
         // grows the window with it; the halo around the card keeps its size.
         public static UIElement Frame(
             Window win, Window? owner, string title, Action onClose, UIElement body,
-            Thickness? haloMargin = null, double scale = 1, FrameworkElement? titleAccessory = null)
+            Thickness? haloMargin = null, double scale = 1, FrameworkElement? titleAccessory = null,
+            string lead = "Killer", string icon = "kp-icon.ico")
         {
             win.KeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; onClose(); } };
 
@@ -703,7 +707,7 @@ namespace KillerPDF
             };
 
             var root = new DockPanel();
-            var titleBar = BuildTitleBar(win, owner, title, onClose, titleAccessory);
+            var titleBar = BuildTitleBar(win, owner, title, onClose, titleAccessory, lead, icon);
             titleBar.Height = Value(owner, "DialogTitleBarHeight", 40.0);
             titleBar.SetResourceReference(FrameworkElement.HeightProperty, "DialogTitleBarHeight");
             DockPanel.SetDock(titleBar, Dock.Top);

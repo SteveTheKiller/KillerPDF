@@ -141,6 +141,7 @@
 
   <ItemGroup>
     <Resource Include="Resources\kp-icon.ico" />
+    <Resource Include="Resources\color-icon.ico" />
     <Resource Include="Resources\app-icon-master.png" />
     <Resource Include="Resources\kp-icon.png" />
     <Resource Include="Fonts\KillerSans-Regular.ttf" />

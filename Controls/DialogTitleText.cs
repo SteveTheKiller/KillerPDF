@@ -9,10 +9,10 @@ namespace KillerPDF
     /// </summary>
     internal static class DialogTitleText
     {
-        public static string Qualifier(string fullTitle)
+        public static string Qualifier(string fullTitle, string brand = "KillerPDF")
         {
-            int kp = fullTitle.IndexOf("KillerPDF", StringComparison.Ordinal);
-            string after = kp >= 0 ? fullTitle[(kp + "KillerPDF".Length)..] : fullTitle;
+            int kp = fullTitle.IndexOf(brand, StringComparison.Ordinal);
+            string after = kp >= 0 ? fullTitle[(kp + brand.Length)..] : fullTitle;
             return after.Trim().TrimStart('-').TrimStart();
         }
     }

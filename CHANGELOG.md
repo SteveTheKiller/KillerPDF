@@ -49,6 +49,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Transform, Color correction, Stamp, Print, the separation preview and Edit paragraph put the page right under the title bar. The page arrows sit 4px from the edges, the preview's shadow no longer draws over them, and the settings start 10px higher.
 - Message boxes and confirmations keep 16px on every side, and the icon in a dialog's title bar sits 3px from the corner.
 - A dialog's title draws in the same font, size, color and ClearType as the file name in the main title bar. It used to look smaller and thinner. It also follows the wordmark without a dash, as the file name does.
+- The color picker has the same title bar as the other dialogs, with its own color wheel icon and a ColorPDF wordmark in the theme's colors.
 - The file dialog uses the 4px gutter at its sides and between its panes, and the address bar sits closer to the title bar and the panes.
 - The OCR language list shows two columns with flags, like the interface language picker, so it fits a short window.
 - The keyboard shortcuts card keeps its rounded corners and thin top edge while the list is scrolled.
