@@ -3,9 +3,9 @@ using System.Reflection;
 using System.Text.Json;
 using System.Windows;
 
-// The native child-window presenter is off in 1.9.3 (PdfViewer.NativePrimaryViewportEnabled = false), so smokes whose
-// point is that presenter cannot observe it. They report SKIPPED with exit code 0 instead of waiting for a presenter
-// that is never created. The flag is read from the shipped app so the smokes run again as soon as it is switched on.
+// The native child-window presenter was off in 1.9.3 through 1.9.6, and is on again from 1.9.7 (#534). A build with
+// PdfViewer.NativePrimaryViewportEnabled = false gives smokes whose point is that presenter nothing to observe, so they
+// report SKIPPED with exit code 0 instead of waiting for it. The flag is read from the shipped app being tested.
 internal static class NativePresenterGate
 {
     internal const string Reason = "The native presenter is disabled in this build (PdfViewer.NativePrimaryViewportEnabled is false), so there is no presenter to observe.";

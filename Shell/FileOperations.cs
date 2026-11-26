@@ -2507,6 +2507,7 @@ namespace KillerPDF.Shell
                 Tag               = "FlattenOverlay"
             };
             Panel.SetZIndex(overlay, 999);
+            KillerPDF.Presentation.ViewportOcclusion.SetOccludes(overlay, true);
 
             // Attach to the root grid
             if (Content is Grid rootGrid)

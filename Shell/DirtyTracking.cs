@@ -164,6 +164,7 @@ namespace KillerPDF.Shell
                 Child = panel
             };
             Panel.SetZIndex(overlay, 10050); // above the Settings/Shortcuts/About overlays
+            KillerPDF.Presentation.ViewportOcclusion.SetOccludes(overlay, true);
 
             // Cover the whole window for a uniform dim, but let the user drag the window by pressing
             // anywhere on the overlay - so a long operation (e.g. repair) doesn't trap the window in place.

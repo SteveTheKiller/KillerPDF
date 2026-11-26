@@ -37,6 +37,7 @@ namespace KillerPDF.Shell
             Grid.SetRow(cover, 0);
             Grid.SetRowSpan(cover, RootGrid.RowDefinitions.Count);
             Panel.SetZIndex(cover, 99998);
+            KillerPDF.Presentation.ViewportOcclusion.SetOccludes(cover, true);
             RootGrid.Children.Add(cover);
 
             var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150))
@@ -230,6 +231,7 @@ namespace KillerPDF.Shell
             Grid.SetRow(toast, 0);
             Grid.SetRowSpan(toast, RootGrid.RowDefinitions.Count);
             Panel.SetZIndex(toast, 99999);
+            KillerPDF.Presentation.ViewportOcclusion.SetOccludes(toast, true);
             RootGrid.Children.Add(toast);
 
             toast.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));

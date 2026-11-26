@@ -44,6 +44,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Shift+Enter in the Open dialog's file name box opens the files in a new window, as it already did from the file list. A quick press used to open them as tabs of the same window (#513).
 
 ### Changed
+- On HDR and Advanced Color monitors, color-managed pages are drawn in the display's real color range instead of the way a standard monitor draws them. The find bar, tool bar, page number badge and other panels over the page stay on top of it (#534).
 - The page's right-click menu has one edit pencil for the whole card, so any tile can go anywhere on it. A layout you already customized carries over.
 - The language picker and the OCR language list space their rows the same way. In 98SE both sit between the old tight picker and the old roomy OCR list.
 - Transform keeps a page's text and links when it rotates, scales or flips it, instead of turning the page into an image (#538). Only perspective, levels, color and output quality still rasterize and bring up the warning.

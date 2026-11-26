@@ -312,6 +312,7 @@ namespace KillerPDF.Shell
                     // Above the annotate settings bars (ZIndex 100) so Ctrl+F is never hidden under
                     // the highlight/draw/text toolbar when both are open.
                     Panel.SetZIndex(_searchBar, 200);
+                    KillerPDF.Presentation.ViewportOcclusion.SetOccludes(_searchBar, true);
                     previewGrid.Children.Add(_searchBar);
                     // Keep the whole bar on screen: when the preview area is resized, shrink the text box
                     // (not the buttons) so it never overflows, and re-clamp the floating bar back inside.

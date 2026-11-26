@@ -73,6 +73,7 @@ namespace KillerPDF.Controls
             State.ContinuousPanel  = ContinuousPanel;
             BuildPrimaryTile();
             State.ActiveCanvas = State.AnnotationCanvas;
+            KillerPDF.Presentation.ViewportOcclusion.SetOccludes(PageBadge, true);
         }
 
         /// <summary>Accent ring marking this pane as the focused one in a split.

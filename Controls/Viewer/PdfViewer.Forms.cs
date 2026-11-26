@@ -1124,6 +1124,7 @@ namespace KillerPDF.Controls
                 }
 
                 Panel.SetZIndex(bar, 100);
+                KillerPDF.Presentation.ViewportOcclusion.SetOccludes(bar, true);
                 g.Children.Add(bar);
                 Reposition();
                 bar.SizeChanged += (_, _) => Reposition();   // the first real measure replaces the estimate

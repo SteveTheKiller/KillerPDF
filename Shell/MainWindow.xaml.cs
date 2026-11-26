@@ -337,6 +337,10 @@ namespace KillerPDF.Shell
             _startupTearOutSession = startupTearOutSession;
             _startupFiles = startupFiles;
             InitializeComponent();
+            // Drawn over the page in the main window, so a native page window cuts them out of itself (ViewportOcclusion).
+            foreach (FrameworkElement over in new FrameworkElement[]
+                { TabDragGhost, TabDropCaret, ShortcutsOverlay, AboutOverlay, WhatsNewOverlay })
+                KillerPDF.Presentation.ViewportOcclusion.SetOccludes(over, true);
             // Trash Polka: the second pane (card and active tab) carries its own piece, pinned to the window like the first.
             Controls.ThemeMotif.SetSecondPane(ViewerB, true);            // The footer version is the kit FooterCorner's; the name keeps FindName("VersionLabel") working.
             RegisterName("VersionLabel", VersionLabel);

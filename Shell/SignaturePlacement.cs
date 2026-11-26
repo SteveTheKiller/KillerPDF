@@ -110,6 +110,7 @@ public partial class MainWindow
         hint.SetResourceReference(Border.CornerRadiusProperty, "FlyoutCornerRadius");
         AutomationProperties.SetAutomationId(hint, "SignaturePlacementHint");
         Panel.SetZIndex(hint, 190);
+        KillerPDF.Presentation.ViewportOcclusion.SetOccludes(hint, true);
         grid.Children.Add(hint);
         _signaturePlacementHint = hint;
     }

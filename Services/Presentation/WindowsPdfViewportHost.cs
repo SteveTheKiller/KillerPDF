@@ -26,7 +26,11 @@ internal partial class WindowsPdfViewportHost : HwndHost
     internal nint Container { get; private set; }
     internal nint Viewport { get; private set; }
     internal HwndSource? Overlay { get; private set; }
-    protected override IEnumerator LogicalChildren => new[] { OverlayRoot }.GetEnumerator();
+    // The overlay is its own root, outside the main window's adorner layer, so focus visuals on form fields, links
+    // and text boxes need a layer of their own there.
+    readonly System.Windows.Documents.AdornerDecorator overlayAdorners;
+    bool occlusionObserved;
+    protected override IEnumerator LogicalChildren => new[] { overlayAdorners }.GetEnumerator();
 
     internal WindowsPdfViewportHost(FrameworkElement overlayRoot, Func<nint, IPdfFramePresenter>? presenterFactory = null)
     {
@@ -34,7 +38,8 @@ internal partial class WindowsPdfViewportHost : HwndHost
         OverlayRoot = overlayRoot;
         overlayTransform = overlayRoot.LayoutTransform;
         this.presenterFactory = presenterFactory ?? (window => new WindowsPdfFramePresenter(window));
-        AddLogicalChild(overlayRoot);
+        overlayAdorners = new System.Windows.Documents.AdornerDecorator { Child = overlayRoot };
+        AddLogicalChild(overlayAdorners);
         procedure = WindowProc;
         LayoutUpdated += (_, _) => RefreshNativeClip();
     }
@@ -51,7 +56,8 @@ internal partial class WindowsPdfViewportHost : HwndHost
     {
         VerifyAccess();
         Dispose();
-        RemoveLogicalChild(OverlayRoot);
+        RemoveLogicalChild(overlayAdorners);
+        overlayAdorners.Child = null;
         return OverlayRoot;
     }
 
@@ -75,7 +81,10 @@ internal partial class WindowsPdfViewportHost : HwndHost
                 UsesPerPixelTransparency = true, HwndSourceHook = OnOverlayMessage
             });
             Overlay.CompositionTarget.BackgroundColor = Colors.Transparent;
-            Overlay.RootVisual = OverlayRoot;
+            Overlay.RootVisual = overlayAdorners;
+            // Bars, notices and overlays in the main window draw over the page; they are cut out of the region.
+            ViewportOcclusion.Changed += OnOcclusionChanged;
+            occlusionObserved = true;
             // Join the owning window's keyboard chain so Tab and mnemonics reach overlay editors.
             ((System.Windows.Interop.IKeyboardInputSink)Overlay).KeyboardInputSite =
                 ((System.Windows.Interop.IKeyboardInputSink)this).RegisterKeyboardInputSink(Overlay);
@@ -133,7 +142,9 @@ internal partial class WindowsPdfViewportHost : HwndHost
         refreshingClip = true;
         try
         {
-            Geometry clip = IsVisible ? WindowsPdfViewportLayout.Capture(this) : Geometry.Empty;
+            Geometry clip = IsVisible
+                ? ViewportOcclusion.Cut(WindowsPdfViewportLayout.Capture(this), ViewportOcclusion.Holes(this))
+                : Geometry.Empty;
             string description = clip.ToString(System.Globalization.CultureInfo.InvariantCulture);
             uint dpi = GetDpiForWindow(Container);
             var pixels = PixelSize;
@@ -167,8 +178,14 @@ internal partial class WindowsPdfViewportHost : HwndHost
         finally { refreshingClip = false; }
     }
 
+    // A badge sliding on its transform or a bar shown before layout runs moves without a layout pass of its own.
+    void OnOcclusionChanged(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, new Action(RefreshNativeClip));
+
     void ReleaseWindows()
     {
+        if (occlusionObserved) ViewportOcclusion.Changed -= OnOcclusionChanged;
+        occlusionObserved = false;
         ClearDetail();
         installedClip = null;
         installedClipDpi = 0;

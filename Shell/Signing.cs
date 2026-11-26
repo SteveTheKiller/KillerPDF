@@ -729,6 +729,7 @@ namespace KillerPDF.Shell
             if (previewGrid is not null)
             {
                 Panel.SetZIndex(_signaturePopup, 200);
+                KillerPDF.Presentation.ViewportOcclusion.SetOccludes(_signaturePopup, true);
                 previewGrid.Children.Add(_signaturePopup);
                 // Freshly-inserted element: defer the fade until it's laid out, otherwise the
                 // animation is missed (unlike the always-present Settings/About overlays).

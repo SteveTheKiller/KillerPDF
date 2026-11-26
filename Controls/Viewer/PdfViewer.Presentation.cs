@@ -21,10 +21,10 @@ public partial class PdfViewer
     /// <summary>Gets or sets an optional platform profile reader, configured before opening a document.</summary>
     public Func<string, CancellationToken, PdfColorProfile>? DisplayProfileReader { get; set; }
 
-    // The native child window hides everything the main window floats over the page, so 1.9.3 never creates it. The
-    // presenter code stays for 1.9.4, which hosts those bars in popups first. A field rather than a constant so the
-    // code behind it stays compiled.
-    internal static readonly bool NativePrimaryViewportEnabled = false;
+    // The native child window would hide everything the main window floats over the page. Each of those bars, notices
+    // and overlays is marked with ViewportOcclusion, and the viewport cuts them out of its window region, with the page's
+    // sRGB bitmap behind it (#534). A field rather than a constant so the smoke gate can read it from the shipped app.
+    internal static readonly bool NativePrimaryViewportEnabled = true;
 
     private WindowsPdfDisplayDiscovery? _presentationDisplayObserver;
     private PdfDisplayDiscoverySnapshot? _presentationDisplay;
@@ -134,6 +134,7 @@ public partial class PdfViewer
     {
         _primaryPresentationState = null;
         _primaryViewport?.ClearDetail();
+        if (_primaryViewport?.Parent is Border tile) tile.Background = Brushes.White;
         if (State.PageImage is { } image) image.Visibility = Visibility.Visible;
         if (_primaryViewport?.OverlayRoot is Panel panel) panel.Background = Brushes.White;
         // Highlighter marks show the page image through them; with it shown again they can.
@@ -175,6 +176,7 @@ public partial class PdfViewer
             {
                 _primaryViewport = null;
                 border.Child = null;
+                border.Background = Brushes.White;
                 border.Child = host.Abandon();
                 _nativeViewportUnavailable = true;
             }
@@ -241,6 +243,10 @@ public partial class PdfViewer
         if (result.Outcome == PdfFrameSubmissionOutcome.Submitted)
         {
             _primaryPresentationState = state;
+            // Bars, notices and overlays over the page are cut out of the native window. The tile behind it carries
+            // the page's sRGB bitmap, so a cut shows the page instead of a blank tile.
+            if (_primaryViewport.Parent is Border tile)
+                tile.Background = new ImageBrush(source) { Stretch = Stretch.Fill };
             PageImage.Visibility = Visibility.Hidden;
             ((Panel)_primaryViewport.OverlayRoot).Background = Brushes.Transparent;
             // The presenter draws the page now and highlighter marks cannot show it through them; until the presenter
@@ -311,6 +317,7 @@ public partial class PdfViewer
     {
         _presentationDisplayObserver?.Dispose();
         _presentationDisplayObserver = null;
+        if (_primaryViewport?.Parent is Border tile) tile.Background = Brushes.White;
         _primaryViewport?.Dispose();
         _primaryViewport = null;
         _nativeViewportUnavailable = false;

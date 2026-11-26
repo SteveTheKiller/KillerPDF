@@ -96,6 +96,8 @@ namespace KillerPDF.Controls
                 // The bar going out closes its menus, or one left open keeps the mouse with nothing under it (#467).
                 (_bar as ToolOptionsBar)?.Retire();
                 Swap(ref _bar, value);
+                // Floating, the bar sits over the page; a native page window cuts it out of itself (ViewportOcclusion).
+                if (value is not null) KillerPDF.Presentation.ViewportOcclusion.SetOccludes(value, true);
                 if (value is not null)
                 {
                     // Visibility stays as SyncBarVisibility left it: a minimized bar is clipped to its strip,
@@ -283,10 +285,15 @@ namespace KillerPDF.Controls
                 bar.CornerRadius = new CornerRadius(0, 0, _cornerRadius, _cornerRadius);
                 bar.Padding = new Thickness(bar.Padding.Left + GripWidth, bar.Padding.Top, bar.Padding.Right, bar.Padding.Bottom);
             }
-            if (ShowsGrip) _grip ??= NewGrip();
+            if (ShowsGrip && _grip is null)
+            {
+                _grip = NewGrip();
+                KillerPDF.Presentation.ViewportOcclusion.SetOccludes(_grip, true);
+            }
             if (ShowsCorners && _corners is null)
             {
                 _corners = new TopCorners { IsHitTestVisible = false, Opacity = _dimmed ? InactiveOpacity : 1 };
+                KillerPDF.Presentation.ViewportOcclusion.SetOccludes(_corners, true);
                 _corners.SetResourceReference(TopCorners.EdgeProperty, "PaneBorderBrush");
             }
         }
@@ -385,7 +392,11 @@ namespace KillerPDF.Controls
                 content.IsHitTestVisible = !minimized;
             }
             if (!minimized) _bar.Clip = null;
-            if (minimized) _strip ??= NewStrip();
+            if (minimized && _strip is null)
+            {
+                _strip = NewStrip();
+                KillerPDF.Presentation.ViewportOcclusion.SetOccludes(_strip, true);
+            }
         }
 
         // The minimized strip: the bar's own colors with a row of grip dots, as in 1.9.2.

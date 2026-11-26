@@ -174,6 +174,7 @@ namespace KillerPDF.Controls
             // 7 plus the 1px edge: the buttons and the glyph sit 8px from every edge (family rule).
             bar.Padding = new Thickness(7);
             Panel.SetZIndex(bar, 90);
+            KillerPDF.Presentation.ViewportOcclusion.SetOccludes(bar, true);
             return (bar, message);
         }
     }

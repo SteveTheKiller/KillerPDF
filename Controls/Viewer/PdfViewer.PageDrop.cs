@@ -69,6 +69,7 @@ namespace KillerPDF.Controls
             };
             indicator.SetResourceReference(Border.BackgroundProperty, "SelectionAccent");
             Panel.SetZIndex(indicator, 600);
+            KillerPDF.Presentation.ViewportOcclusion.SetOccludes(indicator, true);
             DocPaneContent.Children.Add(indicator);
             return indicator;
         }

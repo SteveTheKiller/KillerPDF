@@ -736,7 +736,7 @@
                      the view settles (ShowPageBadge, Viewport.cs). Never hit-testable, so it
                      cannot eat a page click. 26px right margin clears the vertical scrollbar. -->
                 <Grid x:Name="PageBadge" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                      Margin="0,0,26,14" Panel.ZIndex="40" IsHitTestVisible="False" Opacity="0">
+                      Margin="0,0,26,14" Panel.ZIndex="40" IsHitTestVisible="False" Opacity="0" Visibility="Hidden">
                     <Grid.RenderTransform>
                         <TranslateTransform x:Name="PageBadgeSlide" Y="46"/>
                     </Grid.RenderTransform>

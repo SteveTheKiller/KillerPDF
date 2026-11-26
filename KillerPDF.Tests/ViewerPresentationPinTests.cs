@@ -9,21 +9,49 @@ namespace KillerPDF.Tests;
 // written window check (in the 1.9.3 review notes) is the behavior evidence.
 public sealed class ViewerPresentationPinTests
 {
-    // VIEW-001: on an HDR or Windows automatic color management display the page used to be drawn in a native child
-    // window, and everything the main window floats over the page (find bar, form size bar, page badge, notices) was
-    // hidden under it. 1.9.3 keeps the page a plain WPF image there, as 1.9.2 did; the presenter code stays for 1.9.4.
+    // VIEW-001 and #534: on an HDR or Windows automatic color management display the page is drawn in a native child
+    // window. Everything the main window floats over the page (find bar, form size bar, page badge, notices, the floating
+    // tool bar, signature hint and popup, drop indicator, full-window overlays) was hidden under it, so 1.9.3 turned the
+    // window off. 1.9.7 turns it back on, with each of those marked as an occluder that the window's region cuts out.
     [Fact]
-    public void AdvancedColorDisplaysDoNotCreateTheNativeChildWindowIn193()
+    public void TheNativeChildWindowCutsOutEverythingTheMainWindowFloatsOverThePage()
     {
         string presentation = Source("Controls", "Viewer", "PdfViewer.Presentation.cs");
         string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+        string host = Source("Services", "Presentation", "WindowsPdfViewportHost.cs");
 
-        Assert.Contains("static readonly bool NativePrimaryViewportEnabled = false;", presentation);
+        Assert.Contains("static readonly bool NativePrimaryViewportEnabled = true;", presentation);
         string linear = Between(viewport, "bool linear = ", ";");
         Assert.Contains("NativePrimaryViewportEnabled", linear);
         // The host is only built by the present step, which only runs for a frame the linear path produced.
         Assert.Equal(1, Count(presentation, "new WindowsPdfViewportHost("));
         Assert.Equal(1, Count(viewport, "await PresentPrimaryFrameAsync("));
+
+        // The region the host installs has every visible occluder cut out, and it is cut again when one changes.
+        Assert.Contains("ViewportOcclusion.Cut(WindowsPdfViewportLayout.Capture(this), ViewportOcclusion.Holes(this))", host);
+        Assert.Contains("ViewportOcclusion.Changed += OnOcclusionChanged;", host);
+        Assert.Contains("ViewportOcclusion.Changed -= OnOcclusionChanged;", host);
+        // A cut shows the page's sRGB bitmap from the tile behind the host, not a blank tile.
+        Assert.Contains("tile.Background = new ImageBrush(source) { Stretch = Stretch.Fill };", presentation);
+
+        string mark = "ViewportOcclusion.SetOccludes(";
+        Assert.Contains(mark + "PageBadge, true)", Source("Controls", "Viewer", "PdfViewer.xaml.cs"));
+        Assert.Contains(mark + "_searchBar, true)", Source("Shell", "Search.cs"));
+        Assert.Contains(mark + "bar, true)", Source("Controls", "Viewer", "PdfViewer.Forms.cs"));
+        Assert.Contains(mark + "bar, true)", Source("Controls", "Viewer", "PdfViewer.Restriction.cs"));
+        Assert.Contains(mark + "bar, true)", Source("Controls", "Viewer", "PdfViewer.NativeNotice.cs"));
+        Assert.Contains(mark + "bar, true)", Source("Controls", "Viewer", "PdfViewer.SessionNotice.cs"));
+        Assert.Contains(mark + "indicator, true)", Source("Controls", "Viewer", "PdfViewer.PageDrop.cs"));
+        Assert.Contains(mark + "hint, true)", Source("Shell", "SignaturePlacement.cs"));
+        Assert.Contains(mark + "_signaturePopup, true)", Source("Shell", "Signing.cs"));
+        Assert.Contains(mark + "overlay, true)", Source("Shell", "DirtyTracking.cs"));
+        Assert.Contains(mark + "overlay, true)", Source("Shell", "FileOperations.cs"));
+        Assert.Contains(mark + "cover, true)", Source("Shell", "FullScreen.cs"));
+        Assert.Contains(mark + "toast, true)", Source("Shell", "FullScreen.cs"));
+        Assert.Contains("{ TabDragGhost, TabDropCaret, ShortcutsOverlay, AboutOverlay, WhatsNewOverlay }", Source("Shell", "MainWindow.xaml.cs"));
+        string dock = Source("Controls", "ToolOptionsDock.cs");
+        foreach (string part in new[] { "value", "_strip", "_grip", "_corners" })
+            Assert.Contains(mark + part + ", true)", dock);
     }
 
     // VIEW-002: Grid draws page 0 as its primary tile and the rest as neighbours. A display color change redrew the

@@ -182,6 +182,7 @@ namespace KillerPDF.Controls
             bar.SetResourceReference(Border.BackgroundProperty, "AnnotationBarBrush");
             bar.SetResourceReference(Border.BorderBrushProperty, "AnnotationBarBorderBrush");
             Panel.SetZIndex(bar, 90);
+            KillerPDF.Presentation.ViewportOcclusion.SetOccludes(bar, true);
             return (bar, message, unlock);
         }
     }

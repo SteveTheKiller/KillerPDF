@@ -102,6 +102,7 @@ namespace KillerPDF.Controls
             bar.Loaded += (_, _) => { Services.LocaleManager.LocaleChanged -= Relabel; Services.LocaleManager.LocaleChanged += Relabel; Relabel(); };
             bar.Unloaded += (_, _) => Services.LocaleManager.LocaleChanged -= Relabel;
             Panel.SetZIndex(bar, 90);
+            KillerPDF.Presentation.ViewportOcclusion.SetOccludes(bar, true);
             _sessionNotice = bar;
             previewArea.Children.Add(bar);
 

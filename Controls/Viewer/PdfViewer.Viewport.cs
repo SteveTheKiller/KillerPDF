@@ -241,6 +241,7 @@ namespace KillerPDF.Controls
         // One viewport-corner badge showing "page / total", replacing the per-tile tooltips that
         // trailed the cursor. Slides up on scroll or page change, slides back down after idle.
         private System.Windows.Threading.DispatcherTimer? _pageBadgeTimer;
+        private int _pageBadgeShows;
 
         private void ShowPageBadge(int page)
         {
@@ -261,6 +262,9 @@ namespace KillerPDF.Controls
         private void ShowPageBadgeText(string text)
         {
             PageBadgeText.Text = text;
+            // Shown, the badge is cut out of the native page window; hidden once it has faded, it gives the corner back.
+            _pageBadgeShows++;
+            PageBadge.Visibility = Visibility.Visible;
             PageBadgeSlide.BeginAnimation(TranslateTransform.YProperty,
                 new DoubleAnimation(0, TimeSpan.FromMilliseconds(140))
                     { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
@@ -273,11 +277,16 @@ namespace KillerPDF.Controls
                 _pageBadgeTimer.Tick += (_, _) =>
                 {
                     _pageBadgeTimer!.Stop();
+                    int hiding = _pageBadgeShows;
                     PageBadgeSlide.BeginAnimation(TranslateTransform.YProperty,
                         new DoubleAnimation(46, TimeSpan.FromMilliseconds(220))
                             { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } });
-                    PageBadge.BeginAnimation(OpacityProperty,
-                        new DoubleAnimation(0, TimeSpan.FromMilliseconds(220)));
+                    var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(220));
+                    fade.Completed += (_, _) =>
+                    {
+                        if (hiding == _pageBadgeShows) PageBadge.Visibility = Visibility.Hidden;
+                    };
+                    PageBadge.BeginAnimation(OpacityProperty, fade);
                 };
             }
             _pageBadgeTimer.Stop();
@@ -1141,8 +1150,8 @@ namespace KillerPDF.Controls
                 var primaryMonitor = !primaryInvert
                     && presentationPolicy.TransformOwner == PdfMonitorTransformOwner.Application
                     ? _sdrDisplayConverter : null;
-                // Advanced Color and HDR displays take the plain path until the native child window can share the page
-                // with the find bar, form size bar, badge and notices (1.9.4); a profiled SDR display still converts here.
+                // Advanced Color and HDR displays hand the page to the native child window, which cuts the find bar, form
+                // size bar, badge and notices out of itself (ViewportOcclusion); a profiled SDR display still converts here.
                 bool linear = primaryMode == ViewMode.Single && !primaryInvert && pgRot == 0
                     && ((NativePrimaryViewportEnabled && presentationPolicy.Mode == PdfPresentationMode.LinearFloat)
                         || presentationPolicy.TransformOwner == PdfMonitorTransformOwner.Application);

@@ -76,7 +76,7 @@ internal static class Program
             if (args.Length == 5 && (args[0] is "--verify-two-page-continuous" or "--verify-zoom-anchor" or "--verify-paired-thumbnails") && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);
-            if (args.Length == 5 && args[0] is "--verify-sdr-monitor" or "--verify-native-fallback" or "--verify-native-fallback-refinement" or "--verify-two-page-fallback-refinement" && args[4] == "--session-isolation")
+            if (args.Length == 5 && args[0] is "--verify-sdr-monitor" or "--verify-native-fallback" or "--verify-native-fallback-refinement" or "--verify-two-page-fallback-refinement" or "--verify-native-occlusion" && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);
             if (args.Length == 5 && args[0] is "--verify-native-reading" or "--verify-native-reading-continuous" or "--verify-native-reading-grid" or "--verify-native-reading-grid-switch" or "--verify-native-reading-epub" or "--verify-native-reading-epub-continuous" or "--verify-native-reading-epub-grid-switch" && args[4] == "--session-isolation")
