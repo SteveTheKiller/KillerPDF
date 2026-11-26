@@ -219,10 +219,12 @@ internal static class SdrMonitorSmoke
             display = display with { Generation = 35 };
             SendMessage(new WindowInteropHelper(owner).Handle, 0x7E, 0, 0);
             var liveSettled = Stopwatch.StartNew();
-            Wait(() => liveSettled.ElapsedMilliseconds >= 1200);
-            var refreshedImage = Descendants(continuousPanel).OfType<Image>()
-                .First(candidate => candidate.IsVisible && candidate.Source is BitmapSource && candidate.ActualWidth > 1000);
-            actual = Pixel((BitmapSource)refreshedImage.Source);
+            Image? refreshedImage = null;
+            // The re-render lands when the queue gets to it, so wait for the new page picture instead of a fixed time.
+            Wait(() => liveSettled.ElapsedMilliseconds >= 1200 && (refreshedImage = Descendants(continuousPanel).OfType<Image>()
+                .FirstOrDefault(candidate => candidate.IsVisible && candidate.Source is BitmapSource && candidate.ActualWidth > 1000
+                    && !ReferenceEquals(candidate.Source, oldLargeSource))) is not null);
+            actual = Pixel((BitmapSource)refreshedImage!.Source);
             if (ReferenceEquals(oldLargeSource, refreshedImage.Source)
                 || !actual.SequenceEqual(new byte[] { 4, 57, 111, 255 }))
                 throw new InvalidOperationException("Loaded Continuous pages did not refresh after a display notification. BGRA: "

@@ -118,7 +118,12 @@ internal static class NativeOcclusionSmoke
                 ?? throw new InvalidOperationException("PdfViewer.ShowPageBadgeText is missing; update the occlusion smoke.");
             show.Invoke(viewer, ["1 / 2"]);
             Wait(() => badge.IsVisible && badge.ActualWidth > 10);
-            PointI badgePoint = Center(badge);
+            // The badge slides up into place, so sample where its layout puts it, not where the slide has it right now.
+            // The give-back check below proves that spot is on the native page window once the badge is gone.
+            var badgeParent = (FrameworkElement)System.Windows.Media.VisualTreeHelper.GetParent(badge);
+            Vector badgeOffset = System.Windows.Media.VisualTreeHelper.GetOffset(badge);
+            Point rest = badgeParent.PointToScreen(new Point(badgeOffset.X + badge.ActualWidth / 2, badgeOffset.Y + badge.ActualHeight / 2));
+            PointI badgePoint = new((int)Math.Round(rest.X), (int)Math.Round(rest.Y));
             // The badge holds for 900 ms before it fades, so the hole has to show up inside that window.
             var held = Stopwatch.StartNew();
             while (!Occluded(badgePoint))

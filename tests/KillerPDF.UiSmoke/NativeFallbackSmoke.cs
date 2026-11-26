@@ -208,7 +208,7 @@ internal static class NativeFallbackSmoke
                 LastAcceptedStamp: { DisplayGeneration: 73, PageIndex: 0, RegionId: 1 } stamp }
                 && stamp.RenderGeneration > beforeRotationGeneration));
             Settle();
-            var recovered = Capture(presenters.Last(item => IsWindow(item.Window)).Window, viewport, "rotation-undo-native");
+            var recovered = Capture(PagePresenter().Window, viewport, "rotation-undo-native");
             AssertCorners(recovered, "rotation undo native recovery");
             checks.Add(new { stage, statuses = presenters.Select(item => item.Presenter.Status).ToArray() });
 
@@ -229,7 +229,7 @@ internal static class NativeFallbackSmoke
                 && slider.Minimum == 10 && slider.Maximum == 255);
             opacity.Value = 255;
             Settle();
-            nint annotationSurface = presenters.Last(item => IsWindow(item.Window)).Window;
+            nint annotationSurface = PagePresenter().Window;
             if (!GetWindowRect(annotationSurface, out var paperBounds)) throw new System.ComponentModel.Win32Exception();
             foreach (var centerMark in new[] { new Point(.18, .18), new Point(.82, .18), new Point(.18, .82), new Point(.82, .82) })
             {
@@ -263,7 +263,7 @@ internal static class NativeFallbackSmoke
             checks.Add(new { stage, statuses = presenters.Select(item => item.Presenter.Status).ToArray() });
 
             stage = "annotation-clockwise-rotation";
-            long annotationGeneration = presenters.Last(item => IsWindow(item.Window)).Presenter.Status.LastAcceptedStamp!.RenderGeneration;
+            long annotationGeneration = PagePresenter().Presenter.Status.LastAcceptedStamp!.RenderGeneration;
             var beforeAnnotationTurn = OverlayImages().Select(image => image.Source).OfType<BitmapSource>().ToArray();
             SendControlKey(0x52);
             Wait(() => OverlayImages().Any(image => image.IsVisible && image.Source is BitmapSource bitmap
@@ -325,7 +325,11 @@ internal static class NativeFallbackSmoke
 
             IEnumerable<Image> OverlayImages() => PresentationSource.CurrentSources.OfType<HwndSource>()
                 .Where(source => IsChild(new WindowInteropHelper(owner).Handle, source.Handle))
-                .Select(source => source.RootVisual).OfType<Grid>().SelectMany(Descendants).OfType<Image>();
+                .Select(source => source.RootVisual is System.Windows.Documents.AdornerDecorator { Child: Grid page } ? page : source.RootVisual)
+                .OfType<Grid>().SelectMany(Descendants).OfType<Image>();
+            // The page's own presenter window, not the detail window (region 2), which goes away whenever the view falls back.
+            (nint Window, IPdfFramePresenter Presenter) PagePresenter() => presenters.Last(item => IsWindow(item.Window)
+                && item.Presenter.Status.LastAcceptedStamp is { RegionId: 1 });
         }
         catch (Exception error) { failure ??= error; }
         finally
@@ -448,7 +452,7 @@ internal static class NativeFallbackSmoke
     { yield return root; for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++) foreach (var child in Descendants(VisualTreeHelper.GetChild(root, i))) yield return child; }
     [StructLayout(LayoutKind.Sequential)] private readonly record struct PointI(int X, int Y);
     [StructLayout(LayoutKind.Sequential)] private struct RectI { public int Left, Top, Right, Bottom; }
-    [DllImport("user32.dll")] private static extern bool GetWindowRect(nint window, out RectI rect);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool GetWindowRect(nint window, out RectI rect);
     [DllImport("user32.dll")] private static extern bool IsChild(nint parent, nint child);
     [DllImport("user32.dll")] private static extern bool IsWindow(nint window);
     [DllImport("user32.dll")] private static extern nint WindowFromPoint(PointI point);

@@ -158,8 +158,9 @@ internal static class NativeReadingSmoke
                         if (viewportStable < 5) return false;
                         stage = isNative ? "native-render-readiness" : "control-render-readiness";
                     }
+                    // The sharp-detail tile from PdfViewer.Refinement (#526) sits on the page at ZIndex -1; it isn't a page.
                     Image[] pages = Descendants<Image>(imageRoot).Where(i => i.IsVisible && i.IsEnabled
-                        && i.Source is BitmapSource && i.ActualWidth > 20 && i.ActualHeight > 20).ToArray();
+                        && i.Source is BitmapSource && i.ActualWidth > 20 && i.ActualHeight > 20 && Panel.GetZIndex(i) != -1).ToArray();
                     if (pages.Length != 1 || ReferenceEquals(pages[0].Source, previous)) return false;
                     page = pages[0];
                     for (DependencyObject? visual = page; visual is Visual; visual = VisualTreeHelper.GetParent(visual))
