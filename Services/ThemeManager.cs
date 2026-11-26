@@ -559,7 +559,7 @@ namespace KillerPDF.Services
             SetIfAbsent("ConfirmCheckMargin", new Thickness(0, 8, 0, 0));
             SetIfAbsent("ConfirmButtonsMargin", new Thickness(16, 0, 16, 16));
             SetIfAbsent("ConfirmButtonGap", new Thickness(0, 0, 8, 0));
-            SetIfAbsent("DialogButtonHeight", 28.0);
+            SetIfAbsent("DialogButtonHeight", 26.0);
             SetIfAbsent("DialogContentMargin", new Thickness(0));
             SetIfAbsent("DialogOuterBorderThickness", new Thickness(1));
             // Right 2: the card themes' close X has no visible face, so it reads against the card's

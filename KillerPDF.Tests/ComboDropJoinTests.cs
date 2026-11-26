@@ -119,6 +119,32 @@ public sealed class ComboDropJoinTests
     }
 
     [Fact]
+    public void AnOpenBoxCarriesTheListShadow()
+    {
+        var dark = DarkComboTemplate().Element(Wpf + "ControlTemplate.Triggers")!.Elements().ToList();
+        var darkOpen = dark.Single(t => t.Name == Wpf + "Trigger" && (string?)t.Attribute("Property") == "IsDropDownOpen"
+            && Setter(t, "Bd", "CornerRadius") is not null);
+        Assert.Equal("{DynamicResource ComboPopupShadow}", Setter(darkOpen, "Bd", "Effect"));
+        // The Win98 field stays shadowless, box and list both.
+        Assert.Contains(dark, t => t.Name == Wpf + "DataTrigger" && Setter(t, "Bd", "Effect") == "{x:Null}");
+
+        var controls = XDocument.Load(Path.Combine(RepoRoot(), "Controls", "Controls.xaml"));
+        var plainOpen = controls.Descendants(Wpf + "Style")
+            .Single(s => (string?)s.Attribute("TargetType") == "ComboBox" && s.Attribute(Xaml + "Key") is null)
+            .Descendants(Wpf + "Trigger").Single(t => (string?)t.Attribute("Property") == "IsDropDownOpen");
+        Assert.Equal("{DynamicResource ComboPopupShadow}", Setter(plainOpen, "border", "Effect"));
+
+        var zoomOpen = XDocument.Load(Path.Combine(RepoRoot(), "Shell", "MainWindow.xaml")).Descendants(Wpf + "Style")
+            .Single(s => (string?)s.Attribute(Xaml + "Key") == "FooterZoomCombo")
+            .Descendants(Wpf + "Trigger").Single(t => (string?)t.Attribute("Property") == "IsDropDownOpen");
+        Assert.Equal("{DynamicResource ComboPopupShadow}", Setter(zoomOpen, "Bd", "Effect"));
+
+        string code = File.ReadAllText(Path.Combine(RepoRoot(), "Controls", "FileDialog.xaml.cs"));
+        Assert.Contains("box.SetResourceReference(UIElement.EffectProperty, \"ComboPopupShadow\");", code);
+        Assert.Contains("box.ClearValue(UIElement.EffectProperty);", code);
+    }
+
+    [Fact]
     public void TheMacroStepPickerOpensUpward()
     {
         string macro = File.ReadAllText(Path.Combine(RepoRoot(), "Controls", "MacroDialog.cs"));

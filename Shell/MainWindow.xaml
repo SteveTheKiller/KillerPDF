@@ -1371,6 +1371,8 @@
                             <Trigger Property="IsDropDownOpen" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource FooterZoomSurfaceBrush}"/>
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                <!-- The box takes the list's shadow while open, so box and list lift as one piece. -->
+                                <Setter TargetName="Bd" Property="Effect" Value="{DynamicResource ComboPopupShadow}"/>
                                 <Setter TargetName="Bd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareTop}}"/>
                                 <Setter TargetName="PopupBd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareBottom}}"/>
                             </Trigger>
@@ -3288,7 +3290,7 @@
                     <!-- Update notice: shown only when a newer release is found (set in code-behind) -->
                     <Button x:Name="AboutUpdateButton" Visibility="Collapsed"
                             Margin="0,14,0,0" HorizontalAlignment="Left"
-                            Style="{StaticResource OutlineButton}" Padding="14,7"
+                            Style="{StaticResource OutlineButton}" Padding="14,4" FontSize="12"
                             Click="AboutUpdateButton_Click">
                         <TextBlock x:Name="AboutUpdateText" Text="{DynamicResource Str_Btn_DoUpdate}"
                                    FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"
@@ -3483,7 +3485,7 @@
                                   Click="WhatsNewShowCheck_Click">
                             <TextBlock Text="{DynamicResource Str_WhatsNew_ShowAfterUpdates}"/>
                         </CheckBox>
-                        <Button x:Name="WhatsNewGotIt" Style="{StaticResource OutlineButton}" Padding="16,6"
+                        <Button x:Name="WhatsNewGotIt" Style="{StaticResource OutlineButton}" Padding="14,4" FontSize="12"
                                 VerticalAlignment="Center" Click="WhatsNewClose_Click">
                             <TextBlock Text="{DynamicResource Str_WhatsNew_GotIt}"
                                        FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"

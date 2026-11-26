@@ -1268,14 +1268,21 @@ namespace KillerPDF.Controls
         private void RecentsPopup_Opened(object? sender, EventArgs e)
         {
             if (PathBox.Template?.FindName("border", PathBox) is Border box)
+            {
                 box.CornerRadius = (CornerRadius)KillerFamily.Layout.ComboDrop.SquareBottom.Convert(box.CornerRadius, typeof(CornerRadius), null!, System.Globalization.CultureInfo.InvariantCulture);
+                // The box takes the list's shadow while open, so box and list lift as one piece.
+                box.SetResourceReference(UIElement.EffectProperty, "ComboPopupShadow");
+            }
             RecentsBd.CornerRadius = (CornerRadius)KillerFamily.Layout.ComboDrop.SquareTop.Convert(RecentsBd.CornerRadius, typeof(CornerRadius), null!, System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private void RecentsPopup_Closed(object? sender, EventArgs e)
         {
             if (PathBox.Template?.FindName("border", PathBox) is Border box)
+            {
                 box.ClearValue(Border.CornerRadiusProperty);
+                box.ClearValue(UIElement.EffectProperty);
+            }
             RecentsBd.SetResourceReference(Border.CornerRadiusProperty, "MenuCornerRadius");
         }
 

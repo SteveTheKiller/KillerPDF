@@ -498,6 +498,8 @@
                         <Trigger Property="IsDropDownOpen" Value="True">
                             <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
                             <Setter TargetName="chev" Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                            <!-- The box takes the list's shadow while open, so box and list lift as one piece. -->
+                            <Setter TargetName="border" Property="Effect" Value="{DynamicResource ComboPopupShadow}"/>
                             <Setter TargetName="border" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareBottom}}"/>
                             <Setter TargetName="PopupBd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=menuRadius, Converter={x:Static kl:ComboDrop.SquareTop}}"/>
                         </Trigger>
@@ -3541,6 +3543,8 @@
                             <Setter TargetName="PopupBd" Property="Margin" Value="22,18,22,0"/>
                         </Trigger>
                         <Trigger Property="IsDropDownOpen" Value="True">
+                            <!-- The box takes the list's shadow while open, so box and list lift as one piece. -->
+                            <Setter TargetName="Bd" Property="Effect" Value="{DynamicResource ComboPopupShadow}"/>
                             <Setter TargetName="Bd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareBottom}}"/>
                             <Setter TargetName="PopupBd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareTop}}"/>
                         </Trigger>
@@ -3566,6 +3570,7 @@
                             <Setter TargetName="PopupBd" Property="BorderBrush" Value="{DynamicResource BevelOuterDarkBrush}"/>
                             <Setter TargetName="PopupBd" Property="CornerRadius" Value="0"/>
                             <Setter TargetName="PopupBd" Property="Effect" Value="{x:Null}"/>
+                            <Setter TargetName="Bd" Property="Effect" Value="{x:Null}"/>
                         </DataTrigger>
                         <MultiDataTrigger>
                             <MultiDataTrigger.Conditions>

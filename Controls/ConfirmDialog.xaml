@@ -151,7 +151,7 @@
                             HorizontalAlignment="Right" Margin="{DynamicResource ConfirmButtonsMargin}">
                     <Button x:Name="CancelButton" Content="{DynamicResource Str_Btn_Cancel}" Click="Cancel_Click" IsCancel="True"
                             Style="{StaticResource SurfaceButton}"
-                            Height="{DynamicResource DialogButtonHeight}" MinWidth="80" Padding="12,2" Margin="{DynamicResource ConfirmButtonGap}"/>
+                            Height="{DynamicResource DialogButtonHeight}" MinWidth="80" Padding="14,2" FontSize="12" Margin="{DynamicResource ConfirmButtonGap}"/>
                     <!-- OutlineButton, not PrimaryButton. A solid accent block sits in this card
                          as a painted-on rectangle that never changes - PrimaryButton's hover is
                          a translucent white tint over the accent, which on half the palettes is
@@ -159,7 +159,7 @@
                          family's other confirm treatment and it reads as a button. -->
                     <Button x:Name="OkButton" Click="OK_Click" IsDefault="True"
                             Style="{StaticResource OutlineButton}"
-                            Height="{DynamicResource DialogButtonHeight}" MinWidth="80" Padding="12,2"/>
+                            Height="{DynamicResource DialogButtonHeight}" MinWidth="80" Padding="14,2" FontSize="12"/>
                 </StackPanel>
             </Grid>
         </Grid>

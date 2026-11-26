@@ -168,7 +168,10 @@
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
+        <!-- Both picker buttons share the family dialog button size: 14,4 padding at 12px. -->
         <Style x:Key="PickerCancelButton" TargetType="Button" BasedOn="{StaticResource SurfaceButton}">
+            <Setter Property="Padding" Value="14,4"/>
+            <Setter Property="FontSize" Value="12"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
                     <Setter Property="Template" Value="{StaticResource PickerClassicButtonTemplate}"/>
@@ -179,6 +182,8 @@
             </Style.Triggers>
         </Style>
         <Style x:Key="PickerAcceptButton" TargetType="Button" BasedOn="{StaticResource OutlineButton}">
+            <Setter Property="Padding" Value="14,4"/>
+            <Setter Property="FontSize" Value="12"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
                     <Setter Property="Template" Value="{StaticResource PickerClassicButtonTemplate}"/>

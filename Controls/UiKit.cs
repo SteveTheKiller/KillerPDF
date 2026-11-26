@@ -555,7 +555,7 @@ namespace KillerPDF
             {
                 _accent = accent;
                 Content = content;
-                Padding = new Thickness(18, 6, 18, 6);
+                Padding = new Thickness(14, 4, 14, 4);
                 BorderThickness = new Thickness(1);
                 Cursor = Cursors.Hand;
                 FontSize = 12;
@@ -640,7 +640,7 @@ namespace KillerPDF
             var btn = new Button
             {
                 Content = content,
-                Padding = new Thickness(18, 6, 18, 6),
+                Padding = new Thickness(14, 4, 14, 4),
                 Background = normalBg,
                 Foreground = normalFg,
                 BorderBrush = border ?? Brushes.Transparent,
