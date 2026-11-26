@@ -574,6 +574,79 @@ public sealed partial class PdfPageRenderer
         RasterFrame frame) =>
         RasterizePolygons(frame.ToPixels(polygons, 3), evenOdd, frame.Width, frame.Height);
 
+    /// <summary>
+    /// Moves every edge of a nonzero-filled glyph outline away from its filled side by
+    /// <paramref name="radius"/>, giving the glyph's fill and its centered stroke as one region.
+    /// Painted once, the inner half of the stroke is not counted a second time on pixels it
+    /// shares with the fill. Convex corners take a miter within <paramref name="miterLimit"/>
+    /// and a bevel beyond it; returns null when the outline has no usable contour.
+    /// </summary>
+    private static List<List<Point>>? WidenGlyphOutline(IReadOnlyList<List<Point>> contours,
+        double radius, double miterLimit)
+    {
+        var closed = new List<List<Point>>(contours.Count);
+        double area = 0;
+        foreach (List<Point> contour in contours)
+        {
+            var points = new List<Point>(contour.Count);
+            foreach (Point point in contour)
+            {
+                if (!double.IsFinite(point.X) || !double.IsFinite(point.Y)) return null;
+                if (points.Count == 0 || Distance(points[^1], point) > radius * 1e-3) points.Add(point);
+            }
+            while (points.Count > 1 && Distance(points[0], points[^1]) <= radius * 1e-3) points.RemoveAt(points.Count - 1);
+            if (points.Count < 3) continue;
+            for (int index = 0; index < points.Count; index++)
+            {
+                Point a = points[index], b = points[(index + 1) % points.Count];
+                area += a.X * b.Y - b.X * a.Y;
+            }
+            closed.Add(points);
+        }
+        if (closed.Count == 0 || area == 0) return null;
+        // The filled side of every edge is the same side for the whole glyph, given by the sign
+        // of its total area: outer contours outweigh their holes, which run the other way.
+        double side = area > 0 ? 1 : -1;
+        var widened = new List<List<Point>>(closed.Count);
+        foreach (List<Point> points in closed)
+        {
+            int count = points.Count;
+            var result = new List<Point>(count + 8);
+            for (int index = 0; index < count; index++)
+            {
+                Point previous = points[(index + count - 1) % count], current = points[index],
+                    next = points[(index + 1) % count];
+                (double inX, double inY) = Unit(current.X - previous.X, current.Y - previous.Y);
+                (double outX, double outY) = Unit(next.X - current.X, next.Y - current.Y);
+                // Normals that point away from the filled side.
+                double n1x = inY * side, n1y = -inX * side, n2x = outY * side, n2y = -outX * side;
+                double mx = n1x + n2x, my = n1y + n2y, length = Math.Sqrt(mx * mx + my * my);
+                double cosine = length / 2;
+                bool convex = (inX * outY - inY * outX) * side > 0;
+                if (length > 1e-9 && 1 / cosine <= (convex ? miterLimit : 4))
+                {
+                    double distance = radius / cosine;
+                    result.Add(new Point(current.X + mx / length * distance, current.Y + my / length * distance));
+                }
+                else
+                {
+                    result.Add(new Point(current.X + n1x * radius, current.Y + n1y * radius));
+                    result.Add(new Point(current.X + n2x * radius, current.Y + n2y * radius));
+                }
+            }
+            widened.Add(result);
+        }
+        return widened;
+
+        static double Distance(Point a, Point b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
+
+        static (double X, double Y) Unit(double x, double y)
+        {
+            double length = Math.Sqrt(x * x + y * y);
+            return (x / length, y / length);
+        }
+    }
+
     /// <summary>Converts a page-space stroke into pixel-space outline polygons and rasterizes them.</summary>
     private static CoverageMask RasterizeStroke(IReadOnlyList<List<Point>> paths,
         double pageLineWidth, RendererLineCap lineCap, RendererLineJoin lineJoin,

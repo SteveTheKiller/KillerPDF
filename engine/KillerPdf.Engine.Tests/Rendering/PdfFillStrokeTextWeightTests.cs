@@ -18,28 +18,25 @@ public sealed class PdfFillStrokeTextWeightTests
 
     // At 400% the 0.3 pt stroke is 1.2 pixels wide, so that render shows the true weight. With the
     // one-pixel floor the weight ratio was 44% heavier at 133% and over three times heavier at 25%.
-    // Below about 75% almost every glyph pixel is an edge pixel, and fill and stroke composite as
-    // two antialiased layers, so their overlap is counted once per layer instead of once in total.
-    // Fill and stroke coverage each stay put; that overlap alone leaves small zooms up to about 15%
-    // heavier, which is why those rows get a wider margin.
+    // Painted as two antialiased layers, fill and stroke also counted their overlap twice on edge
+    // pixels, which left text up to 15% heavier below 50% even without the floor.
     [Theory]
-    [InlineData(1.33, false, false, 0.05)]
-    [InlineData(1, false, false, 0.05)]
-    [InlineData(0.75, false, false, 0.05)]
-    [InlineData(0.5, false, false, 0.2)]
-    [InlineData(0.33, false, false, 0.2)]
-    [InlineData(0.25, false, false, 0.2)]
-    [InlineData(1, true, true, 0.05)]
-    [InlineData(0.5, true, true, 0.2)]
-    [InlineData(0.25, true, true, 0.2)]
-    public void Render_FillAndStrokeTextKeepsItsWeightWhenZoomedOut(double zoom, bool rectilinear, bool strokeAdjust,
-        double tolerance)
+    [InlineData(1.33, false, false)]
+    [InlineData(1, false, false)]
+    [InlineData(0.75, false, false)]
+    [InlineData(0.5, false, false)]
+    [InlineData(0.33, false, false)]
+    [InlineData(0.25, false, false)]
+    [InlineData(1, true, true)]
+    [InlineData(0.5, true, true)]
+    [InlineData(0.25, true, true)]
+    public void Render_FillAndStrokeTextKeepsItsWeightWhenZoomedOut(double zoom, bool rectilinear, bool strokeAdjust)
     {
         string text = rectilinear ? Rectilinear : Mixed;
         double reference = Ink(text, 2, 0.3, 4, strokeAdjust) / Ink(text, 0, 0.3, 4, strokeAdjust);
         double zoomed = Ink(text, 2, 0.3, zoom, strokeAdjust) / Ink(text, 0, 0.3, zoom, strokeAdjust);
         Assert.True(reference > 1.05, $"The stroke should add weight at 400%, ratio {reference:F3}.");
-        Assert.True(Math.Abs(zoomed - reference) < tolerance * reference,
+        Assert.True(Math.Abs(zoomed - reference) < 0.04 * reference,
             $"Bold weight at {zoom:P0} is {zoomed:F3} times regular, at 400% it is {reference:F3}.");
     }
 

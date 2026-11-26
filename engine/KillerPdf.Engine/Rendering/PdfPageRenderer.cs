@@ -1737,7 +1737,28 @@ public sealed partial class PdfPageRenderer
                             CoverageMask? cachedFill = paintMode is 0 or 2 || clipsText
                                 ? TryCachedGlyphFill(outline, glyphTransform, frame) : null;
                             IReadOnlyList<List<Point>>? glyphPaths = null;
-                            if (paintMode is 0 or 2)
+                            // Synthetic bold paints fill and stroke in one paint. Up to two pixels
+                            // wide the stroke is drawn with the fill as one widened glyph, because two
+                            // antialiased layers count their overlap twice on edge pixels and small
+                            // bold text came out heavier the further the page zoomed out.
+                            List<List<Point>>? widenedGlyph = null;
+                            if (paintMode == 2 && state.FillPattern is null && state.StrokePattern is null
+                                && state.DashPattern.Count == 0 && state.FillAlpha == state.StrokeAlpha
+                                && state.PaintFill == state.PaintStroke)
+                            {
+                                double pageRadius = state.LineWidth * state.Transform.StrokeScale / 2;
+                                double pixelRadius = pageRadius * frame.StrokeScale;
+                                if (pixelRadius > 0 && pixelRadius <= 1)
+                                    widenedGlyph = WidenGlyphOutline(
+                                        glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform),
+                                        pageRadius, state.MiterLimit);
+                            }
+                            if (widenedGlyph is not null)
+                                FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                                    widenedGlyph, state.PaintFill, state.FillAlpha, false,
+                                    state.BlendMode, state.Clips, state.GraphicsSoftMask,
+                                    state.Knockout, cancellationToken, state.AlphaIsShape, glyph: true);
+                            else if (paintMode is 0 or 2)
                             {
                                 if (state.FillPattern is not null)
                                     PaintFill(glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform), false);
@@ -1753,9 +1774,9 @@ public sealed partial class PdfPageRenderer
                                         state.PaintFill, state.FillAlpha, false,
                                         state.BlendMode, state.Clips, state.GraphicsSoftMask,
                                         state.Knockout,
-                                        cancellationToken, state.AlphaIsShape);
+                                        cancellationToken, state.AlphaIsShape, glyph: true);
                             }
-                            if (paintMode is 1 or 2)
+                            if (widenedGlyph is null && paintMode is 1 or 2)
                             {
                                 if (state.StrokePattern is not null)
                                     PaintStroke(glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform),
@@ -8148,7 +8169,7 @@ public sealed partial class PdfPageRenderer
         double scaleY, IReadOnlyList<List<Point>> paths, Color color, double alpha, bool evenOdd,
         RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
         GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
-        CancellationToken cancellationToken, bool alphaIsShape = false)
+        CancellationToken cancellationToken, bool alphaIsShape = false, bool glyph = false)
     {
         if (color.DoesNotPaint) return;
         var frame = new RasterFrame(width, height, scaleX, scaleY);
@@ -8165,7 +8186,9 @@ public sealed partial class PdfPageRenderer
         // Identical geometric clips are recognized by whole-mask coverage. Retain
         // that comparison when a single antialiased clip may be idempotent.
         if (geometricClips == 1 && antialiasedClip) bounds = null;
-        CoverageMask mask = ThinRectangle(paths, frame) ?? RasterizeFill(paths, evenOdd, frame, rent: true,
+        // A glyph is never a table rule: a small I or l keeps its true coverage, as the glyph
+        // cache paints it, instead of snapping to a solid pixel.
+        CoverageMask mask = (glyph ? null : ThinRectangle(paths, frame)) ?? RasterizeFill(paths, evenOdd, frame, rent: true,
             bounds: bounds);
         try
         {
