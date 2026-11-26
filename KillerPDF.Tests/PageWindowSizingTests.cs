@@ -43,7 +43,7 @@ public sealed class PageWindowSizingTests
 
             PageWindowSizing.Save(print, "Print", (k, v) => saved[k] = v);
 
-            Assert.Equal("100,50,900,700,0", Assert.Single(saved, p => p.Key == "PageWin.Print.WindowPlacement").Value);
+            Assert.Equal("100,50,900,700,0", Assert.Single(saved, p => p.Key == "PageWin.Print.L2.WindowPlacement").Value);
             Assert.DoesNotContain("WindowPlacement", saved.Keys);
         });
     }
@@ -55,7 +55,7 @@ public sealed class PageWindowSizingTests
     {
         RunSta(() =>
         {
-            var saved = new Dictionary<string, string> { ["PageWin.Print.WindowPlacement"] = "100,50,900,600,0" };
+            var saved = new Dictionary<string, string> { ["PageWin.Print.L2.WindowPlacement"] = "100,50,900,600,0" };
             var print = new Window { MinWidth = 762, MinHeight = 650, Width = 762, Height = 650 };
 
             bool restored = PageWindowSizing.Restore(print, "Print", k => saved.GetValueOrDefault(k));
@@ -74,7 +74,7 @@ public sealed class PageWindowSizingTests
     {
         RunSta(() =>
         {
-            var saved = new Dictionary<string, string> { ["PageWin.Print.WindowPlacement"] = "100,50,900,700,0" };
+            var saved = new Dictionary<string, string> { ["PageWin.Print.L2.WindowPlacement"] = "100,50,900,700,0" };
             var stamp = new Window { Width = 800, Height = 676, WindowStartupLocation = WindowStartupLocation.CenterOwner };
 
             bool restored = PageWindowSizing.Restore(stamp, "Stamp", k => saved.GetValueOrDefault(k));
@@ -85,12 +85,31 @@ public sealed class PageWindowSizingTests
         });
     }
 
+    // Steve 2026-11-26: a size saved for the taller pre-1.9.7 layout left Transform with empty
+    // space under its options. That key is not read, so the window opens at its options' height.
+    [Fact]
+    public void ASizeSavedForTheOlderLayoutIsNotUsed()
+    {
+        RunSta(() =>
+        {
+            var saved = new Dictionary<string, string> { ["PageWin.Transform.WindowPlacement"] = "100,50,1000,800,0" };
+            var transform = new Window { MinWidth = 762, MinHeight = 560, Width = 900, Height = 560,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner };
+
+            bool restored = PageWindowSizing.Restore(transform, "Transform", k => saved.GetValueOrDefault(k));
+
+            Assert.False(restored);
+            Assert.Equal(560, transform.Height);
+            Assert.Equal(900, transform.Width);
+        });
+    }
+
     [Fact]
     public void AWindowLeftMaximizedOpensMaximized()
     {
         RunSta(() =>
         {
-            var saved = new Dictionary<string, string> { ["PageWin.Print.WindowPlacement"] = "100,50,900,700,1" };
+            var saved = new Dictionary<string, string> { ["PageWin.Print.L2.WindowPlacement"] = "100,50,900,700,1" };
             var print = new Window { MinWidth = 762, MinHeight = 603 };
 
             PageWindowSizing.Restore(print, "Print", k => saved.GetValueOrDefault(k));

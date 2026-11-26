@@ -37,8 +37,13 @@ namespace KillerPDF.Controls
         }
 
         /// <summary>The settings key a page window type stores one placement value under, for
-        /// example "PageWin.Print.WindowPlacement".</summary>
-        public static string SettingKey(string windowType, string key) => "PageWin." + windowType + "." + key;
+        /// example "PageWin.Print.L2.WindowPlacement". The layout generation retires sizes saved for an older,
+        /// taller layout, so the window opens at its options' height once and is remembered from there. L2 is
+        /// 1.9.7's compact page windows (Steve 2026-11-26); before it the key had no generation.</summary>
+        public static string SettingKey(string windowType, string key) => "PageWin." + windowType + "." + LayoutGeneration + "." + key;
+
+        /// <summary>Bump when the page windows' options get shorter, so no window reopens at a stale height.</summary>
+        internal const string LayoutGeneration = "L2";
 
         /// <summary>Restores the saved placement of this window type, raised to the window's
         /// current minimum. True when a saved placement was applied.</summary>
