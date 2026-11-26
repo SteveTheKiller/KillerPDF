@@ -226,6 +226,86 @@ public sealed class ToolOptionsDockFloatingTests
         Assert.Equal(0, Bounds(page, dock).Top);
     });
 
+    // Under the tab strip the active tab paints over the card's top border, so a bar slid beneath it
+    // merged into the tab. Its top corner rounds while under the active tab, meets the border square
+    // under an inactive one, and the dock reports where the border line has to be drawn back.
+    private static (ToolOptionsDock Dock, Border Bar) UnderTheStrip((double, double)? openSpan)
+    {
+        var bar = new Border
+        {
+            Width = 200, Height = 30, Background = Brushes.Black, BorderBrush = Brushes.Lime,
+        };
+        var dock = new ToolOptionsDock { Floating = true, Document = new Border { Background = Brushes.White }, Bar = bar };
+        dock.Resources["PaneBorderBrush"] = Brushes.Red;
+        dock.SealsTop = true;
+        dock.OpenSpan = openSpan;
+        dock.Measure(new Size(600, 400));
+        dock.Arrange(new Rect(0, 0, 600, 400));
+        dock.SlideTo(4);
+        dock.Measure(new Size(600, 400));
+        dock.Arrange(new Rect(0, 0, 600, 400));
+        return (dock, bar);
+    }
+
+    private static Func<int, int, Color> Pixels(UIElement element)
+    {
+        var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(600, 400, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(element);
+        var data = new byte[600 * 400 * 4];
+        bitmap.CopyPixels(data, 600 * 4, 0);
+        return (x, y) =>
+        {
+            int i = (y * 600 + x) * 4;
+            return Color.FromRgb(data[i + 2], data[i + 1], data[i]);
+        };
+    }
+
+    [Fact]
+    public void UnderTheActiveTabTheBarsTopCornerRoundsInThePaneBorderColor() => RunSta(() =>
+    {
+        var (dock, bar) = UnderTheStrip((0, 150));
+        Assert.Equal(4, Bounds(bar, dock).Left);
+        var at = Pixels(dock);
+        // Outside the curve the page shows; the curve is the pane border's color.
+        Assert.Equal(Colors.White, at(4, 0));
+        Assert.Equal(Colors.White, at(5, 0));
+        Assert.Equal(Colors.Red, at(6, 0));
+        Assert.Equal(Colors.Red, at(7, 0));
+        Assert.Equal(Colors.Black, at(8, 0));
+        Assert.Equal(Colors.White, at(4, 1));
+        Assert.Equal(Colors.Red, at(5, 1));
+        Assert.Equal(Colors.Black, at(6, 1));
+        Assert.Equal(Colors.White, at(4, 2));
+        Assert.Equal(Colors.Red, at(5, 2));
+        Assert.Equal(Colors.Lime, at(4, 3));
+        // The right corner is under an inactive tab: square, the border line already runs above it.
+        Assert.Equal(Colors.Lime, at(203, 0));
+        // The line picks up where the curve's top run ends and runs to the bar's square right end.
+        Assert.Equal((8.0, 204.0), dock.TopSeal);
+    });
+
+    [Fact]
+    public void UnderAnInactiveTabTheBarsTopCornersStaySquare() => RunSta(() =>
+    {
+        var (dock, _) = UnderTheStrip((300, 450));
+        var at = Pixels(dock);
+        Assert.Equal(Colors.Lime, at(4, 0));
+        Assert.Equal(Colors.Lime, at(4, 1));
+        Assert.Equal(Colors.Black, at(6, 0));
+        Assert.Equal((4.0, 204.0), dock.TopSeal);
+    });
+
+    [Fact]
+    public void WithoutTheStripOnTopTheBarHasNoSealOrCurve() => RunSta(() =>
+    {
+        var (dock, _) = UnderTheStrip((0, 150));
+        dock.SealsTop = false;
+        dock.Measure(new Size(600, 400));
+        dock.Arrange(new Rect(0, 0, 600, 400));
+        Assert.Null(dock.TopSeal);
+        Assert.Equal(Colors.Lime, Pixels(dock)(4, 0));
+    });
+
     private static void RunSta(Action action)
     {
         Exception? error = null;

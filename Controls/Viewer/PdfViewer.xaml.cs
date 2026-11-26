@@ -34,6 +34,7 @@ namespace KillerPDF.Controls
             InitializeComponent();
             InitializeRailShadow();
             InitializeReadingSurface();
+            InitializeBarSeal();
             // A click on a field selects it again on its way down, so any other click leaves no field
             // selected or holding the keyboard to catch the keys that follow.
             PreviewMouseLeftButtonDown += (_, _) =>

@@ -20,6 +20,12 @@
         <!-- ZIndex above the card: the card's -1 top margin tucks its top border into this band's
              row, and the active tab (ContentPaneBrush, the card's own color) covers that pixel so the tab
              sits on the card without a seam. -->
+        <!-- Above the strip: the pane's top border line drawn back over a floating tool bar, where
+             the active tab paints that row to open into the card (PdfViewer.BarSeal.cs). -->
+        <Canvas Grid.RowSpan="3" Panel.ZIndex="11" IsHitTestVisible="False">
+            <Rectangle x:Name="BarSealLine" Height="1" Visibility="Collapsed" SnapsToDevicePixels="True"
+                       Fill="{DynamicResource PaneBorderBrush}"/>
+        </Canvas>
         <Border Grid.Row="0" x:Name="TabStripBorder" Panel.ZIndex="10"
                 Height="{DynamicResource TabBandHeight}"
                 Background="Transparent" Visibility="Collapsed"

@@ -37,8 +37,14 @@ namespace KillerPDF.Controls
         /// <summary>Width of the grip strip at a floating bar's left edge.</summary>
         public const double GripWidth = 12;
 
+        /// <summary>Rows the rounded top corner of a floating bar under the tab strip takes, and how far
+        /// in from the bar's side the pane's top border line starts.</summary>
+        public const int TopCornerInset = 4;
+
         private UIElement? _bar, _document;
         private Border? _strip, _grip;
+        private TopCorners? _corners;
+        private bool _sealsTop;
         // A floating bar's own border, corners and padding, put back when it docks or is replaced.
         private (Border Bar, Thickness Border, CornerRadius Corners, Thickness Padding)? _plainChrome;
         private bool _dimmed, _floating, _minimized;
@@ -82,7 +88,11 @@ namespace KillerPDF.Controls
                     && InputManager.Current.MostRecentInputDevice is KeyboardDevice
                     && Keyboard.FocusedElement is DependencyObject focused
                     ? FocusIdFor(focused) : null;
-                if (_bar is not null) _bar.Visibility = Visibility.Visible;
+                if (_bar is not null)
+                {
+                    _bar.Visibility = Visibility.Visible;
+                    _bar.Clip = null;   // a bar shown again later starts uncut
+                }
                 // The bar going out closes its menus, or one left open keeps the mouse with nothing under it (#467).
                 (_bar as ToolOptionsBar)?.Retire();
                 Swap(ref _bar, value);
@@ -106,7 +116,62 @@ namespace KillerPDF.Controls
             {
                 _dimmed = value;
                 if (_bar is not null) _bar.Opacity = value ? InactiveOpacity : 1;
+                if (_corners is not null) _corners.Opacity = value ? InactiveOpacity : 1;
             }
+        }
+
+        /// <summary>
+        /// True while the pane's tab strip sits on its top edge. A floating bar then hangs straight
+        /// below the active tab, which paints over the pane's top border to open into the card, so the
+        /// bar would merge into the tab with no edge between them. The bar rounds its top corners and
+        /// reports in <see cref="TopSeal"/> where the pane's border line has to be drawn back.
+        /// </summary>
+        public bool SealsTop
+        {
+            get => _sealsTop;
+            set
+            {
+                if (_sealsTop == value) return;
+                _sealsTop = value;
+                SyncBarVisibility();
+                ReattachInDrawingOrder();
+                InvalidateMeasure();
+            }
+        }
+
+        private (double From, double To)? _openSpan;
+
+        /// <summary>
+        /// The active tab's left and right edges in the dock's coordinates, where that tab paints over
+        /// the pane's top border; null when no tab opens into the card. A floating bar's top corner
+        /// rounds only while it is under this span. Under an inactive tab the pane's border runs above
+        /// the bar already, so the corner meets it square.
+        /// </summary>
+        internal (double From, double To)? OpenSpan
+        {
+            get => _openSpan;
+            set
+            {
+                if (_openSpan == value) return;
+                _openSpan = value;
+                InvalidateArrange();
+            }
+        }
+
+        /// <summary>Where the pane's top border line runs above a floating bar, left to right in the
+        /// dock's own coordinates, on the row just above it; null while there is none.</summary>
+        internal (double From, double To)? TopSeal { get; private set; }
+
+        /// <summary>Raised when <see cref="TopSeal"/> changes.</summary>
+        public event EventHandler? TopSealChanged;
+
+        private bool ShowsCorners => _floating && _bar is not null && _sealsTop && _cornerRadius > 0;
+
+        private void SetTopSeal((double From, double To)? seal)
+        {
+            if (TopSeal == seal) return;
+            TopSeal = seal;
+            TopSealChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -160,7 +225,9 @@ namespace KillerPDF.Controls
                 if (_cornerRadius == value) return;
                 _cornerRadius = value;
                 if (_plainChrome is { Bar: var bar }) bar.CornerRadius = new CornerRadius(0, 0, value, value);
-                InvalidateArrange();
+                SyncBarVisibility();
+                ReattachInDrawingOrder();
+                InvalidateMeasure();
             }
         }
 
@@ -206,6 +273,7 @@ namespace KillerPDF.Controls
                 plain.Bar.BorderThickness = plain.Border;
                 plain.Bar.CornerRadius = plain.Corners;
                 plain.Bar.Padding = plain.Padding;
+                plain.Bar.Clip = null;
                 _plainChrome = null;
             }
             if (_floating && _bar is Border bar && _plainChrome is null)
@@ -216,6 +284,72 @@ namespace KillerPDF.Controls
                 bar.Padding = new Thickness(bar.Padding.Left + GripWidth, bar.Padding.Top, bar.Padding.Right, bar.Padding.Bottom);
             }
             if (ShowsGrip) _grip ??= NewGrip();
+            if (ShowsCorners && _corners is null)
+            {
+                _corners = new TopCorners { IsHitTestVisible = false, Opacity = _dimmed ? InactiveOpacity : 1 };
+                _corners.SetResourceReference(TopCorners.EdgeProperty, "PaneBorderBrush");
+            }
+        }
+
+        /// <summary>
+        /// The rounded top corners of a floating bar under the tab strip, drawn pixel by pixel in the
+        /// pane border's color like the tab's foot (RetroTabBorder.DrawFlare), mirrored so a corner turns
+        /// the other way. Per side: two pixels on the bar's first row, then one on each of the next two,
+        /// one column in, before the side border takes over; the pane's line runs on from four in.
+        /// An anti-aliased arc this small reads as dim half pixels, a break in the edge.
+        /// </summary>
+        private sealed class TopCorners : FrameworkElement
+        {
+            public static readonly DependencyProperty EdgeProperty = DependencyProperty.Register(
+                nameof(Edge), typeof(Brush), typeof(TopCorners),
+                new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+
+            public Brush? Edge
+            {
+                get => (Brush?)GetValue(EdgeProperty);
+                set => SetValue(EdgeProperty, value);
+            }
+
+            private bool _left, _right;
+
+            public void SetSides(bool left, bool right)
+            {
+                if (_left == left && _right == right) return;
+                _left = left;
+                _right = right;
+                InvalidateVisual();
+            }
+
+            protected override void OnRender(DrawingContext dc)
+            {
+                if (Edge is not Brush edge) return;
+                int w = (int)Math.Round(RenderSize.Width);
+                if (w < 2 * TopCornerInset + 2) return;
+                void Px(int x, int y, int cw = 1) => dc.DrawRectangle(edge, null, new Rect(x, y, cw, 1));
+                if (_left) { Px(2, 0, 2); Px(1, 1); Px(1, 2); }
+                if (_right) { Px(w - 4, 0, 2); Px(w - 2, 1); Px(w - 2, 2); }
+            }
+        }
+
+        // A bar's rectangle with the pixels outside its rounded top corners cut away, so the card shows
+        // there and the corner pixels drawn over it read as the bar's edge.
+        private static Geometry CornerCut(double width, double height, bool left, bool right)
+        {
+            var cut = new GeometryGroup();
+            if (left)
+            {
+                cut.Children.Add(new RectangleGeometry(new Rect(0, 0, 2, 1)));
+                cut.Children.Add(new RectangleGeometry(new Rect(0, 1, 1, 2)));
+            }
+            if (right)
+            {
+                cut.Children.Add(new RectangleGeometry(new Rect(width - 2, 0, 2, 1)));
+                cut.Children.Add(new RectangleGeometry(new Rect(width - 1, 1, 1, 2)));
+            }
+            var shape = new CombinedGeometry(GeometryCombineMode.Exclude,
+                new RectangleGeometry(new Rect(0, 0, width, height)), cut);
+            shape.Freeze();
+            return shape;
         }
 
         // Three stacked dots, the same dots 1.9.2's floating bar and the sidebar splitter use.
@@ -280,6 +414,12 @@ namespace KillerPDF.Controls
             var shape = new CombinedGeometry(GeometryCombineMode.Union,
                 new RectangleGeometry(new Rect(0, 0, width, Math.Max(0, height - radius))),
                 new RectangleGeometry(new Rect(0, 0, width, height), radius, radius));
+            shape.Freeze();
+            return shape;
+        }
+
+        private static Geometry Frozen(Geometry shape)
+        {
             shape.Freeze();
             return shape;
         }
@@ -396,6 +536,7 @@ namespace KillerPDF.Controls
             if (_bar is not null) yield return _bar;
             if (ShowsStrip && _strip is not null) yield return _strip;
             if (ShowsGrip && _grip is not null) yield return _grip;
+            if (ShowsCorners && _corners is not null) yield return _corners;
         }
 
         // WPF composes children in the order they were attached, not the order GetVisualChild returns
@@ -429,6 +570,7 @@ namespace KillerPDF.Controls
             }
             if (ShowsStrip) _strip!.Measure(new Size(available.Width, MinimizedHeight));
             if (ShowsGrip) _grip!.Measure(new Size(GripWidth, barHeight));
+            if (ShowsCorners) _corners!.Measure(new Size(available.Width, TopCornerInset));
             if (_floating) barHeight = 0;   // a floating bar takes no room from the document
             double rest = double.IsInfinity(available.Height) ? available.Height : Math.Max(0, available.Height - barHeight);
             _document?.Measure(new Size(available.Width, rest));
@@ -455,22 +597,45 @@ namespace KillerPDF.Controls
                         var sides = new Thickness(left < 0.5 ? 0 : 1, 0, 1, 1);
                         if (chromed.BorderThickness != sides) chromed.BorderThickness = sides;
                     }
-                    _bar.Arrange(new Rect(left, 0, width, barHeight));
+                    // A top corner under the active tab rounds off; under an inactive tab it meets the
+                    // pane's border square, and on the pane's own edge the pane's border is the bar's side.
+                    double right = left + width;
+                    bool flushLeft = left < 0.5, flushRight = right > final.Width - 0.5;
+                    bool UnderOpen(double x) => _openSpan is var (from, to) && x >= from && x <= to;
+                    bool arcLeft = ShowsCorners && !flushLeft && UnderOpen(left);
+                    bool arcRight = ShowsCorners && !flushRight && UnderOpen(right);
+                    Geometry? cut = arcLeft || arcRight
+                        ? CornerCut(width, ShowsStrip ? MinimizedHeight : barHeight, arcLeft, arcRight) : null;
                     if (ShowsStrip)
                     {
-                        _bar.Clip = BottomRounded(width, MinimizedHeight, StripRadius);
+                        Geometry rounded = BottomRounded(width, MinimizedHeight, StripRadius);
+                        _bar.Clip = cut is null ? rounded : Frozen(new CombinedGeometry(GeometryCombineMode.Intersect, rounded, cut));
                         if (_bar is Border source)
                         {
                             _strip!.BorderBrush = source.BorderBrush;
                             _strip.BorderThickness = new Thickness(1, 0, 1, 1);
                             _strip.CornerRadius = new CornerRadius(0, 0, StripRadius, StripRadius);
                         }
-                        _strip!.Arrange(new Rect(left, 0, width, MinimizedHeight));
+                        _strip!.Clip = cut;
+                        _strip.Arrange(new Rect(left, 0, width, MinimizedHeight));
                     }
+                    else _bar.Clip = cut;
+                    // Arranged after its clip is set: WPF takes an element's clip up when it arranges it.
+                    _bar.Arrange(new Rect(left, 0, width, barHeight));
                     if (ShowsGrip) _grip!.Arrange(new Rect(left + 1, 0, GripWidth, Math.Max(0, barHeight - 1)));
+                    if (ShowsCorners)
+                    {
+                        _corners!.SetSides(arcLeft, arcRight);
+                        _corners.Arrange(new Rect(left, 0, width, TopCornerInset));
+                    }
+                    SetTopSeal(_sealsTop
+                        ? (left + (arcLeft ? TopCornerInset : 0), left + width - (arcRight ? TopCornerInset : 0))
+                        : null);
                 }
+                else SetTopSeal(null);
                 return final;
             }
+            SetTopSeal(null);
             _bar?.Arrange(new Rect(0, 0, final.Width, barHeight));
             _document?.Arrange(new Rect(0, barHeight, final.Width, Math.Max(0, final.Height - barHeight)));
             return final;
