@@ -3,6 +3,7 @@ using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Rendering;
+using KillerPdf.Engine.Writing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Editing;
@@ -84,6 +85,92 @@ public sealed class PdfPageTransformerTests
         var actual = new PdfPageRenderer(document).Render(0, options);
         Assert.True(MeanDifference(expected.Pixels.Span, actual.Pixels.Span) < 0.5,
             $"mean difference {MeanDifference(expected.Pixels.Span, actual.Pixels.Span)}");
+    }
+
+    // A field repeated on another page keeps working there; only the turned page's widget is painted and taken out.
+    [Fact]
+    public void AFieldWithAWidgetOnAnUntouchedPageKeepsThatWidget()
+    {
+        byte[] source = new PdfDocumentBuilder().AddPage(300, 400, Text()).AddPage(300, 400, Text())
+            .AddRadioGroup("Choice", [new PdfRadioButtonOption(0, 20, 20, 20, 20, "A"),
+                new PdfRadioButtonOption(1, 20, 20, 20, 20, "B")], "B")
+            .Build();
+
+        PdfDocument document = PdfDocument.Open(Transform(source, 0, QuarterTurn));
+
+        Assert.Empty(PdfFormWidgetReader.ReadPage(document, 0));
+        PdfFormWidgetInfo kept = Assert.Single(PdfFormWidgetReader.ReadPage(document, 1));
+        Assert.Equal("Choice", kept.FieldName);
+        Assert.Equal(PdfFormWidgetReader.ReadPage(PdfDocument.Open(source), 1)[0].Value, kept.Value);
+        PdfDictionary parent = (PdfDictionary)Resolve(document,
+            ((PdfDictionary)Resolve(document, new PdfIndirectReference(kept.ObjectNumber, kept.Generation)))[new PdfName("Parent"u8)]);
+        Assert.Single((PdfArray)Resolve(document, parent[new PdfName("Kids"u8)]));
+    }
+
+    // Annotations without /AP show the way the page render drew them: legacy markup gets the appearance the
+    // renderer builds, and a text field gets its value regenerated.
+    [Fact]
+    public void AnnotationsWithoutAnAppearanceArePaintedAsTheyShowed()
+    {
+        byte[] built = new PdfDocumentBuilder().AddPage(300, 400, Text())
+            .AddTextField(0, "Name", 20, 20, 120, 24, "Ada").Build();
+        PdfDocument start = PdfDocument.Open(built);
+        PdfFormWidgetInfo field = Assert.Single(PdfFormWidgetReader.ReadPage(start, 0));
+        PdfDictionary widget = (PdfDictionary)Resolve(start, new PdfIndirectReference(field.ObjectNumber, field.Generation));
+        PdfPageTreeEntry page = PdfPageTree.Read(start).Pages[0];
+        var update = new PdfIncrementalUpdateBuilder(start);
+        update.ReplaceObject(field.ObjectNumber, new PdfDictionary(widget.Where(item => !item.Key.Equals(new PdfName("AP"u8)))));
+        // A generator that leaves appearances to the viewer sets /NeedAppearances, so the page render builds one.
+        PdfPageTree startTree = PdfPageTree.Read(start);
+        PdfObject formValue = startTree.Catalog[new PdfName("AcroForm"u8)];
+        var form = new PdfDictionary(((PdfDictionary)Resolve(start, formValue))
+            .Where(item => !item.Key.Equals(new PdfName("NeedAppearances"u8)))
+            .Append(new KeyValuePair<PdfName, PdfObject>(new PdfName("NeedAppearances"u8), new PdfBoolean(true))));
+        if (formValue is PdfIndirectReference formReference) update.ReplaceObject(formReference.ObjectNumber, form);
+        else update.ReplaceObject(startTree.CatalogReference.ObjectNumber, new PdfDictionary(startTree.Catalog
+            .Where(item => !item.Key.Equals(new PdfName("AcroForm"u8)))
+            .Append(new KeyValuePair<PdfName, PdfObject>(new PdfName("AcroForm"u8), form))));
+        PdfIndirectReference square = update.AddObject(new PdfDictionary([
+            new(new PdfName("Type"u8), new PdfName("Annot"u8)),
+            new(new PdfName("Subtype"u8), new PdfName("Square"u8)),
+            new(new PdfName("Rect"u8), new PdfArray([new PdfInteger(150), new PdfInteger(50), new PdfInteger(250), new PdfInteger(150)])),
+            new(new PdfName("C"u8), new PdfArray([new PdfInteger(1), new PdfInteger(0), new PdfInteger(0)])),
+            new(new PdfName("IC"u8), new PdfArray([new PdfInteger(0), new PdfInteger(0), new PdfInteger(1)]))]));
+        var annotations = ((PdfArray)Resolve(start, page.Dictionary[new PdfName("Annots"u8)])).Append(square);
+        update.ReplaceObject(page.Reference.ObjectNumber, new PdfDictionary(page.Dictionary
+            .Where(item => !item.Key.Equals(new PdfName("Annots"u8)))
+            .Append(new KeyValuePair<PdfName, PdfObject>(new PdfName("Annots"u8), new PdfArray([.. annotations])))));
+        byte[] source = update.Build();
+        var options = new PdfRenderOptions(300, 400);
+        var expected = new PdfPageRenderer(PdfDocument.Open(source)).Render(0, options);
+        var blank = new PdfPageRenderer(PdfDocument.Open(new PdfDocumentBuilder().AddPage(300, 400, Text()).Build()))
+            .Render(0, options);
+        // The field's box (y 356 to 380 on screen) and the square's both show before the transform.
+        Assert.True(RegionDifference(expected, blank, 20, 356, 140, 380) > 5);
+        Assert.True(RegionDifference(expected, blank, 150, 250, 250, 350) > 5);
+
+        PdfDocument document = PdfDocument.Open(Transform(source, 0, Identity));
+
+        Assert.Empty(PdfAnnotationsOf(document, 0));
+        var actual = new PdfPageRenderer(document).Render(0, options);
+        Assert.True(RegionDifference(expected, actual, 20, 356, 140, 380) < 1,
+            $"field difference {RegionDifference(expected, actual, 20, 356, 140, 380)}");
+        Assert.True(RegionDifference(expected, actual, 150, 250, 250, 350) < 1,
+            $"square difference {RegionDifference(expected, actual, 150, 250, 250, 350)}");
+    }
+
+    private static double RegionDifference(PdfRenderedPage left, PdfRenderedPage right, int x0, int y0, int x1, int y1)
+    {
+        ReadOnlySpan<byte> a = left.Pixels.Span, b = right.Pixels.Span;
+        long total = 0, count = 0;
+        for (int y = y0; y < y1; y++)
+            for (int x = x0; x < x1; x++)
+                for (int channel = 0; channel < 3; channel++, count++)
+                {
+                    int index = (y * left.Width + x) * 4 + channel;
+                    total += Math.Abs(a[index] - b[index]);
+                }
+        return (double)total / count;
     }
 
     [Fact]

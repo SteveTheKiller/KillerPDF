@@ -7,6 +7,30 @@ namespace KillerPdf.Engine.Rendering;
 
 public sealed partial class PdfPageRenderer
 {
+    // What a screen render draws for one annotation other than a link: a widget's saved appearance or the one
+    // regenerated for its value, a markup annotation's saved appearance, or the one built for legacy markup that
+    // has no /AP. A built appearance already sits in default page space; the others are placed in /Rect.
+    internal PdfStream? ShownAppearance(int pageIndex, PdfDictionary annotation, PdfStream? saved, out bool inPageSpace)
+    {
+        inPageSpace = false;
+        if (IsName(annotation, "Subtype", "Widget"))
+        {
+            try
+            {
+                return RequestedFieldAppearance(annotation, saved, _pageResources[pageIndex], [],
+                    CancellationToken.None);
+            }
+            catch (Exception error) when (_document.UsesCompatibilityRecovery
+                && error is FormatException or InvalidOperationException or NotSupportedException)
+            {
+                return saved;
+            }
+        }
+        if (saved is not null) return saved;
+        inPageSpace = true;
+        return SynthesizedAppearance(annotation);
+    }
+
     // Legacy annotations can omit /AP. Build their visible appearance from their own colors
     // and geometry in default page coordinates, including points outside an inaccurate /Rect.
     private PdfStream? SynthesizedAppearance(PdfDictionary annotation)

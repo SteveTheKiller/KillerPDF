@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Rendering;
 using KillerPdf.Engine.Writing;
 
 namespace KillerPdf.Engine.Editing;
@@ -19,8 +20,8 @@ public readonly record struct PdfPageTransform(double A, double B, double C, dou
 /// <summary>
 /// Turns, scales and mirrors pages in place. The page keeps its object, content streams and marked content, so
 /// text stays selectable and the structure tree still points at it. Links move with the page; every other
-/// visible annotation, form widgets included, is painted into the page as it showed and removed, the way a
-/// rendered page carried them.
+/// visible annotation, form widgets included, is painted into the page as the page render showed it and removed.
+/// A field keeps its widgets on pages that are not transformed.
 /// </summary>
 public static class PdfPageTransformer
 {
@@ -43,6 +44,8 @@ public static class PdfPageTransformer
     private static readonly PdfName MatrixName = Name("Matrix");
     private static readonly PdfName TypeName = Name("Type");
     private static readonly PdfName FormName = Name("Form");
+    private static readonly PdfName ParentName = Name("Parent");
+    private static readonly PdfName KidsName = Name("Kids");
     private static readonly PdfName[] DroppedBoxes = [Name("BleedBox"), Name("TrimBox"), Name("ArtBox")];
 
     /// <summary>Appends one revision that transforms the given pages; the rest are left as they are.</summary>
@@ -64,14 +67,17 @@ public static class PdfPageTransformer
         }
 
         var update = new PdfIncrementalUpdateBuilder(document);
-        var paintedFields = new HashSet<string>(StringComparer.Ordinal);
+        var renderer = new PdfPageRenderer(document);
+        var widgetReader = new PdfFormWidgetReader(document);
+        var removedWidgets = new Dictionary<int, (PdfIndirectReference Reference, string Field)>();
         int resourceNumber = 1;
         foreach (var (pageIndex, transform) in pages.OrderBy(pair => pair.Key))
         {
             PdfPageTreeEntry page = tree.Pages[pageIndex];
-            var widgetFields = PdfFormWidgetReader.ReadPage(document, pageIndex)
+            var widgetFields = widgetReader.Read(pageIndex)
                 .Where(widget => widget.ObjectNumber > 0)
-                .ToDictionary(widget => widget.ObjectNumber, widget => widget.FieldName);
+                .GroupBy(widget => widget.ObjectNumber)
+                .ToDictionary(group => group.Key, group => group.First().FieldName);
             var entries = page.Dictionary.ToDictionary(item => item.Key, item => item.Value);
 
             PdfDictionary resources = page.InheritedValues.TryGetValue(ResourcesName, out PdfObject? resourceValue)
@@ -107,19 +113,32 @@ public static class PdfPageTransformer
                     }
                     if (item is PdfIndirectReference widgetReference
                         && widgetFields.TryGetValue(widgetReference.ObjectNumber, out string? field))
-                        paintedFields.Add(field);
+                        removedWidgets[widgetReference.ObjectNumber] = (widgetReference, field);
                     if (kind == "Popup") continue;
                     int flags = annotation.TryGetValue(FlagsName, out PdfObject? flagValue)
                         && Resolve(document, flagValue) is PdfInteger integer ? (int)integer.Value : 0;
                     if ((flags & (HiddenFlag | NoViewFlag)) != 0) continue;
-                    if (SelectedAppearance(document, annotation) is not { } appearanceValue
-                        || Resolve(document, appearanceValue) is not PdfStream appearance
-                        || !TryRect(document, annotation, out double[] rect)
-                        || !TryAppearanceBounds(document, appearance, out double[] bounds)) continue;
-                    double sourceWidth = bounds[2] - bounds[0], sourceHeight = bounds[3] - bounds[1];
-                    double targetWidth = rect[2] - rect[0], targetHeight = rect[3] - rect[1];
-                    if (sourceWidth <= 0 || sourceHeight <= 0 || targetWidth <= 0 || targetHeight <= 0) continue;
-                    double scaleX = targetWidth / sourceWidth, scaleY = targetHeight / sourceHeight;
+
+                    // The same appearance the page render drew: a field shows its regenerated value and legacy
+                    // markup without /AP gets the appearance built for it in page space.
+                    PdfObject? savedValue = SelectedAppearance(document, annotation);
+                    PdfStream? saved = savedValue is null ? null : Resolve(document, savedValue) as PdfStream;
+                    if (renderer.ShownAppearance(pageIndex, annotation, saved, out bool inPageSpace)
+                        is not { } appearance) continue;
+                    PdfObject appearanceValue = ReferenceEquals(appearance, saved) ? savedValue! : appearance;
+                    string placement;
+                    if (inPageSpace) placement = "";
+                    else
+                    {
+                        if (!TryRect(document, annotation, out double[] rect)
+                            || !TryAppearanceBounds(document, appearance, out double[] bounds)) continue;
+                        double sourceWidth = bounds[2] - bounds[0], sourceHeight = bounds[3] - bounds[1];
+                        double targetWidth = rect[2] - rect[0], targetHeight = rect[3] - rect[1];
+                        if (sourceWidth <= 0 || sourceHeight <= 0 || targetWidth <= 0 || targetHeight <= 0) continue;
+                        double scaleX = targetWidth / sourceWidth, scaleY = targetHeight / sourceHeight;
+                        placement = Number(scaleX) + " 0 0 " + Number(scaleY) + " "
+                            + Number(rect[0] - bounds[0] * scaleX) + " " + Number(rect[1] - bounds[1] * scaleY) + " cm ";
+                    }
 
                     PdfName resource;
                     do resource = Name("KpfTf" + resourceNumber++);
@@ -134,9 +153,7 @@ public static class PdfPageTransformer
                         properties[property] = layer!;
                         overlay.Append("/OC /").Append(property.ValueAsLatin1()).Append(" BDC\n");
                     }
-                    overlay.Append("q ").Append(Number(scaleX)).Append(" 0 0 ").Append(Number(scaleY)).Append(' ')
-                        .Append(Number(rect[0] - bounds[0] * scaleX)).Append(' ')
-                        .Append(Number(rect[1] - bounds[1] * scaleY)).Append(" cm /")
+                    overlay.Append("q ").Append(placement).Append('/')
                         .Append(resource.ValueAsLatin1()).Append(" Do Q\n");
                     if (layered) overlay.Append("EMC\n");
                 }
@@ -176,11 +193,54 @@ public static class PdfPageTransformer
             update.ReplaceObject(page.Reference.ObjectNumber, new PdfDictionary(entries));
         }
 
+        // A field whose widgets all sat on turned pages is gone, the way a rendered page dropped it. A field that
+        // still has a widget on another page keeps working there and only loses the turned pages' widgets.
+        var keptFields = new HashSet<string>(StringComparer.Ordinal);
+        for (int pageIndex = 0; pageIndex < tree.Pages.Count; pageIndex++)
+            if (!pages.ContainsKey(pageIndex))
+                foreach (PdfFormWidgetInfo widget in widgetReader.Read(pageIndex))
+                    if (!removedWidgets.ContainsKey(widget.ObjectNumber)) keptFields.Add(widget.FieldName);
+        DetachWidgets(document, update, removedWidgets.Values
+            .Where(widget => keptFields.Contains(widget.Field)).Select(widget => widget.Reference));
+        string[] removedFields = [.. removedWidgets.Values.Select(widget => widget.Field)
+            .Where(field => !keptFields.Contains(field)).Distinct(StringComparer.Ordinal)];
+
         byte[] output = update.Build();
-        if (paintedFields.Count == 0) return output;
+        if (removedFields.Length == 0) return output;
         var editor = new PdfIncrementalPageEditor(PdfDocument.Open(output));
-        foreach (string field in paintedFields) editor.RemoveFormField(field);
+        foreach (string field in removedFields) editor.RemoveFormField(field);
         return editor.Build();
+    }
+
+    // Takes widgets out of their parent field's /Kids. A widget with no parent is its own field, which only
+    // happens when that field has a single widget, so it never reaches here with another widget kept.
+    private static void DetachWidgets(PdfDocument document, PdfIncrementalUpdateBuilder update,
+        IEnumerable<PdfIndirectReference> widgets)
+    {
+        var byParent = new Dictionary<int, (PdfIndirectReference Parent, HashSet<int> Widgets)>();
+        foreach (PdfIndirectReference widget in widgets)
+        {
+            if (Resolve(document, widget) is not PdfDictionary dictionary
+                || !dictionary.TryGetValue(ParentName, out PdfObject? parentValue)
+                || parentValue is not PdfIndirectReference parentReference) continue;
+            if (!byParent.TryGetValue(parentReference.ObjectNumber, out var entry))
+                byParent[parentReference.ObjectNumber] = entry = (parentReference, []);
+            entry.Widgets.Add(widget.ObjectNumber);
+        }
+        foreach (var (parentNumber, (parentReference, detached)) in byParent)
+        {
+            if (Resolve(document, parentReference) is not PdfDictionary parent
+                || !parent.TryGetValue(KidsName, out PdfObject? kidsValue)
+                || Resolve(document, kidsValue) is not PdfArray kids) continue;
+            var remaining = new PdfArray([.. kids.Where(kid =>
+                kid is not PdfIndirectReference reference || !detached.Contains(reference.ObjectNumber))]);
+            if (kidsValue is PdfIndirectReference kidsReference)
+                update.ReplaceObject(kidsReference.ObjectNumber, remaining);
+            else
+                update.ReplaceObject(parentNumber, new PdfDictionary(parent
+                    .Where(item => !item.Key.Equals(KidsName))
+                    .Append(new KeyValuePair<PdfName, PdfObject>(KidsName, remaining))));
+        }
     }
 
     // A link keeps working: its rectangle becomes the box around its turned corners, its quadrilaterals turn point
@@ -228,9 +288,10 @@ public static class PdfPageTransformer
         PdfObject resolved = Resolve(document, normal);
         if (resolved is PdfStream) return normal;
         if (resolved is not PdfDictionary states) return null;
-        PdfName state = annotation.TryGetValue(StateName, out PdfObject? stateValue)
-            && Resolve(document, stateValue) is PdfName name ? name : Name("Off");
-        return states.TryGetValue(state, out PdfObject? selected) ? selected : null;
+        // Like the page render, a state dictionary with no /AS selects nothing.
+        return annotation.TryGetValue(StateName, out PdfObject? stateValue)
+            && Resolve(document, stateValue) is PdfName state
+            && states.TryGetValue(state, out PdfObject? selected) ? selected : null;
     }
 
     // The appearance must be a form XObject to be drawn with Do; one stored directly or without its subtype gets a

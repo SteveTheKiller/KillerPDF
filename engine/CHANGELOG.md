@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
-- `PdfPageTransformer.Transform` turns, scales or mirrors pages in place with one matrix per page, given as a `PdfPageTransform`. The page keeps its object, content streams and marked content, so text stays extractable and the structure tree still points at it. Links move with the page, and other visible annotations and form widgets are painted into the content.
+- `PdfPageTransformer.Transform` turns, scales or mirrors pages in place with one `PdfPageTransform` matrix each, so text and the structure tree survive. Links move with the page, and other visible annotations are painted in as the page render shows them.
 
 ## [1.9.6] - 2026-11-24
 
