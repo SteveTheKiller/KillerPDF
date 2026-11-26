@@ -117,7 +117,7 @@
     <SolidColorBrush x:Key="ButtonFaceBrush"      Color="#00000000" po:Freeze="True"/>
     <SolidColorBrush x:Key="ButtonHoverFaceBrush" Color="#FF5A5A5A" po:Freeze="True"/>
     <SolidColorBrush x:Key="WellFillBrush"        Color="#FF000000" po:Freeze="True"/>
-    <sys:Double x:Key="TitleBarHeight">32</sys:Double>
+    <sys:Double x:Key="TitleBarHeight">29</sys:Double>
     <sys:Double x:Key="BarShadowOpacity">0.38</sys:Double>
     <SolidColorBrush x:Key="DialogTitleBarBrush" Color="Transparent" po:Freeze="True"/>
     <SolidColorBrush x:Key="FooterBackgroundBrush" Color="#FF000000" po:Freeze="True"/>

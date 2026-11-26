@@ -460,7 +460,8 @@ namespace KillerPDF.Services
             Mirror("BgFlyout", "MenuBackgroundBrush");
             Mirror("ButtonEdgeBrush", "CardBorderBrush");
             SetIfAbsent("CaptionButtonBrush", Transparent);
-            SetIfAbsent("CaptionButtonHeight", 32.0);
+            // The caption buttons fill the main title bar, so they follow its height.
+            SetIfAbsent("CaptionButtonHeight", combined["TitleBarHeight"] is double captionBar ? captionBar : 29.0);
             SetIfAbsent("CaptionButtonMargin", new Thickness(0));
             SetIfAbsent("CaptionButtonWidth", 44.0);
             SetIfAbsent("CaptionButtonsMargin", new Thickness(0));
@@ -1030,7 +1031,9 @@ namespace KillerPDF.Services
             // needs because its selection is a solid navy fill at full opacity.
             Mirror("TextSelectionTextBrush", "TextBrush");
             SetIfAbsent("TitleBarBleed", new Thickness(0));
-            SetIfAbsent("TitleBarHeight", 32.0);
+            // 29, so the bottom of the wordmark's drip meets the toolbar. It was 32, which left a 3px band of
+            // empty title bar under the drip.
+            SetIfAbsent("TitleBarHeight", 29.0);
             // These six are the title bar's EXISTING hardcoded numbers, moved into the contract
             // rather than replaced by it. A generic default would have quietly resized the icon
             // and the wordmark on all twelve non-flat themes the moment the markup started
@@ -1049,7 +1052,7 @@ namespace KillerPDF.Services
             SetIfAbsent("DialogCaptionButtonsMargin", new Thickness(0, 0,
                 combined["CaptionButtonsMargin"] is Thickness pickerButtons ? pickerButtons.Right : 0, 0));
             SetIfAbsent("TitleLogoMargin", combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool fc && fc
-                ? combined["TitleBarPadding"] : new Thickness(4, 3, 0, 0));
+                ? combined["TitleBarPadding"] : new Thickness(4, 6, 0, 0));
             // The UI face for everything that is not the app (mono) slot; a flat theme keeps its caption font.
             SetIfAbsent("UiFont", combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool fu && fu
                 ? combined["ChromeFontFamily"] : KillerSansUiStack);
@@ -1088,6 +1091,9 @@ namespace KillerPDF.Services
                 fileNameShift.Freeze();
                 combined["FileNameTransform"] = fileNameShift;
             }
+            // The title bar lost 3px at the bottom. The logo's top margin went from 3 to 6 and the file name
+            // takes a 3px top margin, so both stay centered where they were and only the toolbar moves up.
+            SetIfAbsent("FileNameMargin", new Thickness(16, flatTitle ? 0 : 3, 12, 0));
             // The app (mono) slot: Killer Sans UI, the family UI face, over the Segoe stack. It is
             // completed here rather than in AppStyles.xaml so 98SE can state its own face; a font
             // picked in Fonts still overrides it from the top-level application dictionary.

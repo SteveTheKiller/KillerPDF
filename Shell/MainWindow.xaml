@@ -1662,7 +1662,7 @@
                 </StackPanel>
                 <!-- File name: takes the middle space and truncates before the window buttons -->
                 <TextBlock Grid.Column="2" Text="" x:Name="FileNameLabel" VerticalAlignment="Center"
-                           Margin="16,0,12,0" TextTrimming="CharacterEllipsis"
+                           Margin="{DynamicResource FileNameMargin}" TextTrimming="CharacterEllipsis"
                            Foreground="{DynamicResource FilenameBrush}" FontFamily="{DynamicResource FileNameFont}" FontSize="{DynamicResource FileNameFontSize}"
                            RenderTransform="{DynamicResource FileNameTransform}" TextOptions.TextFormattingMode="Ideal"/>
                 <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="{DynamicResource CaptionButtonsMargin}">
@@ -1711,7 +1711,7 @@
             <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
             <!-- Background=Transparent is load-bearing: without it the grid's empty stretches have no
                  hit surface and the right-click appearance picker only opens over the buttons. -->
-            <Grid x:Name="ToolbarGrid" SizeChanged="ToolbarGrid_SizeChanged" Margin="4,2" Background="Transparent">
+            <Grid x:Name="ToolbarGrid" SizeChanged="ToolbarGrid_SizeChanged" Margin="4,2,4,0" Background="Transparent">
                 <Grid.ContextMenu>
                     <!-- Items are built in code (BuildToolbarMenu, SettingsPanel.cs) so captions re-Loc on
                          language switch; attached here so WPF supplies the inheritance context that lets
