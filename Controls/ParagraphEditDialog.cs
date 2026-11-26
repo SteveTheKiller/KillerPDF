@@ -155,7 +155,7 @@ internal sealed class ParagraphEditDialog : Window
         if (_pages.Count > 1)
         {
             // The same flippers and "4 / 6" counter Transform shows under its page.
-            var navigation = new Grid { Height = 36, Margin = new Thickness(8, 2, 8, 6) };
+            var navigation = new Grid { Height = PageWindowLayout.ControlHeight, Margin = new Thickness(4) };
             navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             navigation.ColumnDefinitions.Add(new ColumnDefinition());
             navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -173,7 +173,7 @@ internal sealed class ParagraphEditDialog : Window
             DockPanel.SetDock(navigation, Dock.Bottom); pageColumn.Children.Add(navigation);
         }
         var pageWrap = new Border { BorderThickness = new Thickness(1), CornerRadius = UiKit.RadCard,
-            Margin = new Thickness(8, 4, 8, 8), ClipToBounds = true };
+            Margin = new Thickness(4, 0, 4, _pages.Count > 1 ? 0 : 4), ClipToBounds = true };
         pageWrap.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
         pageWrap.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
         var pageGrid = new Grid();

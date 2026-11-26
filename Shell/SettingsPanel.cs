@@ -231,7 +231,7 @@ namespace KillerPDF.Shell
         {
             _appliedSquared = null;
             UpdateWindowChrome();
-            // The 98SE pane reaches the frame while rounded themes retain an 8px outer gutter.
+            // The 98SE pane reaches the frame while rounded themes retain a 4px outer gutter.
             // Reapply the saved sidebar side so switching away from 98SE restores that right edge.
             ApplySidebarSide();
             // The What's new notes clip is a local value cut to the old theme's corner.

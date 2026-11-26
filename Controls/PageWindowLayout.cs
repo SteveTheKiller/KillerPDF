@@ -30,6 +30,10 @@ namespace KillerPDF.Controls
         public const double PageMargin = 16;
         public const double ControlHeight = 26;
         public const double HeaderHeight = 28;
+        /// <summary>Space above a section header (8 until 1.9.7, Steve 2026-11-25). The first header
+        /// in the options column takes none, so it lines up with the top of the preview.</summary>
+        public const double HeaderTopMargin = 6;
+        private const string HeaderRowTag = "PageWindowHeaderRow";
         /// <summary>The name of the options column's scroller, for tests and acceptance drivers.</summary>
         public const string OptionsScrollerName = "PageWindowOptions";
 
@@ -117,7 +121,7 @@ namespace KillerPDF.Controls
         /// control is something else (Stamp's enable checkboxes).</summary>
         public static FrameworkElement HeaderRow(UIElement control)
         {
-            var row = new DockPanel { Height = HeaderHeight, Margin = new Thickness(0, 8, 0, 4), LastChildFill = true };
+            var row = new DockPanel { Height = HeaderHeight, Margin = new Thickness(0, HeaderTopMargin, 0, 4), LastChildFill = true, Tag = HeaderRowTag };
             var chevron = new TextBlock { Text = "▾", Width = 16, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
             chevron.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
             DockPanel.SetDock(chevron, Dock.Left);
@@ -261,6 +265,7 @@ namespace KillerPDF.Controls
             options.HorizontalAlignment = HorizontalAlignment.Left;
             options.Margin = new Thickness(OptionsInset, 0, 0, 0);
             TwoColumnPanel.SetColumns(options, columns);
+            FlushLeadingHeader(options);
             // Children are added in Tab order (spec 5): the options, then the footer pinned under
             // them, then the preview with its nav arrows. Placement comes from the rows and columns.
             var side = new Grid();
@@ -285,6 +290,29 @@ namespace KillerPDF.Controls
             Grid.SetColumn(optionsColumn, optionsColumnIndex);
             grid.Children.Insert(0, optionsColumn);
             return grid;
+        }
+
+        /// <summary>Drops the top margin of the first section header in the options, so the column's
+        /// first header starts level with the preview instead of below it.</summary>
+        public static void FlushLeadingHeader(FrameworkElement options)
+        {
+            FrameworkElement? element = options;
+            for (int depth = 0; element != null && depth < 8; depth++)
+            {
+                if (element is SectionHeader || Equals(element.Tag, HeaderRowTag))
+                {
+                    var m = element.Margin;
+                    element.Margin = new Thickness(m.Left, 0, m.Right, m.Bottom);
+                    return;
+                }
+                element = element switch
+                {
+                    Panel panel => panel.Children.Count > 0 ? panel.Children[0] as FrameworkElement : null,
+                    Decorator decorator => decorator.Child as FrameworkElement,
+                    ContentControl content => content.Content as FrameworkElement,
+                    _ => null,
+                };
+            }
         }
 
         // Measures its child but asks for nothing, so the preview fills whatever the options leave.
@@ -320,7 +348,7 @@ namespace KillerPDF.Controls
             row.Children.Add(text);
             Content = row;
             Height = PageWindowLayout.HeaderHeight;
-            Margin = new Thickness(0, 8, 0, 4);
+            Margin = new Thickness(0, PageWindowLayout.HeaderTopMargin, 0, 4);
             HorizontalAlignment = HorizontalAlignment.Stretch;
             HorizontalContentAlignment = HorizontalAlignment.Left;
             Cursor = Cursors.Hand;

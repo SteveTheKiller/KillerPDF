@@ -284,6 +284,9 @@
                  it instead of falling back to the default gray system scrollbar. The thumb colors come
                  from the active theme (BgScrollThumb / ScrollThumbHover). -->
             <ctrl:ThumbViewportFloorConverter x:Key="ThumbFloor"/>
+            <!-- The hovered thumb's inset on every side. A key, not a literal, so the page list can
+                 size its bar to the fat thumb plus 1px (Shell/PageListScrollBar.cs). -->
+            <Thickness x:Key="ScrollThumbFatMargin">2</Thickness>
             <Style TargetType="ScrollBar">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="Width" Value="{DynamicResource ScrollBarThickness}"/>
@@ -400,7 +403,7 @@
                                                                          dropped the grab). -->
                                                                     <Trigger Property="IsMouseOver" Value="True">
                                                                         <Setter TargetName="thumbFill" Property="Background" Value="{DynamicResource ScrollThumbHoverBrush}"/>
-                                                                        <Setter TargetName="thumbBorder" Property="Margin" Value="2,2"/>
+                                                                        <Setter TargetName="thumbBorder" Property="Margin" Value="{DynamicResource ScrollThumbFatMargin}"/>
                                                                         <Setter TargetName="thumbBorder" Property="Effect">
                                                                             <Setter.Value>
                                                                                 <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="0" Opacity="0.3"/>

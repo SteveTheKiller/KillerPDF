@@ -184,6 +184,32 @@ public sealed class PageWindowLayoutTests
         });
     }
 
+    // Steve 2026-11-25: every header has 6 above it (was 8), and the first header in the options
+    // column has none, so it starts level with the preview under the title bar. A header row
+    // (Stamp's checkbox headers) behind a wrapper panel counts as the first header too.
+    [Fact]
+    public void TheFirstHeaderIsFlushAndTheRestKeepSixAbove()
+    {
+        RunSta(() =>
+        {
+            var first = PageWindowLayout.Section("ROTATE", new Border(), out FrameworkElement firstHeader);
+            var second = PageWindowLayout.Section("FLIP", new Border(), out FrameworkElement secondHeader);
+            var options = new StackPanel();
+            options.Children.Add(first);
+            options.Children.Add(second);
+            PageWindowLayout.Body(options, new Border(), new Border(), out _);
+            Assert.Equal(0, firstHeader.Margin.Top);
+            Assert.Equal(PageWindowLayout.HeaderTopMargin, secondHeader.Margin.Top);
+            Assert.Equal(6, PageWindowLayout.HeaderTopMargin);
+
+            var row = PageWindowLayout.HeaderRow(new CheckBox());
+            var wrapped = new StackPanel();
+            wrapped.Children.Add(new StackPanel { Children = { row } });
+            PageWindowLayout.Body(wrapped, new Border(), new Border(), out _);
+            Assert.Equal(0, row.Margin.Top);
+        });
+    }
+
     // Spec 5: section headers are real buttons that Tab reaches and that report ExpandCollapse.
     [Fact]
     public void ASectionHeaderIsAKeyboardButtonThatExpandsAndCollapses()

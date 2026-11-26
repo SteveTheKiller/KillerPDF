@@ -1000,7 +1000,7 @@ namespace KillerPDF
             footer = PageWindowLayout.Footer(null, cancel, print);
 
             // Essentials, then PAPER and LAYOUT, both open on every open.
-            var options = new StackPanel { Margin = new Thickness(0, 4, 0, 0) };
+            var options = new StackPanel();
             options.Children.Add(essentials);
             options.Children.Add(PageWindowLayout.Divider());
             options.Children.Add(PageWindowLayout.Section(S("Str_Print_SecPaper"), paperGrid, out _));
@@ -1300,8 +1300,9 @@ namespace KillerPDF
                 Background       = R("BgCanvas"),
                 BorderBrush      = R("PaneBorderBrush"),   // 1px frame, matching the main document pane
                 BorderThickness  = new Thickness(1),
-                // 8 on top, left and right; the nav row sits directly under the frame.
-                Margin           = new Thickness(8, 8, 8, 0),
+                // Flush under the title bar and 4 from the sides (8 until 1.9.7); the nav row sits
+                // directly under the frame.
+                Margin           = new Thickness(4, 0, 4, 0),
                 CornerRadius     = UiKit.RadCard
             };
 
@@ -1316,7 +1317,8 @@ namespace KillerPDF
                 else { lastRoom = room; FitSheets(); }
             };
 
-            var navigation = new Grid { MinHeight = 36, Margin = new Thickness(8, 2, 8, 6) };
+            // The page turners sit 4 from the frame and the window's corners (8 until 1.9.7).
+            var navigation = new Grid { MinHeight = PageWindowLayout.ControlHeight, Margin = new Thickness(4) };
             navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             navigation.ColumnDefinitions.Add(new ColumnDefinition());
             navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });

@@ -212,12 +212,18 @@ namespace KillerPDF
             {
                 Orientation = Orientation.Horizontal,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = caption ? new Thickness(0) : new Thickness(6, 0, 0, 0)
+                // 5 puts the icon's ink 7 in from the card's edge, where the main title bar's logo sits
+                // (measured on Steve's shots 2026-11-25; 6 left it 8 in until 1.9.7).
+                Margin = caption ? new Thickness(0) : new Thickness(5, 0, 0, 0)
             };
             // Negative margins keep the wordmark's deep Lacquer descent out of the layout so the bar
             // never clips its drips (2px imbalance as in the main title bar); the bar sits above the
             // dialog body so the drips can hang over it.
-            titleRow.Children.Add(TitleIcon(owner));
+            var rowIcon = TitleIcon(owner);
+            // The dialog icon sat 2px high against the wordmark compared with the main title bar
+            // (Steve 2026-11-25), so the wordmark themes drop it 2px. Classic captions keep it centered.
+            if (!caption) rowIcon.RenderTransform = new TranslateTransform(0, 2);
+            titleRow.Children.Add(rowIcon);
             var titleHost = new Grid { VerticalAlignment = VerticalAlignment.Center };
             titleHost.Children.Add(plain);
             titleHost.Children.Add(title);

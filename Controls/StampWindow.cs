@@ -160,7 +160,8 @@ namespace KillerPDF
             {
                 BorderThickness = new Thickness(1),
                 CornerRadius = UiKit.RadCard,
-                Margin = new Thickness(8, 8, 8, paged ? 0 : 8),
+                // Flush under the title bar, 4 from the window's sides (8 all round until 1.9.7).
+                Margin = new Thickness(4, 0, 4, paged ? 0 : 4),
                 ClipToBounds = true
             };
             previewWrap.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
@@ -534,7 +535,7 @@ namespace KillerPDF
 
         // ---------- preview ----------
         // ---------- Preview page stepper ----------
-        // The nav row under the frame (spec 2.2): 36 high, 32 x 26 arrows at the frame's edges.
+        // The nav row under the frame: 32 x 26 arrows, 4 from the frame and the window's corners.
         private Grid BuildPageNav()
         {
             _prevArrow = PageNavButtons.Previous(() => GoToPage(_pageIndex - 1));
@@ -545,7 +546,7 @@ namespace KillerPDF
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
             };
             _pageNavLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-            var row = new Grid { Height = 36, Margin = new Thickness(8, 2, 8, 6) };
+            var row = new Grid { Height = PageWindowLayout.ControlHeight, Margin = new Thickness(4) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition());
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });

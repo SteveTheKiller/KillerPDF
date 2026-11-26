@@ -310,8 +310,9 @@ namespace KillerPDF.Services
             Default("SidebarInnerDarkThickness", new Thickness(0));
             Default("SidebarInnerDarkVisibility", Visibility.Collapsed);
             Default("SidebarRailBrush", Brushes.Transparent);
-            Default("SplitHostMargin", new Thickness(0, 0, 8, 0));
-            Default("SplitPaneGutterWidth", 8.0);
+            // The family gutter is 4 (was 8): window edge, split gutter and the page windows' frames.
+            Default("SplitHostMargin", new Thickness(0, 0, 4, 0));
+            Default("SplitPaneGutterWidth", 4.0);
 
             // The active tab's corner (matched by the card's corners at each end of the band), the
             // title and the close x, as KillerShell has them. 98SE keeps its classic sizes.

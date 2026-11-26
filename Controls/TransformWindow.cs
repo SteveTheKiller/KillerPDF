@@ -461,7 +461,8 @@ namespace KillerPDF
             {
                 BorderThickness = new Thickness(1),
                 CornerRadius = UiKit.RadCard,
-                Margin = new Thickness(8, 8, 8, _pageCount > 1 ? 0 : 8),
+                // Flush under the title bar, 4 from the window's sides (8 all round until 1.9.7).
+                Margin = new Thickness(4, 0, 4, _pageCount > 1 ? 0 : 4),
                 ClipToBounds = true
             };
             previewWrap.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
@@ -589,14 +590,15 @@ namespace KillerPDF
                 _applyToSelection = new CheckBox
                 {
                     Content = string.Format(S("Str_Divide_Selected"), _selection.Count), IsChecked = true,
-                    Margin = new Thickness(10, 0, 8, 6), Foreground = R("TextBrush")
+                    Margin = new Thickness(4, 0, 4, 4), Foreground = R("TextBrush")
                 };
                 DockPanel.SetDock(_applyToSelection, Dock.Bottom);
                 previewColumn.Children.Add(_applyToSelection);
             }
             if (_pageCount > 1)
             {
-                var navigation = new Grid { Height = 36, Margin = new Thickness(8, 2, 8, 6) };
+                // The page turners sit 4 from the frame and the window's corners (8 until 1.9.7).
+                var navigation = new Grid { Height = PageWindowLayout.ControlHeight, Margin = new Thickness(4) };
                 navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 navigation.ColumnDefinitions.Add(new ColumnDefinition());
                 navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });

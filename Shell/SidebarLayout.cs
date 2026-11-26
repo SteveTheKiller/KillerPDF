@@ -16,8 +16,27 @@ namespace KillerPDF.Shell
     // track, so the collapse / resize logic keeps working unchanged.
     public partial class MainWindow
     {
+        // The page list's bar sized to the hovered thumb plus 1px each side (PageListScrollBar.cs).
+        private void SyncPageListScrollBar()
+        {
+            if (PageList == null) return;
+            // The window's lookup never reaches the list's own resources, so this reads the theme.
+            foreach (string key in new[] { "ScrollBarThickness", "ScrollThumbMargin", "ScrollThumbMarginH", "ScrollThumbFatMargin" })
+                PageList.Resources.Remove(key);
+            if (TryFindResource("ScrollBarThickness") is not double thickness
+                || TryFindResource("ScrollThumbMargin") is not Thickness resting
+                || TryFindResource("ScrollThumbMarginH") is not Thickness restingH
+                || TryFindResource("ScrollThumbFatMargin") is not Thickness fat) return;
+            if (PageListScrollBar.Size(thickness, resting, restingH, fat) is not { } sized) return;
+            PageList.Resources["ScrollBarThickness"] = sized.Thickness;
+            PageList.Resources["ScrollThumbMargin"] = sized.Resting;
+            PageList.Resources["ScrollThumbMarginH"] = sized.RestingH;
+            PageList.Resources["ScrollThumbFatMargin"] = sized.Fat;
+        }
+
         private void ApplySidebarSide()
         {
+            SyncPageListScrollBar();
             // ContentPane, NOT Viewer. Since the split landed, the element that sits in
             // MainContentGrid is the SPLIT HOST - Viewer is one of its children. Setting
             // Grid.Column on Viewer therefore moved pane A into ContentPane's column 2, which is
@@ -193,7 +212,7 @@ namespace KillerPDF.Shell
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)UpdateFooterFade);
         }
 
-        // Document on the right (sidebar left) -> 8px inset on the right; mirrored when the sidebar
+        // Document on the right (sidebar left) -> 4px inset on the right (8 until 1.9.7); mirrored when the sidebar
         // moves. With the sidebar at the top or bottom both sides are window edges, so both get the
         // inset. Top and bottom stay 0: PaneShadow is Direction 270 and draws outside the element's
         // bounds without taking layout space, so a bottom gap would be real padding lifting the
@@ -211,7 +230,7 @@ namespace KillerPDF.Shell
         {
             // This is layout geometry, not a palette value. Keep the zero-inset exception scoped
             // to 98SE so it cannot leak into the rounded themes after a live theme switch.
-            double inset = Services.ThemeManager.Current == Services.Theme.SE98 ? 0 : 8;
+            double inset = Services.ThemeManager.Current == Services.Theme.SE98 ? 0 : 4;
             return _sidebarSide switch
             {
                 SidebarSide.Right => new Thickness(inset, -1, 0, 0),
@@ -622,7 +641,7 @@ namespace KillerPDF.Shell
                 _sidebarHeaderHome.Children.Insert(
                     Math.Min(_sidebarHeaderHomeIndex, _sidebarHeaderHome.Children.Count), SidebarHeaderStack);
 
-                _sidebarToggleBtn.Margin = new Thickness(0, 6, 0, 0);
+                _sidebarToggleBtn.Margin = new Thickness(0, 1, 0, 0);
                 _sidebarToggleBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
                 _sidebarToggleBtn.VerticalAlignment = VerticalAlignment.Top;
                 _sidebarToggleBtn.ClearValue(WidthProperty);
@@ -634,7 +653,7 @@ namespace KillerPDF.Shell
                 SidebarHeaderStack.ClearValue(MaxWidthProperty);
                 SidebarHeaderStack.ClearValue(ClipToBoundsProperty);
                 SidebarHeaderStack.Visibility = Visibility.Visible;
-                titleLine.Margin = new Thickness(10, 6, 8, 0);
+                titleLine.Margin = new Thickness(10, 1, 8, 0);
                 PageControlsRow.Margin = new Thickness(2, 0, 0, 0);
                 PageControlsRow.ClearValue(VerticalAlignmentProperty);
                 SyncPageRowWrap();
@@ -679,7 +698,7 @@ namespace KillerPDF.Shell
             if (!_sidebarStripLayout)
             {
                 _sidebarToggleBtn.VerticalAlignment = VerticalAlignment.Top;
-                _sidebarToggleBtn.Margin = new Thickness(0, 6, 0, 0);
+                _sidebarToggleBtn.Margin = new Thickness(0, 1, 0, 0);
                 SidebarRailStack.VerticalAlignment = VerticalAlignment.Bottom;
                 SidebarRailStack.Margin = new Thickness(0, 0, 0, 6);
                 return;

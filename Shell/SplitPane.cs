@@ -20,7 +20,7 @@ namespace KillerPDF.Shell
         private const double MinPaneWidth = WindowFloor.SplitPaneMinimum;
 
         /// <summary>Inset a pane keeps from the window edge.</summary>
-        private const double PaneEdge = 8;
+        private const double PaneEdge = 4;
 
         /// <summary>Channel between the two cards, sized so the gap either side of a pane reads the
         /// same whether its neighbor is the other pane or the window edge. Zero when unsplit.</summary>

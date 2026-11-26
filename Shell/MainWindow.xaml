@@ -1984,7 +1984,8 @@
                              below it stack vertically; a top or bottom strip turns the stack
                              horizontal so both sit on one line and the thumbnails keep the height. -->
                         <StackPanel x:Name="SidebarHeaderStack" DockPanel.Dock="Top">
-                        <DockPanel DockPanel.Dock="Top" LastChildFill="False" Height="20" Margin="10,6,8,0">
+                        <!-- 1 above, so the page box sits 1px under the toolbar's hover faces (Steve 2026-11-25). -->
+                        <DockPanel DockPanel.Dock="Top" LastChildFill="False" Height="20" Margin="10,1,8,0">
                             <TextBlock x:Name="SidebarPanelTitle" Text="{DynamicResource Str_TabPages}"
                                        DockPanel.Dock="Left"
                                        FontFamily="{DynamicResource BrandSansFont}" FontSize="14"
@@ -2209,7 +2210,7 @@
                         <Button x:Name="SidebarToggleBtn"
                                 Content="&#xE76B;" ToolTip="{DynamicResource Str_TT_CollapseSidebar}"
                                 Style="{StaticResource RailChevronBtn}"
-                                VerticalAlignment="Top" Margin="0,6,0,0"
+                                VerticalAlignment="Top" Margin="0,1,0,0"
                                 Click="SidebarToggle_Click"/>
                         <!-- A top or bottom strip lays its rail out as one row (SidebarLayout.cs): the
                              chevron, then the open panel's header lifted out of the panel, then the
@@ -2453,9 +2454,20 @@
                         <!-- Transparent, not empty: a Border with no Background is not hit-testable
                              and the grip would be unusable (KillerShell's note). -->
                         <Border Background="Transparent">
+                            <!-- Full length, its ends faded out as the comparison bar's are (Steve
+                                 2026-11-25; it stopped 12 short of each end until 1.9.7). -->
                             <Border x:Name="line" Width="1" HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
                                     VerticalAlignment="{TemplateBinding VerticalAlignment}"
-                                    Background="{DynamicResource CardBorderBrush}" Margin="0,12" Opacity="0"/>
+                                    Background="{DynamicResource CardBorderBrush}" Opacity="0">
+                                <Border.OpacityMask>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Color="Transparent" Offset="0"/>
+                                        <GradientStop Color="Black" Offset="0.045"/>
+                                        <GradientStop Color="Black" Offset="0.955"/>
+                                        <GradientStop Color="Transparent" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.OpacityMask>
+                            </Border>
                         </Border>
                         <ControlTemplate.Triggers>
                             <!-- A top or bottom sidebar lays the grip along its inner edge, stretched
@@ -2463,7 +2475,16 @@
                             <Trigger Property="HorizontalAlignment" Value="Stretch">
                                 <Setter TargetName="line" Property="Width" Value="Auto"/>
                                 <Setter TargetName="line" Property="Height" Value="1"/>
-                                <Setter TargetName="line" Property="Margin" Value="12,0"/>
+                                <Setter TargetName="line" Property="OpacityMask">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Color="Transparent" Offset="0"/>
+                                            <GradientStop Color="Black" Offset="0.045"/>
+                                            <GradientStop Color="Black" Offset="0.955"/>
+                                            <GradientStop Color="Transparent" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="line" Property="Opacity" Value="1"/>
@@ -2535,7 +2556,7 @@
                  The margin that used to sit on the viewer lives here now, because the gutter to the
                  window edge is the layout's business and there are two viewers to position.
 
-                 Columns: A (star) | gutter | B (zero until split). Splitting sets the gutter to 8 -
+                 Columns: A (star) | gutter | B (zero until split). Splitting sets the gutter to 4 -
                  the family gutter, the same one between the card and the window edge - and gives B
                  a pixel width; A stays star so it absorbs window resizes. That is the "A in pixels /
                  B star" arrangement from the spec, inverted: keeping A star means an un-split window
@@ -3122,7 +3143,8 @@
                                     ViewportUnits="Absolute" Viewport="0,0,256,256" Stretch="None"/>
                     </Border.Background>
                 </Border>
-                <Grid Grid.Row="1" Margin="8,8,8,18">
+                <!-- 4 in from the card's sides, the family gutter (8 until 1.9.7). -->
+                <Grid Grid.Row="1" Margin="4,8,4,18">
                     <StackPanel Margin="0">
                     <!-- Header: bloody KillerPDF icon to the left of the title + tagline.
                          A Grid (not a horizontal StackPanel) so the text column is bounded and the
@@ -3457,8 +3479,8 @@
                         </Button>
                     </StackPanel>
                 </Grid>
-                <!-- The notes pane: 8px in from the card, lifted with the About panel's shadow. -->
-                <Grid Grid.Row="2" Margin="8,0,8,8">
+                <!-- The notes pane: 4px in from the card, lifted with the About panel's shadow. -->
+                <Grid Grid.Row="2" Margin="4,0,4,4">
                     <Border Background="{DynamicResource AboutPanelBrush}" CornerRadius="{DynamicResource ControlCornerRadius}" IsHitTestVisible="False">
                         <Border.Effect>
                             <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="{DynamicResource AboutShadowOpacity}"/>

@@ -70,8 +70,8 @@ internal sealed class SeparationPreviewDialog : Window
             VerticalAlignment = VerticalAlignment.Center
         };
         _pageLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-        // The page strip under the frame, as Stamp's: 36 high, 32 x 26 arrows at the frame's edges.
-        var pager = new Grid { Height = 36, Margin = new Thickness(8, 2, 8, 0) };
+        // The page strip under the frame, as Stamp's: 32 x 26 arrows, 4 from the frame and the sides.
+        var pager = new Grid { Height = KillerPDF.Controls.PageWindowLayout.ControlHeight, Margin = new Thickness(4, 4, 4, 0) };
         pager.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         pager.ColumnDefinitions.Add(new ColumnDefinition());
         pager.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -86,7 +86,7 @@ internal sealed class SeparationPreviewDialog : Window
         {
             BorderThickness = new Thickness(1),
             CornerRadius = UiKit.RadCard,
-            Margin = new Thickness(8, 8, 8, _pageCount > 1 ? 0 : 8),
+            Margin = new Thickness(4, 0, 4, _pageCount > 1 ? 0 : 4),
             ClipToBounds = true
         };
         pane.SetResourceReference(Border.BackgroundProperty, "BgCanvas");

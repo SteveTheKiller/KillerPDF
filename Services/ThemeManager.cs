@@ -399,9 +399,9 @@ namespace KillerPDF.Services
             // panes kept three rounded corners on 98SE no matter what the markup said.
             SetIfAbsent("PaneCornerRadiusValue", 6.0);
             SetIfAbsent("BarCornerRadiusValue", 5.0);
-            // The pane card and tab-strip insets.
-            SetIfAbsent("PaneOuterMargin", new Thickness(0, -1, 8, 0));
-            SetIfAbsent("TabBarMargin", new Thickness(0, 0, 8, 0));
+            // The pane card and tab-strip insets: 4 from the window edge, the family gutter (was 8).
+            SetIfAbsent("PaneOuterMargin", new Thickness(0, -1, 4, 0));
+            SetIfAbsent("TabBarMargin", new Thickness(0, 0, 4, 0));
             // Keep the pane's top and side rails. Only the BOTTOM rule follows scroll position:
             // a fixed bottom line reads as the end of content while a tab is still scrolling,
             // whereas the top rail is the pane's real frame and must remain present.
@@ -554,9 +554,10 @@ namespace KillerPDF.Services
             SetIfAbsent("RailColumnWidth", new GridLength(24));
             // The confirm dialog's body inset, checkbox gaps and button row. 98SE packs them
             // the way a Win98 message box does.
-            SetIfAbsent("ConfirmBodyMargin", new Thickness(24, 18, 24, 18));
+            // 16 all round (24 and 18 until KillerPDF 1.9.7 tightened the dialogs with the 4px gutter).
+            SetIfAbsent("ConfirmBodyMargin", new Thickness(16));
             SetIfAbsent("ConfirmCheckMargin", new Thickness(0, 8, 0, 0));
-            SetIfAbsent("ConfirmButtonsMargin", new Thickness(24, 0, 24, 20));
+            SetIfAbsent("ConfirmButtonsMargin", new Thickness(16, 0, 16, 16));
             SetIfAbsent("ConfirmButtonGap", new Thickness(0, 0, 8, 0));
             SetIfAbsent("DialogButtonHeight", 28.0);
             SetIfAbsent("DialogContentMargin", new Thickness(0));
@@ -1052,7 +1053,7 @@ namespace KillerPDF.Services
             SetIfAbsent("DialogCaptionButtonsMargin", new Thickness(0, 0,
                 combined["CaptionButtonsMargin"] is Thickness pickerButtons ? pickerButtons.Right : 0, 0));
             SetIfAbsent("TitleLogoMargin", combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool fc && fc
-                ? combined["TitleBarPadding"] : new Thickness(4, 6, 0, 0));
+                ? combined["TitleBarPadding"] : new Thickness(4, 4, 0, -2));
             // The UI face for everything that is not the app (mono) slot; a flat theme keeps its caption font.
             SetIfAbsent("UiFont", combined.Contains("UseDialogCaption") && combined["UseDialogCaption"] is bool fu && fu
                 ? combined["ChromeFontFamily"] : KillerSansUiStack);
@@ -1091,8 +1092,10 @@ namespace KillerPDF.Services
                 fileNameShift.Freeze();
                 combined["FileNameTransform"] = fileNameShift;
             }
-            // The title bar lost 3px at the bottom. The logo's top margin went from 3 to 6 and the file name
-            // takes a 3px top margin, so both stay centered where they were and only the toolbar moves up.
+            // The title bar lost 3px at the bottom. The file name takes a 3px top margin, so it stays centered
+            // where it was and only the toolbar moves up. The logo row keeps the same center with 4 above and
+            // -2 below: its slot stays 27 high for the 27px icon. A top margin of 6 left a 23px slot, and WPF's
+            // layout clip then cut the wordmark's drips off at the bottom of the bar.
             SetIfAbsent("FileNameMargin", new Thickness(16, flatTitle ? 0 : 3, 12, 0));
             // The app (mono) slot: Killer Sans UI, the family UI face, over the Segoe stack. It is
             // completed here rather than in AppStyles.xaml so 98SE can state its own face; a font
