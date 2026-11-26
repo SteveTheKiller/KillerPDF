@@ -91,9 +91,13 @@ namespace KillerPDF
             // Film-grain overlay so the dialog carries the same texture as the rest of the app - dimmed
             // by the shared GrainOpacity so it stays subtle (was rendering at full strength before).
             var root = new Grid();
-            if (Owner?.TryFindResource("GrainBrushShared") is Brush grain)
+            // The grain lives in the main window's resources. A picker opened from another dialog (the field
+            // Border dialog, say) is owned by that dialog, so walk up to the first window that has it.
+            Window? grainHost = Owner;
+            while (grainHost is not null && grainHost.TryFindResource("GrainBrushShared") is not Brush) grainHost = grainHost.Owner;
+            if (grainHost?.TryFindResource("GrainBrushShared") is Brush grain)
             {
-                double grainOp = Owner?.TryFindResource("GrainOpacity") is double go ? go : 0.12;
+                double grainOp = grainHost.TryFindResource("GrainOpacity") is double go ? go : 0.12;
                 root.Children.Add(new Border { Background = grain, Opacity = grainOp, CornerRadius = UiKit.RadWindow, IsHitTestVisible = false });
             }
             DialogFrame.AddBevels(root, Owner);
