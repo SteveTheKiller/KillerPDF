@@ -8,8 +8,8 @@ using Xunit;
 namespace KillerPDF.Tests;
 
 /// <summary>
-/// KillerPDF has no status light in the footer corner. 1.8.91 inset "Ready" by its 16px footer padding;
-/// the kit's FooterPadding is 0, so on the twelve rounded themes the text touched the window edge.
+/// KillerPDF has no status light in the footer corner. The kit's FooterPadding is 0, so on the twelve
+/// rounded themes the text needs its own inset: 3px, which lines it up with the sidebar above it.
 /// FooterStatusInset is KillerPDF's own key, completed in AppTheme, and 98SE states its cell padding
 /// in KillerPDF's own 98SE values so its sunken status cell keeps the spacing it had.
 /// </summary>
@@ -18,10 +18,10 @@ public sealed class FooterStatusInsetTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
-    public void RoundedThemesRestoreTheShippedSixteenPixelInset()
+    public void RoundedThemesLineTheStatusUpWithTheSidebar()
     {
         string source = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Services", "AppTheme.cs"));
-        Assert.Matches(new Regex(@"Default\(""FooterStatusInset"",\s*new Thickness\(16,\s*0,\s*0,\s*0\)\)"), source);
+        Assert.Matches(new Regex(@"Default\(""FooterStatusInset"",\s*new Thickness\(3,\s*0,\s*0,\s*0\)\)"), source);
     }
 
     [Fact]
