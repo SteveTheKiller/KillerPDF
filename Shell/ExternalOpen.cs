@@ -111,6 +111,35 @@ namespace KillerPDF.Shell
             if (images.Count > 0) OpenImagesAsNewDocument(images);
         }
 
+        /// <summary>#513: PDFs opened from Explorer with Shift held, waiting to open together in a new window.</summary>
+        private readonly System.Collections.Generic.List<string> _newWindowFiles = [];
+        private System.Windows.Threading.DispatcherTimer? _newWindowTimer;
+
+        // Explorer starts one launch per selected file, so they gather like Open with images do and
+        // open as tabs of one new window once none has arrived for a moment.
+        internal void QueueNewWindowFile(string path)
+        {
+            _newWindowFiles.Add(path);
+            if (_newWindowTimer is null)
+            {
+                _newWindowTimer = new System.Windows.Threading.DispatcherTimer(
+                    System.Windows.Threading.DispatcherPriority.Background, Dispatcher)
+                { Interval = ImagesToPdfPlan.OpenWithQuietPeriod };
+                _newWindowTimer.Tick += (_, _) => FlushNewWindowFiles();
+            }
+            _newWindowTimer.Stop();   // restart the quiet period
+            _newWindowTimer.Start();
+        }
+
+        private void FlushNewWindowFiles()
+        {
+            _newWindowTimer?.Stop();
+            var files = _newWindowFiles.Where(File.Exists).Distinct(System.StringComparer.OrdinalIgnoreCase).ToList();
+            _newWindowFiles.Clear();
+            if (_windowResourcesReleased) return;
+            OpenInNewWindow(files);
+        }
+
         /// <summary>The same dialog a failed browser download gets, with the refusal as the reason.</summary>
         private void ShowRefusedHandoff(ProtocolRegistrar.HandoffRejection rejection)
         {

@@ -77,6 +77,8 @@ namespace KillerPDF
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            // #513: read first, while the Shift of a Shift+Enter in Explorer may still be down.
+            StartedWithShift = Services.ShiftLaunch.ShiftHeld();
             // The elevated machine-update helper (Services/TrustedUpdate.cs) runs headless and exits.
             if (e.Args.Length > 0 && string.Equals(e.Args[0], Services.TrustedUpdate.HelperArgument, StringComparison.OrdinalIgnoreCase))
             {
@@ -253,6 +255,9 @@ namespace KillerPDF
                     return;
                 }
                 var fwd = e.Args.FirstOrDefault(a => !a.StartsWith('/'));
+                // #513: a PDF opened with Shift held asks the running window for a new window.
+                if (StartedWithShift && fwd is not null && File.Exists(fwd))
+                    fwd = Services.ShiftLaunch.Mark(Path.GetFullPath(fwd));
                 Shutdown(InstanceChannel.Value.ForwardLaunch(fwd));
                 return;
             }
@@ -428,10 +433,23 @@ namespace KillerPDF
             return windows.FirstOrDefault(window => window.IsActive) ?? windows.FirstOrDefault();
         }
 
+        /// <summary>#513: Shift was down when this process started.</summary>
+        private static bool StartedWithShift;
+        private static readonly Stopwatch SinceStartup = Stopwatch.StartNew();
+
         private static void DeliverExternalOpen(string? path)
         {
             if (PrimaryWindow() is { } mw)
             {
+                if (path is not null && Services.ShiftLaunch.TryUnmark(path, out string marked))
+                {
+                    if (Services.ShiftLaunch.OpensNewWindow(StartedWithShift, SinceStartup.Elapsed))
+                    {
+                        mw.QueueNewWindowFile(marked);
+                        return;
+                    }
+                    path = marked;
+                }
                 if (string.Equals(path, UninstallCloseCommand, StringComparison.Ordinal))
                 {
                     // Add or Remove Programs owns the foreground when it starts uninstall. Bring

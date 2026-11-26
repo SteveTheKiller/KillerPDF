@@ -66,6 +66,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A text field's card sets its border color, width and style. The styles are solid, dashed, beveled, inset and underline, and a width of None removes the border.
 - A form field's card copies the field's name, and its value for text fields, lists and dropdowns. A text field's card also fills it from a preset, clears it and saves or manages presets, and keeps Copy Field Name in its Hidden drawer. A check box or multi-select list clears from its card.
 - Fill Unused Space draws a black Z through the part of a multiline or empty text field that nobody wrote in, then makes the field read-only. It starts in the form field card's Hidden drawer, and the Z is a normal drawing you can move, resize, undo or flatten. (#536)
+- Shift+Enter on PDFs selected in File Explorer opens them together in a new KillerPDF window. Hold Shift until KillerPDF picks them up, since Explorer doesn't pass it along (#513).
 
 ## [1.9.6] - 2026-11-24
 
