@@ -87,8 +87,10 @@ namespace KillerPDF.Controls
             };
             // A notice floats over the page, so it is the menus' own card: FlyoutCard's fill, edge, corners and shadow.
             bar.SetResourceReference(FrameworkElement.StyleProperty, "FlyoutCard");
-            // 7 plus the 1px edge: the buttons and the glyph sit 8px from every edge (family rule).
-            bar.Padding = new Thickness(7);
+            // 7 plus the 1px edge at the sides, so the glyph and the buttons sit 8px in. Above and below
+            // it is 3 plus the edge: 4px, like the slimmer tool options bar and tabs, where 8 made the
+            // bar stand out as taller than everything around it.
+            bar.Padding = new Thickness(7, 3, 7, 3);
             void Relabel()
             {
                 message.Text = string.Format(host.Loc("Str_RestoreSession_Prompt"), fileCount);
