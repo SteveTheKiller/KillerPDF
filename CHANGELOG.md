@@ -45,7 +45,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The page number box in the sidebar has a dark field like the other text boxes, so a selected number is easy to see.
 - The sidebar starts 1px below the toolbar instead of 6px, and the gap around the document pane, a split view and the About card is 4px instead of 8.
 - The sidebar's resize line runs the full height of the sidebar, with faded ends like the comparison bar. The page list's scrollbar fills the gap beside the thumbnails with 1px to spare when it widens on hover.
-- Transform keeps a page's text and links when it rotates, scales or flips it, instead of turning the page into an image (#522). Perspective, levels, color and output quality settings still rasterize, and only they bring up the warning.
+- Transform keeps a page's text and links when it rotates, scales or flips it, instead of turning the page into an image (#538). Perspective, levels, color and output quality settings still rasterize, and only they bring up the warning.
 - Transform, Color correction, Stamp, Print, the separation preview and Edit paragraph put the page right under the title bar. The page arrows sit 4px from the edges, the preview's shadow no longer draws over them, and the settings start 10px higher.
 - Message boxes and confirmations keep 8px on every side, and the icon in a dialog's title bar sits 3px from the corner.
 - The file dialog uses the 4px gutter at its sides and between its panes, and the address bar sits closer to the title bar and the panes.
