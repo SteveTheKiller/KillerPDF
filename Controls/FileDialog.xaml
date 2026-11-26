@@ -197,7 +197,8 @@
             <Setter Property="Orientation" Value="Horizontal"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="6,0,0,0"/>
+            <!-- 2 puts the icon 3 in from the card, as DialogFrame does (6 until KillerPDF 1.9.7). -->
+            <Setter Property="Margin" Value="2,0,0,0"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
                     <Setter Property="Margin" Value="4,0,0,0"/>
@@ -324,7 +325,9 @@
             </Border>
 
             <!-- Path row: up one level + current path + view modes -->
-            <Grid Grid.Row="2" Margin="16,8,16,8">
+            <!-- 4 at the sides like the window gutter; -4 above takes the 12 spare under the title bar
+                 (8,8 until KillerPDF 1.9.7, which left 12 too many above and 4 too many below). -->
+            <Grid Grid.Row="2" Margin="4,-4,4,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -435,10 +438,10 @@
             </Grid>
 
             <!-- Main: quick places on the left, folder contents on the right -->
-            <Grid Grid.Row="3" Margin="16,0">
+            <Grid Grid.Row="3" Margin="4,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="170"/>
-                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="4"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition x:Name="ImagePreviewGapColumn" Width="0"/>
                     <ColumnDefinition x:Name="ImagePreviewColumn" Width="0"/>
@@ -736,7 +739,7 @@
                  its longest entry needs. With no filter (folder mode) the name runs the full row.
                  Labels are DimTextBrush on the dark card: 3.15:1, the tier these brushes are
                  calibrated for. -->
-            <Grid x:Name="FileFields" Grid.Row="4" Margin="16,12,16,0">
+            <Grid x:Name="FileFields" Grid.Row="4" Margin="4,12,4,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -764,7 +767,7 @@
             </Grid>
 
             <!-- Footer: selection details on the left, actions on the right -->
-            <Grid Grid.Row="5" Margin="16,12,16,16">
+            <Grid Grid.Row="5" Margin="4,12,4,16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>

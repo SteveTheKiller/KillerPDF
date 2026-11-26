@@ -33,6 +33,8 @@ namespace KillerPDF.Controls
         /// <summary>Space above a section header (8 until 1.9.7, Steve 2026-11-25). The first header
         /// in the options column takes none, so it lines up with the top of the preview.</summary>
         public const double HeaderTopMargin = 6;
+        /// <summary>How far the options column rises into the card's title bar (Steve 2026-11-26).</summary>
+        public const double OptionsLift = 10;
         private const string HeaderRowTag = "PageWindowHeaderRow";
         /// <summary>The name of the options column's scroller, for tests and acceptance drivers.</summary>
         public const string OptionsScrollerName = "PageWindowOptions";
@@ -286,6 +288,10 @@ namespace KillerPDF.Controls
                 Width = columns >= 2 ? OptionsWidth : NarrowOptionsWidth,
                 Background = Brushes.Transparent,
                 Child = side,
+                // The first header's 28px row centers its title well below the preview's top edge, so
+                // the column rises into the card's transparent title bar. A classic caption is a solid
+                // bar, so those themes keep the column under it.
+                Margin = new Thickness(0, Application.Current?.TryFindResource("UseDialogCaption") is true ? 0 : -OptionsLift, 0, 0),
             };
             Grid.SetColumn(optionsColumn, optionsColumnIndex);
             grid.Children.Insert(0, optionsColumn);

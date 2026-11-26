@@ -261,8 +261,13 @@ public sealed class CardMenuTests
         Assert.DoesNotContain("new Separator()", ocr);
         Assert.DoesNotContain("Str_Ocr_FormAware", ocr);
         string language = Between(Read("Shell", "Ocr.cs"), "private MenuItem BuildLanguageMenu()", "private async void DownloadOcrLanguage(");
-        Assert.Contains("Header = Loc(\"Str_Ocr_FormAware\")", language);
+        Assert.Contains("Content = Loc(\"Str_Ocr_FormAware\")", language);
         Assert.Contains("App.SetSetting(\"OcrFormAware\"", language);
+        // Steve 2026-11-26: the list is the locale picker's two-column panel with flags, as checkboxes.
+        Assert.Contains("Controls.LanguageFlags.Badge(", language);
+        Assert.Contains("FindResource(\"ThemeCheck\")", language);
+        Assert.Contains("FindResource(\"PanelMenuItem\")", language);
+        Assert.DoesNotContain("IsCheckable = true", language);
     }
 
     [Fact]

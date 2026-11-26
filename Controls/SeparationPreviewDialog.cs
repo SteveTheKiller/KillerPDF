@@ -115,6 +115,8 @@ internal sealed class SeparationPreviewDialog : Window
         if (_pageCount > 1)
         {
             DockPanel.SetDock(pager, Dock.Bottom);
+            // Above the preview pane, so its shadow never paints over the page turners.
+            System.Windows.Controls.Panel.SetZIndex(pager, 1);
             pageColumn.Children.Add(pager);
         }
         pageColumn.Children.Add(UiKit.PaneWithShadow(pane));

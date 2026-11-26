@@ -171,6 +171,8 @@ internal sealed class ParagraphEditDialog : Window
             Id(_nextPage, "ParagraphNextPage");
             Grid.SetColumn(_nextPage, 2); navigation.Children.Add(_nextPage);
             DockPanel.SetDock(navigation, Dock.Bottom); pageColumn.Children.Add(navigation);
+            // Above the page pane, so its shadow never paints over the page turners.
+            System.Windows.Controls.Panel.SetZIndex(navigation, 1);
         }
         var pageWrap = new Border { BorderThickness = new Thickness(1), CornerRadius = UiKit.RadCard,
             Margin = new Thickness(4, 0, 4, _pages.Count > 1 ? 0 : 4), ClipToBounds = true };

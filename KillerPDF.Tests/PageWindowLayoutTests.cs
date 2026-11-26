@@ -303,7 +303,8 @@ public sealed class PageWindowLayoutTests
             body.Measure(new Size(1200, double.PositiveInfinity));
             body.Arrange(new Rect(0, 0, 1200, body.DesiredSize.Height));
 
-            Assert.Equal(552, body.DesiredSize.Height, 3);
+            // The options and footer, less the column's rise into the card's title bar.
+            Assert.Equal(552 - PageWindowLayout.OptionsLift, body.DesiredSize.Height, 3);
             Assert.Equal(456, column.ActualWidth, 3);
             Assert.Equal(744, Bounds(column, body).Left, 3);
         });
@@ -361,7 +362,8 @@ public sealed class PageWindowLayoutTests
             body.Measure(new Size(1200, double.PositiveInfinity));
             body.Arrange(new Rect(0, 0, 1200, body.DesiredSize.Height));
 
-            Assert.Equal(552, body.DesiredSize.Height, 3);
+            // The options and footer, less the column's rise into the card's title bar.
+            Assert.Equal(552 - PageWindowLayout.OptionsLift, body.DesiredSize.Height, 3);
             Assert.Equal(0, Bounds(column, body).Left, 3);
             Assert.Equal(456, Bounds(preview, body).Left, 3);
             Assert.Equal(744, preview.ActualWidth, 3);

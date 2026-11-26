@@ -185,6 +185,8 @@ namespace KillerPDF
             {
                 var nav = BuildPageNav();
                 DockPanel.SetDock(nav, Dock.Bottom);
+                // Above the preview pane, so its shadow never paints over the page turners.
+                System.Windows.Controls.Panel.SetZIndex(nav, 1);
                 previewColumn.Children.Add(nav);
                 previewWrap.PreviewMouseWheel += (_, e) =>
                 {

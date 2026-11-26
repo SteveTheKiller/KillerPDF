@@ -136,6 +136,16 @@ namespace KillerPDF.Shell
 
         private void ShortcutsOverlay_SizeChanged(object sender, SizeChangedEventArgs e) => SizeShortcutCard();
 
+        // The card's content clips to the card's rounded inside (its corner less the 1px border), so the
+        // list's scroll fade follows the corners. A square theme clips square.
+        private void ShortcutCardContent_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (sender is not FrameworkElement content) return;
+            double radius = TryFindResource("PanelCornerRadius") is CornerRadius corner ? Math.Max(0, corner.TopLeft - 1) : 0;
+            content.Clip = new System.Windows.Media.RectangleGeometry(
+                new Rect(0, 0, e.NewSize.Width, e.NewSize.Height), radius, radius);
+        }
+
         private void ApplyPersistedShortcutView() =>
             ApplyShortcutView(App.GetSetting(KsViewSetting) == "keyboard");
 

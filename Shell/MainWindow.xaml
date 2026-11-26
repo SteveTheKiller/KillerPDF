@@ -3001,7 +3001,9 @@
                         Padding="0"
                         MouseLeftButtonDown="ShortcutOverlayCard_MouseLeftButtonDown"
                         MouseRightButtonDown="ShortcutOverlayCard_MouseLeftButtonDown">
-                <Grid>
+                <!-- Clipped to the card's rounded inside (KeyboardMapOverlay.cs), so the list's scroll fade
+                     stops at the corners instead of squaring them off. -->
+                <Grid SizeChanged="ShortcutCardContent_SizeChanged">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
                 <Border Grid.RowSpan="2" Panel.ZIndex="1" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource BevelDarkThickness}"/>
@@ -3025,7 +3027,9 @@
                                 Content="{DynamicResource AboutCloseGlyph}" Style="{StaticResource OverlayCloseButton}"/>
                     </Grid>
                 </Border>
-                <ScrollViewer x:Name="ShortcutScroll" Grid.Row="1" Style="{StaticResource OverlayScrollViewer}" BorderBrush="{DynamicResource OverlayRuleBrush}" Padding="18,14,18,18"
+                <!-- No rule on the top scroll cue: under the card's own edge it read as a doubled, too-thick top
+                     (Steve 2026-11-26). The top fade now matches the bottom one. -->
+                <ScrollViewer x:Name="ShortcutScroll" Grid.Row="1" Style="{StaticResource OverlayScrollViewer}" BorderBrush="Transparent" Padding="18,14,18,18"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
                               CanContentScroll="False">

@@ -72,6 +72,15 @@ namespace KillerPDF.Shell
         private static void SetOcrHighQuality(bool on) => App.SetSetting("OcrHighQuality", on ? "1" : "0");
         private static bool OcrFormAware => App.GetSetting("OcrFormAware") == "1";
 
+        // The interface locale whose flag a Tesseract language wears (eng is en-US, chi_tra is zh-TW),
+        // or null for a language with no interface translation.
+        private static Locale? OcrFlagLocale(string code)
+        {
+            foreach (var (tag, ocr) in OcrLanguages.LocaleToOcrCode)
+                if (ocr == code) return LocaleManager.LocaleForCulture(new System.Globalization.CultureInfo(tag));
+            return null;
+        }
+
         // Builds the multi-select Language submenu. Installed languages are checkable and stay toggled in the
         // open menu; not-yet-installed ones offer a one-time download. At least one language stays selected.
         private MenuItem BuildLanguageMenu()
@@ -91,94 +100,152 @@ namespace KillerPDF.Shell
                     VerticalAlignment = VerticalAlignment.Center,
                 },
             };
-            // Not-yet-installed language rows, so the HQ toggle can refresh their "(download)"
-            // suffixes in place while the menu stays open.
-            var downloadItems = new List<(MenuItem item, string code, string name)>();
+            // The list copies the kit's locale picker (Controls/LanguageMenu.cs, Steve 2026-11-26): two
+            // columns of flag, name and code rows in one panel, so all 22 languages fit a short window.
+            // Not-yet-installed rows keep their name blocks so the HQ toggle can refresh their
+            // "(download)" suffixes in place while the menu stays open.
+            var downloadRows = new List<(TextBlock label, string name)>();
+            string Suffix(bool hq) => Loc(hq ? "Str_Ocr_SuffixDownloadHq" : "Str_Ocr_SuffixDownload");
 
-            // Header with the Tesseract language code right-aligned, mirroring the Settings language list.
-            FrameworkElement LangHeader(string name, string code, string? suffix = null)
+            // Closes the whole OCR card, for a row that starts a download.
+            void CloseCard()
             {
-                var dp = new DockPanel { HorizontalAlignment = HorizontalAlignment.Stretch, MinWidth = 170 };
-                var codeTb = new TextBlock
-                {
-                    Text = code, FontFamily = UiKit.MonoFont, FontSize = 11,
-                    Foreground = (Brush)FindResource("MutedTextBrush"),
-                    Margin = new Thickness(20, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center
-                };
-                DockPanel.SetDock(codeTb, Dock.Right);
-                dp.Children.Add(codeTb);
-                dp.Children.Add(new TextBlock { Text = suffix is null ? name : $"{name}  {suffix}", VerticalAlignment = VerticalAlignment.Center });
-                return dp;
+                root.IsSubmenuOpen = false;
+                for (DependencyObject? d = root; d != null; d = LogicalTreeHelper.GetParent(d) ?? (d is Visual ? VisualTreeHelper.GetParent(d) : null))
+                    if (d is ContextMenu card) { card.IsOpen = false; return; }
             }
 
-            foreach (var (code, name) in OcrLanguages.OcrLanguageCatalog)
+            // Margins as in the locale picker: each hover row 8px from the card's outer edge.
+            var columns = new StackPanel { Orientation = Orientation.Horizontal };
+            var left = new StackPanel { Width = 226 };
+            var right = new StackPanel { Width = 226 };
+            var divider = new Border
+            {
+                Width = 1,
+                Margin = new Thickness(6, 8, 16, 8),
+                Opacity = 0.18,
+                IsHitTestVisible = false,
+                OpacityMask = new LinearGradientBrush
+                {
+                    StartPoint = new Point(0, 0), EndPoint = new Point(0, 1),
+                    GradientStops =
+                    {
+                        new GradientStop(Colors.Transparent, 0),
+                        new GradientStop(Colors.Black, 0.15),
+                        new GradientStop(Colors.Black, 0.85),
+                        new GradientStop(Colors.Transparent, 1),
+                    },
+                },
+            };
+            divider.SetResourceReference(Border.BackgroundProperty, "TextBrush");
+            columns.Children.Add(left);
+            columns.Children.Add(divider);
+            columns.Children.Add(right);
+
+            var checkStyle = (Style)FindResource("ThemeCheck");
+            var catalog = OcrLanguages.OcrLanguageCatalog;
+            int half = (catalog.Length + 1) / 2, index = 0;
+            foreach (var (code, name) in catalog)
             {
                 bool installed = OcrLanguages.IsLanguageInstalled(code);
+                var grid = new Grid();
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                if (OcrFlagLocale(code) is Locale flagLocale)
+                {
+                    var flag = Controls.LanguageFlags.Badge(flagLocale);
+                    flag.Margin = new Thickness(0, 0, 8, 0);
+                    grid.Children.Add(flag);
+                }
+                var label = new TextBlock
+                {
+                    Text = installed ? name : $"{name}  {Suffix(hqPref)}",
+                    VerticalAlignment = VerticalAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                };
+                Grid.SetColumn(label, 1);
+                grid.Children.Add(label);
+                var codeBlock = new TextBlock
+                {
+                    Text = code,
+                    Margin = new Thickness(12, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
+                codeBlock.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+                Grid.SetColumn(codeBlock, 2);
+                grid.Children.Add(codeBlock);
+
+                var row = new CheckBox { Content = grid, Style = checkStyle, IsChecked = installed && selected.Contains(code) };
                 if (installed)
                 {
-                    var item = new MenuItem
+                    row.Click += (_, _) =>
                     {
-                        Header = LangHeader(name, code),
-                        IsCheckable = true,
-                        IsChecked = selected.Contains(code),
-                        StaysOpenOnClick = true,
-                    };
-                    item.Click += (s, _) =>
-                    {
-                        var mi = (MenuItem)s!;
                         var sel = GetSelectedOcrLanguages();
-                        if (mi.IsChecked) { if (!sel.Contains(code)) sel.Add(code); }
+                        if (row.IsChecked == true) { if (!sel.Contains(code)) sel.Add(code); }
                         else
                         {
-                            if (sel.Count <= 1) { mi.IsChecked = true; return; }   // keep at least one selected
+                            if (sel.Count <= 1) { row.IsChecked = true; return; }   // keep at least one selected
                             sel.Remove(code);
                         }
                         SetSelectedOcrLanguages(sel);
                         SetStatus(string.Format(Loc("Str_St_OcrLanguage"), string.Join("+", sel)));
                     };
-                    root.Items.Add(item);
                 }
                 else
                 {
-                    var item = new MenuItem { Header = LangHeader(name, code, hqPref ? Loc("Str_Ocr_SuffixDownloadHq") : Loc("Str_Ocr_SuffixDownload")) };
-                    item.Click += (_, _) => DownloadOcrLanguage(code, name);
-                    downloadItems.Add((item, code, name));
-                    root.Items.Add(item);
+                    downloadRows.Add((label, name));
+                    row.Click += (_, _) => { row.IsChecked = false; CloseCard(); DownloadOcrLanguage(code, name); };
                 }
+                (index++ < half ? left : right).Children.Add(row);
             }
 
-            // High-quality toggle. Enabling it upgrades the languages already selected and makes future
-            // downloads pull the "best" models too.
-            root.Items.Add(new Separator());
-            var hq = new MenuItem
+            // The settings sit under the right column, past a faded rule like the column divider.
+            var settings = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
+            var rule = new Border
             {
-                Header = Loc("Str_Ocr_HighQuality"),
-                IsChecked = hqPref,
-                StaysOpenOnClick = true,   // stay open like the language checkboxes above
+                Height = 1,
+                Margin = new Thickness(-8, 0, 2, 8),
+                Opacity = 0.18,
+                IsHitTestVisible = false,
             };
-            // Flips the persisted preference directly so the setting can't drift from the visual
-            // state; the checkmark and the "(download)" suffixes refresh IN PLACE, so the menu can
-            // stay open instead of closing just to rebuild those labels.
+            rule.SetResourceReference(Border.BackgroundProperty, "TextBrush");
+            settings.Children.Add(rule);
+            // High-quality toggle. Enabling it upgrades the languages already selected and makes future
+            // downloads pull the "best" models too. It flips the persisted preference directly so the
+            // setting can't drift from the visual state, and the "(download)" suffixes refresh in place.
+            var hq = new CheckBox { Content = Loc("Str_Ocr_HighQuality"), Style = checkStyle, IsChecked = hqPref };
             hq.Click += (_, _) =>
             {
                 bool now = !OcrHighQuality;
                 SetOcrHighQuality(now);
                 hq.IsChecked = now;
-                foreach (var (item, code, name) in downloadItems)
-                    item.Header = LangHeader(name, code, now ? Loc("Str_Ocr_SuffixDownloadHq") : Loc("Str_Ocr_SuffixDownload"));
+                foreach (var (label, name) in downloadRows)
+                    label.Text = $"{name}  {Suffix(now)}";
                 if (now) RedownloadSelectedHighQuality();
             };
-            root.Items.Add(hq);
+            settings.Children.Add(hq);
             // Form-aware OCR, a setting like High quality: it was a seventh tile on the OCR card, which left a half row.
-            var formAware = new MenuItem
+            var formAware = new CheckBox { Content = Loc("Str_Ocr_FormAware"), Style = checkStyle, IsChecked = OcrFormAware };
+            formAware.Click += (_, _) => App.SetSetting("OcrFormAware", formAware.IsChecked == true ? "1" : "0");
+            settings.Children.Add(formAware);
+            right.Children.Add(settings);
+
+            // The rows' 8px gap is for between rows; under the last one it would double the bottom edge.
+            foreach (var column in new[] { left, right })
+                if (column.Children.Count > 0 && column.Children[^1] is FrameworkElement last)
+                    last.Margin = new Thickness(last.Margin.Left, last.Margin.Top, last.Margin.Right, 0);
+            if (settings.Children[^1] is FrameworkElement lastSetting)
+                lastSetting.Margin = new Thickness(lastSetting.Margin.Left, lastSetting.Margin.Top, lastSetting.Margin.Right, 0);
+
+            // PanelMenuItem is the kit's gutter-free container for a custom panel in a menu; the outer
+            // margin is the locale picker's 8px edge (1px border, 15 left less the row's -8, 7 top and bottom).
+            root.Items.Add(new MenuItem
             {
-                Header = Loc("Str_Ocr_FormAware"),
-                IsCheckable = true,
-                IsChecked = OcrFormAware,
+                Header = new Border { Margin = new Thickness(15, 7, 5, 7), Child = columns },
                 StaysOpenOnClick = true,
-            };
-            formAware.Click += (_, _) => App.SetSetting("OcrFormAware", formAware.IsChecked ? "1" : "0");
-            root.Items.Add(formAware);
+                Style = (Style)FindResource("PanelMenuItem"),
+            });
             return root;
         }
 

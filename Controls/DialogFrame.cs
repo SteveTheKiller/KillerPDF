@@ -16,6 +16,10 @@ namespace KillerPDF
     // title bar + grain), and BuildTitleBar (the KillerPDF wordmark + red close button).
     internal static class DialogFrame
     {
+        // The title row's left inset on the card themes. 2 puts the icon's ink 3 in from the card's edge,
+        // 3 below its top (Steve 2026-11-26; 6 left it 7 in).
+        internal const double TitleRowInset = 2;
+
         // Keep generated dialog captions on the same close mark as the main window.
         // E711 renders noticeably smaller inside the 18x16 Win98 caption face; E8BB is
         // the shared chrome glyph used by the main title bar and fills that face correctly.
@@ -212,9 +216,7 @@ namespace KillerPDF
             {
                 Orientation = Orientation.Horizontal,
                 VerticalAlignment = VerticalAlignment.Center,
-                // 5 puts the icon's ink 7 in from the card's edge, where the main title bar's logo sits
-                // (measured on Steve's shots 2026-11-25; 6 left it 8 in until 1.9.7).
-                Margin = caption ? new Thickness(0) : new Thickness(5, 0, 0, 0)
+                Margin = caption ? new Thickness(0) : new Thickness(TitleRowInset, 0, 0, 0)
             };
             // Negative margins keep the wordmark's deep Lacquer descent out of the layout so the bar
             // never clips its drips (2px imbalance as in the main title bar); the bar sits above the
@@ -291,7 +293,7 @@ namespace KillerPDF
                 bool classic = bar.Classic;
                 if (classic) grid.SetResourceReference(FrameworkElement.MarginProperty, "TitleBarPadding");
                 else grid.Margin = new Thickness(0);
-                titleRow.Margin = classic ? new Thickness(0) : new Thickness(6, 0, 0, 0);
+                titleRow.Margin = classic ? new Thickness(0) : new Thickness(TitleRowInset, 0, 0, 0);
                 string closeStyle = classic ? "ChromeCloseButton" : "OverlayCloseButton";
                 // An owned Window does not inherit its owner's local style dictionary.
                 if (CloseStyle(owner, closeStyle) is Style style) close.Style = style;

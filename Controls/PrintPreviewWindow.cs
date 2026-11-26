@@ -1378,6 +1378,8 @@ namespace KillerPDF
             wrap.Child = grid;
             var previewColumn = new DockPanel();
             DockPanel.SetDock(navigation, Dock.Bottom);
+            // Above the preview pane, so its shadow never paints over the page turners.
+            System.Windows.Controls.Panel.SetZIndex(navigation, 1);
             previewColumn.Children.Add(navigation);
             previewColumn.Children.Add(UiKit.PaneWithShadow(wrap));
             return previewColumn;

@@ -619,6 +619,8 @@ namespace KillerPDF
                 Grid.SetColumn(_nextPage, 2);
                 navigation.Children.Add(_nextPage);
                 DockPanel.SetDock(navigation, Dock.Bottom);
+                // Above the preview pane, so its shadow never paints over the page turners.
+                System.Windows.Controls.Panel.SetZIndex(navigation, 1);
                 previewColumn.Children.Add(navigation);
             }
             // Family shadow under the content pane, like the main window (flat on 98SE).
