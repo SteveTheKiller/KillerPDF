@@ -57,7 +57,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The color picker's fields are laid out in even rows. The preview and a larger eyedropper button sit side by side, with Hex, R, G and B in one row under small captions, and Replace and Reset as an even pair under the swatches.
 - The color picker's hue strip fills the space to the right edge without a gray bar beside it, and its handle is the theme's slider thumb. The color square also sits closer to the title.
 - The file dialog uses the 4px gutter at its sides and between its panes, and the address bar sits closer to the title bar and the panes.
-- The OCR language list shows two columns with flags, like the interface language picker, so it fits a short window.
+- The OCR language list shows two columns with flags, like the interface language picker, so it fits a short window. It has the picker's margins, its columns widen so no name is cut off, and its two settings sit in one row under them.
 - The keyboard shortcuts card keeps its rounded corners and thin top edge while the list is scrolled.
 - Document tabs are redesigned (#528). The active tab has rounded top corners, the pane's own border, and a foot that curves into the page below it, with an accent line along its bottom that fades out at both ends.
 - Tabs are narrower and shorter, and inactive tabs sit on the window background with dividers that fade out toward the top.

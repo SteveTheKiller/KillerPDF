@@ -115,10 +115,20 @@ namespace KillerPDF.Shell
                     if (d is ContextMenu card) { card.IsOpen = false; return; }
             }
 
-            // Margins as in the locale picker: each hover row 8px from the card's outer edge.
-            var columns = new StackPanel { Orientation = Orientation.Horizontal };
-            var left = new StackPanel { Width = 226 };
-            var right = new StackPanel { Width = 226 };
+            // Margins as in the locale picker: each hover row 8px from the card's outer edge. One grid holds
+            // both columns and, under a rule, the two settings side by side, one under each column. The two
+            // columns share one width (at least the locale picker's 226) and grow to the longest
+            // "Name  (download)" row, so no name is trimmed (Steve 2026-11-25).
+            var columns = new Grid();
+            Grid.SetIsSharedSizeScope(columns, true);
+            columns.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, SharedSizeGroup = "OcrCol", MinWidth = 226 });
+            columns.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            columns.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, SharedSizeGroup = "OcrCol", MinWidth = 226 });
+            columns.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            columns.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            columns.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var left = new StackPanel();
+            var right = new StackPanel();
             var divider = new Border
             {
                 Width = 1,
@@ -138,6 +148,8 @@ namespace KillerPDF.Shell
                 },
             };
             divider.SetResourceReference(Border.BackgroundProperty, "TextBrush");
+            Grid.SetColumn(divider, 1);
+            Grid.SetColumn(right, 2);
             columns.Children.Add(left);
             columns.Children.Add(divider);
             columns.Children.Add(right);
@@ -162,7 +174,6 @@ namespace KillerPDF.Shell
                 {
                     Text = installed ? name : $"{name}  {Suffix(hqPref)}",
                     VerticalAlignment = VerticalAlignment.Center,
-                    TextTrimming = TextTrimming.CharacterEllipsis,
                 };
                 Grid.SetColumn(label, 1);
                 grid.Children.Add(label);
@@ -200,17 +211,19 @@ namespace KillerPDF.Shell
                 (index++ < half ? left : right).Children.Add(row);
             }
 
-            // The settings sit under the right column, past a faded rule like the column divider.
-            var settings = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
+            // The settings sit in one row under both columns, past a faded rule across the whole card.
             var rule = new Border
             {
                 Height = 1,
-                Margin = new Thickness(-8, 0, 2, 8),
+                // From the left hover box's edge to where the right column's rows end, as the old rule did.
+                Margin = new Thickness(-8, 8, 2, 8),
                 Opacity = 0.18,
                 IsHitTestVisible = false,
             };
             rule.SetResourceReference(Border.BackgroundProperty, "TextBrush");
-            settings.Children.Add(rule);
+            Grid.SetRow(rule, 1);
+            Grid.SetColumnSpan(rule, 3);
+            columns.Children.Add(rule);
             // High-quality toggle. Enabling it upgrades the languages already selected and makes future
             // downloads pull the "best" models too. It flips the persisted preference directly so the
             // setting can't drift from the visual state, and the "(download)" suffixes refresh in place.
@@ -224,25 +237,27 @@ namespace KillerPDF.Shell
                     label.Text = $"{name}  {Suffix(now)}";
                 if (now) RedownloadSelectedHighQuality();
             };
-            settings.Children.Add(hq);
+            Grid.SetRow(hq, 2);
+            columns.Children.Add(hq);
             // Form-aware OCR, a setting like High quality: it was a seventh tile on the OCR card, which left a half row.
             var formAware = new CheckBox { Content = Loc("Str_Ocr_FormAware"), Style = checkStyle, IsChecked = OcrFormAware };
             formAware.Click += (_, _) => App.SetSetting("OcrFormAware", formAware.IsChecked == true ? "1" : "0");
-            settings.Children.Add(formAware);
-            right.Children.Add(settings);
+            Grid.SetRow(formAware, 2);
+            Grid.SetColumn(formAware, 2);
+            columns.Children.Add(formAware);
 
             // The rows' 8px gap is for between rows; under the last one it would double the bottom edge.
-            foreach (var column in new[] { left, right })
-                if (column.Children.Count > 0 && column.Children[^1] is FrameworkElement last)
+            foreach (var last in new FrameworkElement?[] { left.Children.Count > 0 ? left.Children[^1] as FrameworkElement : null,
+                         right.Children.Count > 0 ? right.Children[^1] as FrameworkElement : null, hq, formAware })
+                if (last is not null)
                     last.Margin = new Thickness(last.Margin.Left, last.Margin.Top, last.Margin.Right, 0);
-            if (settings.Children[^1] is FrameworkElement lastSetting)
-                lastSetting.Margin = new Thickness(lastSetting.Margin.Left, lastSetting.Margin.Top, lastSetting.Margin.Right, 0);
 
-            // PanelMenuItem is the kit's gutter-free container for a custom panel in a menu; the outer
-            // margin is the locale picker's 8px edge (1px border, 15 left less the row's -8, 7 top and bottom).
+            // PanelMenuItem is the kit's gutter-free container for a custom panel in a menu. The outer margin
+            // is the locale picker's 8px edge (1px border, 15 left less the row's -8, 7 top and bottom), less
+            // the 4px the submenu's own ItemsPresenter already adds on every side.
             root.Items.Add(new MenuItem
             {
-                Header = new Border { Margin = new Thickness(15, 7, 5, 7), Child = columns },
+                Header = new Border { Margin = new Thickness(11, 3, 1, 3), Child = columns },
                 StaysOpenOnClick = true,
                 Style = (Style)FindResource("PanelMenuItem"),
             });
