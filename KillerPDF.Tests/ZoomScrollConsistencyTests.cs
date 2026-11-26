@@ -86,8 +86,12 @@ public sealed class ZoomScrollConsistencyTests
         Assert.Contains("_toolbarZoomAnchorActive", zoomAnchored);
         Assert.DoesNotContain("_wheelZoomAnchorActive", zoomAnchored);
         Assert.Contains("PagePreviewPanel.UpdateLayout();", zoomAnchored);
-        Assert.Contains("PagePreviewPanel.ScrollToHorizontalOffset(anchored.HorizontalOffset);", zoomAnchored);
-        Assert.Contains("PagePreviewPanel.ScrollToVerticalOffset(anchored.VerticalOffset);", zoomAnchored);
+        // The anchor is a page point in PageContentGrid's coordinates, mapped back after the zoom lays out.
+        // tests/KillerPDF.UiSmoke --verify-zoom-anchor checks the result in a real window.
+        Assert.Contains("PagePreviewPanel.TranslatePoint(", zoomAnchored);
+        Assert.Contains("PageContentGrid.TranslatePoint(", zoomAnchored);
+        Assert.Contains("PagePreviewPanel.ScrollToHorizontalOffset(", zoomAnchored);
+        Assert.Contains("PagePreviewPanel.ScrollToVerticalOffset(", zoomAnchored);
         Assert.DoesNotContain("Dispatcher.BeginInvoke", zoomAnchored);
         Assert.DoesNotContain("_wheelZoomRevision", zoomAnchored);
 

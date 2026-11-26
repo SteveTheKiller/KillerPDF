@@ -54,7 +54,8 @@ internal static class ZoomAnchorSmoke
                 .Single(v => v.GetType().FullName == "KillerPDF.Controls.PdfViewer" && v.IsVisible);
             ScrollViewer viewport = Named<ScrollViewer>(viewer, "PagePreviewPanel")
                 ?? throw new MissingMemberException("PagePreviewPanel");
-            FrameworkElement grid = Named<Grid>(viewer, "PageContentGrid")
+            // The page grid sits inside the reading surface's content, so it is found by name, not by walking visuals.
+            var grid = viewer.FindName("PageContentGrid") as FrameworkElement
                 ?? throw new MissingMemberException("PageContentGrid");
 
             stage = "continuous-100";

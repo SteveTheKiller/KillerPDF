@@ -34,6 +34,7 @@ namespace KillerPDF.Controls
         private bool _toolbarZoomAnchorActive;
         private double _toolbarZoomAnchorX;
         private double _toolbarZoomAnchorY;
+        private bool _toolbarZoomAnchorTop;
 
         // ============================================================
         // Zoom

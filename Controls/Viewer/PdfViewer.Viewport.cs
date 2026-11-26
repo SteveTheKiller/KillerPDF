@@ -2539,26 +2539,19 @@ namespace KillerPDF.Controls
                 && PagePreviewPanel.ActualWidth > 0 && PagePreviewPanel.ActualHeight > 0
                 && _viewMode != ViewMode.Grid;
 
-            PinchZoomResult anchored = default;
-            if (canAnchor)
+            // The anchor is the page point under the viewport's center, read in PageContentGrid's own
+            // unscaled coordinates. Offset arithmetic alone drifts here: a page narrower than the view is
+            // centered rather than at offset 0, the margins around the grid do not scale, and a zoom that
+            // adds or drops a scrollbar changes the viewport itself. A document read from the top stays
+            // at the top. Quick repeated steps reuse one anchor until the settle timer clears it.
+            if (canAnchor && !_toolbarZoomAnchorActive)
             {
-                double vw = PagePreviewPanel.ViewportWidth;
-                double vh = PagePreviewPanel.ViewportHeight;
-                double originX = PagePreviewPanel.ScrollableWidth > 0 && vw > 0 ? vw * 0.5 : 0;
-                double originY = PagePreviewPanel.VerticalOffset > 0 && vh > 0 ? vh * 0.5 : 0;
-
-                if (!_toolbarZoomAnchorActive)
-                {
-                    (_toolbarZoomAnchorX, _toolbarZoomAnchorY) = PinchZoomMath.CaptureAnchor(
-                        oldZoom, PagePreviewPanel.HorizontalOffset,
-                        PagePreviewPanel.VerticalOffset,
-                        originX, originY);
-                    _toolbarZoomAnchorActive = true;
-                }
-
-                anchored = PinchZoomMath.ApplyAtAnchor(
-                    targetZoom, _toolbarZoomAnchorX, _toolbarZoomAnchorY,
-                    originX, originY);
+                Point center = PagePreviewPanel.TranslatePoint(
+                    new Point(PagePreviewPanel.ViewportWidth / 2, PagePreviewPanel.ViewportHeight / 2), PageContentGrid);
+                _toolbarZoomAnchorX = center.X;
+                _toolbarZoomAnchorY = center.Y;
+                _toolbarZoomAnchorTop = PagePreviewPanel.VerticalOffset <= 0;
+                _toolbarZoomAnchorActive = true;
             }
 
             _zoomLevel = targetZoom;
@@ -2568,8 +2561,12 @@ namespace KillerPDF.Controls
             if (canAnchor)
             {
                 PagePreviewPanel.UpdateLayout();
-                PagePreviewPanel.ScrollToHorizontalOffset(anchored.HorizontalOffset);
-                PagePreviewPanel.ScrollToVerticalOffset(anchored.VerticalOffset);
+                Point now = PageContentGrid.TranslatePoint(
+                    new Point(_toolbarZoomAnchorX, _toolbarZoomAnchorY), PagePreviewPanel);
+                PagePreviewPanel.ScrollToHorizontalOffset(Math.Max(0,
+                    PagePreviewPanel.HorizontalOffset + now.X - PagePreviewPanel.ViewportWidth / 2));
+                PagePreviewPanel.ScrollToVerticalOffset(_toolbarZoomAnchorTop ? 0 : Math.Max(0,
+                    PagePreviewPanel.VerticalOffset + now.Y - PagePreviewPanel.ViewportHeight / 2));
             }
 
             StartZoomSettleTimer();
