@@ -55,7 +55,7 @@ namespace KillerPDF.Shell
         {
             if (!IsOwnerRestricted || _restrictedByCertificate
                 || menu.Items.OfType<MenuItem>().Any(item => Equals(item.Tag, nameof(UnlockOwnerRestrictions)))) return;
-            var unlock = MakeMenuItem(Loc("Str_Restricted_EnterPassword"), (_, _) => UnlockOwnerRestrictions(), glyph: "");
+            var unlock = MakeMenuItem(Loc("Str_Restricted_EnterPassword"), (_, _) => UnlockOwnerRestrictions(), glyph: "\uE72E");
             unlock.Tag = nameof(UnlockOwnerRestrictions);
             menu.Items.Add(unlock);
             menu.Items.Add(new Separator());
@@ -982,7 +982,7 @@ namespace KillerPDF.Shell
                     App.SetSetting("TwoPageThumbnails", paired ? "0" : "1");
                     ApplyPageThumbnailLayout();
                 }, false, !_sidebarStripLayout) { Checked = paired };
-                var book = new CardTile("", Loc("Str_View_BookMode"), "B", ToggleBookMode, false, true) { Checked = Controls.PdfViewer.BookMode };
+                var book = new CardTile("\uE736", Loc("Str_View_BookMode"), "B", ToggleBookMode, false, true) { Checked = Controls.PdfViewer.BookMode };
                 // Two rows of three in a two-page view: Two-page thumbnails, Book layout and Top, then Left, Bottom and
                 // Right (Steve 2026-11-23).
                 tiles = [toggle, book, .. tiles];

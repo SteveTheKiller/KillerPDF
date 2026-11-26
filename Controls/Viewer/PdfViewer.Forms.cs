@@ -1049,9 +1049,9 @@ namespace KillerPDF.Controls
                 MinWidth = 20, TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center
             };
 
-            panel.Children.Add(MakeFormSizeStep("", () => AdjustFormFontSize(-1, sizeLbl)));  // minus
+            panel.Children.Add(MakeFormSizeStep("\uE738", () => AdjustFormFontSize(-1, sizeLbl)));  // minus
             panel.Children.Add(sizeLbl);
-            panel.Children.Add(MakeFormSizeStep("", () => AdjustFormFontSize(+1, sizeLbl)));  // plus
+            panel.Children.Add(MakeFormSizeStep("\uE710", () => AdjustFormFontSize(+1, sizeLbl)));  // plus
             AddFormTextStyleControls(panel, fieldName);
 
             // The on-document "inline flyout" style: translucent pill, solidifies on hover.
@@ -1105,7 +1105,7 @@ namespace KillerPDF.Controls
         // Fixed light color: the InlineFlyout pill is dark regardless of the app theme.
         // Shim for the original glyph-string call sites: E710 is the MDL2 Add glyph, anything
         // else is the minus. The glyphs themselves are no longer rendered (see above).
-        private static Border MakeFormSizeStep(string glyph, Action onClick) => MakeFormSizeStep(glyph == "", onClick);
+        private static Border MakeFormSizeStep(string glyph, Action onClick) => MakeFormSizeStep(glyph == "\uE710", onClick);
 
         private static Border MakeFormSizeStep(bool plus, Action onClick)
         {
