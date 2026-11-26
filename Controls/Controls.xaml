@@ -3425,6 +3425,8 @@
                          button with Marlett's triangle standing inside that edge, as the implicit
                          ComboBox draws it. Every other theme is unchanged. -->
                     <Grid x:Name="root" Tag="{DynamicResource UseDialogCaption}">
+                        <!-- Holds the theme's corner radius for the open-list triggers, which square its joined side. -->
+                        <Border x:Name="radius" CornerRadius="{DynamicResource SmallCornerRadius}" Visibility="Collapsed"/>
                         <Border x:Name="Bd" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource SmallCornerRadius}">
@@ -3473,16 +3475,22 @@
                             <Border Margin="{DynamicResource BevelInnerMargin}" BorderBrush="{DynamicResource BevelOuterDarkBrush}" BorderThickness="{DynamicResource BevelInnerLightThickness}"/>
                             <Border Margin="{DynamicResource BevelInnerMargin}" BorderBrush="{DynamicResource BevelInnerLightBrush}" BorderThickness="{DynamicResource BevelOuterDarkThickness}"/>
                         </Grid>
+                        <!-- The list hangs straight off the box: its edge overlaps the box's edge by 1px, so the
+                             two read as one outline, and the open triggers square the corners where they meet.
+                             The margin is the shadow's room on the three free sides (FlyoutCard's 22/4 sizing)
+                             and 0 on the joined side, so the popup's own bounds stop the shadow at the box
+                             instead of laying it over the field. The Popup lines the list's edge up with the
+                             box by itself, margin excluded, so no horizontal offset is needed. -->
                         <Popup x:Name="PART_Popup" AllowsTransparency="True"
                                IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False"
-                               PopupAnimation="Fade" Placement="Bottom">
+                               PopupAnimation="Fade" Placement="Bottom" VerticalOffset="-1">
                             <!-- ComboPopupBrush (the menu surface), not PaneBrush: ThemeMotif paints ComboPopupBrush with the
                                  popup piece, so an open list under Trash Polka carries the art like a menu does. Marked
                                  here: WPF never sends Loaded into the list, so the popup pass could not find it. -->
                             <Border x:Name="PopupBd" Background="{DynamicResource ComboPopupBrush}"
                                     kui:ThemeMotif.Part="Popup" kui:ThemeMotif.BaseBrush="ComboPopupBrush"
                                     BorderBrush="{DynamicResource MenuBorderBrush}" BorderThickness="1"
-                                    CornerRadius="{DynamicResource SmallCornerRadius}" Padding="2" Margin="0,2,6,6"
+                                    CornerRadius="{DynamicResource SmallCornerRadius}" Padding="2" Margin="22,0,22,26" UseLayoutRounding="True"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                     MaxHeight="220"
                                     Effect="{DynamicResource ComboPopupShadow}">
@@ -3506,6 +3514,24 @@
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
                         </Trigger>
+                        <!-- A combo at the bottom of its window opens its list upward, joined to the box's top. -->
+                        <Trigger Property="kl:ComboDrop.OpensUp" Value="True">
+                            <Setter TargetName="PART_Popup" Property="Placement" Value="Top"/>
+                            <Setter TargetName="PART_Popup" Property="VerticalOffset" Value="1"/>
+                            <Setter TargetName="PopupBd" Property="Margin" Value="22,18,22,0"/>
+                        </Trigger>
+                        <Trigger Property="IsDropDownOpen" Value="True">
+                            <Setter TargetName="Bd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareBottom}}"/>
+                            <Setter TargetName="PopupBd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareTop}}"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsDropDownOpen" Value="True"/>
+                                <Condition Property="kl:ComboDrop.OpensUp" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Bd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareTop}}"/>
+                            <Setter TargetName="PopupBd" Property="CornerRadius" Value="{Binding CornerRadius, ElementName=radius, Converter={x:Static kl:ComboDrop.SquareBottom}}"/>
+                        </MultiTrigger>
                         <!-- Last, so a Win98 field keeps its white face on hover and while open:
                              a Win98 drop-down did not light up under the pointer. -->
                         <DataTrigger Binding="{Binding Tag, ElementName=root}" Value="True">

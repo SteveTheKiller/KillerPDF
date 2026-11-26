@@ -68,6 +68,9 @@ namespace KillerPDF.Controls
             dismissButton.VerticalAlignment = VerticalAlignment.Center;
             dismissButton.Click += (_, _) => { HideSessionNotice(); dismiss(); };
 
+            // The bar is one slim line, so its buttons are a step smaller than a dialog's footer buttons.
+            restoreButton.Padding = dismissButton.Padding = new Thickness(14, 4, 14, 4);
+
             var row = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(glyph, Dock.Left);
             DockPanel.SetDock(dismissButton, Dock.Right);

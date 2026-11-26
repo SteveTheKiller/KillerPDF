@@ -57,6 +57,8 @@ internal sealed class MacroDialog : Window
             .Where(_supported.Contains).OrderBy(operation => Display(operation))
             .Select(operation => new OperationChoice(Display(operation), operation));
         _operation.SelectedIndex = _operation.Items.Count == 0 ? -1 : 0;
+        // The step picker sits at the foot of the window, so its list opens upward over the steps.
+        KillerFamily.Layout.ComboDrop.SetOpensUp(_operation, true);
 
         _saved.SelectionChanged += (_, _) => LoadSelected();
         _steps.SelectionChanged += (_, _) => UpdateButtons();
