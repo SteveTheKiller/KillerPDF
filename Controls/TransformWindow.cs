@@ -1082,7 +1082,7 @@ namespace KillerPDF
             return cell;
         }
 
-        private static FrameworkElement Cell(UIElement content) => new Border { Margin = new Thickness(0, 0, 0, 8), Child = content };
+        private static FrameworkElement Cell(UIElement content) => new Border { Margin = new Thickness(0, 0, 0, PageWindowLayout.RowGap), Child = content };
 
         private static FrameworkElement Empty() => new Border();
 

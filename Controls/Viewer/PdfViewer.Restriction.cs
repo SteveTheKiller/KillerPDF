@@ -105,8 +105,8 @@ namespace KillerPDF.Controls
                     System.Windows.Threading.DispatcherPriority.Background);
         }
 
-        // Same surface tokens, grain host and shadow as the floating annotation bars, centered at
-        // the top of the pane.
+        // Drawn like the docked annotate bar (ToolOptionsBar): full width across the top of the pane, its fill,
+        // bottom edge, grain and 98SE lower edge, with 24px controls. A long translation wraps and the bar grows.
         private static (Border Bar, TextBlock Message, Button Unlock) BuildRestrictionNotice(
             Features.IViewerHost host, Action dismiss)
         {
@@ -125,7 +125,8 @@ namespace KillerPDF.Controls
                 FontFamily = UiKit.UiFont,
                 FontSize = 12,
                 TextWrapping = TextWrapping.Wrap,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 4, 0, 4)
             };
             message.SetResourceReference(TextBlock.TextProperty, "Str_Restricted_Notice");
             message.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
@@ -133,6 +134,9 @@ namespace KillerPDF.Controls
 
             var unlock = UiKit.Make(host.Loc("Str_Restricted_EnterPassword"), accent: true);
             unlock.SetResourceReference(ContentControl.ContentProperty, "Str_Restricted_EnterPassword");
+            // Sized like the Redact bar's text buttons.
+            unlock.Height = ToolOptionsControls.ControlHeight;
+            unlock.Padding = new Thickness(10, 0, 10, 0);
             unlock.Margin = new Thickness(12, 0, 0, 0);
             unlock.VerticalAlignment = VerticalAlignment.Center;
             unlock.Click += (_, _) => host.UnlockOwnerRestrictions();
@@ -153,19 +157,30 @@ namespace KillerPDF.Controls
             row.Children.Add(unlock);
             row.Children.Add(message);
 
+            const double side = ToolOptionsLayout.Padding / 2;
+            var grain = new Border { IsHitTestVisible = false, Margin = new Thickness(-side, 0, -side, 0) };
+            grain.SetResourceReference(UIElement.OpacityProperty, "GrainOpacity");
+            grain.SetResourceReference(Border.BackgroundProperty, "GrainBrushShared");
+            var edge = new Border { IsHitTestVisible = false, Margin = grain.Margin };
+            edge.SetResourceReference(Border.BorderBrushProperty, "BarEdgeDarkBrush");
+            edge.SetResourceReference(Border.BorderThicknessProperty, "BarEdgeDarkThickness");
+            var layers = new Grid();
+            layers.Children.Add(grain);
+            layers.Children.Add(edge);
+            layers.Children.Add(row);
+
             var bar = new Border
             {
-                Child = NoticeCard(row),
-                HorizontalAlignment = HorizontalAlignment.Center,
+                Child = layers,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Top,
-                MaxWidth = 640
+                MinHeight = ToolOptionsBar.RowHeight,
+                Padding = new Thickness(side, 0, side, 0),
+                BorderThickness = new Thickness(0, 0, 0, 1),
+                SnapsToDevicePixels = true
             };
-            // A notice floats over the page, so it is the menus' own card: FlyoutCard's fill, edge, corners and shadow.
-            bar.SetResourceReference(FrameworkElement.StyleProperty, "FlyoutCard");
-            // FlyoutCard's margin is popup shadow room; a notice sits in the page, so it has none.
-            bar.Margin = new Thickness(0);
-            // 7 plus the 1px edge: the buttons and the glyph sit 8px from every edge (family rule).
-            bar.Padding = new Thickness(7);
+            bar.SetResourceReference(Border.BackgroundProperty, "AnnotationBarBrush");
+            bar.SetResourceReference(Border.BorderBrushProperty, "AnnotationBarBorderBrush");
             Panel.SetZIndex(bar, 90);
             return (bar, message, unlock);
         }

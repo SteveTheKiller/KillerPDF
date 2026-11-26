@@ -557,16 +557,21 @@ namespace KillerPDF
 
             var body = new StackPanel();
 
-            // Keep filename emphasis while allowing each language to place it naturally.
-            var msg = new TextBlock { Foreground = R("TextBrush"), FontSize = 13, TextWrapping = TextWrapping.Wrap };
+            // The message box's own amber "!" beside the text, with the field under the text.
+            var notice = NoticeBody("", MessageBoxImage.Warning, false, out var textStack);
+            notice.Margin = new Thickness(notice.Margin.Left, notice.Margin.Top, notice.Margin.Right, 0);
+            var msg = (TextBlock)textStack.Children[0];
+            // Keep filename emphasis while allowing each language to place it naturally, and give each
+            // sentence of the template its own line. The file name is never split, whatever it holds.
             int filenamePosition = template.IndexOf("{0}", StringComparison.Ordinal);
-            msg.Inlines.Add(new System.Windows.Documents.Run(template[..filenamePosition]));
+            AddSentenceLines(msg, template[..filenamePosition]);
             msg.Inlines.Add(new System.Windows.Documents.Run(System.IO.Path.GetFileName(filename)) { FontWeight = FontWeights.SemiBold });
-            msg.Inlines.Add(new System.Windows.Documents.Run(template[(filenamePosition + 3)..]));
-            body.Children.Add(new Border { Padding = new Thickness(20, 4, 20, 10), Child = msg });
+            AddSentenceLines(msg, template[(filenamePosition + 3)..]);
+            body.Children.Add(notice);
 
             var pw = UiKit.PasswordField();
-            body.Children.Add(new Border { Padding = new Thickness(20, 0, 20, 4), Child = pw });
+            pw.Margin = new Thickness(0, 12, 0, 0);
+            textStack.Children.Add(pw);
 
             var openBtn = UiKit.Make(confirmText, accent: true);
             openBtn.IsDefault = true;
@@ -574,7 +579,9 @@ namespace KillerPDF
             var cancelBtn = UiKit.Make(L("Str_Btn_Cancel", "Cancel"), accent: false);
             cancelBtn.IsCancel = true;
             cancelBtn.Click += (_, _2) => CloseCancel();
-            body.Children.Add(new Border { Padding = new Thickness(16, 12, 16, 16), Child = UiKit.ButtonRow(openBtn, cancelBtn) });
+            var buttons = ButtonRowHost(UiKit.ButtonRow(openBtn, cancelBtn));
+            buttons.Margin = new Thickness(0, Inset(), 0, 0);
+            body.Children.Add(buttons);
 
             // Enter anywhere in the field submits.
             pw.KeyDown += (_, e) => { if (e.Key == Key.Enter) { result = pw.Password; win.Close(); } };
@@ -583,6 +590,19 @@ namespace KillerPDF
             win.Loaded += (_, _2) => pw.Focus();
             win.ShowDialog();
             return result;
+        }
+
+        /// <summary>Adds <paramref name="text"/> to the message, starting a new line after each sentence that
+        /// another sentence follows. Covers the full stop, the question and exclamation marks, their CJK forms
+        /// and the Bengali danda.</summary>
+        internal static void AddSentenceLines(TextBlock message, string text)
+        {
+            string[] parts = System.Text.RegularExpressions.Regex.Split(text, @"(?<=[.!?])\s+(?=\S)|(?<=[。！？।])\s*(?=\S)");
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (i > 0) message.Inlines.Add(new System.Windows.Documents.LineBreak());
+                if (parts[i].Length > 0) message.Inlines.Add(new System.Windows.Documents.Run(parts[i]));
+            }
         }
 
         /// <summary>Asks for one line of text, starting from <paramref name="initial"/>. Returns null on Cancel.</summary>

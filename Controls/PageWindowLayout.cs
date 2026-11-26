@@ -28,11 +28,17 @@ namespace KillerPDF.Controls
         public const double OptionsInset = 16;
         /// <summary>Space around the page inside the preview frame.</summary>
         public const double PageMargin = 16;
-        public const double ControlHeight = 26;
-        public const double HeaderHeight = 28;
-        /// <summary>Space above a section header (8 until 1.9.7, Steve 2026-11-25). The first header
-        /// in the options column takes none, so it lines up with the top of the preview.</summary>
-        public const double HeaderTopMargin = 6;
+        /// <summary>The annotate bars' 24 (26 until 1.9.7, Steve 2026-11-26: the windows ran too tall).</summary>
+        public const double ControlHeight = 24;
+        /// <summary>22 (28 until 1.9.7, Steve 2026-11-26).</summary>
+        public const double HeaderHeight = 22;
+        /// <summary>Space above a section header (8, then 6 until 1.9.7, Steve 2026-11-25 and 26). The
+        /// first header in the options column takes none, so it lines up with the top of the preview.</summary>
+        public const double HeaderTopMargin = 4;
+        /// <summary>Space under a section header, before its first row (4 until 1.9.7).</summary>
+        public const double HeaderBottomMargin = 2;
+        /// <summary>Space under each labeled cell and around a divider (8 until 1.9.7).</summary>
+        public const double RowGap = 6;
         /// <summary>How far the options column rises into the card's title bar (Steve 2026-11-26).</summary>
         public const double OptionsLift = 10;
         private const string HeaderRowTag = "PageWindowHeaderRow";
@@ -123,7 +129,7 @@ namespace KillerPDF.Controls
         /// control is something else (Stamp's enable checkboxes).</summary>
         public static FrameworkElement HeaderRow(UIElement control)
         {
-            var row = new DockPanel { Height = HeaderHeight, Margin = new Thickness(0, HeaderTopMargin, 0, 4), LastChildFill = true, Tag = HeaderRowTag };
+            var row = new DockPanel { Height = HeaderHeight, Margin = new Thickness(0, HeaderTopMargin, 0, HeaderBottomMargin), LastChildFill = true, Tag = HeaderRowTag };
             var chevron = new TextBlock { Text = "▾", Width = 16, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
             chevron.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
             DockPanel.SetDock(chevron, Dock.Left);
@@ -132,19 +138,19 @@ namespace KillerPDF.Controls
             return row;
         }
 
-        /// <summary>A 1px line between sections, 8 above and 8 below.</summary>
+        /// <summary>A 1px line between sections, <see cref="RowGap"/> above and below.</summary>
         public static Border Divider()
         {
-            var line = new Border { Height = 1, Margin = new Thickness(0, 8, 0, 8) };
+            var line = new Border { Height = 1, Margin = new Thickness(0, RowGap, 0, RowGap) };
             line.SetResourceReference(Border.BackgroundProperty, "CardBorderBrush");
             return line;
         }
 
         /// <summary>A label above a control (11 muted, 2 gap), with an optional readout on the
-        /// right of the label row, and 8 below the cell.</summary>
+        /// right of the label row, and <see cref="RowGap"/> below the cell.</summary>
         public static StackPanel Labeled(string label, UIElement control, FrameworkElement? readout = null)
         {
-            var cell = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
+            var cell = new StackPanel { Margin = new Thickness(0, 0, 0, RowGap) };
             var row = new DockPanel { Margin = new Thickness(0, 0, 0, 2), LastChildFill = true };
             if (readout != null)
             {
@@ -226,10 +232,10 @@ namespace KillerPDF.Controls
         }
 
         /// <summary>The footer row: an optional link on the left, then Cancel and the primary
-        /// button on the right, 8 apart, 16 in from both sides, 12 above and below.</summary>
+        /// button on the right, 8 apart, 16 in from both sides, 8 above and 12 below (12 above until 1.9.7).</summary>
         public static FrameworkElement Footer(FrameworkElement? link, Button cancel, Button primary)
         {
-            var row = new DockPanel { Margin = new Thickness(OptionsInset, 12, OptionsInset, 12), LastChildFill = false };
+            var row = new DockPanel { Margin = new Thickness(OptionsInset, 8, OptionsInset, 12), LastChildFill = false };
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
             cancel.Margin = new Thickness(0);
             primary.Margin = new Thickness(8, 0, 0, 0);
@@ -354,7 +360,7 @@ namespace KillerPDF.Controls
             row.Children.Add(text);
             Content = row;
             Height = PageWindowLayout.HeaderHeight;
-            Margin = new Thickness(0, PageWindowLayout.HeaderTopMargin, 0, 4);
+            Margin = new Thickness(0, PageWindowLayout.HeaderTopMargin, 0, PageWindowLayout.HeaderBottomMargin);
             HorizontalAlignment = HorizontalAlignment.Stretch;
             HorizontalContentAlignment = HorizontalAlignment.Left;
             Cursor = Cursors.Hand;

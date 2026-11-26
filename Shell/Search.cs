@@ -109,12 +109,12 @@ namespace KillerPDF.Shell
                     var box = new TextBox
                     {
                         Width = 200,
-                        Height = 26,
+                        Height = 24,
                         FontFamily = UiKit.UiFont,
                         FontSize = 13,
                         SelectionBrush = AccentBrush(),
                         BorderThickness = new Thickness(1),
-                        Padding = new Thickness(6, 2, 6, 2),
+                        Padding = new Thickness(6, 1, 6, 1),
                         VerticalContentAlignment = VerticalAlignment.Center
                     };
                     // Live (DynamicResource-style) brushes so the box recolors on a theme switch while the
@@ -256,7 +256,9 @@ namespace KillerPDF.Shell
                 var panel = new Grid
                 {
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(8, 6, 8, 6)
+                    // Trimmed from 8,6 around and a 4 bar padding (Steve 2026-11-26): the 24px controls sit 4 from
+                    // the edge, as on the annotate bars.
+                    Margin = new Thickness(4, 2, 4, 2)
                 };
                 for (int c = 0; c < 5; c++) panel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -292,7 +294,7 @@ namespace KillerPDF.Shell
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top,
                     CornerRadius = new CornerRadius(6),
-                    Padding = new Thickness(4),
+                    Padding = new Thickness(2),
                     Child = GrainWrap(panel),
                     Margin = new Thickness(0),
                     Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 16, ShadowDepth = 3, Direction = 270, Opacity = 0.55 }

@@ -2452,11 +2452,13 @@
                  It lives INSIDE the sidebar on the list's inner lip, so the order reads
                  list | grip | rail | gap | document - the rail stays glued to the document edge
                  and never moves, which is the whole point of a permanent rail.
-                 ApplySidebarSide puts it in the content column and faces it at the rail. -->
+                 ApplySidebarSide puts it in the content column and faces it at the rail. It takes
+                 SidebarBorder's own margin, so its ends meet the list's edges (98SE drops the list 5px). -->
             <Thumb x:Name="SidebarSplitter"
                    Grid.Column="0"
                    Panel.ZIndex="50"
                    Width="5"
+                   Margin="{DynamicResource SidebarPanelMargin}"
                    HorizontalAlignment="Right"
                    VerticalAlignment="Stretch"
                    Cursor="SizeWE"

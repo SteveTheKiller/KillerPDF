@@ -184,11 +184,11 @@ public sealed class PageWindowLayoutTests
         });
     }
 
-    // Steve 2026-11-25: every header has 6 above it (was 8), and the first header in the options
-    // column has none, so it starts level with the preview under the title bar. A header row
+    // Steve 2026-11-25 and 26: every header has 4 above it (was 8, then 6), and the first header in the
+    // options column has none, so it starts level with the preview under the title bar. A header row
     // (Stamp's checkbox headers) behind a wrapper panel counts as the first header too.
     [Fact]
-    public void TheFirstHeaderIsFlushAndTheRestKeepSixAbove()
+    public void TheFirstHeaderIsFlushAndTheRestKeepFourAbove()
     {
         RunSta(() =>
         {
@@ -200,7 +200,9 @@ public sealed class PageWindowLayoutTests
             PageWindowLayout.Body(options, new Border(), new Border(), out _);
             Assert.Equal(0, firstHeader.Margin.Top);
             Assert.Equal(PageWindowLayout.HeaderTopMargin, secondHeader.Margin.Top);
-            Assert.Equal(6, PageWindowLayout.HeaderTopMargin);
+            Assert.Equal(4, PageWindowLayout.HeaderTopMargin);
+            Assert.Equal(22, PageWindowLayout.HeaderHeight);
+            Assert.Equal(24, PageWindowLayout.ControlHeight);
 
             var row = PageWindowLayout.HeaderRow(new CheckBox());
             var wrapped = new StackPanel();

@@ -10,15 +10,15 @@ namespace KillerPDF.Tests;
 
 // The find bar's search box takes the room its other controls leave, measured, instead of a fixed allowance. The bar
 // here is built with the real bar's sizes: the grip 20 wide, the replace chevron 26 + 4, the magnifier 12 + 6, the
-// options and the three buttons 26 each, the status text 96 + 4, the pane margin 8 each side and the bar's padding 4
-// and border 1 each side. Everything but the box is 324 wide, the status text in it 100. Nothing here is shown.
+// options and the three buttons 26 each, the status text 96 + 4, the pane margin 4 each side and the bar's padding 2
+// and border 1 each side. Everything but the box is 312 wide, the status text in it 100. Nothing here is shown.
 public sealed class SearchBarFitTests
 {
     private sealed record Bar(Border Frame, Grid Panel, TextBox Find, TextBox Replace, TextBlock Status);
 
     private static Bar Build()
     {
-        var panel = new Grid { Margin = new Thickness(8, 6, 8, 6) };
+        var panel = new Grid { Margin = new Thickness(4, 2, 4, 2) };
         for (int column = 0; column < 5; column++) panel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -29,8 +29,8 @@ public sealed class SearchBarFitTests
             for (int row = 0; row < 3; row++) stack.Children.Add(new Ellipse { Width = 3, Height = 3, Margin = new Thickness(1.5) });
             dots.Children.Add(stack);
         }
-        var find = new TextBox { Width = 200, Height = 26 };
-        var replace = new TextBox { Width = 200, Height = 26, Margin = new Thickness(0, 4, 0, 0) };
+        var find = new TextBox { Width = 200, Height = 24 };
+        var replace = new TextBox { Width = 200, Height = 24, Margin = new Thickness(0, 4, 0, 0) };
         var status = new TextBlock { Width = SearchBarFit.StatusWidth, Margin = new Thickness(2, 0, 2, 0) };
         var tail = new StackPanel { Orientation = Orientation.Horizontal };
         tail.Children.Add(new Button { Width = 26, Height = 24 });
@@ -49,7 +49,7 @@ public sealed class SearchBarFitTests
         Place(find, 0, 3);
         Place(tail, 0, 4);
         Place(replace, 1, 3);
-        var frame = new Border { Padding = new Thickness(4), BorderThickness = new Thickness(1), Child = panel,
+        var frame = new Border { Padding = new Thickness(2), BorderThickness = new Thickness(1), Child = panel,
             HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
         return new Bar(frame, panel, find, replace, status);
     }
@@ -77,16 +77,15 @@ public sealed class SearchBarFitTests
         host.UpdateLayout();
     }
 
-    // Everything but the box is 324 wide, so a pane of 524 or more gives the full 200 box. The 314 the bar used to
-    // reserve left out its 10 of padding and border, so a pane of 400 got an 86 box and a 410 wide bar.
+    // Everything but the box is 312 wide, so a pane of 512 or more gives the full 200 box and a pane of 400 an 88 box.
     [Theory]
     [InlineData(1.0, 600, 200)]
-    [InlineData(1.0, 524, 200)]
-    [InlineData(1.5, 524, 200)]
-    [InlineData(2.5, 524, 200)]
-    [InlineData(1.0, 400, 76)]
-    [InlineData(1.5, 400, 76)]
-    [InlineData(2.5, 400, 76)]
+    [InlineData(1.0, 512, 200)]
+    [InlineData(1.5, 512, 200)]
+    [InlineData(2.5, 512, 200)]
+    [InlineData(1.0, 400, 88)]
+    [InlineData(1.5, 400, 88)]
+    [InlineData(2.5, 400, 88)]
     public void TheBoxTakesWhatTheBarsOtherControlsLeave(double appScale, double paneWidth, double expectedBox)
     {
         RunSta(() =>
@@ -103,13 +102,13 @@ public sealed class SearchBarFitTests
         });
     }
 
-    // The document pane is at least 360 wide, so the bar is made to fit there: 324 + 60 is 384, which the status text
-    // gives up 24 of (96 to 72) so the box keeps its 60; at 340 it gives up 44 (96 to 52). It goes down to 48 at most.
+    // The document pane is at least 360 wide, so the bar is made to fit there: 312 + 60 is 372, which the status text
+    // gives up 12 of (96 to 84) so the box keeps its 60; at 340 it gives up 32 (96 to 64). It goes down to 48 at most.
     [Theory]
-    [InlineData(1.0, 360, 72)]
-    [InlineData(1.5, 360, 72)]
-    [InlineData(2.5, 360, 72)]
-    [InlineData(1.0, 340, 52)]
+    [InlineData(1.0, 360, 84)]
+    [InlineData(1.5, 360, 84)]
+    [InlineData(2.5, 360, 84)]
+    [InlineData(1.0, 340, 64)]
     public void AtTheNarrowestDocumentPaneTheBarStillFitsByNarrowingTheStatusText(double appScale, double paneWidth, double expectedStatus)
     {
         RunSta(() =>
@@ -136,7 +135,7 @@ public sealed class SearchBarFitTests
 
             double box = SearchBarFit.Fit(bar.Frame, [bar.Find, bar.Replace], bar.Status, 400);
 
-            Assert.Equal(76, box, 3);
+            Assert.Equal(88, box, 3);
         });
     }
 
@@ -163,7 +162,7 @@ public sealed class SearchBarFitTests
         {
             var (pane, bar) = InPane(340, 1.0);
             SearchBarFit.Fit(bar.Frame, [bar.Find, bar.Replace], bar.Status, 340);
-            Assert.Equal(52, bar.Status.Width, 3);
+            Assert.Equal(64, bar.Status.Width, 3);
 
             SearchBarFit.Fit(bar.Frame, [bar.Find, bar.Replace], bar.Status, 600);
 

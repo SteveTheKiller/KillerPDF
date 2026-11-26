@@ -50,7 +50,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A floating tool bar under the active tab or against the pane's side tucks behind the pane's border and rounded corners instead of drawing over them.
 - Dialogs match the main window. Their content areas carry the pane shadow, they keep 16px margins, and their title, wordmark, icon and close X sit like the main window's. Dialog buttons are a step smaller, 26px tall everywhere.
 - Every dropdown's list comes straight off its box with square corners where they meet, and the open box and list share one shadow. Lists at the foot of a window, like the Macros steps and the footer zoom, open upward.
-- Page windows such as Transform, Color correction, Stamp and Print put the page right under the title bar, with the settings starting higher.
+- Page windows such as Transform, Color correction, Stamp and Print put the page right under the title bar, with the settings starting higher. Their dropdowns and fields are 24px tall, and the sections and rows sit closer together.
+- The read-only bar on a restricted PDF looks like the annotate bar and runs across the top of the page.
+- The find bar is slimmer, with less space around its boxes and buttons.
+- The owner password box shows the warning icon and puts each sentence on its own line.
+- On 98SE, the sidebar's resize line starts at the top of the sidebar instead of 5px above it.
 - The file dialog's title names the operation, such as "Save PDF as". Its panes, and the Macros window's, sit 8px from the sides and each other.
 - The color picker has the family title bar with its own icon, even rows of fields, and a hue strip that fills to the edge.
 - Extract Pages groups its four choices in one panel, with the file name box under the two choices that use it.
