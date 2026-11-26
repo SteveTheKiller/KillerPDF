@@ -408,12 +408,16 @@ namespace KillerPDF.Controls
         }
 
         // A rectangle with square top corners and rounded bottom ones: the top half of a plain rectangle
-        // joined to a fully rounded one.
-        private static Geometry BottomRounded(double width, double height, double radius)
+        // joined to a fully rounded one. A side flush against the pane's edge keeps its bottom corner
+        // square, so a half-width rectangle covers that side's round.
+        private static Geometry BottomRounded(double width, double height, double radius,
+                                              bool squareLeft = false, bool squareRight = false)
         {
-            var shape = new CombinedGeometry(GeometryCombineMode.Union,
-                new RectangleGeometry(new Rect(0, 0, width, Math.Max(0, height - radius))),
-                new RectangleGeometry(new Rect(0, 0, width, height), radius, radius));
+            var shape = new GeometryGroup { FillRule = FillRule.Nonzero };
+            shape.Children.Add(new RectangleGeometry(new Rect(0, 0, width, Math.Max(0, height - radius))));
+            shape.Children.Add(new RectangleGeometry(new Rect(0, 0, width, height), radius, radius));
+            if (squareLeft) shape.Children.Add(new RectangleGeometry(new Rect(0, 0, width / 2, height)));
+            if (squareRight) shape.Children.Add(new RectangleGeometry(new Rect(width / 2, 0, width / 2, height)));
             shape.Freeze();
             return shape;
         }
@@ -592,15 +596,19 @@ namespace KillerPDF.Controls
                     double left = FloatingLeft(final.Width), width = BarWidth(final.Width);
                     // Slid flush against the pane's left edge, the bar drops its own left border so the pane's
                     // border is its edge, as the right edge already reads when the bar sits against it.
-                    if (_plainChrome is { Bar: var chromed } && ReferenceEquals(chromed, _bar))
-                    {
-                        var sides = new Thickness(left < 0.5 ? 0 : 1, 0, 1, 1);
-                        if (chromed.BorderThickness != sides) chromed.BorderThickness = sides;
-                    }
                     // A top corner under the active tab rounds off; under an inactive tab it meets the
                     // pane's border square, and on the pane's own edge the pane's border is the bar's side.
                     double right = left + width;
                     bool flushLeft = left < 0.5, flushRight = right > final.Width - 0.5;
+                    // Against either side the bottom corner on that side goes square, so the bar meets
+                    // the pane's edge like a docked one instead of curling away from it.
+                    if (_plainChrome is { Bar: var chromed } && ReferenceEquals(chromed, _bar))
+                    {
+                        var sides = new Thickness(flushLeft ? 0 : 1, 0, 1, 1);
+                        if (chromed.BorderThickness != sides) chromed.BorderThickness = sides;
+                        var corners = new CornerRadius(0, 0, flushRight ? 0 : _cornerRadius, flushLeft ? 0 : _cornerRadius);
+                        if (chromed.CornerRadius != corners) chromed.CornerRadius = corners;
+                    }
                     bool UnderOpen(double x) => _openSpan is var (from, to) && x >= from && x <= to;
                     bool arcLeft = ShowsCorners && !flushLeft && UnderOpen(left);
                     bool arcRight = ShowsCorners && !flushRight && UnderOpen(right);
@@ -608,13 +616,13 @@ namespace KillerPDF.Controls
                         ? CornerCut(width, ShowsStrip ? MinimizedHeight : barHeight, arcLeft, arcRight) : null;
                     if (ShowsStrip)
                     {
-                        Geometry rounded = BottomRounded(width, MinimizedHeight, StripRadius);
+                        Geometry rounded = BottomRounded(width, MinimizedHeight, StripRadius, flushLeft, flushRight);
                         _bar.Clip = cut is null ? rounded : Frozen(new CombinedGeometry(GeometryCombineMode.Intersect, rounded, cut));
                         if (_bar is Border source)
                         {
                             _strip!.BorderBrush = source.BorderBrush;
                             _strip.BorderThickness = new Thickness(1, 0, 1, 1);
-                            _strip.CornerRadius = new CornerRadius(0, 0, StripRadius, StripRadius);
+                            _strip.CornerRadius = new CornerRadius(0, 0, flushRight ? 0 : StripRadius, flushLeft ? 0 : StripRadius);
                         }
                         _strip!.Clip = cut;
                         _strip.Arrange(new Rect(left, 0, width, MinimizedHeight));

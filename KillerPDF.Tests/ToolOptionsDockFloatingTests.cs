@@ -120,6 +120,33 @@ public sealed class ToolOptionsDockFloatingTests
         Assert.Null(dock.Grip);
     });
 
+    // Slid against a side of the pane, the bottom corner on that side goes square so the bar meets the
+    // pane's edge, and it rounds again once moved off it. The minimized strip does the same.
+    [Fact]
+    public void AgainstASideTheBottomCornerOnThatSideGoesSquare() => RunSta(() =>
+    {
+        double r = ToolOptionsDock.FloatingCornerRadius;
+        var (dock, bar, _) = Laid(floating: true);
+        dock.SlideTo(0);
+        Relayout(dock, 600);
+        Assert.Equal(new CornerRadius(0, 0, r, 0), bar.CornerRadius);
+        dock.SlideTo(5000);
+        Relayout(dock, 600);
+        Assert.Equal(new CornerRadius(0, 0, 0, r), bar.CornerRadius);
+        dock.SlideTo(100);
+        Relayout(dock, 600);
+        Assert.Equal(new CornerRadius(0, 0, r, r), bar.CornerRadius);
+
+        dock.SlideTo(0);
+        dock.ToggleMinimized();
+        Relayout(dock, 600);
+        var strip = Assert.IsType<Border>(dock.MinimizedStrip);
+        double m = ToolOptionsDock.MinimizedCornerRadius, h = ToolOptionsDock.MinimizedHeight;
+        Assert.Equal(new CornerRadius(0, 0, m, 0), strip.CornerRadius);
+        Assert.True(bar.Clip!.FillContains(new Point(0.3, h - 0.3)));
+        Assert.False(bar.Clip.FillContains(new Point(199.7, h - 0.3)));
+    });
+
     // The strip keeps the tab look: a bottom border along with the sides, and slightly rounded bottom corners.
     [Fact]
     public void AMinimizedStripHasABottomBorderAndRoundedBottomCorners() => RunSta(() =>

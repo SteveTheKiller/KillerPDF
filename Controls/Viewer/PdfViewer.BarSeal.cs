@@ -33,6 +33,18 @@ namespace KillerPDF.Controls
                 if (BarSealLine.Visibility != Visibility.Collapsed) BarSealLine.Visibility = Visibility.Collapsed;
                 return;
             }
+            // A bar against the card's side runs under the card's top corner. The line stops where that
+            // corner starts to curve, so the card's own rounded border draws there and the bar sits
+            // behind it; a straight line across the corner squared it off on top of the curve. The
+            // card's corners change with the active tab (SyncPaneLeadingCorner), so read them live.
+            CornerRadius card = PaneBorder?.CornerRadius ?? default;
+            from = Math.Max(from, Math.Ceiling(card.TopLeft) - 1);
+            to = Math.Min(to, ToolOptionsDock.ActualWidth - Math.Ceiling(card.TopRight) + 1);
+            if (to <= from)
+            {
+                if (BarSealLine.Visibility != Visibility.Collapsed) BarSealLine.Visibility = Visibility.Collapsed;
+                return;
+            }
             // The dock's first row is the one below the card's top border.
             Point at = ToolOptionsDock.TranslatePoint(new Point(from, -1), layer);
             if (Canvas.GetLeft(BarSealLine) != at.X) Canvas.SetLeft(BarSealLine, at.X);
