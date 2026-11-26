@@ -380,8 +380,8 @@ namespace KillerPDF
         //
         // KillerUI gives these borderless dialogs no resize edges: WindowStyle.None with
         // AllowsTransparency ignores ResizeMode.CanResize. WindowChrome restores the edges. The
-        // card sits inside a 12 DIP transparent halo for its shadow, so the resize band matches
-        // the halo and the drag zone reaches the card's visible edge.
+        // card sits inside a transparent halo for its shadow, so the resize band covers the halo
+        // and reaches ResizeGrabInside past the card's visible edge. 12 is the fallback band.
         private const double ResizeBand = 12;
 
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window, object> Resizable = new();
@@ -403,7 +403,7 @@ namespace KillerPDF
             Resizable.Add(win, new object());
             System.Windows.Shell.WindowChrome.SetWindowChrome(win, new System.Windows.Shell.WindowChrome
             {
-                ResizeBorderThickness = new Thickness(ResizeBand),
+                ResizeBorderThickness = new Thickness(ResizeBandFor(win)),
                 CaptionHeight         = 0,
                 GlassFrameThickness   = new Thickness(0),
                 CornerRadius          = new CornerRadius(0),
@@ -504,8 +504,17 @@ namespace KillerPDF
                 else host.SetResourceReference(FrameworkElement.MarginProperty, "DialogHaloMargin");
             }
             if (System.Windows.Shell.WindowChrome.GetWindowChrome(win) is { } chrome)
-                chrome.ResizeBorderThickness = new Thickness(max ? 0 : ResizeBand);
+                chrome.ResizeBorderThickness = new Thickness(max ? 0 : ResizeBandFor(win));
         }
+
+        /// <summary>How far inside the card's visible edge a resize still grabs: the card's border
+        /// and the empty gutter inside it, so the edge you see is the edge you can drag.</summary>
+        internal const double ResizeGrabInside = 4;
+
+        // The theme's shadow halo plus the grab inside the card. A fixed 12 against a 10 halo left
+        // only 2px of the visible card to grab, so a drag had to start out in the shadow.
+        private static double ResizeBandFor(Window win) =>
+            Value(win, "DialogHaloMargin", new Thickness(ResizeBand - ResizeGrabInside)).Left + ResizeGrabInside;
 
         // WindowStartupLocation.CenterOwner is resolved by WPF after this point, and WorkAreaFit
         // needs a real position to pick the monitor, so the centering is done here.

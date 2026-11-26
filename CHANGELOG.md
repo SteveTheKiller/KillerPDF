@@ -66,6 +66,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A long tab title fades out on the right instead of ending in "...", and scrolls to its end while the pointer is on the tab.
 - In split view, the focused pane's active tab keeps its accent outline, and the other pane's active tab shows its accent line in gray.
 - A floating tool bar slid under the active tab keeps the pane's top border above it, and its top corner rounds while it is under that tab.
+- Windows resize from their visible edge. The main window, page windows and the file dialog grab a drag up to 4px inside the edge instead of only out in the shadow past it.
 - The Restore last session bar keeps 4px above and below its buttons instead of 8, so it matches the slimmer tool bar and tabs.
 - A floating tool bar pushed against the left or right side of the pane sits behind the pane's rounded corner instead of drawing a square line over it, and its bottom corner on that side goes square.
 - The tool options bar is 7 pixels shorter, with 4 pixels above and below its controls to match the shorter tabs.

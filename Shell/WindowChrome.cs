@@ -175,7 +175,32 @@ namespace KillerPDF.Shell
             if (isTitleBar) return titleBarHit;
 
             // Outside the custom title bar, let Windows answer for its real side and bottom borders.
-            return DefWindowProc(hwnd, msg, wParam, lParam).ToInt32();
+            int hit = DefWindowProc(hwnd, msg, wParam, lParam).ToInt32();
+            return hit == HTCLIENT ? InsideEdgeHit(mx, my) : hit;
+        }
+
+        /// <summary>How far inside the window's visible edge a resize still grabs: the border and
+        /// the empty gutter around the panes.</summary>
+        private const double ResizeGrabInside = 4;
+
+        // Windows' side and bottom borders sit wholly outside the visible window, so a drag had to
+        // start past the edge you can see. The border and gutter just inside it grab too.
+        private int InsideEdgeHit(int screenX, int screenY)
+        {
+            if (WindowState != WindowState.Normal || _fullScreen) return HTCLIENT;
+            try
+            {
+                Point p = PointFromScreen(new Point(screenX, screenY));
+                bool left = p.X < ResizeGrabInside, right = p.X >= ActualWidth - ResizeGrabInside;
+                bool bottom = p.Y >= ActualHeight - ResizeGrabInside;
+                if (bottom && left) return HTBOTTOMLEFT;
+                if (bottom && right) return HTBOTTOMRIGHT;
+                if (left) return HTLEFT;
+                if (right) return HTRIGHT;
+                if (bottom) return HTBOTTOM;
+            }
+            catch (InvalidOperationException) { }   // not connected to a source yet
+            return HTCLIENT;
         }
 
         // Title-bar row is the caption, except over a control or the logo (scroll-wheel scaling).

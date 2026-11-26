@@ -1855,6 +1855,9 @@ namespace KillerPDF.Controls
             // returns - by then the button is UP, and WM_NCLBUTTONDOWN with no button held puts
             // Windows into its sticky keyboard-style size loop: the window chases the mouse,
             // resizing, until a click. (2026-07-30)
+            // The title bar's own top and side edges belong to the resize band: left unhandled,
+            // the press bubbles on to Resize_MouseDown while the button is still down.
+            if (e.ButtonState == MouseButtonState.Pressed && HitTestEdge(e.GetPosition(this)) != 0) return;
             e.Handled = true;
             if (e.ButtonState != MouseButtonState.Pressed) return;
             try { DragMove(); }
@@ -1897,16 +1900,21 @@ namespace KillerPDF.Controls
         private const int HTLEFT = 10, HTRIGHT = 11, HTTOP = 12, HTTOPLEFT = 13,
                           HTTOPRIGHT = 14, HTBOTTOM = 15, HTBOTTOMLEFT = 16, HTBOTTOMRIGHT = 17;
 
-        /// <summary>Width of the grab band, matching the ResizeBorderThickness WindowChrome used.</summary>
-        private const double ResizeEdge = 8;
+        /// <summary>How far inside the card's visible edge a resize still grabs: its border and the
+        /// empty gutter, so the edge you see is the edge you can drag. The band also covers the
+        /// whole shadow halo outside the card.</summary>
+        private const double ResizeGrabInside = 4;
 
         /// <summary>Which edge the pointer is in, or 0 for none.</summary>
         private int HitTestEdge(Point p)
         {
-            bool left   = p.X <= ResizeEdge;
-            bool right  = p.X >= ActualWidth  - ResizeEdge;
-            bool top    = p.Y <= ResizeEdge;
-            bool bottom = p.Y >= ActualHeight - ResizeEdge;
+            // An 8 band from the window's edge sat wholly in the 10 halo, so a drag had to start
+            // out in the shadow, past the card's visible edge.
+            Thickness halo = RootBorder.Margin;
+            bool left   = p.X <= halo.Left + ResizeGrabInside;
+            bool right  = p.X >= ActualWidth  - halo.Right - ResizeGrabInside;
+            bool top    = p.Y <= halo.Top + ResizeGrabInside;
+            bool bottom = p.Y >= ActualHeight - halo.Bottom - ResizeGrabInside;
 
             if (top && left)     return HTTOPLEFT;
             if (top && right)    return HTTOPRIGHT;
@@ -1933,10 +1941,12 @@ namespace KillerPDF.Controls
 
         private void Resize_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            // Only a press on the halo Grid ITSELF may start a resize. Every press on the card
-            // bubbles up here too (with OriginalSource somewhere in the card's tree), and a stale
-            // bubbled press must never reach WM_NCLBUTTONDOWN - see TitleBar_MouseLeftButtonDown.
-            if (!ReferenceEquals(e.OriginalSource, sender)) return;
+            // A press on the halo, or one bubbled up from the card's own edge band (its border and
+            // empty gutter), starts a resize; a control there handles its press first. A stale
+            // bubbled press must never reach WM_NCLBUTTONDOWN with the button already up, or
+            // Windows starts its sticky keyboard size loop - see TitleBar_MouseLeftButtonDown - so
+            // the button has to still be down.
+            if (e.ButtonState != MouseButtonState.Pressed || Mouse.LeftButton != MouseButtonState.Pressed) return;
             int ht = HitTestEdge(e.GetPosition(this));
             if (ht == 0) return;
             e.Handled = true;
