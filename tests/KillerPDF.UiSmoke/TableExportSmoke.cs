@@ -21,7 +21,7 @@ internal static class TableExportSmoke
     internal static int Run(string appPath, string appXaml, string folder, bool officeExport = false, bool grainThemes = false, bool dialogText = false, bool sidebarActions = false, bool paragraphEdit = false, bool accessibilityReview = false, bool formFieldEditing = false, bool guidedTasks = false, bool signedCopy = false, bool renderRecovery = false, bool toolbarAvailability = false, bool windowLifecycle = false, bool windowSession = false, string windowSessionCase = "--verify-window-session", string? updateRestartState = null, bool referenceRepairNotice = false, bool reductionRepairNotice = false)
     {
         bool visibleNative = windowSession && (windowSessionCase is "--verify-native-reading" or "--verify-native-reading-continuous" or "--verify-native-reading-grid" or "--verify-native-reading-grid-switch" or "--verify-native-reading-epub" or "--verify-native-reading-epub-continuous" or "--verify-native-reading-epub-grid-switch" or "--verify-shortcut-hints"
-            || windowSessionCase is "--verify-two-page-continuous" or "--verify-paired-thumbnails" or "--verify-replacement-selection" or "--verify-flatten-scale" or "--verify-native-outlines" or "--verify-native-outlines-djvu" or "--verify-native-anchor" or "--verify-text-annotation-reopen" or "--verify-text-annotation-save"
+            || windowSessionCase is "--verify-two-page-continuous" or "--verify-zoom-anchor" or "--verify-paired-thumbnails" or "--verify-replacement-selection" or "--verify-flatten-scale" or "--verify-native-outlines" or "--verify-native-outlines-djvu" or "--verify-native-anchor" or "--verify-text-annotation-reopen" or "--verify-text-annotation-save"
             || windowSessionCase.StartsWith("--verify-page-navigation-", StringComparison.Ordinal));
         visibleNative |= windowSession && windowSessionCase is "--verify-sdr-monitor" or "--verify-native-fallback" or "--verify-native-fallback-refinement" or "--verify-two-page-fallback-refinement";
         visibleNative |= windowSession && windowSessionCase is "--verify-native-conversion" or "--verify-native-conversion-djvu" or "--verify-native-conversion-custom" or "--verify-native-conversion-unicode";
@@ -161,6 +161,7 @@ internal static class TableExportSmoke
             if (windowSessionCase == "--verify-flatten-scale") return FlattenScaleSmoke.Run(owner, appPath, appXaml, folder);
             if (windowSessionCase == "--verify-replacement-selection") return ReplacementSelectionSmoke.Run(owner, appPath, appXaml, folder);
             if (windowSessionCase == "--verify-two-page-continuous") return TwoPageContinuousSmoke.Run(owner, appPath, folder);
+            if (windowSessionCase == "--verify-zoom-anchor") return ZoomAnchorSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-paired-thumbnails") return PairedThumbnailSmoke.Run(owner, appPath, appXaml, folder);
             if (windowSessionCase == "--verify-sdr-monitor") return SdrMonitorSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-native-fallback") return NativeFallbackSmoke.Run(owner, appPath, folder);

@@ -2711,7 +2711,8 @@ public sealed class PdfIncrementalAnnotationEditor
                         $"Page {page.Index + 1} annotation /Lang value is not a string.");
                 string tag = PdfUnicodeEncoding.DecodeTextString(language.Bytes.Span,
                     $"Page {page.Index + 1} annotation /Lang value");
-                if (!PdfLanguageTag.IsValid(tag))
+                // ISO 32000-1 14.9.2.1: an empty language identifier means the language is unknown.
+                if (tag.Length != 0 && !PdfLanguageTag.IsValid(tag))
                     throw new InvalidOperationException(
                         $"Page {page.Index + 1} annotation /Lang value is not a valid BCP 47 language tag.");
             }

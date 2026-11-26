@@ -8577,6 +8577,24 @@ public sealed class PdfIncrementalPageEditorTests
             malformedError.Message, StringComparison.Ordinal);
     }
 
+    // ISO 32000-1 14.9.2.1: an empty language identifier means the language is unknown.
+    [Fact]
+    public void CompleteDocumentImports_AcceptEmptyLanguageIdentifiers()
+    {
+        PdfDocument source = PdfDocument.Open(RawPdfFixtures.RawPdf(
+            "<< /Type /Catalog /Pages 2 0 R /Lang () >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Annots [4 0 R] >>",
+            "<< /Type /Annot /Subtype /Text /Rect [0 0 10 10] /P 3 0 R /Lang () >>"));
+
+        PdfDocument merged = PdfDocument.Open(
+            new PdfIncrementalPageEditor(PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build()))
+                .AddImportedDocument(source)
+                .Build());
+
+        Assert.Equal(2, PdfDocumentInformation.Read(merged).PageCount);
+    }
+
     [Fact]
     public void CompleteDocumentImports_RejectUndefinedCatalogVersions()
     {
