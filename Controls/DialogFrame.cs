@@ -214,7 +214,14 @@ namespace KillerPDF
                 accentShadow.Effect = new BlurEffect { Radius = 3 };
                 accentShadow.RenderTransform = new TranslateTransform(1, 2);
                 title.Children.Add(accentShadow);
-                title.Children.Add(BuildWordmark(false));
+                var crisp = BuildWordmark(false);
+                // The main window's file name draws ClearType in Ideal formatting. A dialog is a layered
+                // window that Configure sets to grayscale, which drew the same font and size visibly
+                // thinner. ClearTypeHint lets this opaque caption keep ClearType on a layered window.
+                TextOptions.SetTextFormattingMode(crisp, TextFormattingMode.Ideal);
+                TextOptions.SetTextRenderingMode(crisp, TextRenderingMode.ClearType);
+                RenderOptions.SetClearTypeHint(crisp, ClearTypeHint.Enabled);
+                title.Children.Add(crisp);
                 // Same lift as the main title bar: Lacquer's deep descent makes the centred line sit low.
                 if (fullTitle?.Contains("KillerPDF", StringComparison.Ordinal) == true)
                     title.RenderTransform = new TranslateTransform(0, -5);
