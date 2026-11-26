@@ -311,6 +311,19 @@ public sealed class PdfDuplicateFieldNameTests
     }
 
     [Fact]
+    public void ABorderChangeKeepsEachTwinsOwnValue()
+    {
+        byte[] bytes = Form(Text("same", 10, "/V (Alice)"), Text("same", 40, "/V (Bob)"));
+        var blue = new PdfRgbColor(0, 0, 1);
+
+        byte[] bordered = new PdfIncrementalPageEditor(PdfDocument.Open(bytes))
+            .SetTextFieldBorder("same", blue, 1.5, PdfFormFieldBorderStyle.Solid).Build();
+
+        Assert.Equal(["Alice", "Bob"], Values(bordered));
+        Assert.All(Widgets(bordered), widget => Assert.Equal(blue, widget.BorderColor));
+    }
+
+    [Fact]
     public void AChangeOfLookAsksForTheFontOfEachTwinsOwnValue()
     {
         byte[] bytes = Form(Text("same", 10, "/V (Alice)"), Text("same", 40, "/V (Bob)"));

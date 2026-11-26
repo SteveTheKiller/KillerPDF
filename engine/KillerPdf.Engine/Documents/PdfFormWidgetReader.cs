@@ -45,6 +45,8 @@ public sealed class PdfFormWidgetReader
     private static readonly PdfName AppearanceCharacteristicsName = Name("MK");
     private static readonly PdfName BackgroundColorName = Name("BG");
     private static readonly PdfName BorderColorName = Name("BC");
+    private static readonly PdfName BorderStyleName = Name("BS");
+    private static readonly PdfName LegacyBorderName = Name("Border");
     private static readonly PdfName CropBoxName = Name("CropBox");
     private static readonly PdfName MediaBoxName = Name("MediaBox");
     private static readonly PdfName RotateName = Name("Rotate");
@@ -195,6 +197,7 @@ public sealed class PdfFormWidgetReader
             (bool underline, bool strikeThrough) = Editing.PdfIncrementalPageEditor.TextDecorationsOf(defaultStyle);
             (int objectNumber, int generation) = rawWidget is PdfIndirectReference reference
                 ? (reference.ObjectNumber, reference.Generation) : (0, 0);
+            (double borderWidth, PdfFormFieldBorderStyle borderStyle) = WidgetBorder(document, widget);
             result.Add(new PdfFormWidgetInfo
             {
                 PageIndex = pageIndex,
@@ -223,6 +226,8 @@ public sealed class PdfFormWidgetReader
                     document, widget, BackgroundColorName, "background"),
                 BorderColor = WidgetColor(
                     document, widget, BorderColorName, "border"),
+                BorderWidth = borderWidth,
+                BorderStyle = borderStyle,
                 MaximumLength = maximumLength,
                 OnValue = ButtonOnValue(document, widget),
                 HasAction = widget.ContainsKey(ActionName),
@@ -290,6 +295,42 @@ public sealed class PdfFormWidgetReader
                 && Resolve(document, colorValue, "A widget background color") is PdfArray { Count: 0 };
         }
         catch (Exception error) when (error is not OutOfMemoryException) { return false; }
+    }
+
+    // The widget's /BS width and style, or the width in a legacy /Border array. A value the reader cannot
+    // use keeps the PDF default of a 1-point solid border.
+    private static (double Width, PdfFormFieldBorderStyle Style) WidgetBorder(PdfDocument document, PdfDictionary widget)
+    {
+        double width = 1;
+        PdfFormFieldBorderStyle style = PdfFormFieldBorderStyle.Solid;
+        try
+        {
+            if (widget.TryGetValue(BorderStyleName, out PdfObject? bsValue)
+                && Resolve(document, bsValue, "A widget /BS value") is PdfDictionary bs)
+            {
+                if (bs.TryGetValue(Name("W"), out PdfObject? widthValue)
+                    && Number(document, widthValue, "A widget border width") is var w
+                    && double.IsFinite(w) && w >= 0)
+                    width = w;
+                if (bs.TryGetValue(Name("S"), out PdfObject? styleValue)
+                    && Resolve(document, styleValue, "A widget border style") is PdfName name)
+                    style = name.ValueAsLatin1() switch
+                    {
+                        "D" => PdfFormFieldBorderStyle.Dashed,
+                        "B" => PdfFormFieldBorderStyle.Beveled,
+                        "I" => PdfFormFieldBorderStyle.Inset,
+                        "U" => PdfFormFieldBorderStyle.Underline,
+                        _ => PdfFormFieldBorderStyle.Solid
+                    };
+            }
+            else if (widget.TryGetValue(LegacyBorderName, out PdfObject? borderValue)
+                && Resolve(document, borderValue, "A widget /Border value") is PdfArray { Count: >= 3 } border
+                && Number(document, border[2], "A widget border width") is var legacy
+                && double.IsFinite(legacy) && legacy >= 0)
+                width = legacy;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException) { }
+        return (width, style);
     }
 
     private static PdfRgbColor? WidgetColor(

@@ -354,6 +354,38 @@ public sealed class PdfIncrementalPageEditor
     }
 
     /// <summary>
+    /// Changes a text field's border color, width and style and regenerates its appearance around the value
+    /// it holds. A null color or a zero width draws no border. The field's background, text color and value
+    /// stay its own, so fields that repeat the name each keep theirs. A dashed border with no pattern uses 3.
+    /// </summary>
+    public PdfIncrementalPageEditor SetTextFieldBorder(
+        string fieldName, PdfRgbColor? borderColor, double borderWidth,
+        PdfFormFieldBorderStyle borderStyle, IReadOnlyList<double>? dashPattern = null,
+        double? fontSize = null, Func<string, TrueTypeFont?>? fontForValue = null)
+    {
+        if (string.IsNullOrWhiteSpace(fieldName))
+            throw new ArgumentException("The form field name cannot be empty.", nameof(fieldName));
+        if (!double.IsFinite(borderWidth) || borderWidth < 0)
+            throw new ArgumentOutOfRangeException(nameof(borderWidth));
+        if (dashPattern is not null && (dashPattern.Count == 0
+            || dashPattern.Any(length => !double.IsFinite(length) || length <= 0)))
+            throw new ArgumentOutOfRangeException(nameof(dashPattern));
+        if (!_textFieldValues.TryGetValue(fieldName, out PendingTextFieldValue? pending))
+        {
+            SetTextFieldValue(fieldName, string.Empty, null, fontSize);
+            pending = _textFieldValues[fieldName] with { KeepsItsValue = true, FontForValue = fontForValue };
+        }
+        else if (fontSize.HasValue)
+            pending = pending with { FontSize = fontSize };
+        _textFieldValues[fieldName] = pending with
+        {
+            Border = new PendingTextFieldBorder(borderColor, borderWidth, borderStyle,
+                borderStyle == PdfFormFieldBorderStyle.Dashed ? dashPattern ?? [3] : null)
+        };
+        return this;
+    }
+
+    /// <summary>
     /// Gives a text field its own text font, color, underline and strikethrough and regenerates its
     /// appearance. The callback gives the font to embed for the value a field shows (null keeps the
     /// standard font); the color also goes into the field's /DA, and the decorations into its /DS as
@@ -4286,6 +4318,14 @@ public sealed class PdfIncrementalPageEditor
                 style = pending.AppearanceStyle;
             if (pending.HasBackgroundColor)
                 style = style with { BackgroundColor = pending.BackgroundColor };
+            if (pending.Border is { } border)
+                style = style with
+                {
+                    BorderColor = border.Color,
+                    BorderWidth = border.Width,
+                    BorderStyle = border.Style,
+                    DashPattern = border.DashPattern
+                };
             if (pending.TextColor is { } textColorOverride)
                 style = style with { TextColor = textColorOverride };
             style = style with { Underline = underline, StrikeThrough = strikeThrough };
@@ -4339,6 +4379,10 @@ public sealed class PdfIncrementalPageEditor
                 [AppearanceCharacteristicsName] = importer.Import(
                     appearanceField[AppearanceCharacteristicsName])
             };
+            // A new border also goes into the widget's /BS, so a later redraw reads the border it now has.
+            if ((pending.Border is not null || pending.AppearanceStyle is not null)
+                && appearanceField.TryGetValue(BorderStyleName, out PdfObject? generatedBorder))
+                replacements[BorderStyleName] = importer.Import(generatedBorder);
             if (widgetReference.Equals(fieldReference))
             {
                 replacements[FieldValueName] = TextString(pending.Value);
@@ -4967,7 +5011,8 @@ public sealed class PdfIncrementalPageEditor
         PdfSignatureCertificationPermission? permission = PdfSignatureReader.ReadCertificationPermission(_document);
         bool valueOnly = _formValuesChanged && !_orderChanged && !_rotationChanged
             && !_pageGeometryChanged && !_pagePresentationChanged && !_catalogPresentationChanged
-            && _textFieldValues.Values.All(value => !value.HasBackgroundColor && value.AppearanceStyle is null);
+            && _textFieldValues.Values.All(value => !value.HasBackgroundColor && value.AppearanceStyle is null
+                && value.Border is null);
         if (permission.HasValue && (permission == PdfSignatureCertificationPermission.NoChanges || !valueOnly))
             throw new InvalidOperationException("The document certification signature prohibits these changes.");
         if (!_formValuesChanged) return;
@@ -19712,7 +19757,11 @@ public sealed class PdfIncrementalPageEditor
         public bool? Underline { get; init; }
         /// <summary>Strikethrough for the value, or null to keep what the field's /DS says.</summary>
         public bool? StrikeThrough { get; init; }
+        /// <summary>A new border for every widget of the name, or null to keep each widget's own.</summary>
+        public PendingTextFieldBorder? Border { get; init; }
     }
+    private sealed record PendingTextFieldBorder(
+        PdfRgbColor? Color, double Width, PdfFormFieldBorderStyle Style, IReadOnlyList<double>? DashPattern);
     private sealed record PendingTextFieldBehavior(
         bool Multiline, bool DoNotScroll, PdfTextFieldAlignment Alignment);
     private sealed record PendingChoiceFieldBehavior(

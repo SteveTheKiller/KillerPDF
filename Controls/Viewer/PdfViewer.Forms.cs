@@ -279,6 +279,36 @@ namespace KillerPDF.Controls
             SetStatus(string.Format(Loc("Str_St_FormFieldFillChanged"), field.FieldName));
         }
 
+        // The Border tile on a text field's card: color, width and style, saved into the field as one revision.
+        private void OpenFormFieldBorderDialog(FormFieldInfo field, int pageIndex)
+        {
+            if (Window.GetWindow(this) is not { } owner) return;
+            var dialog = new FieldBorderDialog(owner, field.BorderColor, field.BorderWidth, field.BorderStyle,
+                field.BackgroundColor ?? Colors.White);
+            if (dialog.ShowDialog() != true || _currentFile is null) return;
+            double? fontSize = _formFontSizes.TryGetValue(field.FieldName, out double size) ? size : null;
+            Color color = dialog.BorderColor;
+            double width = dialog.BorderWidth;
+            var style = dialog.BorderStyle;
+            try
+            {
+                SaveTempAndReload(
+                    keepAnnotations: true,
+                    preserveZoom: true,
+                    finalizeSavedFile: path => PdfEngineIntegration.SetTextFieldBorder(
+                        path, field.FieldName, width > 0 ? color : null, width, style, fontSize),
+                    selectedPageAfterReload: pageIndex,
+                    preserveRenderedPages: true);
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                ReportEditFailure(ex);
+                return;
+            }
+            _selectedFormFieldName = field.FieldName;
+            SetStatus(string.Format(Loc("Str_St_FormFieldBorderChanged"), field.FieldName));
+        }
+
         private void CommitFormFieldRectangle(
             int pageIndex, FormFieldInfo field, FrameworkElement element, Canvas canvas, bool resized)
         {
@@ -344,7 +374,9 @@ namespace KillerPDF.Controls
             Color? DaColor = null,       // the text color of the field's /DA, when it gives one
             bool   Underline = false,    // the field's /DS text-decoration
             bool   StrikeThrough = false,
-            bool   MarkedTransparent = false)   // /MK /BG is empty: the field is clear on purpose
+            bool   MarkedTransparent = false,   // /MK /BG is empty: the field is clear on purpose
+            double BorderWidth = 1,             // /BS /W in points
+            KillerPdf.Engine.Authoring.PdfFormFieldBorderStyle BorderStyle = default)
         {
             // What a person reads and a screen reader announces: the /TU description when the
             // form has one, else the internal field name. Storage and export keep FieldName.
@@ -438,8 +470,16 @@ namespace KillerPDF.Controls
                     double combCellW = f.IsComb ? f.Cw / f.MaxLen : 0;
                     // A field whose /MK says it is clear (an empty /BG, as recognized fields over a printed
                     // box have) shows no fill and no outline at rest; the page's own box shows where to type.
-                    Brush restingBorder = f.MarkedTransparent ? Brushes.Transparent
-                        : new SolidColorBrush(f.BorderColor ?? Color.FromRgb(0x88, 0x88, 0x88));
+                    // A border the field gives itself shows at rest in its color, at its width on the page, and
+                    // only along the bottom for an underline; a field without one keeps the 1px gray outline.
+                    bool ownBorder = f.BorderColor.HasValue && f.BorderWidth > 0;
+                    Brush restingBorder = ownBorder ? new SolidColorBrush(f.BorderColor!.Value)
+                        : f.MarkedTransparent ? Brushes.Transparent
+                        : new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88));
+                    double borderPx = ownBorder ? Math.Max(1, f.BorderWidth * f.Scale) : 1;
+                    Thickness restingThickness = ownBorder
+                        && f.BorderStyle == KillerPdf.Engine.Authoring.PdfFormFieldBorderStyle.Underline
+                        ? new Thickness(0, 0, 0, borderPx) : new Thickness(borderPx);
                     Brush restingFill = f.MarkedTransparent ? Brushes.Transparent
                         : new SolidColorBrush(f.BackgroundColor ?? fieldBg.Color);
                     if (f.IsPassword)
@@ -458,7 +498,7 @@ namespace KillerPDF.Controls
                             Foreground       = Brushes.Black,
                             CaretBrush       = Brushes.Black,
                             BorderBrush      = restingBorder,
-                            BorderThickness  = new Thickness(1),
+                            BorderThickness  = restingThickness,
                             FontSize         = fontSize,
                             Padding          = new Thickness(3, 0, 3, 0),
                             VerticalContentAlignment = VerticalAlignment.Center,
@@ -498,7 +538,7 @@ namespace KillerPDF.Controls
                             SelectionBrush   = (System.Windows.Media.Brush)FindResource("HeaderLineBrush"),
                             Style            = (Style)FindResource("FormFieldTextBox"),
                             BorderBrush      = f.IsComb ? Brushes.Transparent : restingBorder,
-                            BorderThickness  = new Thickness(1),
+                            BorderThickness  = f.IsComb ? new Thickness(1) : restingThickness,
                             FontSize         = fontSize,
                             Padding          = f.IsComb
                                 ? new Thickness(Math.Max(0, combCellW / 2 - fontSize * 0.275), 0, 0, 0)
@@ -900,7 +940,8 @@ namespace KillerPDF.Controls
                         AppearanceFont: widget.AppearanceFontName,
                         DaColor: ParseDaColor(widget.DefaultAppearance),
                         Underline: widget.Underline, StrikeThrough: widget.StrikeThrough,
-                        MarkedTransparent: widget.MarkedTransparent));
+                        MarkedTransparent: widget.MarkedTransparent,
+                        BorderWidth: widget.BorderWidth, BorderStyle: widget.BorderStyle));
                 }
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"GetPageFormFields (engine): {ex}"); }

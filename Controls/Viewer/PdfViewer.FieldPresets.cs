@@ -69,7 +69,7 @@ namespace KillerPDF.Controls
         }
 
         // Right-click on a form field, with any tool: the object card for that kind of field. A text field gets its fill
-        // color, Clear and Copy Value, then its presets; a check box or list gets Clear; every field copies its name.
+        // color, border, Clear and Copy Value, then its presets; a check box or list gets Clear; every field copies its name.
         // Delete sits in the header while the Form Field tool is on, the tool that moves and resizes fields.
         private void ShowFormFieldCard(FormFieldInfo field, int pageIndex, FrameworkElement element)
         {
@@ -87,8 +87,10 @@ namespace KillerPDF.Controls
                 bool inFile = _currentFile is not null;
                 var fill = new ViewerCardTile(GlyphText(0xE790), Loc("Str_FieldPreset_FillColor"), null,
                     () => OpenFormFieldColorPicker(field, pageIndex), inFile);
+                var border = new ViewerCardTile(GlyphText(0xE739), Loc("Str_FieldBorder_Tile"), null,
+                    () => OpenFormFieldBorderDialog(field, pageIndex), inFile);
                 // A password field never hands its value to the clipboard.
-                rows.Add(field.IsPassword ? [fill, clear, copyName] : [fill, clear, copyValue]);
+                rows.Add(field.IsPassword ? [fill, border, clear, copyName] : [fill, border, clear, copyValue]);
                 var presets = new List<ViewerCardTile>
                 {
                     new(GlyphText(0xE74E), Loc("Str_FieldPreset_Save"), null, () => SaveFieldAsPreset(field), inFile),

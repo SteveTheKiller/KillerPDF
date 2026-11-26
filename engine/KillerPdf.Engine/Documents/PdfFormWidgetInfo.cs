@@ -74,6 +74,10 @@ public sealed record PdfFormWidgetInfo
     public PdfRgbColor? BackgroundColor { get; init; }
     /// <summary>Gets the widget border color, or null when none is defined.</summary>
     public PdfRgbColor? BorderColor { get; init; }
+    /// <summary>Gets the widget border width in points, from /BS /W or a legacy /Border array; 1 by default.</summary>
+    public double BorderWidth { get; init; } = 1;
+    /// <summary>Gets the widget border style from /BS /S; solid by default.</summary>
+    public Authoring.PdfFormFieldBorderStyle BorderStyle { get; init; }
     /// <summary>Gets the effective maximum text length, or zero when unspecified.</summary>
     public required int MaximumLength { get; init; }
     /// <summary>Gets the widget's button on-state name, including the leading slash.</summary>

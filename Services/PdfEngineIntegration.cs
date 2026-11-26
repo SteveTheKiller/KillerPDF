@@ -967,6 +967,28 @@ internal static partial class PdfEngineIntegration
         ReplaceWithBuiltResult(path, result);
     }
 
+    /// <summary>
+    /// Changes one text field's border color, width and style while preserving its value, background and
+    /// text color. A null color or a zero width draws no border.
+    /// </summary>
+    internal static void SetTextFieldBorder(
+        string path, string fieldName, System.Windows.Media.Color? color, double width,
+        PdfFormFieldBorderStyle style, double? fontSize)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
+        PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
+        PdfRgbColor? border = color is { } c && width > 0
+            ? new PdfRgbColor(c.R / 255d, c.G / 255d, c.B / 255d) : null;
+        document = AttachUnlistedFormFields(document);
+        var fonts = new Dictionary<string, TrueTypeFont>(StringComparer.OrdinalIgnoreCase);
+        byte[] result = new PdfIncrementalPageEditor(document)
+            .SetTextFieldBorder(fieldName, border, border is null ? 0 : width, style,
+                fontSize: fontSize, fontForValue: value => EmbeddedFormFont(value, fonts))
+            .Build();
+        ReplaceWithBuiltResult(path, result);
+    }
+
     /// <summary>Makes a field read-only, keeping its Required and No Export flags, as one engine revision (#536).</summary>
     internal static void SetFormFieldReadOnly(string path, string fieldName)
     {

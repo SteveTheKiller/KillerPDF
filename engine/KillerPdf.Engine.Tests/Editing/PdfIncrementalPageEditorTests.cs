@@ -14066,6 +14066,55 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void SetTextFieldBorder_ChangesOnlyTheBorder()
+    {
+        var background = new PdfRgbColor(0.9, 0.8, 0.7);
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "name", 10, 10, 100, 20, "Steve", appearanceStyle: new PdfFormFieldAppearanceStyle
+            {
+                BackgroundColor = background,
+                TextColor = new PdfRgbColor(0.3, 0.2, 0.1)
+            })
+            .AddCheckBox(0, "approved", 10, 40, 20, 20)
+            .Build();
+        var red = new PdfRgbColor(1, 0, 0);
+
+        PdfDocument updated = PdfDocument.Open(
+            new PdfIncrementalPageEditor(PdfDocument.Open(source))
+                .SetTextFieldBorder("name", red, 2, PdfFormFieldBorderStyle.Dashed)
+                .Build());
+        PdfFormWidgetInfo name = PdfFormWidgetReader.ReadPage(updated, 0)
+            .Single(widget => widget.FieldName == "name");
+        var widget = Assert.IsType<PdfDictionary>(
+            updated.Resolve(new PdfIndirectReference(name.ObjectNumber, name.Generation)));
+        var bs = Assert.IsType<PdfDictionary>(widget[new PdfName("BS"u8)]);
+
+        Assert.Equal("Steve", name.Value);
+        Assert.Equal(red, name.BorderColor);
+        Assert.Equal(background, name.BackgroundColor);
+        Assert.Contains("0.3 0.2 0.1 rg", name.DefaultAppearance);
+        Assert.Equal(2d, bs[new PdfName("W"u8)] switch { PdfInteger i => i.Value, PdfReal r => r.Value, _ => -1 });
+        Assert.Equal("D", Assert.IsType<PdfName>(bs[new PdfName("S"u8)]).ValueAsLatin1());
+        Assert.Equal(2, name.BorderWidth);
+        Assert.Equal(PdfFormFieldBorderStyle.Dashed, name.BorderStyle);
+
+        PdfFormWidgetInfo cleared = PdfFormWidgetReader.ReadPage(PdfDocument.Open(
+            new PdfIncrementalPageEditor(updated)
+                .SetTextFieldBorder("name", null, 0, PdfFormFieldBorderStyle.Solid)
+                .Build()), 0).Single(widget => widget.FieldName == "name");
+        Assert.Null(cleared.BorderColor);
+        Assert.Equal(0, cleared.BorderWidth);
+        Assert.Equal("Steve", cleared.Value);
+
+        Assert.Throws<ArgumentException>(() => new PdfIncrementalPageEditor(updated)
+            .SetTextFieldBorder(" ", red, 1, PdfFormFieldBorderStyle.Solid));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfIncrementalPageEditor(updated)
+            .SetTextFieldBorder("name", red, -1, PdfFormFieldBorderStyle.Solid));
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(updated)
+            .SetTextFieldBorder("approved", red, 1, PdfFormFieldBorderStyle.Solid).Build());
+    }
+
+    [Fact]
     public void SetChoiceFieldBehavior_PreservesChoiceTypeAndComposesWithValues()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage()

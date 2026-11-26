@@ -1375,6 +1375,45 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void SetTextFieldBorder_PersistsBorderAndKeepsValueAndFill()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-form-border-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder()
+                .AddBlankPage()
+                .AddTextField(0, "customer.name", 20, 20, 140, 24, "Original")
+                .Build());
+            PdfEngineIntegration.SetTextFieldBackground(
+                path, "customer.name", System.Windows.Media.Color.FromRgb(0xFF, 0xFF, 0x00), null);
+
+            PdfEngineIntegration.SetTextFieldBorder(path, "customer.name",
+                System.Windows.Media.Color.FromRgb(0xCC, 0x00, 0x00), 2,
+                KillerPdf.Engine.Authoring.PdfFormFieldBorderStyle.Underline, null);
+
+            PdfFormWidgetInfo field = Assert.Single(PdfFormWidgetReader.ReadPage(
+                PdfDocument.Open(File.ReadAllBytes(path)), 0));
+            Assert.Equal("Original", field.Value);
+            Assert.Equal(new PdfRgbColor(0xCC / 255d, 0, 0), field.BorderColor);
+            Assert.Equal(new PdfRgbColor(1, 1, 0), field.BackgroundColor);
+            Assert.Equal(2, field.BorderWidth);
+            Assert.Equal(KillerPdf.Engine.Authoring.PdfFormFieldBorderStyle.Underline, field.BorderStyle);
+
+            PdfEngineIntegration.SetTextFieldBorder(path, "customer.name", null, 1,
+                KillerPdf.Engine.Authoring.PdfFormFieldBorderStyle.Solid, null);
+            PdfFormWidgetInfo cleared = Assert.Single(PdfFormWidgetReader.ReadPage(
+                PdfDocument.Open(File.ReadAllBytes(path)), 0));
+            Assert.Null(cleared.BorderColor);
+            Assert.Equal(0, cleared.BorderWidth);
+            Assert.Equal("Original", cleared.Value);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void ReplacePagesAndCompact_RemovesSupersededImageData()
     {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-compact-pages-{Guid.NewGuid():N}.pdf");

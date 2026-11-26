@@ -55,6 +55,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Right-clicking a drawing, text box, picture, comment or form field opens a card made for it, under the same Back, Forward, Undo, Redo and Print row as the page card. A mark, picture or comment card has Delete in its header.
 - A mark's card duplicates it, brings it to the front or sends it to the back, and sets its color, fill, opacity and line width. A text box's card also sets its text color and size.
 - A comment's card edits it, replies to it, copies its text or deletes it.
+- A text field's card sets its border color, width and style. The styles are solid, dashed, beveled, inset and underline, and a width of None removes the border.
 - A form field's card copies the field's name, and its value for text fields, lists and dropdowns. A text field's card also fills it from a preset, clears it and saves or manages presets, and a check box or multi-select list clears from its card.
 - Fill Unused Space draws a black Z through the part of a multiline or empty text field that nobody wrote in, then makes the field read-only. It starts in the form field card's Hidden drawer, and the Z is a normal drawing you can move, resize, undo or flatten. (#536)
 
