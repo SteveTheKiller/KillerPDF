@@ -90,14 +90,14 @@ namespace KillerPDF.Controls
                 var border = new ViewerCardTile(GlyphText(0xE739), Loc("Str_FieldBorder_Tile"), null,
                     () => OpenFormFieldBorderDialog(field, pageIndex), inFile);
                 // A password field never hands its value to the clipboard.
-                rows.Add(field.IsPassword ? [fill, border, clear, copyName] : [fill, border, clear, copyValue]);
-                var presets = new List<ViewerCardTile>
-                {
+                rows.Add(field.IsPassword ? [fill, border, clear] : [fill, border, clear, copyValue]);
+                rows.Add(
+                [
                     new(GlyphText(0xE74E), Loc("Str_FieldPreset_Save"), null, () => SaveFieldAsPreset(field), inFile),
                     new(GlyphText(0xE8FD), Loc("Str_FieldPreset_Manage"), null, () => OpenFieldPresets(), true),
-                };
-                if (!field.IsPassword) presets.Add(copyName);
-                rows.Add(presets);
+                ]);
+                // Six tiles fill two rows; the field's name waits in the Hidden drawer until someone wants it.
+                rows.Add([copyName with { SpareId = "copyFieldName" }]);
                 // #536: a Z through the space nobody wrote in, on a multiline or empty field. A spare tile, so it
                 // waits in the card's Hidden drawer until someone puts it on the card.
                 if (!field.IsPassword && !field.IsComb && (field.IsMultiLine || value.Length == 0))
