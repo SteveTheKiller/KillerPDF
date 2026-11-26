@@ -87,7 +87,7 @@ public sealed class ViewerPresentationPinTests
     {
         string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
         string setZoom = Between(viewport, "internal void SetZoom(double level)", "internal void SetTrueZoom(");
-        string preset = Between(viewport, "SetTrueZoom(z);", "// A secondary tile shares the primary's displayed width.");
+        string preset = Between(viewport, "SetTrueZoomAnchored(z);", "// A secondary tile shares the primary's displayed width.");
 
         Assert.Contains("if (HasReadDocument && _currentPage >= 0)", setZoom);
         Assert.Contains("_currentPage + 1, ReadPageTotal) + $\" - {DisplayZoomPct():F0}%\"", setZoom);

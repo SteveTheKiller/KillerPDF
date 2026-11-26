@@ -2501,6 +2501,20 @@ namespace KillerPDF.Controls
             if (DeferTrueZoom(trueZoom)) return;
             double zf = DisplayZoomFactor();
             if (zf <= 0) zf = 1.0;
+            SetZoom(trueZoom / zf);
+        }
+
+        /// <summary>
+        /// A zoom the user picked from the zoom box: like <see cref="SetTrueZoom"/>, but the spot in
+        /// the middle of the window stays in the middle. SetTrueZoom itself keeps its old behavior,
+        /// because a view mode switch, Ctrl+0 and Ctrl+1 call it too.
+        /// </summary>
+        private void SetTrueZoomAnchored(double trueZoom)
+        {
+            MarkViewportIntent();
+            if (DeferTrueZoom(trueZoom)) return;
+            double zf = DisplayZoomFactor();
+            if (zf <= 0) zf = 1.0;
             if (_viewMode == ViewMode.Grid)
             {
                 if (_currentPage >= 0) _gridScrollToPage = _currentPage;
@@ -2636,7 +2650,7 @@ namespace KillerPDF.Controls
             if (double.TryParse(tag, System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out double z))
             {
-                SetTrueZoom(z);
+                SetTrueZoomAnchored(z);
                 if (_currentPage >= 0 && HasReadDocument)
                     SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, ReadPageTotal) + $" - {DisplayZoomPct():F0}%");
             }
