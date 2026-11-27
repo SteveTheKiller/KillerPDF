@@ -54,7 +54,8 @@ internal sealed class InsertPagesDialog : Window
         Style? radioStyle = owner.TryFindResource("ThemeRadio") as Style;
         string clicked = Math.Clamp(clickedPage + 1, 1, Math.Max(1, targetPageCount)).ToString(CultureInfo.CurrentCulture);
 
-        var body = new StackPanel { Margin = new Thickness(20, 6, 20, 16) };
+        // 8 px from the window's sides to the boxes and the buttons.
+        var body = new StackPanel { Margin = new Thickness(8, 6, 8, 16) };
 
         body.Children.Add(Label("Str_InsertPages_From", 0));
         foreach (InsertPagesSource source in sources)
