@@ -9,7 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Security
 
 - Deleting pages, removing a link or comment, and editing text in place save the file as one clean revision, so the removed content can no longer be recovered from an earlier revision inside the file. A signed PDF, or one with Adobe Reader usage rights, keeps the old way of saving, which leaves its signatures and rights valid.
-- Before it downloads a PDF a website sent with a `killerpdf://` link, KillerPDF names the site and asks. "Always open PDFs from this site" skips the question for that site from then on.
+- Before it downloads a PDF a website sent with a `killerpdf://` link, KillerPDF names the site and asks. "Always open PDFs from this site" skips the question for that site from then on. A redirect to another site asks again, and a redirect off HTTPS stops the download.
 - A link in a PDF opens exactly the address KillerPDF checked, not the raw text the PDF stored.
 - A signature made with a certificate whose stated uses leave out document signing, such as a web server certificate, is no longer shown as trusted. Certificates that state no uses, or allow email protection, code signing or document signing, are checked as before.
 - The setup program looks for the system libraries it loads only in Windows' own folder, no longer in the folder it was started from, such as Downloads.

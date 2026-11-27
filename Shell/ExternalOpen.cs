@@ -193,12 +193,19 @@ namespace KillerPDF.Shell
             return true;
         }
 
+        // The download runs off the window's thread, so a redirect's question comes back to it.
+        private Task<bool> ConfirmBrowserRedirectAsync(System.Uri next)
+            => Dispatcher.InvokeAsync(() => ConfirmBrowserHost(next)).Task;
+
         private async Task OpenProtocolUrlAsync(System.Uri target)
         {
             string temp = App.MakeTempFile("browser");
             try
             {
-                using var http = new HttpClient(PublicAddressGuard.CreateHandler()) { Timeout = System.TimeSpan.FromSeconds(90) };
+                // Redirects go through the gate, which asks again before the download moves to another host.
+                var guard = PublicAddressGuard.CreateHandler();
+                guard.AllowAutoRedirect = false;
+                using var http = new HttpClient(new BrowserRedirects(guard, ConfirmBrowserRedirectAsync)) { Timeout = System.TimeSpan.FromSeconds(90) };
                 const long MaxBytes = 256L * 1024 * 1024;
                 using (var output = File.Create(temp))
                     await HttpDownload.CopyToAsync(http, target, output, System.TimeSpan.FromSeconds(90), MaxBytes);
@@ -216,6 +223,7 @@ namespace KillerPDF.Shell
             catch (System.Exception ex)
             {
                 try { File.Delete(temp); } catch { }
+                if (ex is BrowserRedirectRefusedException) return;   // the user said no, as to the first host
                 BrowserOpenFailure failure = ex switch
                 {
                     BrowserOpenException known => known.Failure,
