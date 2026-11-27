@@ -12,7 +12,8 @@ internal static class CliProtectionGate
     internal const string RestrictedContentMessage =
         "The owner of this PDF has set limits this output would not keep, so it takes the owner password. Give it with --password.";
 
-    private static readonly string[] WindowSwitches = ["--crash-dialog-preview", "--startup-smoke"];
+    // #513: Explorer's open verb starts KillerPDF as a COM server with ExplorerOpenServer.Switch.
+    private static readonly string[] WindowSwitches = ["--crash-dialog-preview", "--startup-smoke", ExplorerOpenServer.Switch];
 
     internal static string Message(PdfAccess access) =>
         access.Role == PdfAccessRole.Refused ? access.Refusal ?? RestrictedContentMessage : RestrictedContentMessage;

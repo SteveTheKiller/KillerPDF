@@ -321,6 +321,8 @@ public sealed class CliRestrictionTests : IDisposable
         Assert.False(CliProtectionGate.IsUnknownSwitch(["--lang-file", InFolder("--strings.xaml"), InFolder("document.pdf")]));
         Assert.False(CliProtectionGate.IsUnknownSwitch(["--crash-dialog-preview"]));
         Assert.False(CliProtectionGate.IsUnknownSwitch(["--startup-smoke"]));
+        // #513: the open verb's COM server launch, exactly as COM starts it.
+        Assert.False(CliProtectionGate.IsUnknownSwitch([ExplorerOpenServer.Switch, "-Embedding"]));
         Assert.False(CliProtectionGate.IsUnknownSwitch([RenderFailureRecovery.RecoverySwitch, "1", "manifest", "session", "--a-note"]));
         Assert.False(CliProtectionGate.IsUnknownSwitch(["/silent"]));
     }
