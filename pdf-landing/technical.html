@@ -147,6 +147,9 @@
 <a href="#tabs-across-windows" class="sub" data-i18n="pt195_tabs_h">Tabs across windows &amp; sessions</a>
 <a href="#merge-and-file-dialogs" class="sub" data-i18n="pt195_files_h">Merge files &amp; the file dialogs</a>
 <a href="#trash-polka-theme" class="sub" data-i18n="pt195_theme_h">The Trash Polka theme</a>
+<a href="#object-cards" class="sub" data-i18n="pt197_cards_h">Object cards</a>
+<a href="#clean-revisions" class="sub" data-i18n="pt197_clean_h">Clean revisions</a>
+<a href="#sharper-text-and-hdr" class="sub" data-i18n="pt197_render_h">Sharper text &amp; HDR</a>
 <a href="#canvas-overlay-maps" class="sub" data-i18n="pt_60">Canvas &amp; overlay maps</a>
 <a href="#coords" data-i18n="pt_7">Coordinate space</a>
 <a href="#render-dim-space" class="sub" data-i18n="pt_68">1. A fixed internal size ("render-dim")</a>
@@ -264,6 +267,12 @@
 <p data-i18n="ph195_new_folder">KillerPDF's own open and save dialogs have a <b>New folder</b> button, also on <code>Ctrl+Shift+N</code> while the dialog is open. The folder is created in the current folder and opened, so a Save As can go straight into it, and a name Windows won't accept is explained before anything is created.</p>
 <h3 id="trash-polka-theme" data-i18n="pt195_theme_h">The Trash Polka theme</h3>
 <p data-i18n="pt195_theme">Trash Polka sits under 98SE in the theme list: black, with a tattoo-style ink background drawn in the accent color, from eight accents with Blood red as the default. Under a Windows high contrast theme the ink and the tab shade step aside for the system colors.</p>
+<h3 id="object-cards" data-i18n="pt197_cards_h">Object cards</h3>
+<p data-i18n="pt197_cards">Since 1.9.7 a right-click opens a card for whatever is under the pointer: the page, a mark, a text box, a picture, a comment or a form field. Every card is built from the same tile grid under one Back, Forward, Undo, Redo and Print row, and each kind keeps its own layout. The edit pencil moves any tile anywhere on its card or into the Hidden drawer, and a layout you customized before carries over.</p>
+<h3 id="clean-revisions" data-i18n="pt197_clean_h">Clean revisions</h3>
+<p data-i18n="pt197_clean">An edit to a PDF is usually appended to the file, which leaves the earlier version inside it. Since 1.9.7, deleting pages, removing a link or comment, and editing text in place save the file as one clean revision, so the removed content can no longer be recovered from it. A signed PDF keeps the appended save, which leaves its signatures valid.</p>
+<h3 id="sharper-text-and-hdr" data-i18n="pt197_render_h">Sharper text &amp; HDR</h3>
+<p data-i18n="pt197_render">Once the view settles, the part of the page on screen is drawn at the monitor&#39;s exact pixel size, so small text is no longer scaled down from a larger picture. On HDR and Advanced Color monitors, color-managed pages are drawn in the display&#39;s real color range, and the panels over the page stay on top of it.</p>
 <h3 id="canvas-overlay-maps" data-i18n="pt_60">Canvas &amp; overlay maps</h3>
 <p data-i18n="pt_61">When KillerPDF displays a page, it stacks two things on top of each other: the page itself, drawn as a flat image, and a clear sheet sitting directly over it. That clear sheet is called an <b>overlay</b>, and it is where everything you add to a page (highlights, text boxes, drawn ink, signatures) is painted. The image underneath is never altered; your marks live on the overlay above it. A page's image-and-overlay pair is referred to as a <b>tile</b>.</p>
 <p data-i18n="pt_62">The wrinkle is that KillerPDF has five ways of showing pages: one at a time, a continuous scroll through the whole document, a grid of pages, two pages side by side, and a continuous scroll of two-page rows. Each of those lays pages out differently, so each page you can see needs its own overlay in its own place. There is no single fixed sheet to draw on. Instead KillerPDF keeps a <b>lookup table</b> that takes a page number and hands back that page's current overlay. In the code this table is named <code>_pages</code>, and it is the one place the app trusts: every time it repaints a page's annotations, it asks this table which overlay to use and draws there.</p>
