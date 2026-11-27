@@ -71,15 +71,13 @@ internal sealed class TableExportDialog : Window
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 14),
             LayoutTransform = new ScaleTransform(bodyScale, bodyScale) };
         _format = new ComboBox { ItemsSource = new[] { "XLSX", "CSV" }, SelectedIndex = 0,
-            Style = UiKit.DarkComboStyle, MinWidth = 85, Height = 30 };
+            Style = UiKit.DarkComboStyle, MinWidth = 85 };
         AutomationProperties.SetName(_format, L("Str_ExportImg_Format"));
         AutomationProperties.SetAutomationId(_format, "TableExportFormat");
         var cancel = UiKit.Make(L("Str_Btn_Cancel"), false);
-        cancel.Height = 30;
         cancel.IsCancel = true; cancel.Click += (_, _) => Close();
         AutomationProperties.SetAutomationId(cancel, "TableExportCancel");
         _export = UiKit.Make(L("Str_ExportImg_Export"), true);
-        _export.Height = 30;
         _export.IsEnabled = false; _export.Click += (_, _) => Commit();
         AutomationProperties.SetAutomationId(_export, "TableExportSave");
         // One footer row: the format on the left, Cancel and Export on the right.

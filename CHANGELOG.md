@@ -68,6 +68,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The keyboard shortcuts card keeps its rounded corners while scrolling and balances its two columns. Customize Shortcuts shows its list on a shadowed pane with scroll fades.
 - The About card's text sits 8px from its sides again, so the description no longer runs into the right edge.
 - Windows resize from their visible edge, up to 4px inside it, instead of only out in the shadow past it.
+- Lists and reports in dialogs sit on the family pane, with its color, rounded corners, film grain and shadow. That covers the Layers and Portfolio reports, Field Presets, Insert Image, Find text to redact and every other window that had a flat black box.
+- Field Presets and Insert Image put their actions as icons on the list's heading. Initial view settings fits on two rows of controls, and Automatic folders opens at the size of what it shows.
+- Buttons in Automatic folders and the other windows that drew them taller use the regular button size.
 
 ### Added
 - Right-clicking a drawing, text box, picture, comment or form field opens a card made for it, under the same Back, Forward, Undo, Redo and Print row as the page card. A mark, picture or comment card has Delete in its header.

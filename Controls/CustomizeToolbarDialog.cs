@@ -232,30 +232,10 @@ internal sealed class CustomizeToolbarDialog : Window
             Activate(list);
             SyncButtons();
         };
-        // The lists sit on framed panes in the pane color with the family drop shadow, like Transform's page.
-        // The well keeps its see-through list template; its own tint and edge give way to the pane's.
+        // The lists sit in the family well: the pane color, its edge, rounded corners, grain and the pane shadow.
         Grid well = DialogParts.Well(list);
-        foreach (UIElement part in well.Children)
-            if (!ReferenceEquals(part, list)) part.Visibility = Visibility.Collapsed;
-        // The pane covers the window's grain, so it carries its own under the rows, like Stamp's page.
-        if (DialogFrame.GrainTexture(Owner) is ImageSource grain)
-            well.Children.Insert(0, new Border
-            {
-                IsHitTestVisible = false,
-                Opacity = Application.Current.Resources["GrainOpacity"] is double go ? go : 0.05,
-                Background = new ImageBrush(grain) { TileMode = TileMode.Tile, ViewportUnits = BrushMappingMode.Absolute, Viewport = new Rect(0, 0, 256, 256), Stretch = Stretch.None }
-            });
-        var pane = new Border
-        {
-            BorderThickness = new Thickness(1),
-            CornerRadius = UiKit.RadCard,
-            Margin = new Thickness(0, 0, 0, 8),
-            ClipToBounds = true,
-            Child = well
-        };
-        pane.SetResourceReference(Border.BackgroundProperty, "PaneBrush");
-        pane.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
-        column.Children.Add(UiKit.PaneWithShadow(pane));
+        well.Margin = new Thickness(0, 0, 0, 8);
+        column.Children.Add(well);
         return column;
     }
 

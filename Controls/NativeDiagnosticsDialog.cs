@@ -51,10 +51,12 @@ internal sealed class NativeDiagnosticsDialog : Window
             Content = _list,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            Focusable = true
+            Focusable = true,
+            Padding = new Thickness(10, 6, 10, 6)
         };
-        Grid.SetRow(scroller, 1);
-        body.Children.Add(scroller);
+        Grid report = DialogParts.Well(scroller);
+        Grid.SetRow(report, 1);
+        body.Children.Add(report);
 
         // The copied report keeps the engine's English diagnosis after each localized reason.
         _copy = UiKit.Make(L("Str_DocumentTools_Copy"), accent: false);

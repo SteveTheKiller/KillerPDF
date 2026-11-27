@@ -34,10 +34,10 @@ internal sealed class TextFieldPresetsDialog : Window
         _presets = presets;
         _pending = pending;
         Title = "KillerPDF - " + L(pending is null ? "Str_FieldPreset_Title" : "Str_FieldPreset_SaveTitle");
-        Width = 520;
-        Height = 460;
-        MinWidth = 440;
-        MinHeight = 360;
+        Width = 480;
+        Height = 420;
+        MinWidth = 400;
+        MinHeight = 320;
         DialogFrame.Configure(this, owner, resizable: true);
 
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16), LastChildFill = true };
@@ -60,10 +60,9 @@ internal sealed class TextFieldPresetsDialog : Window
         var save = UiKit.Make(L("Str_Btn_Save"), accent: true);
         save.IsDefault = pending is not null;
         save.Click += (_, _) => Save();
-        var buttons = UiKit.ButtonRow(cancel, save);
-        buttons.Margin = new Thickness(0, 12, 0, 0);
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        body.Children.Add(buttons);
+        DockPanel footer = DialogParts.Footer([cancel, save]);
+        DockPanel.SetDock(footer, Dock.Bottom);
+        body.Children.Add(footer);
 
         var nameRow = new DockPanel { Margin = new Thickness(0, 10, 0, 0) };
         var nameLabel = new TextBlock
@@ -77,9 +76,8 @@ internal sealed class TextFieldPresetsDialog : Window
         nameLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
         DockPanel.SetDock(nameLabel, Dock.Left);
         nameRow.Children.Add(nameLabel);
-        _rename = UiKit.Make(L("Str_Ctx_BmRename"), accent: false);
-        _rename.Margin = new Thickness(8, 0, 0, 0);
-        _rename.Click += (_, _) => RenameSelected();
+        _rename = DialogParts.IconAction("Str_Ctx_BmRename", 0xE8AC, (_, _) => RenameSelected());
+        _rename.Margin = new Thickness(4, 0, 0, 0);
         DockPanel.SetDock(_rename, Dock.Right);
         if (pending is null) nameRow.Children.Add(_rename);
         System.Windows.Automation.AutomationProperties.SetName(_name, L("Str_FieldPreset_Name"));
@@ -93,25 +91,14 @@ internal sealed class TextFieldPresetsDialog : Window
         DockPanel.SetDock(nameRow, Dock.Bottom);
         body.Children.Add(nameRow);
 
-        _up = UiKit.Make(L("Str_Ctx_BmMoveUp"), accent: false);
-        _up.Click += (_, _) => MoveSelected(-1);
-        _down = UiKit.Make(L("Str_Ctx_BmMoveDown"), accent: false);
-        _down.Click += (_, _) => MoveSelected(+1);
-        _delete = UiKit.Make(L("Str_Ctx_BmDelete"), accent: false);
-        _delete.Click += (_, _) => DeleteSelected();
-        var side = new StackPanel { Margin = new Thickness(10, 0, 0, 0) };
-        foreach (Button button in new[] { _up, _down, _delete })
-        {
-            button.Margin = new Thickness(0, 0, 0, 6);
-            button.HorizontalAlignment = HorizontalAlignment.Stretch;
-            side.Children.Add(button);
-        }
-        DockPanel.SetDock(side, Dock.Right);
-        body.Children.Add(side);
+        // The list's actions are icons on its heading, the way the Macros window lists its macros.
+        _up = DialogParts.IconAction("Str_Ctx_BmMoveUp", 0xE74A, (_, _) => MoveSelected(-1));
+        _down = DialogParts.IconAction("Str_Ctx_BmMoveDown", 0xE74B, (_, _) => MoveSelected(+1));
+        _delete = DialogParts.IconAction("Str_Ctx_BmDelete", 0xE74D, (_, _) => DeleteSelected());
+        DockPanel header = DialogParts.Header(L("Str_FieldPreset_Title"), _up, _down, _delete);
+        DockPanel.SetDock(header, Dock.Top);
+        body.Children.Add(header);
 
-        _list.SetResourceReference(Control.BackgroundProperty, "PaneBrush");
-        _list.SetResourceReference(Control.ForegroundProperty, "TextBrush");
-        _list.SetResourceReference(Control.BorderBrushProperty, "CardBorderBrush");
         _list.SelectionChanged += (_, _) => SelectionChanged();
         _empty = new TextBlock
         {
@@ -123,10 +110,7 @@ internal sealed class TextFieldPresetsDialog : Window
             IsHitTestVisible = false
         };
         _empty.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-        var listHost = new Grid();
-        listHost.Children.Add(_list);
-        listHost.Children.Add(_empty);
-        body.Children.Add(listHost);
+        body.Children.Add(DialogParts.Well(_list, _empty));
 
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         if (pending is not null)

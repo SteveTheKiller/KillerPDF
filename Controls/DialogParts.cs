@@ -81,10 +81,11 @@ internal static class DialogParts
     }
 
     /// <summary>
-    /// Sets <paramref name="content"/> in a well: the pane fill at half strength with the pane's edge, so the area
-    /// reads on every theme (Light's card edge alone is invisible) while the window's texture still shows through.
-    /// A list or text box inside is made see-through so the well is what shows. <paramref name="overlay"/>, such as
-    /// an empty-list hint, sits on top without taking clicks.
+    /// Sets <paramref name="content"/> in a well: the family pane the main window's panes and Customize Shortcuts'
+    /// list sit on, in the pane color (which carries Trash Polka's ink) with its edge, rounded corners, film grain
+    /// and the pane shadow (Steve 2026-11-26: a half-strength black well read as a flat slab with no grain). A list
+    /// or text box inside is made see-through so the pane is what shows. <paramref name="overlay"/>, such as an
+    /// empty-list hint, sits on top without taking clicks.
     /// </summary>
     internal static Grid Well(FrameworkElement content, UIElement? overlay = null)
     {
@@ -98,46 +99,33 @@ internal static class DialogParts
             control.SetResourceReference(Control.ForegroundProperty, "TextBrush");
             if (control.Padding == default) control.Padding = new Thickness(3);
         }
-        var well = new Grid();
-        well.Children.Add(WellShadow());
-        var fill = new Border { Opacity = 0.5, IsHitTestVisible = false };
-        fill.SetResourceReference(Border.BackgroundProperty, "WellFillBrush");
-        fill.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
-        var edge = new Border { BorderThickness = new Thickness(1), IsHitTestVisible = false };
-        edge.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
-        edge.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
-        well.Children.Add(fill);
-        well.Children.Add(content);
+        var layers = new Grid();
+        // Grain under the content, as on Customize Shortcuts' pane, so text and selected rows stay crisp.
+        var grain = new Border { IsHitTestVisible = false };
+        grain.SetResourceReference(Border.BackgroundProperty, "GrainTileBrush");
+        grain.SetResourceReference(UIElement.OpacityProperty, "GrainOpacity");
+        layers.Children.Add(grain);
+        layers.Children.Add(content);
         if (overlay is not null)
         {
             overlay.IsHitTestVisible = false;
-            well.Children.Add(overlay);
+            layers.Children.Add(overlay);
         }
-        well.Children.Add(edge);
-        return well;
-    }
-
-    /// <summary>
-    /// The family pane shadow under a well (PaneShadowEffect, null on 98SE), so a dialog's content area sits on the
-    /// window the way the main window's panes and the file picker's panes do (Steve 2026-11-26). The well is
-    /// see-through, so the shadow's caster would darken the texture inside it: the caster is clipped away inside the
-    /// well's own rounded rect and only the shadow falling outside it shows.
-    /// </summary>
-    private static Grid WellShadow()
-    {
-        var caster = new Border { Background = Brushes.Black, IsHitTestVisible = false };
-        caster.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
-        caster.SetResourceReference(UIElement.EffectProperty, "PaneShadowEffect");
-        var host = new Grid { IsHitTestVisible = false };
-        host.Children.Add(caster);
-        host.SizeChanged += (_, e) =>
+        var pane = new Border
         {
-            double w = e.NewSize.Width, h = e.NewSize.Height, r = caster.CornerRadius.TopLeft;
-            host.Clip = new CombinedGeometry(GeometryCombineMode.Exclude,
-                new RectangleGeometry(new Rect(-40, -40, w + 80, h + 80)),
-                new RectangleGeometry(new Rect(0, 0, w, h), r, r));
+            BorderThickness = new Thickness(1),
+            CornerRadius = UiKit.RadCard,
+            ClipToBounds = true,
+            Child = layers
         };
-        return host;
+        pane.SetResourceReference(Border.BackgroundProperty, "PaneBrush");
+        pane.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
+        Grid framed = UiKit.PaneWithShadow(pane);
+        // The grain follows the pane's corners, which PaneWithShadow squares on 98SE.
+        CornerRadius r = pane.CornerRadius;
+        grain.CornerRadius = new CornerRadius(Math.Max(0, r.TopLeft - 1), Math.Max(0, r.TopRight - 1),
+            Math.Max(0, r.BottomRight - 1), Math.Max(0, r.BottomLeft - 1));
+        return framed;
     }
 
     private static readonly ControlTemplate SeeThroughList = BuildSeeThroughList();

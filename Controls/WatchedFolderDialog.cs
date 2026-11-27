@@ -34,10 +34,13 @@ internal sealed class WatchedFolderDialog : Window
         _service = service;
         _filter.Text = "*.pdf";
         Title = "KillerPDF - " + L("Str_Watch_Title");
-        Width = Math.Min(900, SystemParameters.WorkArea.Width - 40);
-        Height = Math.Min(660, SystemParameters.WorkArea.Height - 40);
-        MinWidth = 480; MinHeight = 380; UseLayoutRounding = true;
+        // Sized to what it shows, then held there, so a growing results list scrolls instead of stretching the window.
+        Width = Math.Min(760, SystemParameters.WorkArea.Width - 40);
+        SizeToContent = SizeToContent.Height;
+        MaxHeight = SystemParameters.WorkArea.Height - 40;
+        MinWidth = 480; MinHeight = 320; UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
+        ContentRendered += (_, _) => { SizeToContent = SizeToContent.Manual; MaxHeight = double.PositiveInfinity; };
         AutomationProperties.SetAutomationId(this, "WatchedFolderDialog");
         var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16),
             LayoutTransform = new ScaleTransform(Math.Clamp(scale, .7, 2.5), Math.Clamp(scale, .7, 2.5)) };
@@ -287,7 +290,7 @@ internal sealed class WatchedFolderDialog : Window
     {
         Button button = UiKit.Make(new TextBlock { Text = L(key), TextWrapping = TextWrapping.Wrap,
             TextAlignment = TextAlignment.Center }, accent);
-        button.Height = double.NaN; button.MinHeight = 30;
+        button.Height = double.NaN;
         button.Margin = new Thickness(4, 4, 0, 0);
         button.Click += (_, _) => action(); Identify(button, id, key); return button;
     }

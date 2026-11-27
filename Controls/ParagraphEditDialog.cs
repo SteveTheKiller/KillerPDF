@@ -445,7 +445,6 @@ internal sealed class ParagraphEditDialog : Window
     private static Button Button(string key, string id, bool accent)
     {
         Button button = UiKit.Make(L(key), accent);
-        button.MinHeight = 30; button.Padding = new Thickness(6, 3, 6, 3);
         button.Margin = new Thickness(8, 0, 0, 0); Id(button, id); return button;
     }
     private static TextBlock Note(string key)

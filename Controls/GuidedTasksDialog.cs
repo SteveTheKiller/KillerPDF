@@ -188,8 +188,8 @@ internal sealed class GuidedTasksDialog : Window
     private static string Size(long bytes) => (bytes / 1024d).ToString("N1", CultureInfo.CurrentCulture) + " KB";
     private static Button Button(string key, string id, bool accent = false)
     {
-        Button button = UiKit.Make(L(key), accent); button.MinHeight = 30;
-        button.Margin = new Thickness(0, 4, 6, 4); button.Padding = new Thickness(8, 3, 8, 3); Id(button, id, key); return button;
+        Button button = UiKit.Make(L(key), accent);
+        button.Margin = new Thickness(0, 4, 6, 4); Id(button, id, key); return button;
     }
     private static CheckBox Check(string key, string id)
     { CheckBox box = UiKit.CheckBox(L(key)); box.Margin = new Thickness(0, 5, 0, 5); Id(box, id, key); return box; }

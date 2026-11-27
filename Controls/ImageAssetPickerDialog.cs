@@ -43,22 +43,10 @@ internal sealed class ImageAssetPickerDialog : Window
             if (_assets.SelectedItem is ListBoxItem) UseSelected();
             e.Handled = true;
         };
-        _assets.SetResourceReference(Control.BackgroundProperty, "PaneBrush");
-        _assets.SetResourceReference(Control.ForegroundProperty, "TextBrush");
-        _assets.SetResourceReference(Control.BorderBrushProperty, "CardBorderBrush");
-
-        var import = UiKit.Make(L("Str_Sig_Import"), accent: false);
-        import.Click += (_, _) => Import();
-        _delete = UiKit.Make(L("Str_Ctx_BmDelete"), accent: false);
-        _delete.Click += (_, _) => Delete();
-
-        // Wraps instead of clipping when a translated label makes the buttons wider than the
-        // library column. Each button carries its own top gap so a wrapped row keeps it too.
-        var libraryButtons = new WrapPanel { Margin = new Thickness(0, 2, 0, 0) };
-        import.Margin = new Thickness(0, 8, 8, 0);
-        libraryButtons.Children.Add(import);
-        _delete.Margin = new Thickness(0, 8, 8, 0);
-        libraryButtons.Children.Add(_delete);
+        // Import and Delete are icons on the library's heading, the way the Macros window lists its macros.
+        Button import = DialogParts.IconAction("Str_Sig_Import", 0xE710, (_, _) => Import());
+        _delete = DialogParts.IconAction("Str_Ctx_BmDelete", 0xE74D, (_, _) => Delete());
+        DockPanel libraryHeader = DialogParts.Header(L("Str_Filter_Images"), import, _delete);
 
         // An empty library says what it is for, rather than showing a blank box.
         _emptyHint = new TextBlock
@@ -72,14 +60,10 @@ internal sealed class ImageAssetPickerDialog : Window
             IsHitTestVisible = false
         };
         _emptyHint.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-        var library = new Grid();
-        library.Children.Add(_assets);
-        library.Children.Add(_emptyHint);
-
         var left = new DockPanel { Margin = new Thickness(0, 0, 14, 0) };
-        DockPanel.SetDock(libraryButtons, Dock.Bottom);
-        left.Children.Add(libraryButtons);
-        left.Children.Add(library);
+        DockPanel.SetDock(libraryHeader, Dock.Top);
+        left.Children.Add(libraryHeader);
+        left.Children.Add(DialogParts.Well(_assets, _emptyHint));
 
         var previewFrame = new Border
         {

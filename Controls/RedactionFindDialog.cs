@@ -107,19 +107,14 @@ internal sealed class RedactionFindDialog : Window
         body.Children.Add(resultsHeader);
 
         _list = new StackPanel();
-        var results = new Border
+        Grid results = DialogParts.Well(new ScrollViewer
         {
-            BorderThickness = new Thickness(1),
-            BorderBrush = UiKit.Brush("CardBorderBrush"),
+            Content = _list,
             Padding = new Thickness(6, 4, 6, 4),
             MinHeight = 120,
-            Child = new ScrollViewer
-            {
-                Content = _list,
-                MaxHeight = 280,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-            }
-        };
+            MaxHeight = 280,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        });
         body.Children.Add(results);
 
         // A page left out of the search must never read as a page without the term.

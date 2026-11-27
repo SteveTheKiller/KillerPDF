@@ -30,29 +30,30 @@ internal sealed class InitialViewDialog : Window
         _current = current;
         _pageCount = pageCount;
         Title = "KillerPDF - " + L("Str_DocumentTools_InitialView");
-        Width = 600;
+        Width = 560;
         SizeToContent = SizeToContent.Height;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
 
         var body = new StackPanel { Margin = new Thickness(20, 6, 20, 16) };
-        _layout = AddCombo(body, L("Str_InitialView_Layout"), LayoutChoices(),
+        // How the document shows: the page layout and the navigation panel side by side.
+        Grid showing = Row(2);
+        _layout = AddCombo(showing, 0, L("Str_InitialView_Layout"), LayoutChoices(),
             choice => choice.Value == current.PageLayout);
-        _panel = AddCombo(body, L("Str_InitialView_Panel"), PanelChoices(),
+        _panel = AddCombo(showing, 2, L("Str_InitialView_Panel"), PanelChoices(),
             choice => choice.Value == current.PageMode);
+        body.Children.Add(showing);
 
-        var opening = new Grid { Margin = new Thickness(0, 0, 0, 10) };
-        opening.ColumnDefinitions.Add(new ColumnDefinition());
-        opening.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
-        opening.ColumnDefinitions.Add(new ColumnDefinition());
+        // Where it opens: the page, the zoom and the custom percent on one line.
+        Grid opening = Row(3);
         _page = AddField(opening, 0, L("Str_InitialView_OpenPage"));
         _page.Text = current.PageIndex is int page ? (page + 1).ToString(CultureInfo.CurrentCulture) : "";
-        _zoomPercent = AddField(opening, 2, L("Str_InitialView_ZoomPercent"));
+        _zoom = AddCombo(opening, 2, L("Str_InitialView_Zoom"), ZoomChoices(),
+            choice => choice.Value == CurrentZoom(current));
+        _zoomPercent = AddField(opening, 4, L("Str_InitialView_ZoomPercent"));
         _zoomPercent.Text = CurrentZoomPercent(current)?.ToString("0.##", CultureInfo.CurrentCulture) ?? "100";
         body.Children.Add(opening);
 
-        _zoom = AddCombo(body, L("Str_InitialView_Zoom"), ZoomChoices(),
-            choice => choice.Value == CurrentZoom(current));
         // The viewer choices in two columns: what the viewer hides on the left, how its window opens on the right.
         var checks = new Grid();
         checks.ColumnDefinitions.Add(new ColumnDefinition());
@@ -157,32 +158,47 @@ internal sealed class InitialViewDialog : Window
     private void Invalid() => KillerDialog.Show(this, L("Str_InitialView_Invalid"),
         "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
 
-    private static ComboBox AddCombo<T>(StackPanel host, string label,
+    // Equal columns with a 12px gutter between them (the gutters take the odd column numbers).
+    private static Grid Row(int columns)
+    {
+        var row = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+        for (int i = 0; i < columns; i++)
+        {
+            if (i > 0) row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+        }
+        return row;
+    }
+
+    private static ComboBox AddCombo<T>(Grid host, int column, string label,
         Choice<T>[] choices, System.Func<Choice<T>, bool> selected)
     {
-        host.Children.Add(UiKit.GroupLabel(label));
         var combo = new ComboBox
         {
             Height = 28,
-            Margin = new Thickness(0, 0, 0, 10),
             ItemsSource = choices,
             SelectedItem = choices.FirstOrDefault(selected) ?? choices[0]
         };
         if (UiKit.DarkComboStyle is Style style)
             combo.Style = style;
-        host.Children.Add(combo);
+        Labeled(host, column, label, combo);
         return combo;
     }
 
     private static TextBox AddField(Grid host, int column, string label)
     {
+        TextBox field = UiKit.Field();
+        Labeled(host, column, label, field);
+        return field;
+    }
+
+    private static void Labeled(Grid host, int column, string label, UIElement control)
+    {
         var panel = new StackPanel();
         panel.Children.Add(UiKit.GroupLabel(label));
-        TextBox field = UiKit.Field();
-        panel.Children.Add(field);
+        panel.Children.Add(control);
         Grid.SetColumn(panel, column);
         host.Children.Add(panel);
-        return field;
     }
 
     private static CheckBox AddCheck(StackPanel host, string key, bool value)
