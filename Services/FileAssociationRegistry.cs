@@ -36,14 +36,14 @@ internal static class FileAssociationRegistry
         string appName, string urlScheme, string imageVerbLabel = ImageVerbEnglishLabel)
     {
         string command = $"\"{exePath}\" \"%1\"";
+        RegisterExplorerOpen(root, exePath);
         foreach (FileType type in Types)
         {
             using (var k = root.CreateSubKey(@"Software\Classes\" + type.ProgId))
                 k.SetValue("", type.Description);
             using (var k = root.CreateSubKey(@"Software\Classes\" + type.ProgId + @"\DefaultIcon"))
                 k.SetValue("", type.Extension == ".pdf" ? pdfIconReference : $"{exePath},0");
-            using (var k = root.CreateSubKey(@"Software\Classes\" + type.ProgId + @"\shell\open\command"))
-                k.SetValue("", command);
+            RegisterOpenVerb(root, @"Software\Classes\" + type.ProgId, command);
             if (type.Extension == ".pdf") RegisterPrintVerbs(root, @"Software\Classes\" + type.ProgId, exePath, pdfOnly: false);
             // Adds KillerPDF to the extension's Open with list.
             using (var k = root.CreateSubKey(@"Software\Classes\" + type.Extension + @"\OpenWithProgids"))
@@ -57,8 +57,7 @@ internal static class FileAssociationRegistry
             string applicationKey = @"Software\Classes\Applications\" + application;
             using (var k = root.CreateSubKey(applicationKey))
                 k.SetValue("FriendlyAppName", appName);
-            using (var k = root.CreateSubKey(applicationKey + @"\shell\open\command"))
-                k.SetValue("", command);
+            RegisterOpenVerb(root, applicationKey, command);
             RegisterPrintVerbs(root, applicationKey, exePath, pdfOnly: true);
             using (var k = root.CreateSubKey(applicationKey + @"\SupportedTypes"))
             {
@@ -117,6 +116,32 @@ internal static class FileAssociationRegistry
         }
     }
 
+    // #513: Explorer gives a DelegateExecute verb the whole selection at once, with the Shift state of a Shift+Enter, by
+    // starting KillerPDF as the command handler's COM server (Services/ExplorerOpenCommand.cs). A command-line verb gets
+    // one launch per file and no key state at all. The command line stays for callers that read it and start it
+    // themselves; Explorer and ShellExecute use DelegateExecute when it is there. Player lets the verb take a selection
+    // of more than 15 files.
+    private static void RegisterOpenVerb(RegistryKey root, string classKey, string command)
+    {
+        using (var k = root.CreateSubKey(classKey + @"\shell\open"))
+            k.SetValue("MultiSelectModel", "Player");
+        using (var k = root.CreateSubKey(classKey + @"\shell\open\command"))
+        {
+            k.SetValue("", command);
+            k.SetValue("DelegateExecute", ExplorerOpenServer.ClassIdText);
+        }
+    }
+
+    private static string ExplorerOpenClassKey => @"Software\Classes\CLSID\" + ExplorerOpenServer.ClassIdText;
+
+    private static void RegisterExplorerOpen(RegistryKey root, string exePath)
+    {
+        using (var k = root.CreateSubKey(ExplorerOpenClassKey))
+            k.SetValue("", "KillerPDF Explorer open");
+        using (var k = root.CreateSubKey(ExplorerOpenClassKey + @"\LocalServer32"))
+            k.SetValue("", $"\"{exePath}\" {ExplorerOpenServer.Switch}");
+    }
+
     // Windows asks these verbs how to print a file: "print" for right-click Print, Start-Process -Verb Print and mail
     // clients printing an attachment, and "printto" with the printer as %2 when a printer is named. Both run the
     // headless print, which reads PDFs only, so on an application key that also opens books they apply to PDFs alone.
@@ -146,6 +171,12 @@ internal static class FileAssociationRegistry
             }
             catch { }
         }
+        try
+        {
+            root.DeleteSubKeyTree(ExplorerOpenClassKey, false);
+            DeleteEmptyKeys(root, @"Software\Classes\CLSID");
+        }
+        catch { }
         try { root.DeleteSubKeyTree(@"Software\Classes\" + ImageProgId, false); } catch { }
         foreach (string extension in ImagesToPdfPlan.Extensions)
         {

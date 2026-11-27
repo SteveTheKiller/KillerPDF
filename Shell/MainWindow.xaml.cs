@@ -555,6 +555,8 @@ namespace KillerPDF.Shell
                 FlushPendingExternalOpen();   // a forward that landed before the panes were wired
 
                 var args = Environment.GetCommandLineArgs();
+                // #513: the files of an Explorer open that started KillerPDF as its command handler.
+                IReadOnlyList<string> explorerFiles = App.TakeExplorerLaunch()?.Paths ?? [];
                 // #267 follow-up: route every killerpdf: launch to OpenFromExternal, valid or not.
                 // Gating on a usable target here swallowed a refused handoff before anything could
                 // report it, and restored the last session instead, so a cold launch looked like a
@@ -594,8 +596,14 @@ namespace KillerPDF.Shell
                     if (args.Length > 1 && (File.Exists(args[1]) || Services.ProtocolRegistrar.IsHandoffLaunch(args[1]))
                         && !updateRestart.Files.Contains(args[1], StringComparer.OrdinalIgnoreCase))
                         OpenFromExternal(args[1]);
+                    foreach (string file in explorerFiles)
+                        if (!updateRestart.Files.Contains(file, StringComparer.OrdinalIgnoreCase)) OpenFromExternal(file);
                     if (restored.Count != updateRestart.Files.Length)
                         SetStatus(Loc("Str_UpdateRestartRestoreFailed"));
+                }
+                else if (explorerFiles.Count > 0)
+                {
+                    foreach (string file in explorerFiles) OpenFromExternal(file);
                 }
                 else if (args.Length > 1 && Services.ImagesToPdfPlan.OpenWithImages(args[1..]) is { } openedImages
                     && openedImages.Any(System.IO.File.Exists))

@@ -95,6 +95,40 @@ public sealed class FileAssociationRegistryTests : IDisposable
         Assert.Null(_root.OpenSubKey(@"Software\Classes\KillerPDF.pdf"));
     }
 
+    // #513: Explorer hands the open verb's whole selection, with the Shift state of Shift+Enter, to KillerPDF's
+    // command handler, started as a COM server. The command line stays for callers that read it directly.
+    [Theory]
+    [InlineData(@"Software\Classes\KillerPDF.pdf")]
+    [InlineData(@"Software\Classes\KillerPDF.epub")]
+    [InlineData(@"Software\Classes\KillerPDF.djvu")]
+    [InlineData(@"Software\Classes\Applications\KillerPDF.exe")]
+    [InlineData(@"Software\Classes\Applications\KillerPDF.App.exe")]
+    public void OpeningFromExplorerGoesThroughTheCommandHandler(string classKey)
+    {
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        using (var open = _root.OpenSubKey(classKey + @"\shell\open"))
+            Assert.Equal("Player", open!.GetValue("MultiSelectModel"));
+        using (var command = _root.OpenSubKey(classKey + @"\shell\open\command"))
+        {
+            Assert.Equal("{CF1944D6-20B1-4AB0-B64C-C03F6AF2CD4C}", command!.GetValue("DelegateExecute"));
+            Assert.Equal("\"" + Exe + "\" \"%1\"", command.GetValue(""));
+        }
+        using (var server = _root.OpenSubKey(@"Software\Classes\CLSID\{CF1944D6-20B1-4AB0-B64C-C03F6AF2CD4C}\LocalServer32"))
+            Assert.Equal("\"" + Exe + "\" --explorer-open", server!.GetValue(""));
+    }
+
+    [Fact]
+    public void UnregisterRemovesTheCommandHandler()
+    {
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        FileAssociationRegistry.Unregister(_root, "KillerPDF");
+
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\CLSID\{CF1944D6-20B1-4AB0-B64C-C03F6AF2CD4C}"));
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\CLSID"));
+    }
+
     public static TheoryData<string> ImageExtensions => [".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff"];
 
     // #480: images list KillerPDF under Open with, which makes a new PDF from them. The user's own image

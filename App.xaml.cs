@@ -174,6 +174,19 @@ namespace KillerPDF
                 return;
             }
 
+            // #513: Explorer started this process as the open verb's command handler. It hands over the
+            // whole selection with the key state of the press, so the Shift read above does not apply.
+            if (Services.ExplorerOpenServer.IsServerLaunch(e.Args))
+            {
+                StartedWithShift = false;
+                if (Services.ExplorerOpenServer.Serve() is not { Paths.Count: > 0 } request)
+                {
+                    Shutdown(0);
+                    return;
+                }
+                ExplorerLaunch = request;
+            }
+
             // #479: Save as KillerPDF on images in Explorer. Headless like the CLI, and before the
             // single-instance mutex, so it never forwards to an open window; the launches of one
             // selection gather on the verb's own channel (Services/ImagesToPdfCommand.cs).
@@ -247,6 +260,14 @@ namespace KillerPDF
             if (!isPrimary)
             {
                 GrantPrimaryForegroundPermission();
+                // #513: an Explorer selection goes across one path per message. With Shift, each path
+                // is marked and the running window gathers them into one new window.
+                if (ExplorerLaunch is { } explorer)
+                {
+                    Shutdown(explorer.Paths.All(path => InstanceChannel.Value.TrySend(
+                        explorer.NewWindow ? Services.ShiftLaunch.Mark(path) : path)) ? 0 : 1);
+                    return;
+                }
                 // #480: every image of an Open with launch goes across, one message each, and the
                 // window gathers them into one new PDF.
                 if (Services.ImagesToPdfPlan.OpenWithImages(e.Args) is { Count: > 1 } images)
@@ -436,6 +457,15 @@ namespace KillerPDF
 
         /// <summary>#513: Shift was down when this process started.</summary>
         private static bool StartedWithShift;
+
+        /// <summary>#513: the selection Explorer handed this process as the open verb's command handler.</summary>
+        private static Services.ExplorerOpenRequest? ExplorerLaunch;
+
+        /// <summary>
+        /// The Explorer selection that started KillerPDF, once. On a cold start the first window is the new
+        /// window, so a Shift+Enter selection opens there as tabs like any other.
+        /// </summary>
+        internal static Services.ExplorerOpenRequest? TakeExplorerLaunch() => Interlocked.Exchange(ref ExplorerLaunch, null);
         private static readonly Stopwatch SinceStartup = Stopwatch.StartNew();
 
         private static void DeliverExternalOpen(string? path)
