@@ -644,7 +644,7 @@ try {
         } else {
             Write-Host "    Updating README source link to $Tag"
             [System.IO.File]::WriteAllText($readmePath, $readmeNew)
-            git commit README.md -m "v${Version}: point README source link at release" --quiet
+            git commit README.md -m "v${Version} - docs: point README source link at release" --quiet
             if ($LASTEXITCODE -ne 0) { throw "README source-link commit failed" }
         }
     }
@@ -716,7 +716,7 @@ try {
         $siteDirty = git status --porcelain pdf-landing
         if ($siteDirty) {
             git add pdf-landing
-            git commit -m "v${Version}: landing release info" --quiet
+            git commit -m "v${Version} - docs: update landing release info" --quiet
             if ($LASTEXITCODE -ne 0) { throw "Landing page commit failed" }
             Write-Host "    pdf-landing updated to v$Version (pushed with the release)"
             Write-Host "    Remember: killerpdf.net does NOT auto-deploy. Drag pdf-landing/ into Cloudflare Pages." -ForegroundColor Yellow
