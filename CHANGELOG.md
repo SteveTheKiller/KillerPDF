@@ -78,6 +78,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Buttons in Automatic folders and the other windows that drew them taller use the regular button size.
 - The markup card's Arrange tile opens a grid of icon tiles, three across like the card itself, instead of a long list of rows. Tiles that don't apply to the selection stay in place, dimmed (#504).
 - The page card's Page tile opens its tools the same way, as three rows of icon tiles instead of a submenu.
+- The password prompts put the file name on a line of its own, above the rest of the message.
 
 ### Added
 - Right-clicking a drawing, text box, picture, comment or form field opens a card made for it, under the same Back, Forward, Undo, Redo and Print row as the page card. A mark, picture or comment card has Delete in its header.

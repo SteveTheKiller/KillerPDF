@@ -46,7 +46,8 @@ internal sealed class InsertPagesDialog : Window
         _sources = sources;
         _targetPageCount = targetPageCount;
         Title = "KillerPDF - " + L("Str_Ctx_InsertPages");
-        Width = 470;
+        // Wide enough that "Pages [1] to [6]" and "After page [2]" each fit their half of the shared box on one line.
+        Width = 520;
         SizeToContent = SizeToContent.Height;
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner);
@@ -68,17 +69,25 @@ internal sealed class InsertPagesDialog : Window
         _all = Choose("Str_InsertPages_All", "pages", radioStyle);
         _range = Choose("Str_InsertPages_Range", "pages", radioStyle, _from, _to);
         _all.IsChecked = true;
-        _pages = Group(_all, _range);
-        body.Children.Add(Label("Str_InsertPages_Pages", 12));
-        body.Children.Add(DialogParts.Well(_pages));
+        _pages = Group("Str_InsertPages_Pages", _all, _range);
 
         _beforePage = Number(clicked, "InsertPagesBeforePage");
         _afterPage = Number(clicked, "InsertPagesAfterPage");
         _before = Choose("Str_InsertPages_Before", "where", radioStyle, _beforePage);
         _after = Choose("Str_InsertPages_After", "where", radioStyle, _afterPage);
         _after.IsChecked = true;
-        body.Children.Add(Label("Str_InsertPages_Where", 12));
-        body.Children.Add(DialogParts.Well(Group(_before, _after)));
+
+        // Pages and Where share one box, side by side, each column with its own heading.
+        var columns = new Grid();
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        StackPanel where = Group("Str_InsertPages_Where", _before, _after);
+        Grid.SetColumn(where, 1);
+        columns.Children.Add(_pages);
+        columns.Children.Add(where);
+        FrameworkElement options = DialogParts.Well(columns);
+        options.Margin = new Thickness(0, 12, 0, 0);
+        body.Children.Add(options);
 
         // A typed number picks its own choice, and the two page boxes show one page, so switching keeps it.
         Follow(_from, _range);
@@ -123,9 +132,10 @@ internal sealed class InsertPagesDialog : Window
         return label;
     }
 
-    private static StackPanel Group(params RadioButton[] choices)
+    private static StackPanel Group(string headingKey, params RadioButton[] choices)
     {
-        var group = new StackPanel { Margin = new Thickness(12, 4, 12, 12) };
+        var group = new StackPanel { Margin = new Thickness(12, 10, 12, 12) };
+        group.Children.Add(Label(headingKey, 0));
         foreach (RadioButton choice in choices) group.Children.Add(choice);
         return group;
     }

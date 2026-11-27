@@ -38,7 +38,7 @@ internal static class DialogTextSmoke
                 MessageBoxButton.OKCancel, null, false)),
             ("quit", message, () => Invoke("ShowQuitPrompt", owner, message, "Close my open tabs", false,
                 "Remember my choice", "Quit", "Cancel")),
-            ("password", "sample.pdf is password protected.", () => Invoke("PromptPassword", owner,
+            ("password", "sample.pdf\nis password protected.", () => Invoke("PromptPassword", owner,
                 "sample.pdf", "{0} is password protected.", "Open")),
             ("text", message, () => Invoke("PromptText", owner, "KillerPDF", message, "", "Continue")),
             ("lines", message, () => Invoke("PromptLines", owner, "KillerPDF", message, "Continue"))
@@ -67,7 +67,7 @@ internal static class DialogTextSmoke
                     {
                         TextBlock[] text = Descendants(shown).OfType<TextBlock>().Where(block =>
                         {
-                            string value = new System.Windows.Documents.TextRange(block.ContentStart, block.ContentEnd).Text;
+                            string value = new System.Windows.Documents.TextRange(block.ContentStart, block.ContentEnd).Text.Replace("\r\n", "\n");
                             return value.Length > 0 && (value == test.Message || test.Message.Split('\n').Contains(value));
                         }).ToArray();
                         if (text.Length == 0) throw new InvalidOperationException($"{test.Name} message was not visible.");

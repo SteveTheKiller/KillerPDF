@@ -119,7 +119,7 @@ public sealed class InsertPagesTests
     public void TheSourceTabIsReadAsItStandsAndEveryPaneGoesBack()
     {
         string copy = ShellSource.Between(ShellSource.Read("Shell", "InsertPages.cs"), "private async Task<string?> CopyPagesFromTab(", "private static InsertPagesSource Describe(");
-        Assert.Contains("if (!EnsureMayWrite(PdfOutput.Printable)) return null;", copy);
+        Assert.Contains("if (!EnsureMayWrite(PdfOutput.Printable))", copy);
         Assert.Contains("CommitActiveTextBox();", copy);
         Assert.Contains("WriteSavedCopyToTemp(throwaway: true)", copy);
         int restore = copy.IndexOf("finally", StringComparison.Ordinal);
@@ -128,5 +128,9 @@ public sealed class InsertPagesTests
         Assert.Contains("sourceViewer.SwitchToTabExt(sourceWasShowing);", back);
         Assert.Contains("FocusPane(home);", back);
         Assert.Contains("home.SwitchToTabExt(homeTab);", back);
+        // A canceled owner password or a tab still opening says so after the home tab is back, not under the source.
+        int switchedHome = back.IndexOf("home.SwitchToTabExt(homeTab);", StringComparison.Ordinal);
+        Assert.True(back.IndexOf("SetStatus(reason);", StringComparison.Ordinal) > switchedHome);
+        Assert.Contains("reason = string.Format(Loc(\"Str_InsertPages_StillOpening\"), title);", copy);
     }
 }

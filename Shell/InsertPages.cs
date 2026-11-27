@@ -68,6 +68,8 @@ namespace KillerPDF.Shell
             string? copyPath = null;
             string? output = null;
             bool done = false;
+            // A reason given while the source tab shows, kept so switching back to the home tab can't wipe it.
+            string? reason = null;
             try
             {
                 FocusPane(sourceViewer);
@@ -75,10 +77,16 @@ namespace KillerPDF.Shell
                 // A tab that had not loaded opens now; a big or repaired file finishes in the background.
                 if (!ReferenceEquals(ActiveViewer, sourceViewer) || !ReferenceEquals(sourceViewer.ActiveSessionExt, sourceTab) || _doc is null)
                 {
-                    SetStatus(string.Format(Loc("Str_InsertPages_StillOpening"), title));
+                    reason = string.Format(Loc("Str_InsertPages_StillOpening"), title);
                     return null;
                 }
-                if (!EnsureMayWrite(PdfOutput.Printable)) return null;
+                string statusBefore = StatusText.Text;
+                if (!EnsureMayWrite(PdfOutput.Printable))
+                {
+                    // Canceling the owner password says so in the status bar; a refusal dialog leaves it as it was.
+                    if (StatusText.Text != statusBefore) reason = StatusText.Text;
+                    return null;
+                }
                 if (InsertPagesPlan.SourcePages(choice.AllPages, choice.FirstPage, choice.LastPage, _doc.PageCount) is not { } pages)
                 {
                     KillerDialog.Show(this, Loc("Str_InvalidRange"), "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -111,6 +119,13 @@ namespace KillerPDF.Shell
                 FocusPane(home);
                 if (home.ContainsSessionExt(homeTab) && !ReferenceEquals(home.ActiveSessionExt, homeTab))
                     home.SwitchToTabExt(homeTab);
+                if (reason is not null)
+                {
+                    SetStatus(reason);
+                    // The tab switch can post its own page status; the reason goes back on top once that has run.
+                    _ = Dispatcher.BeginInvoke(() => { if (StatusText.Text != reason) SetStatus(reason); },
+                        System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                }
             }
         }
 

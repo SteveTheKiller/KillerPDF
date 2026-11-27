@@ -561,12 +561,10 @@ namespace KillerPDF
             var notice = NoticeBody("", MessageBoxImage.Warning, false, out var textStack);
             notice.Margin = new Thickness(notice.Margin.Left, notice.Margin.Top, notice.Margin.Right, 0);
             var msg = (TextBlock)textStack.Children[0];
-            // Keep filename emphasis while allowing each language to place it naturally, and give each
-            // sentence of the template its own line. The file name is never split, whatever it holds.
-            int filenamePosition = template.IndexOf("{0}", StringComparison.Ordinal);
-            AddSentenceLines(msg, template[..filenamePosition]);
-            msg.Inlines.Add(new System.Windows.Documents.Run(System.IO.Path.GetFileName(filename)) { FontWeight = FontWeights.SemiBold });
-            AddSentenceLines(msg, template[(filenamePosition + 3)..]);
+            // The file name, with the quotes the language puts round it, gets a line of its own in semibold, so
+            // a long name never leaves the rest of the sentence hanging. Text before it and after it keeps the
+            // language's order, one sentence per line. The file name is never split, whatever it holds.
+            AddFileNameMessage(msg, template, System.IO.Path.GetFileName(filename));
             body.Children.Add(notice);
 
             var pw = UiKit.PasswordField();
@@ -590,6 +588,38 @@ namespace KillerPDF
             win.Loaded += (_, _2) => pw.Focus();
             win.ShowDialog();
             return result;
+        }
+
+        private const string FileNameQuotes = "\"'“”„‟«»‹›「」『』‘’‚";
+
+        /// <summary>Builds "{0}"-style <paramref name="template"/> text with the file name and its quotes on a line
+        /// of their own, the text before it on the lines above and the text after it on the lines below.</summary>
+        internal static void AddFileNameMessage(TextBlock message, string template, string fileName)
+        {
+            int at = template.IndexOf("{0}", StringComparison.Ordinal);
+            if (at < 0) { AddSentenceLines(message, template); return; }
+            string before = template[..at], after = template[(at + 3)..];
+            // French sets its guillemets off with spaces ("« {0} »"), so a space beside a quote stays with it.
+            static bool Hugs(char c) => FileNameQuotes.Contains(c) || char.IsWhiteSpace(c);
+            int open = before.Length;
+            while (open > 0 && Hugs(before[open - 1])) open--;
+            int close = 0;
+            while (close < after.Length && Hugs(after[close])) close++;
+            string lead = before[..open].TrimEnd(), tail = after[close..].TrimStart();
+            string openQuote = before[open..].TrimStart(), closeQuote = after[..close].TrimEnd();
+            if (lead.Length > 0)
+            {
+                AddSentenceLines(message, lead);
+                message.Inlines.Add(new System.Windows.Documents.LineBreak());
+            }
+            if (openQuote.Length > 0) message.Inlines.Add(new System.Windows.Documents.Run(openQuote));
+            message.Inlines.Add(new System.Windows.Documents.Run(fileName) { FontWeight = FontWeights.SemiBold });
+            if (closeQuote.Length > 0) message.Inlines.Add(new System.Windows.Documents.Run(closeQuote));
+            if (tail.Length > 0)
+            {
+                message.Inlines.Add(new System.Windows.Documents.LineBreak());
+                AddSentenceLines(message, tail);
+            }
         }
 
         /// <summary>Adds <paramref name="text"/> to the message, starting a new line after each sentence that
