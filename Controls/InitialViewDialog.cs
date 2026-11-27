@@ -52,6 +52,19 @@ internal sealed class InitialViewDialog : Window
             choice => choice.Value == CurrentZoom(current));
         _zoomPercent = AddField(opening, 4, L("Str_InitialView_ZoomPercent"));
         _zoomPercent.Text = CurrentZoomPercent(current)?.ToString("0.##", CultureInfo.CurrentCulture) ?? "100";
+        // The percent and its label are grayed out unless Custom zoom is picked. The box keeps its value meanwhile.
+        var percentPanel = (FrameworkElement)_zoomPercent.Parent;
+        void SyncPercent()
+        {
+            bool custom = ((Choice<ZoomChoice>)_zoom.SelectedItem).Value == ZoomChoice.Custom;
+            // Dimmed and locked rather than disabled: the field's disabled look drops its box entirely.
+            _zoomPercent.IsReadOnly = !custom;
+            _zoomPercent.IsTabStop = custom;
+            _zoomPercent.IsHitTestVisible = custom;
+            percentPanel.Opacity = custom ? 1 : 0.45;
+        }
+        _zoom.SelectionChanged += (_, _) => SyncPercent();
+        SyncPercent();
         body.Children.Add(opening);
 
         // The viewer choices in two columns: what the viewer hides on the left, how its window opens on the right.
