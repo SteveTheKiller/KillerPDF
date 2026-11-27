@@ -18,6 +18,7 @@ internal partial class WindowsPdfViewportHost : HwndHost
     (double Width, double Height, double ScaleX, double ScaleY) overlayLayout;
     readonly WindowsPdfViewportRegion clipRegion = new();
     string? installedClip;
+    ViewportClipKey? installedKey;
     uint installedClipDpi;
     (Size Layout, int Width, int Height) installedClipSize;
     bool refreshingClip;
@@ -142,14 +143,23 @@ internal partial class WindowsPdfViewportHost : HwndHost
         refreshingClip = true;
         try
         {
-            Geometry clip = IsVisible
-                ? ViewportOcclusion.Cut(WindowsPdfViewportLayout.Capture(this), ViewportOcclusion.Holes(this))
-                : Geometry.Empty;
-            string description = clip.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            // LayoutUpdated fires for every layout pass in the window, so first read a cheap key of everything the
+            // region is built from and stop when it matches the installed one, before any geometry is combined.
             uint dpi = GetDpiForWindow(Container);
             var pixels = PixelSize;
+            List<Rect> holes = IsVisible ? ViewportOcclusion.Holes(this) : [];
+            var key = ViewportClipKey.Build(this, holes, dpi, pixels.Width, pixels.Height);
+            if (key.IsSameAs(installedKey)) return;
+            Geometry clip = IsVisible
+                ? ViewportOcclusion.Cut(WindowsPdfViewportLayout.Capture(this), holes)
+                : Geometry.Empty;
+            string description = clip.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var size = (RenderSize, pixels.Width, pixels.Height);
-            if (description == installedClip && dpi == installedClipDpi && size == installedClipSize) return;
+            if (description == installedClip && dpi == installedClipDpi && size == installedClipSize)
+            {
+                installedKey = key;
+                return;
+            }
             if (!clip.IsEmpty())
             {
                 if (RenderSize.Width <= 0 || RenderSize.Height <= 0 || pixels.Width <= 0 || pixels.Height <= 0 || dpi == 0)
@@ -165,6 +175,7 @@ internal partial class WindowsPdfViewportHost : HwndHost
             installedClip = description;
             installedClipDpi = dpi;
             installedClipSize = size;
+            installedKey = key;
         }
         catch (Exception error) when (error is InvalidOperationException or NotSupportedException
             or ArgumentException or System.ComponentModel.Win32Exception)
@@ -173,6 +184,7 @@ internal partial class WindowsPdfViewportHost : HwndHost
             // example under a zero scale. Keep the clip already installed, retry on the next
             // pass, and never raise from a layout event.
             installedClip = null;
+            installedKey = null;
             WindowsPdfLayoutFailure.Record("viewport clip", error);
         }
         finally { refreshingClip = false; }
@@ -188,6 +200,7 @@ internal partial class WindowsPdfViewportHost : HwndHost
         occlusionObserved = false;
         ClearDetail();
         installedClip = null;
+        installedKey = null;
         installedClipDpi = 0;
         installedClipSize = default;
         editorMouseBridge = false;

@@ -28,7 +28,8 @@ public sealed class ViewerPresentationPinTests
         Assert.Equal(1, Count(viewport, "await PresentPrimaryFrameAsync("));
 
         // The region the host installs has every visible occluder cut out, and it is cut again when one changes.
-        Assert.Contains("ViewportOcclusion.Cut(WindowsPdfViewportLayout.Capture(this), ViewportOcclusion.Holes(this))", host);
+        Assert.Contains("ViewportOcclusion.Cut(WindowsPdfViewportLayout.Capture(this), holes)", host);
+        Assert.Contains("ViewportOcclusion.Holes(this)", host);
         Assert.Contains("ViewportOcclusion.Changed += OnOcclusionChanged;", host);
         Assert.Contains("ViewportOcclusion.Changed -= OnOcclusionChanged;", host);
         // A cut shows the page's sRGB bitmap from the tile behind the host, not a blank tile.

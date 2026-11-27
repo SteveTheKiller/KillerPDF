@@ -353,6 +353,8 @@
     <Compile Include="..\Services\Presentation\PdfDisplayFallbackNotice.cs" Link="Services\Presentation\PdfDisplayFallbackNotice.cs" />
     <Compile Include="..\Services\Presentation\PdfViewingFrameConversion.cs" Link="Services\Presentation\PdfViewingFrameConversion.cs" />
     <Compile Include="..\Services\Presentation\ViewportOcclusion.cs" Link="Services\Presentation\ViewportOcclusion.cs" />
+    <Compile Include="..\Services\Presentation\ViewportClipKey.cs" Link="Services\Presentation\ViewportClipKey.cs" />
+    <Compile Include="..\Controls\TabFaceCache.cs" Link="Controls\TabFaceCache.cs" />
     <Compile Include="..\Services\NativePaginationFollower.cs" Link="Services\NativePaginationFollower.cs" />
     <Compile Include="..\Models\PageThumbnailVm.cs" Link="Models\PageThumbnailVm.cs" />
     <Compile Include="..\Services\NativeFrameRendering.cs" Link="Services\NativeFrameRendering.cs" />

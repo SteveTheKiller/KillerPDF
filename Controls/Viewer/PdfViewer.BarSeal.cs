@@ -16,7 +16,8 @@ namespace KillerPDF.Controls
         {
             ToolOptionsDock.TopSealChanged += (_, _) => UpdateBarSeal();
             // The card moves under the line when the strip shows, hides or changes side, and the
-            // sidebar gutter flips; one check per layout pass costs a TranslatePoint.
+            // sidebar gutter flips; one check per layout pass costs a TranslatePoint. The dock ignores a
+            // SealsTop or OpenSpan that has not changed, so a pass that moved nothing adds no layout work.
             LayoutUpdated += (_, _) => UpdateBarSeal();
         }
 
@@ -55,22 +56,16 @@ namespace KillerPDF.Controls
 
         private static (double, double) Span(double left, double width) => (Math.Round(left), Math.Round(left + width));
 
+        // The tab strip regenerates its containers when tabs open, close or reorder, and the active tab changes with
+        // _active. The cache keys on the active tab's container, so any of those looks the face up again, and a
+        // cached face that a rebuilt template detached from its container is dropped.
+        private readonly TabFaceCache _tabFaces = new("tabBd");
+
         // The active tab's face, the element that paints over the card's top border row.
         private FrameworkElement? ActiveTabFace()
         {
-            if (_active is null || TabContainer(_active) is not FrameworkElement container) return null;
-            return FindNamed(container, "tabBd");
-        }
-
-        private static FrameworkElement? FindNamed(DependencyObject root, string name)
-        {
-            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
-            {
-                var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
-                if (child is FrameworkElement { Name: var n } element && n == name) return element;
-                if (FindNamed(child, name) is { } found) return found;
-            }
-            return null;
+            if (_active is null || TabContainer(_active) is not FrameworkElement container) return _tabFaces.Find(null);
+            return _tabFaces.Find(container);
         }
     }
 }
