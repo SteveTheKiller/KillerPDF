@@ -311,8 +311,8 @@ namespace KillerPDF.Controls
                 Width = columns >= 2 ? OptionsWidth : NarrowOptionsWidth,
                 Background = Brushes.Transparent,
                 Child = side,
-                // The first header's 28px row centers its title well below the preview's top edge, so
-                // the column rises into the card's transparent title bar. A classic caption is a solid
+                // The first header's HeaderHeight row centers its title below the preview's top edge, so
+                // the column rises OptionsLift into the card's transparent title bar. A classic caption is a solid
                 // bar, so those themes keep the column under it. Print's column is on the left, under the
                 // icon and title, so it never rises.
                 Margin = new Thickness(0, optionsLeft || Application.Current?.TryFindResource("UseDialogCaption") is true ? 0 : -OptionsLift, 0, 0),

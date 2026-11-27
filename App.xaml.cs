@@ -1390,8 +1390,9 @@ namespace KillerPDF
                     return KillerFamily.Deployment.InstallerExitCodes.Failure;
                 }
 
-                // Same trust gate as the interactive path - an unsigned or wrong-publisher exe must
-                // not be able to write itself into Program Files, least of all while elevated.
+                // Same trust gate as the interactive path: an exe without a valid signature must not be
+                // able to write itself into the install folder. The publisher is checked for machine
+                // installs below, where the copy runs elevated.
                 var (valid, _, _) = VerifyAuthenticode(src);
                 if (!valid)
                 {
@@ -1413,8 +1414,8 @@ namespace KillerPDF
                 }
                 // The check above read the exe by its path, which in Downloads can be renamed and
                 // replaced before the copy. So the copy is checked again where it is staged, inside
-                // the install folder, and only a copy from the publisher is published. A machine
-                // install also needs the publisher's root, since it runs elevated.
+                // the install folder, and only a validly signed copy is published. A machine install
+                // also needs the publisher's root, since it runs elevated.
                 Services.ExecutableDeployment.Install(src, installExe, new Services.ExecutableDeployment.FileOperations(), staged =>
                 {
                     if (!VerifyAuthenticode(staged).Valid)
