@@ -657,7 +657,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="MenuItem">
-                        <Grid><Border x:Name="MenuBd" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ControlCornerRadius}"/>
+                        <Grid x:Name="MenuRow"><Border x:Name="MenuBd" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ControlCornerRadius}"/>
                         <!-- Grain over the hover fill, under the content, as on menu rows and card tiles. -->
                         <Border x:Name="PanelRowGrain" IsHitTestVisible="False" Visibility="Collapsed" CornerRadius="{DynamicResource ControlCornerRadius}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
                         <Border Padding="{TemplateBinding Padding}">
@@ -757,8 +757,10 @@
                             <Trigger Property="Role" Value="TopLevelHeader">
                                 <Setter TargetName="SubArrow" Property="Visibility" Value="Visible"/>
                             </Trigger>
+                            <!-- The whole row dims, words and icon included. MenuBd is only the background beside
+                                 them, so dimming it alone left disabled rows looking available (#504). -->
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="MenuBd" Property="Opacity" Value="0.4"/>
+                                <Setter TargetName="MenuRow" Property="Opacity" Value="0.4"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
