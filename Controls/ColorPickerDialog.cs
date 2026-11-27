@@ -71,7 +71,7 @@ namespace KillerPDF
             BuildUi();
             SyncFromHsv();
             // The frame already closes on Escape and marks the key handled; closing twice would throw.
-            KeyDown += (_, e) => { if (e.Handled) return; if (e.Key == Key.Escape) { DialogResult = false; Close(); } else if (e.Key == Key.Enter) Accept(); };
+            KeyDown += (_, e) => { if (e.Handled) return; if (e.Key == Key.Escape) Cancel(); else if (e.Key == Key.Enter) Accept(); };
         }
         // ── UI ──────────────────────────────────────────────────────────────────
         private void BuildUi()
@@ -82,7 +82,7 @@ namespace KillerPDF
             // the ColorPDF wordmark and the color wheel icon. The PDF half takes the theme's accent as
             // KillerPDF's does. 98SE shows the plain caption, which reads ColorPDF too.
             Content = DialogFrame.Frame(this, Owner, ColorPdfTitle,
-                () => { DialogResult = false; Close(); }, panel, lead: "Color", icon: "color-icon.ico");
+                Cancel, panel, lead: "Color", icon: "color-icon.ico");
             // SV square + hue strip
             // The strip docks right and the square fills the rest, so the strip always meets the
             // right margin whatever width the frame leaves (a fixed square overflowed or fell short).
@@ -210,7 +210,7 @@ namespace KillerPDF
             RebuildSavedRow();
             // OK / Cancel
             var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
-            var cancel = MakeButton(L("Str_Btn_CancelDlg"), false); cancel.Click += (_, _) => { DialogResult = false; Close(); }; cancel.IsCancel = true;
+            var cancel = MakeButton(L("Str_Btn_CancelDlg"), false); cancel.Click += (_, _) => Cancel(); cancel.IsCancel = true;
             var ok = MakeButton(L("Str_Btn_OK"), true); ok.Margin = new Thickness(8, 0, 0, 0); ok.Click += (_, _) => Accept(); ok.IsDefault = true;
             System.Windows.Automation.AutomationProperties.SetAutomationId(cancel, "PickerCancel");
             System.Windows.Automation.AutomationProperties.SetAutomationId(ok, "PickerOK");
@@ -224,6 +224,14 @@ namespace KillerPDF
             // Best-effort only - see Accepted. Setting DialogResult can also throw once the
             // nested capture modal has run, and the commit must not die with it.
             try { DialogResult = true; } catch (InvalidOperationException) { }
+            Close();
+        }
+
+        // The close X, Escape and Cancel: guarded as Accept is, since the eyedropper's capture window can leave
+        // DialogResult unsettable.
+        private void Cancel()
+        {
+            try { DialogResult = false; } catch (InvalidOperationException) { }
             Close();
         }
         // ── Interaction ─────────────────────────────────────────────────────────

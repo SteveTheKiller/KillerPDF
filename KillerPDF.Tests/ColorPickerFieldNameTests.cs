@@ -25,6 +25,19 @@ public sealed class ColorPickerFieldNameTests
         }
     }
 
+    // Setting DialogResult can throw once the eyedropper's nested capture window has run, so the close X, Escape
+    // and Cancel all go through one guarded Cancel, as OK goes through Accept.
+    [Fact]
+    public void EveryWayToCancelThePickerIsGuarded()
+    {
+        string source = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Controls", "ColorPickerDialog.cs"));
+        Assert.Contains("try { DialogResult = false; } catch (InvalidOperationException) { }", source);
+        Assert.Equal(1, Regex.Matches(source, @"(?<!capture\.)DialogResult = false").Count);
+        Assert.Contains("if (e.Key == Key.Escape) Cancel();", source);
+        Assert.Contains("DialogFrame.Frame(this, Owner, ColorPdfTitle,\n                Cancel, panel", source.Replace("\r\n", "\n"));
+        Assert.Contains("cancel.Click += (_, _) => Cancel();", source);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
