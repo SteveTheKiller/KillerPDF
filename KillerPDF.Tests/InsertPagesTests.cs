@@ -103,12 +103,14 @@ public sealed class InsertPagesTests
     public void InsertPagesKeepsTheDiskMergeAndTheSharedInsert()
     {
         string insert = ShellSource.Read("Shell", "InsertPages.cs");
-        string flow = ShellSource.Between(insert, "private async Task InsertPagesAt(", "private async Task<string?> CopyPagesFromTab(");
+        string flow = ShellSource.Between(insert, "private async Task InsertPagesAt(", "private async Task<SavedCopy?> CopyPagesFromTab(");
         // No other tab: the tile is the merge it replaced. Files from disk: the same merge, at the chosen place.
         Assert.Contains("if (sources.Count == 0) { await MergeAtIndex(page + 1); return; }", flow);
         Assert.Contains("if (dialog.FromDisk) { await MergeAtIndex(dialog.InsertAt); return; }", flow);
         Assert.Matches(@"if \(_doc is null \|\| !isTargetCurrent\(\)\)\s*\{\s*SetStatus\(Loc\(""Str_Merge_TargetChanged""\)\);\s*return;\s*\}", flow);
         Assert.Contains("InsertImportedDocuments([import], dialog.InsertAt);", flow);
+        // Pictures the source's saved copy left out are named in the status, as Extract Pages does.
+        Assert.Contains("SetStatus(copied.Note(string.Format(Loc(\"Str_InsertPages_Done\"), pages.Count, shown.Title), Loc(\"Str_Save_PicturesSkipped\")));", flow);
         Assert.Contains("InsertImportedDocuments(imports, insertionIndex);",
             ShellSource.Between(ShellSource.Read("Shell", "FileOperations.cs"), "private async Task MergeAtIndex(", "private void InsertImportedDocuments("));
     }
@@ -118,7 +120,7 @@ public sealed class InsertPagesTests
     [Fact]
     public void TheSourceTabIsReadAsItStandsAndEveryPaneGoesBack()
     {
-        string copy = ShellSource.Between(ShellSource.Read("Shell", "InsertPages.cs"), "private async Task<string?> CopyPagesFromTab(", "private static InsertPagesSource Describe(");
+        string copy = ShellSource.Between(ShellSource.Read("Shell", "InsertPages.cs"), "private async Task<SavedCopy?> CopyPagesFromTab(", "private static InsertPagesSource Describe(");
         Assert.Contains("if (!EnsureMayWrite(PdfOutput.Printable))", copy);
         Assert.Contains("CommitActiveTextBox();", copy);
         Assert.Contains("WriteSavedCopyToTemp(throwaway: true)", copy);

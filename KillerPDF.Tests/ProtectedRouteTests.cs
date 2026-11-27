@@ -269,12 +269,13 @@ public sealed class ProtectedRouteTests : IDisposable
         // Only extraction, OCR and raster exports request disposable copies.
         Assert.Matches(@"SavedCopy WriteSavedCopyToTemp\(bool forRasterization = false, bool throwaway = false, bool flattenEditing = false\)", reduce);
         Assert.Matches(@"if \(throwaway\) PdfEngineIntegration\.PrepareThrowawayCopy\(clean\);\s*else PdfEngineIntegration\.RepairHarmlessSaveArtifacts\(clean\);", reduce);
+        // Insert Pages extracts pages from another tab behind the same Printable check as Extract Pages.
         // Reduce, Save Copy, Sign, the macros and the rest keep the refusal: nothing else in the shell asks.
         string[] askers = [.. Directory.EnumerateFiles(Path.Combine(root, "Shell"), "*.cs")
             .SelectMany(file => Regex.Matches(File.ReadAllText(file), @"(?<!SavedCopy )WriteSavedCopyToTemp\([^)]*throwaway: true")
                 .Select(_ => Path.GetFileName(file)))
             .Order()];
-        Assert.Equal(["FileOperations.cs", "FileOperations.cs", "Ocr.cs", "PageOperations.cs"], askers);
+        Assert.Equal(["FileOperations.cs", "FileOperations.cs", "InsertPages.cs", "Ocr.cs", "PageOperations.cs"], askers);
         Assert.Contains("WriteSavedCopyToTemp(throwaway: true)", pages);
         Assert.Contains("forRasterization: officeMode == PdfOfficeExportMode.PageImages, throwaway: true", print);
         Assert.Contains("SavedCopy sourceCopy = WriteSavedCopyToTemp();", reduce);

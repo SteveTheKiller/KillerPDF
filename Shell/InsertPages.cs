@@ -34,8 +34,8 @@ namespace KillerPDF.Shell
             string? pagesFile = null;
             try
             {
-                pagesFile = await CopyPagesFromTab(home, homeTab, sourceViewer, sourceTab, shown.Title, dialog);
-                if (pagesFile is null) return;
+                if (await CopyPagesFromTab(home, homeTab, sourceViewer, sourceTab, shown.Title, dialog) is not { } copied) return;
+                pagesFile = copied.Path;
                 if (_doc is null || !isTargetCurrent())
                 {
                     SetStatus(Loc("Str_Merge_TargetChanged"));
@@ -46,7 +46,7 @@ namespace KillerPDF.Shell
                 var import = new PdfEngineIntegration.ImportedDocument(pagesFile,
                     [.. pages.Select(info => info.Rotation)], sourceTab.OriginalFile ?? shown.Title);
                 InsertImportedDocuments([import], dialog.InsertAt);
-                SetStatus(string.Format(Loc("Str_InsertPages_Done"), pages.Count, shown.Title));
+                SetStatus(copied.Note(string.Format(Loc("Str_InsertPages_Done"), pages.Count, shown.Title), Loc("Str_Save_PicturesSkipped")));
             }
             catch (Exception ex)
             {
@@ -59,9 +59,10 @@ namespace KillerPDF.Shell
             }
         }
 
-        // The chosen pages of the source tab in a new temp PDF, or null when the tab could not give them (still
-        // opening, its protection said no, or the range is past its end). Extract Pages makes its file the same way.
-        private async Task<string?> CopyPagesFromTab(PdfViewer home, PdfViewer.DocumentSession? homeTab,
+        // The chosen pages of the source tab in a new temp PDF, with the pictures its saved copy left out, or null when
+        // the tab could not give them (still opening, its protection said no, or the range is past its end). Extract
+        // Pages makes its file the same way.
+        private async Task<SavedCopy?> CopyPagesFromTab(PdfViewer home, PdfViewer.DocumentSession? homeTab,
             PdfViewer sourceViewer, PdfViewer.DocumentSession sourceTab, string title, InsertPagesDialog choice)
         {
             PdfViewer.DocumentSession? sourceWasShowing = sourceViewer.ActiveSessionExt;
@@ -94,7 +95,8 @@ namespace KillerPDF.Shell
                 }
                 CommitActiveTextBox();
                 Dictionary<int, int> rotations = SnapshotPageRotations();
-                copyPath = WriteSavedCopyToTemp(throwaway: true).Path;
+                SavedCopy sourceCopy = WriteSavedCopyToTemp(throwaway: true);
+                copyPath = sourceCopy.Path;
                 string copy = copyPath;
                 string file = output = App.MakeTempFile("insertpages");
                 await RunBusyAsync(() =>
@@ -103,7 +105,7 @@ namespace KillerPDF.Shell
                     return true;
                 });
                 done = true;
-                return output;
+                return new SavedCopy(output, sourceCopy.SkippedPictures);
             }
             finally
             {
