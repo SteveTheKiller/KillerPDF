@@ -48,10 +48,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Copies of PDFs opened from inside a zip folder no longer pile up in temp. Startup clears the ones left untouched for a week, unless your last session reopens them.
 
 ### Changed
+
 - On HDR and Advanced Color monitors, color-managed pages are drawn in the display's real color range instead of the way a standard monitor draws them. The find bar, tool bar, page number badge and other panels over the page stay on top of it (#534).
 - The page's right-click menu has one edit pencil for the whole card, so any tile can go anywhere on it. A layout you already customized carries over.
 - The language picker and the OCR language list space their rows the same way. In 98SE both sit between the old tight picker and the old roomy OCR list.
-- Transform keeps a page's text and links when it rotates, scales or flips it, instead of turning the page into an image (#538). Only perspective, levels, color and output quality still rasterize and bring up the warning.
+- Transform keeps a page's text and links when it rotates, scales or flips it, instead of turning the page into an image (#538). Bookmarks and links into the page land on the same spot after it turns. Only perspective, levels, color and output quality still rasterize and bring up the warning.
 - Document tabs are redesigned (#528). They are narrower and shorter, the active tab curves into the page below with a fading accent line, and a long title fades out instead of ending in "...". In split view, the other pane's active tab shows its line in gray.
 - The main window is tighter. The title bar, toolbar, tool options bar and Restore last session bar are slimmer, and the gaps around the sidebar, document pane, split view and About card are 4px.
 - The sidebar has evenly spaced rail icons, a full-height resize line and a dark page number box, and the status text lines up under it. With the sidebar on top, its menus open inside the page area instead of over the tabs.
@@ -81,6 +82,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The password prompts put the file name on a line of its own, above the rest of the message.
 
 ### Added
+
 - Right-clicking a drawing, text box, picture, comment or form field opens a card made for it, under the same Back, Forward, Undo, Redo and Print row as the page card. A mark, picture or comment card has Delete in its header.
 - A mark's card duplicates it, brings it to the front or sends it to the back, and sets its color, fill, opacity and line width. A text box's card also sets its text color and size.
 - A comment's card edits it, replies to it, copies its text or deletes it.

@@ -201,6 +201,127 @@ public sealed class PdfPageTransformerTests
         Assert.False(Dark(page, 350, 250));
     }
 
+    // Real producers write more Q than q. Those extra restores must not pop the matrix the transform inserted, so
+    // what follows them still turns with the page.
+    [Fact]
+    public void ContentWithExtraRestoresStillTurnsWithThePage()
+    {
+        // The builder refuses an unbalanced restore, so the content is written as plain bytes.
+        byte[] source = new PdfDocumentBuilder().AddPage(300, 400,
+            "Q Q 0 g 0 300 100 100 re f"u8.ToArray()).Build();
+
+        PdfDocument document = PdfDocument.Open(Transform(source, 0, QuarterTurn));
+        var page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(400, 300));
+
+        Assert.True(Dark(page, 350, 50));
+        Assert.False(Dark(page, 50, 50));
+        Assert.False(Dark(page, 350, 250));
+    }
+
+    // Destinations that point into a page keep working after the page is turned, because the transform moves
+    // their coordinates the way it moves the page. Destinations into a page that is not transformed stay as they are.
+    private static byte[] DestinationSource() => new PdfDocumentBuilder()
+        .AddPage(300, 400, Text()).AddBlankPage(200, 100)
+        .AddBookmark("xyz", 0, 0, new PdfBookmarkOptions { Destination = PdfDestination.At(50, 350, 2) })
+        .AddBookmark("fith", 0, 0, new PdfBookmarkOptions { Destination = PdfDestination.FitWidth(350) })
+        .AddBookmark("fitr", 0, 0, new PdfBookmarkOptions { Destination = PdfDestination.FitRectangle(10, 20, 110, 220) })
+        .AddBookmark("fit", 0, 0, new PdfBookmarkOptions { Destination = PdfDestination.FitPage() })
+        .AddBookmark("other", 1, 0, new PdfBookmarkOptions { Destination = PdfDestination.At(5, 6) })
+        .AddNamedDestination("turned", 0, PdfDestination.At(50, 350))
+        .AddNamedDestination("kept", 1, PdfDestination.At(5, 6))
+        .AddNamedDestinationBookmark("named turned", "turned")
+        .AddNamedDestinationBookmark("named kept", "kept")
+        .AddPageLink(1, 10, 10, 50, 20, 0, destination: PdfDestination.At(50, 350))
+        .AddPageLink(1, 70, 10, 50, 20, 1, destination: PdfDestination.At(5, 6))
+        .Build();
+
+    private static PdfDestination BookmarkDestination(PdfDocument document, string title) =>
+        PdfBookmarkReader.Read(document).Single(item => item.Title == title).Destination!;
+
+    private static void AssertDestination(PdfDestination destination, PdfDestinationKind kind, params double?[] values)
+    {
+        Assert.Equal(kind, destination.Kind);
+        Assert.Equal(values.Length, destination.Values.Count);
+        for (int index = 0; index < values.Length; index++)
+            if (values[index].HasValue) Assert.Equal(values[index]!.Value, destination.Values[index]!.Value, 3);
+            else Assert.Null(destination.Values[index]);
+    }
+
+    private static string[] LinkDestinations(PdfDocument document, int pageIndex) =>
+        [.. PdfAnnotationsOf(document, pageIndex).Select(link =>
+        {
+            PdfObject value = link.TryGetValue(new PdfName("Dest"u8), out PdfObject? direct) ? direct
+                : ((PdfDictionary)Resolve(document, link[new PdfName("A"u8)]))[new PdfName("D"u8)];
+            var array = (PdfArray)Resolve(document, value);
+            return string.Join(' ', array.Skip(1).Select(item => Resolve(document, item) switch
+            {
+                PdfName name => name.ValueAsLatin1(),
+                PdfNull => "null",
+                var number => Math.Round(Number(document, number), 3).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            }));
+        })];
+
+    [Fact]
+    public void OutlineDestinationsIntoATurnedPageMoveWithIt()
+    {
+        PdfDocument document = PdfDocument.Open(Transform(DestinationSource(), 0, QuarterTurn));
+
+        AssertDestination(BookmarkDestination(document, "xyz"), PdfDestinationKind.Xyz, 350, 250, 2);
+        AssertDestination(BookmarkDestination(document, "fit"), PdfDestinationKind.Fit);
+    }
+
+    [Fact]
+    public void AFitWidthDestinationBecomesAFitHeightDestinationWhenThePageTurns()
+    {
+        PdfDocument document = PdfDocument.Open(Transform(DestinationSource(), 0, QuarterTurn));
+
+        AssertDestination(BookmarkDestination(document, "fith"), PdfDestinationKind.FitV, 350);
+    }
+
+    [Fact]
+    public void AFitRectangleDestinationIsNormalizedAfterTheTurn()
+    {
+        PdfDocument document = PdfDocument.Open(Transform(DestinationSource(), 0, QuarterTurn));
+
+        AssertDestination(BookmarkDestination(document, "fitr"), PdfDestinationKind.FitR, 20, 190, 220, 290);
+    }
+
+    [Fact]
+    public void NamedDestinationsAreMovedWhereTheyAreStored()
+    {
+        PdfDocument document = PdfDocument.Open(Transform(DestinationSource(), 0, QuarterTurn));
+
+        AssertDestination(BookmarkDestination(document, "named turned"), PdfDestinationKind.Xyz, 350, 250, null);
+        AssertDestination(BookmarkDestination(document, "named kept"), PdfDestinationKind.Xyz, 5, 6, null);
+    }
+
+    [Fact]
+    public void ALinkOnAnotherPageFollowsTheTurnedPageItTargets()
+    {
+        PdfDocument document = PdfDocument.Open(Transform(DestinationSource(), 0, QuarterTurn));
+
+        Assert.Equal(["XYZ 350 250 null", "XYZ 5 6 null"], LinkDestinations(document, 1));
+    }
+
+    [Fact]
+    public void DestinationsIntoAPageThatIsNotTransformedDoNotChange()
+    {
+        PdfDocument document = PdfDocument.Open(Transform(DestinationSource(), 0, QuarterTurn));
+
+        AssertDestination(BookmarkDestination(document, "other"), PdfDestinationKind.Xyz, 5, 6, null);
+    }
+
+    [Fact]
+    public void ALinkOnTheTurnedPageItselfKeepsPointingAtTheRightSpot()
+    {
+        byte[] source = new PdfDocumentBuilder().AddPage(300, 400, Text())
+            .AddPageLink(0, 10, 10, 50, 20, 0, destination: PdfDestination.At(50, 350)).Build();
+
+        PdfDocument document = PdfDocument.Open(Transform(source, 0, QuarterTurn));
+
+        Assert.Equal(["XYZ 350 250 null"], LinkDestinations(document, 0));
+    }
+
     private static bool Dark(PdfRenderedPage page, int x, int y)
     {
         ReadOnlySpan<byte> pixels = page.Pixels.Span;

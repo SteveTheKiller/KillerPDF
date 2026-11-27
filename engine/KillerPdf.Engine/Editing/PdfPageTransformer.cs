@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Rendering;
 using KillerPdf.Engine.Writing;
 
@@ -23,7 +24,7 @@ public readonly record struct PdfPageTransform(double A, double B, double C, dou
 /// visible annotation, form widgets included, is painted into the page as the page render showed it and removed.
 /// A field keeps its widgets on pages that are not transformed.
 /// </summary>
-public static class PdfPageTransformer
+public static partial class PdfPageTransformer
 {
     private const int HiddenFlag = 2;
     private const int NoViewFlag = 32;
@@ -67,6 +68,8 @@ public static class PdfPageTransformer
         }
 
         var update = new PdfIncrementalUpdateBuilder(document);
+        var destinations = new DestinationMapper(document, update, pages.ToDictionary(
+            pair => tree.Pages[pair.Key].Reference.ObjectNumber, pair => pair.Value));
         var renderer = new PdfPageRenderer(document);
         var widgetReader = new PdfFormWidgetReader(document);
         var removedWidgets = new Dictionary<int, (PdfIndirectReference Reference, string Field)>();
@@ -108,7 +111,7 @@ public static class PdfPageTransformer
                     string kind = subtype?.ValueAsLatin1() ?? "";
                     if (kind == "Link")
                     {
-                        kept.Add(MoveLink(document, update, item, annotation, transform));
+                        kept.Add(MoveLink(document, update, destinations, item, annotation, transform));
                         continue;
                     }
                     if (item is PdfIndirectReference widgetReference
@@ -161,14 +164,19 @@ public static class PdfPageTransformer
 
             string matrix = string.Join(' ', new[] { transform.A, transform.B, transform.C, transform.D,
                 transform.E, transform.F }.Select(Number));
-            var contents = new List<PdfObject> { update.AddObject(Stream($"q {matrix} cm\nq\n")) };
+            var originals = new List<PdfObject>();
             if (page.Dictionary.TryGetValue(ContentsName, out PdfObject? contentValue))
             {
                 if (Resolve(document, contentValue) is PdfArray array)
-                    contents.AddRange(array.Select(value => IndirectStream(update, document, value)));
+                    originals.AddRange(array.Select(value => IndirectStream(update, document, value)));
                 else
-                    contents.Add(IndirectStream(update, document, contentValue));
+                    originals.Add(IndirectStream(update, document, contentValue));
             }
+            // Content that restores more than it saves would pop the matrix inserted here, so the matrix is followed
+            // by as many extra saves as the worst unmatched restore needs.
+            string extraSaves = string.Concat(Enumerable.Repeat("q\n", UnmatchedRestores(document, originals)));
+            var contents = new List<PdfObject> { update.AddObject(Stream($"q {matrix} cm\nq\n{extraSaves}")) };
+            contents.AddRange(originals);
             string closing = overlay.Length == 0 ? "\nQ\nQ\n"
                 : "\nQ\n/Artifact BMC\n" + overlay + "EMC\nQ\n";
             contents.Add(update.AddObject(Stream(closing)));
@@ -193,6 +201,8 @@ public static class PdfPageTransformer
             update.ReplaceObject(page.Reference.ObjectNumber, new PdfDictionary(entries));
         }
 
+        destinations.MapDocument(tree, pages);
+
         // A field whose widgets all sat on turned pages is gone, the way a rendered page dropped it. A field that
         // still has a widget on another page keeps working there and only loses the turned pages' widgets.
         var keptFields = new HashSet<string>(StringComparer.Ordinal);
@@ -210,6 +220,33 @@ public static class PdfPageTransformer
         var editor = new PdfIncrementalPageEditor(PdfDocument.Open(output));
         foreach (string field in removedFields) editor.RemoveFormField(field);
         return editor.Build();
+    }
+
+    // The lowest depth the page's own q and Q operators reach below zero, read over all its streams as one, which is
+    // how many unmatched restores the content has. Content that cannot be read counts as balanced.
+    private static int UnmatchedRestores(PdfDocument document, IReadOnlyList<PdfObject> streams)
+    {
+        try
+        {
+            var joined = new List<byte>();
+            foreach (PdfObject value in streams)
+            {
+                if (Resolve(document, value) is not PdfStream stream) continue;
+                joined.AddRange(document.DecodeStream(stream));
+                joined.Add((byte)'\n');
+            }
+            int depth = 0, lowest = 0;
+            foreach (var instruction in PdfContentStreamReader.Read(joined.ToArray(), compatibilityRecovery: true))
+            {
+                if (instruction.Operator == "q") depth++;
+                else if (instruction.Operator == "Q") lowest = Math.Min(lowest, --depth);
+            }
+            return -lowest;
+        }
+        catch (Exception exception) when (PdfReaderDamage.Is(exception))
+        {
+            return 0;
+        }
     }
 
     // Takes widgets out of their parent field's /Kids. A widget with no parent is its own field, which only
@@ -246,9 +283,11 @@ public static class PdfPageTransformer
     // A link keeps working: its rectangle becomes the box around its turned corners, its quadrilaterals turn point
     // by point.
     private static PdfObject MoveLink(PdfDocument document, PdfIncrementalUpdateBuilder update,
+        DestinationMapper destinations,
         PdfObject original, PdfDictionary link, PdfPageTransform transform)
     {
-        var entries = link.ToDictionary(item => item.Key, item => item.Value);
+        PdfDictionary moved = destinations.MapHolder(link) ?? link;
+        var entries = moved.ToDictionary(item => item.Key, item => item.Value);
         if (TryRect(document, link, out double[] rect))
         {
             (double X, double Y)[] corners = [transform.Apply(rect[0], rect[1]), transform.Apply(rect[2], rect[1]),
