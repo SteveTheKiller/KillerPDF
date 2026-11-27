@@ -2020,7 +2020,7 @@ namespace KillerPDF
         /// Register KillerPDF under either HKCU for a per-user install or HKLM for a machine-wide
         /// install. This advertises the handler without changing any user's chosen PDF default.
         /// </summary>
-        private static void RegisterFileHandler(RegistryKey root, string exePath, string iconPath)
+        private static void RegisterFileHandler(RegistryKey root, string exePath, string iconPath, bool machine)
         {
             // Prefer the dedicated PDF file icon; fall back to the app icon if extraction didn't run
             string iconRef = File.Exists(iconPath)
@@ -2030,7 +2030,9 @@ namespace KillerPDF
             // The image verb's label is plain registry text, written in the user's language.
             Services.FileAssociationRegistry.Register(root, exePath, iconRef, AppName,
                 Services.ProtocolRegistrar.Scheme,
-                InstallLanguageText("Str_Shell_SaveAsKillerPdf", Services.FileAssociationRegistry.ImageVerbEnglishLabel));
+                InstallLanguageText("Str_Shell_SaveAsKillerPdf", Services.FileAssociationRegistry.ImageVerbEnglishLabel),
+                // #513's command handler is HKLM only: elevated callers never read per-user COM classes.
+                commandHandler: machine);
 
             // Tell the shell file associations have changed
             SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
@@ -2158,7 +2160,7 @@ namespace KillerPDF
             }
 
             if (!File.Exists(iconPath)) ExtractFileIcon(iconPath);
-            RegisterFileHandler(registryRoot, exePath, iconPath);
+            RegisterFileHandler(registryRoot, exePath, iconPath, machine);
             Services.ProtocolRegistrar.Register(registryRoot, exePath);
             // "killerpdf" from any new terminal runs the command line of this copy.
             Services.CommandLinePath.Register(installDirectory, Path.GetFileName(exePath), machine);

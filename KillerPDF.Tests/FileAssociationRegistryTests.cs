@@ -105,7 +105,7 @@ public sealed class FileAssociationRegistryTests : IDisposable
     [InlineData(@"Software\Classes\Applications\KillerPDF.App.exe")]
     public void OpeningFromExplorerGoesThroughTheCommandHandler(string classKey)
     {
-        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf", commandHandler: true);
 
         using (var open = _root.OpenSubKey(classKey + @"\shell\open"))
             Assert.Equal("Player", open!.GetValue("MultiSelectModel"));
@@ -118,10 +118,59 @@ public sealed class FileAssociationRegistryTests : IDisposable
             Assert.Equal("\"" + Exe + "\" --explorer-open", server!.GetValue(""));
     }
 
+    // An elevated caller never reads per-user COM classes, so a per-user DelegateExecute verb fails there with
+    // "Class not registered" and nothing opens (checked on SN02). A per-user copy keeps the plain command line,
+    // and registering one clears a handler an earlier registration left behind.
+    [Theory]
+    [InlineData(@"Software\Classes\KillerPDF.pdf")]
+    [InlineData(@"Software\Classes\KillerPDF.epub")]
+    [InlineData(@"Software\Classes\KillerPDF.djvu")]
+    [InlineData(@"Software\Classes\Applications\KillerPDF.exe")]
+    [InlineData(@"Software\Classes\Applications\KillerPDF.App.exe")]
+    public void APerUserCopyOpensThroughTheCommandLine(string classKey)
+    {
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf", commandHandler: true);
+
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        using (var command = _root.OpenSubKey(classKey + @"\shell\open\command"))
+        {
+            Assert.Null(command!.GetValue("DelegateExecute"));
+            Assert.Equal("\"" + Exe + "\" \"%1\"", command.GetValue(""));
+        }
+        using (var open = _root.OpenSubKey(classKey + @"\shell\open"))
+            Assert.Equal("Player", open!.GetValue("MultiSelectModel"));
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\CLSID"));
+    }
+
+    // Unregister leaves no empty extension keys behind, but a key another application still uses stays.
+    [Fact]
+    public void UnregisterRemovesEmptyExtensionKeysAndKeepsSharedOnes()
+    {
+        using (var shared = _root.CreateSubKey(@"Software\Classes\.pdf\OpenWithProgids"))
+            shared.SetValue("Other.pdf", Array.Empty<byte>(), RegistryValueKind.None);
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+
+        FileAssociationRegistry.Unregister(_root, "KillerPDF");
+
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\.djvu"));
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\.djv"));
+        Assert.Null(_root.OpenSubKey(@"Software\Classes\.epub"));
+        using var pdf = _root.OpenSubKey(@"Software\Classes\.pdf\OpenWithProgids");
+        Assert.Equal(new[] { "Other.pdf" }, pdf!.GetValueNames());
+    }
+
+    [Fact]
+    public void OnlyTheMachineInstallAsksForTheCommandHandler()
+    {
+        string app = ShellSource.Read("App.xaml.cs");
+        Assert.Contains("commandHandler: machine", app, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void UnregisterRemovesTheCommandHandler()
     {
-        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf");
+        FileAssociationRegistry.Register(_root, Exe, "\"pdf.ico\",0", "KillerPDF", "killerpdf", commandHandler: true);
 
         FileAssociationRegistry.Unregister(_root, "KillerPDF");
 

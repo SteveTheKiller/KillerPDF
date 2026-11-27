@@ -47,6 +47,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Scrolling the What's new notes no longer draws text over the pane's rounded corners.
 - In the Trash Polka theme, the status bar carries the same ink as the panes above it, so the art no longer stops at a flat black strip along the bottom. The theme's name is translated in every language, like the other themes.
 - The Compare PDFs list shows the KillerPDF document icon beside each open file and an icon beside Choose another PDF, where the icon column was empty.
+- Uninstalling no longer leaves empty .pdf, .epub and .djvu keys behind in the registry.
 
 ### Changed
 
@@ -85,7 +86,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A text field's card sets its border color, width and style. The styles are solid, dashed, beveled, inset and underline, and a width of None removes the border.
 - Fill Unused Space draws a heavy black Z, shaped like the Killer Sans letter, through the part of a multiline or empty text field that nobody wrote in, then makes the field read-only. It starts in the form field card's Hidden drawer, and the Z is a normal drawing you can move, resize, undo or flatten (#536).
 - Alt+left-drag anywhere in a KillerPDF window moves it, and Alt+right-drag resizes it from the nearest edge or corner, as on Linux. Full screen stays put, the Measure tool keeps Alt+click for placing a point without snapping, and the keyboard shortcuts card lists both.
-- Shift+Enter on PDFs selected in File Explorer opens them together in a new KillerPDF window, however quickly Shift is let go (#513).
+- With an all-users install, Shift+Enter on PDFs selected in File Explorer opens them together in a new KillerPDF window, however quickly Shift is let go (#513).
 
 ## [1.9.6] - 2026-11-24
 

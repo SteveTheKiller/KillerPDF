@@ -32,18 +32,22 @@ internal static class FileAssociationRegistry
     /// <summary>Registers every type under <paramref name="root"/> (HKCU or HKLM, or a test key).</summary>
     /// <param name="pdfIconReference">The icon for PDF documents; other types use the app icon.</param>
     /// <param name="imageVerbLabel">The menu text of the Save as KillerPDF verb on images.</param>
+    /// <param name="commandHandler">Whether the open verb starts KillerPDF's command handler (#513). Only a
+    /// machine install passes true: an elevated caller ignores per-user COM classes, so a per-user handler
+    /// would fail there with "Class not registered" and open nothing.</param>
     internal static void Register(RegistryKey root, string exePath, string pdfIconReference,
-        string appName, string urlScheme, string imageVerbLabel = ImageVerbEnglishLabel)
+        string appName, string urlScheme, string imageVerbLabel = ImageVerbEnglishLabel, bool commandHandler = false)
     {
         string command = $"\"{exePath}\" \"%1\"";
-        RegisterExplorerOpen(root, exePath);
+        if (commandHandler) RegisterExplorerOpen(root, exePath);
+        else RemoveExplorerOpen(root);
         foreach (FileType type in Types)
         {
             using (var k = root.CreateSubKey(@"Software\Classes\" + type.ProgId))
                 k.SetValue("", type.Description);
             using (var k = root.CreateSubKey(@"Software\Classes\" + type.ProgId + @"\DefaultIcon"))
                 k.SetValue("", type.Extension == ".pdf" ? pdfIconReference : $"{exePath},0");
-            RegisterOpenVerb(root, @"Software\Classes\" + type.ProgId, command);
+            RegisterOpenVerb(root, @"Software\Classes\" + type.ProgId, command, commandHandler);
             if (type.Extension == ".pdf") RegisterPrintVerbs(root, @"Software\Classes\" + type.ProgId, exePath, pdfOnly: false);
             // Adds KillerPDF to the extension's Open with list.
             using (var k = root.CreateSubKey(@"Software\Classes\" + type.Extension + @"\OpenWithProgids"))
@@ -57,7 +61,7 @@ internal static class FileAssociationRegistry
             string applicationKey = @"Software\Classes\Applications\" + application;
             using (var k = root.CreateSubKey(applicationKey))
                 k.SetValue("FriendlyAppName", appName);
-            RegisterOpenVerb(root, applicationKey, command);
+            RegisterOpenVerb(root, applicationKey, command, commandHandler);
             RegisterPrintVerbs(root, applicationKey, exePath, pdfOnly: true);
             using (var k = root.CreateSubKey(applicationKey + @"\SupportedTypes"))
             {
@@ -120,19 +124,26 @@ internal static class FileAssociationRegistry
     // starting KillerPDF as the command handler's COM server (Services/ExplorerOpenCommand.cs). A command-line verb gets
     // one launch per file and no key state at all. The command line stays for callers that read it and start it
     // themselves; Explorer and ShellExecute use DelegateExecute when it is there. Player lets the verb take a selection
-    // of more than 15 files.
-    private static void RegisterOpenVerb(RegistryKey root, string classKey, string command)
+    // of more than 15 files. Without the handler, a per-user copy, the verb is the command line alone.
+    private static void RegisterOpenVerb(RegistryKey root, string classKey, string command, bool commandHandler)
     {
         using (var k = root.CreateSubKey(classKey + @"\shell\open"))
             k.SetValue("MultiSelectModel", "Player");
         using (var k = root.CreateSubKey(classKey + @"\shell\open\command"))
         {
             k.SetValue("", command);
-            k.SetValue("DelegateExecute", ExplorerOpenServer.ClassIdText);
+            if (commandHandler) k.SetValue("DelegateExecute", ExplorerOpenServer.ClassIdText);
+            else k.DeleteValue("DelegateExecute", throwOnMissingValue: false);
         }
     }
 
     private static string ExplorerOpenClassKey => @"Software\Classes\CLSID\" + ExplorerOpenServer.ClassIdText;
+
+    private static void RemoveExplorerOpen(RegistryKey root)
+    {
+        root.DeleteSubKeyTree(ExplorerOpenClassKey, false);
+        DeleteEmptyKeys(root, @"Software\Classes\CLSID");
+    }
 
     private static void RegisterExplorerOpen(RegistryKey root, string exePath)
     {
@@ -164,19 +175,16 @@ internal static class FileAssociationRegistry
         foreach (FileType type in Types)
         {
             try { root.DeleteSubKeyTree(@"Software\Classes\" + type.ProgId, false); } catch { }
+            string extension = @"Software\Classes\" + type.Extension;
             try
             {
-                using var k = root.OpenSubKey(@"Software\Classes\" + type.Extension + @"\OpenWithProgids", writable: true);
-                k?.DeleteValue(type.ProgId, throwOnMissingValue: false);
+                using (var k = root.OpenSubKey(extension + @"\OpenWithProgids", writable: true))
+                    k?.DeleteValue(type.ProgId, throwOnMissingValue: false);
+                DeleteEmptyKeys(root, extension + @"\OpenWithProgids", extension);
             }
             catch { }
         }
-        try
-        {
-            root.DeleteSubKeyTree(ExplorerOpenClassKey, false);
-            DeleteEmptyKeys(root, @"Software\Classes\CLSID");
-        }
-        catch { }
+        try { RemoveExplorerOpen(root); } catch { }
         try { root.DeleteSubKeyTree(@"Software\Classes\" + ImageProgId, false); } catch { }
         foreach (string extension in ImagesToPdfPlan.Extensions)
         {
