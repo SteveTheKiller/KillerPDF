@@ -91,6 +91,54 @@ public sealed class InsertPagesTests
         }
     }
 
+    // Typing a page in one place box picks that box's choice; the twin box it mirrors into must not pick the other.
+    // Built, never shown.
+    [Theory]
+    [InlineData("InsertPagesAfterPage", 5)]
+    [InlineData("InsertPagesBeforePage", 4)]
+    public void TypingAPageKeepsTheChoiceOfTheBoxTypedIn(string boxId, int expected)
+    {
+        RunSta(() =>
+        {
+            // The dialog's own wiring: the two place boxes in one radio group, the page card's page in both.
+            var beforePage = new System.Windows.Controls.TextBox { Text = "1" };
+            var afterPage = new System.Windows.Controls.TextBox { Text = "1" };
+            var before = new System.Windows.Controls.RadioButton { GroupName = "where" };
+            var after = new System.Windows.Controls.RadioButton { GroupName = "where", IsChecked = true };
+            var group = new System.Windows.Controls.StackPanel();
+            group.Children.Add(before);
+            group.Children.Add(after);
+            int changes = 0;
+            _ = new TwinPageBoxes(beforePage, before, afterPage, after, () => true, () => changes++);
+
+            System.Windows.Controls.TextBox typed = boxId == "InsertPagesAfterPage" ? afterPage : beforePage;
+            System.Windows.Controls.TextBox twin = ReferenceEquals(typed, afterPage) ? beforePage : afterPage;
+            if (ReferenceEquals(typed, beforePage)) before.IsChecked = true;
+            typed.Text = "5";
+
+            bool isBefore = before.IsChecked == true;
+            Assert.Equal(ReferenceEquals(typed, beforePage), isBefore);
+            Assert.NotEqual(before.IsChecked, after.IsChecked);
+            Assert.Equal("5", twin.Text);
+            Assert.Equal(1, changes);
+            Assert.Equal(expected, InsertPagesPlan.Position(5, isBefore, 10));
+        });
+    }
+
+    private static void RunSta(Action action)
+    {
+        Exception? error = null;
+        var thread = new Thread(() =>
+        {
+            try { action(); }
+            catch (Exception exception) { error = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (error != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
+    }
+
     [Fact]
     public void ThePageCardOffersInsertPagesInPlaceOfMerge()
     {

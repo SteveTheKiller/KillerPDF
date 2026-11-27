@@ -27,6 +27,7 @@
     <Compile Include="..\Services\PageCardLayout.cs" Link="Services\PageCardLayout.cs" />
     <Compile Include="..\Controls\ComboDrop.cs" Link="Controls\ComboDrop.cs" />
     <Compile Include="..\Controls\AltDrag.cs" Link="Controls\AltDrag.cs" />
+    <Compile Include="..\Controls\TwinPageBoxes.cs" Link="Controls\TwinPageBoxes.cs" />
     <Compile Include="..\Controls\DialogTitleText.cs" Link="Controls\DialogTitleText.cs" />
     <Compile Include="..\Controls\FilmGrainTip.cs" Link="Controls\FilmGrainTip.cs" />
     <Compile Include="..\Features\Cli\PdfUaBatch.cs" Link="Features\Cli\PdfUaBatch.cs" />

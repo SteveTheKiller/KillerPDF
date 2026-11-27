@@ -27,7 +27,6 @@ internal sealed class InsertPagesDialog : Window
     private readonly TextBlock _summary, _problem;
     private readonly Button _insert;
     private readonly bool _ready;
-    private bool _syncing;
     private bool _spanning;
 
     /// <summary>The chosen tab's place in the list it was given, or -1 for files on disk.</summary>
@@ -103,10 +102,7 @@ internal sealed class InsertPagesDialog : Window
         // A typed number picks its own choice, and the two page boxes show one page, so switching keeps it.
         Follow(_from, _range);
         Follow(_to, _range);
-        Follow(_beforePage, _before);
-        Follow(_afterPage, _after);
-        _beforePage.TextChanged += (_, _) => Mirror(_beforePage, _afterPage);
-        _afterPage.TextChanged += (_, _) => Mirror(_afterPage, _beforePage);
+        _ = new TwinPageBoxes(_beforePage, _before, _afterPage, _after, () => _ready && !_spanning, () => Replan());
         _list.SelectionChanged += (_, _) => { SpanWholeSource(); Replan(); };
 
         _summary = new TextBlock { FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 10, 0, 0) };
@@ -214,14 +210,6 @@ internal sealed class InsertPagesDialog : Window
     {
         box.TextChanged += (_, _) => { if (_ready && !_spanning) choice.IsChecked = true; Replan(); };
         box.GotKeyboardFocus += (_, _) => choice.IsChecked = true;
-    }
-
-    private void Mirror(TextBox from, TextBox to)
-    {
-        if (_syncing || to.Text == from.Text) return;
-        _syncing = true;
-        to.Text = from.Text;
-        _syncing = false;
     }
 
     // The sentence is split around its {0} and {1}, so each language places the numbers where it reads right.
