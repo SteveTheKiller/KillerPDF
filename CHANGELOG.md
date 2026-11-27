@@ -4,7 +4,7 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.7] - Unreleased
+## [1.9.7] - 2026-11-27
 
 1.9.7 redesigns the document tabs and tightens the whole window. Right-clicking a mark, comment or form field now opens a card made for it.
 

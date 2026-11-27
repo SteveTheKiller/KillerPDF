@@ -4,11 +4,28 @@ All notable changes to The KillerPDF.Engine are documented here. Application cha
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.7] - Unreleased
+## [1.9.7] - 2026-11-27
+
+1.9.7 adds page transforms that keep text, keeps removed content out of earlier revisions, and reads tagged and damaged files that used to fail.
+
+### Security
+
+- `PdfRevisionConsolidation.Consolidate` folds an edited document into one revision without unreachable objects. Removing text under a cover uses it, so a deleted glyph can no longer be recovered by cutting the file at an earlier `%%EOF`. Signed documents keep their incremental form.
+- `PdfSignatureVerifier` treats a signer certificate whose extended key usage excludes document signing as untrusted. It accepts the usages Acrobat accepts plus the IETF and Microsoft document-signing purposes.
+
+### Fixed
+
+- `PdfObjectParser` reads a stream whose `/Length` runs past the end of the file up to its `endstream`, as Edge does, and stops the search at the nearest match. An invoice whose images declared too much data rendered as a white page (#531).
+- `PdfOcrSearchableTextWriter` writes the OCR text layer into a tagged PDF as an artifact instead of refusing the file. Tags, links and bookmarks stay as they were (#533).
+- Pages whose image masks carry too much or too little sample data render instead of failing the page.
+- Bold text drawn as fill plus outline keeps its weight at small sizes and no longer goes heavy when zoomed out. Letters outlined in another color keep a visible outline.
+- `PdfSignatureInvalidationWriter` turns a cleared visible signature into a stamp that carries its appearance, so Acrobat still shows it (#505).
+- Editing and merging accept an empty `/Lang` as an unknown language (#532, thanks @andretorresdg).
 
 ### Added
 
-- `PdfPageTransformer.Transform` turns, scales or mirrors pages in place with one `PdfPageTransform` matrix each, so text and the structure tree survive. Links move with the page, and other visible annotations are painted in as the page render shows them.
+- `PdfPageTransformer.Transform` turns, scales or mirrors pages in place with one `PdfPageTransform` matrix each, so text and the structure tree survive. Links and bookmarks move with the page, and other visible annotations are painted in as the page render shows them.
+- `PdfIncrementalPageEditor.SetTextFieldBorder` sets a text field's border color, width and style, and `PdfFormWidgetInfo` reports them as `BorderColor`, `BorderWidth` and `BorderStyle`.
 
 ## [1.9.6] - 2026-11-24
 
