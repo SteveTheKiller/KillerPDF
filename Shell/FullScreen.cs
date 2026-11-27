@@ -151,7 +151,7 @@ namespace KillerPDF.Shell
                 Deactivated += FsYieldTopmost;
                 Activated   += FsReassertTopmost;
                 ResizeMode = ResizeMode.NoResize;
-                Controls.AltDrag.SetIsEnabled(this, false);   // Alt+drag must not move the full-screen window
+                ApplyAltDrag();   // Alt+drag must not move the full-screen window
                 if (WindowState == WindowState.Maximized) WindowState = WindowState.Normal;
                 ApplyFullScreenMonitorBounds(b);
                 // Custom chrome and WPF both perform one more layout pass after the state change.
@@ -179,7 +179,7 @@ namespace KillerPDF.Shell
                 Activated   -= FsReassertTopmost;
                 Topmost = _fsPrevTopmost;
                 ResizeMode = _fsPrevResize;
-                Controls.AltDrag.SetIsEnabled(this, true);
+                ApplyAltDrag();
                 WindowState = WindowState.Normal;
                 if (_fsPrevPlacement.length != 0)
                 {

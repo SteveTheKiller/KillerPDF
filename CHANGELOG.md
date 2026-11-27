@@ -87,7 +87,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A form field's card copies the field's name, and its value for text fields, lists and dropdowns. A text field's card also fills it from a preset, clears it and saves or manages presets, and keeps Copy Field Name in its Hidden drawer. A check box or multi-select list clears from its card.
 - Fill Unused Space draws a heavy black Z, shaped like the Killer Sans letter, through the part of a multiline or empty text field that nobody wrote in, then makes the field read-only. It starts in the form field card's Hidden drawer, and the Z is a normal drawing you can move, resize, undo or flatten. (#536)
 - Shift+Enter on PDFs selected in File Explorer opens them together in a new KillerPDF window, however quickly Shift is let go (#513).
-- Alt+left-drag anywhere in a KillerPDF window moves it, and Alt+right-drag resizes it from the nearest edge or corner, as on Linux. Full screen stays put.
+- Alt+left-drag anywhere in a KillerPDF window moves it, and Alt+right-drag resizes it from the nearest edge or corner, as on Linux. Full screen stays put, and the Measure tool keeps Alt+click for placing a point without snapping.
 - The keyboard shortcuts card and the website list Alt+drag and Alt+right-drag.
 - The page card's Insert Pages tile, which replaces Merge, takes all pages or a range from another open tab and puts them before or after a page you pick, starting at the page you right-clicked. Markup, form values and page turns come along, and its Files on disk row works like Merge did (#529).
 

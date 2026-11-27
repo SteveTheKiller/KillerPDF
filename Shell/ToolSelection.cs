@@ -44,6 +44,9 @@ namespace KillerPDF.Shell
             _ => Cursors.Arrow
         };
 
+        // Alt+click in Measure turns snapping off and full screen stays put, so Alt+drag's window move stands aside for both.
+        private void ApplyAltDrag() => Controls.AltDrag.SetIsEnabled(this, KillerPDF.Services.AltDragTools.MovesWindow(_currentTool, _fullScreen));
+
         private void SetTool(EditTool tool, bool restoringPane = false)
         {
             if (_doc is null) tool = EditTool.Select;
@@ -65,6 +68,7 @@ namespace KillerPDF.Shell
             if (tool != EditTool.Draw) HideBrushPreview();   // drop the brush cursor when leaving Draw
             if (tool != EditTool.Measure) ActiveViewer.ClearMeasurementExt();
             _currentTool = tool;
+            ApplyAltDrag();
             ActiveViewer.RefreshFormDesignMode();
 
             var map = new (Button btn, EditTool t)[]
