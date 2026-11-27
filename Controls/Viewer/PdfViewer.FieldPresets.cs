@@ -149,6 +149,7 @@ namespace KillerPDF.Controls
                 SquareEnds = true,
             };
             z.SetColor(Colors.Black);
+            z.SetFillColor(Colors.Black);
             z.Points.AddRange(points);
             // The lock and the Z are one edit. The document undo the reload captures holds the page before both,
             // so the Z joins the annotations only once the lock is published and pushes no entry of its own: one

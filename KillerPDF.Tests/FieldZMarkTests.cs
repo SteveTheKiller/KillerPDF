@@ -16,27 +16,60 @@ public sealed class FieldZMarkTests
     [Fact]
     public void AnEmptyFieldGetsAZAcrossTheWholeBoxInsideItsInset()
     {
-        var points = FieldZMark.Points(new Rect(10, 20, 200, 100), 0, 1);
+        var points = FieldZMark.Points(new Rect(10, 20, 200, 100), 0, 1)!;
 
-        Assert.Equal([new Point(14, 24), new Point(206, 24), new Point(14, 116), new Point(206, 116)], points);
+        Assert.Equal(new Rect(14, 24, 192, 92), Bounds(points));
     }
 
     [Fact]
     public void TheZStartsJustUnderTheLastLineAndRunsTheFullWidth()
     {
-        var points = FieldZMark.Points(new Rect(10, 20, 200, 100), 30, 1);
+        var points = FieldZMark.Points(new Rect(10, 20, 200, 100), 30, 1)!;
 
         // 20 top + 30 of text + 2 gap + 4 inset.
-        Assert.Equal([new Point(14, 56), new Point(206, 56), new Point(14, 116), new Point(206, 116)], points);
+        Assert.Equal(new Rect(14, 56, 192, 60), Bounds(points));
     }
 
     [Fact]
     public void TheZScalesWithTheCanvas()
     {
-        var points = FieldZMark.Points(new Rect(0, 0, 400, 200), 0, 2);
+        var points = FieldZMark.Points(new Rect(0, 0, 400, 200), 0, 2)!;
 
-        Assert.Equal(new Point(8, 8), points![0]);
-        Assert.Equal(new Point(392, 192), points[3]);
+        Assert.Equal(new Rect(8, 8, 384, 184), Bounds(points));
+    }
+
+    // The Z is the Killer Sans Z: a closed outline, filled, with bars 68/649 of its height and a diagonal cut flush
+    // where it meets them, a little heavier than the bars the way the glyph draws it.
+    [Fact]
+    public void TheZIsTheKillerSansZOutline()
+    {
+        var points = FieldZMark.Points(new Rect(10, 20, 200, 100), 0, 1)!;
+
+        Assert.Equal(11, points.Count);
+        Assert.Equal(points[0], points[^1]);
+        double bar = points[2].Y - points[1].Y;
+        Assert.Equal(92 * 68.0 / 649, bar, 6);
+        Assert.Equal(bar, points[5].Y - points[4].Y, 6);
+        // The diagonal's edges run from (L, D-t) up to (R-w, U+t) and from (L+w, D-t) up to (R, U+t), parallel.
+        Vector left = points[8] - points[7], right = points[2] - points[3];
+        Assert.Equal(left.Y / left.X, right.Y / right.X, 6);
+        left.Normalize();
+        Assert.Equal(bar * 90 / 68, Math.Abs(Vector.CrossProduct(left, points[3] - points[7])), 3);
+    }
+
+    [Fact]
+    public void AWideShallowSpaceStillGetsASolidZInsideIt()
+    {
+        var points = FieldZMark.Points(new Rect(0, 0, 508, 68), 0, 1)!;
+
+        Assert.True(points[2].Y - points[1].Y >= 6);
+        Assert.Equal(new Rect(4, 4, 500, 60), Bounds(points));
+    }
+
+    private static Rect Bounds(IReadOnlyList<Point> points)
+    {
+        double left = points.Min(p => p.X), top = points.Min(p => p.Y);
+        return new Rect(left, top, points.Max(p => p.X) - left, points.Max(p => p.Y) - top);
     }
 
     [Theory]
