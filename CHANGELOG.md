@@ -73,6 +73,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Every dropdown list carries film grain.
 - Field Presets and Insert Image put their actions as icons on the list's heading. Initial view settings fits on two rows of controls and grays out Custom zoom until it's picked, and Automatic folders opens at the size of what it shows.
 - Buttons in Automatic folders and the other windows that drew them taller use the regular button size.
+- The markup card's Arrange tile opens a grid of icon tiles, three across like the card itself, instead of a long list of rows. Tiles that don't apply to the selection stay in place, dimmed (#504).
 
 ### Added
 - Right-clicking a drawing, text box, picture, comment or form field opens a card made for it, under the same Back, Forward, Undo, Redo and Print row as the page card. A mark, picture or comment card has Delete in its header.

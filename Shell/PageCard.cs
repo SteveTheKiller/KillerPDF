@@ -217,6 +217,8 @@ namespace KillerPDF.Shell
         private sealed record CardTile(string Glyph, string Caption, string? Gesture, Action? Act, bool Mirror, bool Enabled)
         {
             public MenuItem? Flyout { get; init; }
+            /// <summary>Groups of tiles the tile opens beside itself, three across, one group per row.</summary>
+            public IEnumerable<CardTile>[]? FlyoutTiles { get; init; }
             public bool? Checked { get; init; }
             public bool KeepsOpen { get; init; }
             /// <summary>A spare tile's stable name: it starts in the Hidden drawer, is never locked, and its glyph may
@@ -231,6 +233,10 @@ namespace KillerPDF.Shell
         // A tile that opens the rows of a submenu built for a menu row (Compare, Fillable Field Preset, Clean up...).
         private static CardTile FlyoutTile(string glyph, string caption, string? gesture, MenuItem rows)
             => new(glyph, caption, gesture, null, false, rows.IsEnabled) { Flyout = rows };
+
+        // A tile that opens a small grid of tiles (Arrange). It stays usable while any tile in the grid applies.
+        private static CardTile TileGridTile(string glyph, string caption, IEnumerable<CardTile>[] groups)
+            => new(glyph, caption, null, null, false, groups.Any(g => g.Any(t => t.Enabled))) { FlyoutTiles = groups };
 
         private FrameworkElement QuickStrip(ContextMenu menu, int columns, params CardTile[] tiles)
             => KillerFamily.Controls.CardBuilder.TileStrip(menu, Loc("Str_Card_Actions"), columns, tiles.Select(KitTile));
@@ -271,6 +277,7 @@ namespace KillerPDF.Shell
                 Shown = ShortTileCaption(caption),
                 Hint = t.Gesture is null ? caption : WithGesture(caption, t.Gesture),
                 Flyout = t.Flyout?.Items.Cast<object>().ToList(),
+                FlyoutTiles = t.FlyoutTiles?.Select(g => (IReadOnlyList<KillerFamily.Controls.CardTile>)g.Select(KitTile).ToList()).ToList(),
                 Checked = t.Checked,
                 KeepsOpen = t.KeepsOpen,
                 Id = t.Id,

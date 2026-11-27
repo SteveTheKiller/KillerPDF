@@ -51,6 +51,8 @@ namespace KillerFamily.Controls
     /// full name (tooltip and accessible name); Shown, when set, is the shorter text drawn under the glyph.
     /// Keys is the shortcut as it reads ("Ctrl+C"), drawn on the tile's second line while shortcuts show in menus.
     /// Mirror flips the glyph left to right. Flyout: the tile opens these rows beside itself instead of acting.
+    /// FlyoutTiles: the tile opens these groups of tiles beside itself instead, as a small card on the family grid
+    /// (three across, one group per row), for a set of related actions too long for rows.
     /// Checked: an on/off command, filled while on. KeepsOpen: the tile flips in place and the card stays open.
     /// </summary>
     public sealed record CardTile(string Glyph, string Caption, string? Keys, Action? Run, bool Mirror = false, bool Enabled = true)
@@ -59,6 +61,7 @@ namespace KillerFamily.Controls
         /// <summary>The tooltip, when the app words its shortcut hints its own way; otherwise "Caption (Keys)".</summary>
         public string? Hint { get; init; }
         public IList<object>? Flyout { get; init; }
+        public IReadOnlyList<IReadOnlyList<CardTile>>? FlyoutTiles { get; init; }
         public bool? Checked { get; init; }
         public bool KeepsOpen { get; init; }
         /// <summary>The tile's stable name for a customized card (CardEdit). Defaults to the glyph, plus "~" when
@@ -1305,12 +1308,14 @@ namespace KillerFamily.Controls
                 button.SetResourceReference(FrameworkElement.StyleProperty, "CardQuickButton");
                 bool on = tile.Checked == true;
                 if (tile.Checked is not null) ShowTileState(button, on);
-                if (tile.Flyout is { } rows)
+                if (tile.Flyout is not null || tile.FlyoutTiles is not null)
                 {
                     ContextMenu? flyout = null;
+                    var rows = tile.Flyout;
+                    var groups = tile.FlyoutTiles;
                     button.Click += (_, _) =>
                     {
-                        flyout ??= TileFlyout(card, button, rows);
+                        flyout ??= groups is not null ? TileGridFlyout(card, button, caption, groups) : TileFlyout(card, button, rows!);
                         flyout.IsOpen = true;
                     };
                     var cell = WithFlyoutChevron(button);
@@ -1442,6 +1447,49 @@ namespace KillerFamily.Controls
             flyout.Closed += (_, _) =>
             {
                 if (picked || !card.IsOpen) return;
+                if (!byKeyboard && card.InputHitTest(Mouse.GetPosition(card)) is null) { card.IsOpen = false; return; }
+                Mouse.Capture(card, CaptureMode.SubTree);
+                if (byKeyboard) tile.Focus();
+            };
+            return flyout;
+        }
+
+        // The tiles a FlyoutTiles tile opens: a small card beside the tile, on the card's own style and width, so its
+        // tiles are the card's size. A tile there closes the card it came from, which closes this flyout with it, and
+        // then acts. Escape, Left or a click back on the card returns to the card; a click anywhere else closes both.
+        private static ContextMenu TileGridFlyout(ContextMenu card, Button tile, string name, IReadOnlyList<IReadOnlyList<CardTile>> groups)
+        {
+            var flyout = new ContextMenu();
+            if (card.Style is { } style) flyout.Style = style;
+            else flyout.SetResourceReference(FrameworkElement.StyleProperty, "CardMenu");
+            TextOptions.SetTextFormattingMode(flyout, TextFormattingMode.Display);
+            TextOptions.SetTextRenderingMode(flyout, TextRenderingMode.Grayscale);
+            var lists = groups.Select(g => g.ToList()).Where(g => g.Count > 0).ToList();
+            // The tiles close the card, not the flyout, so picking one ends the whole menu.
+            var strip = GroupGrid(card, name, lists, CardColumns);
+            flyout.Items.Add(Slot(strip, new Thickness(0)));
+            AutomationProperties.SetName(flyout, name);
+            flyout.PlacementTarget = tile;
+            flyout.Placement = PlacementMode.Right;
+            card.Closed += (_, _) => flyout.IsOpen = false;
+            bool byKeyboard = false;
+            flyout.PreviewKeyDown += (_, e) =>
+            {
+                byKeyboard = e.Key is Key.Escape or Key.Left;
+                if (byKeyboard) { flyout.IsOpen = false; e.Handled = true; }
+            };
+            flyout.Opened += (_, _) =>
+            {
+                byKeyboard = false;
+                // As wide as the card, so three tiles here are exactly as wide as three tiles there.
+                if (card.ActualWidth > 0) flyout.Width = card.ActualWidth;
+                if (InputManager.Current.MostRecentInputDevice is KeyboardDevice)
+                    flyout.Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
+                        Descendants(strip).OfType<Button>().FirstOrDefault(b => b.IsEnabled)?.Focus());
+            };
+            flyout.Closed += (_, _) =>
+            {
+                if (!card.IsOpen) return;
                 if (!byKeyboard && card.InputHitTest(Mouse.GetPosition(card)) is null) { card.IsOpen = false; return; }
                 Mouse.Capture(card, CaptureMode.SubTree);
                 if (byKeyboard) tile.Focus();

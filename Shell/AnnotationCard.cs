@@ -49,9 +49,9 @@ namespace KillerPDF.Shell
                 grouping.Add(new("\uE738", Loc("Str_Ctx_RemoveFromGroup"), null, () => RemoveFromGroup(hit), false, true));
             }
             else if (multi) grouping.Add(new("\uF168", Loc("Str_Ctx_Group"), null, GroupSelected, false, true));
-            // Several marks get one Arrange tile whose rows line them up, space them and size them (#504).
-            // A single text box gets it too, for the rows that fit its frame to its text.
-            if (multi || hit is TextAnnotation) grouping.Add(FlyoutTile("\uE8E4", Loc("Str_Ctx_Arrange"), null, ArrangeRows(targets.Count)));
+            // Several marks get one Arrange tile whose tiles line them up, space them and size them (#504).
+            // A single text box gets it too, for the tiles that fit its frame to its text.
+            if (multi || hit is TextAnnotation) grouping.Add(TileGridTile("\uE8E4", Loc("Str_Ctx_Arrange"), ArrangeTiles(targets.Count)));
             var pairing = new List<CardTile>();
             if (hit.PairId.Length > 0 && !multi && PairPartner(hit) is { } partner)
                 pairing.Add(new("\uE8B3", Loc(partner is CoverAnnotation ? "Str_Ctx_SelectCover" : "Str_Ctx_SelectText"), null, () => SelectPartner(hit), false, true));
@@ -136,38 +136,46 @@ namespace KillerPDF.Shell
             return dock;
         }
 
-        // The Arrange tile's rows. Distributing needs three marks, so with two its rows are off.
-        private MenuItem ArrangeRows(int count)
+        // The Arrange tile's grid, six rows of three: align across, align down, spacing across, spacing down, matching
+        // sizes, and fitting a text box to its text. A tile that can't apply to this many marks stays in its spot,
+        // dimmed: spacing evenly needs three marks, and everything but the Fit row needs two.
+        private IEnumerable<CardTile>[] ArrangeTiles(int count)
         {
-            var rows = new MenuItem { Header = Loc("Str_Ctx_Arrange") };
-            void Row(string key, Services.AnnotationArrange.Action action)
-            {
-                var item = MakeMenuItem(Loc(key), (_, _) => ArrangeSelection(action));
-                item.IsEnabled = Services.AnnotationArrange.Applies(action, count);
-                rows.Items.Add(item);
-            }
-            Row("Str_Arrange_AlignLeft", Services.AnnotationArrange.Action.AlignLeft);
-            Row("Str_Arrange_AlignCenter", Services.AnnotationArrange.Action.AlignCenter);
-            Row("Str_Arrange_AlignRight", Services.AnnotationArrange.Action.AlignRight);
-            Row("Str_Arrange_AlignTop", Services.AnnotationArrange.Action.AlignTop);
-            Row("Str_Arrange_AlignMiddle", Services.AnnotationArrange.Action.AlignMiddle);
-            Row("Str_Arrange_AlignBottom", Services.AnnotationArrange.Action.AlignBottom);
-            rows.Items.Add(new Separator());
-            Row("Str_Arrange_DistributeHorizontally", Services.AnnotationArrange.Action.DistributeHorizontally);
-            Row("Str_Arrange_DistributeVertically", Services.AnnotationArrange.Action.DistributeVertically);
-            Row("Str_Arrange_MoreHorizontalSpace", Services.AnnotationArrange.Action.MoreHorizontalSpace);
-            Row("Str_Arrange_LessHorizontalSpace", Services.AnnotationArrange.Action.LessHorizontalSpace);
-            Row("Str_Arrange_MoreVerticalSpace", Services.AnnotationArrange.Action.MoreVerticalSpace);
-            Row("Str_Arrange_LessVerticalSpace", Services.AnnotationArrange.Action.LessVerticalSpace);
-            rows.Items.Add(new Separator());
-            Row("Str_Arrange_SameWidth", Services.AnnotationArrange.Action.SameWidth);
-            Row("Str_Arrange_SameHeight", Services.AnnotationArrange.Action.SameHeight);
-            Row("Str_Arrange_SameSize", Services.AnnotationArrange.Action.SameSize);
-            rows.Items.Add(new Separator());
-            Row("Str_Arrange_FitWidth", Services.AnnotationArrange.Action.FitWidth);
-            Row("Str_Arrange_FitHeight", Services.AnnotationArrange.Action.FitHeight);
-            Row("Str_Arrange_FitSize", Services.AnnotationArrange.Action.FitSize);
-            return rows;
+            CardTile Tile(int glyph, string key, Services.AnnotationArrange.Action action)
+                => new(GlyphText(glyph), Loc(key), null, () => ArrangeSelection(action), false, Services.AnnotationArrange.Applies(action, count));
+            return
+            [
+                [
+                    Tile(0xF59C, "Str_Arrange_AlignLeft", Services.AnnotationArrange.Action.AlignLeft),
+                    Tile(0xF5A9, "Str_Arrange_AlignCenter", Services.AnnotationArrange.Action.AlignCenter),
+                    Tile(0xF59D, "Str_Arrange_AlignRight", Services.AnnotationArrange.Action.AlignRight),
+                ],
+                [
+                    Tile(0xF59E, "Str_Arrange_AlignTop", Services.AnnotationArrange.Action.AlignTop),
+                    Tile(0xF5A0, "Str_Arrange_AlignMiddle", Services.AnnotationArrange.Action.AlignMiddle),
+                    Tile(0xF59F, "Str_Arrange_AlignBottom", Services.AnnotationArrange.Action.AlignBottom),
+                ],
+                [
+                    Tile(0xF596, "Str_Arrange_DistributeHorizontally", Services.AnnotationArrange.Action.DistributeHorizontally),
+                    Tile(0xE7FD, "Str_Arrange_MoreHorizontalSpace", Services.AnnotationArrange.Action.MoreHorizontalSpace),
+                    Tile(0xE769, "Str_Arrange_LessHorizontalSpace", Services.AnnotationArrange.Action.LessHorizontalSpace),
+                ],
+                [
+                    Tile(0xF590, "Str_Arrange_DistributeVertically", Services.AnnotationArrange.Action.DistributeVertically),
+                    Tile(0xE8CB, "Str_Arrange_MoreVerticalSpace", Services.AnnotationArrange.Action.MoreVerticalSpace),
+                    Tile(0xE76F, "Str_Arrange_LessVerticalSpace", Services.AnnotationArrange.Action.LessVerticalSpace),
+                ],
+                [
+                    Tile(0xF58D, "Str_Arrange_SameWidth", Services.AnnotationArrange.Action.SameWidth),
+                    Tile(0xF57B, "Str_Arrange_SameHeight", Services.AnnotationArrange.Action.SameHeight),
+                    Tile(0xF0E2, "Str_Arrange_SameSize", Services.AnnotationArrange.Action.SameSize),
+                ],
+                [
+                    Tile(0xE8AC, "Str_Arrange_FitWidth", Services.AnnotationArrange.Action.FitWidth),
+                    Tile(0xEE40, "Str_Arrange_FitHeight", Services.AnnotationArrange.Action.FitHeight),
+                    Tile(0xE9A6, "Str_Arrange_FitSize", Services.AnnotationArrange.Action.FitSize),
+                ],
+            ];
         }
 
         // The right-clicked annotation and the rest of the selection, the same set the bar restyles.
