@@ -3464,35 +3464,38 @@
                                     ViewportUnits="Absolute" Viewport="0,0,256,256" Stretch="None"/>
                     </Border.Background>
                 </Border>
-                <!-- Header: icon and wordmark on the left, the choice and Got it on the right. The
-                     version title is the notes pane's heading, which keeps this bar short. -->
-                <Grid Grid.Row="1" Margin="12,8,10,8">
+                <!-- Header: the app's title bar, one row of its height with its icon and wordmark copied
+                     verbatim, and the choice and Got it on the right. The version title is the notes
+                     pane's heading. -->
+                <Grid x:Name="WhatsNewHeader" Grid.Row="1" Height="{DynamicResource TitleBarHeight}" Margin="0,0,6,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <icons:AppIcon Grid.Column="0" Source="pack://application:,,,/Resources/kp-icon.ico"
-                           Width="40" Height="40" Margin="0,0,12,0" VerticalAlignment="Center"
-                           RenderOptions.BitmapScalingMode="NearestNeighbor">
-                        <icons:AppIcon.Effect>
-                            <DropShadowEffect Color="Black" BlurRadius="10" ShadowDepth="2" Direction="270" Opacity="{DynamicResource AboutIconShadowOpacity}"/>
-                        </icons:AppIcon.Effect>
-                    </icons:AppIcon>
-                    <!-- Lacquer's line box leaves 8px empty above "PDF" while its drips hang 5px
-                         below it, so a centered box puts the ink 6px under the icon's center. The
-                         -12 top margin lifts the ink onto the icon's center line. -->
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,-12,0,0">
-                        <Grid>
-                            <TextBlock x:Name="WhatsNewLogoShadowBlock"
-                                       FontFamily="{DynamicResource WordmarkFont}" FontSize="16.43"
-                                       Margin="1,1,0,0" IsHitTestVisible="False"
-                                       Opacity="{DynamicResource WordmarkShadowOpacity}">
-                                <TextBlock.Effect><BlurEffect Radius="2"/></TextBlock.Effect>
-                            </TextBlock>
-                            <TextBlock FontFamily="{DynamicResource WordmarkFont}" FontSize="16.43" Margin="1,2,0,0" IsHitTestVisible="False" Opacity="{DynamicResource WordmarkAccentShadowOpacity}"><TextBlock.Effect><BlurEffect Radius="3"/></TextBlock.Effect><Run Text="Killer" FontFamily="{DynamicResource WordmarkFont}" FontSize="16.43" Foreground="Transparent"/><Run Text="PDF" FontFamily="{DynamicResource WordmarkFontPdf}" FontSize="24.68" Foreground="#D8000000"/></TextBlock>
-                            <TextBlock x:Name="WhatsNewLogoBlock" theme:Bevel.Enabled="True"
-                                       FontFamily="{DynamicResource WordmarkFont}" FontSize="16.43" Cursor="Hand"/>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="{DynamicResource TitleLogoMargin}"
+                                RenderTransform="{DynamicResource TitleLogoTransform}" IsHitTestVisible="False">
+                        <icons:AppIcon Source="pack://application:,,,/Resources/kp-icon.ico"
+                               Width="{DynamicResource TitleIconSize}" Height="{DynamicResource TitleIconSize}" Margin="{DynamicResource TitleIconMargin}" VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="NearestNeighbor">
+                            <icons:AppIcon.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270" Opacity="{DynamicResource IconShadowOpacity}"/>
+                            </icons:AppIcon.Effect>
+                        </icons:AppIcon>
+                        <TextBlock Text="KillerPDF" Visibility="{DynamicResource PlainTitleVisibility}"
+                                   FontFamily="{DynamicResource ChromeFontFamily}" FontSize="11" FontWeight="Bold"
+                                   Foreground="{DynamicResource ChromeTextBrush}" VerticalAlignment="Center"
+                                   Margin="{DynamicResource TitleTextMargin}"/>
+                        <Grid VerticalAlignment="Center" Margin="0,-18,0,-22" Visibility="{DynamicResource WordmarkVisibility}">
+                            <Grid.RenderTransform><TranslateTransform Y="-5"/></Grid.RenderTransform>
+                            <StackPanel Orientation="Horizontal" Margin="1,2,0,0" Opacity="{DynamicResource WordmarkShadowOpacity}">
+                                <StackPanel.Effect><BlurEffect Radius="3"/></StackPanel.Effect>
+                                <TextBlock><Run Text="Killer" FontFamily="{DynamicResource WordmarkFont}" FontSize="{DynamicResource TitleWordmarkSize}" Foreground="#D8000000"/><Run Text="PDF" FontFamily="{DynamicResource WordmarkFontPdf}" FontSize="{DynamicResource TitleWordmarkBoldSize}" Foreground="#D8000000"/></TextBlock>
+                            </StackPanel>
+                            <TextBlock Margin="1,2,0,0" Opacity="{DynamicResource WordmarkAccentShadowOpacity}"><TextBlock.Effect><BlurEffect Radius="3"/></TextBlock.Effect><Run Text="Killer" FontFamily="{DynamicResource WordmarkFont}" FontSize="{DynamicResource TitleWordmarkSize}" Foreground="Transparent"/><Run Text="PDF" FontFamily="{DynamicResource WordmarkFontPdf}" FontSize="{DynamicResource TitleWordmarkBoldSize}" Foreground="#D8000000"/></TextBlock>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock theme:Bevel.Enabled="True"><Run Text="Killer" FontFamily="{DynamicResource WordmarkFont}" FontSize="{DynamicResource TitleWordmarkSize}" Foreground="{DynamicResource TextBrush}"/><Run Text="PDF" FontFamily="{DynamicResource WordmarkFontPdf}" FontSize="{DynamicResource TitleWordmarkBoldSize}" Foreground="{DynamicResource AccentLogo}"/></TextBlock>
+                            </StackPanel>
                         </Grid>
                     </StackPanel>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -3501,7 +3504,7 @@
                                   Click="WhatsNewShowCheck_Click">
                             <TextBlock Text="{DynamicResource Str_WhatsNew_ShowAfterUpdates}"/>
                         </CheckBox>
-                        <Button x:Name="WhatsNewGotIt" Style="{StaticResource OutlineButton}" Padding="14,4" FontSize="12"
+                        <Button x:Name="WhatsNewGotIt" Style="{StaticResource OutlineButton}" Padding="12,1" FontSize="12"
                                 VerticalAlignment="Center" Click="WhatsNewClose_Click">
                             <TextBlock Text="{DynamicResource Str_WhatsNew_GotIt}"
                                        FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"

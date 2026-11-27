@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.7] - Unreleased
 
-1.9.7 stops deleted content from staying recoverable inside edited files, adds right-click cards for marks, comments and form fields, and keeps text and links when Transform turns a page. The rest is a tighter interface and bug fixes.
+1.9.7 redesigns the document tabs and tightens the whole window. Right-clicking a mark, comment or form field now opens a card made for it.
 
 ### Security
 

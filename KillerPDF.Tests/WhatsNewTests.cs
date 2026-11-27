@@ -80,6 +80,19 @@ public sealed class WhatsNewTests
         }
     }
 
+    // The card's header is the app's title bar: one row of the title bar's height, with its icon and wordmark sizes.
+    [Fact]
+    public void TheHeaderIsOneTitleBarRow()
+    {
+        string xaml = File.ReadAllText(Path.Combine(RepositoryRoot(), "Shell", "MainWindow.xaml"));
+        int start = xaml.IndexOf("x:Name=\"WhatsNewOverlay\"", StringComparison.Ordinal);
+        string card = xaml[start..xaml.IndexOf("x:Name=\"WhatsNewNotesClip\"", start, StringComparison.Ordinal)];
+        Assert.Contains("x:Name=\"WhatsNewHeader\" Grid.Row=\"1\" Height=\"{DynamicResource TitleBarHeight}\"", card, StringComparison.Ordinal);
+        Assert.Contains("Width=\"{DynamicResource TitleIconSize}\" Height=\"{DynamicResource TitleIconSize}\" Margin=\"{DynamicResource TitleIconMargin}\"", card, StringComparison.Ordinal);
+        Assert.Contains("FontSize=\"{DynamicResource TitleWordmarkSize}\"", card, StringComparison.Ordinal);
+        Assert.DoesNotContain("Width=\"40\" Height=\"40\"", card, StringComparison.Ordinal);
+    }
+
     private static string RepositoryRoot()
     {
         string root = AppContext.BaseDirectory;

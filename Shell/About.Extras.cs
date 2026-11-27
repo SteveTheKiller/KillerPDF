@@ -216,12 +216,11 @@ namespace KillerPDF.Shell
             BuildAboutTagline();
         }
 
-        // The What's new card (Shell/WhatsNew.cs) carries the About card's grain and wordmark.
+        // The What's new card (Shell/WhatsNew.cs) carries the About card's grain; its header is the title bar's.
         partial void ShowingWhatsNew()
         {
             if (ShortcutsOverlay.Visibility == Visibility.Visible) FadeOverlayOut(ShortcutsOverlay);
             Controls.GrainTexture.Track(WhatsNewGrainBrush);
-            BuildWordmark(WhatsNewLogoBlock, WhatsNewLogoShadowBlock);
             ClipWhatsNewNotes();
         }
 
