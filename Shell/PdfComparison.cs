@@ -141,12 +141,13 @@ public partial class MainWindow
                 // in a string MenuItem header is an access-key marker (PdfViewer.TabStrip.cs).
                 var item = new MenuItem { Header = tab.Title.Replace("_", "__") };
                 item.Click += (_, _) => BeginComparison(source, tab);
+                // Each open document shows KillerPDF's document icon in the icon column, which was left empty.
+                item.Icon = Services.ShellIcons.MenuIcon(Services.ShellIcons.DocumentIcon(tab.OriginalPath), this);
                 items.Add(item);
             }
 
         items.Add(new Separator());
-        var browse = new MenuItem { Header = Loc("Str_Compare_Browse") };
-        browse.Click += (_, _) => BrowseForComparison(source);
+        var browse = MakeMenuItem(Loc("Str_Compare_Browse"), (_, _) => BrowseForComparison(source), glyph: GlyphText(0xE8E5));
         items.Add(browse);
     }
 

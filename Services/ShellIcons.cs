@@ -62,6 +62,80 @@ namespace KillerPDF.Services
         /// <summary>32px icon for the icon grid.</summary>
         internal static ImageSource? Large(string path, bool isFolder) => Get(path, isFolder, false);
 
+        private static ImageSource? _killerPdfDocument;
+        private static bool _killerPdfDocumentRead;
+
+        /// <summary>
+        /// KillerPDF's own document icon, the pdf-file.ico the installer registers for PDFs, so a list of open
+        /// documents shows the app's page rather than whatever the default PDF app's icon is. The 32px frame is
+        /// kept: drawn at 18 DIPs it stays sharp up to about 175% scaling. Null in a build without the icon.
+        /// </summary>
+        internal static ImageSource? KillerPdfDocument()
+        {
+            lock (CacheGate)
+            {
+                if (_killerPdfDocumentRead) return _killerPdfDocument;
+                _killerPdfDocumentRead = true;
+                try
+                {
+                    var assembly = typeof(ShellIcons).Assembly;
+                    string? name = Array.Find(assembly.GetManifestResourceNames(),
+                        n => n.Contains("pdf-file", StringComparison.OrdinalIgnoreCase)
+                             && n.EndsWith(".ico", StringComparison.OrdinalIgnoreCase));
+                    if (name is null) return null;
+                    using Stream stream = assembly.GetManifestResourceStream(name)!;
+                    var decoder = new IconBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+                    BitmapFrame? best = null;
+                    foreach (BitmapFrame frame in decoder.Frames)
+                        if (best is null || Math.Abs(frame.PixelWidth - 32) < Math.Abs(best.PixelWidth - 32)
+                            || frame.PixelWidth == best.PixelWidth && frame.Format.BitsPerPixel > best.Format.BitsPerPixel)
+                            best = frame;
+                    best?.Freeze();
+                    _killerPdfDocument = best;
+                }
+                catch (Exception ex) when (ex is IOException or NotSupportedException or FileFormatException
+                    or InvalidOperationException or ArgumentException)
+                {
+                    _killerPdfDocument = null;
+                }
+                return _killerPdfDocument;
+            }
+        }
+
+        /// <summary>
+        /// The icon for an open document's menu row: KillerPDF's own for a PDF or an untitled document, and the
+        /// shell's for a file of another kind the app opened (EPUB, DjVu, Office).
+        /// </summary>
+        internal static ImageSource? DocumentIcon(string? path) =>
+            string.IsNullOrEmpty(path) || string.Equals(Path.GetExtension(path), ".pdf", StringComparison.OrdinalIgnoreCase)
+                ? KillerPdfDocument()
+                : Large(path, isFolder: false) ?? KillerPdfDocument();
+
+        /// <summary>
+        /// A file icon for a menu's icon column, drawn as the Recent files rows draw theirs: 18 DIPs, smooth
+        /// scaling and the theme's icon shadow. Null when there is no icon, so the caller keeps its glyph.
+        /// </summary>
+        internal static System.Windows.Controls.Image? MenuIcon(ImageSource? source, FrameworkElement themeOwner)
+        {
+            if (source is null) return null;
+            var image = new System.Windows.Controls.Image
+            {
+                Source = source,
+                Width = 18,
+                Height = 18,
+                VerticalAlignment = VerticalAlignment.Center,
+                Stretch = Stretch.Uniform,
+                SnapsToDevicePixels = true
+            };
+            RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
+            image.Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = Colors.Black, BlurRadius = 4, ShadowDepth = 2, Direction = 270,
+                Opacity = themeOwner.TryFindResource("IconShadowOpacity") is double opacity ? opacity : 0.5
+            };
+            return image;
+        }
+
         private static readonly object CacheGate = new();
         private const int ThumbnailLimit = 256;
         private static readonly Dictionary<string, (ImageSource? Image, LinkedListNode<string> Node)> _thumbs = new(StringComparer.OrdinalIgnoreCase);
