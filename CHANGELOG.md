@@ -6,93 +6,86 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.7] - Unreleased
 
+1.9.7 stops deleted content from staying recoverable inside edited files, adds right-click cards for marks, comments and form fields, and keeps text and links when Transform turns a page. The rest is a tighter interface and bug fixes.
+
 ### Security
 
 - Deleting pages, removing a link or comment, and editing text in place save the file as one clean revision, so the removed content can no longer be recovered from an earlier revision inside the file. A signed PDF, or one with Adobe Reader usage rights, keeps the old way of saving, which leaves its signatures and rights valid.
 - Before it downloads a PDF a website sent with a `killerpdf://` link, KillerPDF names the site and asks. "Always open PDFs from this site" skips the question for that site from then on. A redirect to another site asks again, and a redirect off HTTPS stops the download.
-- A link in a PDF opens exactly the address KillerPDF checked, not the raw text the PDF stored.
 - A signature made with a certificate whose stated uses leave out document signing, such as a web server certificate, is no longer shown as trusted. Certificates that state no uses, or allow email protection, code signing or document signing, are checked as before.
-- The setup program looks for the system libraries it loads only in Windows' own folder, no longer in the folder it was started from, such as Downloads.
 - A silent install (`/silent`) checks the signature on the copy it writes into the install folder, not just on the file it was started from, so the file cannot be swapped between the check and the copy. An install for all users also requires the publisher's own certificate authority.
+- The setup program looks for the system libraries it loads only in Windows' own folder, no longer in the folder it was started from, such as Downloads.
+- A link in a PDF opens exactly the address KillerPDF checked, not the raw text the PDF stored.
 
 ### Fixed
 
-- The KillerPDF wordmark in confirmation dialogs draws "PDF" in its own lettering again. A confirmation that names a file, or is in a language the heading lettering can't draw, uses the interface font lined up with the alert icon (#490).
-- PDFs with damaged image transparency, common in CAD and building drawings, render instead of showing a blank page and "Image soft-mask sample data has an invalid length."
-- Bold text that a PDF draws as filled letters with a thin outline no longer turns heavy and blotchy when you zoom out. Letters outlined in a different color keep a visible outline.
-- Scrolling the What's new notes no longer draws text over the pane's rounded corners.
-- Clicking an OCR language that isn't downloaded yet keeps the language list open, and the language shows checked as soon as its download finishes.
-- On a right-click card near the right side of the screen, the Hidden drawer from the edit pencil opens against the card's left edge and slides out from behind it, instead of sliding in from a gap off to the side.
-- The Trash Polka theme's name is translated in every language, like the other themes.
-- Selected text shows a visible highlight in dialog text boxes, the text size and page number boxes, and editable dropdowns, where it was invisible on most themes. A dialog text box also dims when it is turned off.
 - Printing with "KillerPDF manages colors" works again on Windows builds that rejected the print settings with "Only 'name' is allowed". The printer properties button no longer fails the same way, and printers with document-level two-sided printing are fixed too (#520).
-- Editing and merging accept a PDF whose language is set but empty, which means the language is unknown, instead of refusing the file (#532).
-- Convert to Searchable PDF works on tagged PDFs, such as the ones Word exports. The text layer goes in without changing the document's tags (#533).
+- PDFs with damaged image transparency, common in CAD and building drawings, render instead of showing a blank page and "Image soft-mask sample data has an invalid length."
 - Scans whose images state a size larger than the file, like invoices from some scanner apps, render instead of showing a white page (#531).
+- Convert to Searchable PDF works on tagged PDFs, such as the ones Word exports. The text layer goes in without changing the document's tags (#533).
+- Editing and merging accept a PDF whose language is set but empty, which means the language is unknown, instead of refusing the file (#532).
+- Redacting or editing a signed PDF keeps a visible signature's name and date readable in Adobe Acrobat too. The signature box becomes a stamp with the same look, because Acrobat drew the cleared signature field as an empty gray box (#505).
 - A copied text edit pastes with its text on top of its white cover, so the pasted edit no longer shows as a blank white box (#467).
 - Arrange pages in Merge files shows a line where dragged pages will go, and a drop between two pages lands there instead of at the end. Dragging one of several selected pages moves all of them, and files dropped onto the pages go in where they were dropped (#495).
-- Redacting or editing a signed PDF keeps a visible signature's name and date readable in Adobe Acrobat too. The signature box becomes a stamp with the same look, because Acrobat drew the cleared signature field as an empty gray box (#505).
-- Small text is sharper. Once the view settles, the part of the page on screen is drawn at the monitor's exact pixel size, so the page is no longer scaled down from a larger picture (#526).
-- In the title bar, toolbar captions, sidebar and status bar, Chinese, Japanese and Korean characters draw at 90%, so they read the same size as the Latin text beside them while Latin keeps its size in every language. This covers Chinese file names in an English interface too. Menus, dialogs and buttons keep CJK at full size, where smaller text would be hard to read. The file name in the title bar sits on the same line as the KillerPDF wordmark instead of a pixel or two below it. A caption under its icon and a page number under its sidebar thumbnail also have as much space above them as English text, where they used to sit right against the icon or page (#490).
-- With an all-users install, classic Outlook finds the PDF preview, including 32-bit Outlook. It only looks for preview handlers registered for the whole machine (#410).
-- A per-user install offers PDF previews in File Explorer only, since classic Outlook can't see a preview installed for one account (#410).
-- The PDF preview sits inside Outlook's reading pane when Outlook is on a monitor with different display scaling than the main one. It used to land off to the right (#410).
-- A top or bottom sidebar keeps its height when you switch panels, and opens its menus next to its buttons. Its document tools get wider tiles so names fit, and two-page thumbnails sit in pairs as they do in a side column. The theme and language menus scroll when the window is too short for them instead of cutting off their last rows.
-- In the two-page views, the right-click menu grows to fit its top row, so "Page 20 of 20" is no longer cut off beside the Book layout button.
-- Zooming with the zoom buttons or the zoom box keeps your place. The spot in the middle of the view stays there instead of the view jumping up or down the document, and a document read from the top stays at the top (#523).
-- Shift+Enter in the Open dialog's file name box opens the files in a new window, as it already did from the file list. A quick press used to open them as tabs of the same window (#513).
-- Leaving full screen puts the window back at the size it had before. With monitors at different display scales, it used to come back far too big.
-- In the Trash Polka theme, the status bar carries the same ink as the panes above it, so the art no longer stops at a flat black strip along the bottom.
-- Menu and card rows that don't apply look grayed out. With one text box selected, the Arrange rows it can't use dim and only the Fit rows stay bright (#504).
-- The Compare PDFs list shows the KillerPDF document icon beside each open file and an icon beside Choose another PDF, where the icon column was empty.
+- Zooming with the zoom buttons or the zoom box keeps your place. The spot in the middle of the view stays put, and a document read from the top stays at the top (#523).
+- Small text is sharper. Once the view settles, the part of the page on screen is drawn at the monitor's exact pixel size instead of being scaled down from a larger picture (#526).
+- With an all-users install, classic Outlook finds the PDF preview, 32-bit Outlook included, and the preview sits inside the reading pane on a monitor with different display scaling. A per-user install offers previews in File Explorer only, since Outlook only looks for previews installed for the whole machine (#410).
+- Bold text that a PDF draws as filled letters with a thin outline no longer turns heavy and blotchy when you zoom out. Letters outlined in a different color keep a visible outline.
 - Copies of PDFs opened from inside a zip folder no longer pile up in temp. Startup clears the ones left untouched for a week, unless your last session reopens them.
+- Leaving full screen puts the window back at the size it had before. With monitors at different display scales, it used to come back far too big.
+- Shift+Enter in the Open dialog's file name box opens the files in a new window, as it already did from the file list. A quick press used to open them as tabs of the same window (#513).
+- Clicking an OCR language that isn't downloaded yet keeps the language list open, and the language shows checked as soon as its download finishes.
+- A top or bottom sidebar keeps its height when you switch panels, and opens its menus next to its buttons. Its document tools get wider tiles so names fit, and two-page thumbnails sit in pairs as they do in a side column.
+- The theme and language menus scroll when the window is too short for them instead of cutting off their last rows.
+- Selected text shows a visible highlight in dialog text boxes, the text size and page number boxes, and editable dropdowns, where it was invisible on most themes. A dialog text box also dims when it is turned off.
+- Chinese, Japanese and Korean characters in the title bar, toolbar captions, sidebar and status bar draw at 90%, so they match the Latin text beside them, file names included. Menus, dialogs and buttons keep them full size (#490).
+- The title bar's file name sits on the same line as the KillerPDF wordmark, and toolbar captions and sidebar page numbers get as much space above them as English text (#490).
+- The KillerPDF wordmark in confirmation dialogs draws "PDF" in its own lettering again. A confirmation that names a file, or is in a language the heading lettering can't draw, uses the interface font lined up with the alert icon (#490).
+- In the two-page views, the right-click menu grows to fit its top row, so "Page 20 of 20" is no longer cut off beside the Book layout button.
+- On a right-click card near the right side of the screen, the Hidden drawer from the edit pencil opens against the card's left edge and slides out from behind it, instead of sliding in from a gap off to the side.
+- Menu and card rows that don't apply look grayed out (#504).
+- Scrolling the What's new notes no longer draws text over the pane's rounded corners.
+- In the Trash Polka theme, the status bar carries the same ink as the panes above it, so the art no longer stops at a flat black strip along the bottom. The theme's name is translated in every language, like the other themes.
+- The Compare PDFs list shows the KillerPDF document icon beside each open file and an icon beside Choose another PDF, where the icon column was empty.
 
 ### Changed
 
-- On HDR and Advanced Color monitors, color-managed pages are drawn in the display's real color range instead of the way a standard monitor draws them. The find bar, tool bar, page number badge and other panels over the page stay on top of it (#534).
-- The page's right-click menu has one edit pencil for the whole card, so any tile can go anywhere on it. A layout you already customized carries over.
-- The language picker and the OCR language list space their rows the same way. In 98SE both sit between the old tight picker and the old roomy OCR list.
 - Transform keeps a page's text and links when it rotates, scales or flips it, instead of turning the page into an image (#538). Bookmarks and links into the page land on the same spot after it turns. Only perspective, levels, color and output quality still rasterize and bring up the warning.
+- On HDR and Advanced Color monitors, color-managed pages are drawn in the display's real color range instead of the way a standard monitor draws them. The find bar, tool bar, page number badge and other panels over the page stay on top of it (#534).
 - Document tabs are redesigned (#528). They are narrower and shorter, the active tab curves into the page below with a fading accent line, and a long title fades out instead of ending in "...". In split view, the other pane's active tab shows its line in gray.
+- The page's right-click menu has one edit pencil for the whole card, so any tile can go anywhere on it. A layout you already customized carries over.
+- The markup card's Arrange tile and the page card's Page tile open grids of icon tiles, three across like the card itself, instead of long lists or submenus. Tiles that don't apply to the selection stay in place, dimmed (#504).
 - The main window is tighter. The title bar, toolbar, tool options bar and Restore last session bar are slimmer, and the gaps around the sidebar, document pane, split view and About card are 4px.
 - The sidebar has evenly spaced rail icons, a full-height resize line and a dark page number box, and the status text lines up under it. With the sidebar on top, its menus open inside the page area instead of over the tabs.
-- A floating tool bar under the active tab or against the pane's side tucks behind the pane's border and rounded corners instead of drawing over them.
 - Dialogs match the main window. Their content areas carry the pane shadow, they keep 16px margins, and their title, wordmark, icon and close X sit like the main window's. Dialog buttons are a step smaller, 26px tall everywhere.
-- Every dropdown's list comes straight off its box with square corners where they meet, and the open box and list share one shadow. Lists at the foot of a window, like the Macros steps and the footer zoom, open upward.
-- Page windows such as Transform, Color correction, Stamp and Print put the page right under the title bar, with the settings starting higher. Their dropdowns and fields are 24px tall, and the sections and rows sit closer together. Each opens once at its new, smaller size, then remembers the size you drag it to.
+- Lists and reports in dialogs sit on the family pane, with its color, rounded corners, film grain and shadow. That covers the Layers and Portfolio reports, Field Presets, Insert Image, Find text to redact and every other window that had a flat black box.
+- Every dropdown's list comes straight off its box with square corners where they meet, shares one shadow with the open box and carries film grain. Lists at the foot of a window, like the Macros steps and the footer zoom, open upward.
+- Page windows such as Transform, Color correction, Stamp and Print put the page right under the title bar, with 24px dropdowns and fields and closer rows. Each opens once at its new, smaller size, remembers the size you drag it to, and can go much shorter than its settings, which then scroll.
 - Stamp's Watermark and Page Numbers sections collapse from their chevrons, like the sections in Transform and Color correction. Their checkboxes still turn each one on and off.
-- Page windows can be dragged much shorter than their settings, which then scroll. Before, a window would not go below the height of its open settings, even with every section collapsed.
+- A floating tool bar under the active tab or against the pane's side tucks behind the pane's border and rounded corners instead of drawing over them.
+- Windows resize from their visible edge, up to 4px inside it, instead of only out in the shadow past it.
 - The read-only bar on a restricted PDF looks like the annotate bar and runs across the top of the page.
 - The find bar is slimmer, with less space around its boxes and buttons.
-- The owner password box shows the warning icon and puts each sentence on its own line.
-- On 98SE, the sidebar's resize line starts at the top of the sidebar instead of 5px above it.
 - The file dialog's title names the operation, such as "Save PDF as". Its panes, and the Macros window's, sit 8px from the sides and each other.
 - The color picker has the family title bar with its own icon, even rows of fields, and a hue strip that fills to the edge.
 - Extract Pages groups its four choices in one panel, with the file name box under the two choices that use it.
-- The OCR language list shows two columns with flags, like the interface language picker, so it fits a short window.
+- The OCR language list shows two columns with flags, like the interface language picker, so it fits a short window. Both lists space their rows the same way, and in 98SE they sit between the old tight picker and the old roomy OCR list.
 - The keyboard shortcuts card keeps its rounded corners while scrolling and balances its two columns. Customize Shortcuts shows its list on a shadowed pane with scroll fades.
+- Field Presets and Insert Image put their actions as icons on the list's heading. Initial view settings fits on two rows of controls and grays out Custom zoom until it's picked, and Automatic folders opens at the size of what it shows, with regular-size buttons.
+- The password prompts put the file name on a line of its own, above the rest of the message. The owner password box shows the warning icon and puts each sentence on its own line.
 - The About card's text sits 8px from its sides again, so the description no longer runs into the right edge.
-- Windows resize from their visible edge, up to 4px inside it, instead of only out in the shadow past it.
-- Lists and reports in dialogs sit on the family pane, with its color, rounded corners, film grain and shadow. That covers the Layers and Portfolio reports, Field Presets, Insert Image, Find text to redact and every other window that had a flat black box.
-- Every dropdown list carries film grain.
-- Field Presets and Insert Image put their actions as icons on the list's heading. Initial view settings fits on two rows of controls and grays out Custom zoom until it's picked, and Automatic folders opens at the size of what it shows.
-- Buttons in Automatic folders and the other windows that drew them taller use the regular button size.
-- The markup card's Arrange tile opens a grid of icon tiles, three across like the card itself, instead of a long list of rows. Tiles that don't apply to the selection stay in place, dimmed (#504).
-- The page card's Page tile opens its tools the same way, as three rows of icon tiles instead of a submenu.
-- The password prompts put the file name on a line of its own, above the rest of the message.
+- On 98SE, the sidebar's resize line starts at the top of the sidebar instead of 5px above it.
 
 ### Added
 
 - Right-clicking a drawing, text box, picture, comment or form field opens a card made for it, under the same Back, Forward, Undo, Redo and Print row as the page card. A mark, picture or comment card has Delete in its header.
-- A mark's card duplicates it, brings it to the front or sends it to the back, and sets its color, fill, opacity and line width. A text box's card also sets its text color and size.
-- A comment's card edits it, replies to it, copies its text or deletes it.
-- A text field's card sets its border color, width and style. The styles are solid, dashed, beveled, inset and underline, and a width of None removes the border.
-- A form field's card copies the field's name, and its value for text fields, lists and dropdowns. A text field's card also fills it from a preset, clears it and saves or manages presets, and keeps Copy Field Name in its Hidden drawer. A check box or multi-select list clears from its card.
-- Fill Unused Space draws a heavy black Z, shaped like the Killer Sans letter, through the part of a multiline or empty text field that nobody wrote in, then makes the field read-only. It starts in the form field card's Hidden drawer, and the Z is a normal drawing you can move, resize, undo or flatten. (#536)
-- Shift+Enter on PDFs selected in File Explorer opens them together in a new KillerPDF window, however quickly Shift is let go (#513).
-- Alt+left-drag anywhere in a KillerPDF window moves it, and Alt+right-drag resizes it from the nearest edge or corner, as on Linux. Full screen stays put, and the Measure tool keeps Alt+click for placing a point without snapping.
-- The keyboard shortcuts card and the website list Alt+drag and Alt+right-drag.
+- A mark's card duplicates it, brings it to the front or sends it to the back, and sets its color, fill, opacity and line width, and a text box's card also sets its text color and size. A comment's card edits it, replies to it, copies its text or deletes it.
 - The page card's Insert Pages tile, which replaces Merge, takes all pages or a range from another open tab and puts them before or after a page you pick, starting at the page you right-clicked. Markup, form values and page turns come along, and its Files on disk row works like Merge did (#529).
+- A form field's card copies the field's name, and its value for text fields, lists and dropdowns. A text field's card also fills it from a preset, clears it and saves or manages presets, and keeps Copy Field Name in its Hidden drawer. A check box or multi-select list clears from its card.
+- A text field's card sets its border color, width and style. The styles are solid, dashed, beveled, inset and underline, and a width of None removes the border.
+- Fill Unused Space draws a heavy black Z, shaped like the Killer Sans letter, through the part of a multiline or empty text field that nobody wrote in, then makes the field read-only. It starts in the form field card's Hidden drawer, and the Z is a normal drawing you can move, resize, undo or flatten (#536).
+- Alt+left-drag anywhere in a KillerPDF window moves it, and Alt+right-drag resizes it from the nearest edge or corner, as on Linux. Full screen stays put, the Measure tool keeps Alt+click for placing a point without snapping, and the keyboard shortcuts card lists both.
+- Shift+Enter on PDFs selected in File Explorer opens them together in a new KillerPDF window, however quickly Shift is let go (#513).
 
 ## [1.9.6] - 2026-11-24
 
