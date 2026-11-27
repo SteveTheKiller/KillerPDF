@@ -50,6 +50,17 @@ public sealed class PdfFillStrokeTextWeightTests
     }
 
     [Fact]
+    public void Render_FillAndStrokeTextInTwoColorsKeepsAVisibleOutlineWhenZoomedOut()
+    {
+        // White letters with a thin black outline are outline text on a white page, not synthetic bold, so the
+        // outline keeps the thinnest visible line as stroke-only text does.
+        double outlined = Ink(Mixed, 2, 0.05, 0.25, false, "1 g 0 G");
+        double outlineOnly = Ink(Mixed, 1, 0.05, 0.25, false, "1 g 0 G");
+        Assert.True(outlined > 0.6 * outlineOnly,
+            $"A white-filled outline all but vanished at 25%, ink {outlined:F0} against {outlineOnly:F0} for the outline alone.");
+    }
+
+    [Fact]
     public void Render_ZeroWidthFillAndStrokeTextKeepsItsThinnestLine()
     {
         // A zero line width means the thinnest line the device can draw (ISO 32000-1 8.4.3.2).
@@ -57,10 +68,10 @@ public sealed class PdfFillStrokeTextWeightTests
         Assert.True(bold > 1.05 * regular, $"A 0 w stroke added nothing: {bold:F0} against {regular:F0}.");
     }
 
-    private static double Ink(string text, int mode, double lineWidth, double zoom, bool strokeAdjust)
+    private static double Ink(string text, int mode, double lineWidth, double zoom, bool strokeAdjust, string colors = "0 g 0 G")
     {
         string content = string.Create(CultureInfo.InvariantCulture,
-            $"/GS gs 0 g 0 G {lineWidth} w BT /F1 11 Tf {mode} Tr 10 25 Td ({text}) Tj ET");
+            $"/GS gs {colors} {lineWidth} w BT /F1 11 Tf {mode} Tr 10 25 Td ({text}) Tj ET");
         PdfDocument document = PdfDocument.Open(Pdf(content, strokeAdjust));
         int width = (int)Math.Round(PageWidth * zoom), height = (int)Math.Round(PageHeight * zoom);
         PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(width, height,

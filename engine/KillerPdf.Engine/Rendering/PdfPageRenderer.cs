@@ -1742,9 +1742,11 @@ public sealed partial class PdfPageRenderer
                             // antialiased layers count their overlap twice on edge pixels and small
                             // bold text came out heavier the further the page zoomed out.
                             List<List<Point>>? widenedGlyph = null;
-                            if (paintMode == 2 && state.FillPattern is null && state.StrokePattern is null
-                                && state.DashPattern.Count == 0 && state.FillAlpha == state.StrokeAlpha
-                                && state.PaintFill == state.PaintStroke)
+                            // Only a stroke in the fill's own paint is synthetic bold. A stroke in another color is an
+                            // outline, which keeps its thinnest visible line like stroke-only text.
+                            bool syntheticBold = paintMode == 2 && state.FillPattern is null && state.StrokePattern is null
+                                && state.FillAlpha == state.StrokeAlpha && state.PaintFill == state.PaintStroke;
+                            if (syntheticBold && state.DashPattern.Count == 0)
                             {
                                 double pageRadius = state.LineWidth * state.Transform.StrokeScale / 2;
                                 double pixelRadius = pageRadius * frame.StrokeScale;
@@ -1780,7 +1782,7 @@ public sealed partial class PdfPageRenderer
                             {
                                 if (state.StrokePattern is not null)
                                     PaintStroke(glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform),
-                                        strokeAddsWeight: paintMode == 2);
+                                        strokeAddsWeight: syntheticBold);
                                 else StrokePaths(pixels, options.Width,
                                     options.Height, scaleX, scaleY,
                                     glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform),
@@ -1790,7 +1792,7 @@ public sealed partial class PdfPageRenderer
                                     state.BlendMode, state.Clips, state.GraphicsSoftMask,
                                     state.Knockout,
                                     cancellationToken, state.AlphaIsShape, state.StrokeAdjust,
-                                    strokeAddsWeight: paintMode == 2);
+                                    strokeAddsWeight: syntheticBold);
                             }
                             if (clipsText)
                             {
