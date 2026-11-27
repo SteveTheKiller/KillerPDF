@@ -86,8 +86,8 @@ public sealed class PageMenuLogicTests
     [Fact]
     public void RotateTransformColorCorrectionAndStampActOnTheClickedPage()
     {
-        string tools = ShellSource.Between(PageMenuBody, "var tools = ", "bool canClearPage");
-        // The turns are the card's first tile row (Steve 2026-11-19), so the Page tools flyout has no rotate rows.
+        string tools = ShellSource.Between(PageMenuBody, "IEnumerable<CardTile>[] pageTools =", "bool canClearPage");
+        // The turns are the card's first tile row (Steve 2026-11-19), so the Page tools grid has no rotate tiles.
         Assert.Contains("RotatePages_Click(90, pageIdx)", PageMenuBody);
         Assert.Contains("RotatePages_Click(-90, pageIdx)", PageMenuBody);
         Assert.DoesNotContain("RotatePages_Click(", tools);
@@ -95,6 +95,6 @@ public sealed class PageMenuLogicTests
         Assert.Contains("OpenTransformWindow(TransformWindowMode.ColorCorrection, pageIdx)", tools);
         Assert.Contains("OpenStampTool(pageIdx)", PageMenuBody);
         // Fix orientation keeps its own rule (selection for two or more pages, otherwise the document).
-        Assert.Contains("FixPageOrientation()", tools);
+        Assert.Contains("\"AltShift:O\", FixPageOrientation, ", tools);
     }
 }

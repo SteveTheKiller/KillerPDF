@@ -198,7 +198,10 @@ public sealed class CardMenuTests
     {
         string page = Between(Read("Shell", "ContextMenu.cs"), "private void AddPageMenuItems(", "private static void MergePageTopLayout(");
         Assert.InRange(Count(page, "_ctxMenu.Items.Add("), 1, 14);
-        Assert.Equal(8, Count(page, "tools.Items.Add(Make"));
+        // Page opens its eight tools as a tile grid, three rows like the rows it had (Steve 2026-11-26).
+        string pageTools = Between(page, "IEnumerable<CardTile>[] pageTools =", "// The page's tools as tiles");
+        Assert.Equal(8, Count(pageTools, "new(\"\\u"));
+        Assert.DoesNotContain("tools.Items.Add(", page);
         Assert.Contains("AddNavRow(_ctxMenu, pageIdx);", page);
         // Review BF-008: Delete Page acts on the right-clicked page like its neighbours, not the sidebar selection.
         Assert.Contains("DeletePages(pageIdx)", page);
@@ -230,7 +233,7 @@ public sealed class CardMenuTests
         string page = Between(Read("Shell", "ContextMenu.cs"), "private void AddPageMenuItems(", "private static void MergePageTopLayout(");
         Assert.Contains("FlyoutTile(\"\\uE8A1\", Loc(\"Str_FieldPreset_Menu\"), null, BuildFieldPresetMenu(pt, pageIdx))", page);
         Assert.Contains("Loc(\"Str_TT_ComparePDFs\"), \"AltShift:V\", BuildComparisonContextItem())", page);
-        Assert.Contains("Loc(\"Str_Card_PageTools\"), null, tools)", page);
+        Assert.Contains("TileGridTile(\"\\uE7C3\", Loc(\"Str_Card_PageTools\"), pageTools)", page);
         // Full Screen is in the footer and Book layout on the nav row, so the grid stays three full rows.
         Assert.DoesNotContain("ViewTiles()", page);
         Assert.DoesNotContain("AppendViewItems", page);

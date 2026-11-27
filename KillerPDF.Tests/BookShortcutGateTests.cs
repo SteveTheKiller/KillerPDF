@@ -95,8 +95,9 @@ public sealed class BookShortcutGateTests
     [Fact]
     public void ThePageSubmenuAndTheMeasurementsRowPassAnExplicitGestureInsteadOfBorrowingOne()
     {
-        string pageTools = Regex.Match(ShellSource.Read("Shell", "ContextMenu.cs"), "var tools = MakeMenuItem\\(Loc\\(\"Str_Card_PageTools\"\\)[^\\n]*").Value;
-        Assert.Contains("gesture: \"\"", pageTools);
+        // The Page tile names no gesture, so its caption never borrows another command's shortcut.
+        string pageTools = Regex.Match(ShellSource.Read("Shell", "ContextMenu.cs"), "TileGridTile\\([^\\n]*Loc\\(\"Str_Card_PageTools\"\\)[^\\n]*").Value;
+        Assert.Contains("Loc(\"Str_Card_PageTools\"), pageTools)", pageTools);
         string panels = ShellSource.Read("Shell", "SidebarPanels.cs");
         string measurements = Regex.Match(panels, "[^\\n]*Str_DocumentTools_Measurements\"[^\\n]*\\n[^\\n]*").Value;
         Assert.Contains("MakeMenuItem(Loc(\"Str_DocumentTools_Measurements\")", measurements);

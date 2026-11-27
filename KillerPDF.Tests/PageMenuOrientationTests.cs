@@ -18,8 +18,8 @@ public sealed class PageMenuOrientationTests
         int end = pageMenuFile.IndexOf("\n        private ", build + 10, StringComparison.Ordinal);
         Assert.True(build >= 0 && end > build);
         string pageMenu = pageMenuFile[build..end];
-        // On the page menu it sits under Page with the other page tools.
-        Assert.Contains("tools.Items.Add(MakeMenuItem(Loc(\"Str_Pages_FixOrientation\")", pageMenu, StringComparison.Ordinal);
+        // On the page menu it sits in the Page tile's grid with the other page tools.
+        Assert.Contains("new(\"\\uE7AD\", Loc(\"Str_Pages_FixOrientation\"), \"AltShift:O\", FixPageOrientation", pageMenu, StringComparison.Ordinal);
 
         // The page menu, the empty-area menu and the thumbnail card each offer it once, and the page and thumbnail
         // cards also keep a spare tile for it in their Hidden drawers.

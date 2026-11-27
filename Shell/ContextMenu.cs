@@ -206,19 +206,26 @@ namespace KillerPDF.Shell
                     else { SetTool(EditTool.Signature); ShowSignaturePopup(); }
                 }, false, true),
             ];
-            var tools = MakeMenuItem(Loc("Str_Card_PageTools"), (_, _) => { }, gesture: "", glyph: "\uE7C3");
-            tools.Items.Add(MakeTransformMenuItem(Loc("Str_Lbl_Rotate"), (s, e) => OpenTransformWindow(page: pageIdx), GestureFor("R")));
-            tools.Items.Add(MakeMenuItem(Loc("Str_ColorCorrection"), (s, e) =>
-                OpenTransformWindow(TransformWindowMode.ColorCorrection, pageIdx), gesture: GestureFor("E"), glyph: "\uE790"));
-            tools.Items.Add(MakeMenuItem(Loc("Str_Pages_FixOrientation"), (s, e) => FixPageOrientation(),
-                GestureFor("AltShift:O"), "\uE7AD"));
-            tools.Items.Add(new Separator());
-            tools.Items.Add(MakeMenuItem(Loc("Str_Pages_RasterizeRegion"), (s, e) => RasterizeRegion(pageIdx), glyph: "\uE91B"));
-            tools.Items.Add(MakeMenuItem(Loc("Str_ExtractImage_Menu"), (s, e) => ExtractImage(pageIdx), glyph: "\uEB9F"));
-            tools.Items.Add(MakeMenuItem(Loc("Str_TableExport_Title"), (_, _) => ExportTable(pageIdx), glyph: "\uE80A"));
-            tools.Items.Add(new Separator());
-            tools.Items.Add(MakeMenuItem(Loc("Str_Ctx_DuplicatePage"), (s, e) => DuplicatePage(pageIdx), glyph: "\uE8C8"));
-            tools.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeletePage"), (_, _) => DeletePages(pageIdx), glyph: "\uE74D"));
+            // The Page tile opens its tools as a grid of tiles, three across like the card, one row per group the rows
+            // had: the page's look, what comes out of the page, then the page itself (Steve 2026-11-26, as Arrange).
+            // Each tile carries the shortcut its row showed; the tile drops the dialog dots from its caption.
+            IEnumerable<CardTile>[] pageTools =
+            [
+                [
+                    new("\ue7c2", Loc("Str_Lbl_Rotate"), "R", () => OpenTransformWindow(page: pageIdx), false, true),
+                    new("\ue790", Loc("Str_ColorCorrection"), "E", () => OpenTransformWindow(TransformWindowMode.ColorCorrection, pageIdx), false, true),
+                    new("\ue7ad", Loc("Str_Pages_FixOrientation"), "AltShift:O", FixPageOrientation, false, true),
+                ],
+                [
+                    new("\ue91b", Loc("Str_Pages_RasterizeRegion"), "AltShift:L", () => RasterizeRegion(pageIdx), false, true),
+                    new("\ueb9f", Loc("Str_ExtractImage_Menu"), null, () => ExtractImage(pageIdx), false, true),
+                    new("\ue80a", Loc("Str_TableExport_Title"), "AltShift:T", () => ExportTable(pageIdx), false, true),
+                ],
+                [
+                    new("\ue8c8", Loc("Str_Ctx_DuplicatePage"), null, () => DuplicatePage(pageIdx), false, true),
+                    new("\ue74d", Loc("Str_Ctx_DeletePage"), null, () => DeletePages(pageIdx), false, true),
+                ],
+            ];
 
             // The page's tools as tiles (Steve: go all out on the icons). Field presets, Compare and the Page tools
             // open their rows beside the tile. Four across, the width of the place strip above.
@@ -250,7 +257,7 @@ namespace KillerPDF.Shell
             [
                 new("\uE932", Loc("Str_Ctx_StampPages"), "S", () => OpenStampTool(pageIdx), false, true),
                 FlyoutTile("\uE8A1", Loc("Str_FieldPreset_Menu"), null, BuildFieldPresetMenu(pt, pageIdx)),
-                FlyoutTile("\uE7C3", Loc("Str_Card_PageTools"), null, tools),
+                TileGridTile("\uE7C3", Loc("Str_Card_PageTools"), pageTools),
                 FlyoutTile("\uE7C4", Loc("Str_TT_ComparePDFs"), "AltShift:V", BuildComparisonContextItem()),
             ];
             // Spares in the Hidden drawer: the Page tools rows as tiles of their own, plus Add Blank Page.
