@@ -157,6 +157,36 @@ public sealed class PdfObjectParserTests
         Assert.True(stream.EncodedData.Span.SequenceEqual(payload));
     }
 
+    // Without a usable Length the search for endstream may run to the end of the file, but it stops at the first
+    // delimited one: every later endstream is farther from where the payload starts. A damaged file with many such
+    // streams read each one's search through the rest of the file, which cost streams times file size.
+    [Fact]
+    public void ParseIndirectObject_CompatibilityRecoveryStopsAtTheFirstEndstreamWithoutALength()
+    {
+        const int Streams = 12000;
+        byte[] payload = new byte[4096];
+        Array.Fill(payload, (byte)'x');
+        var file = new List<byte>();
+        for (int index = 1; index <= Streams; index++)
+        {
+            file.AddRange(Encoding.ASCII.GetBytes($"{index} 0 obj\n<< /Length /Bad >>\nstream\n"));
+            file.AddRange(payload);
+            file.AddRange(Encoding.ASCII.GetBytes("\nendstream\nendobj\n"));
+        }
+        var lenient = new PdfObjectParser(file.ToArray(), allowDuplicateDictionaryKeys: true);
+
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        for (int index = 1; index <= Streams; index++)
+        {
+            PdfStream stream = Assert.IsType<PdfStream>(lenient.ParseIndirectObject().Value);
+            Assert.Equal(payload.Length, stream.EncodedData.Length);
+        }
+        timer.Stop();
+
+        // About 50 MB read once takes milliseconds; reading the rest of the file for each stream takes many seconds.
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(3), $"Recovering {Streams} streams took {timer.Elapsed}.");
+    }
+
     [Fact]
     public void ParseObject_CompatibilityRecoverySkipsNonNameDictionaryKeys()
     {

@@ -370,6 +370,8 @@ public sealed class PdfObjectParser(
                     best = candidate;
                     bestDistance = distance;
                 }
+                // Candidates only move away from the expected end once they reach it, so the nearest is found.
+                if (candidate >= expectedEnd) break;
             }
             searchStart = candidate + 1;
         }
