@@ -22,6 +22,23 @@ namespace KillerPDF.Controls
             => new(Math.Ceiling(optionsOnly.Width + previewFloor * (scale > 0 ? scale : 1)),
                    Math.Ceiling(optionsOnly.Height));
 
+        /// <summary>The least of the options column a page window keeps on screen when dragged
+        /// shorter: a section header and about three rows. The rest scrolls.</summary>
+        public const double OptionsFloor = 160;
+
+        /// <summary>The shortest a page window may be dragged (Steve 2026-11-26: with its sections
+        /// collapsed Transform still would not go shorter). It opens at the full height of its
+        /// options, but its minimum is the title bar, frame and footer over <see cref="OptionsFloor"/>
+        /// of options (at the dialog's scale), so the settings scroll instead of holding the window
+        /// open. Options shorter than the floor keep their own height.</summary>
+        public static double MinimumHeight(double framedHeight, double optionsHeight, double scale)
+        {
+            if (!double.IsFinite(optionsHeight) || optionsHeight <= 0 || optionsHeight > framedHeight)
+                return Math.Ceiling(framedHeight);
+            double floor = OptionsFloor * (scale > 0 ? scale : 1);
+            return Math.Ceiling(framedHeight - optionsHeight + Math.Min(optionsHeight, floor));
+        }
+
         /// <summary>The smallest size a resizable dialog may be dragged to: the size it opened at,
         /// so its layout never shrinks below what it was designed for, never below its declared
         /// minimum, and never beyond the work area. An unknown opening side keeps the declared one.</summary>

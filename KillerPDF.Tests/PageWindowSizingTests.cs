@@ -33,6 +33,35 @@ public sealed class PageWindowSizingTests
         Assert.Equal(930, min.Height);
     }
 
+    // Steve 2026-11-26: Transform with its sections collapsed still would not go shorter. The window opens at
+    // its options' full height, but drags down to the frame and footer over 160 of options, which scroll.
+    [Fact]
+    public void APageWindowDragsShorterThanItsOptionsAndTheyScroll()
+    {
+        // 627 framed, 500 of it options: 127 of title bar, frame and footer stay, plus 160 of options.
+        Assert.Equal(287, PageWindowSizing.MinimumHeight(627, 500, 1));
+        // At 1.5 the floor grows with the options it keeps: 930 - 750 + 240.
+        Assert.Equal(420, PageWindowSizing.MinimumHeight(930, 750, 1.5));
+        // Options already shorter than the floor keep their own height, so nothing is cut off.
+        Assert.Equal(227, PageWindowSizing.MinimumHeight(227, 100, 1));
+        // No options measured means no scroller was found: keep the old full-height minimum.
+        Assert.Equal(627, PageWindowSizing.MinimumHeight(627, 0, 1));
+        Assert.Equal(627, PageWindowSizing.MinimumHeight(627, double.NaN, 1));
+    }
+
+    [Fact]
+    public void EveryPageWindowTakesItsMinimumHeightFromTheOptionsScroller()
+    {
+        string sizing = ShellSource.Between(ShellSource.Read("Controls", "DialogFrame.cs"),
+            "internal static void EnablePageSizing(", "private static void ApplyWindowState(");
+        Assert.Contains("OptionsScroller(content)?.DesiredSize.Height", sizing);
+        Assert.Contains("win.MinHeight = PageWindowSizing.MinimumHeight(optionsOnly.Height, optionsHeight, scale);", sizing);
+        // It still opens at the full height of the open options.
+        Assert.Contains("win.Height = min.Height;", sizing);
+        foreach (string window in new[] { "TransformWindow.cs", "StampWindow.cs", "PrintPreviewWindow.cs" })
+            Assert.Contains("DialogFrame.EnablePageSizing(this,", ShellSource.Read("Controls", window));
+    }
+
     [Fact]
     public void EachWindowTypeSavesUnderItsOwnKey()
     {

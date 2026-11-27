@@ -458,12 +458,14 @@ namespace KillerPDF
                 preview.Visibility = Visibility.Collapsed;
                 content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 Size optionsOnly = content.DesiredSize;
+                double optionsHeight = OptionsScroller(content)?.DesiredSize.Height ?? 0;
                 preview.Visibility = shown;
 
+                // Opens as tall as the open options; drags shorter down to a slice of them, which then scroll.
                 Size min = PageWindowSizing.Minimum(optionsOnly, previewFloor, scale);
                 win.SizeToContent = SizeToContent.Manual;
                 win.MinWidth = min.Width;
-                win.MinHeight = min.Height;
+                win.MinHeight = PageWindowSizing.MinimumHeight(optionsOnly.Height, optionsHeight, scale);
                 win.Width = min.Width;
                 win.Height = min.Height;
 
@@ -492,6 +494,16 @@ namespace KillerPDF
                 ApplyWindowState(win);
             };
             win.Closing += (_, _) => PageWindowSizing.Save(win, windowType, App.SetSetting);
+        }
+
+        // The options column's scroller in a page window's framed content, found through the logical
+        // tree because the window is not shown yet.
+        private static ScrollViewer? OptionsScroller(DependencyObject root)
+        {
+            if (root is ScrollViewer { Name: PageWindowLayout.OptionsScrollerName } scroller) return scroller;
+            foreach (object child in LogicalTreeHelper.GetChildren(root))
+                if (child is DependencyObject d && OptionsScroller(d) is { } found) return found;
+            return null;
         }
 
         // Maximized, the card fills the work area: no shadow halo and no resize band around it.

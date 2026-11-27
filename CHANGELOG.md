@@ -59,6 +59,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Dialogs match the main window. Their content areas carry the pane shadow, they keep 16px margins, and their title, wordmark, icon and close X sit like the main window's. Dialog buttons are a step smaller, 26px tall everywhere.
 - Every dropdown's list comes straight off its box with square corners where they meet, and the open box and list share one shadow. Lists at the foot of a window, like the Macros steps and the footer zoom, open upward.
 - Page windows such as Transform, Color correction, Stamp and Print put the page right under the title bar, with the settings starting higher. Their dropdowns and fields are 24px tall, and the sections and rows sit closer together. Each opens once at its new, smaller size, then remembers the size you drag it to.
+- Page windows can be dragged much shorter than their settings, which then scroll. Before, a window would not go below the height of its open settings, even with every section collapsed.
 - The read-only bar on a restricted PDF looks like the annotate bar and runs across the top of the page.
 - The find bar is slimmer, with less space around its boxes and buttons.
 - The owner password box shows the warning icon and puts each sentence on its own line.
