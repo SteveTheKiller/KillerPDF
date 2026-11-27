@@ -19,6 +19,7 @@ internal sealed record InsertPagesSource(string Title, string? Path, int? PageCo
 internal sealed class InsertPagesDialog : Window
 {
     private readonly IReadOnlyList<InsertPagesSource> _sources;
+    private readonly InsertPagesCounts _counts;
     private readonly int _targetPageCount;
     private readonly ListBox _list = new() { SelectionMode = SelectionMode.Single, MaxHeight = 190 };
     private readonly RadioButton _all, _range, _before, _after;
@@ -27,7 +28,7 @@ internal sealed class InsertPagesDialog : Window
     private readonly TextBlock _summary, _problem;
     private readonly Button _insert;
     private readonly bool _ready;
-    private bool _spanning;
+    private bool _spanning, _closed;
 
     /// <summary>The chosen tab's place in the list it was given, or -1 for files on disk.</summary>
     internal int SourceIndex { get; private set; } = -1;
@@ -43,6 +44,8 @@ internal sealed class InsertPagesDialog : Window
     internal InsertPagesDialog(Window owner, IReadOnlyList<InsertPagesSource> sources, int targetPageCount, int clickedPage)
     {
         _sources = sources;
+        _counts = new InsertPagesCounts(sources.Select(source => source.PageCount));
+        Closed += (_, _) => _closed = true;
         _targetPageCount = targetPageCount;
         Title = "KillerPDF - " + L("Str_Ctx_InsertPages");
         // Fits "Pages [1] to [6]" and "After page [2]" side by side in English; longer languages widen it on load.
@@ -132,6 +135,20 @@ internal sealed class InsertPagesDialog : Window
         };
     }
 
+    /// <summary>
+    /// A background read of a tab's page count has finished: its row shows the count, the span shown while no range is
+    /// picked widens to it, and the plan is checked again. A range the user has picked or is typing is left alone.
+    /// Does nothing once the dialog has closed or for a source that already had a count.
+    /// </summary>
+    internal void SetPageCount(int index, int count)
+    {
+        if (_closed) return;
+        if (!_counts.TryFill(index, count)) return;
+        if (_list.Items[index] is ListBoxItem { Tag: TextBlock line }) line.Text = PageCountText(count);
+        if (index == _list.SelectedIndex) SpanWholeSource();
+        Replan();
+    }
+
     private static TextBlock Label(string key, double top)
     {
         TextBlock label = UiKit.GroupLabel(L(key));
@@ -182,7 +199,7 @@ internal sealed class InsertPagesDialog : Window
         DockPanel.SetDock(icon, Dock.Left);
         row.Children.Add(icon);
         row.Children.Add(text);
-        var item = new ListBoxItem { Content = row };
+        var item = new ListBoxItem { Content = row, Tag = line };
         if (tip is not null) item.ToolTip = tip;
         System.Windows.Automation.AutomationProperties.SetName(item, name);
         return item;
@@ -202,7 +219,7 @@ internal sealed class InsertPagesDialog : Window
         if (_range.IsChecked == true || index < 0 || index >= _sources.Count) return;
         _spanning = true;
         _from.Text = "1";
-        _to.Text = Math.Max(1, _sources[index].PageCount ?? 1).ToString(CultureInfo.CurrentCulture);
+        _to.Text = Math.Max(1, _counts[index] ?? 1).ToString(CultureInfo.CurrentCulture);
         _spanning = false;
     }
 
@@ -279,12 +296,12 @@ internal sealed class InsertPagesDialog : Window
         InsertPagesSource? source = disk ? null : _sources[index];
         if (source is not null && !all)
         {
-            span = Whole(_from) is int from && Whole(_to) is int to ? InsertPagesPlan.Span(from, to, source.PageCount) : null;
+            span = Whole(_from) is int from && Whole(_to) is int to ? InsertPagesPlan.Span(from, to, _counts[index]) : null;
             if (span is null) problem ??= L("Str_InvalidRange");
         }
         if (problem is null && at is int position)
         {
-            int? count = source is null ? null : all ? source.PageCount : span!.Value.Last - span.Value.First + 1;
+            int? count = source is null ? null : all ? _counts[index] : span!.Value.Last - span.Value.First + 1;
             summary = source is null
                 ? string.Format(CultureInfo.CurrentCulture, L("Str_InsertPages_SummaryDisk"), position + 1)
                 : count is not int n ? string.Format(CultureInfo.CurrentCulture, L("Str_InsertPages_SummaryAll"), source.Title, position + 1)

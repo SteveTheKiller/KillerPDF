@@ -27,6 +27,21 @@ namespace KillerPDF.Shell
             if (sources.Count == 0) { await MergeAtIndex(page + 1); return; }
 
             var dialog = new InsertPagesDialog(this, [.. sources.Select(source => source.Shown)], _doc.PageCount, page);
+            // A tab not opened yet is listed with no count and counted from its file in the background, so a few big
+            // restored tabs cannot freeze the window. A protected one stays unread: no password is asked from here.
+            for (int index = 0; index < sources.Count; index++)
+            {
+                if (sources[index].Tab.Doc is not null || sources[index].Tab.DeferredPath is not { } deferred) continue;
+                int row = index;
+                _ = Task.Run(() =>
+                {
+                    try { return (int?)PdfEngineIntegration.ReadPageInformation(deferred, null).Count; }
+                    catch (Exception) { return null; }
+                }).ContinueWith(read =>
+                {
+                    if (read.Result is int count) dialog.SetPageCount(row, count);
+                }, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext());
+            }
             if (dialog.ShowDialog() != true) return;
             if (dialog.FromDisk) { await MergeAtIndex(dialog.InsertAt); return; }
             var (sourceViewer, sourceTab, shown) = sources[dialog.SourceIndex];
@@ -134,13 +149,8 @@ namespace KillerPDF.Shell
         private static InsertPagesSource Describe(PdfViewer.DocumentSession tab)
         {
             string? path = tab.OriginalFile ?? tab.DeferredPath;
+            // A tab not opened yet has no count here; InsertPagesAt fills it in from a background read.
             int? count = tab.Doc?.PageCount;
-            if (count is null && tab.DeferredPath is { } deferred)
-            {
-                // A tab not opened yet is counted from its file; a protected one waits until it opens.
-                try { count = PdfEngineIntegration.ReadPageInformation(deferred, null).Count; }
-                catch (Exception) { count = null; }
-            }
             return new InsertPagesSource(tab.Title, path, count);
         }
     }

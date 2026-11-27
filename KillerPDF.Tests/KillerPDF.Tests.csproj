@@ -59,6 +59,8 @@
     <Compile Include="..\Services\MergePageArrangement.cs" Link="Services\MergePageArrangement.cs" />
     <Compile Include="..\Services\MergeDropSlot.cs" Link="Services\MergeDropSlot.cs" />
     <Compile Include="..\Services\InsertPagesPlan.cs" Link="Services\InsertPagesPlan.cs" />
+    <Compile Include="..\Services\ExplorerCopySweep.cs" Link="Services\ExplorerCopySweep.cs" />
+    <Compile Include="..\Services\InsertPagesCounts.cs" Link="Services\InsertPagesCounts.cs" />
     <Compile Include="..\Services\AtomicFileOutput.cs" Link="Services\AtomicFileOutput.cs" />
     <Compile Include="..\Services\SignatureStatus.cs" Link="Services\SignatureStatus.cs" />
     <Compile Include="..\Services\SourceImageDiagnosis.cs" Link="Services\SourceImageDiagnosis.cs" />
