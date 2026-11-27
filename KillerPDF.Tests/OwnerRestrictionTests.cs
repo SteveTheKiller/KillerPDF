@@ -26,6 +26,45 @@ public sealed class OwnerRestrictionTests
         return path;
     }
 
+    // Consolidation falls back to the incremental save for a file it cannot rewrite, so the unlocked copy a
+    // restricted file is edited from must be one it can fold, or a deleted page stays in an earlier revision.
+    [Fact]
+    public void ADeletedPageIsGoneFromTheUnlockedCopy()
+    {
+        string source = Path.Combine(Path.GetTempPath(), $"killerpdf-owner-delete-{Guid.NewGuid():N}.pdf");
+        string output = source + ".unlocked.pdf";
+        File.WriteAllBytes(source, new PdfDocumentBuilder()
+            .SetPasswordEncryption(new PdfPasswordEncryptionOptions
+            {
+                UserPassword = "",
+                OwnerPassword = "owner",
+                AllowDocumentModification = false
+            })
+            .AddPage(200, 200, System.Text.Encoding.ASCII.GetBytes("BT /F1 12 Tf (KEEPMARKER) Tj ET"))
+            .AddPage(200, 200, System.Text.Encoding.ASCII.GetBytes("BT /F1 12 Tf (GONEMARKER) Tj ET"))
+            .Build());
+        try
+        {
+            PdfEngineIntegration.RemoveEncryption(source, output, "owner");
+            Assert.True(Contains(File.ReadAllBytes(output), "GONEMARKER"), "The unlocked copy must store page content uncompressed.");
+
+            PdfEngineIntegration.RemovePages(output, [1]);
+
+            byte[] edited = File.ReadAllBytes(output);
+            Assert.False(Contains(edited, "GONEMARKER"));
+            Assert.True(Contains(edited, "KEEPMARKER"));
+            Assert.Single(PdfPageInformation.Read(PdfDocument.Open(edited)));
+        }
+        finally
+        {
+            File.Delete(source);
+            if (File.Exists(output)) File.Delete(output);
+        }
+    }
+
+    private static bool Contains(byte[] data, string text) =>
+        data.AsSpan().IndexOf(System.Text.Encoding.ASCII.GetBytes(text)) >= 0;
+
     [Fact]
     public void OpeningWithoutThePassword_DoesNotStripTheRestriction()
     {

@@ -32,7 +32,7 @@ public sealed class ColorPickerFieldNameTests
     {
         string source = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Controls", "ColorPickerDialog.cs"));
         Assert.Contains("try { DialogResult = false; } catch (InvalidOperationException) { }", source);
-        Assert.Equal(1, Regex.Matches(source, @"(?<!capture\.)DialogResult = false").Count);
+        Assert.Single(Regex.Matches(source, @"(?<!capture\.)DialogResult = false"));
         Assert.Contains("if (e.Key == Key.Escape) Cancel();", source);
         Assert.Contains("DialogFrame.Frame(this, Owner, ColorPdfTitle,\n                Cancel, panel", source.Replace("\r\n", "\n"));
         Assert.Contains("cancel.Click += (_, _) => Cancel();", source);
