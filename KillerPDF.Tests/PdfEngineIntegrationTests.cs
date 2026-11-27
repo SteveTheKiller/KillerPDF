@@ -1977,6 +1977,41 @@ public sealed class PdfEngineIntegrationTests
         finally { if (File.Exists(path)) File.Delete(path); }
     }
 
+    // The Comments window, the comment card's Delete and the CLI's --delete-comments all save through
+    // ApplyCommentEdits; RemoveComment is the single-comment route.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CommentRemovalAndTextEdits_LeaveNoTraceInTheSavedFile(bool singleRemoval)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-comment-trace-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(200, 200).Build());
+            PdfEngineIntegration.ApplyCommentEdits(path,
+                [new CommentAddition(0, "REMOVEDCOMMENTMARKER", "gone", null, 20, 20),
+                 new CommentAddition(0, "OLDTEXTMARKER", "kept", null, 60, 60)], null);
+            // Notes go into compressed object streams, so the proof is the revision count: an earlier revision is
+            // where a removed comment or old text would stay recoverable.
+            Assert.True(CountOf(File.ReadAllBytes(path), "%%EOF") > 1, "The fixture must start with more than one revision.");
+            IReadOnlyList<PdfCommentInfo> comments = PdfCommentReader.Read(PdfDocument.Open(File.ReadAllBytes(path)));
+            PdfCommentInfo removed = comments.Single(comment => comment.Contents == "REMOVEDCOMMENTMARKER");
+            PdfCommentInfo kept = comments.Single(comment => comment.Contents == "OLDTEXTMARKER");
+
+            if (singleRemoval)
+                PdfEngineIntegration.RemoveComment(path, removed);
+            else
+                PdfEngineIntegration.ApplyCommentEdits(path,
+                    [new CommentRemoval(removed), new CommentTextEdit(kept, "NEWTEXTMARKER")], null);
+
+            byte[] result = File.ReadAllBytes(path);
+            Assert.Equal(1, CountOf(result, "%%EOF"));
+            Assert.Equal(singleRemoval ? "OLDTEXTMARKER" : "NEWTEXTMARKER",
+                Assert.Single(PdfCommentReader.Read(PdfDocument.Open(result))).Contents);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
     private static bool Contains(byte[] data, string text) => CountOf(data, text) > 0;
 
     private static int CountOf(byte[] data, string text)

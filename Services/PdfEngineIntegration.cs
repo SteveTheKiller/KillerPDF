@@ -708,6 +708,10 @@ internal static partial class PdfEngineIntegration
             }
             ReplaceWithBuiltResult(path, editor.Build());
         }
+
+        // A removed comment or a comment's old text must not stay recoverable from an earlier revision of the file.
+        if (texts.Length > 0 || removals.Length > 0)
+            ReplaceWithBuiltResult(path, PdfRevisionConsolidation.Consolidate(File.ReadAllBytes(path)));
     }
 
     /// <summary>Removes a comment selected from the current document.</summary>
@@ -716,7 +720,7 @@ internal static partial class PdfEngineIntegration
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(comment);
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
-        ReplaceWithBuiltResult(path, PdfCommentEditor.Remove(document, comment));
+        ReplaceWithBuiltResult(path, PdfRevisionConsolidation.Consolidate(PdfCommentEditor.Remove(document, comment)));
     }
 
     /// <summary>Divides selected spreads and returns their final page mappings.</summary>
