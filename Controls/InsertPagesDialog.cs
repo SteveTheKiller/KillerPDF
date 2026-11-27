@@ -85,7 +85,7 @@ internal sealed class InsertPagesDialog : Window
         // take the row's height, and the Pages box is as wide as its one-line range needs.
         var columns = new Grid();
         columns.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
         columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         DockPanel where = Section("Str_InsertPages_Where", Group(_before, _after));
         Grid.SetColumn(where, 2);
