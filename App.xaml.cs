@@ -300,6 +300,10 @@ namespace KillerPDF
 
             ShutdownMode = ShutdownMode.OnLastWindowClose;
             CleanupStaleTemps();
+            // Explorer-opened copies keep any edits the user saved into them, so only ones untouched for a week go.
+            if (!IsStartupSmoke)
+                Services.ExplorerCopySweep.Sweep(Services.ShellItems.CopyRoot,
+                    DateTime.UtcNow - Services.ExplorerCopySweep.MaxAge, Services.ExplorerCopySweep.InUse(StoredSessionFiles()));
             StartupTrace.Mark("Stale temporary-file cleanup complete");
             AppTheme.Configure();
             ThemeManager.Initialize();

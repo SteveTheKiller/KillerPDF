@@ -172,6 +172,9 @@ internal static unsafe class ShellItems
         finally { Marshal.FreeCoTaskMem(name); }
     }
 
+    /// <summary>The folder the copies go under, one guid-named folder each; startup sweeps the old ones out.</summary>
+    internal static string CopyRoot => Path.Combine(Path.GetTempPath(), "KillerPDF-Explorer");
+
     // An item with no path on disk, such as a PDF inside a zip folder, is copied out under its own name, the way
     // Explorer copies one out for a command-line verb.
     private static string? CopyOut(nint item)
@@ -182,7 +185,7 @@ internal static unsafe class ShellItems
         if (((delegate* unmanaged[Stdcall]<nint, nint, Guid*, Guid*, nint*, int>)Slot(item, 3))(item, 0, &bind, &iid, &stream) < 0
             || stream == 0)
             return null;
-        string folder = Path.Combine(Path.GetTempPath(), "KillerPDF-Explorer", Guid.NewGuid().ToString("N"));
+        string folder = Path.Combine(CopyRoot, Guid.NewGuid().ToString("N"));
         try
         {
             string name = SafeName(DisplayName(item, SigdnParentRelativeParsing));

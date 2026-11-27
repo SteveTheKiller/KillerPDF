@@ -51,6 +51,21 @@ namespace KillerPDF
             return legacy.Windows.Count > 0 ? legacy : null;
         }
 
+        /// <summary>Every file the stored session lists, or null when it cannot be read.</summary>
+        internal static IEnumerable<string>? StoredSessionFiles()
+        {
+            try
+            {
+                return LoadStoredSession()?.Windows.SelectMany(window => window.Panes)
+                    .SelectMany(pane => pane.Tabs).Select(tab => tab.Path).ToList() ?? [];
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException
+                or System.Text.Json.JsonException or InvalidOperationException)
+            {
+                return null;
+            }
+        }
+
         internal static void ScheduleSessionSave()
         {
             if (IsStartupSmoke || SessionWritesHeld || Current is null) return;

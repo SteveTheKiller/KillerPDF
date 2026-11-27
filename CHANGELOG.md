@@ -45,6 +45,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - In the Trash Polka theme, the status bar carries the same ink as the panes above it, so the art no longer stops at a flat black strip along the bottom.
 - Menu and card rows that don't apply look grayed out. With one text box selected, the Arrange rows it can't use dim and only the Fit rows stay bright (#504).
 - The Compare PDFs list shows the KillerPDF document icon beside each open file and an icon beside Choose another PDF, where the icon column was empty.
+- Copies of PDFs opened from inside a zip folder no longer pile up in temp. Startup clears the ones left untouched for a week, unless your last session reopens them.
 
 ### Changed
 - On HDR and Advanced Color monitors, color-managed pages are drawn in the display's real color range instead of the way a standard monitor draws them. The find bar, tool bar, page number badge and other panels over the page stay on top of it (#534).
