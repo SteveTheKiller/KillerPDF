@@ -46,7 +46,7 @@ internal sealed class InsertPagesDialog : Window
         _sources = sources;
         _targetPageCount = targetPageCount;
         Title = "KillerPDF - " + L("Str_Ctx_InsertPages");
-        // Wide enough that "Pages [1] to [6]" and "After page [2]" each fit their half of the shared box on one line.
+        // Fits "Pages [1] to [6]" and "After page [2]" side by side in English; longer languages widen it on load.
         Width = 520;
         SizeToContent = SizeToContent.Height;
         UseLayoutRounding = true;
@@ -69,7 +69,7 @@ internal sealed class InsertPagesDialog : Window
         _all = Choose("Str_InsertPages_All", "pages", radioStyle);
         _range = Choose("Str_InsertPages_Range", "pages", radioStyle, _from, _to);
         _all.IsChecked = true;
-        _pages = Group("Str_InsertPages_Pages", _all, _range);
+        _pages = Group(_all, _range);
 
         _beforePage = Number(clicked, "InsertPagesBeforePage");
         _afterPage = Number(clicked, "InsertPagesAfterPage");
@@ -77,17 +77,24 @@ internal sealed class InsertPagesDialog : Window
         _after = Choose("Str_InsertPages_After", "where", radioStyle, _afterPage);
         _after.IsChecked = true;
 
-        // Pages and Where share one box, side by side, each column with its own heading.
+        // Pages and Where sit side by side, each its own box under its own heading, as Insert from is. Both boxes
+        // take the row's height, and the Pages box is as wide as its one-line range needs.
         var columns = new Grid();
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
         columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        StackPanel where = Group("Str_InsertPages_Where", _before, _after);
-        Grid.SetColumn(where, 1);
-        columns.Children.Add(_pages);
+        DockPanel where = Section("Str_InsertPages_Where", Group(_before, _after));
+        Grid.SetColumn(where, 2);
+        columns.Children.Add(Section("Str_InsertPages_Pages", _pages));
         columns.Children.Add(where);
-        FrameworkElement options = DialogParts.Well(columns);
-        options.Margin = new Thickness(0, 12, 0, 0);
-        body.Children.Add(options);
+        body.Children.Add(columns);
+        // A language whose choices run longer than the default width widens the window rather than wrapping them.
+        Loaded += (_, _) =>
+        {
+            columns.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            double extra = columns.DesiredSize.Width - columns.ActualWidth;
+            if (extra > 0) Width += Math.Ceiling(extra);
+        };
 
         // A typed number picks its own choice, and the two page boxes show one page, so switching keeps it.
         Follow(_from, _range);
@@ -132,12 +139,22 @@ internal sealed class InsertPagesDialog : Window
         return label;
     }
 
-    private static StackPanel Group(string headingKey, params RadioButton[] choices)
+    private static StackPanel Group(params RadioButton[] choices)
     {
-        var group = new StackPanel { Margin = new Thickness(12, 10, 12, 12) };
-        group.Children.Add(Label(headingKey, 0));
+        var group = new StackPanel { Margin = new Thickness(12, 4, 12, 12) };
         foreach (RadioButton choice in choices) group.Children.Add(choice);
         return group;
+    }
+
+    // A heading over its box, the box filling the rest of the row's height.
+    private static DockPanel Section(string headingKey, FrameworkElement content)
+    {
+        var section = new DockPanel { LastChildFill = true };
+        TextBlock heading = Label(headingKey, 12);
+        DockPanel.SetDock(heading, Dock.Top);
+        section.Children.Add(heading);
+        section.Children.Add(DialogParts.Well(content));
+        return section;
     }
 
     // The app's own document icon on every open PDF, as the tab and compare lists show it.
@@ -206,7 +223,8 @@ internal sealed class InsertPagesDialog : Window
     private RadioButton Choose(string formatKey, string group, Style? style, params TextBox[] boxes)
     {
         string format = L(formatKey);
-        var line = new WrapPanel { VerticalAlignment = VerticalAlignment.Center };
+        // One line, never wrapped: the window widens instead (see the constructor).
+        var line = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         foreach (string piece in Regex.Split(format, @"(\{\d\})"))
         {
             if (Regex.Match(piece, @"^\{(\d)\}$") is { Success: true } slot)
