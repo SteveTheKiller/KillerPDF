@@ -375,8 +375,16 @@ public sealed class PdfIncrementalPageEditor
             SetTextFieldValue(fieldName, string.Empty, null, fontSize);
             pending = _textFieldValues[fieldName] with { KeepsItsValue = true, FontForValue = fontForValue };
         }
-        else if (fontSize.HasValue)
-            pending = pending with { FontSize = fontSize };
+        else
+        {
+            // A value already waiting for this name gets the font the callback gives it, the way the text style call does.
+            pending = pending with
+            {
+                FontSize = fontSize ?? pending.FontSize,
+                EmbeddedFont = pending.EmbeddedFont ?? (pending.KeepsItsValue ? null : fontForValue?.Invoke(pending.Value)),
+                FontForValue = fontForValue ?? pending.FontForValue
+            };
+        }
         _textFieldValues[fieldName] = pending with
         {
             Border = new PendingTextFieldBorder(borderColor, borderWidth, borderStyle,

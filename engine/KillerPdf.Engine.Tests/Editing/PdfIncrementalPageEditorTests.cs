@@ -14083,6 +14083,25 @@ public sealed class PdfIncrementalPageEditorTests
             .SetTextFieldAppearance("missing", style).Build());
     }
 
+    // A value already waiting in the editor must still get its font when the border call brings the callback.
+    [Fact]
+    public void SetTextFieldBorder_AfterAPendingValue_EmbedsTheFontTheCallbackGives()
+    {
+        TrueTypeFont font = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: true));
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "unicode", 20, 20, 160, 24, string.Empty, 11)
+            .Build();
+
+        byte[] updated = new PdfIncrementalPageEditor(PdfDocument.Open(source))
+            .SetTextFieldValue("unicode", "😀")
+            .SetTextFieldBorder("unicode", new PdfRgbColor(1, 0, 0), 1, PdfFormFieldBorderStyle.Solid,
+                fontForValue: value => font)
+            .Build();
+
+        Assert.Equal(1, CountAsciiOccurrences(updated, "/FontFile2"));
+    }
+
     [Fact]
     public void SetTextFieldBorder_ChangesOnlyTheBorder()
     {
