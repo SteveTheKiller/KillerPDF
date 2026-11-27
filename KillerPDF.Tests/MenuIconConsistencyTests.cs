@@ -100,9 +100,10 @@ public sealed class MenuIconConsistencyTests
             ("overflow", [OverflowGlyph("MiExtract")]));
 
     [Fact]
-    public void MergeOnTheCardShowsTheToolbarMergeGlyph()
+    public void InsertPagesOnTheCardShowsTheToolbarMergeGlyph()
+        // Insert Pages (#529) took the Merge tile's place and still merges, at the page you pick.
         => AllShow(Only(Toolbar, "\"Str_Lbl_Merge\""), "Merge",
-            ("page card", Glyphs(PageCard, "Loc(\"Str_Lbl_Merge\")")),
+            ("page card", Glyphs(PageCard, "Loc(\"Str_Ctx_InsertPages\")")),
             ("overflow", [OverflowGlyph("MiMerge")]));
 
     [Fact]

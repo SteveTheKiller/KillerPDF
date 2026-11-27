@@ -26,11 +26,11 @@ public sealed class MenuShortcutDisplayTests
     }
 
     [Fact]
-    public void TheCardMergeRowShowsNoShortcutBecauseTheGestureRunsAnotherMerge()
+    public void TheCardInsertPagesTileShowsNoShortcutBecauseTheMergeGestureDoesAnotherThing()
     {
-        // Alt+Shift+B merges at the end; the card's tile inserts after its own page, so its tooltip names no shortcut.
-        string row = Line(ShellSource.Read("Shell", "PageCard.cs"), "Loc(\"Str_Lbl_Merge\")");
-        Assert.Contains("Loc(\"Str_Lbl_Merge\"), null, async () => await MergeAtIndex(page + 1)", row);
+        // Alt+Shift+B merges at the end; the card's tile inserts pages at its own page, so its tooltip names no shortcut.
+        string row = Line(ShellSource.Read("Shell", "PageCard.cs"), "Loc(\"Str_Ctx_InsertPages\")");
+        Assert.Contains("Loc(\"Str_Ctx_InsertPages\"), null, async () => await InsertPagesAt(page)", row);
     }
 
     [Fact]

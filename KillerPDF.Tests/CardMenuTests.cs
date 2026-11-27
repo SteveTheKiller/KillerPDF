@@ -215,7 +215,7 @@ public sealed class CardMenuTests
         // beside the tile; each command keeps one entry.
         string card = Read("Shell", "PageCard.cs");
         string tools = Between(card, "CardTile[] toolRow =", "var cleanUp");
-        foreach (string key in new[] { "Str_Lbl_Merge", "Str_Tf_Suffix", "Str_ColorCorrection", "Str_Ctx_OcrPage", "Str_Ctx_ExportPageImage", "Str_Ctx_StampPages" })
+        foreach (string key in new[] { "Str_Ctx_InsertPages", "Str_Tf_Suffix", "Str_ColorCorrection", "Str_Ctx_OcrPage", "Str_Ctx_ExportPageImage", "Str_Ctx_StampPages" })
         {
             Assert.Contains($"Loc(\"{key}\")", tools);
             Assert.Equal(1, Count(card, $"Loc(\"{key}\")"));

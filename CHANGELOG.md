@@ -86,6 +86,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Shift+Enter on PDFs selected in File Explorer opens them together in a new KillerPDF window, however quickly Shift is let go (#513).
 - Alt+left-drag anywhere in a KillerPDF window moves it, and Alt+right-drag resizes it from the nearest edge or corner, as on Linux. Full screen stays put.
 - The keyboard shortcuts card and the website list Alt+drag and Alt+right-drag.
+- The page card's Insert Pages tile, which replaces Merge, takes all pages or a range from another open tab and puts them before or after a page you pick, starting at the page you right-clicked. Markup, form values and page turns come along, and its Files on disk row works like Merge did (#529).
 
 ## [1.9.6] - 2026-11-24
 

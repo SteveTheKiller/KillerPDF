@@ -73,6 +73,22 @@ namespace KillerPDF.Controls
                 return null;
             return new ComparisonDocument(working, original, System.IO.Path.GetFileName(original));
         }
+        /// <summary>
+        /// The tabs Insert Pages can take pages from: PDFs, loaded or waiting to load, that no open or merge is still
+        /// filling. A converted office file or a picture has a working PDF, so it is offered; DjVu and EPUB are not.
+        /// </summary>
+        internal IReadOnlyList<DocumentSession> PageSourceTabsExt()
+        {
+            if (_active != null) CaptureSessionState(_active);
+            return [.. _sessions.Where(session =>
+                session.NativeDoc == null && !session.LoadPending
+                && (session.Doc != null
+                    || session.DeferredPath is { } deferred && System.IO.File.Exists(deferred)
+                       && string.Equals(System.IO.Path.GetExtension(deferred), ".pdf", StringComparison.OrdinalIgnoreCase)))];
+        }
+
+        internal bool ContainsSessionExt([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] DocumentSession? s)
+            => s != null && _sessions.Contains(s);
         internal void CloseTabExt(DocumentSession? s) => CloseTab(s);
         internal void CloseAllTabsExt() => CloseAllTabs();
         internal void CloseOtherTabsExt(DocumentSession? keep = null)

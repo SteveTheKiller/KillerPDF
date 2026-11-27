@@ -41,11 +41,11 @@ namespace KillerPDF.Shell
                 new(GlyphText(0xE7AD), Loc("Str_Ctx_RotateCWShort"), "Ctrl:R", () => RotatePages_Click(90), false, true),
             ];
 
-            // The page tools are tiles too (Steve: go all out on the icons). Merge names no shortcut: Alt+Shift+B merges
-            // at the end, this tile after the clicked page.
+            // The page tools are tiles too (Steve: go all out on the icons). Insert Pages names no shortcut: Alt+Shift+B
+            // merges at the end, while this tile takes pages from another open tab or from disk, at the clicked page.
             CardTile[] toolRow =
             [
-                new("\uE710", Loc("Str_Lbl_Merge"), null, async () => await MergeAtIndex(page + 1), false, true),
+                new("\uE710", Loc("Str_Ctx_InsertPages"), null, async () => await InsertPagesAt(page), false, true),
                 new("\uE7C2", Loc("Str_Tf_Suffix"), "R", () => OpenTransformWindow(), false, true),
                 new("\uE790", Loc("Str_ColorCorrection"), "E", () => OpenTransformWindow(TransformWindowMode.ColorCorrection), false, true),
                 // The thumbnails' own Ctrl+Shift+O: every selected page, not only the clicked one.

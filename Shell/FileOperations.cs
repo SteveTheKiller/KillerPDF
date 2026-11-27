@@ -1564,25 +1564,32 @@ namespace KillerPDF.Shell
                     SetStatus(Loc("Str_Merge_TargetChanged"));
                     return;
                 }
-                int insertAt = insertionIndex;
-                int importedPages = imports.Sum(import => import.PageRotations.Count);
-                ReloadWithRemappedAnnotations(
-                    annotations => PageAnnotationInsertion.Shift(annotations, insertAt, importedPages),
-                    documentUndo => SaveTempAndReload(
-                        keepAnnotations: true,
-                        finalizeSavedFile: path =>
-                            PdfEngineIntegration.InsertDocuments(path, imports, insertAt),
-                        remapRotations: rotations =>
-                            PdfEngineIntegration.RemapRotationsAfterDocumentInsertion(
-                                rotations, imports, insertAt),
-                        selectedPageAfterReload: insertionIndex,
-                        documentUndo: documentUndo));
+                InsertImportedDocuments(imports, insertionIndex);
                 SetStatus(string.Format(Loc("Str_St_Merged"), dlg.Paths.Count, _doc?.PageCount));
             }
             catch (Exception ex)
             {
                 KillerDialog.Show(this, Loc("Str_Err_MergeFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        // Puts checked documents into the open one at a zero-based position, as one undo step: its markup and page
+        // turns move down past the new pages. The page card's merge and Insert Pages both end here.
+        private void InsertImportedDocuments(IReadOnlyList<PdfEngineIntegration.ImportedDocument> imports, int insertionIndex)
+        {
+            int insertAt = insertionIndex;
+            int importedPages = imports.Sum(import => import.PageRotations.Count);
+            ReloadWithRemappedAnnotations(
+                annotations => PageAnnotationInsertion.Shift(annotations, insertAt, importedPages),
+                documentUndo => SaveTempAndReload(
+                    keepAnnotations: true,
+                    finalizeSavedFile: path =>
+                        PdfEngineIntegration.InsertDocuments(path, imports, insertAt),
+                    remapRotations: rotations =>
+                        PdfEngineIntegration.RemapRotationsAfterDocumentInsertion(
+                            rotations, imports, insertAt),
+                    selectedPageAfterReload: insertionIndex,
+                    documentUndo: documentUndo));
         }
 
         // ============================================================
