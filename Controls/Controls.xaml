@@ -3516,9 +3516,13 @@
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                     MaxHeight="220"
                                     Effect="{DynamicResource ComboPopupShadow}">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                    <ItemsPresenter/>
-                                </ScrollViewer>
+                                <Grid>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                    <!-- Grain last, over the items, so a highlighted row keeps its texture. -->
+                                    <Border IsHitTestVisible="False" CornerRadius="{Binding CornerRadius, ElementName=PopupBd}" Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                                </Grid>
                             </Border>
                         </Popup>
                     </Grid>

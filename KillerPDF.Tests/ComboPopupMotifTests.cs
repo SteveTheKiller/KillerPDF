@@ -36,6 +36,29 @@ public sealed class ComboPopupMotifTests
         Assert.Matches(new Regex(@"\(""ComboPopupBrush"",\s*MotifPart\.Popup\)"), motif);
     }
 
+    // Film grain lies over every open dropdown list, after the items so a highlighted row keeps its texture, the way
+    // menus and cards carry it. DarkComboBox, the style most dialogs use, had none.
+    [Fact]
+    public void EveryComboDropdownCarriesFilmGrainOverItsItems()
+    {
+        var controls = XDocument.Load(Path.Combine(RepoRoot(), "Controls", "Controls.xaml"));
+        var comboPopups = controls.Descendants(Wpf + "ControlTemplate")
+            .Where(t => ((string?)t.Attribute("TargetType"))?.EndsWith("ComboBox", StringComparison.Ordinal) == true)
+            .SelectMany(t => t.Descendants(Wpf + "Popup"))
+            .Select(p => p.Elements(Wpf + "Border").Single())
+            .ToList();
+
+        Assert.True(comboPopups.Count >= 2, "expected the base ComboBox and DarkComboBox dropdowns");
+        foreach (var border in comboPopups)
+        {
+            XElement layers = Assert.Single(border.Elements(Wpf + "Grid"));
+            XElement grain = layers.Elements().Last();
+            Assert.Equal("{DynamicResource GrainTileBrush}", (string?)grain.Attribute("Background"));
+            Assert.Equal("{DynamicResource GrainOpacity}", (string?)grain.Attribute("Opacity"));
+            Assert.Equal("False", (string?)grain.Attribute("IsHitTestVisible"));
+        }
+    }
+
     private static string RepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
