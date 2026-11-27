@@ -126,12 +126,29 @@ namespace KillerPDF.Controls
         }
 
         /// <summary>The chevron column and row height of a section header, for a header whose
-        /// control is something else (Stamp's enable checkboxes).</summary>
-        public static FrameworkElement HeaderRow(UIElement control)
+        /// control is something else (Stamp's enable checkboxes). With a <paramref name="body"/>, the
+        /// chevron is a section toggle named <paramref name="name"/> that collapses the body like any
+        /// other section header (Steve 2026-11-26: Stamp's chevrons did nothing); the control keeps its
+        /// own job. Without one, the chevron is only drawn.</summary>
+        public static FrameworkElement HeaderRow(UIElement control, UIElement? body = null, string? name = null)
         {
             var row = new DockPanel { Height = HeaderHeight, Margin = new Thickness(0, HeaderTopMargin, 0, HeaderBottomMargin), LastChildFill = true, Tag = HeaderRowTag };
-            var chevron = new TextBlock { Text = "▾", Width = 16, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
-            chevron.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+            FrameworkElement chevron;
+            if (body != null)
+            {
+                var toggle = new SectionHeader(name ?? "", chevronOnly: true);
+                void Sync() => body.Visibility = toggle.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+                toggle.Checked += (_, _) => Sync();
+                toggle.Unchecked += (_, _) => Sync();
+                Sync();
+                chevron = toggle;
+            }
+            else
+            {
+                var text = new TextBlock { Text = "▾", Width = 16, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+                text.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+                chevron = text;
+            }
             DockPanel.SetDock(chevron, Dock.Left);
             row.Children.Add(chevron);
             row.Children.Add(control);
@@ -349,20 +366,34 @@ namespace KillerPDF.Controls
     {
         private readonly TextBlock _chevron;
 
-        public SectionHeader(string title)
+        public SectionHeader(string title) : this(title, chevronOnly: false) { }
+
+        /// <summary>A chevron-only header sits in a <see cref="PageWindowLayout.HeaderRow"/> beside
+        /// the control that carries the section's title, and is named <paramref name="title"/> for
+        /// screen readers.</summary>
+        internal SectionHeader(string title, bool chevronOnly)
         {
             _chevron = new TextBlock { Width = 16, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
             _chevron.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-            var text = new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
-            text.SetResourceReference(TextBlock.FontFamilyProperty, "UiFont");
-            text.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-            var row = new StackPanel { Orientation = Orientation.Horizontal };
-            row.Children.Add(_chevron);
-            row.Children.Add(text);
-            Content = row;
+            if (chevronOnly)
+            {
+                Content = _chevron;
+                Width = 16;
+                Margin = new Thickness(0);
+            }
+            else
+            {
+                var text = new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+                text.SetResourceReference(TextBlock.FontFamilyProperty, "UiFont");
+                text.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+                var row = new StackPanel { Orientation = Orientation.Horizontal };
+                row.Children.Add(_chevron);
+                row.Children.Add(text);
+                Content = row;
+                Margin = new Thickness(0, PageWindowLayout.HeaderTopMargin, 0, PageWindowLayout.HeaderBottomMargin);
+            }
             Height = PageWindowLayout.HeaderHeight;
-            Margin = new Thickness(0, PageWindowLayout.HeaderTopMargin, 0, PageWindowLayout.HeaderBottomMargin);
-            HorizontalAlignment = HorizontalAlignment.Stretch;
+            HorizontalAlignment = chevronOnly ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
             HorizontalContentAlignment = HorizontalAlignment.Left;
             Cursor = Cursors.Hand;
             var presenter = new FrameworkElementFactory(typeof(ContentPresenter));

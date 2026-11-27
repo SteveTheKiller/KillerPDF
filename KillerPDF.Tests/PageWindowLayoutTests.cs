@@ -212,6 +212,39 @@ public sealed class PageWindowLayoutTests
         });
     }
 
+    // Steve 2026-11-26: Stamp's header chevrons did nothing. A header row given a body makes its chevron a
+    // section toggle that Tab reaches and that collapses the body; the checkbox beside it is untouched.
+    [Fact]
+    public void AHeaderRowChevronCollapsesItsSection()
+    {
+        RunSta(() =>
+        {
+            var body = new Border { Height = 40 };
+            var enable = new CheckBox { IsChecked = true };
+            var row = (Panel)PageWindowLayout.HeaderRow(enable, body, "Watermark");
+
+            var chevron = Assert.IsType<SectionHeader>(row.Children[0]);
+            Assert.True(chevron.Focusable);
+            Assert.True(chevron.IsTabStop);
+            Assert.Equal("Watermark", AutomationProperties.GetName(chevron));
+            Assert.Equal(Visibility.Visible, body.Visibility);
+
+            chevron.IsChecked = false;
+            Assert.Equal(Visibility.Collapsed, body.Visibility);
+            Assert.True(enable.IsChecked);
+            chevron.IsChecked = true;
+            Assert.Equal(Visibility.Visible, body.Visibility);
+        });
+    }
+
+    [Fact]
+    public void BothStampSectionsCollapseFromTheirChevrons()
+    {
+        string stamp = ShellSource.Read("Controls", "StampWindow.cs");
+        Assert.Contains("PageWindowLayout.HeaderRow(_numEnable, _numBody, S(\"Str_Stamp_SecNumbers\"))", stamp);
+        Assert.Contains("PageWindowLayout.HeaderRow(_wmEnable, _wmBody, S(\"Str_Stamp_SecWatermark\"))", stamp);
+    }
+
     // Spec 5: section headers are real buttons that Tab reaches and that report ExpandCollapse.
     [Fact]
     public void ASectionHeaderIsAKeyboardButtonThatExpandsAndCollapses()

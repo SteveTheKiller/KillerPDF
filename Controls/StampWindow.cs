@@ -147,8 +147,8 @@ namespace KillerPDF
             _applyBtn.IsDefault = true;   // Enter
             var footer = PageWindowLayout.Footer(resetLink, cancelBtn, _applyBtn);
 
-            // Both sections are always open, so the window's height covers everything; a section's
-            // controls stay disabled until its checkbox turns it on, and Apply writes only what is on.
+            // Both sections open expanded and collapse from their chevrons; a section's controls stay
+            // disabled until its checkbox turns it on, and Apply writes only what is on.
             var options = new StackPanel();
             options.Children.Add(BuildWatermarkSection());
             options.Children.Add(PageWindowLayout.Divider());
@@ -237,8 +237,6 @@ namespace KillerPDF
             _numEnable = SectionToggle(S("Str_Stamp_SecNumbers"), _spec.NumbersEnabled);
             _numEnable.Checked   += (_, _2) => { UpdateEnabledStates(); Schedule(); };
             _numEnable.Unchecked += (_, _2) => { UpdateEnabledStates(); Schedule(); };
-            wrap.Children.Add(PageWindowLayout.HeaderRow(_numEnable));
-
             _numFormat = MakeField(_spec.Format);
             _numFormat.TextChanged += (_, _2) => Schedule();
             var hints = new StackPanel();
@@ -272,6 +270,8 @@ namespace KillerPDF
                 numColor, PageWindowLayout.Labeled(S("Str_Stamp_Position"), _numPos),
                 PageWindowLayout.Labeled(S("Str_Stamp_Pages"), _numRange),
                 PageWindowLayout.Labeled(" ", Row(_numMirror)));
+            // The chevron collapses the section; the checkbox still turns it on and off.
+            wrap.Children.Insert(0, PageWindowLayout.HeaderRow(_numEnable, _numBody, S("Str_Stamp_SecNumbers")));
             wrap.Children.Add(_numBody);
             return wrap;
         }
@@ -283,8 +283,6 @@ namespace KillerPDF
             _wmEnable = SectionToggle(S("Str_Stamp_SecWatermark"), _spec.WmEnabled);
             _wmEnable.Checked   += (_, _2) => { UpdateEnabledStates(); Schedule(); };
             _wmEnable.Unchecked += (_, _2) => { UpdateEnabledStates(); Schedule(); };
-            wrap.Children.Add(PageWindowLayout.HeaderRow(_wmEnable));
-
             // Type: text vs image.
             var typeRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
             _wmTextRadio = MakeRadio(S("Str_Stamp_WmText"), !_spec.WmIsImage);
@@ -342,6 +340,8 @@ namespace KillerPDF
                 Swap(fontCell, scaleCell), Swap(sizeCell, new Border()),
                 Swap(colorCell, new Border()), opacityCell,
                 angleCell, PageWindowLayout.Labeled(S("Str_Stamp_Pages"), _wmRange));
+            // The chevron collapses the section; the checkbox still turns it on and off.
+            wrap.Children.Add(PageWindowLayout.HeaderRow(_wmEnable, _wmBody, S("Str_Stamp_SecWatermark")));
             wrap.Children.Add(_wmBody);
             return wrap;
         }
