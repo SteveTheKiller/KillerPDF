@@ -2760,9 +2760,12 @@
              painted over by it: root-grid children all default to 0 and ties break on declaration
              order, and this is declared after MainContentGrid. Pushing the footer down rather than
              lifting the content keeps the About overlay - declared later still - on top of both.
-             (Family rule; see KillerShell and Killendar.) -->
+             (Family rule; see KillerShell and Killendar.)
+             Trash Polka: the footer carries the same Chrome ink as MainContentGrid above it, pinned to the
+             window, so the art runs on under the status text instead of stopping at a flat black bar. -->
         <Border Grid.Row="4" x:Name="FooterBorder" Panel.ZIndex="-1"
-                MinHeight="24" Background="{DynamicResource FooterBackgroundBrush}" SizeChanged="FooterAnchor_SizeChanged">
+                MinHeight="24" Background="{DynamicResource FooterBackgroundBrush}" SizeChanged="FooterAnchor_SizeChanged"
+                ctrl:ThemeMotif.Part="Chrome" ctrl:ThemeMotif.BaseBrush="FooterBackgroundBrush">
             <Grid>
             <Grid Margin="{DynamicResource FooterPadding}">
                 <Grid.ColumnDefinitions>

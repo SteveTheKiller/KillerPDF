@@ -43,6 +43,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Zooming with the zoom buttons or the zoom box keeps your place. The spot in the middle of the view stays there instead of the view jumping up or down the document, and a document read from the top stays at the top (#523).
 - Shift+Enter in the Open dialog's file name box opens the files in a new window, as it already did from the file list. A quick press used to open them as tabs of the same window (#513).
 - Leaving full screen puts the window back at the size it had before. With monitors at different display scales, it used to come back far too big.
+- In the Trash Polka theme, the status bar carries the same ink as the panes above it, so the art no longer stops at a flat black strip along the bottom.
 
 ### Changed
 - On HDR and Advanced Color monitors, color-managed pages are drawn in the display's real color range instead of the way a standard monitor draws them. The find bar, tool bar, page number badge and other panels over the page stay on top of it (#534).
