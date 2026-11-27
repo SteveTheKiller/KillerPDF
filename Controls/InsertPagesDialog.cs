@@ -69,6 +69,9 @@ internal sealed class InsertPagesDialog : Window
         _all = Choose("Str_InsertPages_All", "pages", radioStyle);
         _range = Choose("Str_InsertPages_Range", "pages", radioStyle, _from, _to);
         _all.IsChecked = true;
+        // All pages has no number box, so it takes a box's height: every row in both boxes is then the same height.
+        ((FrameworkElement)_all.Content).SetBinding(MinHeightProperty,
+            new System.Windows.Data.Binding(nameof(ActualHeight)) { Source = _from });
         _pages = Group(_all, _range);
 
         _beforePage = Number(clicked, "InsertPagesBeforePage");
@@ -141,7 +144,8 @@ internal sealed class InsertPagesDialog : Window
 
     private static StackPanel Group(params RadioButton[] choices)
     {
-        var group = new StackPanel { Margin = new Thickness(12, 4, 12, 12) };
+        // 8 all round inside the box: each choice adds its own 6 on top, so the top inset is 2.
+        var group = new StackPanel { Margin = new Thickness(8, 2, 8, 8) };
         foreach (RadioButton choice in choices) group.Children.Add(choice);
         return group;
     }
