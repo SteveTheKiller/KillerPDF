@@ -16,11 +16,14 @@ public sealed class TitleBarLayoutTests
         var theme = XDocument.Load(Path.Combine(root, "Themes", "98SE.xaml"));
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
 
-        XElement title = document.Descendants()
-            .Single(element => element.Name.LocalName == "TextBlock" &&
+        // The window's title bar and the What's new header, which copies it, both carry the plain title.
+        XElement[] titles = document.Descendants()
+            .Where(element => element.Name.LocalName == "TextBlock" &&
                 (string?)element.Attribute("Text") == "KillerPDF" &&
-                (string?)element.Attribute("Visibility") == "{DynamicResource PlainTitleVisibility}");
-        Assert.Equal("{DynamicResource TitleTextMargin}", (string?)title.Attribute("Margin"));
+                (string?)element.Attribute("Visibility") == "{DynamicResource PlainTitleVisibility}")
+            .ToArray();
+        Assert.Equal(2, titles.Length);
+        Assert.All(titles, title => Assert.Equal("{DynamicResource TitleTextMargin}", (string?)title.Attribute("Margin")));
 
         XElement margin = theme.Descendants()
             .Single(element => (string?)element.Attribute(x + "Key") == "TitleTextMargin");
