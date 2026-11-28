@@ -26,6 +26,7 @@
     <sys:String x:Key="Str_TT_DeletePages">刪除選取的頁面</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">向上移動頁面（重新排序）</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">向下移動頁面（重新排序）</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">平移工具 - 拖曳以捲動頁面 (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">選取工具 - 點選注釋、拖曳選取文字、雙擊編輯 (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">文字工具 - 點選以新增文字 (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">可填寫文字欄位 - 建立、選取、移動、調整大小或刪除欄位；按右鍵可變更填滿色彩 (F)</sys:String>
@@ -398,6 +399,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Lbl_Save">儲存</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">平面化</sys:String>
     <sys:String x:Key="Str_Lbl_Print">列印</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">平移</sys:String>
     <sys:String x:Key="Str_Lbl_Select">選取</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">縮小</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">放大</sys:String>

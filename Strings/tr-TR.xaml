@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Seçili Sayfaları Sil</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Sayfayı Yukarı Taşı (yeniden sırala)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Sayfayı Aşağı Taşı (yeniden sırala)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Kaydırma Aracı - sayfayı kaydırmak için sürükleyin (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Seçim Aracı - açıklamalara tıkla, metin seçmek için sürükle, düzenlemek için çift tıkla (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Metin Aracı - metin eklemek için tıkla (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Doldurulabilir metin alanı - alan oluşturun, seçin, taşıyın, yeniden boyutlandırın veya silin; dolgu rengini değiştirmek için sağ tıklayın (F)</sys:String>
@@ -396,6 +397,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Lbl_Save">Kaydet</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Düzleştir</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Yazdır</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Kaydır</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Seç</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Uzaklaştır</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Yakınlaştır</sys:String>

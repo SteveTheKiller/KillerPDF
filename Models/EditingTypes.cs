@@ -4,7 +4,7 @@ using System.Windows.Media;
 
 namespace KillerPDF
 {
-    public enum EditTool { Select, Text, FormField, Highlight, Strikethrough, Underline, Draw, Signature, Image, Crop, Line, Rotate, Shape, Measure, Redact }
+    public enum EditTool { Select, Pan, Text, FormField, Highlight, Strikethrough, Underline, Draw, Signature, Image, Crop, Line, Rotate, Shape, Measure, Redact }
 
     /// <summary>Sub-mode of the Shapes tool (#127 Phase 3): drag a rectangle or ellipse, or click
     /// out a free-form polygon vertex by vertex.</summary>

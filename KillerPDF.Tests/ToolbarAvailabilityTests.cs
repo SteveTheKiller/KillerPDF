@@ -6,6 +6,7 @@ namespace KillerPDF.Tests;
 public sealed class ToolbarAvailabilityTests
 {
     private static readonly ToolbarAvailability.State NoDocument = new(false, false, false, false, 0, -1, 0);
+    private static readonly ToolbarAvailability.State ReadingBook = new(false, false, false, false, 0, -1, 10, HasReadingDocument: true);
     private static readonly ToolbarAvailability.State ThreePagesSecondSelected = new(true, true, false, false, 1, 1, 3);
 
     [Fact]
@@ -34,6 +35,19 @@ public sealed class ToolbarAvailabilityTests
     {
         Assert.True(ToolbarAvailability.MainEnabled("new", NoDocument));
         Assert.True(ToolbarAvailability.MainEnabled("open", NoDocument));
+        Assert.False(ToolbarAvailability.MainEnabled("pan", NoDocument));
+        Assert.False(ToolbarAvailability.MainEnabled("select", NoDocument));
+    }
+
+    [Fact]
+    public void PanAndSelectWorkForPdfAndReadingBooksWhileEditingToolsWaitForPdf()
+    {
+        Assert.True(ToolbarAvailability.MainEnabled("pan", ThreePagesSecondSelected));
+        Assert.True(ToolbarAvailability.MainEnabled("select", ThreePagesSecondSelected));
+        Assert.True(ToolbarAvailability.MainEnabled("pan", ReadingBook));
+        Assert.True(ToolbarAvailability.MainEnabled("select", ReadingBook));
+        Assert.False(ToolbarAvailability.MainEnabled("text", ReadingBook));
+        Assert.False(ToolbarAvailability.MainEnabled("draw", ReadingBook));
     }
 
     [Fact]

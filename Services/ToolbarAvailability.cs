@@ -5,12 +5,13 @@ namespace KillerPDF.Services;
 internal static class ToolbarAvailability
 {
     internal readonly record struct State(bool HasDocument, bool CanUndo, bool CanRedo, bool CanClear,
-        int SelectedCount, int SelectedIndex, int PageCount);
+        int SelectedCount, int SelectedIndex, int PageCount, bool HasReadingDocument = false);
 
     /// <summary>Whether a toolbar unit's main button runs its command.</summary>
     internal static bool MainEnabled(string id, State state) => id switch
     {
         "new" or "open" => true,
+        "pan" or "select" => state.HasReadingDocument || state.HasDocument,
         "undo" => state.HasDocument && state.CanUndo,
         "redo" => state.HasDocument && state.CanRedo,
         "clear" => state.HasDocument && state.CanClear,

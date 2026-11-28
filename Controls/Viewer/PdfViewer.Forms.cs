@@ -51,6 +51,8 @@ namespace KillerPDF.Controls
         internal void RefreshFormDesignMode()
         {
             bool designMode = _currentTool == EditTool.FormField;
+            bool panMode = _isPanning || _spaceHeld || _currentTool == EditTool.Pan;
+            Cursor panCursor = _isPanning ? DragCursors.Closed : DragCursors.Open;
             foreach (Canvas canvas in AllPageCanvases())
             foreach (FrameworkElement element in canvas.Children
                          .OfType<FrameworkElement>()
@@ -58,8 +60,10 @@ namespace KillerPDF.Controls
             {
                 element.Cursor = designMode
                     ? Cursors.SizeAll
-                    : (Cursor?)element.GetValue(FormFillCursorProperty);
-                element.ForceCursor = designMode;
+                    : panMode
+                        ? panCursor
+                        : (Cursor?)element.GetValue(FormFillCursorProperty);
+                element.ForceCursor = designMode || panMode;
             }
         }
 
@@ -72,6 +76,11 @@ namespace KillerPDF.Controls
             if (_currentTool == EditTool.FormField && field.ObjNum > 0)
             {
                 element.Cursor = Cursors.SizeAll;
+                element.ForceCursor = true;
+            }
+            else if (_isPanning || _spaceHeld || _currentTool == EditTool.Pan)
+            {
+                element.Cursor = _isPanning ? DragCursors.Closed : DragCursors.Open;
                 element.ForceCursor = true;
             }
 

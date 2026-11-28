@@ -34,7 +34,7 @@ namespace KillerPDF.Shell
         internal static readonly ToolbarLayout DefaultToolbarLayout = new(
             ["new", "close", "open", "save", "ocr", "flatten", "print", "undo", "redo", "compare", "-", "merge", "extract",
              "-", "delete", "moveup", "movedown"],
-            ["select", "text", "highlight", "line", "shape", "draw", "image", "signature", "crop", "transform",
+            ["pan", "select", "text", "highlight", "line", "shape", "draw", "image", "signature", "crop", "transform",
              "colorcorrection", "measure", "redact", "stamp", "-", "formfield", "-", "clear",
              "-", "search"],
             []);
@@ -63,7 +63,7 @@ namespace KillerPDF.Shell
             ["text"],
         ];
 
-        private static readonly string[] ToolbarLastResortShedOrder = ["flatten", "print", "close", "new", "transform"];
+        private static readonly string[] ToolbarLastResortShedOrder = ["flatten", "print", "close", "new", "transform", "pan"];
 
         private readonly List<ToolbarUnit> _toolbarUnits = [];
         private ToolbarLayout _toolbarLayout = DefaultToolbarLayout;
@@ -97,6 +97,7 @@ namespace KillerPDF.Shell
             Add("delete", DeletePagesBtn, DeletePagesBtn, MiDelete, "\uE8C6", "Str_Lbl_Delete", null, Delete_Click);
             Add("moveup", MovePageUpBtn, MovePageUpBtn, MiMoveUp, "\uE74A", "Str_Lbl_MoveUp", null, MoveUp_Click);
             Add("movedown", MovePageDownBtn, MovePageDownBtn, MiMoveDown, "\uE74B", "Str_Lbl_MoveDown", null, MoveDown_Click);
+            Add("pan", ToolPanBtn, ToolPanBtn, null, PanGlyph, "Str_Lbl_Pan", "P", ToolPan_Click);
             Add("select", ToolSelectBtn, ToolSelectBtn, null, "\uE8B0", "Str_Lbl_Select", "V", ToolSelect_Click);
             Add("text", ToolTextBtn, ToolTextBtn, MiText, "\uE8D2", "Str_Lbl_Text", "T", ToolText_Click);
             Add("highlight", ToolHighlightBtn, ToolHighlightBtn, MiHighlight, "\uE7E6", "Str_Lbl_Highlight", "H", ToolHighlight_Click);
@@ -157,7 +158,7 @@ namespace KillerPDF.Shell
             }
             var edit = EditAvailability();
             var state = new ToolbarAvailability.State(hasDoc, edit.Undo, edit.Redo, edit.Clear,
-                PageList.SelectedItems.Count, PageList.SelectedIndex, _doc?.PageCount ?? 0);
+                PageList.SelectedItems.Count, PageList.SelectedIndex, _doc?.PageCount ?? 0, hasReadingDocument);
             foreach (ToolbarUnit unit in _toolbarUnits)
             {
                 unit.Bar.IsEnabled = ToolbarAvailability.GroupEnabled(unit.Id, state);

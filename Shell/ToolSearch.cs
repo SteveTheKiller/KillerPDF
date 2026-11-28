@@ -84,6 +84,7 @@ namespace KillerPDF.Shell
         private static readonly Dictionary<string, string> ToolSearchKeywords = new(StringComparer.Ordinal)
         {
             ["Str_Guided_Title"] = "prepare email clean scan sensitive information privacy redact create fillable form workflow task",
+            ["Str_Lbl_Pan"] = "pan hand grab drag scroll move view",
             ["Str_Lbl_Select"] = "pointer arrow cursor move",
             ["Str_Lbl_Text"] = "type typewriter font add text edit text",
             ["Str_Lbl_Highlight"] = "marker highlighter",

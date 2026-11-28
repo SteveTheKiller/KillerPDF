@@ -346,7 +346,9 @@ namespace KillerPDF.Controls
                     Width            = lnk.Cw + LinkHitPad * 2,
                     Height           = lnk.Ch + LinkHitPad * 2,
                     Background       = Brushes.Transparent,
-                    Cursor           = Cursors.Hand,
+                    Cursor           = (_isPanning || _spaceHeld || _currentTool == EditTool.Pan)
+                        ? (_isPanning ? DragCursors.Closed : DragCursors.Open)
+                        : Cursors.Hand,
                     ToolTip          = lnk.Tip,
                     Tag              = info,
                     IsHitTestVisible = true,

@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Видалити вибрані сторінки</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Перемістити сторінку вгору (змінити порядок)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Перемістити сторінку вниз (змінити порядок)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Переміщення - перетягніть для прокручування сторінки (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Вибір - натисніть анотацію, перетягніть для виділення тексту, двічі натисніть для редагування (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Текст - натисніть, щоб додати текст (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Текстове поле для заповнення - створюйте, вибирайте, переміщуйте, змінюйте розмір або видаляйте поля; права кнопка миші змінює колір заливки (F)</sys:String>
@@ -463,6 +464,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Lbl_Save">Зберегти</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Зведення</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Друк</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Переміщення</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Вибір</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Зменшити</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Збільшити</sys:String>

@@ -257,6 +257,8 @@ namespace KillerPDF.Tests
         {
             var map = ShortcutTable.BuildMap();
 
+            Assert.Equal("Str_Lbl_Pan", map[KbLayer.Base]["P"].Label);
+            Assert.Equal("Nav", map[KbLayer.Base]["P"].Cat);
             Assert.Equal("Str_ColorCorrection", map[KbLayer.Base]["E"].Label);
             Assert.Equal("Str_Lbl_Measure", map[KbLayer.Base]["M"].Label);
             Assert.Equal("Str_Lbl_Redact", map[KbLayer.Base]["X"].Label);

@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Ta bort markerade sidor</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Flytta sida uppåt (ändra ordning)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Flytta sida nedåt (ändra ordning)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Panoreringsverktyg: dra för att rulla sidan (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Markeringsverktyg: klicka på anteckningar, dra för att markera text, dubbelklicka för att redigera (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Textverktyg: klicka för att lägga till text (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Ifyllbart textfält: skapa, markera, flytta, ändra storlek på eller ta bort fält; högerklicka för att ändra fyllningsfärg (F)</sys:String>
@@ -464,6 +465,7 @@ Vill du skala dem till en storlek som stöds? Sidorna behåller sitt utseende oc
     <sys:String x:Key="Str_Lbl_Save">Spara</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Platta till</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Skriv ut</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Panorera</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Markera</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Zooma ut</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Zooma in</sys:String>

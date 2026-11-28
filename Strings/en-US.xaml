@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Delete Selected Pages</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Move Page Up (reorder)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Move Page Down (reorder)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Pan Tool: drag to scroll the page (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Select Tool: click annotations, drag to select text, double-click to edit (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Text Tool: click to add text (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Fillable text field: create, select, move, resize, or delete fields; right-click to change fill color (F)</sys:String>
@@ -464,6 +465,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Lbl_Save">Save</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Flatten</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Print</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Pan</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Select</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Zoom Out</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Zoom In</sys:String>

@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Ausgewählte Seiten löschen</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Seite nach oben verschieben (Reihenfolge ändern)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Seite nach unten verschieben (Reihenfolge ändern)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Verschiebewerkzeug - ziehen, um die Seite zu verschieben (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Auswahlwerkzeug - Anmerkungen anklicken, Text markieren, doppelklicken zum Bearbeiten (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Textwerkzeug - klicken, um Text hinzuzufügen (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Ausfüllbares Textfeld - Felder erstellen, auswählen, verschieben, skalieren oder löschen; Rechtsklick ändert die Füllfarbe (F)</sys:String>
@@ -396,6 +397,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Lbl_Save">Speichern</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Reduzieren</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Drucken</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Verschieben</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Auswählen</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Verkleinern</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Vergrößern</sys:String>

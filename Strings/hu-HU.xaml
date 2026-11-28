@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Kijelölt oldalak törlése</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Oldal mozgatása felfelé (átrendezés)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Oldal mozgatása lefelé (átrendezés)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Mozgató eszköz - húzással görgetheti az oldalt (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Kijelölő eszköz - kattintson a jegyzetekre, húzással jelöljön ki szöveget, dupla kattintással szerkeszthet (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Szöveg eszköz - kattintson szöveg hozzáadásához (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Kitölthető szövegmező - mezők létrehozása, kijelölése, mozgatása, átméretezése vagy törlése; jobb kattintással módosítható a kitöltés színe (F)</sys:String>
@@ -463,6 +464,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Lbl_Save">Mentés</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Lapítás</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Nyomtatás</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Mozgatás</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Kijelölés</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Kicsinyítés</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Nagyítás</sys:String>

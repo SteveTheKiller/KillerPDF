@@ -754,7 +754,7 @@ namespace KillerPDF.Shell
             }
             // Bare-key tool switches. Only when a document is open, no modifier is held, and no
             // overlay is up (and not while typing - guarded at the top of this handler).
-            else if (mods == ModifierKeys.None && _doc is not null
+            else if (mods == ModifierKeys.None && HasReadingDocument
                      && ShortcutsOverlay.Visibility != Visibility.Visible
                      && AboutOverlay.Visibility != Visibility.Visible
                      && TryToolShortcut(key))
@@ -805,7 +805,7 @@ namespace KillerPDF.Shell
                 SetTrueZoom(1.0);
                 e.Handled = true;
             }
-            else if (key == Key.Escape && _doc is not null && _currentTool != EditTool.Select)
+            else if (key == Key.Escape && HasReadingDocument && _currentTool != EditTool.Select)
             {
                 // 1.6.6 (#127 Phase 3): Esc with nothing left to cancel drops back to the Select
                 // tool, Acrobat-style. With Select already active it does nothing, as in other
@@ -816,7 +816,8 @@ namespace KillerPDF.Shell
             else if (key == Key.Space && !_spaceHeld)
             {
                 _spaceHeld = true;
-                PagePreviewPanel.Cursor = DragCursors.Open;
+                Viewer.SyncPanCursorExt();
+                ViewerB.SyncPanCursorExt();
                 e.Handled = true;
             }
         }
@@ -941,8 +942,8 @@ namespace KillerPDF.Shell
             if (e.Key == Key.Space && _spaceHeld)
             {
                 _spaceHeld = false;
-                if (!ActiveViewer.IsPanning)
-                    PagePreviewPanel.Cursor = Cursors.Arrow;
+                Viewer.SyncPanCursorExt();
+                ViewerB.SyncPanCursorExt();
                 e.Handled = true;
             }
         }
@@ -953,6 +954,9 @@ namespace KillerPDF.Shell
         // the tool without showing the menu).
         private bool TryToolShortcut(Key key)
         {
+            if (!HasReadingDocument) return false;
+            if (key == Key.P) { SetTool(EditTool.Pan); return true; }
+            if (key == Key.V) { SetTool(EditTool.Select); return true; }
             if (_doc is null) return false;
             switch (key)
             {
@@ -960,7 +964,6 @@ namespace KillerPDF.Shell
                 // V (the Photoshop / Illustrator / Figma convention) and Shapes is O; Line also keeps
                 // U. Signature, Transform, Stamp, Color Correction, Measure and Redact go through
                 // their toolbar handlers so their pickers open.
-                case Key.V: SetTool(EditTool.Select); return true;
                 case Key.F: SetTool(EditTool.FormField); return true;
                 case Key.T: SetTool(EditTool.Text); return true;
                 case Key.H: SetTool(EditTool.Highlight); return true;

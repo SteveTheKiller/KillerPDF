@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Supprimer les pages sélectionnées</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Déplacer la page vers le haut (réorganiser)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Déplacer la page vers le bas (réorganiser)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Outil Déplacement - glisser pour faire défiler la page (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Outil Sélection - cliquer sur les annotations, glisser pour sélectionner du texte, double-cliquer pour modifier (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Outil Texte - cliquer pour ajouter du texte (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Champ de texte remplissable : créer, sélectionner, déplacer, redimensionner ou supprimer des champs ; clic droit pour modifier la couleur de remplissage (F)</sys:String>
@@ -463,6 +464,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Lbl_Save">Enregistrer</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Aplatir</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Imprimer</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Déplacer</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Sélectionner</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Zoom arrière</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Zoom avant</sys:String>

@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Eliminar páginas seleccionadas</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Subir página (reordenar)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Bajar página (reordenar)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Herramienta de desplazamiento - arrastrar para desplazar la página (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Herramienta de selección - clic en anotaciones, arrastrar para seleccionar texto, doble clic para editar (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Herramienta de texto - clic para agregar texto (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Campo de texto rellenable - crea, selecciona, mueve, cambia el tamaño o elimina campos; haz clic derecho para cambiar el color de relleno (F)</sys:String>
@@ -396,6 +397,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Lbl_Save">Guardar</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Aplanar</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Imprimir</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Desplazar</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Seleccionar</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Alejar</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Acercar</sys:String>

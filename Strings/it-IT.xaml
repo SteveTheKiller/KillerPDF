@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Elimina pagine selezionate</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Sposta pagina in su (riordina)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Sposta pagina in giù (riordina)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Strumento sposta: trascina per scorrere la pagina (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Strumento selezione: clic sulle annotazioni, trascina per selezionare il testo, doppio clic per modificare (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Strumento testo: clic per aggiungere testo (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Campo testo compilabile: crea, seleziona, sposta, ridimensiona o elimina i campi; clic destro per modificare il colore di riempimento (F)</sys:String>
@@ -463,6 +464,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Lbl_Save">Salva</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Appiattisci</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Stampa</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Sposta</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Seleziona</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Zoom -</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Zoom +</sys:String>

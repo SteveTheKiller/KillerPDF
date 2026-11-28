@@ -500,6 +500,7 @@ namespace KillerPDF.Shell
                 // otherwise it vanishes into the overflow chevron and there's no way to tell what's active.
                 string? activeTool = _currentTool switch
                 {
+                    EditTool.Pan       => "pan",
                     EditTool.Text      => "text",
                     EditTool.FormField => "formfield",
                     EditTool.Line      => "line",

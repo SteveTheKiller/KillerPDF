@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">선택한 페이지 삭제</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">페이지 위로 이동 (순서 변경)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">페이지 아래로 이동 (순서 변경)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">이동 도구: 끌어서 페이지 스크롤 (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">선택 도구: 주석 클릭, 끌어서 텍스트 선택, 두 번 클릭하여 편집 (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">텍스트 도구: 클릭하여 텍스트 추가 (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">입력 가능한 텍스트 필드: 필드 만들기, 선택, 이동, 크기 조정 또는 삭제, 오른쪽 클릭으로 채우기 색 변경 (F)</sys:String>
@@ -464,6 +465,7 @@ Windows 설정의 기본 앱이 열립니다.</sys:String>
     <sys:String x:Key="Str_Lbl_Save">저장</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">평면화</sys:String>
     <sys:String x:Key="Str_Lbl_Print">인쇄</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">이동</sys:String>
     <sys:String x:Key="Str_Lbl_Select">선택</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">축소</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">확대</sys:String>

@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Smazat vybrané stránky</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Posunout stránku nahoru (změna pořadí)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Posunout stránku dolů (změna pořadí)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Nástroj posunu - tažením posunete stránku (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Nástroj výběru - klikněte na anotace, tažením vyberte text, dvojklikem upravte (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Textový nástroj - kliknutím přidáte text (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Vyplnitelné textové pole - vytváření, výběr, přesun, změna velikosti nebo odstranění polí; pravým tlačítkem změníte barvu výplně (F)</sys:String>
@@ -463,6 +464,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Lbl_Save">Uložit</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Sloučit vrstvy</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Tisk</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Posun</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Výběr</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Oddálit</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Přiblížit</sys:String>
