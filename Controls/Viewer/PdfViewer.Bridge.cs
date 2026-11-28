@@ -82,7 +82,7 @@ namespace KillerPDF.Controls
 
         private EditTool _currentTool = EditTool.Select;
         private bool _fullScreen => Host!.FullScreen;
-        private bool _spaceHeld => Host!.SpaceHeld;
+        private bool _spaceHeld => Host?.SpaceHeld ?? false;
 
         // Zoom limits stay defined on the window: MainWindow.xaml.cs and KeyboardShortcuts.cs read
         // them too, and a const aliases at no cost rather than being duplicated.
@@ -132,7 +132,7 @@ namespace KillerPDF.Controls
         private void PopulateContextMenu(Point pt, int page) => Host!.PopulateContextMenu(this, pt, page);
         private void RefreshPageList() => Host!.RefreshPageList(this);
         private void LoadOutlines() => Host!.LoadOutlines(this);
-        private Cursor CursorForTool(EditTool t) => Host!.CursorForTool(t);
+        private Cursor CursorForTool(EditTool t) => Host?.CursorForTool(t) ?? Cursors.Arrow;
 
         // The render cache is not forwarded either - TryGetCachedRender / CacheRender are real
         // members of this class. They work per-pane unchanged: the cache is keyed

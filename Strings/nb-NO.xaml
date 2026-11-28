@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Slett valgte sider</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Flytt side opp (endre rekkefølge)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Flytt side ned (endre rekkefølge)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Panoreringsverktøy: dra for å bla på siden (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Markeringsverktøy: klikk på merknader, dra for å markere tekst, dobbeltklikk for å redigere (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Tekstverktøy: klikk for å legge til tekst (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Fyllbart tekstfelt: opprett, velg, flytt, endre størrelse på eller slett felt; høyreklikk for å endre fyllfarge (F)</sys:String>
@@ -463,6 +464,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Lbl_Save">Lagre</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Flat ut</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Skriv ut</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Panorer</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Marker</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Zoom ut</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Zoom inn</sys:String>

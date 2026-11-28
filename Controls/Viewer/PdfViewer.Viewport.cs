@@ -1888,7 +1888,9 @@ namespace KillerPDF.Controls
             RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
 
             var overlay = BuildPageOverlay(pi, pageDipW, pageDipH, null);
-            overlay.Cursor = CursorForTool(_currentTool);
+            overlay.Cursor = _isPanning
+                ? DragCursors.Closed
+                : (_spaceHeld || _currentTool == EditTool.Pan ? DragCursors.Open : CursorForTool(_currentTool));
 
             var pageGrid = new Grid();
             pageGrid.Children.Add(img);

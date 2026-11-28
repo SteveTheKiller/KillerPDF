@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Удаление выбранных страниц</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Переместить страницу вверх (изменить порядок)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Переместить страницу вниз (изменить порядок)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Инструмент «Панорама» - перетащите для прокрутки страницы (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Инструмент «Выбор» - щелкните аннотации, перетащите, чтобы выделить текст, дважды щелкните, чтобы отредактировать (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Текстовый инструмент - нажмите, чтобы добавить текст (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Заполняемое текстовое поле - создание, выбор, перемещение, изменение размера или удаление; щелкните правой кнопкой, чтобы изменить цвет заливки (F)</sys:String>
@@ -463,6 +464,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Lbl_Save">Сохр.</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Сведение</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Печать</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Панорама</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Выделить</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Уменьш.</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Увелич.</sys:String>

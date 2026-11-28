@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Xóa các trang đã chọn</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Di chuyển trang lên trên (sắp xếp lại)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Di chuyển trang xuống dưới (sắp xếp lại)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Công cụ đẩy - kéo để cuộn trang (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Công cụ chọn - nhấp vào chú thích, kéo để chọn văn bản, nhấp đúp để chỉnh sửa (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Công cụ văn bản - nhấp để thêm văn bản (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Trường văn bản điền được - tạo, chọn, di chuyển, thay đổi kích thước hoặc xóa các trường; nhấp chuột phải để đổi màu tô (F)</sys:String>
@@ -463,6 +464,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Lbl_Save">Lưu</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Làm phẳng</sys:String>
     <sys:String x:Key="Str_Lbl_Print">In</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Đẩy</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Chọn</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Thu nhỏ</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Phóng to</sys:String>

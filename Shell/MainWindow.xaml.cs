@@ -281,6 +281,7 @@ namespace KillerPDF.Shell
             get => _view.CurrentPage;
             set { _view.CurrentPage = value; if (PageList.SelectedIndex != value) PageList.SelectedIndex = value; }
         }
+        private readonly Button _toolPanBtn = null!;
         private readonly Button _toolSelectBtn = null!;
         private readonly Button _toolFormFieldBtn = null!;
         private readonly Button _toolTextBtn = null!;
@@ -370,7 +371,15 @@ namespace KillerPDF.Shell
             // the mouse-up can be lost and the dragged annotation would stay glued to the cursor with the
             // canvas still holding mouse capture. End any in-progress gesture on deactivate so control is
             // restored the moment the user comes back.
-            Deactivated += (_, _) => { if (_isDraggingAnnot || _isResizingSig) FinishStuckGesture(); };
+            Deactivated += (_, _) =>
+            {
+                if (_isDraggingAnnot || _isResizingSig) FinishStuckGesture();
+                _spaceHeld = false;
+                Viewer.EndPanExt();
+                ViewerB.EndPanExt();
+                Viewer.SyncPanCursorExt();
+                ViewerB.SyncPanCursorExt();
+            };
             // These three live inside the PdfViewer control, and a UserControl is its own
             // namescope - FindName would return NULL SILENTLY rather than throw, so the failure
             // would surface much later as an unrelated NullReference. Take them off the control
@@ -386,6 +395,7 @@ namespace KillerPDF.Shell
             _pageContentGrid  = ActiveViewer.PageGrid;
             _pageContentPanel = ActiveViewer.PageHost;
             _continuousPanel  = ActiveViewer.ContinuousHost;
+            _toolPanBtn = (Button)FindName("ToolPanBtn")!;
             _toolSelectBtn = (Button)FindName("ToolSelectBtn")!;
             _toolFormFieldBtn = (Button)FindName("ToolFormFieldBtn")!;
             _toolTextBtn = (Button)FindName("ToolTextBtn")!;

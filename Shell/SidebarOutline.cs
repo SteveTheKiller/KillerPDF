@@ -947,6 +947,7 @@ namespace KillerPDF.Shell
             return d as TreeViewItem;
         }
 
+        private void ToolPan_Click(object sender, RoutedEventArgs e) => SetTool(EditTool.Pan);
         private void ToolSelect_Click(object sender, RoutedEventArgs e) => SetTool(EditTool.Select);
         private void ToolText_Click(object sender, RoutedEventArgs e) => SetTool(EditTool.Text);
         private void ToolFormField_Click(object sender, RoutedEventArgs e) => SetTool(EditTool.FormField);

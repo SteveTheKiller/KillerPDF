@@ -297,6 +297,7 @@ namespace KillerPDF
             B("%ctrl%+1 / 2 / 3",  "Str_KS_ZoomPresets", "Nav", Cap("Ctrl:D1", "Str_Zoom_ActualSize"),
                                                             Cap("Ctrl:D2", "Str_Zoom_FitWidth"),
                                                             Cap("Ctrl:D3", "Str_Zoom_FitPage")),
+            B("P",             "Str_Lbl_Pan",        "Nav", Cap("P")),
             B("%middledrag%",  "Str_KS_PanView",     "Nav"),
             B("%spacedrag%",   "Str_KS_PanView",     "Nav", Cap("Space")),
             B("F9",            "Str_KS_ToggleSidebar","Nav", Cap("F9")),

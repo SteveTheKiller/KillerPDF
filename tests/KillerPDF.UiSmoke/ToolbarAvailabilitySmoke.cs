@@ -14,18 +14,20 @@ internal static class ToolbarAvailabilitySmoke
 {
     private static readonly string[] DocumentButtons = [
         "CloseFileBtn", "SaveAsBtn", "SaveMenuBtn", "OcrBtn", "OcrMenuBtn", "FlattenBtn", "PrintBtn",
-        "ComparePdfBtn", "MergeBtn", "ToolSelectBtn", "ToolTextBtn", "ToolHighlightBtn", "ToolUnderlineBtn",
+        "ComparePdfBtn", "MergeBtn", "ToolPanBtn", "ToolSelectBtn", "ToolTextBtn", "ToolHighlightBtn", "ToolUnderlineBtn",
         "ToolShapeBtn", "ToolDrawBtn", "ToolImageBtn", "ToolSignatureBtn", "ToolCropBtn", "ToolRotateBtn",
         "ToolColorCorrectionBtn", "ToolMeasureBtn", "ToolRedactBtn", "ToolStampBtn", "ToolFormFieldBtn", "SearchBtn"];
 
     internal static int Run(Window owner, string appPath, string folder)
     {
         Empty(owner);
-        foreach (Key key in new[] { Key.T, Key.G })
+        foreach (Key key in new[] { Key.P, Key.T, Key.G })
             owner.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(owner),
                 Environment.TickCount, key) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
         Pump();
-        if (Equals(Button(owner, "ToolTextBtn").Tag, "selected") || Equals(Button(owner, "ToolSignatureBtn").Tag, "selected"))
+        if (Equals(Button(owner, "ToolPanBtn").Tag, "selected")
+            || Equals(Button(owner, "ToolTextBtn").Tag, "selected")
+            || Equals(Button(owner, "ToolSignatureBtn").Tag, "selected"))
             throw new InvalidOperationException("A bare tool shortcut activated a document tool without a PDF.");
 
         byte[] fixture = Fixture();
@@ -53,6 +55,12 @@ internal static class ToolbarAvailabilitySmoke
         pages.SelectedIndex = 0; Pump();
 
         var viewer = (FrameworkElement)owner.FindName("Viewer");
+        Click(Button(owner, "ToolPanBtn"));
+        if (!Equals(Button(owner, "ToolPanBtn").Tag, "selected") || Equals(Button(owner, "ToolSelectBtn").Tag, "selected"))
+            throw new InvalidOperationException("ToolPanBtn did not select Pan mode.");
+        Click(Button(owner, "ToolSelectBtn"));
+        if (Equals(Button(owner, "ToolPanBtn").Tag, "selected") || !Equals(Button(owner, "ToolSelectBtn").Tag, "selected"))
+            throw new InvalidOperationException("ToolSelectBtn did not restore Select mode.");
         Click(Button(owner, "ToolTextBtn"));
         Canvas page = Children(viewer).OfType<Canvas>().First(canvas => Equals(canvas.Tag, 0) && canvas.Width > 0);
         viewer.GetType().GetMethod("PlaceTextAtPosition", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!
@@ -147,6 +155,12 @@ internal static class ToolbarAvailabilitySmoke
     {
         Open(owner, source);
         var viewer = (FrameworkElement)owner.FindName("Viewer");
+        Click(Button(owner, "ToolPanBtn"));
+        if (!Equals(Button(owner, "ToolPanBtn").Tag, "selected") || Equals(Button(owner, "ToolSelectBtn").Tag, "selected"))
+            throw new InvalidOperationException("ToolPanBtn did not select Pan mode.");
+        Click(Button(owner, "ToolSelectBtn"));
+        if (Equals(Button(owner, "ToolPanBtn").Tag, "selected") || !Equals(Button(owner, "ToolSelectBtn").Tag, "selected"))
+            throw new InvalidOperationException("ToolSelectBtn did not restore Select mode.");
         Click(Button(owner, "ToolTextBtn"));
         Canvas page = Children(viewer).OfType<Canvas>().First(canvas => Equals(canvas.Tag, 0) && canvas.Width > 0);
         viewer.GetType().GetMethod("PlaceTextAtPosition", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!

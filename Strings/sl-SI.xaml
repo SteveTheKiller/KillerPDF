@@ -18,6 +18,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Izbriši izbrane strani</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Premakni stran navzgor (spremeni vrstni red)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Premakni stran navzdol (spremeni vrstni red)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Orodje za premik: povlecite za drsenje strani (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Orodje za izbiranje: kliknite pripombe, povlecite za izbiro besedila, dvokliknite za urejanje (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Orodje za besedilo: kliknite za dodajanje besedila (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Izpolnljivo besedilno polje: ustvarite, izberite, premaknite, spremenite velikost ali izbrišite polja; z desnim klikom spremenite barvo polnila (F)</sys:String>
@@ -412,6 +413,7 @@
     <sys:String x:Key="Str_Lbl_Save">Shrani</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Splošči</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Natisni</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Premakni</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Izberi</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Pomanjšaj</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Povečaj</sys:String>

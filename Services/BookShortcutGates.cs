@@ -29,6 +29,7 @@ internal static class ToolSearchReadingCommands
     internal static readonly HashSet<string> Labels =
     [
         "Str_View_Continuous", "Str_View_Single", "Str_View_TwoPage", "Str_View_Grid", "Str_View_BookMode",
+        "Str_Lbl_Pan",
         "Str_DocInvertSetting", "Str_InvertImagesToo", "Str_Kb_FirstPage", "Str_Kb_LastPage",
         "Str_Zoom_ActualSize", "Str_Zoom_FitWidth", "Str_Zoom_FitPage", "Str_KS_FileSize", "Str_Ctx_MoveToNewWindow",
         "Str_Rail_Pages", "Str_Rail_Outline", "Str_Rail_Comments", "Str_Rail_Attachments", "Str_Rail_Layers", "Str_Rail_Signatures",

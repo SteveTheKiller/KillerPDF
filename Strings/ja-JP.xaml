@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">選択ページを削除</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">ページを上に移動 (並べ替え)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">ページを下に移動 (並べ替え)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">パンツール - ドラッグしてページをスクロール (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">選択ツール - 注釈をクリック、テキストをドラッグして選択、ダブルクリックで編集 (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">テキストツール - クリックしてテキストを追加 (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">入力可能なテキストフィールド。フィールドの作成、選択、移動、サイズ変更、削除。右クリックで塗りつぶしの色を変更 (F)</sys:String>
@@ -463,6 +464,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Lbl_Save">保存</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">統合</sys:String>
     <sys:String x:Key="Str_Lbl_Print">印刷</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">パン</sys:String>
     <sys:String x:Key="Str_Lbl_Select">選択</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">ズームアウト</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">ズームイン</sys:String>

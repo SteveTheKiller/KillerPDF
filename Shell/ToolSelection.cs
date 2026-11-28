@@ -27,6 +27,7 @@ namespace KillerPDF.Shell
         // per-page overlay creation so freshly rendered tiles get the right cursor.
         internal static Cursor CursorForTool(EditTool tool) => tool switch
         {
+            EditTool.Pan => DragCursors.Open,
             EditTool.Text => Cursors.IBeam,
             EditTool.FormField => Cursors.Cross,
             EditTool.Highlight => Cursors.Cross,
@@ -49,12 +50,12 @@ namespace KillerPDF.Shell
 
         private void SetTool(EditTool tool, bool restoringPane = false)
         {
-            if (_doc is null) tool = EditTool.Select;
+            if (_doc is null && !(tool == EditTool.Pan && HasReadingDocument)) tool = EditTool.Select;
 
             // A PDF whose owner restricts editing is view-only until its owner password is entered.
             // Choosing an editing tool asks for it; re-applying the tab's tool on open or a tab
             // switch quietly falls back to Select instead of prompting.
-            if (tool != EditTool.Select && IsOwnerRestricted
+            if (tool is not (EditTool.Select or EditTool.Pan) && IsOwnerRestricted
                 && (restoringPane || tool == _currentTool || !UnlockOwnerRestrictions()))
                 tool = EditTool.Select;
 
@@ -73,6 +74,7 @@ namespace KillerPDF.Shell
 
             var map = new (Button btn, EditTool t)[]
             {
+                (_toolPanBtn, EditTool.Pan),
                 (_toolSelectBtn, EditTool.Select),
                 (_toolTextBtn, EditTool.Text),
                 (_toolFormFieldBtn, EditTool.FormField),
@@ -104,14 +106,8 @@ namespace KillerPDF.Shell
                 }
             }
 
-            // Apply the tool cursor to every page surface, not just the primary page.
-            // In Grid / Two-Page / Continuous modes the secondary tiles are separate
-            // overlay canvases tracked in _continuousCanvases; without this they keep
-            // the default arrow cursor while only page 1 (_annotationCanvas) updates.
-            var toolCursor = CursorForTool(tool);
-            _annotationCanvas.Cursor = toolCursor;
-            foreach (var overlay in _continuousCanvases.Values)
-                overlay.Cursor = toolCursor;
+            // Apply the tool cursor to the viewport and every page surface (primary + secondary tiles + links + forms).
+            ActiveViewer.SyncPanCursorExt();
 
             // Show or hide the docked options bar (the Measure bar is the draw bar with the Measure
             // controls). Focusing a pane keeps the bar it already shows for this tool: rebuilding it
@@ -167,7 +163,7 @@ namespace KillerPDF.Shell
         // highlighted icon on the bar. No-op for the rows that aren't tools.
         private void UpdateOverflowActiveHighlight()
         {
-            var map = new (Button mi, EditTool t)[]
+            var map = new List<(Button mi, EditTool t)>
             {
                 (MiText, EditTool.Text), (MiFormField, EditTool.FormField),
                 (MiUnderline, EditTool.Line), (MiHighlight, EditTool.Highlight),
@@ -175,16 +171,30 @@ namespace KillerPDF.Shell
                 (MiSignature, EditTool.Signature), (MiMeasure, EditTool.Measure),
                 (MiRedact, EditTool.Redact),
             };
+            foreach (var (id, t) in new[] { ("pan", EditTool.Pan), ("select", EditTool.Select) })
+                if (_toolbarUnits.FirstOrDefault(u => u.Id == id)?.Overflow is Button overflowBtn)
+                    map.Add((overflowBtn, t));
+
             foreach (var (mi, t) in map)
             {
                 if (mi is null) continue;
                 bool active = t == _currentTool;
                 if (active) mi.SetResourceReference(Control.BackgroundProperty, "SelectionBg");
                 else mi.ClearValue(Control.BackgroundProperty);
-                if (mi.Content is Panel sp)
-                    foreach (var ch in sp.Children)
-                        if (ch is TextBlock tb)
-                            tb.SetResourceReference(TextBlock.ForegroundProperty, active ? "SelectionFg" : "TextBrush");
+                mi.SetResourceReference(Control.ForegroundProperty, active ? "SelectionFg" : "TextBrush");
+                if (mi.Content is Panel root)
+                    TintOverflowText(root, active ? "SelectionFg" : "TextBrush");
+            }
+        }
+
+        private static void TintOverflowText(Panel panel, string brushKey)
+        {
+            foreach (var child in panel.Children)
+            {
+                if (child is TextBlock tb)
+                    tb.SetResourceReference(TextBlock.ForegroundProperty, brushKey);
+                else if (child is Panel nested)
+                    TintOverflowText(nested, brushKey);
             }
         }
 

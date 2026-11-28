@@ -99,6 +99,7 @@ namespace KillerPDF.Shell
             SetPageNavigationTip(PreviousPageBtn, "Str_Kb_PrevPage", "PgUp");
             SetPageNavigationTip(NextPageBtn, "Str_Kb_NextPage", "PgDn");
 
+            Tip(ToolPanBtn, "Str_TT_PanTool", "P");
             Tip(ToolSelectBtn, "Str_TT_SelectTool", "V");
             Tip(ToolTextBtn, "Str_TT_TextTool", "T");
             Tip(ToolHighlightBtn, "Str_TT_HighlightTool", "H");

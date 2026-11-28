@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Usuń wybrane strony</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Przesuń stronę w górę (zmiana kolejności)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Przesuń stronę w dół (zmiana kolejności)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Narzędzie przesuwania - przeciągnij, aby przewinąć stronę (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Wybierz Narzędzie - kliknij adnotacje, przeciągnij, aby zaznaczyć tekst, kliknij dwukrotnie, aby edytować (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Narzędzie Tekstu - kliknij, aby dodać tekst (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Wypełnialne pole tekstowe - twórz, zaznaczaj, przesuwaj, zmieniaj rozmiar lub usuwaj pola; kliknij prawym przyciskiem, aby zmienić kolor wypełnienia (F)</sys:String>
@@ -453,6 +454,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Lbl_Save">Zapisz</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Spłaszcz</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Drukuj</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Przesuń</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Wybierz</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Pomniejsz</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Powiększ</sys:String>

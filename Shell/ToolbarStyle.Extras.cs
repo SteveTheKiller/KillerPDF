@@ -28,6 +28,7 @@ namespace KillerPDF.Shell
         // Each toolbar icon button paired with its glyph and label-resource key, built once so the
         // appearance can be rebuilt without re-walking the tree.
         private readonly List<(Button btn, string glyph, string labelKey)> _toolbarButtons = [];
+        private const string PanGlyph = "PanHand";
         private const string TransformGlyph = "TransformBoxMove";
         private const string CompareGlyph = "CompareDocuments";
         private const string FormFieldGlyph = "FillableTextField";
@@ -83,7 +84,9 @@ namespace KillerPDF.Shell
             {
                 if (bar is null) continue;
                 foreach (var btn in DescendantButtons(bar))
-                    if (ReferenceEquals(btn, ToolRotateBtn))
+                    if (ReferenceEquals(btn, ToolPanBtn))
+                        _toolbarButtons.Add((btn, PanGlyph, "Str_Lbl_Pan"));
+                    else if (ReferenceEquals(btn, ToolRotateBtn))
                         _toolbarButtons.Add((btn, TransformGlyph, "Str_Lbl_Rotate"));
                     else if (ReferenceEquals(btn, ComparePdfBtn))
                         _toolbarButtons.Add((btn, CompareGlyph, "Str_TT_ComparePDFs"));
@@ -111,6 +114,32 @@ namespace KillerPDF.Shell
 
         private static FrameworkElement DrawToolbarGlyph(string glyph, double glyphSize)
         {
+            if (glyph == PanGlyph)
+            {
+                var hand = new System.Windows.Shapes.Path
+                {
+                    Data = Geometry.Parse(
+                        "M 8,21 C 6.2,18.2 4.4,15.4 3.4,13.5 C 2.9,12.5 3.4,11.3 4.4,11.0 C 5.3,10.7 6.2,11.2 6.8,12.0 L 8,13.5 " +
+                        "L 8,5.5 A 1.4,1.4 0 0 1 10.8,5.5 L 10.8,4.0 A 1.4,1.4 0 0 1 13.6,4.0 L 13.6,5.2 A 1.4,1.4 0 0 1 16.4,5.2 L 16.4,7.8 A 1.4,1.4 0 0 1 19.2,7.8 " +
+                        "L 19.2,14.5 C 19.2,17.8 17.8,19.8 16.5,21 Z " +
+                        "M 10.8,5.5 L 10.8,11.2 M 13.6,5.2 L 13.6,11.2 M 16.4,7.8 L 16.4,11.8"),
+                    Width = glyphSize * 14 / 16,
+                    Height = glyphSize,
+                    Stretch = Stretch.Uniform,
+                    StrokeThickness = glyphSize >= 18 ? 1.35 : 1.05,
+                    StrokeStartLineCap = PenLineCap.Round,
+                    StrokeEndLineCap = PenLineCap.Round,
+                    StrokeLineJoin = PenLineJoin.Round,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    SnapsToDevicePixels = true
+                };
+                hand.SetBinding(Shape.StrokeProperty, new System.Windows.Data.Binding(nameof(Button.Foreground))
+                {
+                    RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(Button), 1)
+                });
+                return hand;
+            }
             if (glyph == FormFieldGlyph)
             {
                 double scale = glyphSize / 16;
@@ -260,7 +289,7 @@ namespace KillerPDF.Shell
         partial void ToolbarCaptionShedRank(string labelKey, ref int rank) => rank = labelKey switch
         {
             "Str_Lbl_ZoomOut" or "Str_Lbl_ZoomIn" => 0,
-            "Str_Lbl_Select" => 1,
+            "Str_Lbl_Pan" or "Str_Lbl_Select" => 1,
             "Str_Lbl_Undo" or "Str_Ctx_Redo" or "Str_Lbl_Clear" => 2,
             "Str_Lbl_New" or "Str_Lbl_Open" or "Str_Lbl_Close"
                 or "Str_Lbl_Save" or "Str_Lbl_Flatten" or "Str_Lbl_Ocr" or "Str_Lbl_Print" => 3,

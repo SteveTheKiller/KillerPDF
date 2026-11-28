@@ -1275,6 +1275,7 @@ namespace KillerPDF.Controls
 
         internal void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (_currentTool == EditTool.Pan) return;
             if (_doc is null)
             {
                 FollowNativeLinkAtPointer(sender, e);
@@ -1906,7 +1907,8 @@ namespace KillerPDF.Controls
             // #221: the Select tool has two behaviors, flowing selection on text and a marquee on
             // empty page. Reflect the behavior under the pointer instead of leaving an arrow over
             // selectable text. Link hover below deliberately takes precedence with a hand.
-            if ((_currentTool == EditTool.Select || TextMarkupToolPolicy.FollowsText(_currentTool))
+            if (!_isPanning && !_spaceHeld
+                && (_currentTool == EditTool.Select || TextMarkupToolPolicy.FollowsText(_currentTool))
                 && sender is Canvas textHoverCanvas && textHoverCanvas.Tag is int textPage)
                 textHoverCanvas.Cursor = SelectableTextCursor(textPage, e.GetPosition(textHoverCanvas));
 
@@ -1925,7 +1927,8 @@ namespace KillerPDF.Controls
             // Tiled views: hand cursor + the link's target in the status bar while hovering (links have no
             // clickable overlay here - see Canvas_MouseLeftButtonDown - so hover is resolved by hit-testing
             // the stored rects, same 20px pad as the click).
-            if (_currentTool == EditTool.Select && _viewMode != ViewMode.Single && sender is Canvas linkHoverCv)
+            if (!_isPanning && !_spaceHeld
+                && _currentTool == EditTool.Select && _viewMode != ViewMode.Single && sender is Canvas linkHoverCv)
             {
                 int hpage = linkHoverCv.Tag is int htp ? htp : -1;
                 var hpos = e.GetPosition(linkHoverCv);

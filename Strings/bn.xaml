@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">নির্বাচিত পৃষ্ঠাগুলো মুছুন</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">পৃষ্ঠা উপরে সরান (পুনর্বিন্যাস)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">পৃষ্ঠা নিচে সরান (পুনর্বিন্যাস)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">প্যান টুল - পৃষ্ঠা স্ক্রোল করতে টেনে আনুন (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">নির্বাচন টুল - অ্যানোটেশনে ক্লিক করুন, টেক্সট নির্বাচনে টেনে আনুন, সম্পাদনার জন্য ডাবল-ক্লিক করুন (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">টেক্সট টুল - টেক্সট যোগ করতে ক্লিক করুন (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">পূরণযোগ্য টেক্সট ক্ষেত্র - ক্ষেত্র তৈরি, নির্বাচন, সরানো, আকার পরিবর্তন বা মুছুন; পূরণের রঙ বদলাতে ডান-ক্লিক করুন (F)</sys:String>
@@ -396,6 +397,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Lbl_Save">সংরক্ষণ</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">সমতল</sys:String>
     <sys:String x:Key="Str_Lbl_Print">প্রিন্ট</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">প্যান</sys:String>
     <sys:String x:Key="Str_Lbl_Select">নির্বাচন</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">ছোট করুন</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">বড় করুন</sys:String>

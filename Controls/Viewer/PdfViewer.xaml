@@ -664,6 +664,7 @@
                               PreviewMouseDown="PagePreviewPanel_PreviewMouseDown"
                               PreviewMouseMove="PagePreviewPanel_PreviewMouseMove"
                               PreviewMouseUp="PagePreviewPanel_PreviewMouseUp"
+                              LostMouseCapture="PagePreviewPanel_LostMouseCapture"
                               MouseRightButtonUp="DocPaneBackground_RightClick"
                               AllowDrop="True" Drop="DropZone_Drop" DragOver="DropZone_DragOver" DragLeave="DropZone_DragLeave">
                     <!-- Custom template: the VERTICAL scrollbar spans the full height (RowSpan=2),

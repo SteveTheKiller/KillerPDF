@@ -24,6 +24,7 @@
     <sys:String x:Key="Str_TT_DeletePages">Таңдалған беттерді жою</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Бетті жоғары жылжыту (қайта реттеу)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Бетті төмен жылжыту (қайта реттеу)</sys:String>
+    <sys:String x:Key="Str_TT_PanTool">Жылжыту құралы - бетті айналдыру үшін сүйреңіз (P)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Таңдау құралы - ескертпелерді басыңыз, мәтінді таңдау үшін сүйреңіз, өңдеу үшін екі рет басыңыз (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Мәтін құралы - мәтін қосу үшін басыңыз (T)</sys:String>
     <sys:String x:Key="Str_TT_FormFieldTool">Толтырылатын мәтін өрісі - өрістерді жасау, таңдау, жылжыту, өлшемін өзгерту немесе жою; толтыру түсін өзгерту үшін оң жақ батырмамен басыңыз (F)</sys:String>
@@ -383,6 +384,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Lbl_Save">Сақтау</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Тегістеу</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Басып шығару</sys:String>
+    <sys:String x:Key="Str_Lbl_Pan">Жылжыту</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Таңдау</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Кішірейту</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Үлкейту</sys:String>

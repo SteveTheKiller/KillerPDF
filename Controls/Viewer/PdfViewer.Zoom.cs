@@ -340,14 +340,15 @@ namespace KillerPDF.Controls
 
             bool spaceDown = Keyboard.IsKeyDown(Key.Space);
             if (e.ChangedButton == MouseButton.Middle ||
-                (e.ChangedButton == MouseButton.Left && spaceDown))
+                (e.ChangedButton == MouseButton.Left && (spaceDown || _currentTool == EditTool.Pan)))
             {
-                _isPanning = true;
-                _panStart = e.GetPosition(PagePreviewPanel);
-                _panScrollH = PagePreviewPanel.HorizontalOffset;
-                _panScrollV = PagePreviewPanel.VerticalOffset;
-                PagePreviewPanel.CaptureMouse();
-                PagePreviewPanel.Cursor = DragCursors.Closed;
+                if (Keyboard.FocusedElement is DependencyObject focused && IsFormFieldElement(focused))
+                {
+                    FocusManager.SetFocusedElement(FocusManager.GetFocusScope(focused), null);
+                    Keyboard.ClearFocus();
+                    PagePreviewPanel.Focus();
+                }
+                BeginPan(e.GetPosition(PagePreviewPanel));
                 e.Handled = true;
             }
             // Crop: allow starting the selection OUTSIDE the page - catch margin clicks, route them to the
@@ -482,16 +483,61 @@ namespace KillerPDF.Controls
             e.Handled = true;
         }
 
+        private void BeginPan(Point startInViewport)
+        {
+            _isPanning = true;
+            _panStart = startInViewport;
+            _panScrollH = PagePreviewPanel.HorizontalOffset;
+            _panScrollV = PagePreviewPanel.VerticalOffset;
+            PagePreviewPanel.CaptureMouse();
+            SyncPanCursor();
+        }
+
+        internal void EndPanExt()
+        {
+            if (!_isPanning) return;
+            _isPanning = false;
+            if (PagePreviewPanel.IsMouseCaptured)
+                PagePreviewPanel.ReleaseMouseCapture();
+            SyncPanCursor();
+        }
+
+        internal void SyncPanCursorExt() => SyncPanCursor();
+
+        private void SyncPanCursor()
+        {
+            bool panReady = _spaceHeld || _currentTool == EditTool.Pan;
+            if (_isPanning || panReady)
+                ShowLinkHoverStatus(null);
+
+            PagePreviewPanel.Cursor = _isPanning
+                ? DragCursors.Closed
+                : (panReady ? DragCursors.Open : Cursors.Arrow);
+
+            Cursor surfaceCursor = _isPanning
+                ? DragCursors.Closed
+                : (panReady ? DragCursors.Open : CursorForTool(_currentTool));
+            _annotationCanvas.Cursor = surfaceCursor;
+            foreach (var overlay in _continuousCanvases.Values)
+                overlay.Cursor = surfaceCursor;
+            foreach (var link in _linkOverlays)
+                if (link.IsHitTestVisible)
+                    link.Cursor = _isPanning ? DragCursors.Closed : (panReady ? DragCursors.Open : Cursors.Hand);
+            RefreshFormDesignMode();
+        }
+
         internal void PagePreviewPanel_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
             if (!_isPanning) return;
             if (e.ChangedButton != MouseButton.Middle && e.ChangedButton != MouseButton.Left) return;
-            _isPanning = false;
-            PagePreviewPanel.ReleaseMouseCapture();
-            // Still holding space means still armed to pan, so it drops back to the open hand
-            // rather than the arrow - the fingers release, the hand stays.
-            PagePreviewPanel.Cursor = _spaceHeld ? DragCursors.Open : Cursors.Arrow;
+            EndPanExt();
             e.Handled = true;
+        }
+
+        private void PagePreviewPanel_LostMouseCapture(object sender, MouseEventArgs e)
+        {
+            if (_isPanning && !ReferenceEquals(Mouse.Captured, PagePreviewPanel))
+                EndPanExt();
         }
     }
 }
